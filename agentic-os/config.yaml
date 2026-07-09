@@ -1,0 +1,13 @@
+server: {host: 0.0.0.0, port: 8787}
+memory:
+  backend: qdrant+sqlite_fts5
+  db_path: ./memory/agentic.db
+  vector_db: ./memory/qdrant_storage
+  embedding_model: sentence-transformers/all-MiniLM-L6-v2
+  dim: 384
+  mode: hybrid
+aipb_compatible: true
+goldie_mission_stack: true
+self_layer: obsidian_omi
+memory_galaxy: true
+version: 5.0

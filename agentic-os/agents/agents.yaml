@@ -1,0 +1,10 @@
+agents:
+  claude: {name: Claude, provider: anthropic, model: claude-4-sonnet, role: "The brain that thinks"}
+  hermes: {name: Hermes, provider: nousresearch, model: hermes-3-405b, role: "Autonomous worker runtime"}
+  openclaw: {name: OpenClaw, provider: local, model: computer-use, role: "Browser computer-use agent"}
+  gemini: {name: Gemini CLI, provider: google, model: gemini-2.5-pro}
+  grok: {name: Grok Studio, provider: xai, model: grok-4}
+  local: {name: Local LLM, provider: ollama, model: "llama3.1:8b"}
+  self: {name: "Self Layer", provider: local, model: "vault-rag"}
+mission_stack:
+  layer1_vision: "Build $10k/mo AI automation agency solo"
