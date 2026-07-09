@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Expo App — Agentic OS Live</title>
+<style>
+*{box-sizing:border-box}html,body,#root{height:100%;margin:0;background:#000;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',Inter,system-ui,sans-serif}
+#statusbar{height:44px;background:#000;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:14px;font-weight:600}
+#statusbar span{opacity:.95}
+#root{height:calc(100% - 44px);overflow:auto}
+</style>
+<!-- React 18 + React Native Web + Babel Standalone — $0, CDN, no build step -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/react-native-web@0.19.13/dist/index.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="/static/error-overlay.js"></script><script src="/static/inspector.js"></script></head>
+<body>
+<div id="statusbar"><span>9:41</span><span>⬛  ● ● ●</span><span>􀙇 􀛨 87%</span></div>
+<div id="root"></div>
+
+<!-- Editable App — Agentic OS will hot-reload this file -->
+<script type="text/babel" data-presets="react" data-type="module" src="./App.jsx"></script>
+<script type="text/babel" data-presets="react">
+const { View, Text, Pressable, ScrollView, Image, StyleSheet } = ReactNativeWeb;
+
+// Fallback inline App if App.jsx fails to load in file:// preview
+const FallbackApp = () => {
+  const [count,setCount]=React.useState(0);
+  const [tab,setTab]=React.useState('home');
+  return React.createElement(View,{style:s.container},[
+    React.createElement(View,{key:'h',style:s.header},[
+      React.createElement(Text,{key:'t',style:s.htitle},'Agentic OS'),
+      React.createElement(Text,{key:'s',style:s.hsub},'Expo • React Native Web • Live')
+    ]),
+    React.createElement(ScrollView,{key:'b',style:{flex:1},contentContainerStyle:{padding:18}},[
+      React.createElement(View,{key:'card',style:s.card},[
+        React.createElement(Text,{key:'ct',style:s.cardTitle},'🚀 Live Mobile Preview'),
+        React.createElement(Text,{key:'cd',style:s.cardDesc},'Edit mobile/App.jsx in Monaco → see iPhone update instantly. Hot reload ON.'),
+        React.createElement(Pressable,{key:'btn',style:({pressed})=>[s.btn,pressed&&{opacity:.7}],onPress:()=>setCount(c=>c+1)}, 
+          React.createElement(Text,{style:s.btnT},`Tap me • ${count}`)
+        ),
+        React.createElement(Text,{key:'h',style:s.hint}, count>0 ? `Tapped ${count}× @ ${new Date().toLocaleTimeString()}` : 'Waiting for tap…')
+      ]),
+      React.createElement(View,{key:'g',style:{flexDirection:'row',gap:10,marginTop:14}},[
+        ['⚡','Hermes'],['🧠','Claude'],['📱','OpenClaw']
+      ].map(([ico,lab],i)=>React.createElement(View,{key:i,style:s.pill},React.createElement(Text,{style:s.pillT},`${ico} ${lab}`))))
+    ]),
+    React.createElement(View,{key:'tab',style:s.tabbar},
+      [['home','⌂'],['search','⌕'],['bell','◉'],['user','○']].map(([k,ico])=>
+        React.createElement(Pressable,{key:k,onPress:()=>setTab(k),style:{flex:1,alignItems:'center',paddingVertical:10}},
+          React.createElement(Text,{style:[s.tabi, tab===k && s.tabiActive]}, ico)
+        )
+      )
+    )
+  ]);
+};
+
+const s = StyleSheet.create({
+  container:{flex:1,backgroundColor:'#0b0d12'},
+  header:{paddingTop:8,paddingHorizontal:20,paddingBottom:14,backgroundColor:'#0f111a',borderBottomWidth:1,borderBottomColor:'#1d2233'},
+  htitle:{color:'#fff',fontSize:20,fontWeight:'800'},
+  hsub:{color:'#7aa2f7',fontSize:12,marginTop:2},
+  card:{backgroundColor:'#121629',borderRadius:20,padding:18,borderWidth:1,borderColor:'#222946'},
+  cardTitle:{color:'#fff',fontSize:18,fontWeight:'700',marginBottom:6},
+  cardDesc:{color:'#9aa4bf',fontSize:13,lineHeight:18,marginBottom:14},
+  btn:{backgroundColor:'#7aa2f7',borderRadius:12,paddingVertical:13,alignItems:'center',marginTop:4},
+  btnT:{color:'#081028',fontWeight:'800',fontSize:15},
+  hint:{color:'#9ece6a',fontSize:12,marginTop:10},
+  pill:{backgroundColor:'#1a2032',borderRadius:12,paddingVertical:9,paddingHorizontal:12,borderWidth:1,borderColor:'#263250',flex:1,alignItems:'center'},
+  pillT:{color:'#cbd5ff',fontSize:12,fontWeight:'600'},
+  tabbar:{flexDirection:'row',borderTopWidth:1,borderTopColor:'#1d2233',backgroundColor:'#0f121c',paddingBottom:6},
+  tabi:{color:'#66708a',fontSize:20},
+  tabiActive:{color:'#7aa2f7'}
+});
+
+// Try to mount window.ExpoApp from App.jsx, else fallback
+setTimeout(()=>{
+  const rootEl=document.getElementById('root');
+  const root=ReactDOM.createRoot(rootEl);
+  const AppComp = window.ExpoApp || FallbackApp;
+  root.render(React.createElement(AppComp));
+  // HMR signal to parent Agentic OS
+  try{ window.parent.postMessage({agentic:'hmr',src:'expo'}, '*'); }catch(e){}
+  console.log('[Agentic OS] Expo React Native Web live ✅');
+}, 120);
+</script>
+</body>
+</html>
