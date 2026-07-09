@@ -1,0 +1,2108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agentic OS v5.0 — Agent Team OS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Inter,system-ui,Segoe UI,sans-serif;background:#0b0d12;color:#e6e6f0;height:100vh;overflow:hidden}
+.layout{display:grid;grid-template-columns:260px 1fr 330px;grid-template-rows:54px 1fr;height:100vh}
+.topbar{grid-column:1/4;background:#0f111a;border-bottom:1px solid #1d2233;display:flex;align-items:center;padding:0 18px;justify-content:space-between}
+.brand{font-weight:800;font-size:15.5px}.brand span{color:#7aa2f7}
+.badge{font-size:10.5px;background:#16213a;color:#7aa2f7;padding:2px 8px;border-radius:999px;margin-left:8px;border:1px solid #26355a}
+.badge2{font-size:10px;background:#2a1a12;color:#ff9e64;padding:2px 8px;border-radius:999px;margin-left:6px;border:1px solid #5a3a20}
+.badge3{font-size:10px;background:#13231b;color:#9ece6a;padding:2px 8px;border-radius:999px;margin-left:6px;border:1px solid #294a2b}
+.badge4{font-size:10px;background:#241630;color:#bb9af7;padding:2px 8px;border-radius:999px;margin-left:6px;border:1px solid #4a2c78}
+.top-actions{display:flex;gap:13px;font-size:12px;color:#9aa4bf}.top-actions div{cursor:pointer}
+.left{border-right:1px solid #1d2233;background:#0e1119;overflow-y:auto}
+.right{border-left:1px solid #1d2233;background:#0e1119;overflow-y:auto}
+.center{display:flex;flex-direction:column;background:#0b0d12;min-width:0}
+.tabs{display:flex;gap:5px;padding:9px 14px;border-bottom:1px solid #1d2233;background:#0f121c;flex-wrap:wrap}
+.tab{font-size:12px;padding:5px 11px;border-radius:8px;cursor:pointer;color:#9aa7c7;white-space:nowrap}
+.tab.active{background:#1c2540;color:#dbe6ff}
+.section-title{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#6b748f;padding:14px 14px 7px}
+.agent{padding:10px 14px;border-left:3px solid transparent;cursor:pointer;display:flex;align-items:center;gap:10px}
+.agent:hover{background:#141828}.agent.active{background:#141a2a;border-left-color:var(--c)}
+.agent-dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.agent-name{font-weight:600;font-size:13px}.agent-role{font-size:11px;color:#8a92aa}
+.status-pill{margin-left:auto;font-size:10px;padding:2px 6px;border-radius:999px;background:#1a2032;color:#9aa7c7}
+.status-pill.working{background:#1a2b1d;color:#9ece6a}
+/* builder */
+.builder-layout{display:grid;grid-template-columns:220px 1fr 480px;height:100%;min-height:0}
+.builder-left{background:#0f1322;border-right:1px solid #1d2238;overflow:auto;display:flex;flex-direction:column}
+.builder-center{display:flex;flex-direction:column;min-width:0;background:#0b0d14}
+.builder-right{background:#0e111b;border-left:1px solid #1d2238;display:flex;flex-direction:column;min-width:0}
+.file-tree{padding:8px;flex:1;overflow:auto}
+.file-item{padding:5px 9px;font-size:12.5px;color:#b9c5e8;cursor:pointer;border-radius:6px;display:flex;justify-content:space-between}
+.file-item:hover,.file-item.active{background:#1a2340;color:#fff}
+.tabbar{display:flex;background:#0f1526;border-bottom:1px solid #1d2238;overflow-x:auto;min-height:38px}
+.ftab{padding:8px 14px;font-size:12px;color:#9fb0d8;border-right:1px solid #1c2540;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px;position:relative;background:#0f1526}
+.ftab.active{background:#0b0d14;color:#e8efff;font-weight:600}
+.ftab .close{opacity:.5;font-size:13px}.ftab .close:hover{opacity:1;color:#ff6b6b}
+.ftab .dirty{width:7px;height:7px;background:#e0af68;border-radius:50%}
+.editor-toolbar{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid #1d2238;background:#10141f;font-size:12px;color:#9aa7c7;flex-wrap:wrap}
+.spacer{flex:1}
+.btn{background:#7aa2f7;color:#081020;border:none;padding:9px 14px;border-radius:9px;font-weight:700;cursor:pointer;font-size:13px}
+.btn-sm{padding:5px 10px;font-size:11.5px;border-radius:7px}
+.btn-ghost{background:#1a2032;color:#b6c3e6;border:1px solid #263250}
+.device-btn{padding:4px 9px;border-radius:7px;background:#181f35;color:#a8b6da;border:1px solid #263250;cursor:pointer;font-size:11px}
+.device-btn.active{background:#7aa2f7;color:#081028;border-color:#7aa2f7;font-weight:700}
+.device-btn.purple{background:#221a3a;color:#c9b6f5;border-color:#3d2a66}
+.device-btn.purple:hover{filter:brightness(1.15)}
+#monacoContainer{flex:1;min-height:260px}
+#fallbackEditor{flex:1;width:100%;background:#0a0c14;color:#d7e2ff;border:none;padding:14px;font-family:ui-monospace,monospace;font-size:13px;line-height:1.55;resize:none;outline:none;display:none}
+.preview-toolbar{display:flex;align-items:center;gap:7px;padding:7px 12px;border-bottom:1px solid #1d2238;background:#10141f;font-size:12px;flex-wrap:wrap}
+.preview-frame-wrap{flex:1;background:#181b29;display:flex;align-items:center;justify-content:center;overflow:auto;padding:14px}
+.preview-frame{background:#fff;border-radius:12px;box-shadow:0 16px 50px rgba(0,0,0,.45);transition:all .22s ease;border:6px solid #1a1a2a}
+.preview-frame.mobile{width:390px;height:760px}
+.preview-frame.tablet{width:768px;height:680px}
+.preview-frame.desktop{width:100%;height:100%;border-radius:6px}
+/* time-travel */
+.timetravel{border-top:1px solid #1d2238;background:#0b0f1a;padding:10px 12px}
+.tt-head{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:#9fb0d8;margin-bottom:7px;flex-wrap:wrap;gap:6px}
+.tt-slider{width:100%;accent-color:#7aa2f7}
+.tt-list{max-height:130px;overflow:auto;margin-top:8px;font-size:11px;color:#8ea0c8}
+.tt-item{padding:5px 7px;border-radius:6px;cursor:pointer;display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center}
+.tt-item:hover{background:#151f38}
+.tt-item.active{background:#1a2a4a;color:#dbe8ff}
+.tt-item .tmeta{color:#6b7ca5;font-size:10.5px}
+.tt-diffbtn{font-size:10px;padding:2px 7px;border-radius:6px;background:#221a3a;color:#c9b6f5;border:1px solid #3d2a66;cursor:pointer}
+.tt-diffbtn:hover{background:#2d2250}
+.console-bar{height:110px;border-top:1px solid #1d2238;background:#0a0d16;font-family:ui-monospace,monospace;font-size:11px;color:#8fa0c7;padding:8px 12px;overflow:auto}
+.right-card{margin:11px 13px;background:#121629;border:1px solid #222946;border-radius:13px;padding:13px}
+.right-card h3{font-size:12.5px;margin-bottom:9px;color:#cbd5ff}
+.mini{font-size:11px;color:#7c88a9}
+.cost-big{font-size:26px;font-weight:800;color:#9ece6a}
+.kv{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;color:#a9b4d4;border-bottom:1px dashed #1f2740}
+.memory-item{background:#10152a;border:1px solid #1e2642;padding:8px 9px;border-radius:9px;margin-bottom:7px;font-size:12px;color:#b8c5e8}
+.footer-bar{padding:7px 16px;font-size:11px;color:#677391;border-top:1px solid #1b2238;background:#0d101a;display:flex;gap:16px;flex-wrap:wrap}
+.pill2{padding:2px 7px;background:#151d34;border:1px solid #223055;border-radius:999px;color:#9fb4ea;font-size:11px}
+/* diff modal */
+#diffModal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(5,7,14,.97);flex-direction:column}
+.diff-head{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#0f1424;border-bottom:1px solid #1d2745;color:#cbd5ff;font-size:13px}
+.diff-head b{color:#fff}
+#diffContainer{flex:1}
+.diff-footer{padding:8px 14px;background:#0f1424;border-top:1px solid #1d2745;font-size:11px;color:#7c88a8;display:flex;justify-content:space-between;align-items:center}
+.diff-legend span{margin-right:14px}
+.ins{color:#9ece6a} .del{color:#f7768e}
+@media(max-width:1280px){.layout{grid-template-columns:230px 1fr}.right{display:none}}
+@media(max-width:900px){.builder-layout{grid-template-columns:1fr}.builder-left,.builder-right{display:none}}
+</style>
+<script>window.monacoLoadFailed=false;</script>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js" onerror="window.monacoLoadFailed=true"></script>
+</head>
+<body>
+<div class="layout">
+  <div class="topbar">
+    <div class="brand">🧠 Agentic OS <span>Mission Control</span>
+      <span class="badge">FREE BOARDROOM CLONE</span>
+      <span class="badge2">v3.1 MONACO</span>
+      <span class="badge3">GIT TIME-TRAVEL</span>
+      <span class="badge4">DIFF VIEW</span>
+    </div>
+    <div class="top-actions">
+      <div onclick="showTab('builder')">🚀 Live Builder</div>
+      <div onclick="openDiffModalLast()">⇄ Diff</div>
+      <div onclick="showTab('skills')">⚡ Skills</div>
+      <div>Local · <b style="color:#9ece6a">HMR ON</b></div>
+    </div>
+  </div>
+
+  <div class="left" id="agentList"><div class="section-title">Agents — 8 active</div></div>
+
+  <div class="center">
+    <div class="tabs">
+      <div class="tab active" data-tab="chat">💬 Chat</div>
+      <div class="tab" data-tab="builder" style="color:#ff9e64;font-weight:700">🚀 Live Builder v3.1</div>
+      <div class="tab" data-tab="kanban">📋 Kanban</div>
+      <div class="tab" data-tab="studio">🎨 Studio</div>
+      <div class="tab" data-tab="skills">⚡ Skills</div>
+    </div>
+
+    <!-- CHAT -->
+    <div id="pane-chat" style="display:flex;flex-direction:column;flex:1;min-height:0">
+      <div style="flex:1;overflow:auto;padding:20px" id="chatLog">
+        <div style="max-width:760px;line-height:1.6">
+          <div style="font-size:11px;color:#bb9af7;font-weight:700;margin-bottom:4px">Agentic OS v3.1 · Monaco Diff View</div>
+          Welcome to <b>Agentic OS v3.1</b>.<br><br>
+          New: <b>Monaco Diff View — side-by-side vN vs current</b><br>
+          • Click <b>Diff</b> on any version in the time-travel list<br>
+          • Split-pane VS Code diff editor: red removals / green additions<br>
+          • Accept left → right, or restore full version in one click<br>
+          • Still includes: Monaco editor, multi-file tabs, Git time-travel, HMR<br><br>
+          <span class="pill2">Monaco</span>
+          <span class="pill2">Multi-file tabs</span>
+          <span class="pill2">Git time-travel</span>
+          <span class="pill2" style="color:#bb9af7;border-color:#4a2c78">⇄ Diff view</span>
+        </div>
+      </div>
+      <div style="border-top:1px solid #1d2233;padding:13px 16px;background:#0f121c;display:flex;gap:9px">
+        <input id="chatInput" placeholder="Ask Builder: 'build me a mobile CRM app' · paste code…" style="flex:1;background:#151a28;border:1px solid #252d45;color:#e6e6f0;padding:12px 13px;border-radius:11px;font-size:14px;outline:none" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}">
+        <button class="btn-ghost btn" onclick="switchAgent(1)" id="agentBtn" style="min-width:130px">Builder ▾</button>
+        <button class="btn" onclick="send()">Send →</button>
+      </div>
+    </div>
+
+    <!-- BUILDER -->
+    <div id="pane-builder" style="display:none;flex:1;min-height:0;overflow:hidden">
+      <div class="builder-layout">
+        <div class="builder-left">
+          <div class="section-title">/preview</div>
+          <div class="file-tree" id="fileTree"></div>
+          <div style="padding:10px;border-top:1px solid #1d2238">
+            <div class="mini" style="margin-bottom:7px">Scaffold:</div>
+            <button class="device-btn" style="width:100%;margin-bottom:5px" onclick="scaffold('SaaS dashboard')">SaaS Dashboard</button>
+            <button class="device-btn" style="width:100%;margin-bottom:5px" onclick="scaffold('mobile app')">Mobile App</button>
+            <button class="device-btn" style="width:100%;margin-bottom:5px" onclick="scaffold('landing page')">Landing</button>
+            <button class="device-btn" style="width:100%" onclick="newFile()">+ New file</button>
+          </div>
+        </div>
+
+        <div class="builder-center">
+          <div class="tabbar" id="editorTabs"></div>
+          <div class="editor-toolbar">
+            <span id="currentFileLabel" style="font-family:ui-monospace,monospace">index.html</span>
+            <span class="spacer"></span>
+            <span class="mini" id="saveStatus" style="color:#9ece6a">saved</span>
+            <button class="device-btn purple" onclick="openDiffModalLast()">⇄ Diff</button>
+            <button class="device-btn" onclick="manualCommit()">📸 Commit</button>
+            <button class="device-btn" onclick="saveFile()">💾 Save</button>
+          </div>
+          <div id="monacoContainer" style="flex:1;min-height:240px"></div>
+          <textarea id="fallbackEditor" placeholder="Monaco loading…"></textarea>
+
+          <div class="timetravel">
+            <div class="tt-head">
+              <span>🕰 Git time-travel — <b id="versionCount">0 versions</b> — click Diff to compare</span>
+              <span>
+                <button class="device-btn purple" onclick="openDiffModalLast()">⇄ Open Diff</button>
+                <button class="device-btn" onclick="loadHistory()">⟳</button>
+                <button class="device-btn" onclick="restoreSelected()">↶ Restore</button>
+              </span>
+            </div>
+            <input type="range" id="timeSlider" class="tt-slider" style="width:100%;accent-color:#7aa2f7" min="0" max="0" value="0" oninput="scrubVersion(this.value)">
+            <div class="tt-list" id="timeList"><div class="mini">No versions yet — edit a file.</div></div>
+          </div>
+          <div class="console-bar" id="consoleBar">› Agentic OS v3.1 — Monaco Diff ready<br>› Hot reload: ON • Auto-save: 600ms<br></div>
+        </div>
+
+        <div class="builder-right">
+          <div class="preview-toolbar">
+            <button class="device-btn active" id="pmWeb" onclick="setPreviewMode('web')" style="font-weight:700">🌐 Web</button>
+            <button class="device-btn" id="pmExpo" onclick="setPreviewMode('expo')" style="color:#c9a8ff;border-color:#4a2c78">📱 Expo RN</button>
+            <span style="width:10px"></span>
+            <span style="color:#9aa7c7">Device:</span>
+            <button class="device-btn active" data-dev="mobile" onclick="setDevice('mobile')">📱 Mobile</button>
+            <button class="device-btn" data-dev="tablet" onclick="setDevice('tablet')">▭ Tablet</button>
+            <button class="device-btn" data-dev="desktop" onclick="setDevice('desktop')">🖥 Desktop</button>
+            <span class="spacer"></span>
+            <button class="device-btn" onclick="reloadPreview()">⟳</button>
+            <button class="device-btn" onclick="window.open('/preview/index.html','_blank')">↗</button>
+          </div>
+          <div class="preview-frame-wrap">
+            <iframe id="previewFrame" class="preview-frame mobile" src="/preview/index.html" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+          </div>
+          <div style="padding:7px 12px;border-top:1px solid #1d2238;font-size:11px;color:#7b88a8;display:flex;justify-content:space-between">
+            <span id="previewInfo">390×760 • iPhone</span>
+            <span>HMR <b style="color:#9ece6a">● LIVE</b> • <span id="liveVersionLabel">v0</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pane-kanban" style="display:none;flex:1;overflow:auto;padding:0;background:#070a12"><div id="kanbanBoard" style="padding:14px;min-height:100%">Kanban loading…</div></div>
+    <div id="pane-studio" style="display:none;flex:1;overflow:auto;padding:20px"><h2>🎨 Studio</h2><p class="mini">Multi-modal</p></div>
+    <div id="pane-skills" style="display:none;flex:1;overflow:auto;padding:20px"><h2>⚡ Skills Hub</h2><div id="skillsGrid"></div></div>
+
+    <div class="footer-bar">
+      <span>🟢 v3.1 Monaco · Diff · Git time-travel · HMR</span>
+      <span>Agents: 8 · open files: <b id="openFilesCount">0</b></span>
+      <span id="costFooter">Cost $0.0122 · Saved $287/mo</span>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="right-card"><h3>🎯 Goldie Mission Stack</h3>
+      <div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:12.5px;color:#b8c2de;margin-bottom:4px"><span>Monaco diff view</span><span>100%</span></div><div style="height:7px;background:#1b2140;border-radius:99px"><i style="display:block;height:100%;width:100%;background:linear-gradient(90deg,#bb9af7,#7aa2f7);border-radius:99px"></i></div></div>
+      <div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:12.5px;color:#b8c2de;margin-bottom:4px"><span>Multi-file tabs</span><span>100%</span></div><div style="height:7px;background:#1b2140;border-radius:99px"><i style="display:block;height:100%;width:100%;background:linear-gradient(90deg,#7aa2f7,#bb9af7);border-radius:99px"></i></div></div>
+      <div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:12.5px;color:#b8c2de;margin-bottom:4px"><span>Git time-travel</span><span>100%</span></div><div style="height:7px;background:#1b2140;border-radius:99px"><i style="display:block;height:100%;width:100%;background:linear-gradient(90deg,#7aa2f7,#bb9af7);border-radius:99px"></i></div></div>
+    </div>
+    <div class="right-card"><h3>⇄ Diff Status</h3>
+      <div class="kv"><span>Current file</span><span id="rtCurrent">index.html</span></div>
+      <div class="kv"><span>Versions</span><span id="rtVersions">0</span></div>
+      <div class="kv"><span>Selected</span><span id="rtSelected">—</span></div>
+      <div class="kv"><span>Last save</span><span id="rtLast">—</span></div>
+      <div style="margin-top:9px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <button class="device-btn purple" onclick="openDiffModalLast()">⇄ Diff</button>
+        <button class="device-btn" onclick="manualCommit()">📸 Commit</button>
+      </div>
+    </div>
+    <div class="right-card"><h3>💰 Cost Analytics</h3><div class="cost-big">$0.0122</div><div class="mini">v3.1 local-first</div></div>
+    <div class="right-card"><h3>🧠 Memory</h3><div class="memory-item"><small>self · system</small><br>Agentic OS v3.1 — Monaco Diff View active. Shared memory + Git time-travel.</div></div>
+  </div>
+</div>
+
+<!-- DIFF MODAL -->
+<div id="diffModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(5,7,14,.97);flex-direction:column">
+  <div class="diff-head">
+    <div><b>⇄ Monaco Diff — </b><span id="diffTitle">index.html</span> <span class="mini" id="diffMeta"></span></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
+      <span class="mini" id="diffStats"></span>
+      <button class="device-btn" onclick="diffPrev()">◀ Prev</button>
+      <button class="device-btn" onclick="diffNext()">Next ▶</button>
+      <button class="device-btn" style="background:#1d2f1a;color:#9ece6a;border-color:#2d5a2d" onclick="acceptLeft()">✓ Accept left → right</button>
+      <button class="device-btn" style="background:#2a1820;color:#f7768e;border-color:#5a2335" onclick="restoreDiffVersion()">↶ Restore this version</button>
+      <button class="btn btn-sm" onclick="closeDiff()">✕ Close Esc</button>
+    </div>
+  </div>
+  <div id="diffContainer" style="flex:1"></div>
+  <div class="diff-footer">
+    <div class="diff-legend"><span class="del">■ removed</span><span class="ins">■ added</span><span>· F7/F8 next diff · Esc close</span></div>
+    <div><span id="diffFileLabel">index.html</span> · <span id="diffVersionsLabel">v — vs current</span></div>
+  </div>
+</div>
+
+<script>
+// ---- state ----
+let agents=[
+  {id:'builder',name:'App Builder',role:'Monaco + Diff + Git',status:'working',color:'#ff9e64'},
+  {id:'claude',name:'Claude',role:'The brain',status:'idle',color:'#d97757'},
+  {id:'hermes',name:'Hermes',role:'Autonomous',status:'working',color:'#7aa2f7'},
+  {id:'openclaw',name:'OpenClaw',role:'Browser',status:'idle',color:'#9ece6a'},
+  {id:'gemini',name:'Gemini CLI',role:'Code',status:'idle',color:'#bb9af7'},
+  {id:'grok',name:'Grok Studio',role:'Multi-modal',status:'idle',color:'#f7768e'},
+  {id:'local',name:'Local LLM',role:'Ollama',status:'idle',color:'#e0af68'},
+  {id:'self',name:'Self Layer',role:'Obsidian',status:'active',color:'#2ac3de'},
+];
+let currentAgent='builder';
+let openTabs=[]; let activeTab='index.html';
+let monacoEditor=null; let monacoDiffEditor=null;
+let saveTimer=null;
+let versions=[]; let selectedVersionId=null; let selectedVersionIdx=0;
+
+// agents render
+function renderAgents(){
+  const el=document.getElementById('agentList');
+  el.querySelectorAll('.agent').forEach(n=>n.remove());
+  agents.forEach(a=>{
+    const d=document.createElement('div');
+    d.className='agent'+(a.id===currentAgent?' active':'');
+    d.style.setProperty('--c', a.color);
+    d.onclick=()=>{currentAgent=a.id; renderAgents(); document.getElementById('agentBtn').textContent=a.name+' ▾'; if(a.id==='builder') showTab('builder');};
+    d.innerHTML=`<div class="agent-dot"></div><div><div class="agent-name">${a.name}</div><div class="agent-role">${a.role}</div></div><div class="status-pill ${a.status}">${a.status}</div>`;
+    el.appendChild(d);
+  });
+}
+function switchAgent(n){ const i=agents.findIndex(x=>x.id===currentAgent); const ni=(i+n+agents.length)%agents.length; currentAgent=agents[ni].id; renderAgents(); document.getElementById('agentBtn').textContent=agents[ni].name+' ▾'; }
+renderAgents();
+
+// tabs
+document.querySelectorAll('.tab').forEach(tab=>{ tab.onclick=()=>{ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); tab.classList.add('active'); const t=tab.dataset.tab; ['chat','builder','kanban','studio','skills'].forEach(p=>{ const el=document.getElementById('pane-'+p); if(el) el.style.display = p===t ? (p==='chat'?'flex':'block') : 'none'; }); if(t==='builder') initBuilder(); }; });
+function showTab(t){ document.querySelector(`.tab[data-tab="${t}"]`)?.click(); }
+
+// chat
+async function send(){
+  const inp=document.getElementById('chatInput'); const txt=inp.value.trim(); if(!txt) return;
+  addChat(txt,'user'); inp.value='';
+  if(txt.includes('<html')){
+    await saveFileContent(activeTab, txt, 'agent paste');
+    addChat('✓ HTML pasted → Monaco updated → version snapshot saved. Open Diff to compare.', 'agent');
+    return;
+  }
+  setTimeout(()=> addChat('App Builder v3.1: “'+txt.slice(0,80)+'”\n\nI scaffolded multi-file output. Check Monaco tabs top — index.html / styles.css / app.js — edit any, watch HMR right. Use 🕰 time-travel + ⇄ Diff to compare versions.', 'agent'), 500);
+}
+function addChat(t, who){
+  const log=document.getElementById('chatLog');
+  const d=document.createElement('div');
+  d.style.marginBottom='14px'; d.style.maxWidth='760px';
+  if(who==='user'){ d.style.background='#161b2b'; d.style.border='1px solid #222942'; d.style.padding='12px 14px'; d.style.borderRadius='12px'; d.textContent=t; }
+  else { d.innerHTML='<div style="font-size:11px;color:#bb9af7;font-weight:700;margin-bottom:4px">App Builder · Monaco Diff v3.1</div>'+t.replace(/\n/g,'<br>'); }
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+}
+
+// ---- BUILDER ----
+let builderInited=false;
+function initBuilder(){
+  if(builderInited) return;
+  builderInited=true;
+  loadFileTree();
+  openTabFile('index.html');
+  initMonaco();
+  loadHistory();
+}
+function initMonaco(){
+  const container=document.getElementById('monacoContainer');
+  const fallback=document.getElementById('fallbackEditor');
+  if(window.monacoLoadFailed || typeof require==='undefined'){
+    container.style.display='none'; fallback.style.display='block';
+    fallback.addEventListener('input', onEditorChange);
+    addConsole('› Monaco CDN blocked in sandboxed preview — textarea fallback active. Run locally: full VS Code editor.');
+    return;
+  }
+  try{
+    require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
+    require(['vs/editor/editor.main'], function(){
+      monacoEditor = monaco.editor.create(container, {
+        value: '// loading…',
+        language: 'html',
+        theme: 'vs-dark',
+        automaticLayout: true,
+        minimap: {enabled:false},
+        fontSize: 13,
+        scrollBeyondLastLine: false,
+        wordWrap: 'on'
+      });
+      monacoEditor.onDidChangeModelContent(()=>{
+        markDirty(activeTab, true);
+        setStatus('editing…','#e0af68');
+        clearTimeout(saveTimer);
+        saveTimer=setTimeout(saveFile, 600);
+        liveHMR();
+      });
+      loadFileIntoEditor(activeTab);
+      addConsole('› Monaco Editor v0.45 ✓ • Diff editor ready');
+    });
+  }catch(e){
+    container.style.display='none'; fallback.style.display='block';
+    addConsole('› Monaco failed, fallback active');
+  }
+}
+
+// multi-file tabs
+function openTabFile(path){
+  if(!openTabs.find(t=>t.path===path)) openTabs.push({path, dirty:false});
+  activeTab=path;
+  renderEditorTabs();
+  loadFileIntoEditor(path);
+  document.getElementById('currentFileLabel').textContent=path;
+  document.getElementById('rtCurrent').textContent=path;
+  loadHistory();
+}
+function closeTab(path, e){ if(e) e.stopPropagation(); openTabs=openTabs.filter(t=>t.path!==path); if(activeTab===path){ activeTab=openTabs[openTabs.length-1]?.path||'index.html'; if(openTabs.length===0) openTabFile('index.html'); } renderEditorTabs(); if(openTabs.find(t=>t.path===activeTab)) loadFileIntoEditor(activeTab); }
+function renderEditorTabs(){
+  const bar=document.getElementById('editorTabs'); bar.innerHTML='';
+  openTabs.forEach(t=>{
+    const div=document.createElement('div');
+    div.className='ftab'+(t.path===activeTab?' active':'');
+    div.onclick=()=>openTabFile(t.path);
+    div.innerHTML=`<span>${t.path.split('/').pop()}</span>`+(t.dirty?`<span class="dirty"></span>`:'')+`<span class="close" onclick="closeTab('${t.path}',event)">×</span>`;
+    bar.appendChild(div);
+  });
+  const oc=document.getElementById('openFilesCount'); if(oc) oc.textContent=openTabs.length;
+}
+function markDirty(path,d){ const t=openTabs.find(x=>x.path===path); if(t){ t.dirty=d; renderEditorTabs(); } }
+
+async function loadFileIntoEditor(path){
+  try{
+    const r=await fetch('/api/preview/read?path='+encodeURIComponent(path));
+    const text = r.ok ? await r.text() : '';
+    if(monacoEditor){
+      const model = monaco.editor.createModel(text, getLang(path));
+      monacoEditor.setModel(model);
+    } else {
+      document.getElementById('fallbackEditor').value=text;
+    }
+    setStatus('loaded','#9ece6a');
+  }catch(e){ setStatus('offline','#e0af68'); }
+}
+function getLang(p){ if(p.endsWith('.css'))return'css'; if(p.endsWith('.js'))return'javascript'; if(p.endsWith('.json'))return'json'; if(p.endsWith('.ts')||p.endsWith('.tsx'))return'typescript'; return'html'; }
+function getEditorValue(){ if(monacoEditor) return monacoEditor.getValue(); const f=document.getElementById('fallbackEditor'); return f?f.value:''; }
+function onEditorChange(){ markDirty(activeTab,true); setStatus('editing…','#e0af68'); clearTimeout(saveTimer); saveTimer=setTimeout(saveFile,600); liveHMR(); }
+function setStatus(t,c){ const s=document.getElementById('saveStatus'); if(s){ s.textContent=t; s.style.color=c||'#9ece6a'; } }
+
+async function saveFile(){ const content=getEditorValue(); await saveFileContent(activeTab, content, 'monaco save'); }
+async function saveFileContent(path, content, message='auto save'){
+  try{
+    const res=await fetch('/api/preview/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path, content, message, author:'builder'})});
+    const j=await res.json();
+    setStatus('saved ✓','#9ece6a'); markDirty(path,false);
+    document.getElementById('rtLast').textContent=new Date().toLocaleTimeString();
+    addConsole('› saved '+path+' — '+(j.versions||'?')+' versions');
+    loadHistory(); reloadPreview();
+  }catch(e){ setStatus('saved locally','#e0af68'); reloadPreview(); }
+}
+
+// HMR
+let hmrTimer=null;
+function liveHMR(){ clearTimeout(hmrTimer); hmrTimer=setTimeout(()=>{ const code=getEditorValue(); const f=document.getElementById('previewFrame'); if(activeTab.endsWith('.html') && code.includes('<html')){ f.srcdoc=code; }}, 220); }
+
+// file tree
+async function loadFileTree(){
+  try{
+    const r=await fetch('/api/preview/files'); const files=await r.json();
+    const box=document.getElementById('fileTree');
+    box.querySelectorAll('.file-item').forEach(n=>n.remove());
+    files.forEach(f=>{
+      const div=document.createElement('div');
+      div.className='file-item'+(f.path===activeTab?' active':'');
+      div.innerHTML=`<span>📄 ${f.path}</span><span class="mini">${Math.round(f.size/1024*10)/10}kb</span>`;
+      div.onclick=()=>openTabFile(f.path);
+      box.appendChild(div);
+    });
+  }catch(e){}
+}
+
+// ---- GIT TIME-TRAVEL + DIFF ----
+async function loadHistory(){
+  try{
+    const r=await fetch('/api/preview/history?path='+encodeURIComponent(activeTab));
+    versions = await r.json();
+    document.getElementById('versionCount').textContent = versions.length+' versions';
+    const rv=document.getElementById('rtVersions'); if(rv) rv.textContent=versions.length;
+    const slider=document.getElementById('timeSlider');
+    slider.max = Math.max(0, versions.length-1);
+    slider.value = 0;
+    const list=document.getElementById('timeList');
+    if(versions.length===0){ list.innerHTML='<div class="mini">No versions yet — edit to create snapshot.</div>'; return; }
+    list.innerHTML = versions.map((v,i)=>`
+      <div class="tt-item" data-vid="${v.id}" onclick="scrubVersion(${i})">
+        <span>v${v.id} · ${escapeHtml(v.message||'auto save').slice(0,38)}</span>
+        <span class="tmeta">${v.author||'builder'}</span>
+        <span class="tmeta">${(v.ts||'').slice(11,19)}</span>
+        <button class="tt-diffbtn" onclick="event.stopPropagation(); openDiff(${v.id})">⇄ Diff</button>
+      </div>`).join('');
+    document.getElementById('liveVersionLabel').textContent='v'+(versions[0]?.id||'0');
+  }catch(e){}
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+
+async function scrubVersion(idx){
+  idx=parseInt(idx)||0;
+  const v=versions[idx]; if(!v) return;
+  selectedVersionId=v.id; selectedVersionIdx=idx;
+  document.querySelectorAll('.tt-item').forEach((el,i)=>el.classList.toggle('active', i==idx));
+  const rs=document.getElementById('rtSelected'); if(rs) rs.textContent='v'+v.id;
+  try{
+    const r=await fetch('/api/preview/version?id='+v.id);
+    const j=await r.json();
+    if(j.content){ document.getElementById('previewFrame').srcdoc=j.content; addConsole('› time-travel preview v'+v.id); }
+  }catch(e){}
+}
+async function restoreSelected(){
+  if(!selectedVersionId){ alert('Pick a version in the timeline first, then Restore. Or click Diff.'); return; }
+  if(!confirm('Restore v'+selectedVersionId+' ?')) return;
+  await fetch('/api/preview/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({version_id:selectedVersionId})});
+  addConsole('› restored v'+selectedVersionId);
+  loadFileIntoEditor(activeTab); loadHistory(); reloadPreview();
+  closeDiff();
+}
+async function manualCommit(){
+  const msg=prompt('Commit message:','checkpoint '+new Date().toLocaleTimeString());
+  if(msg===null) return;
+  await saveFile();
+  try{ await fetch('/api/preview/commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:activeTab, message:msg, author:'builder'})}); addConsole('› committed: '+msg); loadHistory(); }catch(e){}
+}
+
+// ---- MONACO DIFF VIEW ----
+let diffLeftContent='', diffRightContent='';
+async function openDiff(versionId){
+  // if no id passed, use selected or latest
+  if(!versionId){ versionId = selectedVersionId || (versions[0] && versions[0].id); }
+  if(!versionId){ alert('No version to diff yet — edit the file first.'); return; }
+  selectedVersionId = versionId;
+  try{
+    const r = await fetch('/api/preview/version?id='+versionId);
+    const v = await r.json();
+    diffLeftContent = v.content || '';
+    diffRightContent = getEditorValue();
+    document.getElementById('diffTitle').textContent = activeTab + ' — v' + versionId + ' ⇄ current';
+    document.getElementById('diffMeta').textContent = (v.message||'auto save') + ' · ' + (v.author||'builder') + ' · ' + (v.created_at||'');
+    document.getElementById('diffFileLabel').textContent = activeTab;
+    document.getElementById('diffVersionsLabel').textContent = 'v'+versionId+' ↔ current';
+    document.getElementById('diffModal').style.display='flex';
+    // wait a tick for layout
+    setTimeout(initDiffEditor, 30);
+  }catch(e){ alert('Diff load failed: '+e); }
+}
+function openDiffModalLast(){ openDiff(); }
+
+function initDiffEditor(){
+  const container=document.getElementById('diffContainer');
+  container.innerHTML='';
+  const left = diffLeftContent || '';
+  const right = diffRightContent || getEditorValue();
+  // stats
+  const lLines = left.split('\n').length;
+  const rLines = right.split('\n').length;
+  document.getElementById('diffStats').textContent = lLines+' → '+rLines+' lines';
+  if(typeof monaco !== 'undefined' && monaco.editor){
+    if(monacoDiffEditor){ monacoDiffEditor.dispose(); monacoDiffEditor=null; }
+    monacoDiffEditor = monaco.editor.createDiffEditor(container, {
+      theme:'vs-dark',
+      automaticLayout:true,
+      readOnly:false,
+      renderSideBySide:true,
+      ignoreTrimWhitespace:false,
+      originalEditable:false,
+      fontSize:13
+    });
+    const lang = getLang(activeTab);
+    const originalModel = monaco.editor.createModel(left, lang);
+    const modifiedModel = monaco.editor.createModel(right, lang);
+    monacoDiffEditor.setModel({ original: originalModel, modified: modifiedModel });
+  } else {
+    // fallback simple side-by-side pre
+    container.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;height:100%;gap:1px;background:#1d2745">
+      <pre style="background:#120e16;color:#f7b6c6;padding:14px;overflow:auto;white-space:pre-wrap;font-size:12px">${escapeHtml(left).slice(0,20000)}</pre>
+      <pre style="background:#0e1814;color:#b6f7c6;padding:14px;overflow:auto;white-space:pre-wrap;font-size:12px">${escapeHtml(right).slice(0,20000)}</pre>
+    </div>`;
+  }
+}
+function closeDiff(){
+  const m=document.getElementById('diffModal');
+  if(m) m.style.display='none';
+  if(monacoDiffEditor){ monacoDiffEditor.dispose(); monacoDiffEditor=null; }
+}
+function diffPrev(){
+  const idx = versions.findIndex(v=>v.id==selectedVersionId);
+  if(idx>=0 && idx < versions.length-1) openDiff(versions[idx+1].id);
+}
+function diffNext(){
+  const idx = versions.findIndex(v=>v.id==selectedVersionId);
+  if(idx>0) openDiff(versions[idx-1].id);
+}
+function acceptLeft(){
+  // copy left (original version) into right editor, then save
+  if(monacoDiffEditor){
+    const right = monacoDiffEditor.getModifiedEditor().getValue();
+    const left = monacoDiffEditor.getOriginalEditor().getValue();
+    // actually "accept left → right" means overwrite current with left version
+    if(confirm('Overwrite current file with LEFT version (v'+selectedVersionId+') ?')){
+      if(monacoEditor){ monacoEditor.setValue(left); }
+      else { const fe=document.getElementById('fallbackEditor'); if(fe) fe.value=left; }
+      closeDiff();
+      saveFile();
+      addConsole('› accepted left version v'+selectedVersionId+' → current');
+    }
+  }
+}
+async function restoreDiffVersion(){
+  if(!selectedVersionId) return;
+  if(!confirm('Restore v'+selectedVersionId+' as current file?')) return;
+  await fetch('/api/preview/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({version_id:selectedVersionId})});
+  closeDiff();
+  loadFileIntoEditor(activeTab);
+  loadHistory();
+  reloadPreview();
+  addConsole('› restored v'+selectedVersionId+' from diff view');
+}
+// Esc to close diff
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){ closeDiff(); }
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='d'){ e.preventDefault(); openDiffModalLast(); }
+  if((e.metaKey||e.ctrlKey)&&e.key==='s'){ e.preventDefault(); saveFile(); }
+});
+
+// preview device
+function setDevice(dev){
+  const f=document.getElementById('previewFrame');
+  f.className='preview-frame '+dev;
+  document.querySelectorAll('.preview-toolbar .device-btn[data-dev]').forEach(b=>b.classList.toggle('active', b.dataset.dev===dev));
+  const labels={mobile:'390×760 • iPhone', tablet:'768×680 • iPad', desktop:'Fluid • Desktop'};
+  document.getElementById('previewInfo').textContent=labels[dev]||dev;
+}
+function reloadPreview(){
+  const f=document.getElementById('previewFrame');
+  const code=getEditorValue();
+  if(activeTab.endsWith('.html') && code.includes('<html')){ f.srcdoc = code; }
+  else { f.src = f.src.split('?')[0]+'?t='+Date.now(); }
+}
+function addConsole(m){ const c=document.getElementById('consoleBar'); if(c){ c.innerHTML += m+'<br>'; c.scrollTop=c.scrollHeight; } }
+
+// scaffold / new file
+async function scaffold(kind){
+  addConsole('› scaffolding '+kind+' …');
+  try{
+    const r=await fetch('/api/preview/scaffold',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:kind})});
+    const j=await r.json();
+    (j.files||['index.html','styles.css','app.js']).forEach((p,i)=> setTimeout(()=>openTabFile(p), i*120));
+    loadFileTree(); loadHistory();
+    setTimeout(reloadPreview, 350);
+    addChat('✓ '+kind+' scaffolded → 3 files opened in Monaco tabs. Edit left, see right. Use ⇄ Diff to compare versions.', 'agent');
+  }catch(e){}
+}
+function newFile(){
+  const name=prompt('New file path:','components/NewComponent.jsx');
+  if(!name) return;
+  openTabFile(name);
+  const starter = name.endsWith('.css') ? '/* '+name+' */\n' : name.endsWith('.js') ? '// '+name+'\n' : '<!-- '+name+' -->\n';
+  if(monacoEditor){ monacoEditor.setValue(starter); } else { const fe=document.getElementById('fallbackEditor'); if(fe) fe.value=starter; }
+  markDirty(name,true);
+}
+
+// init
+renderAgents();
+document.getElementById('agentBtn').textContent='Builder ▾';
+setTimeout(()=>{ showTab('builder'); }, 400);
+</script>
+
+<script>
+// Expo override – v3.2
+let previewMode='web';
+function setPreviewMode(m){
+  previewMode=m;
+  document.getElementById('pmWeb')?.classList.toggle('active', m==='web');
+  document.getElementById('pmExpo')?.classList.toggle('active', m==='expo');
+  const f=document.getElementById('previewFrame');
+  if(!f) return;
+  if(m==='expo'){
+    f.src='/preview/mobile/index.html?t='+Date.now();
+    f.className='preview-frame mobile';
+    setDevice('mobile');
+    // auto-open mobile files
+    if(typeof openTabFile==='function'){
+      openTabFile('mobile/App.jsx');
+      setTimeout(()=>openTabFile('mobile/index.html'), 150);
+    }
+    const lbl=document.getElementById('previewInfo'); if(lbl) lbl.textContent='390×844 • iPhone 15 Pro • Expo RNW';
+    addConsole && addConsole('› Expo React Native Web mode — /preview/mobile/');
+  } else {
+    f.src='/preview/index.html?t='+Date.now();
+    addConsole && addConsole('› Web mode — /preview/index.html');
+  }
+}
+// wrap original scaffold
+const _origScaffold = window.scaffold;
+window.scaffold = async function(kind){
+  addConsole && addConsole('› scaffolding '+kind+' …');
+  try{
+    const r=await fetch('/api/preview/scaffold',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:kind})});
+    const j=await r.json();
+    if(j.mode==='expo' || /mobile|expo|react native|rn/i.test(kind)){
+      setPreviewMode('expo');
+      // open mobile files
+      if(j.files){ j.files.forEach((p,i)=> setTimeout(()=> openTabFile && openTabFile(p), i*120)); }
+      else { openTabFile('mobile/App.jsx'); }
+      if(typeof loadFileTree==='function') loadFileTree();
+      if(typeof loadHistory==='function') loadHistory();
+      setTimeout(()=>{ if(typeof reloadPreview==='function') reloadPreview(); }, 350);
+      if(typeof addChat==='function') addChat('✓ Expo React Native app scaffolded →
+
+• mobile/index.html (Expo shell + RNW CDN)
+• mobile/App.jsx (React Native components)
+
+Monaco open → edit App.jsx → iPhone preview hot-reloads <700ms.
+
+Full RN API: View, Text, Pressable, ScrollView, TextInput, FlatList — via react-native-web.
+
+Use Git time-travel + ⇄ Diff as normal.', 'agent');
+      return;
+    }
+    // fallback to original
+    if(typeof _origScaffold === 'function' && _origScaffold !== window.scaffold){ return _origScaffold(kind); }
+    // default web handling
+    if(j.files){ j.files.forEach((p,i)=> setTimeout(()=> openTabFile && openTabFile(p), i*120)); }
+    if(typeof loadFileTree==='function') loadFileTree();
+    if(typeof loadHistory==='function') loadHistory();
+    setTimeout(()=>{ if(typeof reloadPreview==='function') reloadPreview(); }, 350);
+  }catch(e){ console.error(e); }
+};
+// enhance reloadPreview to respect mode
+const _origReload = window.reloadPreview;
+window.reloadPreview = function(){
+  const frame=document.getElementById('previewFrame');
+  if(!frame) return;
+  if(previewMode==='expo'){
+    // force mobile expo url, use srcdoc if editing mobile/App.jsx?
+    // just reload iframe
+    const src = frame.src.includes('/mobile/') ? '/preview/mobile/index.html' : '/preview/mobile/index.html';
+    frame.src = src + '?t=' + Date.now();
+    addConsole && addConsole('› Expo HMR reload');
+    return;
+  }
+  if(typeof _origReload==='function') return _origReload();
+};
+// auto-detect mobile file opens -> switch mode
+const _origOpenTabFile = window.openTabFile;
+window.openTabFile = function(path){
+  if(path && path.startsWith('mobile/')){ setPreviewMode('expo'); }
+  if(typeof _origOpenTabFile==='function') return _origOpenTabFile(path);
+  // fallback minimal
+  window.activeTab = path;
+};
+// expose diff shortcut hint
+setTimeout(()=>{ addConsole && addConsole('› Expo RNW live ready — toggle 🌐 Web / 📱 Expo RN top right of preview'); }, 900);
+</script>
+
+</body>
+</html>
+
+<!-- E2E AUTO-FIX LOOP UI — injected v3.3 -->
+<script>
+(function(){
+  // wait dom
+  function ready(fn){ if(document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  ready(()=>{
+    // add tab button
+    const tabs = document.querySelector('.tabs');
+    if(tabs && !document.querySelector('.tab[data-tab="e2e"]')){
+      const b=document.createElement('div');
+      b.className='tab'; b.dataset.tab='e2e';
+      b.innerHTML='🧪 E2E';
+      b.style.color='#9ece6a'; b.style.fontWeight='700';
+      b.onclick = ()=> activateE2E();
+      tabs.appendChild(b);
+    }
+    // add pane
+    const center = document.querySelector('.center');
+    if(center && !document.getElementById('pane-e2e')){
+      const pane=document.createElement('div');
+      pane.id='pane-e2e';
+      pane.style.cssText='display:none;flex:1;overflow:auto;background:#0b0d12';
+      pane.innerHTML = `
+<div style="padding:18px 22px;max-width:1180px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <h2 style="margin:0;font-size:20px">🧪 E2E Test Lab — Playwright Auto-Fix</h2>
+    <span style="font-size:11px;background:#162d1a;color:#9ece6a;padding:3px 9px;border-radius:999px;border:1px solid #2a5a2e">Hermes loop</span>
+    <span class="spacer" style="flex:1"></span>
+    <label style="font-size:12px;color:#9aa7c7">Target 
+      <select id="e2eTarget" style="background:#151a28;color:#dbe6ff;border:1px solid #2a3555;border-radius:8px;padding:6px 10px;margin-left:6px">
+        <option value="web">🌐 Web (/preview)</option>
+        <option value="expo">📱 Expo RN (/preview/mobile)</option>
+      </select>
+    </label>
+    <button class="device-btn" onclick="e2eRun()" id="e2eRunBtn">▶ Run Test</button>
+    <button class="btn" style="padding:8px 14px;font-size:13px" onclick="e2eAutoFix()" id="e2eFixBtn">🤖 Hermes Auto-Fix Loop</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:14px;align-items:start">
+    <!-- left results -->
+    <div>
+      <div style="background:#121629;border:1px solid #222946;border-radius:14px;padding:14px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <b style="color:#cbd5ff">Last run</b>
+          <span id="e2eScore" style="font-weight:800;color:#9ece6a">—</span>
+        </div>
+        <div id="e2eChecks" style="font-size:12.5px;line-height:1.7;color:#b8c5e8">
+          <div class="mini">Click ▶ Run Test — or 🤖 Auto-Fix to let Hermes iterate until green.</div>
+        </div>
+      </div>
+
+      <div style="background:#121629;border:1px solid #222946;border-radius:14px;padding:14px">
+        <b style="color:#cbd5ff;font-size:13px">Auto-Fix Loop Log</b>
+        <div id="e2eLoopLog" style="font-family:ui-monospace,monospace;font-size:11.5px;color:#8fa0c7;margin-top:8px;max-height:260px;overflow:auto;white-space:pre-wrap">— idle
+Waiting for Hermes…</div>
+      </div>
+    </div>
+
+    <!-- right: preview + actions -->
+    <div>
+      <div style="background:#121629;border:1px solid #222946;border-radius:14px;padding:14px;margin-bottom:12px">
+        <div style="font-weight:700;color:#cbd5ff;margin-bottom:8px">Test matrix</div>
+        <div style="font-size:12px;color:#9fb0d8;line-height:1.9">
+          ✓ page loads<br>
+          ✓ viewport meta / mobile responsive<br>
+          ✓ CTA / button present<br>
+          ✓ heading / Text node<br>
+          ✓ no console.error<br>
+          ✓ <span id="e2eModeLabel">Web</span> specific checks<br>
+          <br>
+          <span class="mini">Engine: Playwright if installed, else fast heuristic fallback. Always runs &lt;800ms.</span>
+        </div>
+      </div>
+
+      <div style="background:#10141f;border:1px solid #1d2845;border-radius:14px;padding:14px">
+        <div style="font-weight:700;color:#ff9e64;margin-bottom:8px">Hermes Auto-Fix</div>
+        <div style="font-size:12px;color:#b8c5e8;line-height:1.6">
+          1. Run E2E suite<br>
+          2. Collect failing checks<br>
+          3. Patch code:<br>
+          &nbsp;&nbsp;• missing CTA → inject <code>&lt;button id="cta-primary"&gt;</code><br>
+          &nbsp;&nbsp;• missing viewport → inject meta<br>
+          &nbsp;&nbsp;• missing heading → a11y h1<br>
+          &nbsp;&nbsp;• RN: inject <code>Pressable</code><br>
+          4. Git commit snapshot<br>
+          5. Re-run → loop max 5×<br>
+          6. Stop on green ≥80%
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="device-btn" onclick="e2eRun()">Single run</button>
+          <button class="device-btn" onclick="e2eAutoFix()">3-iter loop</button>
+          <button class="device-btn" onclick="e2eAutoFix5()">5-iter max</button>
+          <button class="device-btn" onclick="openDiffModalLast && openDiffModalLast()">⇄ Diff last patch</button>
+        </div>
+      </div>
+
+      <div id="e2eScreenshotWrap" style="margin-top:12px;display:none;background:#0f1322;border:1px solid #1b2340;border-radius:12px;padding:10px">
+        <div class="mini" style="margin-bottom:6px">Playwright screenshot</div>
+        <img id="e2eShot" style="width:100%;border-radius:8px;border:1px solid #222946" />
+      </div>
+    </div>
+  </div>
+</div>`;
+      // insert after builder pane
+      const builderPane = document.getElementById('pane-builder');
+      if(builderPane && builderPane.parentNode){ builderPane.parentNode.insertBefore(pane, builderPane.nextSibling); }
+    }
+
+    // hook tab click globally – extend existing tab handler
+    document.addEventListener('click', function(e){
+      const tab = e.target.closest('.tab[data-tab="e2e"]');
+      if(tab){
+        document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+        tab.classList.add('active');
+        ['chat','builder','kanban','studio','skills','e2e'].forEach(p=>{
+          const el=document.getElementById('pane-'+p);
+          if(el) el.style.display = (p==='e2e') ? 'block' : 'none';
+        });
+        // also hide chat flex special case
+        const chat=document.getElementById('pane-chat'); if(chat) chat.style.display='none';
+      }
+    }, true);
+  });
+
+  // E2E JS — expose globally
+  window.e2eRun = async function(){
+    const target=document.getElementById('e2eTarget')?.value || 'web';
+    const btn=document.getElementById('e2eRunBtn'); if(btn){ btn.textContent='⏳ Running…'; btn.disabled=true; }
+    const logEl=document.getElementById('e2eLoopLog');
+    if(logEl) logEl.textContent = '› playwright: launching…\n› target: '+target+'\n';
+    try{
+      const r=await fetch('/api/e2e/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})});
+      const j=await r.json();
+      renderE2EResult(j);
+      if(logEl) logEl.textContent += '✓ done — ' + j.passed + '/' + j.total + ' passed — score ' + j.score + '\nengine: ' + (j.engine||'heuristic');
+    }catch(e){
+      if(logEl) logEl.textContent += '✗ error '+e+'\n';
+    }
+    if(btn){ btn.textContent='▶ Run Test'; btn.disabled=false; }
+  };
+
+  window.e2eAutoFix = async function(max=3){ return e2eAutoFixN(max); };
+  window.e2eAutoFix5 = ()=> e2eAutoFixN(5);
+
+  async function e2eAutoFixN(maxIters){
+    const target=document.getElementById('e2eTarget')?.value || 'web';
+    const btn=document.getElementById('e2eFixBtn');
+    const logEl=document.getElementById('e2eLoopLog');
+    if(btn){ btn.textContent='🤖 Hermes looping…'; btn.disabled=true; }
+    if(logEl) logEl.textContent = '🤖 Hermes E2E auto-fix — target: '+target+'\n' + '═'.repeat(44)+'\n';
+    try{
+      const r=await fetch('/api/e2e/autofix',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target, max_iters:maxIters, goal:'all checks green'})});
+      const j=await r.json();
+      let out='';
+      (j.iterations||[]).forEach(it=>{
+        out += `\n── iter ${it.iter} — score ${(it.score*100).toFixed(0)}% — ${it.passed}/${it.total}\n`;
+        if(it.failed && it.failed.length){ out += '   failed: ' + it.failed.join(', ') + '\n'; }
+        if(it.patches && it.patches.length){ out += '   🩹 Hermes patch: ' + it.patches.join(' | ') + '\n'; }
+      });
+      out += `\n${j.ok ? '✅ GREEN' : '⚠️ needs_review'} — final ${(j.final_score*100).toFixed(0)}% after ${j.runs} runs\n`;
+      if(logEl) logEl.textContent += out;
+      // refresh UI
+      if(typeof loadHistory==='function') loadHistory();
+      // show last result visually
+      renderE2EResult({passed: Math.round(j.final_score*5), total:5, score:j.final_score, checks:(j.iterations?.slice(-1)[0]?.failed||[]).map(n=>({name:n,pass:false,detail:'auto-fixed'})), engine:'hermes-loop'});
+      // hot reload preview
+      if(typeof reloadPreview==='function') setTimeout(reloadPreview, 250);
+      addChat && addChat(`🧪 E2E Auto-Fix complete (${target})
+
+${(j.iterations||[]).map(it=>`iter ${it.iter}: ${(it.score*100).toFixed(0)}%` + (it.patches?`\n  → ${it.patches.join(', ')}`:'')).join('\n')}
+
+Final: ${(j.final_score*100).toFixed(0)}% — ${j.ok ? '✅ GREEN' : 'needs review'}
+
+→ Check Git time-travel — Hermes committed each patch. Click ⇄ Diff to see what changed.`, 'agent');
+    }catch(e){
+      if(logEl) logEl.textContent += '✗ '+e+'\n';
+    }
+    if(btn){ btn.textContent='🤖 Hermes Auto-Fix Loop'; btn.disabled=false; }
+  }
+  window.e2eAutoFixN = e2eAutoFixN;
+
+  function renderE2EResult(j){
+    const scoreEl=document.getElementById('e2eScore');
+    if(scoreEl){ scoreEl.textContent = Math.round((j.score||0)*100)+'% • '+(j.passed||0)+'/'+(j.total||0); scoreEl.style.color = (j.score||0)>=0.8 ? '#9ece6a' : (j.score||0)>=0.5 ? '#e0af68' : '#f7768e'; }
+    const box=document.getElementById('e2eChecks');
+    if(box && j.checks){
+      box.innerHTML = j.checks.map(c=>`
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #1f2740">
+          <span>${c.pass ? '✅' : '❌'} ${c.name}</span>
+          <span style="color:#7b88a8;font-size:11px">${c.detail||''}</span>
+        </div>`).join('') + `<div class="mini" style="margin-top:8px">engine: ${j.engine||'heuristic'} • ${j.passed}/${j.total}</div>`;
+    }
+    // screenshot if present
+    const shotWrap=document.getElementById('e2eScreenshotWrap');
+    const shotImg=document.getElementById('e2eShot');
+    if(j.screenshot_b64 && shotImg && shotWrap){
+      shotImg.src='data:image/png;base64,'+j.screenshot_b64;
+      shotWrap.style.display='block';
+    }
+  }
+  window.renderE2EResult = renderE2EResult;
+
+  // add a small E2E quick button in top bar
+  setTimeout(()=>{
+    const topActions=document.querySelector('.top-actions');
+    if(topActions && !document.getElementById('topE2EBtn')){
+      const b=document.createElement('div');
+      b.id='topE2EBtn';
+      b.textContent='🧪 E2E';
+      b.style.cursor='pointer';
+      b.style.color='#9ece6a';
+      b.onclick=()=>{
+        // activate tab
+        const tab=document.querySelector('.tab[data-tab="e2e"]');
+        if(tab) tab.click();
+        else {
+          // fallback manual show
+          document.querySelectorAll('[id^="pane-"]').forEach(p=>p.style.display='none');
+          const ep=document.getElementById('pane-e2e');
+          if(ep) ep.style.display='block';
+          document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+        }
+      };
+      topActions.insertBefore(b, topActions.firstChild);
+    }
+  }, 600);
+
+  // expose helper to switch to e2e tab programmatically
+  window.showTab = window.showTab || function(t){
+    const tab=document.querySelector(`.tab[data-tab="${t}"]`);
+    if(tab) tab.click();
+  };
+  const _origShowTab = window.showTab;
+  window.showTab = function(t){
+    if(t==='e2e'){
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      const et=document.querySelector('.tab[data-tab="e2e"]'); if(et) et.classList.add('active');
+      ['chat','builder','kanban','studio','skills','e2e'].forEach(p=>{
+        const el=document.getElementById('pane-'+p);
+        if(el) el.style.display = p==='e2e' ? 'block' : 'none';
+      });
+      return;
+    }
+    return _origShowTab ? _origShowTab(t) : null;
+  };
+
+  console.log('[Agentic OS] E2E Auto-Fix Loop UI injected v3.3');
+})();
+</script>
+<!-- /E2E -->
+
+<!-- TRACE VIEWER v3.4 — embedded Playwright -->
+<script>
+(function(){
+  // inject trace viewer styles + modal once
+  if(document.getElementById('traceViewerStyles')) return;
+  const css=document.createElement('style');
+  css.id='traceViewerStyles';
+  css.textContent=`
+#traceModal{display:none;position:fixed;inset:0;z-index:10000;background:rgba(5,7,14,.96);flex-direction:column;color:#dbe6ff}
+.traceTop{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#0f1424;border-bottom:1px solid #1d2745;font-size:13px}
+.traceBody{flex:1;display:grid;grid-template-columns:300px 1fr 380px;min-height:0}
+.traceLeft{border-right:1px solid #1d2238;background:#0e1322;overflow:auto}
+.traceCenter{background:#0b0f1a;display:flex;flex-direction:column;min-width:0}
+.traceRight{border-left:1px solid #1d2238;background:#0e1322;overflow:auto}
+.ttStep{padding:10px 12px;border-bottom:1px solid #18213a;cursor:pointer;font-size:12.5px}
+.ttStep:hover{background:#151f38}
+.ttStep.active{background:#1a2a4a}
+.ttStep .st{font-size:10px;padding:1px 6px;border-radius:6px;margin-right:6px}
+.st-pass{background:#12321d;color:#9ece6a}
+.st-fail{background:#32141a;color:#f7768e}
+.st-skip{background:#222636;color:#8a92aa}
+.traceShotWrap{flex:1;display:flex;align-items:center;justify-content:center;background:#0a0d18;overflow:auto;padding:14px}
+.traceShotWrap img{max-width:100%;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.5);border:6px solid #1a1a2e}
+.domBox{font-family:ui-monospace,monospace;font-size:11px;color:#b8c5e8;background:#0a0f1c;padding:10px;height:220px;overflow:auto;white-space:pre-wrap;border-top:1px solid #1d2238}
+.consoleBox{font-family:ui-monospace,monospace;font-size:11px;color:#8fa0c7;background:#090d16;padding:8px 10px;height:120px;overflow:auto;border-top:1px solid #1d2238}
+.tv-pill{font-size:10.5px;background:#1a2035;color:#9fb4ea;padding:2px 7px;border-radius:999px;border:1px solid #263250}
+`;
+  document.head.appendChild(css);
+
+  // modal HTML
+  const modal=document.createElement('div');
+  modal.id='traceModal';
+  modal.innerHTML=`
+  <div class="traceTop">
+    <b>🧪 Playwright Trace Viewer</b>
+    <span id="tvRunId" class="tv-pill">run_—</span>
+    <span id="tvTarget" class="tv-pill">web</span>
+    <span id="tvScore" class="tv-pill">—</span>
+    <span style="flex:1"></span>
+    <button class="device-btn" onclick="tvPrev()">◀ Prev step</button>
+    <button class="device-btn" onclick="tvNext()">Next ▶</button>
+    <button class="device-btn" style="background:#1d2f1a;color:#9ece6a" onclick="tvAccept()">✓ Accept as good</button>
+    <button class="btn btn-sm" onclick="closeTrace()">✕ Close</button>
+  </div>
+  <div class="traceBody">
+    <div class="traceLeft" id="tvSteps"></div>
+    <div class="traceCenter">
+      <div class="traceShotWrap"><img id="tvScreenshot" style="display:none;max-height:78vh" alt="trace screenshot"><div id="tvNoShot" style="color:#5b647a;font-size:13px">No screenshot — heuristic run<br><span style="font-size:11px">pip install playwright && playwright install chromium<br>for full visual trace</span></div></div>
+      <div class="domBox" id="tvDom">DOM snapshot will appear here…</div>
+      <div class="consoleBox" id="tvConsole">console…</div>
+    </div>
+    <div class="traceRight" style="padding:12px;font-size:12px;color:#b8c5e8">
+      <div style="font-weight:700;margin-bottom:8px" id="tvStepTitle">Select a step</div>
+      <div id="tvStepMeta" class="mini" style="line-height:1.7"></div>
+      <div style="margin-top:14px;border-top:1px dashed #223050;padding-top:10px">
+        <div style="font-weight:600;color:#cbd5ff;margin-bottom:6px">Quick fix</div>
+        <button class="device-btn" style="width:100%;margin-bottom:6px" onclick="hermesFixFromTrace()">🤖 Hermes — fix this step</button>
+        <button class="device-btn" style="width:100%;margin-bottom:6px" onclick="openDiffModalLast && openDiffModalLast()">⇄ Open Diff</button>
+        <button class="device-btn" style="width:100%" onclick="copySelector()">📋 Copy selector</button>
+      </div>
+      <div style="margin-top:14px" class="mini">
+        <b>Trace tips</b><br>
+        • Click any step left → screenshot + DOM<br>
+        • Red = failed, green = pass<br>
+        • Console shows page errors<br>
+        • “Hermes — fix this step” auto-patches and re-runs
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+
+  // state
+  window.__traceData = { run_id:null, steps:[], idx:0 };
+
+  // override renderE2EResult to store trace + make checks clickable
+  const origRender = window.renderE2EResult;
+  window.renderE2EResult = function(j){
+    // call original if exists
+    try{ if(origRender) origRender(j); }catch(e){}
+    // if trace_inline present, store
+    if(j.trace_inline){
+      window.__traceData.steps = j.trace_inline.map((s,i)=>({
+        step_no: s.step_no||i+1,
+        step: s.step||s.step_name||('step '+(i+1)),
+        status: s.status || (s.pass?'pass':'fail'),
+        screenshot_b64: s.screenshot_b64 || null,
+        dom: s.dom || '',
+        console: s.console || [],
+        duration_ms: s.duration_ms || 0,
+        url: s.url || '',
+        detail: s.detail || ''
+      }));
+      window.__traceData.run_id = j.run_id || 'local';
+      // enhance checks UI to be clickable -> open trace
+      setTimeout(()=>{
+        const box=document.getElementById('e2eChecks');
+        if(box){
+          box.querySelectorAll('div').forEach((div,idx)=>{
+            div.style.cursor='pointer';
+            div.title='Click → open Trace Viewer';
+            div.onclick=()=> openTrace(idx);
+          });
+          // add open trace button
+          if(!document.getElementById('openTraceBtn')){
+            const btn=document.createElement('button');
+            btn.id='openTraceBtn';
+            btn.className='device-btn';
+            btn.style.cssText='margin-top:8px;width:100%';
+            btn.textContent='🔍 Open Playwright Trace Viewer';
+            btn.onclick=()=>openTrace(0);
+            box.appendChild(btn);
+          }
+        }
+      }, 80);
+    }
+  };
+
+  window.openTrace = function(stepIdx=0){
+    const t = window.__traceData;
+    if(!t.steps || !t.steps.length){ alert('Run a test first — click ▶ Run Test in E2E tab'); return; }
+    document.getElementById('traceModal').style.display='flex';
+    renderTraceList();
+    selectTraceStep(stepIdx);
+    document.getElementById('tvRunId').textContent = t.run_id || 'heuristic';
+  };
+  window.closeTrace = function(){
+    document.getElementById('traceModal').style.display='none';
+  };
+  function renderTraceList(){
+    const el=document.getElementById('tvSteps');
+    if(!el) return;
+    const steps=window.__traceData.steps||[];
+    el.innerHTML = steps.map((s,i)=>`
+      <div class="ttStep" data-i="${i}" onclick="selectTraceStep(${i})">
+        <span class="st st-${s.status==='pass'?'pass':s.status==='fail'?'fail':'skip'}">${s.status||'?'}</span>
+        <b>${i+1}. ${s.step||s.step_name||'step'}</b>
+        <div style="color:#7b88a8;font-size:11px;margin-top:3px">${s.duration_ms||120}ms · ${s.url ? s.url.replace(/^https?:\/\/[^/]+/,'') : ''}</div>
+      </div>`).join('');
+  }
+  window.selectTraceStep = function(i){
+    const steps=window.__traceData.steps||[];
+    const s=steps[i]; if(!s) return;
+    window.__traceData.idx=i;
+    document.querySelectorAll('#tvSteps .ttStep').forEach((el,idx)=>el.classList.toggle('active', idx===i));
+    // screenshot
+    const img=document.getElementById('tvScreenshot');
+    const nos=document.getElementById('tvNoShot');
+    if(s.screenshot_b64){
+      img.src = s.screenshot_b64.startsWith('data:') ? s.screenshot_b64 : 'data:image/png;base64,'+s.screenshot_b64;
+      img.style.display='block';
+      if(nos) nos.style.display='none';
+    } else {
+      img.style.display='none';
+      if(nos) nos.style.display='block';
+    }
+    // dom
+    const domEl=document.getElementById('tvDom');
+    if(domEl) domEl.textContent = (s.dom || '(no DOM snapshot – heuristic mode)\n\nInstall:\n  pip install playwright\n  playwright install chromium\n\nthen re-run for full visual trace with screenshots.').slice(0,18000);
+    // console
+    const cEl=document.getElementById('tvConsole');
+    if(cEl){
+      const cons = Array.isArray(s.console) ? s.console.join('\n') : (s.console||'');
+      cEl.textContent = cons || 'console: (empty)\n[log] Agentic OS trace viewer\n[info] step: '+(s.step||'')+'\n[info] status: '+s.status;
+    }
+    // right meta
+    document.getElementById('tvStepTitle').textContent = (i+1)+'. '+(s.step||s.step_name);
+    document.getElementById('tvStepMeta').innerHTML = `
+      status: <b style="color:${s.status==='pass'?'#9ece6a':s.status==='fail'?'#f7768e':'#9aa7c7'}">${s.status}</b><br>
+      duration: ${s.duration_ms||0}ms<br>
+      url: <span style="color:#7aa2f7">${(s.url||'/preview').slice(0,56)}</span><br>
+      ${s.detail ? 'detail: '+s.detail+'<br>':''}
+      ${s.selector_matches!=null ? 'matches: '+s.selector_matches+'<br>':''}
+      ${s.error?'<span style="color:#f7768e">error: '+s.error.slice(0,180)+'</span><br>':''}
+    `;
+    document.getElementById('tvScore').textContent = s.status;
+  };
+  window.tvPrev = ()=>{ const i=window.__traceData.idx||0; if(i>0) selectTraceStep(i-1); };
+  window.tvNext = ()=>{ const i=window.__traceData.idx||0; const n=(window.__traceData.steps||[]).length; if(i < n-1) selectTraceStep(i+1); };
+  window.tvAccept = ()=>{ alert('✓ Marked step as reviewed — in a full setup this would approve the trace in CI.'); };
+  window.hermesFixFromTrace = async ()=>{
+    const s=(window.__traceData.steps||[])[window.__traceData.idx||0];
+    if(!s){ alert('Select a failed step first'); return; }
+    if(s.status==='pass'){ alert('Step already passing ✅'); return; }
+    // trigger auto-fix
+    closeTrace();
+    // switch to E2E tab
+    if(typeof showTab==='function') showTab('e2e');
+    // click auto-fix
+    setTimeout(()=>{ 
+      const btn=document.querySelector('#e2eFixBtn'); 
+      if(btn) btn.click(); 
+      else if(typeof e2eAutoFix==='function') e2eAutoFix();
+    }, 300);
+  };
+  window.copySelector = ()=>{
+    const s=(window.__traceData.steps||[])[window.__traceData.idx||0];
+    const sel = s?.selector || 'button, [role=button], #cta-primary';
+    navigator.clipboard?.writeText(sel).then(()=>alert('Copied selector: '+sel)).catch(()=>prompt('Selector:',sel));
+  };
+  // keyboard
+  document.addEventListener('keydown', e=>{
+    const modal=document.getElementById('traceModal');
+    if(!modal || modal.style.display==='none') return;
+    if(e.key==='Escape') closeTrace();
+    if(e.key==='ArrowRight') tvNext();
+    if(e.key==='ArrowLeft') tvPrev();
+  });
+  console.log('[Agentic OS] Trace Viewer v3.4 injected');
+})();
+</script>
+<!-- /TRACE VIEWER -->
+
+<!-- EXPO QR LAN TUNNEL v3.5 -->
+<script>
+(function(){
+  // inject QR modal CSS once
+  if(!document.getElementById('qrTunnelStyles')){
+    const st=document.createElement('style');
+    st.id='qrTunnelStyles';
+    st.textContent=`
+#qrModal{display:none;position:fixed;inset:0;z-index:10010;background:rgba(4,6,12,.96);align-items:center;justify-content:center}
+.qrCard{background:#121629;border:1px solid #263250;border-radius:18px;padding:22px;max-width:980px;width:94%;max-height:90vh;overflow:auto;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.qrGrid{display:grid;grid-template-columns:340px 1fr;gap:18px}
+@media(max-width:820px){.qrGrid{grid-template-columns:1fr}}
+.qrBox{background:#0b0f1c;border:1px solid #1d2745;border-radius:14px;padding:16px;text-align:center}
+.qrBox img{width:100%;max-width:300px;border-radius:12px;background:#fff;padding:10px}
+.qrUrl{font-family:ui-monospace,monospace;font-size:12px;color:#7aa2f7;background:#0f1430;border:1px solid #223055;padding:8px 10px;border-radius:8px;margin-top:10px;word-break:break-all}
+.qrBtnRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;justify-content:center}
+.pillGreen{font-size:10.5px;background:#13231b;color:#9ece6a;padding:2px 8px;border-radius:999px;border:1px solid #294a2b}
+`;
+    document.head.appendChild(st);
+  }
+  // modal HTML
+  if(!document.getElementById('qrModal')){
+    const m=document.createElement('div');
+    m.id='qrModal';
+    m.innerHTML=`
+  <div class="qrCard">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="font-weight:800;font-size:17px">📱 Expo QR — LAN Tunnel <span class="pillGreen">LIVE HMR</span></div>
+      <div>
+        <button class="device-btn" onclick="qrRefresh()">⟳ Refresh IP</button>
+        <button class="device-btn" onclick="qrCopy('expo')">Copy Expo URL</button>
+        <button class="btn btn-sm" onclick="closeQR()">✕ Close</button>
+      </div>
+    </div>
+    <div class="qrGrid">
+      <div>
+        <div class="qrBox">
+          <div style="font-size:12px;color:#9aa7c7;margin-bottom:8px;font-weight:700" id="qrModeLabel">📱 Expo — React Native</div>
+          <img id="qrImg" src="" alt="QR" />
+          <div class="qrUrl" id="qrUrlText">loading…</div>
+          <div class="qrBtnRow">
+            <button class="device-btn" onclick="qrSwitch('expo')">📱 Expo</button>
+            <button class="device-btn" onclick="qrSwitch('web')">🌐 Web</button>
+            <button class="device-btn" onclick="qrSwitch('boardroom')">🧠 Boardroom</button>
+          </div>
+        </div>
+        <div style="font-size:12.5px;color:#b8c5e8;line-height:1.6">
+          <div style="font-weight:700;color:#fff;margin-bottom:6px">Scan with iPhone / Android → instant live app</div>
+          <ol id="qrSteps" style="margin-left:18px;color:#9fb0d8">
+            <li>Loading network info…</li>
+          </ol>
+          <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11.5px">
+            <div style="background:#0f1430;border:1px solid #223055;border-radius:10px;padding:10px">
+              <div style="color:#7aa2f7;font-weight:700">Local</div>
+              <div id="qrLocalUrl" style="font-family:ui-monospace,monospace;color:#cbd5ff;word-break:break-all">—</div>
+            </div>
+            <div style="background:#0f1430;border:1px solid #223055;border-radius:10px;padding:10px">
+              <div style="color:#9ece6a;font-weight:700">LAN / Wi-Fi</div>
+              <div id="qrLanUrl" style="font-family:ui-monospace,monospace;color:#cbd5ff;word-break:break-all">—</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;background:#141828;border:1px dashed #2a3555;border-radius:10px;padding:10px;font-size:11.5px;color:#9aa7c7" id="qrTips">
+            Tip: iPhone and laptop must be on the same Wi-Fi.
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="device-btn" onclick="qrCopy('expo')">📋 Copy Expo URL</button>
+            <button class="device-btn" onclick="qrCopy('web')">📋 Copy Web URL</button>
+            <button class="device-btn" onclick="window.open(document.getElementById('qrUrlText').textContent,'_blank')">↗ Open in new tab</button>
+            <button class="device-btn" style="color:#e0af68" onclick="qrCloudflare()">☁️ Get public https URL</button>
+          </div>
+          <div id="qrCloudflareBox" class="mini" style="margin-top:8px;display:none"></div>
+        </div>
+      </div>
+      <div style="margin-top:14px;border-top:1px solid #1d2745;padding-top:10px;font-size:11px;color:#7b88a8;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span>Agentic OS v3.5 • Expo QR LAN Tunnel • HMR <b style="color:#9ece6a">● LIVE</b></span>
+        <span id="qrIpLabel">IP detecting…</span>
+      </div>
+    </div>
+  </div>`;
+    document.body.appendChild(m);
+    // esc close
+    document.addEventListener('keydown', e=>{ const mm=document.getElementById('qrModal'); if(mm && mm.style.display==='flex' && e.key==='Escape') closeQR(); });
+  }
+
+  let qrData=null;
+  let qrMode='expo';
+
+  window.openQR = async function(mode){
+    if(mode) qrMode=mode;
+    const modal=document.getElementById('qrModal');
+    modal.style.display='flex';
+    await qrRefresh();
+  };
+  window.closeQR = function(){ document.getElementById('qrModal').style.display='none'; };
+
+  window.qrRefresh = async function(){
+    try{
+      const r=await fetch('/api/tunnel/info');
+      qrData = await r.json();
+      applyQR();
+    }catch(e){
+      // offline fallback – guess LAN
+      qrData = {
+        lan_ip: '192.168.1.x',
+        port:8787,
+        urls:{
+          expo_preview: 'http://192.168.1.x:8787/preview/mobile/index.html',
+          web_preview: 'http://192.168.1.x:8787/preview/index.html',
+          mission_control: 'http://192.168.1.x:8787/'
+        },
+        instructions:['Connect phone to same Wi-Fi','Open camera → scan','Allow local network']
+      };
+      applyQR();
+    }
+  };
+
+  function applyQR(){
+    if(!qrData) return;
+    const map = {expo:'expo_preview', web:'web_preview', boardroom:'mission_control'};
+    const key = map[qrMode] || 'expo_preview';
+    const url = (qrData.urls && qrData.urls[key]) || '';
+    const imgEl=document.getElementById('qrImg');
+    const urlEl=document.getElementById('qrUrlText');
+    const modeLabel=document.getElementById('qrModeLabel');
+    if(urlEl) urlEl.textContent=url;
+    const qrImgMap = {expo:qrData.qr_expo, web:qrData.qr_web, boardroom:qrData.qr_boardroom};
+    if(imgEl && qrImgMap[qrMode]){ imgEl.src = qrImgMap[qrMode]; }
+    else if(imgEl){ imgEl.src = '/api/tunnel/qr?url='+encodeURIComponent(url)+'&size=320'; }
+    if(modeLabel) modeLabel.textContent = qrMode==='expo' ? '📱 Expo — React Native' : qrMode==='web' ? '🌐 Web App' : '🧠 Mission Control';
+    const localEl=document.getElementById('qrLocalUrl');
+    if(localEl) localEl.textContent = qrData.urls?.local || 'http://localhost:8787';
+    const lanEl=document.getElementById('qrLanUrl');
+    if(lanEl) lanEl.textContent = qrData.urls?.lan || qrData.lan_ip;
+    const stepsEl=document.getElementById('qrSteps');
+    if(stepsEl && qrData.instructions){ stepsEl.innerHTML = qrData.instructions.map(s=>'<li>'+s+'</li>').join(''); }
+    const ipEl=document.getElementById('qrIpLabel');
+    if(ipEl) ipEl.textContent = 'LAN: '+(qrData.lan_ip||'')+' :'+(qrData.port||8787)+' · '+(qrData.urls?Object.keys(qrData.urls).length:3)+' routes';
+    const tips=document.getElementById('qrTips');
+    if(tips) tips.innerHTML = (qrData.firewall_note||'iPhone + laptop must share Wi-Fi.') + '<br><span style="color:#7c88a9">'+(qrData.tls_note||'')+'</span>';
+  }
+
+  window.qrSwitch = function(mode){ qrMode=mode; applyQR(); };
+  window.qrCopy = function(which){
+    if(!qrData) return;
+    const map={expo:'expo_preview',web:'web_preview',boardroom:'mission_control'};
+    const url = qrData.urls?.[map[which]||'expo_preview'] || '';
+    if(!url) return;
+    navigator.clipboard?.writeText(url).then(()=>alert('Copied:\n'+url)).catch(()=>prompt('Copy URL:',url));
+  };
+  window.qrCloudflare = async function(){
+    const box=document.getElementById('qrCloudflareBox');
+    if(box){ box.style.display='block'; box.textContent='Checking cloudflared…'; }
+    try{
+      const r=await fetch('/api/tunnel/cloudflared',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+      const j=await r.json();
+      if(box){
+        if(j.ok && j.url){ box.innerHTML='✅ Public URL: <a href="'+j.url+'" target="_blank" style="color:#7aa2f7">'+j.url+'</a>'; }
+        else {
+          box.innerHTML = (j.installed
+            ? 'cloudflared installed at <code>'+ (j.path||'') +'</code><br>Run:<br><code style="background:#0f1430;padding:4px 8px;border-radius:6px;display:inline-block;margin:4px 0">'+(j.command||'cloudflared tunnel --url http://localhost:8787')+'</code><br>→ copy the https://*.trycloudflare.com URL it prints'
+            : 'Install cloudflared first:<br>• macOS: <code>brew install cloudflared</code><br>• Windows: <code>winget install Cloudflare.cloudflared</code><br>Then run:<br><code>cloudflared tunnel --url http://localhost:8787</code>')
+            + '<br><br><a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/" target="_blank" style="color:#7aa2f7">Download page →</a>';
+        }
+      }
+    }catch(e){
+      if(box) box.textContent='Error: '+e;
+    }
+  };
+
+  // hook: add QR button to top bar + builder preview toolbar
+  function injectQRButtons(){
+    const topActions=document.querySelector('.top-actions');
+    if(top_actions && !document.getElementById('topQRBtn')){
+      // fix variable name
+    }
+  }
+  // correct injection – run after a tick
+  setTimeout(()=>{
+    const topActions=document.querySelector('.top-actions');
+    if(topActions && !document.getElementById('topQRBtn')){
+      const btn=document.createElement('div');
+      btn.id='topQRBtn';
+      btn.textContent='📱 QR';
+      btn.style.cursor='pointer';
+      btn.style.color='#c9a8ff';
+      btn.style.fontWeight='700';
+      btn.title='Expo QR LAN Tunnel — scan with iPhone';
+      btn.onclick=()=>openQR('expo');
+      topActions.insertBefore(btn, topActions.firstChild);
+    }
+    // also add a QR button inside preview toolbar of builder
+    const pt=document.querySelector('.preview-toolbar');
+    if(pt && !document.getElementById('previewQRBtn')){
+      const b=document.createElement('button');
+      b.id='previewQRBtn';
+      b.className='device-btn';
+      b.style.cssText='background:#221a3a;color:#c9b6f5;border-color:#3d2a66;font-weight:700';
+      b.textContent='📱 QR';
+      b.onclick=()=>openQR('expo');
+      b.title='Open Expo QR — scan with phone';
+      pt.appendChild(b);
+    }
+  }, 900);
+
+  console.log('[Agentic OS] Expo QR LAN Tunnel v3.5 injected');
+})();
+</script>
+<!-- /QR TUNNEL -->
+
+</body>
+</html>
+
+<!-- MONACO INLINE AI AUTOCOMPLETE — HERMES GHOST TEXT v3.6 -->
+<script>
+(function(){
+  // wait for Monaco + builder init
+  function whenMonacoReady(cb, tries=0){
+    if(window.monaco && window.monaco.editor){ cb(); return; }
+    if(tries>80) return;
+    setTimeout(()=>whenMonacoReady(cb, tries+1), 250);
+  }
+  function hookEditor(){
+    // hook into existing init – poll for monacoEditor global
+    let tries=0;
+    const iv=setInterval(()=>{
+      tries++;
+      const ed = window.monacoEditor || (typeof monacoEditor!=='undefined' ? monacoEditor : null);
+      if(ed && window.monaco && !ed.__ghostHooked){
+        ed.__ghostHooked = true;
+        clearInterval(iv);
+        installGhost(ed);
+      }
+      if(tries>120) clearInterval(iv);
+    }, 400);
+  }
+
+  function installGhost(editor){
+    if(!window.monaco) return;
+    const monaco = window.monaco;
+    console.log('[Agentic OS] Installing Hermes ghost-text autocomplete…');
+
+    // UI status pill
+    try{
+      const tb=document.querySelector('.editor-toolbar');
+      if(tb && !document.getElementById('ghostStatus')){
+        const s=document.createElement('span');
+        s.id='ghostStatus';
+        s.style.cssText='font-size:11px;color:#9ece6a;margin-left:8px';
+        s.textContent='✨ Hermes ghost ON';
+        s.title='Monaco inline AI autocomplete — Tab to accept';
+        tb.appendChild(s);
+        // toggle
+        s.style.cursor='pointer';
+        s.onclick=()=>{ ghostEnabled=!ghostEnabled; s.textContent=ghostEnabled?'✨ Hermes ghost ON':'○ ghost OFF'; s.style.color=ghostEnabled?'#9ece6a':'#7b88a8'; };
+      }
+    }catch(e){}
+
+    let ghostEnabled = true;
+    let lastReq = 0;
+    let inflight = null;
+
+    // register inline completions for all languages we use
+    ['html','javascript','typescript','css','json'].forEach(lang=>{
+      try{
+        monaco.languages.registerInlineCompletionsProvider(lang, {
+          provideInlineCompletions: async function(model, position, context, token){
+            if(!ghostEnabled) return {items:[]};
+            // debounce – 220ms
+            const now = Date.now();
+            if(now - lastReq < 220) return {items:[]};
+            lastReq = now;
+
+            const text = model.getValue();
+            const offset = model.getOffsetAt(position);
+            const prefix = text.slice(Math.max(0, offset-1500), offset);
+            const suffix = text.slice(offset, offset+400);
+
+            // don't trigger on empty / whitespace only at start
+            if(prefix.trim().length < 3) return {items:[]};
+
+            // cancel previous
+            if(inflight && inflight.abort) try{ inflight.abort(); }catch(e){}
+            const controller = new AbortController();
+            inflight = controller;
+
+            try{
+              const res = await fetch('/api/complete', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({
+                  prefix,
+                  suffix,
+                  filepath: (window.activeTab || 'index.html'),
+                  language: model.getLanguageId(),
+                  max_tokens: 96
+                }),
+                signal: controller.signal
+              });
+              if(!res.ok) return {items:[]};
+              const j = await res.json();
+              const items = (j.completions||[]).map((c,i)=>({
+                insertText: c.insertText || c.text || '',
+                range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+                kind: monaco.languages.CompletionItemKind.Snippet,
+                detail: c.detail || 'Hermes',
+                command: { id:'editor.action.inlineSuggest.commit', title:'accept' }
+              })).filter(it=>it.insertText && it.insertText.trim().length>0);
+              // visual glow
+              const gs=document.getElementById('ghostStatus');
+              if(gs && items.length){ gs.textContent='✨ Hermes → '+items.length; setTimeout(()=>{ if(gs.textContent.startsWith('✨ Hermes →')) gs.textContent='✨ Hermes ghost ON'; }, 900); }
+              return { items };
+            }catch(e){
+              if(e.name!=='AbortError') console.debug('ghost err', e);
+              return {items:[]};
+            } finally {
+              inflight=null;
+            }
+          },
+          freeInlineCompletions: true
+        });
+      }catch(e){ console.warn('registerInlineCompletions failed for', lang, e); }
+    });
+
+    // keybindings – Tab to accept, Esc to dismiss, Alt+] next
+    try{
+      editor.addCommand(monaco.KeyCode.Tab, function(){
+        editor.trigger('ghost','editor.action.inlineSuggest.commit', {});
+      });
+      editor.addCommand(monaco.KeyCode.Escape, function(){
+        editor.trigger('ghost','editor.action.inlineSuggest.hide', {});
+      });
+      // show hint in console
+      const addConsole = window.addConsole || function(m){ console.log(m); };
+      addConsole('› ✨ Hermes ghost-text active — Tab to accept · Esc to dismiss · type to trigger');
+    }catch(e){}
+
+    // status bar in right panel
+    setTimeout(()=>{
+      const rc = document.querySelector('.right-card h3');
+      // find “Live Builder Status” card and append ghost row
+      const cards = Array.from(document.querySelectorAll('.right-card'));
+      const lb = cards.find(c=>c.textContent.includes('Live Builder'));
+      if(lb && !lb.querySelector('.ghost-row')){
+        const div=document.createElement('div');
+        div.className='kv ghost-row';
+        div.innerHTML='<span>Ghost autocomplete</span><span style="color:#9ece6a" id="ghostRightStatus">ON • Tab ↹</span>';
+        lb.appendChild(div);
+      }
+    }, 1200);
+  }
+
+  // start hook after page load + builder init
+  if(document.readyState==='complete') setTimeout(hookEditor, 1200);
+  else window.addEventListener('load', ()=> setTimeout(hookEditor, 1200));
+
+  // also re-hook when user switches to builder tab (Monaco may be created late)
+  const origShowTab = window.showTab;
+  if(typeof origShowTab==='function'){
+    window.showTab = function(t){
+      const r = origShowTab(t);
+      if(t==='builder') setTimeout(hookEditor, 700);
+      return r;
+    };
+  } else {
+    // fallback observer
+    document.addEventListener('click', e=>{
+      if(e.target.closest && e.target.closest('[data-tab="builder"]')){
+        setTimeout(hookEditor, 900);
+      }
+    });
+  }
+
+  console.log('[Agentic OS] Hermes ghost-text loader injected v3.6');
+})();
+</script>
+<!-- /GHOST -->
+
+</body>
+</html>
+
+<!-- MONACO INLINE CHAT — CMD+K HERMES v4.0 -->
+<script>
+(function(){
+  // wait for Monaco + builder
+  function onMonaco(cb, tries=0){
+    const ed = window.monacoEditor || (typeof monacoEditor!=='undefined' ? monacoEditor : null);
+    if(ed && window.monaco){ cb(ed); return; }
+    if(tries>120) return;
+    setTimeout(()=>onMonaco(cb, tries+1), 300);
+  }
+  function installCmdK(){
+    onMonaco(function(editor){
+      if(editor.__cmdkInstalled) return;
+      editor.__cmdkInstalled = true;
+      const monaco = window.monaco;
+
+      // create inline chat widget DOM (once)
+      let chatWidget = null;
+      let chatInput = null;
+      let chatZone = null;
+      let lastSelection = null;
+      let lastDecorations = [];
+
+      function showInlineChat(){
+        const sel = editor.getSelection();
+        if(!sel) return;
+        lastSelection = sel;
+        // position: near cursor top
+        const pos = editor.getPosition();
+        const coords = editor.getScrolledVisiblePosition(pos);
+        const editorDom = editor.getDomNode();
+        if(!editorDom) return;
+        if(!chatWidget){
+          chatWidget = document.createElement('div');
+          chatWidget.id='hermesCmdK';
+          chatWidget.style.cssText='position:absolute;z-index:50;left:24px;right:24px;top:56px;background:#0f1428ee;border:1px solid #2a3a66;border-radius:12px;box-shadow:0 16px 50px rgba(0,0,0,.55);backdrop-filter:blur(10px);padding:10px;font-family:Inter,system-ui,sans-serif';
+          chatWidget.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span style="font-size:12px;font-weight:700;color:#ff9e64">⌘K Hermes</span>
+              <span style="font-size:11px;color:#7b88a8">inline edit — select code first, or whole file</span>
+              <span style="flex:1"></span>
+              <span style="font-size:10px;color:#5b647a">Enter ↵ run · Esc ✕ · ⇧Enter newline</span>
+              <button id="hermesCmdKClose" style="background:transparent;border:none;color:#8892aa;cursor:pointer;font-size:16px">×</button>
+            </div>
+            <input id="hermesCmdKInput" placeholder="refactor to TypeScript · optimize · add tests · explain · convert to React …" style="width:100%;background:#0b0f1c;border:1px solid #263250;color:#e6e6f0;padding:11px 12px;border-radius:9px;font-size:13.5px;outline:none" />
+            <div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap" id="hermesQuickChips"></div>
+            <div id="hermesCmdKStatus" style="font-size:11px;color:#7c88a9;margin-top:8px;min-height:18px"></div>
+          `;
+          editorDom.style.position='relative';
+          editorDom.appendChild(chatWidget);
+          chatInput = chatWidget.querySelector('#hermesCmdKInput');
+          document.getElementById('hermesCmdKClose').onclick = hideInlineChat;
+          // quick chips
+          const chips = [
+            'refactor', 'optimize', 'add TypeScript types',
+            'add tests', 'explain', 'fix bugs',
+            'convert to React', 'make responsive',
+            'add comments'
+          ];
+          const chipBox = chatWidget.querySelector('#hermesQuickChips');
+          chips.forEach(c=>{
+            const b=document.createElement('button');
+            b.textContent=c;
+            b.style.cssText='font-size:11px;padding:4px 9px;border-radius:999px;background:#1a2035;color:#b8c5e8;border:1px solid #263250;cursor:pointer';
+            b.onclick=()=>{ chatInput.value=c; chatInput.focus(); };
+            chipBox.appendChild(b);
+          });
+          chatInput.addEventListener('keydown', async (e)=>{
+            if(e.key==='Enter' && !e.shiftKey){
+              e.preventDefault();
+              runHermesEdit();
+            } else if(e.key==='Escape'){
+              e.preventDefault();
+              hideInlineChat();
+            }
+          });
+        }
+        chatWidget.style.display='block';
+        // highlight selection
+        const model = editor.getModel();
+        if(model && lastSelection && !lastSelection.isEmpty()){
+          lastDecorations = editor.deltaDecorations(lastDecorations, [{
+            range: lastSelection,
+            options:{ className:'hermes-select-highlight', inlineClassName:'', isWholeLine:false,
+              overviewRuler:{color:'#ff9e64',position: monaco.editor.OverviewRulerLane.Right},
+            }
+          }]);
+          // inject highlight CSS once
+          if(!document.getElementById('hermesSelectCss')){
+            const st=document.createElement('style');
+            st.id='hermesSelectCss';
+            st.textContent='.hermes-select-highlight{background:rgba(255,158,100,0.10); outline:1px solid rgba(255,158,100,0.35); border-radius:3px} .hermes-diff-insert{background:rgba(158,206,106,0.13)} .hermes-diff-delete{background:rgba(247,118,142,0.11);text-decoration:line-through}';
+            document.head.appendChild(st);
+          }
+        }
+        setTimeout(()=>chatInput && chatInput.focus(), 40);
+      }
+
+      function hideInlineChat(){
+        const w=document.getElementById('hermesCmdK');
+        if(w) w.style.display='none';
+        if(lastDecorations.length){
+          try{ editor.deltaDecorations(lastDecorations, []); }catch(e){}
+          lastDecorations=[];
+        }
+      }
+
+      async function runHermesEdit(){
+        const inputEl=document.getElementById('hermesCmdKInput');
+        const statusEl=document.getElementById('hermesCmdKStatus');
+        const instruction = inputEl ? inputEl.value.trim() : '';
+        if(!instruction){ if(statusEl) statusEl.textContent='Type an instruction…'; return; }
+        const model = editor.getModel();
+        if(!model) return;
+        let sel = editor.getSelection();
+        let selectedText = '';
+        let hasSelection = sel && !sel.isEmpty();
+        if(hasSelection){
+          selectedText = model.getValueInRange(sel);
+        } else {
+          // whole file
+          selectedText = model.getValue();
+          sel = model.getFullModelRange();
+        }
+        if(statusEl) statusEl.innerHTML = '🤖 Hermes thinking… <span style="color:#7aa2f7">streaming</span>';
+        try{
+          const res = await fetch('/api/agent/edit', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              code: model.getValue(),
+              selection: selectedText,
+              instruction,
+              filepath: (window.activeTab || 'index.html'),
+              language: model.getLanguageId(),
+              mode: 'replace'
+            })
+          });
+          const j = await res.json();
+          const replacement = j.replacement || j.edits?.[0]?.text || '';
+          if(!replacement){ if(statusEl) statusEl.textContent='No edit returned'; return; }
+          // show diff preview inline – use a small confirm bar
+          if(statusEl) statusEl.innerHTML = '✓ Got edit — <b style="color:#9ece6a">'+(j.explanation||'Hermes').slice(0,90)+'</b> — <a href="#" id="hermesAccept" style="color:#9ece6a;text-decoration:underline;font-weight:700">Accept Tab</a> · <a href="#" id="hermesReject" style="color:#aaa">Reject Esc</a> · <a href="#" id="hermesDiffBtn" style="color:#bb9af7">⇄ Diff</a>';
+          // apply with undo stack
+          editor.executeEdits('hermes-cmdk', [{
+            range: sel,
+            text: replacement,
+            forceMoveMarkers: true
+          }]);
+          editor.pushUndoStop();
+          // wire accept/reject (accept already applied – reject = undo)
+          setTimeout(()=>{
+            const a=document.getElementById('hermesAccept');
+            const r=document.getElementById('hermesReject');
+            const d=document.getElementById('hermesDiffBtn');
+            if(a) a.onclick = (ev)=>{ ev.preventDefault(); hideInlineChat(); if(window.addConsole) addConsole('› ✓ Hermes edit accepted — '+instruction); };
+            if(r) r.onclick = (ev)=>{ ev.preventDefault(); editor.trigger('a','undo',null); hideInlineChat(); };
+            if(d) d.onclick = (ev)=>{ ev.preventDefault(); 
+              // open Monaco diff modal if available
+              if(typeof openDiff==='function'){
+                // quick diff: save current to temp version then open diff UI
+                hideInlineChat();
+                setTimeout(()=>{ if(typeof openDiffModalLast==='function') openDiffModalLast(); }, 150);
+              } else { alert('Diff:\n\n--- original\n'+selectedText.slice(0,400)+'\n\n+++ hermes\n'+replacement.slice(0,400)); }
+            };
+          }, 30);
+          // auto-save + version
+          setTimeout(()=>{
+            if(typeof saveFile==='function') saveFile();
+            if(typeof loadHistory==='function') setTimeout(loadHistory, 700);
+          }, 350);
+          // log
+          if(typeof addConsole==='function') addConsole('› ⌘K Hermes: "'+instruction+'" → '+(replacement.length)+' chars • '+(j.tokens||'?')+' tok');
+        }catch(e){
+          if(statusEl) statusEl.textContent='Error: '+e;
+        }
+      }
+
+      // Register Cmd+K / Ctrl+K
+      editor.addAction({
+        id: 'hermes-inline-chat',
+        label: 'Hermes: Inline Chat (⌘K)',
+        keybindings: [
+          monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK,
+        ],
+        contextMenuGroupId: '0_hermes',
+        contextMenuOrder: 0.1,
+        run: function(ed){
+          showInlineChat();
+        }
+      });
+
+      // also Ctrl+Enter to accept ghost, already handled, but ensure
+      console.log('%c[Hermes] ⌘K inline chat installed', 'color:#ff9e64;font-weight:bold');
+      // add hint in console bar
+      try{
+        const c = document.getElementById('consoleBar');
+        if(c && !c.innerHTML.includes('⌘K')){
+          c.innerHTML += '› ⌘K <b style="color:#ff9e64">Hermes inline chat</b> — select code → ⌘K → type → Enter → Tab accept<br>';
+        }
+      }catch(e){}
+      // expose globally for manual trigger
+      window.hermesCmdK = showInlineChat;
+      window.hermesCmdKHide = hideInlineChat;
+    }
+
+    // hook into Monaco init – poll
+    let tries=0;
+    const iv=setInterval(()=>{
+      tries++;
+      const ed = window.monacoEditor || (typeof monacoEditor!=='undefined' ? monacoEditor : null);
+      if(ed && window.monaco){
+        clearInterval(iv);
+        // wait a bit for editor to be fully ready
+        setTimeout(()=> {
+          try {
+            // call install
+            const ev = new Event('hermes-install-cmdk');
+            document.dispatchEvent(ev);
+          } catch(e){}
+        }, 400);
+      }
+      if(tries>200) clearInterval(iv);
+    }, 350);
+
+    // listen for our custom event to (re)install
+    document.addEventListener('hermes-install-cmdk', ()=>{
+      const ed = window.monacoEditor || (typeof monacoEditor!=='undefined' ? monacoEditor : null);
+      if(ed) {
+        // run install logic again – duplicate safe due to __cmdkInstalled flag
+        // manually call
+        if(!ed.__cmdkInstalled){
+          // re-trigger install by calling the outer function again – simplest: reload
+          location.reload();
+        }
+      }
+    });
+
+    // also monkey-patch the install function from earlier ghost script if present
+    // Actually simplest: directly try install every time builder tab opens
+    const _origShowTab = window.showTab;
+    if(typeof _origShowTab === 'function' && !window.__cmdkShowTabPatched){
+      window.__cmdkShowTabPatched = true;
+      window.showTab = function(t){
+        const r = _origShowTab(t);
+        if(t==='builder'){
+          setTimeout(()=>{
+            const ed = window.monacoEditor || (typeof monacoEditor!=='undefined' ? monacoEditor : null);
+            if(ed && !ed.__cmdkInstalled){
+              // manually run install
+              const evt = new CustomEvent('installHermesCmdK', {detail:{editor:ed}});
+              document.dispatchEvent(evt);
+            }
+          }, 900);
+        }
+        return r;
+      };
+    }
+
+    // direct install attempt now + repeatedly
+    setTimeout(function tryInstall(){
+      const ed = window.monacoEditor || (typeof monacoEditor!=='undefined' ? monacoEditor : null);
+      if(ed && window.monaco && !ed.__cmdkInstalled){
+        // inline install – duplicate the install code inline to avoid scope issues
+        try{
+          ed.__cmdkInstalled = true;
+          // minimal keybinding if full install failed earlier
+          ed.addAction({
+            id:'hermes-inline-chat-fallback',
+            label:'Hermes CmdK',
+            keybindings:[monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK],
+            run:()=>{ alert('Hermes ⌘K\\n\\nSelect code in Monaco, then type your instruction in the prompt.\\n\\nExample:\\n- refactor to TypeScript\\n- optimize\\n- add tests'); const instr=prompt('Hermes instruction:','refactor'); if(instr){ fetch("/api/agent/edit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:ed.getModel().getValue(),selection:ed.getModel().getValueInRange(ed.getSelection()),instruction:instr,filepath:window.activeTab||"index.html",language:ed.getModel().getLanguageId()})}).then(r=>r.json()).then(j=>{ if(j.replacement){ const sel=ed.getSelection(); ed.executeEdits("h",[{range:sel.isEmpty()?ed.getModel().getFullModelRange():sel,text:j.replacement}]); }}); } }
+          });
+          console.log('%c[Hermes] Cmd+K fallback action installed', 'color:#ff9e64');
+        }catch(e){ console.warn(e); }
+      }
+    }, 2500);
+
+  })();
+
+  // also expose a visible button in editor toolbar
+  setInterval(()=>{
+    const tb=document.querySelector('.editor-toolbar');
+    if(tb && !document.getElementById('cmdkBtn')){
+      const btn=document.createElement('button');
+      btn.id='cmdkBtn';
+      btn.className='device-btn';
+      btn.style.cssText='background:#2a1a12;color:#ff9e64;border-color:#5a3a20;font-weight:700';
+      btn.textContent='⌘K Hermes';
+      btn.title='Inline chat — Cmd+K';
+      btn.onclick=()=>{ 
+        if(window.hermesCmdK) window.hermesCmdK(); 
+        else alert('Open Monaco editor first (Live Builder tab), place cursor, press ⌘K / Ctrl+K');
+      };
+      tb.insertBefore(btn, tb.querySelector('.spacer') || tb.firstChild.nextSibling);
+    }
+  }, 1200);
+
+  console.log('[Agentic OS] Cmd+K Hermes inline chat v4.0 injected');
+})();
+</script>
+<!-- /CMD+K -->
+
+</body>
+</html>
+<!-- ONE-CLICK DEPLOY — VERCEL v4.1 -->
+<script>
+(function(){
+  // Add Ship button to top bar + editor toolbar
+  function injectShipUI(){
+    const topActions=document.querySelector('.top-actions');
+    if(topActions && !document.getElementById('shipBtnTop')){
+      const b=document.createElement('div');
+      b.id='shipBtnTop';
+      b.textContent='🚀 Ship';
+      b.style.cssText='cursor:pointer;color:#9ece6a;font-weight:800';
+      b.title='One-click Deploy to Vercel';
+      b.onclick=openDeployModal;
+      topActions.insertBefore(b, topActions.firstChild);
+    }
+    // editor toolbar button
+    const et=document.querySelector('.editor-toolbar');
+    if(et && !document.getElementById('shipBtnEditor')){
+      const btn=document.createElement('button');
+      btn.id='shipBtnEditor';
+      btn.className='device-btn';
+      btn.style.cssText='background:#162d1a;color:#9ece6a;border-color:#2a5a2e;font-weight:700';
+      btn.textContent='🚀 Ship';
+      btn.onclick=openDeployModal;
+      et.appendChild(btn);
+    }
+  }
+  setInterval(injectShipUI, 1200);
+
+  // Deploy modal
+  if(!document.getElementById('deployModal')){
+    const css=document.createElement('style');
+    css.textContent=`.deploy-backdrop{position:fixed;inset:0;z-index:10020;background:rgba(4,6,12,.93);display:none;align-items:center;justify-content:center}
+.deploy-card{background:#121629;border:1px solid #263250;border-radius:18px;padding:22px;max-width:760px;width:94%;color:#dbe6ff;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.deploy-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.deploy-grid{grid-template-columns:1fr}}
+.deploy-stat{background:#0f1328;border:1px solid #1d2745;border-radius:12px;padding:12px;font-size:12.5px}
+.deploy-log{font-family:ui-monospace,monospace;font-size:11.5px;background:#0a0f1c;border:1px solid #1d2745;border-radius:10px;padding:10px;height:160px;overflow:auto;color:#8fa0c7;margin-top:10px;white-space:pre-wrap}
+`;
+    document.head.appendChild(css);
+    const modal=document.createElement('div');
+    modal.id='deployModal';
+    modal.className='deploy-backdrop';
+    modal.innerHTML=`
+  <div class="deploy-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="font-weight:800;font-size:17px">🚀 Ship — One-click Deploy</div>
+      <div>
+        <button class="device-btn" onclick="closeDeploy()">✕ Close</button>
+      </div>
+    </div>
+    <div class="deploy-grid">
+      <div>
+        <label style="font-size:12px;color:#9fb0d8">Target</label><br>
+        <select id="deployTarget" style="width:100%;margin:6px 0 10px;background:#0f1430;color:#e6e6f0;border:1px solid #2a3555;border-radius:9px;padding:9px">
+          <option value="web">🌐 Web App — /preview</option>
+          <option value="expo">📱 Expo RN — /preview/mobile</option>
+        </select>
+        <label style="font-size:12px;color:#9fb0d8">Project name</label><br>
+        <input id="deployProject" value="agentic-os" placeholder="my-saas" style="width:100%;margin:6px 0 10px;background:#0f1430;color:#e6e6f0;border:1px solid #2a3555;border-radius:9px;padding:9px" />
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+          <button class="btn" id="deployGoBtn" onclick="doDeploy()" style="flex:1">🚀 Deploy to Vercel</button>
+          <button class="btn btn-ghost" onclick="doDeployNetlify()">▲ Netlify</button>
+        </div>
+        <div class="mini" style="margin-top:8px;color:#7b88a8">
+          • No token? → instant demo URL <code>https://agentic-os-xxxx.vercel.app</code><br>
+          • Add <code>VERCEL_TOKEN</code> in <code>.env</code> for real production<br>
+          • Auto-includes: index.html, styles.css, app.js (+ mobile/* if Expo)
+        </div>
+      </div>
+      <div>
+        <div class="deploy-stat">
+          <div><b>Last deploy</b></div>
+          <div id="deployLastUrl" style="color:#7aa2f7;font-family:ui-monospace,monospace;font-size:12px;margin:6px 0;word-break:break-all">— none yet —</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="device-btn" onclick="copyDeployUrl()">📋 Copy URL</button>
+            <button class="device-btn" onclick="openDeployUrl()">↗ Open</button>
+            <button class="device-btn" onclick="showDeployQR()">📱 QR</button>
+            <button class="device-btn" onclick="loadDeployHistory()">📜 History</button>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#9fb0d8">
+          <div><b>Deploy features</b></div>
+          <ul style="margin:6px 0 0 16px;color:#a9b4d4;line-height:1.6">
+            <li>18s end-to-end</li>
+            <li>Auto-injects env secrets</li>
+            <li>Rollback any Git version → 1-click</li>
+            <li>QR auto-updates for mobile test</li>
+            <li>Cost: $0 (Vercel hobby free)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div id="deployLog" class="deploy-log">› Agentic OS Deploy — ready
+› Target: auto-detect web / expo
+› Click 🚀 Deploy to Vercel
+</div>
+    <div id="deployResult" style="display:none;margin-top:12px;background:#0f1a14;border:1px solid #2a5a2e;border-radius:12px;padding:12px">
+      <div style="color:#9ece6a;font-weight:700" id="deployResultTitle">✓ Deployed</div>
+      <div style="margin-top:6px">
+        <a id="deployResultUrl" href="#" target="_blank" style="color:#7aa2f7;font-family:ui-monospace,monospace;font-size:14px;word-break:break-all"></a>
+      </div>
+      <div class="mini" id="deployResultMeta" style="margin-top:6px"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="openDeployUrl()">↗ Open live</button>
+        <button class="btn-ghost btn btn-sm" onclick="copyDeployUrl()">📋 Copy</button>
+        <button class="btn-ghost btn btn-sm" onclick="showDeployQR()">📱 QR test</button>
+        <button class="btn-ghost btn btn-sm" onclick="deployRollback()">↶ Rollback…</button>
+      </div>
+    </div>
+  </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e=>{ if(e.target===modal) closeDeploy(); });
+  }
+
+  let lastDeployUrl = '';
+  window.openDeployModal = function(){
+    document.getElementById('deployModal').style.display='flex';
+    // auto-detect target: if current file starts with mobile/ → expo
+    try{
+      const cf = window.activeTab || '';
+      const sel = document.getElementById('deployTarget');
+      if(sel){ sel.value = (cf.startsWith('mobile/') ? 'expo' : 'web'); }
+    }catch(e){}
+    loadDeployHistory(true);
+  };
+  window.closeDeploy = function(){ document.getElementById('deployModal').style.display='none'; };
+
+  window.doDeploy = async function(provider='vercel'){
+    const targetEl=document.getElementById('deployTarget');
+    const projectEl=document.getElementById('deployProject');
+    const logEl=document.getElementById('deployLog');
+    const btn=document.getElementById('deployGoBtn');
+    const target = targetEl ? targetEl.value : 'web';
+    const project = projectEl ? projectEl.value.trim() || 'agentic-os' : 'agentic-os';
+    if(btn){ btn.textContent='⏳ Deploying…'; btn.disabled=true; }
+    if(logEl) logEl.textContent = `› agentic@os deploy\n› target: ${target}\n› project: ${project}\n› collecting files…\n`;
+    const endpoint = provider==='netlify' ? '/api/deploy/netlify' : '/api/deploy/vercel';
+    try{
+      const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target, project})});
+      const j=await r.json();
+      if(logEl) logEl.textContent += `› uploading ${j.files||'?'} files (${Math.round((j.bytes||0)/1024)} KB)…\n› ${j.provider} → ${j.duration_ms||'~800'}ms\n` + (j.error ? '⚠️ '+j.error+'\n→ falling back to demo URL\n' : '') + `✓ ready\n`;
+      if(j.url){
+        lastDeployUrl=j.url;
+        const resBox=document.getElementById('deployResult');
+        if(resBox) resBox.style.display='block';
+        const urlA=document.getElementById('deployResultUrl');
+        if(urlA){ urlA.textContent=j.url; urlA.href=j.url; }
+        const meta=document.getElementById('deployResultMeta');
+        if(meta) meta.textContent = `${j.files} files • ${Math.round((j.bytes||0)/1024)} KB • ${j.duration_ms}ms • ${j.provider}` + (j.demo_mode ? ' • DEMO MODE — add VERCEL_TOKEN in .env for production' : '');
+        const titleEl=document.getElementById('deployResultTitle');
+        if(titleEl) titleEl.textContent = j.demo_mode ? '✓ Deployed — demo URL' : '✓ Deployed — production';
+        const lastUrlEl=document.getElementById('deployLastUrl');
+        if(lastUrlEl) lastUrlEl.textContent=j.url;
+        // update QR if modal open elsewhere
+        if(window.addConsole) addConsole('🚀 Ship complete → '+j.url+' ('+j.duration_ms+'ms)');
+        // auto-copy?
+        try{ await navigator.clipboard.writeText(j.url); if(logEl) logEl.textContent += '✓ URL copied to clipboard\n'; }catch(e){}
+        // ping chat
+        if(typeof addChat==='function'){
+          addChat('🚀 Deployed to '+(j.demo_mode? 'Vercel (demo)':'Vercel production')+'\n\n'+j.url+'\n\n'+j.files+' files • '+Math.round((j.bytes||0)/1024)+' KB • '+j.duration_ms+'ms\n\n'+(j.demo_mode ? 'Set VERCEL_TOKEN in .env → next deploy goes live production.' : 'Live at edge globally.')+'\n\nNext: Share URL · Test mobile via QR · Rollback anytime via Git time-travel → Ship', 'agent');
+        }
+      } else {
+        if(logEl) logEl.textContent += '✗ deploy failed: '+(j.error||'unknown')+'\n';
+      }
+    }catch(e){
+      if(logEl) logEl.textContent += '✗ '+e+'\n';
+    }
+    if(btn){ btn.textContent='🚀 Deploy to Vercel'; btn.disabled=false; }
+  };
+  window.doDeployNetlify = ()=> doDeploy('netlify');
+  window.openDeployUrl = ()=>{ if(lastDeployUrl) window.open(lastDeployUrl,'_blank'); else alert('Deploy first — click 🚀 Deploy'); };
+  window.copyDeployUrl = async ()=>{ if(!lastDeployUrl){ alert('No deploy yet'); return;} try{ await navigator.clipboard.writeText(lastDeployUrl); alert('Copied:\n'+lastDeployUrl);}catch(e){ prompt('Copy URL:', lastDeployUrl);} };
+  window.showDeployQR = async ()=>{
+    if(!lastDeployUrl){ alert('Deploy first'); return; }
+    // reuse existing QR modal if present
+    if(typeof openQR==='function'){
+      // quick hack: temporarily override tunnel info fetch?
+      // simpler: open a small window
+      const u = '/api/tunnel/qr?url='+encodeURIComponent(lastDeployUrl)+'&size=360';
+      window.open(u, '_blank', 'width=400,height=440');
+    } else {
+      window.open(lastDeployUrl, '_blank');
+    }
+  };
+  window.loadDeployHistory = async function(silent){
+    try{
+      const r=await fetch('/api/deploy/history'); const j=await r.json();
+      if(!silent && j.length){
+        const logEl=document.getElementById('deployLog');
+        if(logEl){
+          logEl.textContent = '📜 Deploy history — last '+j.length+':\n\n' + j.slice(0,8).map(d=>`[${d.ts}] ${d.provider} • ${d.project}\n  → ${d.url}\n  ${d.target} • ${d.duration_ms}ms • ${d.status}`).join('\n\n');
+        }
+        if(j[0]) { lastDeployUrl=j[0].url; const lu=document.getElementById('deployLastUrl'); if(lu) lu.textContent=j[0].url; }
+      }
+      return j;
+    }catch(e){}
+    return [];
+  };
+  window.deployRollback = async ()=>{
+    const history = await loadDeployHistory(true);
+    if(!history || !history.length){ alert('No previous deploys'); return; }
+    const pick = prompt('Rollback — pick a previous deploy to re-ship:\n\n' + history.slice(0,5).map((h,i)=>`${i+1}. ${h.ts} — ${h.url}`).join('\n') + '\n\nEnter number 1-5 (will redeploy current files – to rollback code, use Git time-travel first, then Ship):', '1');
+    if(pick){ doDeploy(); }
+  };
+
+  // keyboard: Cmd+Shift+P = ship
+  document.addEventListener('keydown', e=>{
+    if((e.metaKey||e.ctrlKey) && e.shiftKey && e.key.toLowerCase()==='p'){
+      e.preventDefault();
+      openDeployModal();
+    }
+  });
+
+  console.log('[Agentic OS] One-click Deploy — Vercel v4.1 injected');
+})();
+</script>
+<!-- /DEPLOY -->
+<script src="/static/galaxy.js"></script>
+<script src="/static/swarm.js"></script>
+<script src="/static/expo_go.js"></script>
+<script src="/static/scaffold_ui.js"></script>
+<script src="/static/error-bridge.js"></script>
+<script src="/static/inspector-bridge.js"></script>
+<script src="/static/pm.js"></script>
+<script src="/static/vault.js"></script>
+<script src="/static/kanban.js"></script>
+<script src="/static/pipeline.js"></script>
+</body>
+</html>
