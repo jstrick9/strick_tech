@@ -1,0 +1,1873 @@
+{
+  "malformed-plugin": {
+    "id": "malformed-plugin",
+    "name": "Malformed Plugin",
+    "version": "1.0.0",
+    "author": "Test",
+    "category": "testing",
+    "emoji": "\u26a0\ufe0f",
+    "skill_count": 2,
+    "installed_at": "2026-07-12"
+  },
+  "route-fix-test": {
+    "id": "route-fix-test",
+    "name": "Route Fix Test",
+    "version": "1.0.0",
+    "author": "Audit",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-12"
+  },
+  "pack_c111c3": {
+    "id": "pack_c111c3",
+    "name": "Updated",
+    "version": "2.0.0",
+    "author": "Tester",
+    "category": "custom",
+    "emoji": "\ud83d\udd2c",
+    "skill_count": 1,
+    "installed_at": "2026-07-13",
+    "source": "user_sdk"
+  },
+  "unit_test_cbfaab": {
+    "id": "unit_test_cbfaab",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_c879c0": {
+    "id": "unit_test_c879c0",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_29cd27": {
+    "id": "unit_test_29cd27",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_aa92e4": {
+    "id": "unit_test_aa92e4",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_ba1665": {
+    "id": "unit_test_ba1665",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_ee312d70": {
+    "id": "test_plugin_ee312d70",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_bc70f775": {
+    "id": "test_plugin_bc70f775",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_0cd81179": {
+    "id": "test_plugin_0cd81179",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_90745efd": {
+    "id": "test_plugin_90745efd",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_9c2f21bf": {
+    "id": "test_plugin_9c2f21bf",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_a6bd82": {
+    "id": "unit_test_a6bd82",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_d08da3a0": {
+    "id": "test_plugin_d08da3a0",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_a9062b": {
+    "id": "unit_test_a9062b",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_bf5eefdb": {
+    "id": "test_plugin_bf5eefdb",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_71df115227": {
+    "id": "sysplugin_71df115227",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_4227d3b5df": {
+    "id": "sysplugin_4227d3b5df",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_0b8f496e00": {
+    "id": "sysplugin_0b8f496e00",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_3dd16300c0": {
+    "id": "sysplugin_3dd16300c0",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_e8a80d": {
+    "id": "unit_test_e8a80d",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_155bf787": {
+    "id": "test_plugin_155bf787",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_203c2f3158": {
+    "id": "sysplugin_203c2f3158",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_123dc3f0": {
+    "id": "uat_plugin_123dc3f0",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_0b883115": {
+    "id": "uat_plugin_0b883115",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_97c7a300": {
+    "id": "uat_plugin_97c7a300",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_741ea8": {
+    "id": "unit_test_741ea8",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_dd13ff9f": {
+    "id": "test_plugin_dd13ff9f",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_2c46caf2f1": {
+    "id": "sysplugin_2c46caf2f1",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_dda77e22": {
+    "id": "uat_plugin_dda77e22",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_a1a7e9": {
+    "id": "unit_test_a1a7e9",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_64361fbf": {
+    "id": "test_plugin_64361fbf",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_103d0e11f7": {
+    "id": "sysplugin_103d0e11f7",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_430ff717": {
+    "id": "uat_plugin_430ff717",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_fca5fe98": {
+    "id": "test_plugin_fca5fe98",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_34e693": {
+    "id": "unit_test_34e693",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_96fef6f8": {
+    "id": "test_plugin_96fef6f8",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_19c82484db": {
+    "id": "sysplugin_19c82484db",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_a2b09d2e": {
+    "id": "uat_plugin_a2b09d2e",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_e93667": {
+    "id": "unit_test_e93667",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_ab09244a": {
+    "id": "test_plugin_ab09244a",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_c88f2d6065": {
+    "id": "sysplugin_c88f2d6065",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_10f137ae": {
+    "id": "uat_plugin_10f137ae",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_744b573c": {
+    "id": "test_plugin_744b573c",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_ecada53d": {
+    "id": "test_plugin_ecada53d",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_91b269": {
+    "id": "unit_test_91b269",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_8a4352": {
+    "id": "unit_test_8a4352",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_897d4d2e": {
+    "id": "test_plugin_897d4d2e",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_5f013665a8": {
+    "id": "sysplugin_5f013665a8",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_6eed19aa": {
+    "id": "uat_plugin_6eed19aa",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_d5712a": {
+    "id": "unit_test_d5712a",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_2c3cddb5": {
+    "id": "test_plugin_2c3cddb5",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_834ebfbb59": {
+    "id": "sysplugin_834ebfbb59",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_d713839e": {
+    "id": "uat_plugin_d713839e",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_9616c0": {
+    "id": "unit_test_9616c0",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_a931c942": {
+    "id": "test_plugin_a931c942",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_7670b7": {
+    "id": "unit_test_7670b7",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_4cb7e74e": {
+    "id": "test_plugin_4cb7e74e",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_18276f": {
+    "id": "unit_test_18276f",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_304c8f5f": {
+    "id": "test_plugin_304c8f5f",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_a5908c": {
+    "id": "unit_test_a5908c",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_edaf32d2": {
+    "id": "test_plugin_edaf32d2",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_36a4b6": {
+    "id": "unit_test_36a4b6",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_2b6d41": {
+    "id": "unit_test_2b6d41",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_aa8031": {
+    "id": "unit_test_aa8031",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_e7feed": {
+    "id": "unit_test_e7feed",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_ae8c4f": {
+    "id": "unit_test_ae8c4f",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_08e53e": {
+    "id": "unit_test_08e53e",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_ba220e": {
+    "id": "unit_test_ba220e",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_aa399f": {
+    "id": "unit_test_aa399f",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_96fb54a4": {
+    "id": "test_plugin_96fb54a4",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_071c42ae": {
+    "id": "test_plugin_071c42ae",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_60a8e002": {
+    "id": "test_plugin_60a8e002",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_bcb2bcf6": {
+    "id": "test_plugin_bcb2bcf6",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_39fe17f3": {
+    "id": "test_plugin_39fe17f3",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_8327b2e6": {
+    "id": "test_plugin_8327b2e6",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_60e47141": {
+    "id": "test_plugin_60e47141",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_fe1498c2": {
+    "id": "test_plugin_fe1498c2",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_d2e46d": {
+    "id": "unit_test_d2e46d",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_af72097f": {
+    "id": "test_plugin_af72097f",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_4a5de94811": {
+    "id": "sysplugin_4a5de94811",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_03d6fc0340": {
+    "id": "sysplugin_03d6fc0340",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_84775bf087": {
+    "id": "sysplugin_84775bf087",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_45e6ca": {
+    "id": "unit_test_45e6ca",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_8419af94": {
+    "id": "test_plugin_8419af94",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_8a15faa8da": {
+    "id": "sysplugin_8a15faa8da",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_3cce6f": {
+    "id": "unit_test_3cce6f",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_e2398d9e": {
+    "id": "test_plugin_e2398d9e",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_0726a0e7b5": {
+    "id": "sysplugin_0726a0e7b5",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_eb89b0": {
+    "id": "unit_test_eb89b0",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_0c1a040e": {
+    "id": "test_plugin_0c1a040e",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_1de8ecdd8b": {
+    "id": "sysplugin_1de8ecdd8b",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_68ed1c": {
+    "id": "unit_test_68ed1c",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_49a08421": {
+    "id": "test_plugin_49a08421",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_a7ead1519a": {
+    "id": "sysplugin_a7ead1519a",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_b0674f": {
+    "id": "unit_test_b0674f",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_8e54aa7d": {
+    "id": "test_plugin_8e54aa7d",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_5a0bb4b55f": {
+    "id": "sysplugin_5a0bb4b55f",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_2cf62856": {
+    "id": "uat_plugin_2cf62856",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_db66356e": {
+    "id": "uat_plugin_db66356e",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_bcb8e86d": {
+    "id": "uat_plugin_bcb8e86d",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_3956db21": {
+    "id": "uat_plugin_3956db21",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_0813e2": {
+    "id": "unit_test_0813e2",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_9faa7e12": {
+    "id": "test_plugin_9faa7e12",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_4b1942b456": {
+    "id": "sysplugin_4b1942b456",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_7efa0f11": {
+    "id": "uat_plugin_7efa0f11",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_bcdc4c": {
+    "id": "unit_test_bcdc4c",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_8545e71b": {
+    "id": "test_plugin_8545e71b",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_8f6786901d": {
+    "id": "sysplugin_8f6786901d",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_b5bf2948": {
+    "id": "uat_plugin_b5bf2948",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_2e5ea6": {
+    "id": "unit_test_2e5ea6",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "test_plugin_4661d0a2": {
+    "id": "test_plugin_4661d0a2",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "sysplugin_3c66d143bd": {
+    "id": "sysplugin_3c66d143bd",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-13"
+  },
+  "uat_plugin_82d8b6ad": {
+    "id": "uat_plugin_82d8b6ad",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-13"
+  },
+  "unit_test_d3dda4": {
+    "id": "unit_test_d3dda4",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_2fca2f7c": {
+    "id": "test_plugin_2fca2f7c",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "sysplugin_9ba391ac42": {
+    "id": "sysplugin_9ba391ac42",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_dcd84669": {
+    "id": "uat_plugin_dcd84669",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_1eeb68": {
+    "id": "unit_test_1eeb68",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_400f8a0b": {
+    "id": "test_plugin_400f8a0b",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "sysplugin_d6bf29c298": {
+    "id": "sysplugin_d6bf29c298",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_8e1007dd": {
+    "id": "uat_plugin_8e1007dd",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_aa252b40": {
+    "id": "uat_plugin_aa252b40",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_e949bb05": {
+    "id": "uat_plugin_e949bb05",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_817c34d4": {
+    "id": "uat_plugin_817c34d4",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_49bfdef0": {
+    "id": "uat_plugin_49bfdef0",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_85c3b9be": {
+    "id": "uat_plugin_85c3b9be",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_1912c6cd": {
+    "id": "uat_plugin_1912c6cd",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_33443528": {
+    "id": "uat_plugin_33443528",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_02b9175d": {
+    "id": "uat_plugin_02b9175d",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_dfe4306f": {
+    "id": "uat_plugin_dfe4306f",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_62037e": {
+    "id": "unit_test_62037e",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_c225f957": {
+    "id": "test_plugin_c225f957",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_1d83cfba": {
+    "id": "test_plugin_1d83cfba",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "sysplugin_44debddfd1": {
+    "id": "sysplugin_44debddfd1",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_79a8ee": {
+    "id": "unit_test_79a8ee",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_fc9f3bc6": {
+    "id": "test_plugin_fc9f3bc6",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "sysplugin_f3fbfc08a9": {
+    "id": "sysplugin_f3fbfc08a9",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_db3eb300": {
+    "id": "test_plugin_db3eb300",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_50ebbb71": {
+    "id": "test_plugin_50ebbb71",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_5f48081d": {
+    "id": "test_plugin_5f48081d",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_e26ee9f8": {
+    "id": "test_plugin_e26ee9f8",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "sysplugin_4afb9931d1": {
+    "id": "sysplugin_4afb9931d1",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_64b264": {
+    "id": "unit_test_64b264",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "sysplugin_0c68d00ef0": {
+    "id": "sysplugin_0c68d00ef0",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_8e0d6e24": {
+    "id": "uat_plugin_8e0d6e24",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_e614f723": {
+    "id": "uat_plugin_e614f723",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_05e273aa": {
+    "id": "uat_plugin_05e273aa",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_059248be": {
+    "id": "uat_plugin_059248be",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_5b73d255": {
+    "id": "test_plugin_5b73d255",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_d9369fbc": {
+    "id": "test_plugin_d9369fbc",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_466dee4c": {
+    "id": "test_plugin_466dee4c",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_016fb095": {
+    "id": "test_plugin_016fb095",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_b7930f30": {
+    "id": "test_plugin_b7930f30",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_503300b5": {
+    "id": "test_plugin_503300b5",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_4853e8": {
+    "id": "unit_test_4853e8",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "sysplugin_f36db7ec92": {
+    "id": "sysplugin_f36db7ec92",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_51f9fc85": {
+    "id": "uat_plugin_51f9fc85",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_b1c9f3": {
+    "id": "unit_test_b1c9f3",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_17b0522d": {
+    "id": "uat_plugin_17b0522d",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_e69e5412": {
+    "id": "test_plugin_e69e5412",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_3f0b8612": {
+    "id": "test_plugin_3f0b8612",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_8917e6": {
+    "id": "unit_test_8917e6",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_ce3002": {
+    "id": "unit_test_ce3002",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_10a09c": {
+    "id": "unit_test_10a09c",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_5e41bf05": {
+    "id": "test_plugin_5e41bf05",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_da7cb321": {
+    "id": "test_plugin_da7cb321",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_7cade3": {
+    "id": "unit_test_7cade3",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_097cdf11": {
+    "id": "test_plugin_097cdf11",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_82ba4e": {
+    "id": "unit_test_82ba4e",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "sysplugin_0fe39665e2": {
+    "id": "sysplugin_0fe39665e2",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_93ddff93": {
+    "id": "uat_plugin_93ddff93",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "sysplugin_de5260066e": {
+    "id": "sysplugin_de5260066e",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_4d9c23fd": {
+    "id": "test_plugin_4d9c23fd",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_f586ea": {
+    "id": "unit_test_f586ea",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_f3f59ffa": {
+    "id": "uat_plugin_f3f59ffa",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_c39643": {
+    "id": "unit_test_c39643",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_dcfde090": {
+    "id": "uat_plugin_dcfde090",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "sysplugin_692b06d4fb": {
+    "id": "sysplugin_692b06d4fb",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "test_plugin_8d57d9e4": {
+    "id": "test_plugin_8d57d9e4",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_292ade": {
+    "id": "unit_test_292ade",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_886eb3": {
+    "id": "unit_test_886eb3",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_e73343": {
+    "id": "unit_test_e73343",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "uat_plugin_395bb621": {
+    "id": "uat_plugin_395bb621",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_73bcfe": {
+    "id": "unit_test_73bcfe",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  },
+  "unit_test_bcaaf1": {
+    "id": "unit_test_bcaaf1",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-14"
+  }
+}
