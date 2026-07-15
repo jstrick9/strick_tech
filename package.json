@@ -1,0 +1,13 @@
+{
+  "name": "agentic-os",
+  "version": "6.0.0",
+  "description": "Local-first Agentic AI Operating System",
+  "scripts": {
+    "tauri:dev":   "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:setup": "npm install @tauri-apps/cli@latest --save-dev"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

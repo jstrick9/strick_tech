@@ -1,24 +1,73 @@
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
+# Agentic OS v6.0 — Requirements
+# Install: pip install -r requirements.txt
+
+# ── Core server ────────────────────────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
 pydantic==2.9.2
-apscheduler==3.10.4
-httpx==0.27.2
-python-dotenv==1.0.1
+python-multipart==0.0.12
 aiofiles==24.1.0
-jinja2==3.1.4
-rich==13.7.1
 
-# v3.5 Expo QR tunnel
+# ── HTTP client (async, streaming) ────────────────────────────────────────────
+httpx==0.27.2
+
+# ── Environment ───────────────────────────────────────────────────────────────
+python-dotenv==1.0.1
+
+# ── Scheduling (autonomous agent loops) ───────────────────────────────────────
+apscheduler==3.10.4
+
+# ── Secrets vault ─────────────────────────────────────────────────────────────
+cryptography==43.0.3
+
+# ── QR codes (LAN tunnel / Expo) ──────────────────────────────────────────────
 qrcode[pil]==7.4.2
-pillow==10.4.0
+pillow==11.0.0
 
-# v4.2 Memory Galaxy
-qdrant-client==1.9.2
-sentence-transformers==3.0.1
-numpy==1.26.4
-torch==2.3.1
-# optional: for faster embeddings
-# fastembed==0.3.1
+# ── Templates ─────────────────────────────────────────────────────────────────
+jinja2==3.1.4
 
-# v4.8 secrets vault
-cryptography==42.0.5
+# ── Dev / CLI output ──────────────────────────────────────────────────────────
+rich==13.9.4
+
+# ── Optional: Memory vector embeddings (sentence-transformers) ────────────────
+# Enables local semantic embeddings for hybrid Qdrant+FTS5 memory search.
+# Requires ~1GB model download on first run.
+# Uncomment to enable:
+# torch==2.4.1
+# sentence-transformers==3.3.1
+# numpy==2.0.2
+
+# ── Optional: Qdrant vector database ──────────────────────────────────────────
+# Enables semantic (cosine similarity) memory search alongside SQLite FTS5.
+# Install Qdrant: docker run -p 6333:6333 qdrant/qdrant
+# Then set QDRANT_URL=http://localhost:6333 in .env
+# Uncomment to enable:
+# qdrant-client==1.12.1
+
+# ── Optional: Playwright E2E testing (real screenshots) ───────────────────────
+# pip install playwright && python -m playwright install chromium
+# playwright==1.49.0
+
+# ── TTS — Microsoft Neural voices, FREE, no API key ──────────────────────────
+edge-tts>=7.0.0
+
+# ── File watching (Obsidian vault + HMR) ──────────────────────────────────────
+watchdog>=4.0.0
+
+# ── System monitoring ─────────────────────────────────────────────────────────
+psutil>=6.0.0
+
+# ── Git integration ───────────────────────────────────────────────────────────
+gitpython>=3.1.0
+
+# ── Optional: Browser automation (E2E tests) ──────────────────────────────────
+# pip install playwright && playwright install chromium
+# playwright==1.49.0
+
+# ── Optional: ElevenLabs TTS (premium voices) ─────────────────────────────────
+# ELEVENLABS_API_KEY must be set in .env
+# elevenlabs>=1.0.0
+
+# ── Optional: Web search (for research agent) ─────────────────────────────────
+# duckduckgo-search==6.3.7

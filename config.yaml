@@ -1,13 +1,29 @@
-server: {host: 0.0.0.0, port: 8787}
+server:
+  host: "0.0.0.0"
+  port: 8787
+
 memory:
-  backend: qdrant+sqlite_fts5
+  backend: sqlite-fts5          # always available
   db_path: ./memory/agentic.db
-  vector_db: ./memory/qdrant_storage
-  embedding_model: sentence-transformers/all-MiniLM-L6-v2
-  dim: 384
-  mode: hybrid
-aipb_compatible: true
-goldie_mission_stack: true
-self_layer: obsidian_omi
-memory_galaxy: true
-version: 5.0
+  # optional vector store (requires qdrant-client + running Qdrant):
+  # vector_db: ./memory/qdrant_storage
+  # embedding_model: sentence-transformers/all-MiniLM-L6-v2
+  # dim: 384
+
+llm:
+  primary_provider: openrouter  # uses OPENROUTER_API_KEY from .env / Vault
+  fallback: ollama              # uses OLLAMA_BASE_URL from .env
+  default_model: claude         # maps to OPENROUTER_MODELS registry in llm.py
+
+agents:
+  auto_seed_defaults: true      # seed default agents on first run
+
+features:
+  memory_galaxy: true
+  swarm: true
+  builder: true
+  kanban: true
+  vault: true
+  e2e: false                    # set true if playwright is installed
+
+version: "6.0"

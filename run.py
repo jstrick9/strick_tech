@@ -1,58 +1,145 @@
 #!/usr/bin/env python3
-import os, sys, sqlite3, webbrowser, threading, time
+"""
+Agentic OS v6.0 — Launcher
+Run: python run.py
+"""
+import os
+import sys
+import sqlite3
+import webbrowser
+import threading
+import time
 from pathlib import Path
+
 ROOT = Path(__file__).parent
-sys.path.insert(0, str(ROOT / "backend"))
-def init_db():
+sys.path.insert(0, str(ROOT))
+
+# ── Load .env early ────────────────────────────────────────────────────────────
+try:
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / ".env", override=False)
+except ImportError:
+    pass  # dotenv not yet installed — handled below
+
+PORT = int(os.getenv("AGENTIC_OS_PORT", "8787"))
+HOST = os.getenv("AGENTIC_OS_HOST", "0.0.0.0")
+
+
+def check_requirements():
+    """Warn if critical packages are missing."""
+    missing = []
+    for pkg in ["fastapi", "uvicorn", "httpx", "dotenv"]:
+        try:
+            __import__(pkg.replace("-", "_"))
+        except ImportError:
+            missing.append(pkg)
+    if missing:
+        print(f"\n⚠️  Missing packages: {', '.join(missing)}")
+        print("   Run: pip install -r requirements.txt\n")
+        sys.exit(1)
+
+
+def seed_db():
+    """Seed initial data if DB is empty."""
     db_path = ROOT / "memory" / "agentic.db"
     db_path.parent.mkdir(exist_ok=True)
     con = sqlite3.connect(db_path)
     cur = con.cursor()
-    cur.executescript("""
-    CREATE TABLE IF NOT EXISTS memory (id INTEGER PRIMARY KEY, source TEXT, content TEXT, tags TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-    CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(content, tags, content='memory', content_rowid='id');
-    CREATE TABLE IF NOT EXISTS goals (id INTEGER PRIMARY KEY, title TEXT, layer TEXT, progress INTEGER DEFAULT 0, status TEXT DEFAULT 'active', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS chat_log (id INTEGER PRIMARY KEY, agent TEXT, role TEXT, message TEXT, tokens INTEGER DEFAULT 0, cost REAL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, title TEXT, status TEXT DEFAULT 'todo', priority TEXT DEFAULT 'medium', agent TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY, action TEXT, detail TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-    """)
-    if cur.execute("SELECT COUNT(*) FROM goals").fetchone()[0]==0:
-        cur.executemany("INSERT INTO goals(title,layer,progress) VALUES (?,?,?)", [
-            ("Launch Agentic OS locally","Vision",75),
-            ("Connect Obsidian Self Layer","Goals",40),
-            ("Enable Hermes autonomous loop","Tasks",15),
-            ("Ship first multi-modal Studio export","Execution",5),
-        ])
-    if cur.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]==0:
-        cur.executemany("INSERT INTO tasks(title,status,priority,agent) VALUES (?,?,?,?)", [
-            ("Wire Claude Desktop bridge","doing","high","claude"),
-            ("Index Obsidian vault","todo","high","hermes"),
-            ("Test OpenClaw browser task","todo","medium","openclaw"),
-            ("Build Studio image pipeline","todo","medium","gemini"),
-            ("Daily self-reflect journal","todo","low","self"),
-            ("Cost optimizer cron","blocked","low","hermes"),
-        ])
-    if cur.execute("SELECT COUNT(*) FROM memory").fetchone()[0]==0:
-        cur.executemany("INSERT INTO memory(source,content,tags) VALUES (?,?,?)", [
-            ("self","Agentic OS initialized. Shared memory active. Goldie Mission Stack online.","system,init"),
-            ("vault","My business: Solo founder building AI automation agency. Focus: SEO, agent OS, content systems.","self,business"),
-            ("hermes","Hermes autonomous loop ready. Scheduler: APScheduler cron enabled.","hermes,agent"),
-        ])
-        cur.execute("INSERT INTO memory_fts(rowid,content,tags) SELECT id, content, tags FROM memory")
-    con.commit(); con.close()
+
+    # Check if tasks table has data
+    try:
+        count = cur.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
+    except Exception:
+        count = 0
+
+    if count == 0:
+        try:
+            cur.executemany(
+                "INSERT OR IGNORE INTO tasks(title,status,priority,agent,layer) VALUES (?,?,?,?,?)",
+                [
+                    ("Wire OpenRouter API key → real chat",      "done",    "high",   "brain",      "Goals"),
+                    ("Multi-agent swarm fan-out",                 "done",    "high",   "orchestrator","Execution"),
+                    ("Memory Galaxy vector RAG",                  "done",    "high",   "memory",     "Memory"),
+                    ("Live app builder + Monaco editor",          "done",    "high",   "builder",    "Goals"),
+                    ("Playwright E2E auto-fix loop",              "doing",   "high",   "builder",    "Execution"),
+                    ("Create custom agent persona",               "todo",    "medium", "brain",      "Tasks"),
+                    ("MCP Tool Router — filesystem + browser",    "todo",    "high",   "builder",    "Ship"),
+                    ("Voice agent — Whisper STT + TTS",           "todo",    "medium", "brain",      "Execution"),
+                    ("Tauri desktop app packaging",               "todo",    "high",   "builder",    "Ship"),
+                    ("One-click Vercel deploy",                   "todo",    "medium", "builder",    "Ship"),
+                ]
+            )
+            con.commit()
+        except Exception:
+            pass
+
+    try:
+        mem_count = cur.execute("SELECT COUNT(*) FROM memory").fetchone()[0]
+    except Exception:
+        mem_count = 0
+
+    if mem_count == 0:
+        try:
+            cur.executemany(
+                "INSERT OR IGNORE INTO memory(source,content,tags) VALUES (?,?,?)",
+                [
+                    ("system", "Agentic OS v6.0 initialized. Shared memory active. Multi-agent swarm online.", "system,init"),
+                    ("self",   "Local-first agentic AI OS. Monaco editor, Git time-travel, Memory Galaxy, Swarm.", "self,core"),
+                    ("brain",  "OpenRouter provides access to Claude, GPT-4o, Gemini, Grok, Llama via one API key.", "brain,llm"),
+                ]
+            )
+            con.commit()
+        except Exception:
+            pass
+
+    con.close()
+
+
 def open_browser():
-    time.sleep(1.3)
-    try: webbrowser.open("http://localhost:8787")
-    except: pass
+    time.sleep(1.5)
+    try:
+        webbrowser.open(f"http://localhost:{PORT}")
+    except Exception:
+        pass
+
+
+def print_banner():
+    key_set = "✅ set" if os.getenv("OPENROUTER_API_KEY") else "❌ NOT SET — add to .env"
+    print("\n")
+    print("  ╔══════════════════════════════════════════════════════════╗")
+    print("  ║                                                          ║")
+    print("  ║   🧠  AGENTIC OS v6.0 — MISSION CONTROL                 ║")
+    print("  ║   Local-first · Multi-agent · Memory Galaxy              ║")
+    print("  ║                                                          ║")
+    print("  ╚══════════════════════════════════════════════════════════╝")
+    print()
+    print(f"  Agents   : Orchestrator · Brain · Builder · Researcher · Reviewer")
+    print(f"  Memory   : SQLite FTS5 + vector store")
+    print(f"  Swarm    : Multi-model fan-out + judge")
+    print(f"  API Key  : OPENROUTER_API_KEY {key_set}")
+    print()
+    print(f"  🌐  http://localhost:{PORT}")
+    print(f"  📱  http://localhost:{PORT}/preview/mobile/index.html")
+    print()
+    if not os.getenv("OPENROUTER_API_KEY"):
+        print("  ⚡  QUICK START: Copy .env.example → .env, add your OpenRouter key")
+        print("      Get a free key: https://openrouter.ai/keys")
+        print()
+
+
 if __name__ == "__main__":
-    init_db()
-    print("\n\033[95m╔══════════════════════════════════════════════╗\033[0m")
-    print("\033[95m║          🧠 AGENTIC OS — MISSION CONTROL    ║\033[0m")
-    print("\033[95m║  Free Boardroom Clone · Local-first · MIT   ║\033[0m")
-    print("\033[95m╚══════════════════════════════════════════════╝\033[0m\n")
-    print("  Agents: Swarm · Galaxy · Claude · Hermes · Builder · Expo · OpenClaw · Gemini · Grok")
-    print("  Memory: Qdrant vector RAG + SQLite FTS5 — Secrets Vault + PM + Inspector + Swarm + Galaxy v5.0")
-    print("  URL:    \033[96mhttp://localhost:8787\033[0m\n")
+    check_requirements()
+    seed_db()
+    print_banner()
     threading.Thread(target=open_browser, daemon=True).start()
+
     import uvicorn
-    uvicorn.run("app:app", app_dir=str(ROOT / "backend"), host="0.0.0.0", port=8787, reload=False, log_level="info")
+    uvicorn.run(
+        "backend.app:app",
+        app_dir=str(ROOT),
+        host=HOST,
+        port=PORT,
+        reload=False,
+        log_level="info",
+        access_log=True,
+    )
