@@ -1,0 +1,1 @@
+{"id": "wf_rpdel_469aec", "name": "RP Delete Test", "nodes": [{"id": "n1", "type": "trigger", "label": "Start", "x": 100, "y": 100, "config": {}}], "edges": []}

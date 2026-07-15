@@ -1,0 +1,1 @@
+{"id": "wf_diff_e2f9f3", "name": "Diff WF", "nodes": [{"id": "n1", "type": "trigger", "label": "Start", "x": 100, "y": 100, "config": {}}, {"id": "n2", "type": "output", "label": "Out", "x": 400, "y": 100, "config": {"target": "chat"}}], "edges": [{"from": "n1", "to": "n2"}]}

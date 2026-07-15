@@ -1,0 +1,121 @@
+{
+  "id": "wf_demo_code_review",
+  "name": "Code \u2192 Review \u2192 Branch \u2192 Deploy",
+  "description": "Demo: Code \u2192 Review \u2192 Branch \u2192 Deploy",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "trigger",
+      "label": "PR Webhook",
+      "x": 60,
+      "y": 200,
+      "config": {
+        "event": "webhook"
+      }
+    },
+    {
+      "id": "n2",
+      "type": "agent",
+      "label": "Code Gen",
+      "x": 300,
+      "y": 200,
+      "config": {
+        "agent_id": "builder",
+        "prompt": "Generate code for: {{input}}"
+      }
+    },
+    {
+      "id": "n3",
+      "type": "agent",
+      "label": "Security Review",
+      "x": 540,
+      "y": 100,
+      "config": {
+        "agent_id": "reviewer",
+        "prompt": "Security review:\n{{prev_output}}"
+      }
+    },
+    {
+      "id": "n4",
+      "type": "agent",
+      "label": "Test Generator",
+      "x": 540,
+      "y": 300,
+      "config": {
+        "agent_id": "builder",
+        "prompt": "Write tests for:\n{{prev_output}}"
+      }
+    },
+    {
+      "id": "n5",
+      "type": "condition",
+      "label": "Tests Pass?",
+      "x": 780,
+      "y": 200,
+      "config": {
+        "expression": "pass"
+      }
+    },
+    {
+      "id": "n6",
+      "type": "output",
+      "label": "\u2705 Deploy",
+      "x": 1020,
+      "y": 100,
+      "config": {
+        "target": "deploy"
+      }
+    },
+    {
+      "id": "n7",
+      "type": "output",
+      "label": "\u274c Notify Fail",
+      "x": 1020,
+      "y": 300,
+      "config": {
+        "target": "slack"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "n1",
+      "to": "n2"
+    },
+    {
+      "id": "e2",
+      "from": "n2",
+      "to": "n3"
+    },
+    {
+      "id": "e3",
+      "from": "n2",
+      "to": "n4"
+    },
+    {
+      "id": "e4",
+      "from": "n3",
+      "to": "n5"
+    },
+    {
+      "id": "e5",
+      "from": "n4",
+      "to": "n5"
+    },
+    {
+      "id": "e6",
+      "from": "n5",
+      "to": "n6",
+      "label": "yes"
+    },
+    {
+      "id": "e7",
+      "from": "n5",
+      "to": "n7",
+      "label": "no"
+    }
+  ],
+  "created_at": "2026-07-14T20:00:00Z",
+  "updated_at": "2026-07-14T20:00:00Z"
+}

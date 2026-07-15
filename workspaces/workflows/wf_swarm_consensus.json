@@ -1,0 +1,105 @@
+{
+  "id": "wf_swarm_consensus",
+  "name": "Swarm Consensus Flow",
+  "description": "Fan out to 3 agents, judge output, synthesize",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "trigger",
+      "label": "Input",
+      "x": 60,
+      "y": 200,
+      "config": {
+        "event": "manual"
+      }
+    },
+    {
+      "id": "n2",
+      "type": "agent",
+      "label": "Agent A",
+      "x": 280,
+      "y": 80,
+      "config": {
+        "agent_id": "researcher"
+      }
+    },
+    {
+      "id": "n3",
+      "type": "agent",
+      "label": "Agent B",
+      "x": 280,
+      "y": 200,
+      "config": {
+        "agent_id": "builder"
+      }
+    },
+    {
+      "id": "n4",
+      "type": "agent",
+      "label": "Agent C",
+      "x": 280,
+      "y": 320,
+      "config": {
+        "agent_id": "orchestrator"
+      }
+    },
+    {
+      "id": "n5",
+      "type": "transform",
+      "label": "Merge & Judge",
+      "x": 520,
+      "y": 200,
+      "config": {
+        "mode": "merge"
+      }
+    },
+    {
+      "id": "n6",
+      "type": "output",
+      "label": "Final Answer",
+      "x": 740,
+      "y": 200,
+      "config": {
+        "target": "chat"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "n1",
+      "to": "n2"
+    },
+    {
+      "id": "e2",
+      "from": "n1",
+      "to": "n3"
+    },
+    {
+      "id": "e3",
+      "from": "n1",
+      "to": "n4"
+    },
+    {
+      "id": "e4",
+      "from": "n2",
+      "to": "n5"
+    },
+    {
+      "id": "e5",
+      "from": "n3",
+      "to": "n5"
+    },
+    {
+      "id": "e6",
+      "from": "n4",
+      "to": "n5"
+    },
+    {
+      "id": "e7",
+      "from": "n5",
+      "to": "n6"
+    }
+  ],
+  "created_at": "2025-01-01T00:00:00Z"
+}
