@@ -1,0 +1,48 @@
+{
+  "id": "content-creator",
+  "name": "Content Creator Pack",
+  "version": "1.4.2",
+  "description": "Professional writing tools: blog posts, social media, email campaigns, product descriptions, SEO.",
+  "icon": "\u270d\ufe0f",
+  "author": "Creative Studio",
+  "source": "marketplace",
+  "installed": true,
+  "skills": [
+    {
+      "id": "blog_post",
+      "name": "Write Blog Post",
+      "prompt": "Write a professional blog post about: {{input}}\n\nInclude: catchy title, introduction, 3-5 sections with subheadings, conclusion, call-to-action.",
+      "icon": "\ud83d\udcdd"
+    },
+    {
+      "id": "social_tweet",
+      "name": "Twitter/X Thread",
+      "prompt": "Create an engaging Twitter/X thread (5-7 tweets) about: {{input}}",
+      "icon": "\ud83d\udc26"
+    },
+    {
+      "id": "linkedin_post",
+      "name": "LinkedIn Post",
+      "prompt": "Write a professional LinkedIn post about: {{input}}\nMake it insightful, include 3-5 hashtags.",
+      "icon": "\ud83d\udcbc"
+    },
+    {
+      "id": "email_campaign",
+      "name": "Email Campaign",
+      "prompt": "Write a compelling marketing email for: {{input}}\nInclude: subject line, preheader, body, CTA.",
+      "icon": "\ud83d\udce7"
+    },
+    {
+      "id": "product_desc",
+      "name": "Product Description",
+      "prompt": "Write a persuasive product description for: {{input}}\nHighlight benefits, features, and unique selling points.",
+      "icon": "\ud83d\udecd\ufe0f"
+    },
+    {
+      "id": "seo_meta",
+      "name": "SEO Meta Tags",
+      "prompt": "Generate SEO-optimised title, description, and keywords for a page about: {{input}}",
+      "icon": "\ud83d\udd0e"
+    }
+  ]
+}

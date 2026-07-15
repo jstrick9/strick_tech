@@ -1,0 +1,36 @@
+{
+  "id": "research-assistant",
+  "name": "Research Assistant Pack",
+  "version": "1.2.0",
+  "description": "Research tools: paper summaries, citation extraction, literature review, hypothesis generation.",
+  "icon": "\ud83d\udd2c",
+  "author": "Academic AI",
+  "source": "marketplace",
+  "installed": true,
+  "skills": [
+    {
+      "id": "paper_summary",
+      "name": "Summarize Paper",
+      "prompt": "Summarize this research paper:\n{{input}}\n\nInclude: objective, methodology, key findings, limitations, implications.",
+      "icon": "\ud83d\udcc4"
+    },
+    {
+      "id": "cite_extract",
+      "name": "Extract Citations",
+      "prompt": "Extract all citations and references from:\n{{input}}\nFormat as a numbered list.",
+      "icon": "\ud83d\udcda"
+    },
+    {
+      "id": "lit_review",
+      "name": "Literature Review",
+      "prompt": "Write a literature review section covering the key themes in:\n{{input}}",
+      "icon": "\ud83d\udcd6"
+    },
+    {
+      "id": "hypothesis",
+      "name": "Generate Hypotheses",
+      "prompt": "Generate 5 testable research hypotheses related to:\n{{input}}",
+      "icon": "\ud83d\udcad"
+    }
+  ]
+}

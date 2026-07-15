@@ -1,0 +1,36 @@
+{
+  "id": "data-analyst",
+  "name": "Data Analyst Pack",
+  "version": "2.0.0",
+  "description": "Data analysis and insights: SQL generation, data summaries, chart suggestions, anomaly detection.",
+  "icon": "\ud83d\udcca",
+  "author": "Analytics Pro",
+  "source": "marketplace",
+  "installed": true,
+  "skills": [
+    {
+      "id": "sql_gen",
+      "name": "Generate SQL",
+      "prompt": "Generate a SQL query for: {{input}}\nOutput only the SQL with comments.",
+      "icon": "\ud83d\uddc4\ufe0f"
+    },
+    {
+      "id": "analyze_data",
+      "name": "Analyze Data",
+      "prompt": "Analyze this data and provide insights, trends, and recommendations:\n\n{{input}}",
+      "icon": "\ud83d\udcc8"
+    },
+    {
+      "id": "chart_suggest",
+      "name": "Chart Suggestions",
+      "prompt": "Suggest the best chart types and visualizations for this data:\n\n{{input}}",
+      "icon": "\ud83d\udcca"
+    },
+    {
+      "id": "anomaly_detect",
+      "name": "Detect Anomalies",
+      "prompt": "Identify anomalies, outliers, and unusual patterns in:\n\n{{input}}",
+      "icon": "\u26a0\ufe0f"
+    }
+  ]
+}
