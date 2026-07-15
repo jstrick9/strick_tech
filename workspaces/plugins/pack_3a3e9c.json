@@ -1,0 +1,18 @@
+{
+  "id": "pack_3a3e9c",
+  "name": "Publish Test Pack",
+  "description": "For publish testing",
+  "icon": "\ud83d\ude80",
+  "version": "1.0.0",
+  "author": "Tester",
+  "source": "user_sdk",
+  "installed": true,
+  "skills": [
+    {
+      "id": "pub_skill",
+      "name": "Pub Skill",
+      "prompt": "{{input}}",
+      "description": "Test"
+    }
+  ]
+}
