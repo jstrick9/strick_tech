@@ -1,0 +1,18 @@
+{
+  "id": "test-upload-pack",
+  "name": "Test Upload Pack",
+  "version": "1.0.0",
+  "description": "A test pack",
+  "icon": "\ud83e\uddea",
+  "author": "Tester",
+  "source": "marketplace",
+  "installed": true,
+  "skills": [
+    {
+      "id": "test_skill",
+      "name": "Test Skill",
+      "prompt": "Test {{input}}",
+      "icon": "\ud83e\uddea"
+    }
+  ]
+}
