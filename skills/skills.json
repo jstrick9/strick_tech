@@ -1,0 +1,671 @@
+[
+  {
+    "id": "seo_audit",
+    "name": "SEO Audit",
+    "emoji": "\ud83d\udd0d",
+    "category": "marketing",
+    "description": "Audit a URL for SEO: title, meta, headings, performance tips",
+    "agent": "researcher",
+    "inputs": [
+      {
+        "id": "url",
+        "label": "URL to audit",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "prompt_template": "Perform a comprehensive SEO audit for: {url}\n\nCheck: title tag, meta description, heading structure (H1-H6), keyword density, mobile-friendliness signals, page speed considerations, internal linking opportunities. Format results as a structured report with a score out of 100 and actionable recommendations."
+  },
+  {
+    "id": "content_writer",
+    "name": "Content Writer",
+    "emoji": "\u270d\ufe0f",
+    "category": "content",
+    "description": "Write long-form blog posts, landing pages, or social copy",
+    "agent": "creative",
+    "inputs": [
+      {
+        "id": "topic",
+        "label": "Topic",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "tone",
+        "label": "Tone",
+        "type": "select",
+        "required": false,
+        "options": [
+          "professional",
+          "casual",
+          "technical",
+          "persuasive",
+          "friendly"
+        ]
+      },
+      {
+        "id": "length",
+        "label": "Length",
+        "type": "select",
+        "required": false,
+        "options": [
+          "short (300w)",
+          "medium (600w)",
+          "long (1200w)",
+          "epic (2500w)"
+        ]
+      }
+    ],
+    "prompt_template": "Write a {length} {tone} article about: {topic}\n\nInclude: compelling headline, introduction hook, well-structured body with subheadings, actionable takeaways, strong conclusion. Optimise for reader engagement and SEO."
+  },
+  {
+    "id": "code_review",
+    "name": "Code Review",
+    "emoji": "\ud83d\udd28",
+    "category": "development",
+    "description": "Deep code review: security, performance, best practices",
+    "agent": "reviewer",
+    "inputs": [
+      {
+        "id": "code",
+        "label": "Code to review",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "language",
+        "label": "Language",
+        "type": "text",
+        "required": false
+      }
+    ],
+    "prompt_template": "Perform a thorough code review of this {language} code:\n\n```{language}\n{code}\n```\n\nReview for: security vulnerabilities, performance issues, code smells, best practice violations, missing error handling, test coverage gaps. Provide specific line-level feedback and suggested fixes."
+  },
+  {
+    "id": "market_research",
+    "name": "Market Research",
+    "emoji": "\ud83d\udcca",
+    "category": "research",
+    "description": "Research a market, competitor, or trend with structured output",
+    "agent": "researcher",
+    "inputs": [
+      {
+        "id": "topic",
+        "label": "Market/Topic",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "depth",
+        "label": "Depth",
+        "type": "select",
+        "required": false,
+        "options": [
+          "overview",
+          "detailed",
+          "comprehensive"
+        ]
+      }
+    ],
+    "prompt_template": "Conduct {depth} market research on: {topic}\n\nCover: market size & growth, key players & competitive landscape, customer segments, pricing trends, opportunities & threats, emerging technologies, go-to-market insights. Format with clear sections, data where available."
+  },
+  {
+    "id": "email_sequence",
+    "name": "Email Sequence",
+    "emoji": "\ud83d\udce7",
+    "category": "marketing",
+    "description": "Write a 5-email nurture or onboarding sequence",
+    "agent": "creative",
+    "inputs": [
+      {
+        "id": "product",
+        "label": "Product/Service",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "audience",
+        "label": "Target Audience",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "goal",
+        "label": "Goal",
+        "type": "select",
+        "required": false,
+        "options": [
+          "nurture",
+          "onboarding",
+          "re-engagement",
+          "upsell",
+          "cold outreach"
+        ]
+      }
+    ],
+    "prompt_template": "Write a 5-email {goal} sequence for {product} targeting {audience}.\n\nFor each email include: subject line (A/B variant), preview text, body copy, CTA, send timing. Make each email build on the last with a clear narrative arc. Focus on value-first, not sales-first."
+  },
+  {
+    "id": "api_design",
+    "name": "API Designer",
+    "emoji": "\ud83d\udd0c",
+    "category": "development",
+    "description": "Design a RESTful API with OpenAPI spec",
+    "agent": "builder",
+    "inputs": [
+      {
+        "id": "description",
+        "label": "What should the API do?",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "stack",
+        "label": "Tech stack",
+        "type": "text",
+        "required": false
+      }
+    ],
+    "prompt_template": "Design a RESTful API for: {description}\n\nStack: {stack}\n\nProvide: OpenAPI 3.0 spec (YAML), endpoint design with HTTP methods, request/response schemas, authentication approach, error handling patterns, rate limiting strategy, example curl commands for each endpoint."
+  },
+  {
+    "id": "refactor_plan",
+    "name": "Refactor Planner",
+    "emoji": "\ud83c\udfd7\ufe0f",
+    "category": "development",
+    "description": "Create a step-by-step refactoring plan for existing code",
+    "agent": "reviewer",
+    "inputs": [
+      {
+        "id": "description",
+        "label": "Current code / architecture",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "goal",
+        "label": "Refactoring goal",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "prompt_template": "Create a detailed refactoring plan.\n\nCurrent state: {description}\n\nGoal: {goal}\n\nProvide: risk assessment, step-by-step migration plan with milestones, rollback strategy, testing approach at each stage, estimated effort, before/after architecture diagram (ASCII)."
+  },
+  {
+    "id": "pitch_deck",
+    "name": "Pitch Deck Writer",
+    "emoji": "\ud83d\ude80",
+    "category": "content",
+    "description": "Write slide-by-slide pitch deck content for investors or clients",
+    "agent": "creative",
+    "inputs": [
+      {
+        "id": "company",
+        "label": "Company/Product",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "audience",
+        "label": "Audience",
+        "type": "select",
+        "required": false,
+        "options": [
+          "seed investors",
+          "series A",
+          "enterprise clients",
+          "accelerator"
+        ]
+      }
+    ],
+    "prompt_template": "Write a compelling {audience} pitch deck for: {company}\n\n12 slides: Problem \u2192 Solution \u2192 Market Size \u2192 Product Demo \u2192 Business Model \u2192 Traction \u2192 Team \u2192 Competition \u2192 Go-to-Market \u2192 Financials \u2192 Ask \u2192 Appendix. For each slide: headline, 3-5 bullet points, speaker notes."
+  },
+  {
+    "id": "bug_report",
+    "name": "Bug Report Analyzer",
+    "emoji": "\ud83d\udc1b",
+    "category": "development",
+    "description": "Analyze a bug report and suggest root cause + fix",
+    "agent": "reviewer",
+    "inputs": [
+      {
+        "id": "bug",
+        "label": "Bug description / error",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "stack",
+        "label": "Stack trace (if available)",
+        "type": "textarea",
+        "required": false
+      }
+    ],
+    "prompt_template": "Analyze this bug and provide a comprehensive fix:\n\nBug: {bug}\n\nStack trace: {stack}\n\nProvide: root cause analysis, step-by-step fix, code snippet if applicable, how to prevent it in future, related issues to watch for."
+  },
+  {
+    "id": "daily_standup",
+    "name": "Daily Standup",
+    "emoji": "\ud83d\udcc5",
+    "category": "productivity",
+    "description": "Generate a daily standup summary from your Kanban board",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "Generate a concise daily standup report from the current Kanban state.\n\nFormat:\n**Yesterday:** (done tasks)\n**Today:** (doing tasks)\n**Blockers:** (blocked tasks)\n**Notes:** (anything worth flagging)\n\nKeep it under 200 words. Professional but conversational tone."
+  },
+  {
+    "id": "competitor_analysis",
+    "name": "Competitor Analysis",
+    "emoji": "\ud83c\udfaf",
+    "category": "research",
+    "description": "Deep dive on a competitor: strengths, weaknesses, strategy",
+    "agent": "researcher",
+    "inputs": [
+      {
+        "id": "competitor",
+        "label": "Competitor name/URL",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "your_product",
+        "label": "Your product (for comparison)",
+        "type": "text",
+        "required": false
+      }
+    ],
+    "prompt_template": "Conduct a detailed competitor analysis for: {competitor}\n\nCompare against: {your_product}\n\nCover: product features & UX, pricing strategy, target market, marketing channels, content strategy, technical stack (if known), funding/team, SWOT analysis, strategic gaps you can exploit."
+  },
+  {
+    "id": "test_writer",
+    "name": "Test Suite Writer",
+    "emoji": "\ud83e\uddea",
+    "category": "development",
+    "description": "Write comprehensive unit and integration tests",
+    "agent": "builder",
+    "inputs": [
+      {
+        "id": "code",
+        "label": "Code to test",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "id": "framework",
+        "label": "Test framework",
+        "type": "select",
+        "required": false,
+        "options": [
+          "pytest",
+          "jest",
+          "vitest",
+          "mocha",
+          "playwright",
+          "cypress"
+        ]
+      }
+    ],
+    "prompt_template": "Write a comprehensive test suite for this code using {framework}:\n\n```\n{code}\n```\n\nInclude: unit tests for all functions, edge cases, error conditions, mocks where needed, integration tests, setup/teardown. Aim for >90% coverage. Add descriptive test names."
+  },
+  {
+    "id": "testskill",
+    "name": "TestSkill",
+    "emoji": "\u26a1",
+    "category": "custom",
+    "description": "",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "Test {prompt}"
+  },
+  {
+    "id": "audit_import_skill_test",
+    "name": "Audit Import Skill",
+    "emoji": "\ud83e\uddea",
+    "category": "testing",
+    "description": "Test skill from workspace import",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "Test import skill"
+  },
+  {
+    "id": "good_skill",
+    "name": "Good",
+    "prompt_template": "Test {topic}",
+    "description": "ok",
+    "agent": "brain",
+    "inputs": []
+  },
+  {
+    "id": "route_fix_skill",
+    "name": "Route Fix",
+    "prompt_template": "Test",
+    "description": "ok",
+    "agent": "brain",
+    "inputs": []
+  },
+  {
+    "id": "import_regression_skill",
+    "name": "IRS",
+    "prompt_template": "Test",
+    "description": "ok",
+    "agent": "brain",
+    "inputs": []
+  },
+  {
+    "id": "reg_skill",
+    "name": "Reg Skill",
+    "emoji": "\u26a1",
+    "category": "custom",
+    "description": "ok",
+    "agent": "brain",
+    "inputs": [
+      {
+        "id": "input",
+        "label": "Input",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "prompt_template": "Test {input}"
+  },
+  {
+    "id": "integration_test_skill_it_8d170c",
+    "name": "Integration Test Skill it_8d170c39",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_0c19bc",
+    "name": "Integration Test Skill it_0c19bc33",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_6b5e72",
+    "name": "Integration Test Skill it_6b5e726f",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_44f2d5",
+    "name": "Integration Test Skill it_44f2d592",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_fd80e2",
+    "name": "Integration Test Skill it_fd80e2c6",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_c6e280",
+    "name": "Integration Test Skill it_c6e2802d",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_6be6ab",
+    "name": "Integration Test Skill it_6be6abdc",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_5e7362",
+    "name": "Integration Test Skill it_5e7362dd",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_4e2278",
+    "name": "Integration Test Skill it_4e2278e1",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_bcab84",
+    "name": "Integration Test Skill it_bcab84b8",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_27bd6e",
+    "name": "Integration Test Skill it_27bd6ed1",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_fdf397",
+    "name": "Integration Test Skill it_fdf397c9",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_2536f5",
+    "name": "Integration Test Skill it_2536f538",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_af9825",
+    "name": "Integration Test Skill it_af9825f0",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_234579",
+    "name": "Integration Test Skill it_23457982",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_d51733",
+    "name": "Integration Test Skill it_d51733f3",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_a0b9b3",
+    "name": "Integration Test Skill it_a0b9b36d",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_67879f",
+    "name": "Integration Test Skill it_67879fd1",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_be9156",
+    "name": "Integration Test Skill it_be9156f2",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_232c17",
+    "name": "Integration Test Skill it_232c17f8",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_331ee5",
+    "name": "Integration Test Skill it_331ee58c",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_e5e84e",
+    "name": "Integration Test Skill it_e5e84e71",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_b217fd",
+    "name": "Integration Test Skill it_b217fda6",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_d862f3",
+    "name": "Integration Test Skill it_d862f3c0",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_e46d21",
+    "name": "Integration Test Skill it_e46d212b",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_cdc1fb",
+    "name": "Integration Test Skill it_cdc1fb83",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_c3bace",
+    "name": "Integration Test Skill it_c3bacec7",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "__or__1___1___drop_table_agents_",
+    "name": "' OR '1'='1'; DROP TABLE agents; --",
+    "emoji": "\u26a1",
+    "category": "custom",
+    "description": "' OR '1'='1'; DROP TABLE agents; --",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "_script_alert_document_cookie___",
+    "name": "<script>alert(document.cookie)</script>",
+    "emoji": "\u26a1",
+    "category": "custom",
+    "description": "<script>alert(document.cookie)</script>",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "__whoami__id_",
+    "name": "$(whoami)`id`",
+    "emoji": "\u26a1",
+    "category": "custom",
+    "description": "$(whoami)`id`",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  }
+]
