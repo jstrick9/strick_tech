@@ -1,0 +1,48 @@
+{
+  "id": "code-wizard",
+  "name": "Code Wizard Pack",
+  "icon": "\ud83e\uddd9",
+  "author": "DevTools Team",
+  "category": "developer",
+  "tags": "code,debug,review,refactor,test",
+  "description": "Complete coding toolkit: review, refactor, debug, generate tests, explain code, convert languages.",
+  "latest_ver": "3.0.1",
+  "skills": [
+    {
+      "id": "code_review",
+      "name": "Code Review",
+      "prompt": "Review this code for bugs, security issues, and improvements:\n\n```\n{{input}}\n```\n\nProvide specific, actionable feedback.",
+      "icon": "\ud83d\udd0d"
+    },
+    {
+      "id": "refactor",
+      "name": "Refactor",
+      "prompt": "Refactor this code to be cleaner, more readable, and follow best practices:\n\n```\n{{input}}\n```",
+      "icon": "\u2728"
+    },
+    {
+      "id": "debug",
+      "name": "Debug Assistant",
+      "prompt": "Debug this code and find the bug:\n\n```\n{{input}}\n```\n\nExplain the bug and provide the fix.",
+      "icon": "\ud83d\udc1b"
+    },
+    {
+      "id": "test_gen",
+      "name": "Generate Tests",
+      "prompt": "Write comprehensive unit tests for:\n\n```\n{{input}}\n```",
+      "icon": "\ud83e\uddea"
+    },
+    {
+      "id": "explain_code",
+      "name": "Explain Code",
+      "prompt": "Explain this code line by line, in plain English:\n\n```\n{{input}}\n```",
+      "icon": "\ud83d\udcd6"
+    },
+    {
+      "id": "convert",
+      "name": "Convert Language",
+      "prompt": "Convert this code to Python (or specify target language in input):\n\n```\n{{input}}\n```",
+      "icon": "\ud83d\udd04"
+    }
+  ]
+}

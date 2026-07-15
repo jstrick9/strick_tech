@@ -1,0 +1,19 @@
+{
+  "id": "my-sdk-pack",
+  "name": "My SDK Pack",
+  "version": "1.0.0",
+  "description": "SDK test pack",
+  "icon": "\ud83c\udfaf",
+  "author": "Dev",
+  "tags": [
+    "test"
+  ],
+  "skills": [
+    {
+      "id": "s1",
+      "name": "Skill 1",
+      "prompt": "Do: {{input}}",
+      "icon": "\u26a1"
+    }
+  ]
+}
