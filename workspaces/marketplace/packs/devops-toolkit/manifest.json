@@ -1,0 +1,36 @@
+{
+  "id": "devops-toolkit",
+  "name": "DevOps Toolkit",
+  "icon": "\ud83d\ude80",
+  "author": "Infrastructure Team",
+  "category": "devops",
+  "tags": "devops,docker,kubernetes,ci,monitoring",
+  "description": "DevOps automation: Dockerfile generation, K8s configs, CI/CD pipelines, monitoring setup.",
+  "latest_ver": "1.1.3",
+  "skills": [
+    {
+      "id": "dockerfile",
+      "name": "Generate Dockerfile",
+      "prompt": "Create an optimized Dockerfile for:\n{{input}}",
+      "icon": "\ud83d\udc33"
+    },
+    {
+      "id": "k8s_manifest",
+      "name": "K8s Manifest",
+      "prompt": "Generate a Kubernetes deployment manifest for:\n{{input}}\nInclude deployment, service, and configmap.",
+      "icon": "\u2638\ufe0f"
+    },
+    {
+      "id": "ci_pipeline",
+      "name": "CI/CD Pipeline",
+      "prompt": "Create a GitHub Actions CI/CD workflow for:\n{{input}}",
+      "icon": "\u2699\ufe0f"
+    },
+    {
+      "id": "monitoring",
+      "name": "Monitoring Setup",
+      "prompt": "Recommend monitoring metrics, alerts, and dashboards for:\n{{input}}",
+      "icon": "\ud83d\udce1"
+    }
+  ]
+}

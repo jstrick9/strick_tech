@@ -1,0 +1,36 @@
+{
+  "id": "prompt-engineering",
+  "name": "Prompt Engineering Pack",
+  "icon": "\ud83c\udfaf",
+  "author": "AI Craft",
+  "category": "ai",
+  "tags": "prompts,engineering,optimization,templates",
+  "description": "Meta-prompting tools: improve prompts, generate system prompts, create prompt chains.",
+  "latest_ver": "2.3.0",
+  "skills": [
+    {
+      "id": "improve_prompt",
+      "name": "Improve Prompt",
+      "prompt": "Improve this AI prompt to be more specific, effective, and produce better results:\n\n{{input}}\n\nReturn the improved prompt only.",
+      "icon": "\u2728"
+    },
+    {
+      "id": "system_prompt",
+      "name": "Generate System Prompt",
+      "prompt": "Create a detailed system prompt for an AI assistant that: {{input}}",
+      "icon": "\ud83e\udd16"
+    },
+    {
+      "id": "chain",
+      "name": "Create Prompt Chain",
+      "prompt": "Design a multi-step prompt chain workflow to accomplish: {{input}}",
+      "icon": "\ud83d\udd17"
+    },
+    {
+      "id": "few_shot",
+      "name": "Few-Shot Examples",
+      "prompt": "Create 5 diverse few-shot examples to teach an AI how to handle: {{input}}",
+      "icon": "\ud83c\udf93"
+    }
+  ]
+}

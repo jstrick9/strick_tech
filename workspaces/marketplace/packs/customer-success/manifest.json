@@ -1,0 +1,30 @@
+{
+  "id": "customer-success",
+  "name": "Customer Success Pack",
+  "icon": "\ud83c\udfaf",
+  "author": "CX Team",
+  "category": "business",
+  "tags": "customer,support,crm,tickets,feedback",
+  "description": "Customer success tools: ticket responses, sentiment analysis, FAQ generation, escalation handling.",
+  "latest_ver": "1.0.5",
+  "skills": [
+    {
+      "id": "ticket_response",
+      "name": "Support Response",
+      "prompt": "Write a professional, empathetic customer support response to:\n\n{{input}}\n\nBe helpful, clear, and offer next steps.",
+      "icon": "\ud83c\udfab"
+    },
+    {
+      "id": "sentiment",
+      "name": "Analyze Sentiment",
+      "prompt": "Analyze the sentiment and emotion of this customer feedback:\n{{input}}\nRate: positive/negative/neutral and identify key emotions.",
+      "icon": "\ud83d\ude0a"
+    },
+    {
+      "id": "faq_gen",
+      "name": "Generate FAQ",
+      "prompt": "Generate 10 likely FAQ questions and answers for:\n{{input}}",
+      "icon": "\u2753"
+    }
+  ]
+}

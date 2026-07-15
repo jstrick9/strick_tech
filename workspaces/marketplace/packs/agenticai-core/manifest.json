@@ -1,0 +1,42 @@
+{
+  "id": "agenticai-core",
+  "name": "Agentic Core Skills",
+  "icon": "\ud83e\udd16",
+  "author": "Agentic OS",
+  "category": "core",
+  "tags": "ai,llm,core,essential",
+  "description": "Essential AI skills: summarize, explain, translate, classify, extract. The foundation pack.",
+  "latest_ver": "2.1.0",
+  "skills": [
+    {
+      "id": "summarize",
+      "name": "Summarize",
+      "prompt": "Summarize this in 3 key points: {{input}}",
+      "icon": "\ud83d\udcdd"
+    },
+    {
+      "id": "explain",
+      "name": "Explain Simply",
+      "prompt": "Explain this like I'm 12 years old: {{input}}",
+      "icon": "\ud83d\udca1"
+    },
+    {
+      "id": "translate",
+      "name": "Translate",
+      "prompt": "Translate to English: {{input}}",
+      "icon": "\ud83c\udf10"
+    },
+    {
+      "id": "classify",
+      "name": "Classify Intent",
+      "prompt": "Classify the intent of: {{input}}\nOutput: one of [question, request, feedback, complaint, compliment]",
+      "icon": "\ud83c\udff7\ufe0f"
+    },
+    {
+      "id": "extract",
+      "name": "Extract Facts",
+      "prompt": "Extract all facts and key information as a bullet list from: {{input}}",
+      "icon": "\ud83d\udd0d"
+    }
+  ]
+}
