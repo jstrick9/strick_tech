@@ -14,7 +14,7 @@
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/jstrick9/agentic-os.git
+git clone https://github.com/jstrick9/strick_tech.git
 cd agentic-os
 
 # 2. Add your API key

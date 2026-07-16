@@ -6,7 +6,7 @@ Thank you for your interest in contributing to Agentic OS! This document provide
 
 ```bash
 # 1. Fork and clone
-git clone https://github.com/YOUR_USERNAME/agentic-os.git
+git clone https://github.com/jstrick9/strick_tech.git
 cd agentic-os
 
 # 2. Create a virtual environment
