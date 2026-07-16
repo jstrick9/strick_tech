@@ -5785,7 +5785,7 @@ function a2aRenderNetwork(container) {
       <div style="font-size:11px;color:var(--text-2);line-height:1.6">
         Every agent exposes a signed <strong>Agent Card</strong> at <code style="background:var(--bg-3);padding:1px 5px;border-radius:3px">/.well-known/agent.json</code> and a
         <strong>JSON-RPC 2.0 endpoint</strong> at <code style="background:var(--bg-3);padding:1px 5px;border-radius:3px">/a2a/{id}</code>.<br>
-        External platforms (Google ADK, LangChain, CrewAI, Microsoft Agent Framework) can delegate tasks to this platform via <code>tasks/send</code> or stream updates via <code>tasks/sendSubscribe</code>.
+        External platforms (Google ADK, LangChain, Strick Tech Swarm Framework, Microsoft Agent Framework) can delegate tasks to this platform via <code>tasks/send</code> or stream updates via <code>tasks/sendSubscribe</code>.
       </div>
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
         <a href="/.well-known/agent.json" target="_blank" class="a2a-btn">🪪 Platform Card</a>
@@ -5939,7 +5939,7 @@ async function a2aRenderCards(container) {
       <div class="a2a-wk-url">${base}/.well-known/agent.json</div>
       <div style="font-size:11px;color:var(--text-2);margin-bottom:8px">
         The platform-level card describes the full Agentic OS installation and lists all available agents.
-        Any A2A-compatible platform (Google ADK, LangChain, CrewAI, Microsoft Agent Framework) can use this to discover and delegate tasks.
+        Any A2A-compatible platform (Google ADK, LangChain, Strick Tech Swarm Framework, Microsoft Agent Framework) can use this to discover and delegate tasks.
       </div>
       <a href="/.well-known/agent.json" target="_blank" class="a2a-btn primary" style="text-decoration:none;display:inline-flex">🪪 View Platform Card</a>
     </div>

@@ -4,7 +4,7 @@ Confidence-threshold gating, approval queues, safe undo, and audit trails.
 
 Based on:
 - AWS AgentCore inline_function / interrupt pattern
-- LangGraph interrupt_before/after checkpoints
+- Strick Tech HITL interrupt_before/after checkpoints
 - EU AI Act Article 14 compliance (documented human oversight)
 - Lumay "Interruption Protocols" (agents pause at <90% confidence)
 

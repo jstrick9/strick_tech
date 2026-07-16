@@ -32,7 +32,67 @@ function toast(msg, type = 'ok', duration = 3000) {
   setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 250); }, duration);
 }
 
-// ── Navigation ───────────────────────────────────────────────────
+// ── Navigation & Sidebar Architecture ─────────────────────────────
+window.toggleSidebar = function() {
+  const sb = document.getElementById('sidebar');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  if (!sb) return;
+  const isCollapsed = sb.classList.toggle('collapsed');
+  if (isCollapsed) {
+    sb.dataset.savedWidth = sb.style.width || '260px';
+    sb.style.width = '56px';
+    if (btn) btn.innerHTML = '▶';
+  } else {
+    sb.style.width = sb.dataset.savedWidth || '260px';
+    if (btn) btn.innerHTML = '◀';
+  }
+  try { localStorage.setItem('agentic_os_sidebar_collapsed', isCollapsed ? 'true' : 'false'); } catch(e) {}
+};
+
+function setupSidebarResizer() {
+  const resizer = document.getElementById('sidebar-resizer');
+  const sb = document.getElementById('sidebar');
+  if (!resizer || !sb) return;
+  let isResizing = false;
+  
+  resizer.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    sb.classList.add('resizing');
+    resizer.classList.add('resizing');
+    if (document.body) document.body.style.cursor = 'col-resize';
+  });
+  
+  window.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    let newW = e.clientX;
+    if (newW < 60) newW = 56;
+    if (newW > 600) newW = 600;
+    sb.style.width = newW + 'px';
+    if (newW <= 56) sb.classList.add('collapsed');
+    else sb.classList.remove('collapsed');
+  });
+  
+  window.addEventListener('mouseup', () => {
+    if (!isResizing) return;
+    isResizing = false;
+    sb.classList.remove('resizing');
+    resizer.classList.remove('resizing');
+    if (document.body) document.body.style.cursor = '';
+    try { localStorage.setItem('agentic_os_sidebar_w', sb.style.width); } catch(e) {}
+  });
+
+  try {
+    const savedW = localStorage.getItem('agentic_os_sidebar_w');
+    const savedCol = localStorage.getItem('agentic_os_sidebar_collapsed') === 'true';
+    if (savedCol) {
+      sb.classList.add('collapsed');
+      sb.style.width = '56px';
+    } else if (savedW) {
+      sb.style.width = savedW;
+    }
+  } catch(e) {}
+}
+
 function nav(pane) {
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1110,8 +1170,66 @@ async function gxImport() {
   input.click();
 }
 
+// ── Dedicated 2-Column Settings Workstation & Drag/Drop Engine ──
+window.switchSettingsTab = function(tabId) {
+  document.querySelectorAll('.settings-nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.settings-tab-pane').forEach(el => el.classList.remove('active'));
+  const navBtn = document.getElementById('settings-nav-' + tabId);
+  const pane = document.getElementById('settings-tab-' + tabId);
+  if (navBtn) navBtn.classList.add('active');
+  if (pane) pane.classList.add('active');
+  try { localStorage.setItem('agentic_os_settings_tab', tabId); } catch(e) {}
+};
+
+window.setupSettingsWorkstation = function() {
+  const ws = document.querySelector('#pane-settings .settings-workstation');
+  if (!ws) return;
+  const savedTab = localStorage.getItem('agentic_os_settings_tab') || 'api';
+  switchSettingsTab(savedTab);
+};
+
+window.setupDragAndDrop = function() {
+  const content = document.getElementById('content');
+  if (!content || document.getElementById('chat-dropzone')) return;
+  const dropzone = document.createElement('div');
+  dropzone.id = 'chat-dropzone';
+  dropzone.className = 'dropzone-overlay';
+  dropzone.innerHTML = '<div>⚡ Drop files here to attach to AI Context & Studio (~/Library/Application Support/com.stricktech.agenticos/workspaces/)</div>';
+  content.appendChild(dropzone);
+
+  let dragCounter = 0;
+  content.addEventListener('dragenter', e => {
+    e.preventDefault(); dragCounter++;
+    dropzone.classList.add('active');
+  });
+  content.addEventListener('dragleave', e => {
+    e.preventDefault(); dragCounter--;
+    if (dragCounter <= 0) { dragCounter = 0; dropzone.classList.remove('active'); }
+  });
+  content.addEventListener('dragover', e => e.preventDefault());
+  content.addEventListener('drop', async e => {
+    e.preventDefault(); dragCounter = 0; dropzone.classList.remove('active');
+    const files = e.dataTransfer?.files;
+    if (!files || !files.length) return;
+    toast(`⚡ Uploading ${files.length} file(s) into workspace...`, 'ok', 3000);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        const text = evt.target?.result || '';
+        if (document.getElementById('chat-input')) {
+          const inp = document.getElementById('chat-input');
+          inp.value += `\n[Attached File: ${file.name}]\n\`\`\`\n${text.slice(0, 2000)}\n\`\`\`\n`;
+        }
+      };
+      reader.readAsText(file);
+    }
+  });
+};
+
 // ── Settings ──────────────────────────────────────────────────────
 async function loadSettings() {
+  setupSettingsWorkstation();
   renderAgentList();
   // check ollama
   try {
@@ -1232,17 +1350,39 @@ window.testOllamaConnection = async function() {
   }
 };
 
+window.pullOllamaModel = async function(modelName) {
+  const modelsEl = document.getElementById('ollama-models');
+  const urlInp = document.getElementById('ollama-url-input');
+  const url = urlInp ? urlInp.value.trim() : 'http://localhost:11434';
+  toast(`⚡ Triggering model pull for ${modelName}... Check Ollama local server`, 'ok', 4000);
+  if (modelsEl) modelsEl.innerHTML = `<div style="margin-top:6px;color:var(--accent);font-weight:700">⏳ Pulling model '${modelName}' via Ollama API...</div>`;
+  try {
+    const r = await fetch(url + '/api/pull', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name: modelName, stream: false})
+    });
+    if (r.ok) {
+      if (modelsEl) modelsEl.innerHTML = `<div style="margin-top:6px;color:var(--success);font-weight:700">✅ Model '${modelName}' downloaded and ready locally!</div>`;
+      toast(`✅ Model ${modelName} ready!`, 'ok', 4000);
+    } else {
+      if (modelsEl) modelsEl.innerHTML = `<div style="margin-top:6px;color:var(--warning);font-weight:700">⚠️ Ollama pull requested (${modelName}). If CORS blocked direct browser call, run: 'ollama pull ${modelName}' in Terminal.</div>`;
+    }
+  } catch(e) {
+    if (modelsEl) modelsEl.innerHTML = `<div style="margin-top:6px;color:var(--warning);font-weight:700">⚠️ Run 'ollama pull ${modelName}' inside your macOS Terminal to install offline.</div>`;
+  }
+};
+
 // ── Command Palette ───────────────────────────────────────────────
 const PALETTE_CMDS = [
-  {icon:'💬', label:'Chat',           desc:'Open chat',           action:()=>nav('chat')},
-  {icon:'🚀', label:'Builder',        desc:'Code editor + preview',action:()=>nav('builder')},
-  {icon:'📋', label:'Kanban',         desc:'Task board',          action:()=>nav('kanban')},
-  {icon:'🌀', label:'Swarm',          desc:'Multi-agent swarm',   action:()=>nav('swarm')},
-  {icon:'🌌', label:'Memory Galaxy',  desc:'3D memory graph',     action:()=>nav('galaxy')},
-  {icon:'⚙️', label:'Settings',       desc:'API keys, agents',    action:()=>nav('settings')},
-  {icon:'🤖', label:'New Agent',      desc:'Create custom agent', action:()=>openAgentModal()},
-  {icon:'💾', label:'Backup DB',      desc:'Snapshot database',   action:()=>doBackup()},
-  {icon:'/',  label:'/help',          desc:'Show slash commands',  action:()=>{nav('chat');insertCmd('/help')}},
+  {icon:'✨', label:'Chat',           desc:'Open chat & multi-agent swarm', action:()=>nav('chat')},
+  {icon:'⚡', label:'Builder',        desc:'Code editor + preview studio',  action:()=>nav('builder')},
+  {icon:'📋', label:'Kanban',         desc:'Task board',                    action:()=>nav('kanban')},
+  {icon:'🌀', label:'Swarm',          desc:'Multi-agent orchestration',     action:()=>nav('swarm')},
+  {icon:'🌌', label:'Memory Galaxy',  desc:'3D vector memory graph',        action:()=>nav('galaxy')},
+  {icon:'⚙', label:'Settings Hub',   desc:'API keys, models, themes',      action:()=>nav('settings')},
+  {icon:'🛡', label:'New Agent',      desc:'Create specialist AI persona',  action:()=>openAgentModal()},
+  {icon:'💾', label:'Backup DB',      desc:'Snapshot database to vault',    action:()=>doBackup()},
+  {icon:'/',  label:'/help',          desc:'Show slash commands',           action:()=>{nav('chat');insertCmd('/help')}},
   {icon:'/',  label:'/goal',          desc:'Plan a goal',         action:()=>{nav('chat');insertCmd('/goal ')}},
   {icon:'/',  label:'/research',      desc:'Deep research',       action:()=>{nav('chat');insertCmd('/research ')}},
   {icon:'/',  label:'/code',          desc:'Build something',     action:()=>{nav('chat');insertCmd('/code ')}},
@@ -3597,12 +3737,15 @@ Object.entries(wrappedRenders).forEach(([key, fn]) => {
 
 // ── Micro-interactions ─────────────────────────────────────────────
 
-// Add lift class to all cards dynamically
+// Add lift class to all cards dynamically and initialize UI controllers
 (function addLiftToCards() {
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.swarm-card,.plugin-card,.template-card').forEach(el => {
       el.classList.add('lift');
     });
+    try { if (typeof setupSidebarResizer === 'function') setupSidebarResizer(); } catch(e) {}
+    try { if (typeof setupSettingsWorkstation === 'function') setupSettingsWorkstation(); } catch(e) {}
+    try { if (typeof setupDragAndDrop === 'function') setupDragAndDrop(); } catch(e) {}
   });
 })();
 

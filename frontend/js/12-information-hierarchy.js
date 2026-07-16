@@ -261,7 +261,7 @@
           <div style="display:flex;flex-direction:column;gap:16px">
             <div>
               <label style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;color:var(--text-0)">1. Who are you & what is your mission? (The 1-line dinner party intro)</label>
-              <textarea id="inv-q1" placeholder="e.g. I am Alex, founder of Apex AI. I build autonomous multi-agent operating systems that save engineering teams 20 hours a week..." style="width:100%;height:64px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;resize:none"></textarea>
+              <textarea id="inv-q1" placeholder="e.g. I am Joshua Strickland, founder of Strick Tech. I build the Agentic OS Platform across Free, Pro, and Enterprise editions to empower autonomous multi-agent engineering workflows..." style="width:100%;height:64px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;resize:none"></textarea>
             </div>
             <div>
               <label style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;color:var(--text-0)">2. What does your business do & who is your Ideal Customer Profile (ICP)?</label>

@@ -1400,11 +1400,11 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <span class="tech-badge" id="runtime-badge" style="border-color:rgba(16,185,129,0.5);color:#34d399">● LOCAL PORT 8787</span>
 
     <!-- Quick Component Navigation Hub -->
-    <div style="display:flex;align-items:center;gap:6px;margin-left:12px">
-      <button onclick="nav('chat')" class="btn-sm" style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:var(--text-0);font-weight:600;padding:5px 10px;border-radius:8px;cursor:pointer">💬 Chat & Swarm</button>
-      <button onclick="nav('studio')" class="btn-sm" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);color:var(--text-0);font-weight:600;padding:5px 10px;border-radius:8px;cursor:pointer">📝 Studio Editor</button>
-      <button onclick="nav('hierarchy')" class="btn-sm" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--text-0);font-weight:600;padding:5px 10px;border-radius:8px;cursor:pointer">🧭 IVREN Manual</button>
-      <button onclick="openInterviewModal()" class="btn-sm" style="background:linear-gradient(135deg,#38bdf8,#a855f7);border:none;color:#fff;font-weight:700;padding:5px 12px;border-radius:8px;cursor:pointer;box-shadow:0 0 14px rgba(56,189,248,0.4)">✨ AI Interview Wizard</button>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:12px;flex-wrap:wrap">
+      <button onclick="nav('chat')" class="btn-sm" style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:var(--text-0);font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer">💬 <span class="btn-text">Chat & Swarm</span></button>
+      <button onclick="nav('studio')" class="btn-sm" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);color:var(--text-0);font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer">📝 <span class="btn-text">Studio Editor</span></button>
+      <button onclick="nav('hierarchy')" class="btn-sm" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--text-0);font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer">🧭 <span class="btn-text">IVREN Manual</span></button>
+      <button onclick="openInterviewModal()" class="btn-sm" style="background:linear-gradient(135deg,#38bdf8,#a855f7);border:none;color:#fff;font-weight:700;padding:6px 14px;border-radius:8px;cursor:pointer;box-shadow:0 0 14px rgba(56,189,248,0.4)">✨ <span class="btn-text">AI Interview Wizard</span></button>
     </div>
 
     <button id="palette-btn" onclick="openPalette()">
@@ -1452,31 +1452,31 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <!-- Nav: grouped and organized -->
       <div class="sidebar-scroll">
         <!-- ═══ CORE: Always visible in all modes ═══ -->
-        <div class="sidebar-group-label" style="display:block;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px">CORE AI WORKSTATION</div>
+        <div class="sidebar-group-label" style="display:block;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px">CORE AI WORKSTATION <span class="group-count" style="float:right;font-size:10px;opacity:0.7">8</span></div>
         <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI agents" role="menuitem" aria-label="Chat">
-          <span class="icon">💬</span><span class="label">Chat & Swarm</span>
+          <span class="icon">✨</span><span class="label">Chat & Swarm</span>
         </div>
         <div class="nav-item" data-nav="studio" data-tier="core" onclick="nav('studio')" data-tooltip="Live editor + preview" role="menuitem" aria-label="Studio">
-          <span class="icon">🎬</span><span class="label">Studio</span>
+          <span class="icon">⚡</span><span class="label">Studio</span>
           <span class="badge badge-live" style="font-size:9px;padding:1px 6px">LIVE</span>
         </div>
         <div class="nav-item" data-nav="templates" data-tier="core" onclick="nav('templates')" data-tooltip="Starter templates" role="menuitem" aria-label="Templates">
-          <span class="icon">🎨</span><span class="label">Templates</span>
+          <span class="icon">❖</span><span class="label">Templates</span>
         </div>
         <div class="nav-item" data-nav="swarm" data-tier="core" onclick="nav('swarm')" data-tooltip="Multi-agent fan-out" role="menuitem" aria-label="Swarm">
-          <span class="icon">🌀</span><span class="label">Swarm</span>
+          <span class="icon">◈</span><span class="label">Swarm</span>
         </div>
         <div class="nav-item" data-nav="galaxy" data-tier="core" onclick="nav('galaxy')" data-tooltip="3D memory graph" role="menuitem" aria-label="Memory">
-          <span class="icon">🌌</span><span class="label">Memory</span>
+          <span class="icon">🕸</span><span class="label">Memory</span>
         </div>
         <div class="nav-item" data-nav="hierarchy" data-tier="core" onclick="nav('hierarchy')" data-tooltip="2-Tier AI Operating Manual (IVREN)" role="menuitem" aria-label="Hierarchy">
-          <span class="icon">🧭</span><span class="label">Hierarchy</span>
+          <span class="icon">✦</span><span class="label">Hierarchy</span>
         </div>
         <div class="nav-item" data-nav="kanban" data-tier="core" onclick="nav('kanban')" data-tooltip="Task board" role="menuitem" aria-label="Kanban">
-          <span class="icon">📋</span><span class="label">Kanban</span>
+          <span class="icon">☷</span><span class="label">Kanban</span>
         </div>
         <div class="nav-item" data-nav="settings" data-tier="core" onclick="nav('settings')" data-tooltip="Settings & API keys" role="menuitem" aria-label="Settings">
-          <span class="icon">⚙️</span><span class="label">Settings</span>
+          <span class="icon">⚙</span><span class="label">Settings</span>
         </div>
 
         <!-- ═══ ADVANCED: Power mode toggle ═══ -->
@@ -1486,82 +1486,77 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <span style="margin-left:auto;font-size:10px;opacity:.5" id="advanced-count"></span>
         </div>
 
-        <!-- Build -->
-        <div class="sidebar-group-label" data-tier="advanced">Build</div>
-        <div class="nav-item" data-nav="builder" data-tier="advanced" onclick="nav('builder')"><span class="icon">📝</span><span class="label">Editor</span></div>
-        <div class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')"><span class="icon">🪄</span><span class="label">Composer</span></div>
-        <div class="nav-item" data-nav="pipeline" data-tier="advanced" onclick="nav('pipeline')"><span class="icon">🏛️</span><span class="label">Pipeline</span></div>
+        <!-- BUILD & AI ENGINE -->
+        <div class="sidebar-group-label" data-tier="advanced" style="color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px">BUILD & AI ENGINE <span class="group-count" style="float:right;font-size:10px;opacity:0.7">11</span></div>
+        <div class="nav-item" data-nav="builder" data-tier="advanced" onclick="nav('builder')"><span class="icon">⌨</span><span class="label">Editor</span></div>
+        <div class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')"><span class="icon">✦</span><span class="label">Composer</span></div>
+        <div class="nav-item" data-nav="pipeline" data-tier="advanced" onclick="nav('pipeline')"><span class="icon">⎈</span><span class="label">Pipeline</span></div>
         <div class="nav-item" data-nav="skills" data-tier="advanced" onclick="nav('skills')"><span class="icon">⚡</span><span class="label">Skills</span></div>
-
-        <!-- AI -->
-        <div class="sidebar-group-label" data-tier="advanced">AI</div>
-        <div class="nav-item" data-nav="loops" data-tier="advanced" onclick="nav('loops')"><span class="icon">♾️</span><span class="label">Loops</span><span class="count" id="loop-count">0</span></div>
-        <div class="nav-item" data-nav="mcp" data-tier="advanced" onclick="nav('mcp')"><span class="icon">🔧</span><span class="label">MCP Tools</span></div>
-        <div class="nav-item" data-nav="fusion" data-tier="advanced" onclick="nav('fusion')"><span class="icon">🔀</span><span class="label">Fusion</span></div>
-        <div class="nav-item" data-nav="arena" data-tier="advanced" onclick="nav('arena')"><span class="icon">⚔️</span><span class="label">Arena</span></div>
-
-        <!-- Ship -->
-        <div class="sidebar-group-label" data-tier="advanced">Ship</div>
-        <div class="nav-item" data-nav="github" data-tier="advanced" onclick="nav('github')"><span class="icon">🐙</span><span class="label">GitHub</span></div>
-        <div class="nav-item" data-nav="deploy" data-tier="advanced" onclick="nav('deploy')"><span class="icon">🚀</span><span class="label">Deploy</span></div>
-        <div class="nav-item" data-nav="dbstudio" data-tier="advanced" onclick="nav('dbstudio')"><span class="icon">🗄️</span><span class="label">Database</span></div>
-
-        <!-- Workspace -->
-        <div class="sidebar-group-label" data-tier="advanced">Workspace</div>
-        <div class="nav-item" data-nav="dashboard" data-tier="advanced" onclick="nav('dashboard')"><span class="icon">📊</span><span class="label">Dashboard</span></div>
-        <div class="nav-item" data-nav="plugins" data-tier="advanced" onclick="nav('plugins')"><span class="icon">🧩</span><span class="label">Plugins</span></div>
-        <div class="nav-item" data-nav="terminal" data-tier="advanced" onclick="nav('terminal')"><span class="icon">💻</span><span class="label">Terminal</span></div>
+        <div class="nav-item" data-nav="loops" data-tier="advanced" onclick="nav('loops')"><span class="icon">♾</span><span class="label">Loops</span><span class="count" id="loop-count">0</span></div>
+        <div class="nav-item" data-nav="mcp" data-tier="advanced" onclick="nav('mcp')"><span class="icon">⌥</span><span class="label">MCP Tools</span></div>
+        <div class="nav-item" data-nav="fusion" data-tier="advanced" onclick="nav('fusion')"><span class="icon">⇋</span><span class="label">Fusion</span></div>
+        <div class="nav-item" data-nav="arena" data-tier="advanced" onclick="nav('arena')"><span class="icon">⚔</span><span class="label">Arena</span></div>
+        <div class="nav-item" data-nav="plugins" data-tier="advanced" onclick="nav('plugins')"><span class="icon">❖</span><span class="label">Plugins</span></div>
+        <div class="nav-item" data-nav="terminal" data-tier="advanced" onclick="nav('terminal')"><span class="icon">＞_</span><span class="label">Terminal</span></div>
         <div class="nav-item" data-nav="secrets" data-tier="advanced" onclick="nav('secrets')"><span class="icon">🔐</span><span class="label">Vault</span></div>
-        <div class="nav-item" data-nav="system" data-tier="advanced" onclick="nav('system')"><span class="icon">💻</span><span class="label">System</span></div>
-        <div class="nav-item" data-nav="workspaces" data-tier="advanced" onclick="nav('workspaces')"><span class="icon">📁</span><span class="label">Workspaces</span></div>
 
-        <!-- Tools -->
-        <div class="sidebar-group-label" data-tier="advanced">Tools</div>
-        <div class="nav-item" data-nav="workflow" data-tier="advanced" onclick="nav('workflow')"><span class="icon">🗺️</span><span class="label">Workflows</span></div>
-        <div class="nav-item" data-nav="specs" data-tier="advanced" onclick="nav('specs')"><span class="icon">📋</span><span class="label">Spec Builder</span></div>
-        <div class="nav-item" data-nav="steering" data-tier="advanced" onclick="nav('steering')"><span class="icon">🧭</span><span class="label">Steering</span></div>
-        <div class="nav-item" data-nav="bugbot" data-tier="advanced" onclick="nav('bugbot')"><span class="icon">🐛</span><span class="label">BugBot</span></div>
-        <div class="nav-item" data-nav="gitai" data-tier="advanced" onclick="nav('gitai')"><span class="icon">🌿</span><span class="label">Git AI</span></div>
-        <div class="nav-item" data-nav="marketplace" data-tier="advanced" onclick="nav('marketplace')"><span class="icon">🛒</span><span class="label">Marketplace</span></div>
-        <div class="nav-item" data-nav="replay" data-tier="advanced" onclick="nav('replay')"><span class="icon">⏮️</span><span class="label">Replay</span></div>
-        <div class="nav-item" data-nav="collabedit" data-tier="advanced" onclick="nav('collabedit')"><span class="icon">✍️</span><span class="label">Collab Edit</span></div>
-        <div class="nav-item" data-nav="ambient" data-tier="advanced" onclick="nav('ambient')"><span class="icon">🌊</span><span class="label">Ambient</span></div>
+        <!-- SHIP & GOVERNANCE -->
+        <div class="sidebar-group-label" data-tier="advanced" style="color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px">SHIP & GOVERNANCE <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
+        <div class="nav-item" data-nav="github" data-tier="advanced" onclick="nav('github')"><span class="icon">⌥</span><span class="label">GitHub</span></div>
+        <div class="nav-item" data-nav="deploy" data-tier="advanced" onclick="nav('deploy')"><span class="icon">⚡</span><span class="label">Deploy</span></div>
+        <div class="nav-item" data-nav="dbstudio" data-tier="advanced" onclick="nav('dbstudio')"><span class="icon">⛁</span><span class="label">Database Studio</span></div>
+        <div class="nav-item" data-nav="dashboard" data-tier="advanced" onclick="nav('dashboard')"><span class="icon">▤</span><span class="label">Dashboard</span></div>
+        <div class="nav-item" data-nav="system" data-tier="advanced" onclick="nav('system')"><span class="icon">⛭</span><span class="label">System</span></div>
+        <div class="nav-item" data-nav="workspaces" data-tier="advanced" onclick="nav('workspaces')"><span class="icon">◫</span><span class="label">Workspaces</span></div>
+        <div class="nav-item" data-nav="control" data-tier="advanced" onclick="nav('control')"><span class="icon">🎛</span><span class="label">Control Tower</span></div>
+        <div class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')"><span class="icon">◈</span><span class="label">Supervisor</span></div>
+        <div class="nav-item" data-nav="goals" data-tier="advanced" onclick="nav('goals')"><span class="icon">◎</span><span class="label">Goals</span></div>
 
-        <!-- Enterprise -->
-        <div class="sidebar-group-label" data-tier="advanced">Enterprise</div>
-        <div class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')"><span class="icon">🧠</span><span class="label">Supervisor</span></div>
-        <div class="nav-item" data-nav="goals" data-tier="advanced" onclick="nav('goals')"><span class="icon">🎯</span><span class="label">Goals</span></div>
-        <div class="nav-item" data-nav="hitl" data-tier="advanced" onclick="nav('hitl')"><span class="icon">🛡️</span><span class="label">HITL</span></div>
-        <div class="nav-item" data-nav="audit-log" data-tier="advanced" onclick="nav('audit-log')"><span class="icon">🔏</span><span class="label">Audit Log</span></div>
-        <div class="nav-item" data-nav="leaderboard" data-tier="advanced" onclick="nav('leaderboard')"><span class="icon">🏆</span><span class="label">Leaderboard</span></div>
-        <div class="nav-item" data-nav="agent-monitor" data-tier="advanced" onclick="nav('agent-monitor')"><span class="icon">📡</span><span class="label">Monitor</span></div>
-        <div class="nav-item" data-nav="finops" data-tier="advanced" onclick="nav('finops')"><span class="icon">💰</span><span class="label">FinOps</span></div>
-        <div class="nav-item" data-nav="eval-framework" data-tier="advanced" onclick="nav('eval-framework')"><span class="icon">🧪</span><span class="label">Eval Framework</span></div>
-        <div class="nav-item" data-nav="connectors" data-tier="advanced" onclick="nav('connectors')"><span class="icon">🔌</span><span class="label">Connectors</span></div>
-        <div class="nav-item" data-nav="mcp-gateway" data-tier="advanced" onclick="nav('mcp-gateway')"><span class="icon">🔀</span><span class="label">MCP Gateway</span></div>
-        <div class="nav-item" data-nav="a2a" data-tier="advanced" onclick="nav('a2a')"><span class="icon">🌐</span><span class="label">A2A Network</span></div>
+        <!-- AGENTIC ORCHESTRATION & TOOLS -->
+        <div class="sidebar-group-label" data-tier="advanced" style="color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px">AGENTIC ORCHESTRATION & TOOLS <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
+        <div class="nav-item" data-nav="workflow" data-tier="advanced" onclick="nav('workflow')"><span class="icon">⎈</span><span class="label">Workflows</span></div>
+        <div class="nav-item" data-nav="specs" data-tier="advanced" onclick="nav('specs')"><span class="icon">☷</span><span class="label">Spec Builder</span></div>
+        <div class="nav-item" data-nav="steering" data-tier="advanced" onclick="nav('steering')"><span class="icon">✦</span><span class="label">Steering</span></div>
+        <div class="nav-item" data-nav="bugbot" data-tier="advanced" onclick="nav('bugbot')"><span class="icon">🛡</span><span class="label">BugBot</span></div>
+        <div class="nav-item" data-nav="gitai" data-tier="advanced" onclick="nav('gitai')"><span class="icon">⎇</span><span class="label">Git AI</span></div>
+        <div class="nav-item" data-nav="marketplace" data-tier="advanced" onclick="nav('marketplace')"><span class="icon">❖</span><span class="label">Marketplace</span></div>
+        <div class="nav-item" data-nav="replay" data-tier="advanced" onclick="nav('replay')"><span class="icon">⟲</span><span class="label">Replay</span></div>
+        <div class="nav-item" data-nav="collabedit" data-tier="advanced" onclick="nav('collabedit')"><span class="icon">✍</span><span class="label">Collab Edit</span></div>
+        <div class="nav-item" data-nav="ambient" data-tier="advanced" onclick="nav('ambient')"><span class="icon">≈</span><span class="label">Ambient</span></div>
+        <div class="nav-item" data-nav="hitl" data-tier="advanced" onclick="nav('hitl')"><span class="icon">🛡</span><span class="label">HITL</span></div>
+        <div class="nav-item" data-nav="connectors" data-tier="advanced" onclick="nav('connectors')"><span class="icon">⇋</span><span class="label">Connectors</span></div>
+        <div class="nav-item" data-nav="mcp-gateway" data-tier="advanced" onclick="nav('mcp-gateway')"><span class="icon">⇶</span><span class="label">MCP Gateway</span></div>
+        <div class="nav-item" data-nav="a2a" data-tier="advanced" onclick="nav('a2a')"><span class="icon">∿</span><span class="label">A2A Network</span></div>
         <div class="nav-item" data-nav="agent-identity" data-tier="advanced" onclick="nav('agent-identity')"><span class="icon">🪪</span><span class="label">Identity</span></div>
-        <div class="nav-item" data-nav="docs" data-tier="advanced" onclick="nav('docs')"><span class="icon">📖</span><span class="label">Docs</span></div>
-        <div class="nav-item" data-nav="websearch" data-tier="advanced" onclick="nav('websearch')"><span class="icon">🔎</span><span class="label">Web Search</span></div>
-        <div class="nav-item" data-nav="browser" data-tier="advanced" onclick="nav('browser')"><span class="icon">🌐</span><span class="label">Browser</span></div>
+
+        <!-- ENTERPRISE GOVERNANCE & TELEMETRY -->
+        <div class="sidebar-group-label" data-tier="advanced" style="color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px">ENTERPRISE GOVERNANCE & TELEMETRY <span class="group-count" style="float:right;font-size:10px;opacity:0.7">17</span></div>
+        <div class="nav-item" data-nav="audit-log" data-tier="advanced" onclick="nav('audit-log')"><span class="icon">🔏</span><span class="label">Audit Log</span></div>
+        <div class="nav-item" data-nav="leaderboard" data-tier="advanced" onclick="nav('leaderboard')"><span class="icon">★</span><span class="label">Leaderboard</span></div>
+        <div class="nav-item" data-nav="agent-monitor" data-tier="advanced" onclick="nav('agent-monitor')"><span class="icon">◈</span><span class="label">Live Monitor</span></div>
+        <div class="nav-item" data-nav="finops" data-tier="advanced" onclick="nav('finops')"><span class="icon">◇</span><span class="label">FinOps</span></div>
+        <div class="nav-item" data-nav="eval-framework" data-tier="advanced" onclick="nav('eval-framework')"><span class="icon">⚗</span><span class="label">Eval Framework</span></div>
+        <div class="nav-item" data-nav="docs" data-tier="advanced" onclick="nav('docs')"><span class="icon">☷</span><span class="label">Docs</span></div>
+        <div class="nav-item" data-nav="websearch" data-tier="advanced" onclick="nav('websearch')"><span class="icon">◎</span><span class="label">Web Search</span></div>
+        <div class="nav-item" data-nav="browser" data-tier="advanced" onclick="nav('browser')"><span class="icon">❖</span><span class="label">Browser Agent</span></div>
         <div class="nav-item" data-nav="knowledge-graph" data-tier="advanced" onclick="nav('knowledge-graph')"><span class="icon">🕸</span><span class="label">Knowledge Graph</span></div>
-        <div class="nav-item" data-nav="rag" data-tier="advanced" onclick="nav('rag')"><span class="icon">📚</span><span class="label">RAG</span></div>
+        <div class="nav-item" data-nav="rag" data-tier="advanced" onclick="nav('rag')"><span class="icon">▤</span><span class="label">RAG</span></div>
         <div class="nav-item" data-nav="hooks" data-tier="advanced" onclick="nav('hooks')"><span class="icon">⚡</span><span class="label">Hooks</span></div>
-        <div class="nav-item" data-nav="codeindex" data-tier="advanced" onclick="nav('codeindex')"><span class="icon">🕸️</span><span class="label">Code Graph</span></div>
-        <div class="nav-item" data-nav="observability" data-tier="advanced" onclick="nav('observability')"><span class="icon">👁️</span><span class="label">Observability</span></div>
-        <div class="nav-item" data-nav="evals" data-tier="advanced" onclick="nav('evals')"><span class="icon">🧮</span><span class="label">Evals</span></div>
-        <div class="nav-item" data-nav="health" data-tier="advanced" onclick="nav('health')"><span class="icon">💊</span><span class="label">Health</span></div>
-        <div class="nav-item" data-nav="integrations" data-tier="advanced" onclick="nav('integrations')"><span class="icon">🔌</span><span class="label">Integrations</span></div>
-        <div class="nav-item" data-nav="imagegen" data-tier="advanced" onclick="nav('imagegen')"><span class="icon">🎨</span><span class="label">Image Gen</span></div>
-        <div class="nav-item" data-nav="prompts" data-tier="advanced" onclick="nav('prompts')"><span class="icon">💬</span><span class="label">Prompts</span></div>
-        <div class="nav-item" data-nav="codesearch" data-tier="advanced" onclick="nav('codesearch')"><span class="icon">🔍</span><span class="label">Code Search</span></div>
-        <div class="nav-item" data-nav="control" data-tier="advanced" onclick="nav('control')"><span class="icon">🎛️</span><span class="label">Control Tower</span></div>
-        <div class="nav-item" data-nav="obsidian" data-tier="advanced" onclick="nav('obsidian')"><span class="icon">🧿</span><span class="label">Obsidian</span></div>
-        <div class="nav-item" data-nav="pluginsdk" data-tier="advanced" onclick="nav('pluginsdk')"><span class="icon">🛠️</span><span class="label">Plugin SDK</span></div>
-        <div class="nav-item" data-nav="multitab" data-tier="advanced" onclick="nav('multitab')"><span class="icon">🗂️</span><span class="label">Multi-Preview</span></div>
+        <div class="nav-item" data-nav="codeindex" data-tier="advanced" onclick="nav('codeindex')"><span class="icon">🕸</span><span class="label">Code Graph</span></div>
+        <div class="nav-item" data-nav="observability" data-tier="advanced" onclick="nav('observability')"><span class="icon">◎</span><span class="label">Observability</span></div>
+        <div class="nav-item" data-nav="evals" data-tier="advanced" onclick="nav('evals')"><span class="icon">⚗</span><span class="label">Evals</span></div>
+        <div class="nav-item" data-nav="health" data-tier="advanced" onclick="nav('health')"><span class="icon">✚</span><span class="label">Health</span></div>
+        <div class="nav-item" data-nav="integrations" data-tier="advanced" onclick="nav('integrations')"><span class="icon">⇋</span><span class="label">Integrations</span></div>
+        <div class="nav-item" data-nav="imagegen" data-tier="advanced" onclick="nav('imagegen')"><span class="icon">❖</span><span class="label">Image Gen</span></div>
+        <div class="nav-item" data-nav="prompts" data-tier="advanced" onclick="nav('prompts')"><span class="icon">✦</span><span class="label">Prompts</span></div>
+        <div class="nav-item" data-nav="codesearch" data-tier="advanced" onclick="nav('codesearch')"><span class="icon">⌕</span><span class="label">Code Search</span></div>
+        <div class="nav-item" data-nav="obsidian" data-tier="advanced" onclick="nav('obsidian')"><span class="icon">◈</span><span class="label">Obsidian</span></div>
+        <div class="nav-item" data-nav="pluginsdk" data-tier="advanced" onclick="nav('pluginsdk')"><span class="icon">⌥</span><span class="label">Plugin SDK</span></div>
+        <div class="nav-item" data-nav="multitab" data-tier="advanced" onclick="nav('multitab')"><span class="icon">◫</span><span class="label">Multi-Preview</span></div>
         <div class="nav-item" data-nav="profiler" data-tier="advanced" onclick="nav('profiler')"><span class="icon">📈</span><span class="label">Profiler</span></div>
-        <div class="nav-item" data-nav="webhooks" data-tier="advanced" onclick="nav('webhooks')"><span class="icon">🌐</span><span class="label">Webhooks</span></div>
-        <div class="nav-item" data-nav="testgen" data-tier="advanced" onclick="nav('testgen')"><span class="icon">🧪</span><span class="label">Test Gen</span></div>
+        <div class="nav-item" data-nav="webhooks" data-tier="advanced" onclick="nav('webhooks')"><span class="icon">⇶</span><span class="label">Webhooks</span></div>
+        <div class="nav-item" data-nav="testgen" data-tier="advanced" onclick="nav('testgen')"><span class="icon">⚗</span><span class="label">Test Gen</span></div>
+        <div class="nav-item" data-nav="pqc" data-tier="advanced" onclick="nav('pqc')"><span class="icon">🛡</span><span class="label">PQC Vault</span></div>
       </div>
 
       <!-- Agents -->
@@ -1577,6 +1572,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       </div>
 
     </div>
+    <div id="sidebar-resizer"></div>
 
     <!-- ── Content ─────────────────────────────────────── -->
     <div id="content">
@@ -2298,7 +2294,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       </div>
 
       <!-- INFORMATION HIERARCHY PANE -->
-      <div class="pane" id="pane-hierarchy" style="overflow:auto;background:var(--bg-0);flex:1;display:flex;flex-direction:column">
+      <div class="pane" id="pane-hierarchy" style="overflow:auto;background:var(--bg-0)">
+        <div style="flex:1;display:flex;flex-direction:column">
         <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);background:var(--bg-1);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
           <div>
             <div style="display:flex;align-items:center;gap:8px">
@@ -2432,6 +2429,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <textarea id="h-live-split-textarea" readonly style="flex:1;width:100%;background:var(--bg-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;color:var(--text-1);font-family:monospace;font-size:11.5px;line-height:1.5;resize:none;outline:none"></textarea>
         </div>
         </div> <!-- end #h-main-container -->
+        </div>
       </div>
 
       <!-- CONTROL TOWER PANE -->
@@ -2607,119 +2605,239 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <!-- RAG PIPELINE PANE -->
       <div class="pane" id="pane-rag" style="overflow:auto;background:var(--bg-0)"></div>
       <!-- SETTINGS PANE -->
-      <div class="pane" id="pane-settings">
-        <div style="max-width:760px;margin:0 auto;width:100%;padding:28px">
-          <div class="section-head" style="margin-bottom:24px">
-            <div>
-              <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">⚙️ Settings & API Hub</h2>
-              <p style="color:var(--text-2);font-size:13.5px">Configure AI models, API keys, visual themes, and local vault security</p>
-            </div>
-          </div>
-
-          <!-- API Keys & Providers Hub -->
-          <div class="settings-card" style="background:radial-gradient(circle at 100% 0%,rgba(56,189,248,0.12),var(--bg-2));border:1px solid var(--border-hi);border-radius:18px;padding:24px;margin-bottom:18px;box-shadow:0 16px 40px rgba(0,0,0,0.5)">
-            <h3 style="font-size:16px;font-weight:800;margin-bottom:6px">🔑 AI Providers & API Keys</h3>
-            <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.5">All API keys are encrypted inside your local vault (~/Library/Application Support/com.stricktech.agenticos/.vault_key) via AES-256. They never leave your machine.</p>
+      <!-- DEDICATED 2-COLUMN SETTINGS WORKSTATION -->
+      <div class="pane" id="pane-settings" style="overflow:hidden;background:var(--bg-0)">
+        <div class="settings-workstation" style="display:flex;height:100%;width:100%;overflow:hidden">
+          <!-- Left Settings Sidebar -->
+          <div class="settings-sidebar" style="width:260px;background:var(--bg-1);border-right:1px solid var(--border);padding:24px 14px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;overflow-y:auto">
+            <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;padding:0 12px 10px">SETTINGS WORKSTATION</div>
             
-            <div style="margin-bottom:18px;background:var(--bg-1);border:1px solid var(--border);border-radius:14px;padding:16px">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                <label style="font-size:12px;font-weight:800;color:var(--text-0);letter-spacing:0.3px">OpenRouter API Key (Primary AI Provider)</label>
-                <a href="https://openrouter.ai/keys" target="_blank" style="font-size:11.5px;color:var(--accent);text-decoration:none;font-weight:700">→ Get Free API Key ↗</a>
-              </div>
-              <p style="font-size:11.5px;color:var(--text-2);margin-bottom:10px">Unlocks Claude 3.5 Sonnet, GPT-4o, Gemini 1.5 Pro, Grok, and Llama 3.3 70B via a single key.</p>
-              <div class="key-input-row" style="display:flex;gap:8px">
-                <input id="or-key-input" type="password" class="key-input" placeholder="Paste sk-or-v1-… key here" autocomplete="off" style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:9px 12px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none">
-                <button onclick="saveApiKey()" class="btn btn-primary" style="padding:9px 20px;font-weight:700;border-radius:8px;background:var(--accent);color:#fff;border:none;cursor:pointer">💾 Save & Verify</button>
-              </div>
-              <div id="settings-key-test-result" style="font-size:12px;margin-top:10px;display:none"></div>
-            </div>
-
-            <!-- Ollama Local LLM -->
-            <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:14px;padding:16px">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                <label style="font-size:12px;font-weight:800;color:var(--text-0)">Local LLM Server (Ollama)</label>
-                <span id="ollama-status" style="font-size:11.5px;font-weight:700;color:var(--text-2)">Checking…</span>
-              </div>
-              <p style="font-size:11.5px;color:var(--text-2);margin-bottom:10px">Run open-source models 100% offline and privately on your Mac Apple Silicon or Intel CPU.</p>
-              <div style="display:flex;gap:8px;margin-bottom:10px">
-                <input id="ollama-url-input" type="text" value="http://localhost:11434" style="flex:1;background:var(--bg-0);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-family:monospace">
-                <button onclick="testOllamaConnection()" class="btn-sm" style="padding:8px 16px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--text-0);cursor:pointer;font-weight:600">⚡ Check Connection</button>
-              </div>
-              <div id="ollama-models" style="font-size:11.5px;color:var(--text-2)"></div>
-            </div>
+            <button id="settings-nav-api" onclick="switchSettingsTab('api')" class="settings-nav-item active" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+              <span style="font-size:16px">🔑</span> <span style="flex:1">API Providers & Vault</span>
+            </button>
+            <button id="settings-nav-appearance" onclick="switchSettingsTab('appearance')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+              <span style="font-size:16px">🎨</span> <span style="flex:1">Theme & Aesthetics</span>
+            </button>
+            <button id="settings-nav-layout" onclick="switchSettingsTab('layout')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+              <span style="font-size:16px">🧭</span> <span style="flex:1">Navigation & Layout</span>
+            </button>
+            <button id="settings-nav-agents" onclick="switchSettingsTab('agents')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+              <span style="font-size:16px">🛡</span> <span style="flex:1">AI Agents Swarm</span>
+            </button>
+            <button id="settings-nav-ollama" onclick="switchSettingsTab('ollama')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+              <span style="font-size:16px">⚡</span> <span style="flex:1">Local Ollama Server</span>
+            </button>
+            <button id="settings-nav-system" onclick="switchSettingsTab('system')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+              <span style="font-size:16px">💾</span> <span style="flex:1">Storage & DB Backup</span>
+            </button>
           </div>
 
-          <!-- Appearance & Workstation Complexity -->
-          <div class="settings-card" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:18px;padding:24px;margin-bottom:18px">
-            <h3 style="font-size:16px;font-weight:800;margin-bottom:6px">🎨 Appearance & Interface Workstation</h3>
-            <p style="font-size:12.5px;color:var(--text-2);margin-bottom:18px">Customize your visual theme and sidebar complexity.</p>
+          <!-- Right Content Area -->
+          <div class="settings-content-area" style="flex:1;overflow-y:auto;padding:36px 44px;background:var(--bg-0)">
+            
+            <!-- TAB 1: API Providers & Vault Secrets -->
+            <div id="settings-tab-api" class="settings-tab-pane active">
+              <div class="section-head" style="margin-bottom:24px">
+                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🔑 AI Providers & Local Vault Secrets</h2>
+                <p style="color:var(--text-2);font-size:13.5px">All API keys are encrypted inside your macOS local vault (~/Library/Application Support/com.stricktech.agenticos/.vault_key) via AES-256 and never leave your hardware.</p>
+              </div>
 
-            <!-- UI Mode switcher -->
-            <div style="margin-bottom:20px">
-              <label style="font-size:11.5px;font-weight:800;color:var(--text-1);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Workstation Mode</label>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <button id="settings-simple-btn"
-                  onclick="switchUIMode('simple');updateSettingsModeButtons();toast('✨ Core Workstation active')"
-                  class="card-3d-tilt"
-                  style="padding:14px;border-radius:12px;border:2px solid var(--border);background:var(--bg-1);color:var(--text-0);cursor:pointer;text-align:left">
-                  <div style="font-size:22px;margin-bottom:6px">⚡</div>
-                  <div style="font-weight:800;font-size:14px;margin-bottom:3px;color:#7dd3fc">Core Workstation</div>
-                  <div style="font-size:11.5px;color:var(--text-2);line-height:1.4">Streamlined 8-pane view. Focused Chat, Swarm, Studio, & IVREN.</div>
-                </button>
-                <button id="settings-power-btn"
-                  onclick="switchUIMode('power');updateSettingsModeButtons();toast('🌌 Power Workstation active')"
-                  class="card-3d-tilt"
-                  style="padding:14px;border-radius:12px;border:2px solid var(--border);background:var(--bg-1);color:var(--text-0);cursor:pointer;text-align:left">
-                  <div style="font-size:22px;margin-bottom:6px">🌌</div>
-                  <div style="font-weight:800;font-size:14px;margin-bottom:3px;color:#d8b4fe">Power Workstation</div>
-                  <div style="font-size:11.5px;color:var(--text-2);line-height:1.4">All 65+ panes active. Full telemetry, BugBot, Evals, and PQC Vault.</div>
-                </button>
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px;box-shadow:var(--shadow)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="font-size:13px;font-weight:800;color:var(--text-0)">OpenRouter API Key (Primary AI Gateway)</label>
+                  <a href="https://openrouter.ai/keys" target="_blank" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:700">→ Get Free API Key ↗</a>
+                </div>
+                <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Unlocks Claude 3.5 Sonnet, GPT-4o, Gemini 1.5 Pro, Grok 3, and Llama 3.3 70B via a single universal key.</p>
+                
+                <div class="key-input-row" style="display:flex;gap:10px;margin-bottom:14px">
+                  <input id="or-key-input" type="password" class="key-input" placeholder="Paste sk-or-v1-… key here" autocomplete="off" style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none">
+                  <button onclick="saveApiKey()" class="btn btn-primary" style="padding:11px 24px;font-weight:700;border-radius:10px;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">💾 Save & Verify</button>
+                </div>
+                <div id="settings-key-test-result" style="font-size:12.5px;margin-top:10px;padding:10px;border-radius:8px;background:var(--bg-2);display:none"></div>
               </div>
             </div>
 
-            <!-- Font size & High Contrast -->
-            <div style="display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap;gap:12px">
-              <div>
-                <label style="font-size:11.5px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.5px">Typography Scale</label>
-                <div style="display:flex;gap:8px;margin-top:6px">
-                  <button onclick="saveFontSize('sm');toast('Typography set to Small')" class="btn-sm" id="fs-sm" style="padding:6px 14px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer">Small</button>
-                  <button onclick="saveFontSize('base');toast('Typography set to Medium')" class="btn-sm" id="fs-base" style="padding:6px 14px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer">Medium</button>
-                  <button onclick="saveFontSize('lg');toast('Typography set to Large')" class="btn-sm" id="fs-lg" style="padding:6px 14px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer">Large</button>
+            <!-- TAB 2: Theme & Visual Aesthetics -->
+            <div id="settings-tab-appearance" class="settings-tab-pane">
+              <div class="section-head" style="margin-bottom:24px">
+                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🎨 Theme & Visual Aesthetics</h2>
+                <p style="color:var(--text-2);font-size:13.5px">Customize your visual interface palette, 2D/3D depth, and Workstation Complexity.</p>
+              </div>
+
+              <!-- 5 Themes Selector -->
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px">
+                <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:14px">Select Visual Palette (5 Themes Available)</label>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
+                  <button onclick="applyTheme('light');toast('✨ Ultra-Techy Light Theme applied')" class="card-3d-tilt" style="padding:16px;border-radius:14px;border:2px solid #e2e8f0;background:#ffffff;color:#0f172a;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.05)">
+                    <div style="font-size:20px;margin-bottom:6px">☀️</div>
+                    Light (Default)
+                  </button>
+                  <button onclick="applyTheme('dark');toast('🌌 Cyber Dark Theme applied')" class="card-3d-tilt" style="padding:16px;border-radius:14px;border:2px solid #334155;background:#0f172a;color:#f8fafc;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
+                    <div style="font-size:20px;margin-bottom:6px">🌑</div>
+                    Dark Cyber
+                  </button>
+                  <button onclick="applyTheme('obsidian');toast('🪨 Obsidian Jet Theme applied')" class="card-3d-tilt" style="padding:16px;border-radius:14px;border:2px solid #27272a;background:#09090b;color:#fafafa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
+                    <div style="font-size:20px;margin-bottom:6px">🪨</div>
+                    Obsidian Jet
+                  </button>
+                  <button onclick="applyTheme('midnight');toast('✨ Midnight Blue Theme applied')" class="card-3d-tilt" style="padding:16px;border-radius:14px;border:2px solid #1e293b;background:#020617;color:#60a5fa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
+                    <div style="font-size:20px;margin-bottom:6px">🌌</div>
+                    Midnight Blue
+                  </button>
+                  <button onclick="applyTheme('forest');toast('🌲 Forest Emerald Theme applied')" class="card-3d-tilt" style="padding:16px;border-radius:14px;border:2px solid #14532d;background:#052e16;color:#4ade80;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
+                    <div style="font-size:20px;margin-bottom:6px">🌲</div>
+                    Forest Emerald
+                  </button>
                 </div>
               </div>
-              <div>
-                <label style="font-size:11.5px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.5px">High Contrast (WCAG AAA)</label>
-                <div style="margin-top:6px">
-                  <button onclick="toggleHighContrastTheme()" id="high-contrast-toggle-btn" class="btn-sm" style="padding:7px 16px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);font-weight:700;cursor:pointer">Toggle High Contrast</button>
+
+              <!-- Workstation Mode Switcher -->
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px">
+                <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:14px">Workstation Operating Mode</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                  <button id="settings-simple-btn" onclick="switchUIMode('simple');updateSettingsModeButtons();toast('✨ Core Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
+                    <div style="font-size:22px;margin-bottom:6px">⚡</div>
+                    <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:var(--accent)">Core Workstation</div>
+                    <div style="font-size:12px;color:var(--text-2);line-height:1.4">Streamlined focused view. Essential Chat, Swarm, Studio Editor, & IVREN Manual.</div>
+                  </button>
+                  <button id="settings-power-btn" onclick="switchUIMode('power');updateSettingsModeButtons();toast('🌌 Power Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
+                    <div style="font-size:22px;margin-bottom:6px">🌌</div>
+                    <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:#d8b4fe">Power Workstation</div>
+                    <div style="font-size:12px;color:var(--text-2);line-height:1.4">All 65+ panes active across categorized groups. Full telemetry, BugBot, Evals, & PQC Vault.</div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Typography & High Contrast -->
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+                <div>
+                  <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:8px">Typography Scale</label>
+                  <div style="display:flex;gap:8px">
+                    <button onclick="saveFontSize('sm');toast('Typography set to Small')" class="btn-sm" id="fs-sm" style="padding:7px 16px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer;font-weight:600">Small</button>
+                    <button onclick="saveFontSize('base');toast('Typography set to Medium')" class="btn-sm" id="fs-base" style="padding:7px 16px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer;font-weight:600">Medium</button>
+                    <button onclick="saveFontSize('lg');toast('Typography set to Large')" class="btn-sm" id="fs-lg" style="padding:7px 16px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer;font-weight:600">Large</button>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:8px">High Contrast (WCAG AAA)</label>
+                  <button onclick="toggleHighContrastTheme()" id="high-contrast-toggle-btn" class="btn-sm" style="padding:8px 18px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);font-weight:700;cursor:pointer">Toggle High Contrast</button>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Agents Management -->
-          <div class="settings-card" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:18px;padding:24px;margin-bottom:18px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-              <div>
-                <h3 style="font-size:16px;font-weight:800;margin:0">🤖 AI Specialist Agent Team</h3>
-                <p style="font-size:12.5px;color:var(--text-2);margin:3px 0 0">Configure specialist agent personas, system prompts, and default models.</p>
+            <!-- TAB 3: Navigation & Layout -->
+            <div id="settings-tab-layout" class="settings-tab-pane">
+              <div class="section-head" style="margin-bottom:24px">
+                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🧭 Navigation & Layout Architecture</h2>
+                <p style="color:var(--text-2);font-size:13.5px">Fine-tune your resizable navigation sidebar and responsive topbar layout behaviors.</p>
               </div>
-              <button onclick="openAgentModal()" class="btn btn-primary btn-sm" style="padding:8px 16px;border-radius:8px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer">＋ New Agent</button>
-            </div>
-            <div id="settings-agents-list" style="display:flex;flex-direction:column;gap:8px"></div>
-          </div>
 
-          <!-- System & Database Backup -->
-          <div class="settings-card" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:18px;padding:24px">
-            <h3 style="font-size:16px;font-weight:800;margin-bottom:6px">💾 System Storage & Database Backup</h3>
-            <p style="font-size:12.5px;color:var(--text-2);margin-bottom:14px">All your projects, chats, and vector memory live in a single compounding SQLite file.</p>
-            <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;font-size:12px;color:var(--text-1)">
-              <div><strong>Database path:</strong> <code style="font-family:monospace;color:var(--accent-hi)">~/Library/Application Support/com.stricktech.agenticos/memory/agentic.db</code></div>
-              <div id="system-info" style="margin-top:6px;color:var(--text-2)"></div>
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px">
+                <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">↔️ Resizable Navigation Sidebar</h3>
+                <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px">You can drag the divider handle (`#sidebar-resizer`) directly between the sidebar and workspace to expand or shrink the navigation pane dynamically between 56px (icon mode) and 600px (deep folder hierarchy mode). Your exact width is automatically saved to local storage.</p>
+                <div style="display:flex;gap:12px">
+                  <button onclick="toggleSidebar();toast('Sidebar toggled')" class="btn btn-primary btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);cursor:pointer">Toggle Collapsed Mode (56px)</button>
+                  <button onclick="const sb=document.getElementById('sidebar');if(sb){sb.style.width='260px';sb.classList.remove('collapsed');try{localStorage.setItem('agentic_os_sidebar_w','260px');}catch(e){}}toast('Sidebar reset to default 260px')" class="btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer">Reset Default Width (260px)</button>
+                </div>
+              </div>
+
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
+                <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">🧭 2-Tier IVREN Hierarchy Isolation</h3>
+                <p style="font-size:13px;color:var(--text-2);line-height:1.6">When navigating away from the `2 Tier Hierarchy` panel (`#pane-hierarchy`), all split view panes and bottom sticky bars immediately vanish so your active studio or chat workspace gets 100% of the screen height.</p>
+              </div>
             </div>
-            <button onclick="doBackup();toast('💾 Created backup snapshot in Application Support/com.stricktech.agenticos/memory/')" class="btn btn-primary" style="padding:10px 22px;border-radius:8px;font-weight:700;background:linear-gradient(135deg,#38bdf8,#a855f7);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">💾 Snapshot & Backup agentic.db Now</button>
-          </div>
-        </div>
-      </div>
+
+            <!-- TAB 4: AI Agents Swarm -->
+            <div id="settings-tab-agents" class="settings-tab-pane">
+              <div class="section-head" style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🛡 AI Specialist Agents Swarm</h2>
+                  <p style="color:var(--text-2);font-size:13.5px">Configure autonomous specialist agent personas, system prompts, and model routing.</p>
+                </div>
+                <button onclick="openAgentModal()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">＋ Create Specialist Agent</button>
+              </div>
+
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
+                <div id="settings-agents-list" style="display:flex;flex-direction:column;gap:10px"></div>
+              </div>
+            </div>
+
+            <!-- TAB 5: Local Ollama Server -->
+            <div id="settings-tab-ollama" class="settings-tab-pane">
+              <div class="section-head" style="margin-bottom:24px">
+                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">⚡ Local LLM Server (Ollama Hub)</h2>
+                <p style="color:var(--text-2);font-size:13.5px">Run open-source neural models 100% offline, zero-latency, and privately on your Apple Silicon or Intel CPU.</p>
+              </div>
+
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="font-size:13px;font-weight:800;color:var(--text-0)">Ollama Endpoint URL</label>
+                  <span id="ollama-status" style="font-size:12px;font-weight:700;color:var(--text-2)">Checking…</span>
+                </div>
+                <div style="display:flex;gap:10px;margin-bottom:14px">
+                  <input id="ollama-url-input" type="text" value="http://localhost:11434" style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
+                  <button onclick="testOllamaConnection()" class="btn btn-primary" style="padding:10px 20px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-weight:700;cursor:pointer">⚡ Check Connection</button>
+                </div>
+                <div id="ollama-models" style="font-size:12px;color:var(--text-2);padding:10px;background:var(--bg-2);border-radius:8px"></div>
+              </div>
+
+              <!-- One-click model auto-detect/puller -->
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
+                <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">📥 One-Click Local Model Auto-Puller</h3>
+                <p style="font-size:13px;color:var(--text-2);margin-bottom:16px">Click any model below to trigger an automatic local download into your Ollama engine directly from Agentic OS.</p>
+                
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+                  <div style="padding:16px;border-radius:12px;border:1px solid var(--border);background:var(--bg-2);display:flex;flex-direction:column;justify-content:space-between">
+                    <div>
+                      <div style="font-weight:800;font-size:14px;color:var(--text-0);margin-bottom:4px">Llama 3.1 8B</div>
+                      <div style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">Meta's premier instruction-tuned model. Exceptional reasoning & coding on Apple Silicon (`~4.7 GB`).</div>
+                    </div>
+                    <button onclick="pullOllamaModel('llama3.1:8b')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent);font-weight:700;cursor:pointer">⚡ Pull llama3.1:8b</button>
+                  </div>
+                  
+                  <div style="padding:16px;border-radius:12px;border:1px solid var(--border);background:var(--bg-2);display:flex;flex-direction:column;justify-content:space-between">
+                    <div>
+                      <div style="font-weight:800;font-size:14px;color:var(--text-0);margin-bottom:4px">Mistral 7B</div>
+                      <div style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">High-speed European foundation model with top-tier efficiency and low memory footprint (`~4.1 GB`).</div>
+                    </div>
+                    <button onclick="pullOllamaModel('mistral')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent);font-weight:700;cursor:pointer">⚡ Pull mistral</button>
+                  </div>
+
+                  <div style="padding:16px;border-radius:12px;border:1px solid var(--border);background:var(--bg-2);display:flex;flex-direction:column;justify-content:space-between">
+                    <div>
+                      <div style="font-weight:800;font-size:14px;color:var(--text-0);margin-bottom:4px">Qwen 2.5 7B</div>
+                      <div style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">Alibaba's cutting-edge multilingual & math specialist model (`~4.5 GB`).</div>
+                    </div>
+                    <button onclick="pullOllamaModel('qwen2.5:7b')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent);font-weight:700;cursor:pointer">⚡ Pull qwen2.5:7b</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 6: System Storage & Database Backup -->
+            <div id="settings-tab-system" class="settings-tab-pane">
+              <div class="section-head" style="margin-bottom:24px">
+                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">💾 System Storage & Database Backup</h2>
+                <p style="color:var(--text-2);font-size:13.5px">All your projects, chats, and vector memory live in a single compounding SQLite file on your disk.</p>
+              </div>
+
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
+                <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">🗄️ agentic.db WAL Storage Snapshot</h3>
+                <p style="font-size:13px;color:var(--text-2);margin-bottom:16px">Your SQLite database uses high-concurrency Write-Ahead Logging (WAL) and Full-Text Search 5 (FTS5).</p>
+                
+                <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;font-size:12.5px;color:var(--text-1)">
+                  <div style="margin-bottom:6px"><strong>Database Path:</strong> <code style="font-family:monospace;color:var(--accent)">~/Library/Application Support/com.stricktech.agenticos/memory/agentic.db</code></div>
+                  <div><strong>Encrypted Vault Key Path:</strong> <code style="font-family:monospace;color:var(--accent)">~/Library/Application Support/com.stricktech.agenticos/.vault_key</code></div>
+                  <div id="system-info" style="margin-top:8px;color:var(--text-2);font-weight:600"></div>
+                </div>
+                
+                <button onclick="doBackup();toast('💾 Created backup snapshot in Application Support/com.stricktech.agenticos/memory/')" class="btn btn-primary" style="padding:12px 26px;border-radius:10px;font-weight:700;background:linear-gradient(135deg,#38bdf8,#a855f7);color:#fff;border:none;cursor:pointer;box-shadow:0 0 18px rgba(56,189,248,0.3)">💾 Snapshot & Backup agentic.db Now</button>
+              </div>
+            </div>
+
+          </div><!-- /settings-content-area -->
+        </div><!-- /settings-workstation -->
+      </div><!-- /pane-settings -->
 
     </div><!-- /content -->
   </div><!-- /main -->
