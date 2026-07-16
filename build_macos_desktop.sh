@@ -110,7 +110,9 @@ echo "✅ Tauri CLI $TAURI_VER detected."
 # 7. Build macOS Desktop Application (.dmg & .app bundle)
 echo ""
 echo "🚀 Launching native macOS desktop build..."
+mkdir -p src-tauri/python_embedded
 cd src-tauri
+mkdir -p python_embedded
 
 ARCH=$(uname -m)
 BUILD_FLAGS=()
