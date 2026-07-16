@@ -21,7 +21,8 @@ from ..services import llm, memory_db
 router = APIRouter(prefix='/api/integrations', tags=['integrations'])
 log = logging.getLogger('agentic.integrations')
 
-ROOT = Path(__file__).resolve().parents[2]  # /home/user/agentic-os
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
 

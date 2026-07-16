@@ -29,7 +29,8 @@ from fastapi import APIRouter, File, Request, UploadFile
 router = APIRouter(prefix='/api/rag', tags=['rag'])
 log = logging.getLogger('agentic.rag')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 DOCS_DIR = ROOT / 'workspaces' / 'rag_documents'
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
 

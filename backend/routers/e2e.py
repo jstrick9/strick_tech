@@ -31,7 +31,8 @@ def _get_port() -> int:
 router = APIRouter(prefix='/api/e2e', tags=['e2e'])
 log = logging.getLogger('agentic.e2e')
 
-ROOT = Path(__file__).resolve().parents[2]  # FIX 1: parents[2]=agentic-os root
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
 

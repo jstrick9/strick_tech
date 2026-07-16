@@ -31,7 +31,8 @@ from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 router = APIRouter(prefix='/api/crdt', tags=['crdt'])
 log = logging.getLogger('agentic.crdt')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 DOCS_DIR = ROOT / 'workspaces' / 'collab_docs'
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
 

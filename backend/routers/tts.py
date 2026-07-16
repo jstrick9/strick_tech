@@ -22,7 +22,8 @@ from fastapi.responses import JSONResponse, StreamingResponse
 router = APIRouter(prefix='/api/tts', tags=['tts'])
 log = logging.getLogger('agentic.tts')
 
-ROOT = Path(__file__).resolve().parents[2]  # /home/user/agentic-os
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 CACHE_DIR = ROOT / 'memory' / 'tts_cache'
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 

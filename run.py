@@ -129,8 +129,43 @@ def print_banner():
         print()
 
 
+def seed_data_dir():
+    """Copy initial templates to AGENTIC_OS_DATA_DIR on first run."""
+    _data_dir = os.environ.get("AGENTIC_OS_DATA_DIR")
+    if not _data_dir:
+        return
+    data_path = Path(_data_dir)
+    import shutil
+    # Copy memory/hierarchy templates if not present in data_dir
+    src_hierarchy = ROOT / "memory" / "hierarchy"
+    dst_hierarchy = data_path / "memory" / "hierarchy"
+    if src_hierarchy.exists() and not dst_hierarchy.exists():
+        dst_hierarchy.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.copytree(src_hierarchy, dst_hierarchy, dirs_exist_ok=True)
+        except Exception:
+            pass
+    # Copy skills if not present
+    src_skills = ROOT / "skills"
+    dst_skills = data_path / "skills"
+    if src_skills.exists() and not dst_skills.exists():
+        try:
+            shutil.copytree(src_skills, dst_skills, dirs_exist_ok=True)
+        except Exception:
+            pass
+    # Copy preview if not present
+    src_preview = ROOT / "preview"
+    dst_preview = data_path / "preview"
+    if src_preview.exists() and not dst_preview.exists():
+        try:
+            shutil.copytree(src_preview, dst_preview, dirs_exist_ok=True)
+        except Exception:
+            pass
+
+
 if __name__ == "__main__":
     check_requirements()
+    seed_data_dir()
     seed_db()
     print_banner()
     threading.Thread(target=open_browser, daemon=True).start()

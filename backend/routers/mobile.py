@@ -15,7 +15,8 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/mobile", tags=["mobile"])
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 MOBILE_DEVICES_FILE = MEMORY_DIR / "mobile_devices.json"
 

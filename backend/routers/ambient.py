@@ -26,7 +26,8 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/ambient', tags=['ambient'])
 log = logging.getLogger('agentic.ambient')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
 _SCHEMA = """

@@ -16,7 +16,8 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 router = APIRouter(prefix='/api/mcp', tags=['mcp'])
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 
 
 # ── Tool Registry ─────────────────────────────────────────────────────────────

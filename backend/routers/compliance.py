@@ -39,7 +39,8 @@ from fastapi.responses import JSONResponse, StreamingResponse
 router = APIRouter(prefix='/api/compliance', tags=['compliance'])
 log = logging.getLogger('agentic.compliance')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 
 # -- Report history schema ------------------------------------------------------
 _SCHEMA = """

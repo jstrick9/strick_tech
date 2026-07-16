@@ -14,7 +14,8 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/security/bounty-hunter", tags=["bounty-hunter"])
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 BOUNTY_DIR = MEMORY_DIR / "bounty_hunter"
 SCANS_DIR = BOUNTY_DIR / "scans"

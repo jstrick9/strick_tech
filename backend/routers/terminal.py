@@ -25,7 +25,8 @@ from ..services.memory_db import audit_log, get_conn
 router = APIRouter(prefix='/api/terminal', tags=['terminal'])
 log = logging.getLogger('agentic.terminal')
 
-ROOT = Path(__file__).resolve().parents[2]  # FIX 1: parents[2]=agentic-os root
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 WORK_DIR = PREVIEW_DIR  # default working directory
 PREVIEW_DIR.mkdir(parents=True, exist_ok=True)  # FIX C: ensure cwd exists

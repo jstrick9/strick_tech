@@ -7,6 +7,20 @@ from __future__ import annotations
 import contextlib
 
 import os
+from pathlib import Path
+
+_STATIC_ROOT = Path(__file__).resolve().parent.parent
+
+
+def get_data_dir() -> Path:
+    """Return runtime write directory (AGENTIC_OS_DATA_DIR when packaged or local workspace)."""
+    env_dir = os.environ.get('AGENTIC_OS_DATA_DIR')
+    if env_dir:
+        p = Path(env_dir)
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+    return _STATIC_ROOT
+
 
 from pydantic import BaseModel, Field
 

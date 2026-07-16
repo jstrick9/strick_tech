@@ -27,7 +27,8 @@ from fastapi.responses import StreamingResponse
 router = APIRouter(prefix='/api/bugbot', tags=['bugbot'])
 log = logging.getLogger('agentic.bugbot')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS bugbot_reviews (

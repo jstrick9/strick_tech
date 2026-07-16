@@ -39,7 +39,8 @@ from fastapi.responses import JSONResponse, StreamingResponse
 router = APIRouter(prefix='/api/eval-framework', tags=['eval-framework'])
 log = logging.getLogger('agentic.eval_fw')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
 _SCHEMA = """

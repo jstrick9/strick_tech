@@ -21,7 +21,8 @@ from fastapi.responses import StreamingResponse
 router = APIRouter(prefix='/api/tauri', tags=['tauri'])
 log = logging.getLogger('agentic.tauri')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 TAURI_DIR = ROOT / 'src-tauri'
 SCRIPTS = ROOT / 'scripts'
 

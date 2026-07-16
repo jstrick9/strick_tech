@@ -15,7 +15,8 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/rbac", tags=["rbac"])
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 RBAC_DIR = MEMORY_DIR / "rbac"
 ROLES_FILE = RBAC_DIR / "roles.json"

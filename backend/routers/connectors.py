@@ -37,7 +37,8 @@ from fastapi.responses import JSONResponse
 router = APIRouter(prefix='/api/connectors', tags=['connectors'])
 log = logging.getLogger('agentic.connectors')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
 _SCHEMA = """

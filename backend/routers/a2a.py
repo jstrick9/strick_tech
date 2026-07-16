@@ -57,7 +57,8 @@ from fastapi.responses import JSONResponse, StreamingResponse
 router = APIRouter(tags=['a2a'])
 log = logging.getLogger('agentic.a2a')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 
 # ── Schema guard ───────────────────────────────────────────────────────────────
 _SCHEMA = """

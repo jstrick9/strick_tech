@@ -38,7 +38,8 @@ def _parse_delta(chunk: str) -> str:
     return ''
 
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 SPECS_DIR = ROOT / 'workspaces' / 'specs'
 SPECS_DIR.mkdir(parents=True, exist_ok=True)
 

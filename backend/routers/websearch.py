@@ -30,7 +30,8 @@ from fastapi.responses import StreamingResponse
 router = APIRouter(prefix='/api/websearch', tags=['websearch'])
 log = logging.getLogger('agentic.websearch')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 DB = ROOT / 'memory' / 'agentic.db'
 
 

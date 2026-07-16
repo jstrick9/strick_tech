@@ -26,7 +26,8 @@ from ..services import llm, memory_db
 
 router = APIRouter(prefix='/api/composer', tags=['composer'])
 log = logging.getLogger('agentic.composer')
-ROOT = Path(__file__).resolve().parents[2]  # FIX 1: parents[2]=agentic-os root
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PREV = ROOT / 'preview'
 
 

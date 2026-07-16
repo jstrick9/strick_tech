@@ -28,7 +28,8 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/license', tags=['license'])
 log = logging.getLogger('agentic.license')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 LICENSE_FILE = ROOT / '.agentic' / 'license.json'
 LICENSE_FILE.parent.mkdir(parents=True, exist_ok=True)
 

@@ -29,7 +29,8 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/steering', tags=['steering'])
 log = logging.getLogger('agentic.steering')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 STEERING_DIR = ROOT / '.agentic' / 'steering'
 STEERING_DIR.mkdir(parents=True, exist_ok=True)
 

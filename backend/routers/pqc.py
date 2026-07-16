@@ -17,7 +17,8 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/pqc", tags=["pqc"])
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 PQC_DIR = MEMORY_DIR / "pqc"
 KEYS_DIR = PQC_DIR / "keys"
