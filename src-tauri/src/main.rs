@@ -195,9 +195,34 @@ fn main() {
             get_version,
             open_data_dir,
             get_backend_url,
+            get_backend_log,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Agentic OS");
+}
+
+#[tauri::command]
+fn get_backend_log() -> String {
+    let data_dir = if cfg!(target_os = "macos") {
+        let home = std::env::var("HOME").unwrap_or_else(|_| "~".to_string());
+        PathBuf::from(format!("{}/Library/Application Support/com.stricktech.agenticos", home))
+    } else if cfg!(windows) {
+        let appdata = std::env::var("APPDATA").unwrap_or_else(|_| "C:\\Users\\Public".to_string());
+        PathBuf::from(format!("{}\\agentic-os", appdata))
+    } else {
+        let home = std::env::var("HOME").unwrap_or_else(|_| "~".to_string());
+        PathBuf::from(format!("{}/.local/share/agentic-os", home))
+    };
+    let log_path = data_dir.join("backend.log");
+    if let Ok(contents) = std::fs::read_to_string(&log_path) {
+        if contents.trim().is_empty() {
+            "Log file exists but is currently empty (backend spawned without stdout/stderr output).".to_string()
+        } else {
+            contents
+        }
+    } else {
+        format!("Could not read diagnostic log file at {:?}", log_path)
+    }
 }
 
 #[tauri::command]
