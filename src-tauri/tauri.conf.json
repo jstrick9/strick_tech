@@ -39,14 +39,14 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "../backend/**",
-      "../frontend/**",
+      "../backend",
+      "../frontend",
       "../requirements.txt",
       "../run.py",
       "../config.yaml",
-      "../agents/**",
-      "../skills/**",
-      "python_embedded/**"
+      "../agents",
+      "../skills",
+      "python_embedded"
     ],
     "externalBin": [],
     "macOS": {
