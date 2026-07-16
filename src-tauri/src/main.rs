@@ -54,8 +54,15 @@ fn find_python_binary() -> String {
         if let Some(parent) = exe_dir.parent() {
             let embedded_candidates = vec![
                 parent.join("Resources/python_embedded/bin/python3"),     // macOS bundle standalone
+                parent.join("Resources/python_embedded/bin/python3.12"),
+                parent.join("Resources/python_embedded/bin/python3.11"),
+                parent.join("Resources/python_embedded/bin/python"),
                 parent.join("../Resources/python_embedded/bin/python3"),  // macOS alt
+                parent.join("../Resources/python_embedded/bin/python3.12"),
+                parent.join("../Resources/python_embedded/bin/python3.11"),
+                parent.join("../Resources/python_embedded/bin/python"),
                 parent.join("python_embedded/bin/python3"),               // linux/unix bundle
+                parent.join("python_embedded/bin/python3.12"),
                 parent.join("python_embedded/python.exe"),                // windows standalone
                 parent.join("Resources/python_embedded/python.exe"),
             ];
@@ -71,6 +78,7 @@ fn find_python_binary() -> String {
     // 2. Check local relative directory
     let local_candidates = vec![
         PathBuf::from("python_embedded/bin/python3"),
+        PathBuf::from("python_embedded/bin/python3.12"),
         PathBuf::from("python_embedded/python.exe"),
     ];
     for c in local_candidates {
@@ -80,7 +88,19 @@ fn find_python_binary() -> String {
         }
     }
 
-    // 3. Fallback to system Python
+    // 3. Check common macOS Homebrew/system paths
+    let sys_candidates = vec![
+        "/opt/homebrew/bin/python3",
+        "/usr/local/bin/python3",
+        "/usr/bin/python3",
+    ];
+    for c in sys_candidates {
+        if std::path::Path::new(c).exists() {
+            return c.to_string();
+        }
+    }
+
+    // 4. Fallback to bare command
     if cfg!(windows) { "python".to_string() } else { "python3".to_string() }
 }
 
@@ -133,7 +153,15 @@ fn main() {
             }
 
             let log_path = data_dir.join("backend.log");
-            let stdout_file = std::fs::File::create(&log_path).expect("failed to create log file");
+            let mut stdout_file = std::fs::File::create(&log_path).expect("failed to create log file");
+            use std::io::Write;
+            let _ = writeln!(stdout_file, "=== Agentic OS Desktop Startup Diagnostic ===");
+            let _ = writeln!(stdout_file, "Executable: {:?}", std::env::current_exe());
+            let _ = writeln!(stdout_file, "Resolved Python: {}", python);
+            let _ = writeln!(stdout_file, "Resolved run.py: {}", run_py);
+            let _ = writeln!(stdout_file, "Working dir (run_dir): {:?}", run_dir);
+            let _ = writeln!(stdout_file, "Data dir (AGENTIC_OS_DATA_DIR): {:?}", data_dir);
+            let _ = writeln!(stdout_file, "===============================================\n");
             let stderr_file = stdout_file.try_clone().expect("failed to clone log file");
 
             let child = Command::new(&python)
