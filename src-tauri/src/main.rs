@@ -13,22 +13,17 @@ use tauri::Manager;
 struct BackendProcess(Mutex<Option<Child>>);
 
 fn find_run_py() -> String {
-    // Try multiple locations for run.py
-    let candidates = vec![
-        PathBuf::from("run.py"),
-        PathBuf::from("../run.py"),
-        PathBuf::from("../../run.py"),
-    ];
-
-    // Also try relative to executable
+    // Also try relative to executable first (most reliable when packaged)
     if let Ok(exe_dir) = std::env::current_exe() {
         if let Some(parent) = exe_dir.parent() {
             let candidates_from_exe = vec![
+                parent.join("Resources/run.py"),          // macOS bundle
+                parent.join("../Resources/run.py"),       // macOS bundle alt
+                parent.join("Resources/_up_/run.py"),     // macOS tauri _up_ fallback
+                parent.join("../Resources/_up_/run.py"),  // macOS tauri _up_ alt
                 parent.join("run.py"),
                 parent.join("../run.py"),
                 parent.join("../../run.py"),
-                parent.join("Resources/run.py"),       // macOS bundle
-                parent.join("../Resources/run.py"),     // macOS bundle alt
             ];
             for c in candidates_from_exe {
                 if c.exists() {
@@ -38,6 +33,11 @@ fn find_run_py() -> String {
         }
     }
 
+    let candidates = vec![
+        PathBuf::from("run.py"),
+        PathBuf::from("../run.py"),
+        PathBuf::from("../../run.py"),
+    ];
     for c in &candidates {
         if c.exists() {
             return c.to_string_lossy().to_string();
@@ -61,6 +61,8 @@ fn find_python_binary() -> String {
                 parent.join("../Resources/python_embedded/bin/python3.12"),
                 parent.join("../Resources/python_embedded/bin/python3.11"),
                 parent.join("../Resources/python_embedded/bin/python"),
+                parent.join("Resources/_up_/python_embedded/bin/python3"),
+                parent.join("../Resources/_up_/python_embedded/bin/python3"),
                 parent.join("python_embedded/bin/python3"),               // linux/unix bundle
                 parent.join("python_embedded/bin/python3.12"),
                 parent.join("python_embedded/python.exe"),                // windows standalone
@@ -117,7 +119,7 @@ fn main() {
 
             let run_dir = std::path::Path::new(&run_py)
                 .parent()
-                .map(|p| p.to_path_buf())
+                .and_then(|p| if p.as_os_str().is_empty() { None } else { Some(p.to_path_buf()) })
                 .unwrap_or_else(|| {
                     std::env::current_exe()
                         .ok()
