@@ -132,28 +132,30 @@
   }
 
   function showDiagnostic() {
-    document.getElementById('status').innerHTML = '⚠️ Backend startup took longer than 15s. Checking diagnostics...';
+    document.getElementById('status').innerHTML = '⚠️ Backend startup took longer than 15s. Displaying diagnostics...';
     document.getElementById('status').style.color = '#ef4444';
     document.getElementById('spinner').style.display = 'none';
     document.getElementById('retry-btn').style.display = 'inline-block';
     
-    // Try to read backend.log via Tauri IPC
-    if (window.__TAURI__ && window.__TAURI__.core) {
-      window.__TAURI__.core.invoke('get_backend_log')
+    const logBox = document.getElementById('log-container');
+    logBox.style.display = 'block';
+    logBox.textContent = 'Reading diagnostic log from ~/Library/Application Support/com.stricktech.agenticos/backend.log...';
+
+    // Try multiple Tauri v2 IPC invocation paths
+    const invoke = (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) ||
+                   (window.__TAURI__ && window.__TAURI__.invoke) ||
+                   (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke);
+                   
+    if (invoke) {
+      invoke('get_backend_log')
         .then(logText => {
-          const logBox = document.getElementById('log-container');
-          logBox.style.display = 'block';
-          logBox.textContent = 'Diagnostic Log (~/Library/Application Support/com.stricktech.agenticos/backend.log):\n\n' + logText;
+          logBox.textContent = logText;
         })
         .catch(ipcErr => {
-          const logBox = document.getElementById('log-container');
-          logBox.style.display = 'block';
-          logBox.textContent = 'Could not read diagnostic log via IPC: ' + ipcErr + '\n\nPlease check log at:\n~/Library/Application Support/com.stricktech.agenticos/backend.log';
+          logBox.textContent = 'Tauri IPC error reading log: ' + ipcErr + '\n\nPlease check log manually at:\n~/Library/Application Support/com.stricktech.agenticos/backend.log';
         });
     } else {
-      const logBox = document.getElementById('log-container');
-      logBox.style.display = 'block';
-      logBox.textContent = 'Please check backend diagnostic log at:\n~/Library/Application Support/com.stricktech.agenticos/backend.log';
+      logBox.textContent = 'Tauri IPC bridge not found on window object.\n\nPlease open Terminal and run:\ncat ~/Library/Application\\ Support/com.stricktech.agenticos/backend.log';
     }
   }
 
