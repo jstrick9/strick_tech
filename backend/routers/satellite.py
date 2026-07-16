@@ -15,7 +15,8 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/satellite", tags=["satellite"])
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 SATELLITE_DIR = MEMORY_DIR / "satellite"
 BUNDLES_DIR = SATELLITE_DIR / "bundles"

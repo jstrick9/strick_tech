@@ -19,7 +19,8 @@ from ..services import llm, memory_db
 router = APIRouter(prefix='/api/testgen', tags=['testgen'])
 log = logging.getLogger('agentic.testgen')
 
-ROOT = Path(__file__).resolve().parents[2]  # FIX 1: parents[2]=agentic-os root
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
 FRAMEWORK_CONFIGS = {

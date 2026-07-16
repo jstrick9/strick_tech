@@ -15,7 +15,8 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/p2p-sharding", tags=["p2p-sharding"])
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 SHARDING_DIR = MEMORY_DIR / "p2p_sharding"
 MANIFESTS_DIR = SHARDING_DIR / "manifests"

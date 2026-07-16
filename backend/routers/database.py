@@ -22,7 +22,8 @@ from fastapi import APIRouter, Request
 
 router = APIRouter(prefix='/api/db', tags=['database'])
 log = logging.getLogger('agentic.db')
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 DB = ROOT / 'memory' / 'agentic.db'
 
 

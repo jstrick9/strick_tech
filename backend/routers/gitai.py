@@ -27,7 +27,8 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/gitai', tags=['gitai'])
 log = logging.getLogger('agentic.gitai')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'  # FIX 2: define PREVIEW_DIR for security scanner
 
 

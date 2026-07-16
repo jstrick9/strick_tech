@@ -23,7 +23,8 @@ from ..services.memory_db import audit_log, get_conn
 
 router = APIRouter(prefix='/api/templates', tags=['templates'])
 log = logging.getLogger('agentic.templates')
-ROOT = Path(__file__).resolve().parents[2]  # /home/user/agentic-os
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PREV = ROOT / 'preview'
 PREV.mkdir(parents=True, exist_ok=True)
 

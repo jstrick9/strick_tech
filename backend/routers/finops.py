@@ -35,7 +35,8 @@ from fastapi.responses import JSONResponse, StreamingResponse
 router = APIRouter(prefix='/api/finops', tags=['finops'])
 log = logging.getLogger('agentic.finops')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
 _SCHEMA = """

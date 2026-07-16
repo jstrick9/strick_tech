@@ -23,7 +23,8 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/obsidian', tags=['obsidian'])
 log = logging.getLogger('agentic.obsidian')
 
-ROOT = Path(__file__).resolve().parents[2]  # /home/user/agentic-os
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 
 
 # ── Config ─────────────────────────────────────────────────────────────────────

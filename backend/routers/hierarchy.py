@@ -16,7 +16,8 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/hierarchy", tags=["hierarchy"])
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 HIERARCHY_DIR = ROOT / "memory" / "hierarchy"
 TIER1_DIR = HIERARCHY_DIR / "tier1"
 PROJECTS_DIR = HIERARCHY_DIR / "projects"

@@ -21,7 +21,8 @@ from fastapi import APIRouter, Request
 
 router = APIRouter(prefix='/api/github', tags=['github'])
 log = logging.getLogger('agentic.github')
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 
 GITHUB_API = 'https://api.github.com'
 GITHUB_AUTH = 'https://github.com/login/oauth'

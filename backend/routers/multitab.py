@@ -19,7 +19,8 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/multitab', tags=['multitab'])
 log = logging.getLogger('agentic.multitab')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
 # ── In-memory tab state ────────────────────────────────────────────────────────

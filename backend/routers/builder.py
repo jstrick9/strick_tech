@@ -22,7 +22,8 @@ from ..services import llm, memory_db
 
 router = APIRouter(tags=['builder'])
 
-ROOT = Path(__file__).resolve().parents[2]  # FIX: parents[2]=agentic-os root (was parents[3]=/home/user)
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 MOBILE_DIR = PREVIEW_DIR / 'mobile'
 PREVIEW_DIR.mkdir(exist_ok=True)

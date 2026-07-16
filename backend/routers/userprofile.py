@@ -21,7 +21,8 @@ from fastapi.responses import JSONResponse
 router = APIRouter(prefix='/api/profile', tags=['profile'])
 log = logging.getLogger('agentic.profile')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PROFILE_FILE = ROOT / '.agentic' / 'profile.json'
 PROFILE_FILE.parent.mkdir(parents=True, exist_ok=True)
 

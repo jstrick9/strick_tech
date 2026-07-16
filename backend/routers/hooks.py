@@ -33,7 +33,8 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/hooks', tags=['hooks'])
 log = logging.getLogger('agentic.hooks')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 HOOKS_DIR = ROOT / '.agentic'
 HOOKS_DIR.mkdir(exist_ok=True)
 

@@ -22,7 +22,8 @@ from fastapi.responses import JSONResponse
 router = APIRouter(prefix='/api/pluginsdk', tags=['pluginsdk'])
 log = logging.getLogger('agentic.pluginsdk')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 SDK_DIR = ROOT / 'workspaces' / 'plugin_sdk'
 PACKS_DIR = SDK_DIR / 'packs'
 PUBLISHED = SDK_DIR / 'published'

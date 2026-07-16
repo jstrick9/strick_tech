@@ -20,7 +20,8 @@ from fastapi import APIRouter, File, Request, UploadFile
 router = APIRouter(prefix='/api/imagegen', tags=['imagegen'])
 log = logging.getLogger('agentic.imagegen')
 
-ROOT = Path(__file__).resolve().parents[2]  # /home/user/agentic-os
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 ASSETS_DIR = PREVIEW_DIR / 'assets' / 'images'
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)

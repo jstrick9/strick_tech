@@ -17,7 +17,8 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/sync", tags=["sync"])
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 SYNC_STATUS_FILE = MEMORY_DIR / "sync_status.json"
 

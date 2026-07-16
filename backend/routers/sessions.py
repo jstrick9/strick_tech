@@ -16,7 +16,8 @@ from fastapi.responses import PlainTextResponse
 from ..services.memory_db import audit_log, get_conn
 
 router = APIRouter(prefix='/api/sessions', tags=['sessions'])
-ROOT = Path(__file__).resolve().parents[2]  # /home/user/agentic-os
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 
 
 def _ensure_sessions_table():

@@ -14,7 +14,8 @@ from pathlib import Path
 
 log = logging.getLogger('agentic.memory')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 import os
 _env_data_dir = os.environ.get('AGENTIC_OS_DATA_DIR')
 MEMORY_DIR = Path(_env_data_dir) / 'memory' if _env_data_dir else (ROOT / 'memory')

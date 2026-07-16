@@ -351,8 +351,10 @@ async def _security_middleware(request: Request, call_next):
 
 # ── Static files ───────────────────────────────────────────────────────────────
 FRONTEND_DIR = _ROOT / 'frontend'
-PREVIEW_DIR = _ROOT / 'preview'
-PREVIEW_DIR.mkdir(exist_ok=True)
+from backend.config import get_data_dir
+_data_root = get_data_dir()
+PREVIEW_DIR = _data_root / 'preview'
+PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
 
 app.mount('/static', StaticFiles(directory=str(FRONTEND_DIR)), name='static')
 app.mount('/preview', StaticFiles(directory=str(PREVIEW_DIR), html=True), name='preview')

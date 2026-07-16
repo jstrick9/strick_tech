@@ -40,7 +40,8 @@ from fastapi.responses import JSONResponse
 router = APIRouter(prefix='/api/drift', tags=['drift'])
 log = logging.getLogger('agentic.drift')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 
 # ── Schema (tables created in seeding; ensure they exist) ─────────────────────
 _SCHEMA = """

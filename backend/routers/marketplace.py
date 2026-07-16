@@ -28,7 +28,8 @@ from fastapi.responses import StreamingResponse
 router = APIRouter(prefix='/api/marketplace', tags=['marketplace'])
 log = logging.getLogger('agentic.marketplace')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 MKT_DIR = ROOT / 'workspaces' / 'marketplace'
 PACKS_DIR = MKT_DIR / 'packs'
 ASSETS_DIR = MKT_DIR / 'assets'

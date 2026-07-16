@@ -25,7 +25,8 @@ from ..services.memory_db import audit_log, get_conn
 router = APIRouter(prefix='/api/workspaces', tags=['workspaces'])
 log = logging.getLogger('agentic.workspaces')
 
-ROOT = Path(__file__).resolve().parents[2]
+from backend.config import get_data_dir
+ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 WS_DIR = ROOT / 'workspaces'
 WS_DIR.mkdir(exist_ok=True)
