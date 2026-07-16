@@ -111,6 +111,26 @@ echo "✅ Tauri CLI $TAURI_VER detected."
 echo ""
 echo "🚀 Launching native macOS desktop build..."
 mkdir -p src-tauri/python_embedded
+if [ ! -f "src-tauri/icons/32x32.png" ] || [ ! -f "src-tauri/icons/icon.icns" ]; then
+  echo "🎨 Generating native desktop application icons..."
+  python3 -c "
+import os
+from PIL import Image, ImageDraw
+
+os.makedirs('src-tauri/icons', exist_ok=True)
+base = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
+draw = ImageDraw.Draw(base)
+draw.rounded_rectangle([64, 64, 960, 960], radius=180, fill=(13, 18, 36, 255), outline=(91, 138, 248, 255), width=16)
+draw.ellipse([256, 256, 768, 768], fill=(22, 32, 64, 255), outline=(76, 201, 138, 255), width=12)
+draw.ellipse([412, 412, 612, 612], fill=(91, 138, 248, 255))
+base.resize((32, 32), Image.Resampling.LANCZOS).save('src-tauri/icons/32x32.png')
+base.resize((128, 128), Image.Resampling.LANCZOS).save('src-tauri/icons/128x128.png')
+base.resize((256, 256), Image.Resampling.LANCZOS).save('src-tauri/icons/128x128@2x.png')
+base.resize((512, 512), Image.Resampling.LANCZOS).save('src-tauri/icons/icon.png')
+base.save('src-tauri/icons/icon.icns')
+base.resize((256, 256), Image.Resampling.LANCZOS).save('src-tauri/icons/icon.ico')
+"
+fi
 cd src-tauri
 mkdir -p python_embedded
 
