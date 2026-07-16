@@ -6868,6 +6868,7 @@ let obStep = 0, obSteps = [], obPrefs = {};
 
 async function checkOnboarding() {
   try {
+    if (localStorage.getItem('agentic_os_onboarded') === 'true' || window._onboardingDismissed) return;
     const r = await fetch('/api/onboarding/status');
     if (!r.ok) return;
     const s = await r.json();

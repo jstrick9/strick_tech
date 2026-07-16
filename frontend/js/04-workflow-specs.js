@@ -699,14 +699,17 @@ function obSkipApiKey() {
 }
 
 function showOnboarding() {
+  try { if (localStorage.getItem('agentic_os_onboarded') === 'true' || window._onboardingDismissed) return; } catch(e) {}
   if (document.getElementById('onboarding-overlay')) return;
   _onboardingStep = 0;
 
   const overlay = document.createElement('div');
   overlay.id = 'onboarding-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(7,8,15,.92);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(7,8,15,.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick = function(e) { if (e.target === overlay) { if (typeof window.closeOnboardingModal === 'function') window.closeOnboardingModal(); else overlay.remove(); } };
   overlay.innerHTML = `
-    <div id="onboarding-card" style="background:var(--bg-2);border:1px solid var(--border);border-radius:20px;max-width:500px;width:100%;box-shadow:0 32px 64px rgba(0,0,0,.5);overflow:hidden">
+    <div id="onboarding-card" style="background:var(--bg-2);border:1px solid var(--border);border-radius:20px;max-width:500px;width:100%;box-shadow:0 32px 64px rgba(0,0,0,.5);overflow:hidden;position:relative">
+      <button onclick="if(typeof window.closeOnboardingModal==='function')window.closeOnboardingModal();else document.getElementById('onboarding-overlay')?.remove();" style="position:absolute;top:16px;right:20px;background:none;border:none;color:var(--text-2);font-size:26px;cursor:pointer;z-index:999999;line-height:1">×</button>
       <!-- Progress bar -->
       <div style="height:3px;background:var(--bg-4)">
         <div id="ob-progress" style="height:100%;background:var(--accent);transition:width .3s;width:0%"></div>
@@ -790,31 +793,37 @@ async function obNext() {
     }
     else if (step.id === 'done') {
       const showTour = document.getElementById('ob-tour-check')?.checked;
-      const r4 = await fetch('/api/profile/complete-onboarding', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({name:_obName, role:_obRole, ui_mode:_obMode, show_tour:showTour})
-      });
-      if (!r4.ok) console.warn('[Onboarding] Complete-onboarding failed: HTTP', r4.status);
-
-      // Also mark the backend onboarding as complete
-      await fetch('/api/onboarding/complete', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ui_mode: _obMode})
-      }).catch(()=>{});
-
-      document.getElementById('onboarding-overlay')?.remove();
-      applyUIMode(_obMode);
+      window._onboardingDismissed = true;
+      try { localStorage.setItem('agentic_os_onboarded', 'true'); } catch(e) {}
+      if (typeof window.closeOnboardingModal === 'function') window.closeOnboardingModal();
+      else document.getElementById('onboarding-overlay')?.remove();
+      
+      try { applyUIMode(_obMode); } catch(e) {}
       showToast('🚀 Welcome to Agentic OS!');
 
-      // Navigate to template destination
+      try {
+        fetch('/api/profile/complete-onboarding', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({name:_obName, role:_obRole, ui_mode:_obMode, show_tour:showTour})
+        }).catch(()=>{});
+        fetch('/api/onboarding/complete', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ui_mode: _obMode})
+        }).catch(()=>{});
+      } catch(e) {}
+
       setTimeout(() => {
         const dest = {chat:'chat', workflow:'workflow', code:'studio', research:'websearch', explore:'docs'};
-        nav(dest[_obTemplate] || 'chat');
+        try { if (window.nav) nav(dest[_obTemplate] || 'chat'); } catch(e) {}
         if (showTour) setTimeout(startTour, 800);
       }, 300);
       return;
     }
   } catch(ex) {
+    window._onboardingDismissed = true;
+    if (typeof window.closeOnboardingModal === 'function') window.closeOnboardingModal();
+    else document.getElementById('onboarding-overlay')?.remove();
+  }
     // Non-fatal: log and continue — user can fix settings later
     console.warn('[Onboarding] Step save failed (non-critical):', ex?.message || String(ex));
   }
