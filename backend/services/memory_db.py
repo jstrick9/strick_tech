@@ -15,7 +15,11 @@ from pathlib import Path
 log = logging.getLogger('agentic.memory')
 
 ROOT = Path(__file__).resolve().parents[2]
-DB_PATH = ROOT / 'memory' / 'agentic.db'
+import os
+_env_data_dir = os.environ.get('AGENTIC_OS_DATA_DIR')
+MEMORY_DIR = Path(_env_data_dir) / 'memory' if _env_data_dir else (ROOT / 'memory')
+MEMORY_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH = MEMORY_DIR / 'agentic.db'
 
 
 # ── DB helpers ─────────────────────────────────────────────────────────────────
