@@ -119,6 +119,10 @@ def list_secrets(masked: bool = True):
 async def set_secret(req: Request):
     """Execute or process set secret operation."""
     try:
+        ensure_schema()
+    except Exception:
+        pass
+    try:
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
@@ -160,9 +164,53 @@ async def set_secret(req: Request):
 
     # inject to env immediately
     os.environ[key] = value
-    audit_log('vault_set', f'{key} scope={scope} agent={agent}')
+    try:
+        audit_log('vault_set', f'{key} scope={scope} agent={agent}')
+    except Exception:
+        pass
 
     return {'ok': True, 'key': key, 'fingerprint': fp, 'scope': scope, 'agent': agent, 'encrypted': is_fernet}
+
+
+@router.post('/test-connection')
+async def test_secret_connection(req: Request):
+    """Verify live API connection for OpenRouter, Ollama, or custom provider keys."""
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
+    provider = body.get('provider') or 'openrouter'
+    key = body.get('key') or os.environ.get('OPENROUTER_API_KEY') or ''
+
+    import httpx
+    if provider == 'openrouter':
+        if not key:
+            return {'ok': False, 'error': 'No OpenRouter API key provided or found in vault.'}
+        try:
+            async with httpx.AsyncClient(timeout=6.0) as client:
+                r = await client.get('https://openrouter.ai/api/v1/models', headers={'Authorization': f'Bearer {key}'})
+                if r.status_code == 200:
+                    data = r.json()
+                    models = data.get('data', [])
+                    return {'ok': True, 'provider': 'openrouter', 'models_count': len(models), 'message': f'✅ Verified OpenRouter connection! {len(models)} models available.'}
+                else:
+                    return {'ok': False, 'error': f'OpenRouter returned HTTP {r.status_code}: check key permissions.'}
+        except Exception as e:
+            return {'ok': False, 'error': f'Network verification error: {e}'}
+    elif provider == 'ollama':
+        url = body.get('url') or os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
+        try:
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                r = await client.get(f'{url.rstrip("/")}/api/tags')
+                if r.status_code == 200:
+                    data = r.json()
+                    models = data.get('models', [])
+                    return {'ok': True, 'provider': 'ollama', 'models_count': len(models), 'message': f'✅ Verified Ollama connection on {url}! {len(models)} local models found.'}
+                else:
+                    return {'ok': False, 'error': f'Ollama returned HTTP {r.status_code}'}
+        except Exception as e:
+            return {'ok': False, 'error': f'Could not connect to local Ollama at {url}: {e}'}
+    return {'ok': False, 'error': f'Unknown provider: {provider}'}
 
 
 @router.get('/get')

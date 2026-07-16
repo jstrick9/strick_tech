@@ -1134,22 +1134,103 @@ async function loadSettings() {
   if (info) info.innerHTML = `<div>Port: 8787 · Memory: SQLite FTS5 · Build: ${new Date().toLocaleDateString()}</div>`;
 }
 
+window.lpSaveVerifyKey = async function() {
+  const keyInp = document.getElementById('lp-api-key');
+  const statusEl = document.getElementById('lp-key-status');
+  if (!keyInp || !keyInp.value.trim()) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger)">⚠️ Please paste your OpenRouter API key first.</span>';
+    return;
+  }
+  const key = keyInp.value.trim();
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--accent)">⏳ Saving & verifying live connection to OpenRouter...</span>';
+  try {
+    const r = await fetch('/api/secrets/set', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({key: 'OPENROUTER_API_KEY', value: key, scope: 'global'})
+    });
+    const j = await r.json();
+    if (j.ok) {
+      const tr = await fetch('/api/secrets/test-connection', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({provider: 'openrouter', key: key})
+      });
+      const tj = await tr.json();
+      if (tj.ok) {
+        if (statusEl) statusEl.innerHTML = `<span style="color:var(--success)">✅ Verified & active! ${tj.models_count || 180}+ models ready (Claude 3.5 Sonnet, GPT-4o, Llama 3.3).</span>`;
+        if (typeof updateKeyStatus === 'function') updateKeyStatus(true);
+        keyInp.value = '';
+      } else {
+        if (statusEl) statusEl.innerHTML = `<span style="color:var(--warning)">🔑 Key saved, but verification reported: ${escHtml(tj.error || 'Check permissions')}</span>`;
+      }
+    } else {
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--danger)">❌ Failed to save key: ${escHtml(j.error || '')}</span>`;
+    }
+  } catch(e) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:var(--danger)">❌ Network error: ${escHtml(e?.message || '')}</span>`;
+  }
+};
+
 async function saveApiKey() {
   const key = document.getElementById('or-key-input')?.value.trim();
+  const resEl = document.getElementById('settings-key-test-result');
   if (!key) { toast('Enter your OpenRouter API key','warn'); return; }
+  if (resEl) { resEl.style.display = 'block'; resEl.innerHTML = '<span style="color:var(--accent)">⏳ Saving & testing OpenRouter API key connection...</span>'; }
   const r = await fetch('/api/secrets/set', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({key:'OPENROUTER_API_KEY', value:key, scope:'global'})
   });
   const j = await r.json();
   if (j.ok) {
-    toast('🔑 API key saved! Reload the page to activate.','ok',5000);
+    toast('🔑 API key saved! Testing live connection...','ok',2000);
     updateKeyStatus(true);
     document.getElementById('or-key-input').value = '';
-    // Getting Started checklist hook
     if (window.markChecklistStep) markChecklistStep('api_key');
-  } else toast('Failed to save key','err');
+    try {
+      const tr = await fetch('/api/secrets/test-connection', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({provider: 'openrouter', key: key})
+      });
+      const tj = await tr.json();
+      if (tj.ok) {
+        toast(`✅ OpenRouter verified! ${tj.models_count} models unlocked.`, 'ok', 5000);
+        if (resEl) resEl.innerHTML = `<span style="color:var(--success)">✅ Verified connection! ${tj.models_count} AI models available (Claude 3.5 Sonnet, GPT-4o, Llama 3.3, Gemini).</span>`;
+      } else {
+        toast(`⚠️ OpenRouter test note: ${tj.error}`, 'warn', 5000);
+        if (resEl) resEl.innerHTML = `<span style="color:var(--warning)">🔑 Key saved in vault, but API test reported: ${escHtml(tj.error)}</span>`;
+      }
+    } catch(e) {
+      if (resEl) resEl.innerHTML = `<span style="color:var(--warning)">🔑 Key saved in vault (network verification timed out).</span>`;
+    }
+  } else {
+    toast('Failed to save key','err');
+    if (resEl) { resEl.style.display = 'block'; resEl.innerHTML = `<span style="color:var(--danger)">❌ Error saving key: ${escHtml(j.error||'')}</span>`; }
+  }
 }
+
+window.testOllamaConnection = async function() {
+  const urlInp = document.getElementById('ollama-url-input');
+  const statusEl = document.getElementById('ollama-status');
+  const modelsEl = document.getElementById('ollama-models');
+  const url = urlInp ? urlInp.value.trim() : 'http://localhost:11434';
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--accent)">Testing…</span>';
+  try {
+    const r = await fetch('/api/secrets/test-connection', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({provider: 'ollama', url: url})
+    });
+    const j = await r.json();
+    if (j.ok) {
+      if (statusEl) statusEl.innerHTML = '<span style="color:var(--success)">✅ Online</span>';
+      if (modelsEl) modelsEl.innerHTML = `<div style="margin-top:6px;color:var(--success);font-weight:700">${escHtml(j.message)}</div>`;
+      toast('⚡ Local Ollama connection confirmed active!', 'ok', 3000);
+    } else {
+      if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger)">❌ Offline</span>';
+      if (modelsEl) modelsEl.innerHTML = `<div style="margin-top:6px;color:var(--danger)">Could not connect to Ollama at ${escHtml(url)}. Make sure Ollama app is running.</div>`;
+    }
+  } catch(e) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger)">❌ Error</span>';
+  }
+};
 
 // ── Command Palette ───────────────────────────────────────────────
 const PALETTE_CMDS = [

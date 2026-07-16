@@ -1389,12 +1389,23 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
   <!-- ── Topbar ─────────────────────────────────────────── -->
   <div id="topbar">
-    <a class="logo" href="#" onclick="nav('chat');return false">
-      <span>🧠</span> Agentic<span>OS</span>
+    <a class="logo" href="#" onclick="nav('chat');return false" style="display:flex;align-items:center;gap:8px">
+      <div class="neural-orb-3d" id="agent-status-orb" title="Neural Core: Online & Active"></div>
+      <div style="display:flex;flex-direction:column;line-height:1.1">
+        <span style="font-size:15px;font-weight:900;letter-spacing:-0.3px;color:var(--text-0)">Strick Tech <span style="color:var(--accent)">Agentic OS</span></span>
+        <span style="font-size:9.5px;color:var(--accent-hi);font-weight:700;letter-spacing:0.6px">MISSION CONTROL v10.0</span>
+      </div>
     </a>
-    <span class="badge blue" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;font-weight:800;border:none;padding:3px 10px">v10.0 Pro / Enterprise</span>
-    <span class="badge green" id="runtime-badge">running</span>
-    <span class="badge" id="ws-badge" style="cursor:pointer" title="WebSocket — real-time updates">⚡ connecting</span>
+    <span class="tech-badge" style="background:linear-gradient(135deg,rgba(56,189,248,0.2),rgba(168,85,247,0.2));border:1px solid rgba(56,189,248,0.4);color:#fff">PRO / ENTERPRISE</span>
+    <span class="tech-badge" id="runtime-badge" style="border-color:rgba(16,185,129,0.5);color:#34d399">● LOCAL PORT 8787</span>
+
+    <!-- Quick Component Navigation Hub -->
+    <div style="display:flex;align-items:center;gap:6px;margin-left:12px">
+      <button onclick="nav('chat')" class="btn-sm" style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:var(--text-0);font-weight:600;padding:5px 10px;border-radius:8px;cursor:pointer">💬 Chat & Swarm</button>
+      <button onclick="nav('studio')" class="btn-sm" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);color:var(--text-0);font-weight:600;padding:5px 10px;border-radius:8px;cursor:pointer">📝 Studio Editor</button>
+      <button onclick="nav('hierarchy')" class="btn-sm" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--text-0);font-weight:600;padding:5px 10px;border-radius:8px;cursor:pointer">🧭 IVREN Manual</button>
+      <button onclick="openInterviewModal()" class="btn-sm" style="background:linear-gradient(135deg,#38bdf8,#a855f7);border:none;color:#fff;font-weight:700;padding:5px 12px;border-radius:8px;cursor:pointer;box-shadow:0 0 14px rgba(56,189,248,0.4)">✨ AI Interview Wizard</button>
+    </div>
 
     <button id="palette-btn" onclick="openPalette()">
       <span>⌘</span> Search commands, agents, files…
@@ -1414,17 +1425,17 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           border:1.5px solid var(--bg-1);pointer-events:none"></span>
       </div>
       <!-- API key status -->
-      <div id="key-status" onclick="nav('settings')" title="API Key Status — click to configure"
-        style="display:flex;align-items:center;gap:6px;font-size:12px;
-        background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);
-        padding:5px 10px;cursor:pointer;transition:var(--transition)">
-        <span class="key-dot" id="key-dot"></span>
-        <span id="key-label">No API key</span>
+      <div id="key-status" onclick="nav('settings')" title="API Key Status — click to configure inside Settings"
+        style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+        background:rgba(17,22,51,0.8);border:1px solid var(--border-hi);border-radius:8px;
+        padding:5px 12px;cursor:pointer;transition:var(--transition)">
+        <span class="key-dot" id="key-dot" style="width:8px;height:8px;border-radius:50%;background:#f59e0b"></span>
+        <span id="key-label">Configuring API...</span>
       </div>
       <!-- Settings -->
-      <button class="icon-btn" onclick="nav('settings')" title="Settings (⌘,)">⚙️</button>
+      <button class="icon-btn" onclick="nav('settings')" title="Settings & API Keys Hub (⌘,)" style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:#7dd3fc;border-radius:8px">⚙️ Settings</button>
       <!-- Backup -->
-      <button class="icon-btn" onclick="doBackup()" title="Backup database">💾</button>
+      <button class="icon-btn" onclick="doBackup()" title="Backup agentic.db database">💾</button>
       <!-- Sidebar toggle -->
       <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar (⌘\)" id="topbar-sidebar-btn">☰</button>
       <button class="icon-btn" onclick="showKeyboardShortcuts()" title="Keyboard shortcuts (?)">❓</button>
@@ -1441,8 +1452,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <!-- Nav: grouped and organized -->
       <div class="sidebar-scroll">
         <!-- ═══ CORE: Always visible in all modes ═══ -->
+        <div class="sidebar-group-label" style="display:block;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px">CORE AI WORKSTATION</div>
         <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI agents" role="menuitem" aria-label="Chat">
-          <span class="icon">💬</span><span class="label">Chat</span>
+          <span class="icon">💬</span><span class="label">Chat & Swarm</span>
         </div>
         <div class="nav-item" data-nav="studio" data-tier="core" onclick="nav('studio')" data-tooltip="Live editor + preview" role="menuitem" aria-label="Studio">
           <span class="icon">🎬</span><span class="label">Studio</span>
@@ -1592,14 +1604,60 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
         <div id="chat-messages">
           <div id="chat-empty">
-            <div class="big-icon">🧠</div>
-            <h3>Agentic OS — Mission Control</h3>
-            <p>Your local-first AI operating system. Chat with any agent, run the swarm, build apps, search memory.</p>
+            <div class="neural-orb-3d" style="width:48px;height:48px;margin-bottom:12px"></div>
+            <h3 style="font-size:22px;font-weight:900;letter-spacing:-0.4px">Agentic OS — Mission Control</h3>
+            <p style="color:var(--text-1);font-size:13.5px">Your local-first AI operating system. Chat with any agent, run the swarm, build apps, search memory.</p>
             
-            <!-- API Key Status Banner -->
-            <div id="chat-key-banner" style="display:none;margin-top:12px;background:var(--warning-bg);border:1px solid var(--warning-border);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--warning);max-width:400px">
-              <strong>⚡ Get started:</strong> Add your API key in <a href="#" onclick="nav('settings');return false" style="color:var(--accent);text-decoration:underline">Settings</a> to enable real AI responses.
-              <br><span style="font-size:11px;opacity:.8">Free key at openrouter.ai/keys</span>
+            <!-- Optional Interactive Mission Launchpad Deck (Non-mandatory Getting Started) -->
+            <div id="mission-launchpad-deck" style="margin-top:14px;background:radial-gradient(circle at 50% 0%,rgba(56,189,248,0.14),rgba(11,15,34,0.92));border:1px solid var(--border-hi);border-radius:20px;padding:24px;max-width:680px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.6);text-align:left;position:relative;margin-bottom:20px">
+              <button onclick="document.getElementById('mission-launchpad-deck').style.display='none';try{localStorage.setItem('agentic_os_launchpad_hidden','true')}catch(e){}" title="Dismiss Launchpad" style="position:absolute;top:16px;right:18px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:var(--text-1);font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;display:flex;align-items:center;gap:4px">✕ Dismiss Launchpad</button>
+              
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+                <div class="neural-orb-3d" style="width:34px;height:34px"></div>
+                <div>
+                  <h3 style="font-size:17px;font-weight:900;color:var(--text-0);margin:0;letter-spacing:-0.3px">🚀 Strick Tech Mission Launchpad</h3>
+                  <p style="font-size:12px;color:var(--accent-hi);margin:2px 0 0">Optional interactive quick-start to unlock 100% of your AI operating system</p>
+                </div>
+              </div>
+
+              <!-- Step 1: Inline API Key Wire -->
+              <div style="background:rgba(3,6,18,0.7);border:1px solid rgba(56,189,248,0.25);border-radius:14px;padding:16px;margin-bottom:12px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+                  <span style="font-size:13px;font-weight:800;color:var(--text-0)">Step 1: Wire Your AI Powerhouse <span class="tech-badge" style="font-size:9.5px;padding:1px 6px">OpenRouter / Ollama</span></span>
+                  <a href="https://openrouter.ai/keys" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none;font-weight:700">→ Get Free API Key ↗</a>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <input id="lp-api-key" type="password" placeholder="Paste sk-or-v1-... key here" autocomplete="off" style="flex:1;background:var(--bg-1);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;outline:none;font-family:monospace">
+                  <button onclick="lpSaveVerifyKey()" class="btn btn-primary btn-sm" style="padding:8px 16px;font-weight:700;border-radius:8px;background:var(--accent);color:#fff;border:none;cursor:pointer">⚡ Save & Verify</button>
+                </div>
+                <div id="lp-key-status" style="font-size:11.5px;color:var(--text-2);margin-top:8px">Keys are stored encrypted inside your local vault (~/Library/Application Support/com.stricktech.agenticos/.vault_key).</div>
+              </div>
+
+              <!-- Step 2: Universal Context IVREN -->
+              <div style="background:rgba(3,6,18,0.7);border:1px solid rgba(168,85,247,0.25);border-radius:14px;padding:16px;margin-bottom:12px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+                  <div>
+                    <span style="font-size:13px;font-weight:800;color:var(--text-0)">Step 2: Establish Universal Context <span class="tech-badge" style="background:rgba(168,85,247,0.15);border-color:rgba(168,85,247,0.4);color:#d8b4fe;font-size:9.5px;padding:1px 6px">Strick Tech IVREN</span></span>
+                    <div style="font-size:11px;color:var(--text-2);margin-top:2px">Make every AI agent compound smarter across your projects.</div>
+                  </div>
+                  <button onclick="openInterviewModal()" class="btn-sm" style="background:linear-gradient(135deg,#38bdf8,#a855f7);border:none;color:#fff;font-weight:700;padding:7px 14px;border-radius:8px;cursor:pointer;box-shadow:0 0 16px rgba(168,85,247,0.4)">✨ Launch AI Interview Me</button>
+                </div>
+              </div>
+
+              <!-- Step 3: Workstation Mode -->
+              <div style="background:rgba(3,6,18,0.7);border:1px solid rgba(16,185,129,0.25);border-radius:14px;padding:16px">
+                <div style="font-size:13px;font-weight:800;color:var(--text-0);margin-bottom:8px">Step 3: Select Interface Complexity</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div onclick="switchUIMode('simple');toast('✨ Core Mode active')" class="card-3d-tilt" style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer">
+                    <div style="font-weight:800;font-size:12.5px;color:#7dd3fc;margin-bottom:2px">⚡ Core Workstation</div>
+                    <div style="font-size:11px;color:var(--text-2)">Streamlined 8-pane view. Clean & focused.</div>
+                  </div>
+                  <div onclick="switchUIMode('power');toast('🌌 Power Mode active')" class="card-3d-tilt" style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer">
+                    <div style="font-weight:800;font-size:12.5px;color:#d8b4fe;margin-bottom:2px">🌌 Power Workstation</div>
+                    <div style="font-size:11px;color:var(--text-2)">All 65+ panes, tools, and telemetry active.</div>
+                  </div>
+                </div>
+              </div>
             </div>
             
             <!-- Quick Actions -->
@@ -2550,110 +2608,115 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <div class="pane" id="pane-rag" style="overflow:auto;background:var(--bg-0)"></div>
       <!-- SETTINGS PANE -->
       <div class="pane" id="pane-settings">
-        <div style="max-width:680px;margin:0 auto;width:100%;padding:24px">
-          <div class="section-head">
-            <div><h2>⚙️ Settings</h2><p>Configure Agentic OS, API keys, and integrations</p></div>
-          </div>
-
-          <!-- API Keys -->
-          <div class="settings-card">
-            <h3>🔑 API Keys</h3>
-            <p>Keys are stored encrypted in your local vault. Never leave your machine.</p>
-            <div style="margin-bottom:12px">
-              <label style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">OpenRouter API Key <span style="color:var(--red)">*</span></label>
-              <div class="key-input-row">
-                <input id="or-key-input" type="password" class="key-input" placeholder="sk-or-v1-…" autocomplete="off">
-                <button onclick="saveApiKey()" class="btn btn-primary">Save</button>
-              </div>
-              <div style="font-size:11px;color:var(--text-2);margin-top:5px">
-                Get a free key at <a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent)">openrouter.ai/keys</a> — unlocks Claude, GPT-4o, Gemini, Grok, Llama, and more.
-              </div>
+        <div style="max-width:760px;margin:0 auto;width:100%;padding:28px">
+          <div class="section-head" style="margin-bottom:24px">
+            <div>
+              <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">⚙️ Settings & API Hub</h2>
+              <p style="color:var(--text-2);font-size:13.5px">Configure AI models, API keys, visual themes, and local vault security</p>
             </div>
           </div>
 
-          <!-- Theme & Accessibility (Phase D) -->
-          <div class="settings-card">
-            <h3>♿ Theme & Accessibility (WCAG AAA)</h3>
-            <p>Customize contrast, borders, and screen reader preferences for optimal ergonomics.</p>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border)">
-              <div>
-                <div style="font-size:13px;font-weight:700;color:var(--text-0)">High-Contrast Theme</div>
-                <div style="font-size:11.5px;color:var(--text-2)">Increases border separation and text contrast (#ffffff) for visual clarity.</div>
+          <!-- API Keys & Providers Hub -->
+          <div class="settings-card" style="background:radial-gradient(circle at 100% 0%,rgba(56,189,248,0.12),var(--bg-2));border:1px solid var(--border-hi);border-radius:18px;padding:24px;margin-bottom:18px;box-shadow:0 16px 40px rgba(0,0,0,0.5)">
+            <h3 style="font-size:16px;font-weight:800;margin-bottom:6px">🔑 AI Providers & API Keys</h3>
+            <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.5">All API keys are encrypted inside your local vault (~/Library/Application Support/com.stricktech.agenticos/.vault_key) via AES-256. They never leave your machine.</p>
+            
+            <div style="margin-bottom:18px;background:var(--bg-1);border:1px solid var(--border);border-radius:14px;padding:16px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <label style="font-size:12px;font-weight:800;color:var(--text-0);letter-spacing:0.3px">OpenRouter API Key (Primary AI Provider)</label>
+                <a href="https://openrouter.ai/keys" target="_blank" style="font-size:11.5px;color:var(--accent);text-decoration:none;font-weight:700">→ Get Free API Key ↗</a>
               </div>
-              <button onclick="toggleHighContrastTheme()" id="high-contrast-toggle-btn" class="btn btn-ghost btn-sm" style="border:1px solid var(--border-hi);font-weight:700">Enable High Contrast</button>
+              <p style="font-size:11.5px;color:var(--text-2);margin-bottom:10px">Unlocks Claude 3.5 Sonnet, GPT-4o, Gemini 1.5 Pro, Grok, and Llama 3.3 70B via a single key.</p>
+              <div class="key-input-row" style="display:flex;gap:8px">
+                <input id="or-key-input" type="password" class="key-input" placeholder="Paste sk-or-v1-… key here" autocomplete="off" style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:9px 12px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none">
+                <button onclick="saveApiKey()" class="btn btn-primary" style="padding:9px 20px;font-weight:700;border-radius:8px;background:var(--accent);color:#fff;border:none;cursor:pointer">💾 Save & Verify</button>
+              </div>
+              <div id="settings-key-test-result" style="font-size:12px;margin-top:10px;display:none"></div>
+            </div>
+
+            <!-- Ollama Local LLM -->
+            <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:14px;padding:16px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <label style="font-size:12px;font-weight:800;color:var(--text-0)">Local LLM Server (Ollama)</label>
+                <span id="ollama-status" style="font-size:11.5px;font-weight:700;color:var(--text-2)">Checking…</span>
+              </div>
+              <p style="font-size:11.5px;color:var(--text-2);margin-bottom:10px">Run open-source models 100% offline and privately on your Mac Apple Silicon or Intel CPU.</p>
+              <div style="display:flex;gap:8px;margin-bottom:10px">
+                <input id="ollama-url-input" type="text" value="http://localhost:11434" style="flex:1;background:var(--bg-0);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-family:monospace">
+                <button onclick="testOllamaConnection()" class="btn-sm" style="padding:8px 16px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--text-0);cursor:pointer;font-weight:600">⚡ Check Connection</button>
+              </div>
+              <div id="ollama-models" style="font-size:11.5px;color:var(--text-2)"></div>
             </div>
           </div>
 
-          <!-- Ollama -->
-          <div class="settings-card">
-            <h3>🏠 Local LLM (Ollama)</h3>
-            <p>Run LLMs 100% locally. No API costs. Private.</p>
-            <div id="ollama-status" style="font-size:13px;color:var(--text-2);margin-bottom:12px">Checking…</div>
-            <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-size:12.5px;line-height:1.8">
-              <div style="font-weight:700;margin-bottom:4px">Setup Guide:</div>
-              <div>1. Download: <a href="https://ollama.com" target="_blank" style="color:var(--accent)">ollama.com</a></div>
-              <div>2. Install a model: <code style="background:var(--bg-0);padding:1px 5px;border-radius:4px;font-size:11px">ollama pull llama3.1:8b</code></div>
-              <div>3. Ollama runs automatically on <code style="background:var(--bg-0);padding:1px 5px;border-radius:4px;font-size:11px">localhost:11434</code></div>
-              <div>4. In agent settings, set provider to <strong>Ollama</strong> and model to <code style="background:var(--bg-0);padding:1px 5px;border-radius:4px;font-size:11px">llama3.1:8b</code></div>
-            </div>
-            <div id="ollama-models" style="margin-top:10px"></div>
-          </div>
-
-          <!-- Agents -->
-          <div class="settings-card">
-            <h3>🤖 Agents</h3>
-            <p>Manage your AI agent team. Create, edit, or delete agents.</p>
-            <div id="settings-agents-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
-            <button onclick="openAgentModal()" class="btn btn-primary">＋ New Agent</button>
-          </div>
-
-          <!-- Appearance -->
-          <div class="settings-card" id="settings-appearance-card">
-            <h3>🎨 Appearance</h3>
-            <p>Choose your interface complexity and visual preferences.</p>
+          <!-- Appearance & Workstation Complexity -->
+          <div class="settings-card" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:18px;padding:24px;margin-bottom:18px">
+            <h3 style="font-size:16px;font-weight:800;margin-bottom:6px">🎨 Appearance & Interface Workstation</h3>
+            <p style="font-size:12.5px;color:var(--text-2);margin-bottom:18px">Customize your visual theme and sidebar complexity.</p>
 
             <!-- UI Mode switcher -->
-            <div style="margin-bottom:16px">
-              <label style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Interface Mode</label>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="margin-bottom:20px">
+              <label style="font-size:11.5px;font-weight:800;color:var(--text-1);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Workstation Mode</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <button id="settings-simple-btn"
-                  onclick="switchUIMode('simple');updateSettingsModeButtons()"
-                  style="padding:12px 10px;border-radius:10px;border:2px solid var(--border);background:var(--bg-3);color:var(--text-0);cursor:pointer;text-align:left;transition:all .15s">
-                  <div style="font-size:18px;margin-bottom:4px">✨</div>
-                  <div style="font-weight:700;font-size:13px;margin-bottom:2px">Simple Mode</div>
-                  <div style="font-size:11px;color:var(--text-2)">6 core features only. Great for beginners.</div>
+                  onclick="switchUIMode('simple');updateSettingsModeButtons();toast('✨ Core Workstation active')"
+                  class="card-3d-tilt"
+                  style="padding:14px;border-radius:12px;border:2px solid var(--border);background:var(--bg-1);color:var(--text-0);cursor:pointer;text-align:left">
+                  <div style="font-size:22px;margin-bottom:6px">⚡</div>
+                  <div style="font-weight:800;font-size:14px;margin-bottom:3px;color:#7dd3fc">Core Workstation</div>
+                  <div style="font-size:11.5px;color:var(--text-2);line-height:1.4">Streamlined 8-pane view. Focused Chat, Swarm, Studio, & IVREN.</div>
                 </button>
                 <button id="settings-power-btn"
-                  onclick="switchUIMode('power');updateSettingsModeButtons()"
-                  style="padding:12px 10px;border-radius:10px;border:2px solid var(--border);background:var(--bg-3);color:var(--text-0);cursor:pointer;text-align:left;transition:all .15s">
-                  <div style="font-size:18px;margin-bottom:4px">⚡</div>
-                  <div style="font-weight:700;font-size:13px;margin-bottom:2px">Power Mode</div>
-                  <div style="font-size:11px;color:var(--text-2)">All 50+ panes. Full control.</div>
+                  onclick="switchUIMode('power');updateSettingsModeButtons();toast('🌌 Power Workstation active')"
+                  class="card-3d-tilt"
+                  style="padding:14px;border-radius:12px;border:2px solid var(--border);background:var(--bg-1);color:var(--text-0);cursor:pointer;text-align:left">
+                  <div style="font-size:22px;margin-bottom:6px">🌌</div>
+                  <div style="font-weight:800;font-size:14px;margin-bottom:3px;color:#d8b4fe">Power Workstation</div>
+                  <div style="font-size:11.5px;color:var(--text-2);line-height:1.4">All 65+ panes active. Full telemetry, BugBot, Evals, and PQC Vault.</div>
                 </button>
               </div>
-              <div style="font-size:11px;color:var(--text-3);margin-top:6px">You can also switch anytime from the sidebar or your profile panel (top-right).</div>
             </div>
 
-            <!-- Font size -->
-            <div style="margin-bottom:12px">
-              <label style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Font Size</label>
-              <div style="display:flex;gap:6px">
-                <button onclick="saveFontSize('sm')"  class="btn-sm" id="fs-sm">Small</button>
-                <button onclick="saveFontSize('base')" class="btn-sm" id="fs-base">Medium</button>
-                <button onclick="saveFontSize('lg')"  class="btn-sm" id="fs-lg">Large</button>
+            <!-- Font size & High Contrast -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap;gap:12px">
+              <div>
+                <label style="font-size:11.5px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.5px">Typography Scale</label>
+                <div style="display:flex;gap:8px;margin-top:6px">
+                  <button onclick="saveFontSize('sm');toast('Typography set to Small')" class="btn-sm" id="fs-sm" style="padding:6px 14px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer">Small</button>
+                  <button onclick="saveFontSize('base');toast('Typography set to Medium')" class="btn-sm" id="fs-base" style="padding:6px 14px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer">Medium</button>
+                  <button onclick="saveFontSize('lg');toast('Typography set to Large')" class="btn-sm" id="fs-lg" style="padding:6px 14px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer">Large</button>
+                </div>
+              </div>
+              <div>
+                <label style="font-size:11.5px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.5px">High Contrast (WCAG AAA)</label>
+                <div style="margin-top:6px">
+                  <button onclick="toggleHighContrastTheme()" id="high-contrast-toggle-btn" class="btn-sm" style="padding:7px 16px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);font-weight:700;cursor:pointer">Toggle High Contrast</button>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- About -->
-          <div class="settings-card">
-            <h3>ℹ️ About Agentic OS</h3>
-            <p>Version 6.0 — Local-first Agentic AI Operating System</p>
-            <div style="font-size:12.5px;color:var(--text-2);line-height:1.8">
-              <div>🌐 <a href="https://github.com/jstrick9/agentic-os" target="_blank" style="color:var(--accent)">github.com/jstrick9/agentic-os</a></div>
-              <div>📄 License: MIT</div>
-              <div id="system-info"></div>
+          <!-- Agents Management -->
+          <div class="settings-card" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:18px;padding:24px;margin-bottom:18px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+              <div>
+                <h3 style="font-size:16px;font-weight:800;margin:0">🤖 AI Specialist Agent Team</h3>
+                <p style="font-size:12.5px;color:var(--text-2);margin:3px 0 0">Configure specialist agent personas, system prompts, and default models.</p>
+              </div>
+              <button onclick="openAgentModal()" class="btn btn-primary btn-sm" style="padding:8px 16px;border-radius:8px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer">＋ New Agent</button>
             </div>
+            <div id="settings-agents-list" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+
+          <!-- System & Database Backup -->
+          <div class="settings-card" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:18px;padding:24px">
+            <h3 style="font-size:16px;font-weight:800;margin-bottom:6px">💾 System Storage & Database Backup</h3>
+            <p style="font-size:12.5px;color:var(--text-2);margin-bottom:14px">All your projects, chats, and vector memory live in a single compounding SQLite file.</p>
+            <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;font-size:12px;color:var(--text-1)">
+              <div><strong>Database path:</strong> <code style="font-family:monospace;color:var(--accent-hi)">~/Library/Application Support/com.stricktech.agenticos/memory/agentic.db</code></div>
+              <div id="system-info" style="margin-top:6px;color:var(--text-2)"></div>
+            </div>
+            <button onclick="doBackup();toast('💾 Created backup snapshot in Application Support/com.stricktech.agenticos/memory/')" class="btn btn-primary" style="padding:10px 22px;border-radius:8px;font-weight:700;background:linear-gradient(135deg,#38bdf8,#a855f7);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">💾 Snapshot & Backup agentic.db Now</button>
           </div>
         </div>
       </div>

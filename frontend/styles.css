@@ -12,54 +12,124 @@
 
 /* ── Design Tokens ───────────────────────────────────────── */
 :root{
-  /* Backgrounds — 6-step scale */
-  --bg-base:#070810;
-  --bg-0:#07080f;
-  --bg-1:#0c0e1a;
-  --bg-2:#111328;
-  --bg-3:#161932;
-  --bg-4:#1d2040;
-  --bg-5:#252850;
+  /* Backgrounds — 6-step scale with rich deep cyber obsidian & glowing cyan/slate hints */
+  --bg-base:#04060f;
+  --bg-0:#060814;
+  --bg-1:#0b0f22;
+  --bg-2:#111633;
+  --bg-3:#171d42;
+  --bg-4:#1f2654;
+  --bg-5:#28316b;
 
-  /* Borders */
-  --border:rgba(255,255,255,.08);
-  --border-hi:rgba(255,255,255,.15);
-  --border-focus:rgba(91,138,248,.6);
+  /* Glassmorphism & Borders */
+  --border:rgba(56,189,248,.14);
+  --border-hi:rgba(56,189,248,.28);
+  --border-focus:rgba(56,189,248,.7);
+  --glass-bg:rgba(11,15,34,.76);
+  --glass-blur:blur(24px) saturate(180%);
 
   /* Text — 4-step scale */
-  --text-0:#f4f6ff;
-  --text-1:#c2ceec;
-  --text-2:#7a8aaa;
-  --text-3:#3a4468;
+  --text-0:#f8fafc;
+  --text-1:#cbd5e1;
+  --text-2:#8292b4;
+  --text-3:#47557a;
 
-  /* Brand accent */
-  --accent:#5b8af8;
-  --accent-hi:#7aa4ff;
-  --accent-lo:#3d6ee0;
-  --accent-glow:rgba(91,138,248,.16);
-  --accent-glow-hi:rgba(91,138,248,.28);
+  /* Brand accent — Futuristic Cyber Cyan & Plasma Blue */
+  --accent:#38bdf8;
+  --accent-hi:#7dd3fc;
+  --accent-lo:#0284c7;
+  --accent-glow:rgba(56,189,248,.2);
+  --accent-glow-hi:rgba(56,189,248,.4);
+  --accent-purple:#a855f7;
+  --accent-emerald:#10b981;
 
   /* Semantic colors */
-  --success:#3dba7a;
-  --success-bg:rgba(61,186,122,.1);
-  --success-border:rgba(61,186,122,.25);
-  --warning:#e8a237;
-  --warning-bg:rgba(232,162,55,.1);
-  --warning-border:rgba(232,162,55,.25);
-  --danger:#e85252;
-  --danger-bg:rgba(232,82,82,.1);
-  --danger-border:rgba(232,82,82,.25);
-  --info:#38c5d8;
-  --info-bg:rgba(56,197,216,.1);
-  --info-border:rgba(56,197,216,.25);
+  --success:#10b981;
+  --success-bg:rgba(16,185,129,.12);
+  --success-border:rgba(16,185,129,.3);
+  --warning:#f59e0b;
+  --warning-bg:rgba(245,158,11,.12);
+  --warning-border:rgba(245,158,11,.3);
+  --danger:#ef4444;
+  --danger-bg:rgba(239,68,68,.12);
+  --danger-border:rgba(239,68,68,.3);
+  --info:#06b6d4;
+  --info-bg:rgba(6,182,212,.12);
+  --info-border:rgba(6,182,212,.3);
 
   /* Semantic aliases for backward compat */
   --green:var(--success);
   --yellow:var(--warning);
   --red:var(--danger);
-  --orange:#f08850;
+  --orange:#f97316;
   --teal:var(--info);
-  --purple:#9d74f5;
+  --purple:var(--accent-purple);
+
+/* ── 2D & 3D Ambient Cyber Visuals ────────────────────────────── */
+#cyber-grid-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.08) 0%, rgba(168, 85, 247, 0.04) 40%, #04060f 80%);
+}
+
+.neural-orb-3d {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #7dd3fc, #38bdf8 45%, #0284c7 80%, #030614);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.6), inset 0 -4px 8px rgba(0,0,0,0.8), inset 0 3px 6px rgba(255,255,255,0.7);
+  animation: orbRotate 6s infinite linear;
+  position: relative;
+  display: inline-block;
+}
+.neural-orb-3d::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px dashed rgba(56, 189, 248, 0.4);
+  animation: orbSpinReverse 10s infinite linear;
+}
+@keyframes orbRotate {
+  0% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 8px rgba(56,189,248,0.5)); }
+  50% { transform: rotate(180deg) scale(1.08); filter: drop-shadow(0 0 16px rgba(168,85,247,0.7)); }
+  100% { transform: rotate(360deg) scale(1); filter: drop-shadow(0 0 8px rgba(56,189,248,0.5)); }
+}
+@keyframes orbSpinReverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+/* 3D Holographic Card Perspective Tilt */
+.card-3d-tilt {
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.card-3d-tilt:hover {
+  box-shadow: 0 24px 64px rgba(56, 189, 248, 0.18), 0 0 1px 1px rgba(56, 189, 248, 0.4);
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+/* Sleek Tech Badges */
+.tech-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #7dd3fc;
+}
 
   /* Typography scale — 9 steps (Typescale: 1.250 Major Third) */
   --text-xs:11px;
