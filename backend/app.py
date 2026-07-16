@@ -350,7 +350,19 @@ async def _security_middleware(request: Request, call_next):
 
 
 # ── Static files ───────────────────────────────────────────────────────────────
+_possible_frontends = [
+    _ROOT / 'frontend',
+    _ROOT,
+    _ROOT / 'Resources' / 'frontend',
+    _ROOT / 'Resources',
+    Path(__file__).resolve().parent.parent / 'frontend',
+]
 FRONTEND_DIR = _ROOT / 'frontend'
+for _candidate in _possible_frontends:
+    if (_candidate / 'index.html').exists():
+        FRONTEND_DIR = _candidate
+        break
+
 from backend.config import get_data_dir
 _data_root = get_data_dir()
 PREVIEW_DIR = _data_root / 'preview'

@@ -44,6 +44,11 @@ def seed_db():
     _data_dir = os.environ.get("AGENTIC_OS_DATA_DIR")
     memory_dir = Path(_data_dir) / "memory" if _data_dir else (ROOT / "memory")
     memory_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        from backend.services.memory_db import ensure_schema
+        ensure_schema()
+    except Exception:
+        pass
     db_path = memory_dir / "agentic.db"
     con = sqlite3.connect(db_path)
     cur = con.cursor()

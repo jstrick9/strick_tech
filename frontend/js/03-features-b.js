@@ -187,7 +187,7 @@ function specShowPhase(phase, desc='') {
 
 async function specGenReq() {
   if (!_specCurrent) return;
-  const desc = (document.getElementById('spec-desc') as HTMLTextAreaElement)?.value || '';
+  const desc = document.getElementById('spec-desc')?.value || '';
   const btn  = document.getElementById('spec-gen-req-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
   specStreamStart();
@@ -219,7 +219,7 @@ async function specGenDesign() {
       if (d.type==='phase_done') setTimeout(async()=>{const r=await fetch(`/api/specs/${encodeURIComponent(_specCurrent.id)}`);_specCurrent=await r.json();specShowPhase('design');},500);
       if (d.type==='phase_error') specLog(`Error: ${d.error}`);
     });
-  } catch(ex:any) { specLog(`Error: ${ex.message}`); }
+  } catch(ex) { specLog(`Error: ${ex.message}`); }
 }
 
 async function specLoadTasks() {
@@ -251,7 +251,7 @@ async function specLoadTasks() {
           <button class="btn" onclick="specGenTasks()" style="margin-top:12px">✅ Generate Tasks from Design</button>
         </div>`;
     } else {
-      for (const [wave, tasks] of Object.entries(waves) as [string, any[]][]) {
+      for (const [wave, tasks] of Object.entries(waves)) {
         html += `<div class="spec-wave-label"><span>Wave ${wave}</span><div class="spec-wave-line"></div><span style="font-size:10px;color:var(--text-3)">${tasks.length} parallel task${tasks.length>1?'s':''}</span></div>`;
         for (const t of tasks) {
           const done = t.status==='done';
@@ -283,7 +283,7 @@ async function specGenTasks() {
       if (d.type==='phase_done') setTimeout(()=>specLoadTasks(),300);
       if (d.type==='phase_error') specLog(`Error: ${d.error}`);
     });
-  } catch(ex:any) { specLog(`Error: ${ex.message}`); }
+  } catch(ex) { specLog(`Error: ${ex.message}`); }
 }
 
 async function specExecuteAll(dryRun=false) {
@@ -303,7 +303,7 @@ async function specExecuteAll(dryRun=false) {
       if (d.type==='wave_done')  specLog(`✓ Wave ${d.wave} complete`);
       if (d.type==='exec_done')  { specLog(`\n🎉 Execution complete! ${d.total_completed} tasks done.`); specLoadTasks(); }
     });
-  } catch(ex:any) { specLog(`Error: ${ex.message}`); }
+  } catch(ex) { specLog(`Error: ${ex.message}`); }
 }
 
 async function specRunAll() {
@@ -312,7 +312,7 @@ async function specRunAll() {
   if (btn) { btn.disabled=true; btn.textContent='🔄 Running pipeline…'; }
   specStreamStart();
   try {
-    const desc = (document.getElementById('spec-desc') as HTMLTextAreaElement)?.value || '';
+    const desc = document.getElementById('spec-desc')?.value || '';
     const resp = await fetch(`/api/specs/${encodeURIComponent(_specCurrent.id)}/run-all`,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({description:desc})
@@ -326,7 +326,7 @@ async function specRunAll() {
         setTimeout(async()=>{const r=await fetch(`/api/specs/${encodeURIComponent(_specCurrent.id)}`);_specCurrent=await r.json();specLoadList();},500);
       }
     });
-  } catch(ex:any) {
+  } catch(ex) {
     specLog(`Error: ${ex.message}`);
   } finally {
     if (btn) { btn.disabled=false; btn.textContent='🚀 Run Full Pipeline'; }
@@ -345,7 +345,7 @@ function specLog(msg) {
   log.scrollTop = log.scrollHeight;
 }
 
-async function specConsumeStream(resp: Response, onEvent: (d)=>void) {
+async function specConsumeStream(resp, onEvent) {
   // FIX 3: guard against null body (failed responses)
   if (!resp.body) { specLog('Error: no response body received'); return; }
   const reader = resp.body.getReader();
@@ -1019,7 +1019,7 @@ async function renderArena() {
         <button class="btn-sm" onclick="arenaAutoJudge()" style="margin-left:auto">🤖 Auto-Judge Last</button>
       </div>
       <div class="arena-lb" id="arena-lb">
-        ${(lb.leaderboard||[]).length ? lb.leaderboard.map((m:any, i) => {
+        ${(lb.leaderboard||[]).length ? lb.leaderboard.map((m, i) => {
           const maxElo = Math.max(...lb.leaderboard.map((x) =>x.elo));
           const pct    = Math.round(m.elo/maxElo*100);
           const medal  = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
@@ -1039,9 +1039,9 @@ async function renderArena() {
 }
 
 async function arenaStartBattle() {
-  const prompt  = (document.getElementById('arena-prompt') as HTMLTextAreaElement)?.value?.trim();
-  const modelA  = (document.getElementById('arena-model-a') as HTMLSelectElement)?.value;
-  const modelB  = (document.getElementById('arena-model-b') as HTMLSelectElement)?.value;
+  const prompt  = document.getElementById('arena-prompt')?.value?.trim();
+  const modelA  = document.getElementById('arena-model-a')?.value;
+  const modelB  = document.getElementById('arena-model-b')?.value;
   if (!prompt) { gmAlert('Enter a prompt first!'); return; }
 
   const btn = document.getElementById('arena-go-btn');
@@ -1122,7 +1122,7 @@ async function arenaVote(winner) {
       const lb = await fetch('/api/arena/leaderboard').then(r=>r.ok?r.json():null);
       const el = document.getElementById('arena-lb');
       if (el && lb.leaderboard?.length) {
-        el.innerHTML = lb.leaderboard.map((m:any, i) => {
+        el.innerHTML = lb.leaderboard.map((m, i) => {
           const maxE = Math.max(...lb.leaderboard.map((x) =>x.elo));
           const pct  = Math.round(m.elo/maxE*100);
           const medal= i===0?'🥇':i===1?'🥈':i===2?'🥉':'';

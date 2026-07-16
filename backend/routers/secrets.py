@@ -9,12 +9,14 @@ import contextlib
 
 import base64
 import hashlib
+import json
 import os
+import sqlite3
 from pathlib import Path
 
 from fastapi import APIRouter, Request
 
-from ..services.memory_db import audit_log, get_conn
+from ..services.memory_db import audit_log, ensure_schema, get_conn
 
 router = APIRouter(prefix='/api/secrets', tags=['secrets'])
 from backend.config import get_data_dir
@@ -61,6 +63,10 @@ def _fingerprint(value: str) -> str:
 
 def _inject_to_env():
     """Load all vault secrets into os.environ on startup."""
+    try:
+        ensure_schema()
+    except Exception:
+        pass
     con = get_conn()
     try:
         rows = con.execute("SELECT key, value_enc FROM secrets WHERE scope='global'").fetchall()
@@ -71,14 +77,14 @@ def _inject_to_env():
             val = _decrypt(r['value_enc'])
             if val:
                 os.environ.setdefault(r['key'], val)
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError, sqlite3.Error):
             pass
 
 
 # Call on import to inject secrets into env
 try:
     _inject_to_env()
-except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError, sqlite3.Error, Exception):
     pass
 
 

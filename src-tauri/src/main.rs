@@ -149,24 +149,27 @@ fn main() {
                     if let Ok(mut guard) = app.state::<BackendProcess>().inner().0.lock() {
                         *guard = Some(c);
                     }
-                    println!("[Agentic OS] Polling TCP 127.0.0.1:8787 until backend is ready...");
-                    let mut online = false;
-                    for _ in 0..150 {
-                        if std::net::TcpStream::connect("127.0.0.1:8787").is_ok() {
-                            online = true;
-                            break;
+                    let app_handle = app.handle().clone();
+                    std::thread::spawn(move || {
+                        println!("[Agentic OS] Background monitor: waiting for TCP port 8787...");
+                        let mut online = false;
+                        for _ in 0..300 {
+                            if std::net::TcpStream::connect("127.0.0.1:8787").is_ok() {
+                                online = true;
+                                break;
+                            }
+                            thread::sleep(Duration::from_millis(100));
                         }
-                        thread::sleep(Duration::from_millis(100));
-                    }
-                    if online {
-                        println!("[Agentic OS] Backend online → http://localhost:8787");
-                    } else {
-                        eprintln!("[Agentic OS] Warning: Backend did not open TCP port 8787 within 15 seconds. Check {:?}", log_path);
-                    }
-                    for (label, win) in app.webview_windows() {
-                        println!("[Agentic OS] Reloading window '{}' to http://localhost:8787", label);
-                        let _ = win.eval("window.location.replace('http://localhost:8787');");
-                    }
+                        if online {
+                            println!("[Agentic OS] Backend confirmed online! Navigating windows...");
+                            for (label, win) in app_handle.webview_windows() {
+                                println!("[Agentic OS] Navigating window '{}' to http://localhost:8787", label);
+                                let _ = win.eval("window.location.href = 'http://localhost:8787';");
+                            }
+                        } else {
+                            eprintln!("[Agentic OS] Error: Backend did not respond on port 8787 within 30 seconds. Check {:?}", log_path);
+                        }
+                    });
                 }
                 Err(e) => {
                     eprintln!("[Agentic OS] Failed to start backend: {}", e);
