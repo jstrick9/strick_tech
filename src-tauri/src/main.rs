@@ -168,8 +168,10 @@ fn main() {
 
             let child = Command::new(&python)
                 .arg(&run_py)
+                .arg("--no-browser")
                 .current_dir(&run_dir)
                 .env("AGENTIC_OS_DATA_DIR", &data_dir)
+                .env("TAURI_APP", "1")
                 .stdout(std::process::Stdio::from(stdout_file))
                 .stderr(std::process::Stdio::from(stderr_file))
                 .spawn();
