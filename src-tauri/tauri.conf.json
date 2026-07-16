@@ -19,7 +19,7 @@
         "minHeight": 700,
         "center": true,
         "resizable": true,
-        "url": "http://localhost:8787",
+        "url": "splash.html",
         "decorations": true,
         "transparent": false
       }
