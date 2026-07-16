@@ -8,6 +8,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 use std::thread;
 use std::path::PathBuf;
+use tauri::Manager;
 
 struct BackendProcess(Mutex<Option<Child>>);
 
@@ -89,7 +90,7 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(BackendProcess(Mutex::new(None)))
         .setup(|app| {
             let run_py = find_run_py();
