@@ -617,7 +617,7 @@ async function restoreVersion() {
   else toast('Restore failed', 'err');
 }
 
-function openNewFileModal() {
+async function openNewFileModal() {
   const name = await gmPrompt('New File', 'e.g. about.html, styles.css');
   if (!name) return;
   fetch('/api/preview/new', {
@@ -717,7 +717,7 @@ async function deleteTask(id) {
   renderKanban();
 }
 
-function openNewTaskModal() {
+async function openNewTaskModal() {
   const title = await gmPrompt('New Task', 'What needs to be done?');
   if (!title) return;
   const agent = await gmPrompt('Assign to agent', 'e.g. builder, brain, researcher', 'builder') || 'builder';
@@ -2485,7 +2485,7 @@ function showE2ETrace(run) {
   </div>
   ${summary}
   ${screenshots}
-  ${run.score < 0.8 ? \`<button onclick="runAutofix('${run.target||'web'}')" class="btn btn-primary btn-sm" style="width:100%;margin-top:8px">🔧 Auto-fix</button>\` : ''}`;
+  ${run.score < 0.8 ? '<button onclick="runAutofix(\'' + (run.target||'web') + '\')" class="btn btn-primary btn-sm" style="width:100%;margin-top:8px">🔧 Auto-fix</button>' : ''}`;
   document.body.appendChild(overlay);
   setTimeout(() => overlay.remove(), 15000);
 }
@@ -3372,7 +3372,7 @@ async function renderMcp() {
 
 // Extend nav to call all renderers consistently
 const _s9NavBase = function(){}; // nav chain disabled — master nav handles all
-(function _disabled__s9NavBase(pane) {
+function _disabled__s9NavBase(pane) {
   _s9NavBase(pane);
   // Ensure renderers are called for all panes
   const map = {
@@ -3388,7 +3388,7 @@ const _s9NavBase = function(){}; // nav chain disabled — master nav handles al
   if (map[pane]) {
     try { map[pane](); } catch(e) { console.warn('render error:', pane, e); }
   }
-};
+}
 
 // ── Enhanced dashboard with animated counters ──────────────────────
 const _origRenderDashBody = typeof renderDashBody === 'function' ? renderDashBody : null;
@@ -3788,10 +3788,10 @@ console.log(
 
 // ── Extend nav for Sprint 8 ────────────────────────────────────────
 const _s8NavBase = function(){}; // nav chain disabled — master nav handles all
-(function _disabled__s8NavBase(pane) {
+function _disabled__s8NavBase(pane) {
   _s8NavBase(pane);
   if (pane === 'templates') renderTemplates();
-};
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  CHAT OVERHAUL — Syntax highlighting, Copy buttons,
@@ -4894,12 +4894,12 @@ function updateConsolePanel() {
 
 // ── Extend nav for Sprint 7 ────────────────────────────────────────
 const _s7NavBase = function(){}; // nav chain disabled — master nav handles all
-(function _disabled__s7NavBase(pane) {
+function _disabled__s7NavBase(pane) {
   _s7NavBase(pane);
   if (pane === 'github')   renderGitHub();
   if (pane === 'dbstudio') renderDBStudio();
   if (pane === 'composer') renderComposer();
-};
+}
 
 // ── GitHub Panel ──────────────────────────────────────────────────
 let ghStatus = null, ghSelectedRepo = '';
@@ -5878,10 +5878,10 @@ if (typeof PALETTE_CMDS !== 'undefined') {
 
 // ── Extend nav for Studio ──────────────────────────────────────────
 const _s6NavBase = function(){}; // nav chain disabled — master nav handles all
-(function _disabled__s6NavBase(pane) {
+function _disabled__s6NavBase(pane) {
   _s6NavBase(pane);
   if (pane === 'studio') initStudio();
-};
+}
 
 // ── Studio State ───────────────────────────────────────────────────
 const Studio = {
@@ -7337,13 +7337,13 @@ async function init() {
 
 // ── Extend nav for Sprint 10 ───────────────────────────────────────
 const _s10NavBase = function(){}; // nav chain disabled — master nav handles all
-(function _disabled__s10NavBase(pane) {
+function _disabled__s10NavBase(pane) {
   _s10NavBase(pane);
   if (pane === 'control')    renderControlTower();
   if (pane === 'workspaces') renderWorkspaces();
   if (pane === 'webhooks')   renderWebhooks();
   if (pane === 'testgen')    renderTestGen();
-};
+}
 
 // ── Control Tower ──────────────────────────────────────────────────
 let controlRefreshTimer = null;
@@ -7597,7 +7597,7 @@ async function renderWebhooks() {
             </div>
             <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:11px;font-family:monospace;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px">
               <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">POST /api/webhooks/${w.id}/trigger</span>
-              <button onclick="navigator.clipboard.writeText(`http://localhost:8787/api/webhooks/${encodeURIComponent(w.id)}/trigger`').then(()=>toast('📋 Copied','ok',1200))" style="background:none;border:none;color:var(--text-2);cursor:pointer">📋</button>
+              <button onclick="navigator.clipboard.writeText('http://localhost:8787/api/webhooks/' + encodeURIComponent('${w.id}') + '/trigger').then(()=>toast('📋 Copied','ok',1200))" style="background:none;border:none;color:var(--text-2);cursor:pointer">📋</button>
             </div>
             <div style="display:flex;gap:6px">
               <button onclick="testWebhook(${JSON.stringify(w.id)})" class="btn btn-ghost btn-sm">▶ Test</button>
@@ -7682,7 +7682,7 @@ async function renderTestGen() {
     pane.innerHTML = `
       ${pageHeader({title:'🧪 Test Generator', subtitle:'AI writes comprehensive test suites for any file',actions:[]})}
       <div class="page-content">
-      ${helpPanel({title:'AI generates tests you'd spend hours writing',body:'Select a file, choose your framework, get a complete test suite with happy paths, edge cases, mocks, and error handling.',steps:['Select a code file','Choose test framework','Click Generate','Review and save']})}
+      ${helpPanel({title:"AI generates tests you'd spend hours writing",body:'Select a file, choose your framework, get a complete test suite with happy paths, edge cases, mocks, and error handling.',steps:['Select a code file','Choose test framework','Click Generate','Review and save']})}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
         <div class="card">
           <h3 style="margin-bottom:14px">Generate Tests</h3>
@@ -8776,15 +8776,15 @@ async function renderIntegrations() {
           <h3 style="margin-bottom:10px">How rules work</h3>
           <p style="font-size:12.5px;color:var(--text-2);line-height:1.65;margin-bottom:12px">Rules enforce consistency across all AI agents in your workspace — tech stack, code style, behavior patterns.</p>
           <div style="font-size:12px">
-            ${[['Tech Stack','- Framework: Next.js 15
-- CSS: Tailwind + shadcn'],['Code Style','- TypeScript always
-- async/await preferred'],['Behavior','- Complete code only
-- Add error handling']].map(([l,e])=>`<div style="margin-bottom:8px;background:var(--bg-3);border-radius:6px;padding:8px"><div style="font-weight:600;font-size:11px;color:var(--text-2);margin-bottom:3px">${l}</div><pre style="font-size:11px;color:var(--text-1);white-space:pre-wrap;font-family:monospace">${escHtml(e)}</pre></div>`).join('')}
+            ${[['Tech Stack','- Framework: Next.js 15\n- CSS: Tailwind + shadcn'],['Code Style','- TypeScript always\n- async/await preferred'],['Behavior','- Complete code only\n- Add error handling']].map(([l,e])=>`<div style="margin-bottom:8px;background:var(--bg-3);border-radius:6px;padding:8px"><div style="font-weight:600;font-size:11px;color:var(--text-2);margin-bottom:3px">${l}</div><pre style="font-size:11px;color:var(--text-1);white-space:pre-wrap;font-family:monospace">${escHtml(e)}</pre></div>`).join('')}
           </div>
         </div>
       </div>
     </div>
     </div>`;
+  } catch(e) {
+    pane.innerHTML = '<div style="padding:20px;color:var(--error)">Error loading integrations: ' + escHtml(e?.message||'') + '</div>';
+  }
 }
 let currentIntTab='ints';
 function switchIntTab(tab){currentIntTab=tab;['ints','docs','rules'].forEach(t=>{const e=document.getElementById(`int-tab-${t}`);const b=document.getElementById(`inttab-${t}`);if(e)e.style.display=t===tab?'':'none';if(b)b.className=`btn ${t===tab?'btn-primary':'btn-ghost'} btn-sm`;});}
