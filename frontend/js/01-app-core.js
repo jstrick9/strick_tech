@@ -7128,28 +7128,42 @@ function applyPreferences(prefs) {
 }
 
 const THEME_VARS = {
-  dark:     { bg0:'#08090e', bg1:'#0d0f17', bg2:'#131624', accent:'#5b8af8' },
-  darker:   { bg0:'#040408', bg1:'#06060d', bg2:'#090912', accent:'#5b8af8' },  // darker variant
-  midnight: { bg0:'#050810', bg1:'#080b14', bg2:'#0f1220', accent:'#9d74f5' },
-  forest:   { bg0:'#0a100d', bg1:'#0d1410', bg2:'#111c14', accent:'#4cc98a' },
-  ember:    { bg0:'#100a08', bg1:'#140e0b', bg2:'#1a1210', accent:'#f08850' },
-  ocean:    { bg0:'#080d10', bg1:'#0c1218', bg2:'#111820', accent:'#38c5d8' },
+  light:    { bg0:'#f8fafc', bg1:'#ffffff', bg2:'#f1f5f9', bg3:'#e2e8f0', bg4:'#cbd5e1', bg5:'#94a3b8', text0:'#0f172a', text1:'#334155', text2:'#64748b', text3:'#94a3b8', border:'rgba(15,23,42,0.12)', borderHi:'rgba(15,23,42,0.22)', accent:'#0284c7', accentHi:'#0369a1' },
+  dark:     { bg0:'#060814', bg1:'#0b0f22', bg2:'#111633', bg3:'#171d42', bg4:'#1f2654', bg5:'#28316b', text0:'#f8fafc', text1:'#cbd5e1', text2:'#8292b4', text3:'#47557a', border:'rgba(56,189,248,.14)', borderHi:'rgba(56,189,248,.28)', accent:'#38bdf8', accentHi:'#7dd3fc' },
+  obsidian: { bg0:'#040408', bg1:'#06060d', bg2:'#090912', bg3:'#10101c', bg4:'#1a1a2e', bg5:'#252542', text0:'#ffffff', text1:'#cbd5e1', text2:'#7a8aaa', text3:'#47557a', border:'rgba(255,255,255,.1)', borderHi:'rgba(255,255,255,.2)', accent:'#38bdf8', accentHi:'#7dd3fc' },
+  midnight: { bg0:'#050810', bg1:'#080b14', bg2:'#0f1220', bg3:'#161b30', bg4:'#202848', bg5:'#2d3764', text0:'#f8fafc', text1:'#c2ceec', text2:'#7a8aaa', text3:'#3a4468', border:'rgba(168,85,247,.16)', borderHi:'rgba(168,85,247,.3)', accent:'#a855f7', accentHi:'#c084fc' },
+  forest:   { bg0:'#06100a', bg1:'#09160e', bg2:'#0e2216', bg3:'#14301f', bg4:'#1d452d', bg5:'#275e3d', text0:'#ecfdf5', text1:'#a7f3d0', text2:'#6ee7b7', text3:'#34d399', border:'rgba(16,185,129,.16)', borderHi:'rgba(16,185,129,.3)', accent:'#10b981', accentHi:'#34d399' },
 };
 
 function applyTheme(themeId, accentOverride) {
-  const t      = THEME_VARS[themeId] || THEME_VARS.dark;
-  const accent = accentOverride || t.accent;
+  const tid    = themeId || localStorage.getItem('agentic_os_theme') || 'light';
+  const t      = THEME_VARS[tid] || THEME_VARS.light;
+  const accent = accentOverride || t.accent || '#0284c7';
   const root   = document.documentElement;
   root.style.setProperty('--bg-0',       t.bg0);
   root.style.setProperty('--bg-1',       t.bg1);
   root.style.setProperty('--bg-2',       t.bg2);
+  if (t.bg3) root.style.setProperty('--bg-3', t.bg3);
+  if (t.bg4) root.style.setProperty('--bg-4', t.bg4);
+  if (t.bg5) root.style.setProperty('--bg-5', t.bg5);
+  if (t.text0) root.style.setProperty('--text-0', t.text0);
+  if (t.text1) root.style.setProperty('--text-1', t.text1);
+  if (t.text2) root.style.setProperty('--text-2', t.text2);
+  if (t.text3) root.style.setProperty('--text-3', t.text3);
+  if (t.border) root.style.setProperty('--border', t.border);
+  if (t.borderHi) root.style.setProperty('--border-hi', t.borderHi);
   root.style.setProperty('--accent',     accent);
-  root.style.setProperty('--accent-hi',  accent);
+  root.style.setProperty('--accent-hi',  t.accentHi || accent);
   root.style.setProperty('--accent-glow', accent + '22');
+  
+  root.setAttribute('data-theme', tid);
+  if (document.body) document.body.setAttribute('data-theme', tid);
+  try { localStorage.setItem('agentic_os_theme', tid); } catch(e) {}
+
   // Persist (non-blocking, errors ignored since this is a background save)
   fetch('/api/onboarding/preferences', {
     method: 'PATCH', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({theme: themeId, accent_color: accent})
+    body: JSON.stringify({theme: tid, accent_color: accent})
   }).then(r => {
     if (!r.ok) console.warn('[Theme] Persist failed: HTTP ' + r.status);
   }).catch(ex => console.warn('[Theme] Persist error:', ex?.message));
@@ -7190,13 +7204,13 @@ async function loadSettings() {
   if (aboutCard && !document.getElementById('theme-switcher')) {
     const tc = document.createElement('div');
     tc.className = 'settings-card';
-    tc.innerHTML = `<h3>🎨 Theme</h3>
-      <p>All themes are dark to protect your eyes during long builds.</p>
+    tc.innerHTML = `<h3>🎨 Visual Theme Hub</h3>
+      <p style="font-size:12.5px;color:var(--text-2);margin-bottom:12px">Switch between ultra-crisp Light Cyber-Glass and multidimensional Obsidian/Midnight Dark modes anytime.</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap" id="theme-switcher">
         ${Object.entries(THEME_VARS).map(([id,t]) =>
-          `<div onclick="applyTheme(${JSON.stringify(id)})" style="cursor:pointer;padding:10px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:${t.bg0};transition:var(--transition);min-width:80px;text-align:center">
-            <div style="width:20px;height:20px;border-radius:50%;background:${t.accent};margin:0 auto 6px"></div>
-            <div style="font-size:11px;color:#ccc">${id.charAt(0).toUpperCase()+id.slice(1)}</div>
+          `<div onclick="applyTheme(${JSON.stringify(id)});toast('🎨 Theme set to ' + ${JSON.stringify(id.toUpperCase())})" style="cursor:pointer;padding:12px 18px;border-radius:12px;border:1px solid var(--border-hi);background:${t.bg0};transition:var(--transition);min-width:100px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.15)">
+            <div style="width:22px;height:22px;border-radius:50%;background:${t.accent};margin:0 auto 6px;box-shadow:0 0 10px ${t.accent}66"></div>
+            <div style="font-size:12px;font-weight:700;color:${t.text0 || '#ccc'}">${id.charAt(0).toUpperCase()+id.slice(1)}</div>
           </div>`
         ).join('')}
       </div>`;

@@ -11,7 +11,40 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 /* ── Design Tokens ───────────────────────────────────────── */
-:root{
+:root, [data-theme="light"] {
+  /* Ultra-Techy Light Theme — Crisp Glass, Precision Borders, Cyber Cyan Accents */
+  --bg-base:#f1f5f9;
+  --bg-0:#f8fafc;
+  --bg-1:#ffffff;
+  --bg-2:#f1f5f9;
+  --bg-3:#e2e8f0;
+  --bg-4:#cbd5e1;
+  --bg-5:#94a3b8;
+
+  /* Glassmorphism & Borders */
+  --border:rgba(15,23,42,0.12);
+  --border-hi:rgba(15,23,42,0.22);
+  --border-focus:rgba(2,132,199,0.7);
+  --glass-bg:rgba(255,255,255,0.85);
+  --glass-blur:blur(24px) saturate(180%);
+
+  /* Text — 4-step scale */
+  --text-0:#0f172a;
+  --text-1:#334155;
+  --text-2:#64748b;
+  --text-3:#94a3b8;
+
+  /* Brand accent — Futuristic Cyber Cyan & Plasma Blue */
+  --accent:#0284c7;
+  --accent-hi:#0369a1;
+  --accent-lo:#0284c7;
+  --accent-glow:rgba(2,132,199,0.15);
+  --accent-glow-hi:rgba(2,132,199,0.3);
+  --accent-purple:#9333ea;
+  --accent-emerald:#059669;
+}
+
+[data-theme="dark"], [data-theme="obsidian"] {
   /* Backgrounds — 6-step scale with rich deep cyber obsidian & glowing cyan/slate hints */
   --bg-base:#04060f;
   --bg-0:#060814;
@@ -42,6 +75,7 @@
   --accent-glow-hi:rgba(56,189,248,.4);
   --accent-purple:#a855f7;
   --accent-emerald:#10b981;
+}
 
   /* Semantic colors */
   --success:#10b981;
@@ -1353,12 +1387,14 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
 
 
+@media print {
   #sidebar, #topbar, #statusbar, #toast-container, #notif-panel,
   .topbar-btn, .icon-btn, .btn { display: none !important; }
   #content, #main { width: 100%; }
   .pane { display: block !important; }
   .pane:not(.active) { display: none !important; }
   body { background: white; color: black; }
+}
 
 /* ── Terminal pane ───────────────────────────────────────────── */
 #pane-terminal{overflow:hidden}
