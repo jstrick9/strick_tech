@@ -115,8 +115,9 @@ fn main() {
 
             match child {
                 Ok(c) => {
-                    let state = app.state::<BackendProcess>();
-                    *state.0.lock().unwrap() = Some(c);
+                    if let Ok(mut guard) = app.state::<BackendProcess>().inner().0.lock() {
+                        *guard = Some(c);
+                    }
                     // Give backend time to start
                     thread::sleep(Duration::from_millis(2000));
                     println!("[Agentic OS] Backend started → http://localhost:8787");
@@ -133,8 +134,7 @@ fn main() {
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 use tauri::Manager;
-                let state = _window.state::<BackendProcess>();
-                if let Ok(mut guard) = state.0.lock() {
+                if let Ok(mut guard) = _window.state::<BackendProcess>().inner().0.lock() {
                     if let Some(mut child) = guard.take() {
                         let _ = child.kill();
                         let _ = child.wait();
