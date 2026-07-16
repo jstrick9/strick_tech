@@ -561,7 +561,7 @@ const ONBOARDING_STEPS = [
     content:  `
       <div style="padding:8px 0">
         <label style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:6px">Your Name</label>
-        <input id="ob-name" placeholder="Alex, Sarah, Dr. Smith…" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;color:var(--text-0);font-size:15px;padding:12px 14px;box-sizing:border-box;margin-bottom:14px">
+        <input id="ob-name" placeholder="Joshua Strickland, Strick Tech Leader, Senior Architect…" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;color:var(--text-0);font-size:15px;padding:12px 14px;box-sizing:border-box;margin-bottom:14px">
         <label style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:6px">What best describes you?</label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="ob-roles">
           ${[['developer','💻','Developer'],['analyst','📊','Analyst'],['writer','✍️','Writer'],['designer','🎨','Designer'],['manager','📋','Manager'],['student','🎓','Student']].map(([id,icon,label])=>`
