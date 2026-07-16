@@ -8,22 +8,33 @@ PASS-1 AUDIT FIXES:
   - ROOT: parents[2] (was parents[3])
   - All get_conn() calls wrapped in try/finally: con.close()
 """
+
 from __future__ import annotations
-import asyncio, json, logging, os, time, uuid
+
+import contextlib
+
+import asyncio
+import json
+import logging
+import time
+import uuid
 from pathlib import Path
+
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
-from ..services.memory_db import get_conn, audit_log
 
-router = APIRouter(prefix="/api/control", tags=["control-tower"])
-log    = logging.getLogger("agentic.control")
+from ..services.memory_db import audit_log, get_conn
 
-ROOT = Path(__file__).resolve().parents[2]   # FIX A-1: was parents[3]
+router = APIRouter(prefix='/api/control', tags=['control-tower'])
+log = logging.getLogger('agentic.control')
+
+ROOT = Path(__file__).resolve().parents[2]  # FIX A-1: was parents[3]
 
 # ── In-memory run registry ─────────────────────────────────────────────────────
 _active_runs: dict[str, dict] = {}
-_kill_flags:  set[str]        = set()
-_run_queues:  dict[str, asyncio.Queue] = {}
+_kill_flags: set[str] = set()
+_run_queues: dict[str, asyncio.Queue] = {}
+
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
 def _ensure_traces_table():
@@ -91,90 +102,110 @@ def _ensure_traces_table():
     finally:
         con.close()
 
+
 _ensure_traces_table()
 
 
 # ── Run lifecycle ──────────────────────────────────────────────────────────────
 def start_run(agent_id: str, agent_name: str, prompt: str, budget: float = 0) -> str:
     """Register a new agent run. Returns run_id."""
-    run_id = f"run_{uuid.uuid4().hex[:12]}"
+    run_id = f'run_{uuid.uuid4().hex[:12]}'
     _active_runs[run_id] = {
-        "run_id":      run_id,
-        "agent_id":    agent_id,
-        "agent_name":  agent_name,
-        "prompt":      prompt[:500],
-        "status":      "running",
-        "total_cost":  0.0,
-        "total_tokens": 0,
-        "step_count":  0,
-        "steps":       [],
-        "budget":      budget,
-        "start_time":  time.time(),
-        "duration_ms": 0,
+        'run_id': run_id,
+        'agent_id': agent_id,
+        'agent_name': agent_name,
+        'prompt': prompt[:500],
+        'status': 'running',
+        'total_cost': 0.0,
+        'total_tokens': 0,
+        'step_count': 0,
+        'steps': [],
+        'budget': budget,
+        'start_time': time.time(),
+        'duration_ms': 0,
     }
     _run_queues[run_id] = asyncio.Queue(maxsize=500)
     con = get_conn()
     try:
         con.execute(
-            "INSERT INTO agent_traces(run_id,agent_id,agent_name,prompt) VALUES(?,?,?,?)",
-            (run_id, agent_id, agent_name, prompt[:500])
+            'INSERT INTO agent_traces(run_id,agent_id,agent_name,prompt) VALUES(?,?,?,?)',
+            (run_id, agent_id, agent_name, prompt[:500]),
         )
         con.commit()
     finally:
         con.close()
-    _broadcast(run_id, {"type": "run_started", "run_id": run_id, "agent": agent_name})
+    _broadcast(run_id, {'type': 'run_started', 'run_id': run_id, 'agent': agent_name})
     return run_id
 
 
-def record_step(run_id: str, step_type: str, name: str,
-                input_text: str = "", output_text: str = "",
-                model: str = "", tokens_in: int = 0, tokens_out: int = 0,
-                cost: float = 0.0, duration_ms: int = 0, status: str = "done"):
+def record_step(
+    run_id: str,
+    step_type: str,
+    name: str,
+    input_text: str = '',
+    output_text: str = '',
+    model: str = '',
+    tokens_in: int = 0,
+    tokens_out: int = 0,
+    cost: float = 0.0,
+    duration_ms: int = 0,
+    status: str = 'done',
+):
     """Record a step in a run's trace."""
     if run_id not in _active_runs:
         return False
     if run_id in _kill_flags:
         return False
 
-    run    = _active_runs[run_id]
-    step_no= len(run["steps"]) + 1
-    step   = {
-        "step_no": step_no, "step_type": step_type, "name": name,
-        "input_text": input_text[:500], "output_text": output_text[:1000],
-        "model": model, "tokens_in": tokens_in, "tokens_out": tokens_out,
-        "cost": cost, "duration_ms": duration_ms, "status": status,
+    run = _active_runs[run_id]
+    step_no = len(run['steps']) + 1
+    step = {
+        'step_no': step_no,
+        'step_type': step_type,
+        'name': name,
+        'input_text': input_text[:500],
+        'output_text': output_text[:1000],
+        'model': model,
+        'tokens_in': tokens_in,
+        'tokens_out': tokens_out,
+        'cost': cost,
+        'duration_ms': duration_ms,
+        'status': status,
     }
-    run["steps"].append(step)
-    run["total_cost"]   += cost
-    run["total_tokens"] += tokens_in + tokens_out
-    run["step_count"]   += 1
+    run['steps'].append(step)
+    run['total_cost'] += cost
+    run['total_tokens'] += tokens_in + tokens_out
+    run['step_count'] += 1
 
     # Check per-run budget
-    budget = run.get("budget", 0)
-    if budget > 0 and run["total_cost"] >= budget:
+    budget = run.get('budget', 0)
+    if budget > 0 and run['total_cost'] >= budget:
         _kill_flags.add(run_id)
-        log.warning("Budget exceeded for run %s: $%.4f >= $%.4f", run_id, run["total_cost"], budget)
-        _push_notification("budget_alert", "Budget limit hit",
-                           f"Run {run_id} stopped: ${run['total_cost']:.4f} ≥ ${budget:.4f}", run_id)
+        log.warning('Budget exceeded for run %s: $%.4f >= $%.4f', run_id, run['total_cost'], budget)
+        _push_notification(
+            'budget_alert',
+            'Budget limit hit',
+            f'Run {run_id} stopped: ${run["total_cost"]:.4f} ≥ ${budget:.4f}',
+            run_id,
+        )
         return False
 
     # Check global budget rules
     con = get_conn()
     try:
         rules = con.execute(
-            "SELECT * FROM budget_rules WHERE enabled=1 AND (agent_id=? OR agent_id='*')",
-            (run.get("agent_id", ""),)
+            "SELECT * FROM budget_rules WHERE enabled=1 AND (agent_id=? OR agent_id='*')", (run.get('agent_id', ''),)
         ).fetchall()
     finally:
         con.close()
 
     for rule in rules:
-        if run["total_cost"] >= rule["max_cost"]:
-            if rule["action"] == "stop":
+        if run['total_cost'] >= rule['max_cost']:
+            if rule['action'] == 'stop':
                 _kill_flags.add(run_id)
                 return False
-            elif rule["action"] == "warn":
-                _broadcast(run_id, {"type": "budget_warning", "rule": dict(rule), "run_id": run_id})
+            elif rule['action'] == 'warn':
+                _broadcast(run_id, {'type': 'budget_warning', 'rule': dict(rule), 'run_id': run_id})
 
     # Persist step
     try:
@@ -184,357 +215,408 @@ def record_step(run_id: str, step_type: str, name: str,
                 """INSERT INTO agent_trace_steps
                    (run_id,step_no,step_type,name,input_text,output_text,model,tokens_in,tokens_out,cost,duration_ms,status)
                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (run_id, step_no, step_type, name, input_text[:500], output_text[:1000],
-                 model, tokens_in, tokens_out, cost, duration_ms, status)
+                (
+                    run_id,
+                    step_no,
+                    step_type,
+                    name,
+                    input_text[:500],
+                    output_text[:1000],
+                    model,
+                    tokens_in,
+                    tokens_out,
+                    cost,
+                    duration_ms,
+                    status,
+                ),
             )
             con.commit()
         finally:
             con.close()
-    except Exception:
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError):
         pass
 
-    _broadcast(run_id, {"type": "step", "run_id": run_id, "step": step})
+    _broadcast(run_id, {'type': 'step', 'run_id': run_id, 'step': step})
     return run_id not in _kill_flags
 
 
-def finish_run(run_id: str, status: str = "done", error: str = ""):
+def finish_run(run_id: str, status: str = 'done', error: str = ''):
     """Mark a run as complete."""
     if run_id not in _active_runs:
         return
     run = _active_runs[run_id]
-    run["status"]      = status
-    run["duration_ms"] = round((time.time() - run["start_time"]) * 1000)
-    run["error"]       = error
+    run['status'] = status
+    run['duration_ms'] = round((time.time() - run['start_time']) * 1000)
+    run['error'] = error
 
     con = get_conn()
     try:
         con.execute(
             """UPDATE agent_traces SET status=?,total_cost=?,total_tokens=?,
                duration_ms=?,step_count=?,error=?,updated_at=CURRENT_TIMESTAMP WHERE run_id=?""",
-            (status, run["total_cost"], run["total_tokens"],
-             run["duration_ms"], run["step_count"], error[:500] if error else "", run_id)
+            (
+                status,
+                run['total_cost'],
+                run['total_tokens'],
+                run['duration_ms'],
+                run['step_count'],
+                error[:500] if error else '',
+                run_id,
+            ),
         )
         con.commit()
     finally:
         con.close()
 
-    _broadcast(run_id, {"type": "run_complete", "run_id": run_id,
-                        "status": status, "cost": run["total_cost"],
-                        "tokens": run["total_tokens"], "duration_ms": run["duration_ms"]})
+    _broadcast(
+        run_id,
+        {
+            'type': 'run_complete',
+            'run_id': run_id,
+            'status': status,
+            'cost': run['total_cost'],
+            'tokens': run['total_tokens'],
+            'duration_ms': run['duration_ms'],
+        },
+    )
     _kill_flags.discard(run_id)
     _run_queues.pop(run_id, None)
     _active_runs.pop(run_id, None)
 
-    if status == "done":
-        _push_notification("run_complete",
-                           f"✅ Run complete — {run['agent_name']}",
-                           f"{run['step_count']} steps · ${run['total_cost']:.4f} · {run['duration_ms']}ms",
-                           run_id)
-    elif status == "error":
-        _push_notification("error", f"❌ Run failed — {run['agent_name']}", error[:200], run_id)
+    if status == 'done':
+        _push_notification(
+            'run_complete',
+            f'✅ Run complete — {run["agent_name"]}',
+            f'{run["step_count"]} steps · ${run["total_cost"]:.4f} · {run["duration_ms"]}ms',
+            run_id,
+        )
+    elif status == 'error':
+        _push_notification('error', f'❌ Run failed — {run["agent_name"]}', error[:200], run_id)
 
 
 def is_killed(run_id: str) -> bool:
+    """Execute or process is killed operation."""
     return run_id in _kill_flags
 
 
 def _broadcast(run_id: str, event: dict):
     q = _run_queues.get(run_id)
     if q:
-        try: q.put_nowait(event)
-        except asyncio.QueueFull: pass
+        try:
+            q.put_nowait(event)
+        except asyncio.QueueFull:
+            pass
 
-def _push_notification(notif_type: str, title: str, body: str, run_id: str = ""):
+
+def _push_notification(notif_type: str, title: str, body: str, run_id: str = ''):
     try:
         con = get_conn()
         try:
             con.execute(
-                "INSERT INTO notifications(type,title,body,run_id) VALUES(?,?,?,?)",
-                (notif_type, title[:120], body[:500], run_id)
+                'INSERT INTO notifications(type,title,body,run_id) VALUES(?,?,?,?)',
+                (notif_type, title[:120], body[:500], run_id),
             )
             con.commit()
         finally:
             con.close()
-        from .websocket import manager
         import asyncio as _aio
+
+        from .websocket import manager
+
         try:
             loop = _aio.get_event_loop()
             if loop.is_running():
-                loop.create_task(manager.broadcast({
-                    "type": "notification",
-                    "notif_type": notif_type,
-                    "title": title, "body": body, "run_id": run_id,
-                    "ts": time.time()
-                }))
-        except Exception:
+                loop.create_task(
+                    manager.broadcast(
+                        {
+                            'type': 'notification',
+                            'notif_type': notif_type,
+                            'title': title,
+                            'body': body,
+                            'run_id': run_id,
+                            'ts': time.time(),
+                        }
+                    )
+                )
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError):
             pass
     except Exception as e:
-        log.warning("Failed to push notification: %s", e)
+        log.warning('Failed to push notification: %s', e)
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
-@router.get("/runs")
-def list_runs(status: str = "", limit: int = 50):
+@router.get('/runs')
+def list_runs(status: str = '', limit: int = 50):
+    """Retrieve and return list runs."""
     con = get_conn()
     try:
         if status:
             rows = con.execute(
-                "SELECT * FROM agent_traces WHERE status=? ORDER BY created_at DESC LIMIT ?",
-                (status, min(limit, 200))
+                'SELECT * FROM agent_traces WHERE status=? ORDER BY created_at DESC LIMIT ?', (status, min(limit, 200))
             ).fetchall()
         else:
             rows = con.execute(
-                "SELECT * FROM agent_traces ORDER BY created_at DESC LIMIT ?",
-                (min(limit, 200),)
+                'SELECT * FROM agent_traces ORDER BY created_at DESC LIMIT ?', (min(limit, 200),)
             ).fetchall()
     finally:
         con.close()
     result = [dict(r) for r in rows]
     for run_id, run in list(_active_runs.items()):
-        if not any(r["run_id"] == run_id for r in result):
-            result.insert(0, {**run, "created_at": time.strftime("%Y-%m-%d %H:%M:%S")})
+        if not any(r['run_id'] == run_id for r in result):
+            result.insert(0, {**run, 'created_at': time.strftime('%Y-%m-%d %H:%M:%S')})
     return result
 
 
-@router.get("/runs/{run_id}")
+@router.get('/runs/{run_id}')
 def get_run(run_id: str):
+    """Retrieve and return get run."""
     if run_id in _active_runs:
         run = dict(_active_runs[run_id])
-        return {"run": run, "steps": run.get("steps", []), "active": True}
+        return {'run': run, 'steps': run.get('steps', []), 'active': True}
     con = get_conn()
     try:
-        run   = con.execute("SELECT * FROM agent_traces WHERE run_id=?", (run_id,)).fetchone()
-        steps = con.execute(
-            "SELECT * FROM agent_trace_steps WHERE run_id=? ORDER BY step_no",
-            (run_id,)
-        ).fetchall()
+        run = con.execute('SELECT * FROM agent_traces WHERE run_id=?', (run_id,)).fetchone()
+        steps = con.execute('SELECT * FROM agent_trace_steps WHERE run_id=? ORDER BY step_no', (run_id,)).fetchall()
     finally:
         con.close()
     if not run:
-        return {"ok": False, "error": "Run not found"}
-    return {"run": dict(run), "steps": [dict(s) for s in steps], "active": False}
+        return {'ok': False, 'error': 'Run not found'}
+    return {'run': dict(run), 'steps': [dict(s) for s in steps], 'active': False}
 
 
-@router.get("/runs/{run_id}/stream")
+@router.get('/runs/{run_id}/stream')
 async def stream_run(run_id: str, request: Request):
+    """Stream real-time responses or events for run."""
     q = _run_queues.get(run_id)
     if not q:
+
         async def static():
-            yield f'data: {json.dumps({"type":"not_active","run_id":run_id})}\n\n'
-        return StreamingResponse(static(), media_type="text/event-stream")
+            """Execute or process static operation."""
+            yield f'data: {json.dumps({"type": "not_active", "run_id": run_id})}\n\n'
+
+        return StreamingResponse(static(), media_type='text/event-stream')
 
     async def generate():
+        """Execute or process generate operation."""
         try:
-            yield f'data: {json.dumps({"type":"connected","run_id":run_id})}\n\n'
+            yield f'data: {json.dumps({"type": "connected", "run_id": run_id})}\n\n'
             while True:
                 if await request.is_disconnected():
                     break
                 try:
                     event = await asyncio.wait_for(q.get(), timeout=10.0)
                     yield f'data: {json.dumps(event, default=str)}\n\n'
-                    if event.get("type") == "run_complete":
+                    if event.get('type') == 'run_complete':
                         break
                 except asyncio.TimeoutError:
                     yield 'data: {"type":"ping"}\n\n'
-        except Exception:
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError):
             pass
 
-    return StreamingResponse(generate(), media_type="text/event-stream",
-                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    return StreamingResponse(
+        generate(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    )
 
 
-@router.post("/runs/{run_id}/kill")
+@router.post('/runs/{run_id}/kill')
 async def kill_run(run_id: str, req: Request):
+    """Execute or process kill run operation."""
     _kill_flags.add(run_id)
     run = _active_runs.get(run_id)
     if run:
-        finish_run(run_id, "killed", "Killed by user")
-    audit_log("kill_run", run_id)
-    log.warning("Run %s killed by user", run_id)
-    _push_notification("system", "🛑 Run killed", f"Run {run_id} was stopped by user", run_id)
-    return {"ok": True, "run_id": run_id, "status": "killed"}
+        finish_run(run_id, 'killed', 'Killed by user')
+    audit_log('kill_run', run_id)
+    log.warning('Run %s killed by user', run_id)
+    _push_notification('system', '🛑 Run killed', f'Run {run_id} was stopped by user', run_id)
+    return {'ok': True, 'run_id': run_id, 'status': 'killed'}
 
 
-@router.post("/runs/kill-all")
+@router.post('/runs/kill-all')
 async def kill_all_runs():
+    """Execute or process kill all runs operation."""
     count = 0
     for run_id in list(_active_runs.keys()):
-        if _active_runs[run_id].get("status") == "running":
+        if _active_runs[run_id].get('status') == 'running':
             _kill_flags.add(run_id)
-            finish_run(run_id, "killed", "Killed by global kill switch")
+            finish_run(run_id, 'killed', 'Killed by global kill switch')
             count += 1
-    audit_log("kill_all_runs", f"{count} runs stopped")
-    return {"ok": True, "killed": count}
+    audit_log('kill_all_runs', f'{count} runs stopped')
+    return {'ok': True, 'killed': count}
 
 
-@router.get("/active")
+@router.get('/active')
 def active_runs():
-    return [run for run in _active_runs.values() if run.get("status") == "running"]
+    """Execute or process active runs operation."""
+    return [run for run in _active_runs.values() if run.get('status') == 'running']
 
 
-@router.get("/stats")
+@router.get('/stats')
 def control_stats():
+    """Execute or process control stats operation."""
     con = get_conn()
     try:
-        total    = con.execute("SELECT COUNT(*) FROM agent_traces").fetchone()[0]
-        running  = len([r for r in _active_runs.values() if r.get("status") == "running"])
-        cost_row = con.execute("SELECT SUM(total_cost) as c, SUM(total_tokens) as t FROM agent_traces").fetchone()
-        errors   = con.execute("SELECT COUNT(*) FROM agent_traces WHERE status='error'").fetchone()[0]
-        killed   = con.execute("SELECT COUNT(*) FROM agent_traces WHERE status='killed'").fetchone()[0]
-        today    = con.execute(
+        total = con.execute('SELECT COUNT(*) FROM agent_traces').fetchone()[0]
+        running = len([r for r in _active_runs.values() if r.get('status') == 'running'])
+        cost_row = con.execute('SELECT SUM(total_cost) as c, SUM(total_tokens) as t FROM agent_traces').fetchone()
+        errors = con.execute("SELECT COUNT(*) FROM agent_traces WHERE status='error'").fetchone()[0]
+        killed = con.execute("SELECT COUNT(*) FROM agent_traces WHERE status='killed'").fetchone()[0]
+        today = con.execute(
             "SELECT COUNT(*),SUM(total_cost) FROM agent_traces WHERE date(created_at)=date('now')"
         ).fetchone()
     finally:
         con.close()
     return {
-        "total_runs":   total,
-        "active_runs":  running,
-        "total_cost":   round(cost_row["c"] or 0, 6),
-        "total_tokens": cost_row["t"] or 0,
-        "error_count":  errors,
-        "killed_count": killed,
-        "today_runs":   today[0] or 0,
-        "today_cost":   round(today[1] or 0, 6),
-        "kill_available": running > 0,
+        'total_runs': total,
+        'active_runs': running,
+        'total_cost': round(cost_row['c'] or 0, 6),
+        'total_tokens': cost_row['t'] or 0,
+        'error_count': errors,
+        'killed_count': killed,
+        'today_runs': today[0] or 0,
+        'today_cost': round(today[1] or 0, 6),
+        'kill_available': running > 0,
     }
 
 
 # ── Budget rules ───────────────────────────────────────────────────────────────
-@router.get("/budget-rules")
+@router.get('/budget-rules')
 def list_budget_rules():
+    """Retrieve and return list budget rules."""
     con = get_conn()
     try:
-        rows = con.execute("SELECT * FROM budget_rules ORDER BY id").fetchall()
+        rows = con.execute('SELECT * FROM budget_rules ORDER BY id').fetchall()
     finally:
         con.close()
     return [dict(r) for r in rows]
 
 
-@router.post("/budget-rules")
+@router.post('/budget-rules')
 async def create_budget_rule(req: Request):
+    """Create and initialize a new budget rule."""
     try:
-        body     = await req.json()
-    except Exception:
-        body     = {}
-    name     = (body.get("name") or "Budget limit").strip()[:80]
-    agent_id = body.get("agent_id", "*")
-    max_cost = float(body.get("max_cost", 1.0))
-    max_tok  = int(body.get("max_tokens", 100000))
-    action   = body.get("action", "stop")
-    if action not in ("stop", "warn", "notify"):
-        action = "stop"
+        body = await req.json()
+    except (json.JSONDecodeError, TypeError, ValueError):
+        body = {}
+    name = (body.get('name') or 'Budget limit').strip()[:80]
+    agent_id = body.get('agent_id', '*')
+    max_cost = float(body.get('max_cost', 1.0))
+    max_tok = int(body.get('max_tokens', 100000))
+    action = body.get('action', 'stop')
+    if action not in ('stop', 'warn', 'notify'):
+        action = 'stop'
     con = get_conn()
     try:
         cur = con.execute(
-            "INSERT INTO budget_rules(name,agent_id,max_cost,max_tokens,action) VALUES(?,?,?,?,?)",
-            (name, agent_id, max_cost, max_tok, action)
+            'INSERT INTO budget_rules(name,agent_id,max_cost,max_tokens,action) VALUES(?,?,?,?,?)',
+            (name, agent_id, max_cost, max_tok, action),
         )
         rid = cur.lastrowid
         con.commit()
     finally:
         con.close()
-    return {"ok": True, "id": rid}
+    return {'ok': True, 'id': rid}
 
 
-@router.patch("/budget-rules/{rule_id}")
+@router.patch('/budget-rules/{rule_id}')
 async def update_budget_rule(rule_id: int, req: Request):
+    """Update existing budget rule record or state."""
     try:
-        body    = await req.json()
-    except Exception:
-        body    = {}
-    allowed = {"name","agent_id","max_cost","max_tokens","action","enabled"}
+        body = await req.json()
+    except (json.JSONDecodeError, TypeError, ValueError):
+        body = {}
+    allowed = {'name', 'agent_id', 'max_cost', 'max_tokens', 'action', 'enabled'}
     sets, vals = [], []
     for k in allowed:
         if k in body:
-            sets.append(f"{k}=?"); vals.append(body[k])
+            sets.append(f'{k}=?')
+            vals.append(body[k])
     if not sets:
-        return {"ok": False}
+        return {'ok': False}
     vals.append(rule_id)
     con = get_conn()
     try:
-        con.execute(f"UPDATE budget_rules SET {', '.join(sets)} WHERE id=?", vals)
+        con.execute(f'UPDATE budget_rules SET {", ".join(sets)} WHERE id=?', vals)
         con.commit()
     finally:
         con.close()
-    return {"ok": True}
+    return {'ok': True}
 
 
-@router.delete("/budget-rules/{rule_id}")
+@router.delete('/budget-rules/{rule_id}')
 def delete_budget_rule(rule_id: int):
+    """Delete or remove specified budget rule."""
     con = get_conn()
     try:
-        exists = con.execute("SELECT id FROM budget_rules WHERE id=?", (rule_id,)).fetchone()
-        con.execute("DELETE FROM budget_rules WHERE id=?", (rule_id,))
+        exists = con.execute('SELECT id FROM budget_rules WHERE id=?', (rule_id,)).fetchone()
+        con.execute('DELETE FROM budget_rules WHERE id=?', (rule_id,))
         con.commit()
     finally:
         con.close()
-    return {"ok": True, "deleted": exists is not None}
+    return {'ok': True, 'deleted': exists is not None}
 
 
 # ── Notifications ──────────────────────────────────────────────────────────────
-@router.get("/notifications")
+@router.get('/notifications')
 def list_notifications(unread_only: bool = False, limit: int = 50):
+    """Retrieve and return list notifications."""
     con = get_conn()
     try:
         if unread_only:
             rows = con.execute(
-                "SELECT * FROM notifications WHERE read_at IS NULL ORDER BY id DESC LIMIT ?",
-                (min(limit, 200),)
+                'SELECT * FROM notifications WHERE read_at IS NULL ORDER BY id DESC LIMIT ?', (min(limit, 200),)
             ).fetchall()
         else:
-            rows = con.execute(
-                "SELECT * FROM notifications ORDER BY id DESC LIMIT ?",
-                (min(limit, 200),)
-            ).fetchall()
-        unread_count = con.execute(
-            "SELECT COUNT(*) FROM notifications WHERE read_at IS NULL"
-        ).fetchone()[0]
+            rows = con.execute('SELECT * FROM notifications ORDER BY id DESC LIMIT ?', (min(limit, 200),)).fetchall()
+        unread_count = con.execute('SELECT COUNT(*) FROM notifications WHERE read_at IS NULL').fetchone()[0]
     finally:
         con.close()
-    return {"notifications": [dict(r) for r in rows], "unread_count": unread_count}
+    return {'notifications': [dict(r) for r in rows], 'unread_count': unread_count}
 
 
-@router.post("/notifications/read-all")
+@router.post('/notifications/read-all')
 def mark_all_read():
+    """Execute or process mark all read operation."""
     con = get_conn()
     try:
-        con.execute("UPDATE notifications SET read_at=CURRENT_TIMESTAMP WHERE read_at IS NULL")
+        con.execute('UPDATE notifications SET read_at=CURRENT_TIMESTAMP WHERE read_at IS NULL')
         con.commit()
     finally:
         con.close()
-    return {"ok": True}
+    return {'ok': True}
 
 
-@router.patch("/notifications/{notif_id}/read")
+@router.patch('/notifications/{notif_id}/read')
 def mark_read(notif_id: int):
+    """Execute or process mark read operation."""
     con = get_conn()
     try:
-        con.execute("UPDATE notifications SET read_at=CURRENT_TIMESTAMP WHERE id=?", (notif_id,))
+        con.execute('UPDATE notifications SET read_at=CURRENT_TIMESTAMP WHERE id=?', (notif_id,))
         con.commit()
     finally:
         con.close()
-    return {"ok": True}
+    return {'ok': True}
 
 
-@router.delete("/notifications")
+@router.delete('/notifications')
 def clear_notifications():
+    """Delete or remove specified clear notifications."""
     con = get_conn()
     try:
-        con.execute("DELETE FROM notifications WHERE read_at IS NOT NULL")
+        con.execute('DELETE FROM notifications WHERE read_at IS NOT NULL')
         con.commit()
     finally:
         con.close()
-    return {"ok": True}
+    return {'ok': True}
 
 
-@router.get("/budget")
+@router.get('/budget')
 def budget_alias():
     """Alias for /budget-rules."""
     con = get_conn()
     try:
-        rows = con.execute("SELECT * FROM budget_rules ORDER BY id").fetchall()
-    except Exception:
+        rows = con.execute('SELECT * FROM budget_rules ORDER BY id').fetchall()
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError):
         rows = []
     finally:
         con.close()
-    return {"rules": [dict(r) for r in rows], "count": len(rows)}
+    return {'rules': [dict(r) for r in rows], 'count': len(rows)}

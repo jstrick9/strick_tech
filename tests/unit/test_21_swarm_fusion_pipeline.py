@@ -4,13 +4,6 @@ Covers: multi-agent swarm, fusion strategies, pipeline builder, ambient agent
 """
 import pytest, httpx, time
 
-BASE = "http://127.0.0.1:8787"
-
-@pytest.fixture(scope="module")
-def client():
-    return httpx.Client(base_url=BASE, timeout=20)
-
-
 class TestSwarm:
     def test_swarm_agents_list(self, client):
         r = client.get("/api/swarm/agents")

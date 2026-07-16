@@ -1,13 +1,13 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Agentic OS",
-  "version": "6.0.0",
-  "identifier": "com.agenticosvault.app",
+  "productName": "Agentic OS Platform",
+  "version": "10.0.0",
+  "identifier": "com.stricktech.agenticos",
   "build": {
     "frontendDist": "../frontend",
     "devUrl": "http://localhost:8787",
-    "beforeDevCommand": "python run.py",
-    "beforeBuildCommand": "python run.py &"
+    "beforeDevCommand": "",
+    "beforeBuildCommand": ""
   },
   "app": {
     "windows": [
@@ -38,11 +38,20 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": ["../backend/**", "../frontend/**", "../requirements.txt", "../run.py", "../config.yaml"],
-    "externalBin": ["python3", "python"],
+    "resources": [
+      "../backend/**",
+      "../frontend/**",
+      "../requirements.txt",
+      "../run.py",
+      "../config.yaml",
+      "../agents/**",
+      "../skills/**",
+      "python_embedded/**"
+    ],
+    "externalBin": [],
     "macOS": {
       "minimumSystemVersion": "12.0",
-      "entitlements": null,
+      "entitlements": "entitlements.plist",
       "signingIdentity": null
     },
     "windows": {
@@ -52,7 +61,7 @@
     },
     "linux": {
       "deb": {
-        "depends": ["python3", "python3-pip"]
+        "depends": ["python3", "python3-pip", "python3-venv"]
       },
       "appimage": {
         "bundleMediaFramework": true

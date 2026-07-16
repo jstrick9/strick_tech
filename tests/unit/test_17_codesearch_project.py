@@ -2,13 +2,7 @@
 Unit Tests — Code Search & Project Memory (/api/project)
 Covers: search, file listing, project memory CRUD, suggestions, code review
 """
-import pytest, httpx
-
-BASE = "http://127.0.0.1:8787"
-
-@pytest.fixture(scope="module")
-def client():
-    return httpx.Client(base_url=BASE, timeout=15)
+import pytest
 
 
 class TestCodeSearch:

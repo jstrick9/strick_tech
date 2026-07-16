@@ -1,0 +1,93 @@
+# Agentic OS — .gitignore
+
+# Environment (contains API keys)
+.env
+.env.local
+env.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database (user data)
+memory/agentic.db
+memory/agentic.db-wal
+memory/agentic.db-shm
+memory/.vault_key
+memory/backup_*.db
+
+# Tauri build artifacts
+src-tauri/target/
+src-tauri/icons/
+
+# Node
+node_modules/
+package-lock.json
+
+# Preview (generated)
+preview/*.html
+!preview/index.html
+!preview/mobile/index.html
+
+# Workspaces (user data)
+workspaces/specs/
+workspaces/workflows/
+
+# Logs
+*.log
+
+# Docker
+.docker/
+
+# Runtime & Test Scratch Data
+.agentic/
+.coverage
+memory/bounty_hunter/scans/
+memory/compiler/hot_swaps/
+memory/compiler/artifacts/
+memory/p2p_sharding/manifests/
+memory/pqc/keys/
+memory/satellite/bundles/
+memory/tts_cache/
+memory/reconstructed_*.safetensors
+memory/mobile_devices.json
+memory/preferences.json
+memory/sync_status.json
+memory/rbac/users.json
+memory/rbac/roles.json
+memory/rbac/tokens.json
+memory/digital_twin/anchors/anchor_desk_main.json
+memory/finetune/jobs/
+memory/finetune/datasets/
+memory/finetune/adapters/
+memory/robotics/actuators/
+workspaces/.current
+workspaces/.multitab_state.json
+workspaces/collab_docs/
+workspaces/rag_documents/
+workspaces/marketplace/assets/
+preview/assets/
+preview/browser_screenshots/
+memory/digital_twin/anchors/

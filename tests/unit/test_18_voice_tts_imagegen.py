@@ -4,13 +4,6 @@ Covers: TTS synthesis, voice endpoints, image generation
 """
 import pytest, httpx
 
-BASE = "http://127.0.0.1:8787"
-
-@pytest.fixture(scope="module")
-def client():
-    return httpx.Client(base_url=BASE, timeout=20)
-
-
 class TestTTS:
     def test_tts_list_voices(self, client):
         r = client.get("/api/tts/voices")

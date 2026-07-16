@@ -8,16 +8,23 @@ Production-ready starter templates across:
 
 Each template is a fully working HTML/CSS/JS app that scaffolds instantly.
 """
-from __future__ import annotations
-import json, logging, re
-from pathlib import Path
-from fastapi import APIRouter, Request
-from ..services.memory_db import get_conn, audit_log
 
-router = APIRouter(prefix="/api/templates", tags=["templates"])
-log    = logging.getLogger("agentic.templates")
-ROOT   = Path(__file__).resolve().parents[2]   # /home/user/agentic-os
-PREV   = ROOT / "preview"
+from __future__ import annotations
+
+import contextlib
+
+import logging
+import re
+from pathlib import Path
+
+from fastapi import APIRouter, Request
+
+from ..services.memory_db import audit_log, get_conn
+
+router = APIRouter(prefix='/api/templates', tags=['templates'])
+log = logging.getLogger('agentic.templates')
+ROOT = Path(__file__).resolve().parents[2]  # /home/user/agentic-os
+PREV = ROOT / 'preview'
 PREV.mkdir(parents=True, exist_ok=True)
 
 
@@ -25,15 +32,15 @@ PREV.mkdir(parents=True, exist_ok=True)
 TEMPLATES = [
     # ── SaaS & Business ───────────────────────────────────────────────────────
     {
-        "id": "saas-landing",
-        "name": "SaaS Landing Page",
-        "category": "saas",
-        "emoji": "🚀",
-        "description": "Hero, features, social proof, pricing tiers, FAQ, CTA — ready to customise",
-        "tags": ["landing", "saas", "tailwind", "dark"],
-        "preview_color": "#5b8af8",
-        "files": {
-            "index.html": """<!DOCTYPE html>
+        'id': 'saas-landing',
+        'name': 'SaaS Landing Page',
+        'category': 'saas',
+        'emoji': '🚀',
+        'description': 'Hero, features, social proof, pricing tiers, FAQ, CTA — ready to customise',
+        'tags': ['landing', 'saas', 'tailwind', 'dark'],
+        'preview_color': '#5b8af8',
+        'files': {
+            'index.html': """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -134,18 +141,18 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 });
 </script>
 </body></html>"""
-        }
+        },
     },
     {
-        "id": "admin-dashboard",
-        "name": "Admin Dashboard",
-        "category": "saas",
-        "emoji": "📊",
-        "description": "Dark sidebar, stat cards, charts (Chart.js), data table, user management",
-        "tags": ["dashboard", "admin", "charts", "table"],
-        "preview_color": "#9d74f5",
-        "files": {
-            "index.html": """<!DOCTYPE html>
+        'id': 'admin-dashboard',
+        'name': 'Admin Dashboard',
+        'category': 'saas',
+        'emoji': '📊',
+        'description': 'Dark sidebar, stat cards, charts (Chart.js), data table, user management',
+        'tags': ['dashboard', 'admin', 'charts', 'table'],
+        'preview_color': '#9d74f5',
+        'files': {
+            'index.html': """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -212,18 +219,18 @@ new Chart(document.getElementById('revenueChart'),{type:'line',data:{labels:m,da
 new Chart(document.getElementById('sourceChart'),{type:'doughnut',data:{labels:['Organic','Paid','Referral','Direct'],datasets:[{data:[45,25,20,10],backgroundColor:['#5b8af8','#9d74f5','#4cc98a','#f0c060'],borderWidth:0}]},options:{plugins:{legend:{position:'bottom',labels:{color:'#9aa7c7',padding:10,font:{size:11}}}}}});
 </script>
 </body></html>"""
-        }
+        },
     },
     {
-        "id": "todo-app",
-        "name": "Todo App",
-        "category": "apps",
-        "emoji": "✅",
-        "description": "Drag-drop kanban todo with priorities, due dates, local storage persistence",
-        "tags": ["todo", "productivity", "kanban", "dark"],
-        "preview_color": "#4cc98a",
-        "files": {
-            "index.html": """<!DOCTYPE html>
+        'id': 'todo-app',
+        'name': 'Todo App',
+        'category': 'apps',
+        'emoji': '✅',
+        'description': 'Drag-drop kanban todo with priorities, due dates, local storage persistence',
+        'tags': ['todo', 'productivity', 'kanban', 'dark'],
+        'preview_color': '#4cc98a',
+        'files': {
+            'index.html': """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -309,18 +316,18 @@ function deleteTask(id){if(confirm('Delete this task?')){tasks=tasks.filter(t=>t
 render();
 </script>
 </body></html>"""
-        }
+        },
     },
     {
-        "id": "portfolio",
-        "name": "Developer Portfolio",
-        "category": "portfolio",
-        "emoji": "🎨",
-        "description": "Clean dev portfolio: hero, about, projects grid, skills, contact form",
-        "tags": ["portfolio", "personal", "dark", "animated"],
-        "preview_color": "#f08850",
-        "files": {
-            "index.html": """<!DOCTYPE html>
+        'id': 'portfolio',
+        'name': 'Developer Portfolio',
+        'category': 'portfolio',
+        'emoji': '🎨',
+        'description': 'Clean dev portfolio: hero, about, projects grid, skills, contact form',
+        'tags': ['portfolio', 'personal', 'dark', 'animated'],
+        'preview_color': '#f08850',
+        'files': {
+            'index.html': """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -396,18 +403,18 @@ body{background:#08090e;color:#e8f0ff;font-family:Inter,system-ui,sans-serif;scr
 </section>
 <footer class="border-t border-white/10 px-8 py-6 text-center text-gray-500 text-sm">Built with Agentic OS · 2026</footer>
 </body></html>"""
-        }
+        },
     },
     {
-        "id": "waitlist-page",
-        "name": "Waitlist Landing",
-        "category": "marketing",
-        "emoji": "📬",
-        "description": "Email waitlist capture with counter, social proof, and animated gradient background",
-        "tags": ["waitlist", "launch", "email", "marketing"],
-        "preview_color": "#38c5d8",
-        "files": {
-            "index.html": """<!DOCTYPE html>
+        'id': 'waitlist-page',
+        'name': 'Waitlist Landing',
+        'category': 'marketing',
+        'emoji': '📬',
+        'description': 'Email waitlist capture with counter, social proof, and animated gradient background',
+        'tags': ['waitlist', 'launch', 'email', 'marketing'],
+        'preview_color': '#38c5d8',
+        'files': {
+            'index.html': """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -450,18 +457,18 @@ function handleSubmit(e){
 }
 </script>
 </body></html>"""
-        }
+        },
     },
     {
-        "id": "notes-app",
-        "name": "Notes App",
-        "category": "apps",
-        "emoji": "📝",
-        "description": "Markdown notes with sidebar, search, auto-save to localStorage",
-        "tags": ["notes", "markdown", "editor", "productivity"],
-        "preview_color": "#f0c060",
-        "files": {
-            "index.html": """<!DOCTYPE html>
+        'id': 'notes-app',
+        'name': 'Notes App',
+        'category': 'apps',
+        'emoji': '📝',
+        'description': 'Markdown notes with sidebar, search, auto-save to localStorage',
+        'tags': ['notes', 'markdown', 'editor', 'productivity'],
+        'preview_color': '#f0c060',
+        'files': {
+            'index.html': """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -553,7 +560,7 @@ function autoSave(){
 }
 document.getElementById('noteTitle').addEventListener('input',autoSave);
 function updateWordCount(){
-  const words=document.getElementById('editor').value.trim().split(/\s+/).filter(Boolean).length;
+  const words=document.getElementById('editor').value.trim().split(/\\s+/).filter(Boolean).length;
   document.getElementById('wordCount').textContent=words+' word'+(words!==1?'s':'');
 }
 function setMode(m){
@@ -567,215 +574,302 @@ if(notes.length)openNote(notes[0].id);
 renderList();
 </script>
 </body></html>"""
-        }
+        },
     },
     # Quick entries for the remaining templates (with minimal but working HTML)
-    {"id":"pricing-page","name":"Pricing Page","category":"saas","emoji":"💰","description":"3-tier pricing with toggle (monthly/annual), feature comparison table","tags":["pricing","saas","conversion"],"preview_color":"#9d74f5","files":{"index.html":"<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Pricing</title><script src='https://cdn.tailwindcss.com'></script></head><body class='bg-[#08090e] text-white p-8'><div class='max-w-5xl mx-auto text-center'><h1 class='text-5xl font-black mb-4'>Simple pricing</h1><p class='text-gray-400 mb-12 text-xl'>Start free. Upgrade when ready.</p><div class='grid md:grid-cols-3 gap-6'><div class='bg-[#0d1020] border border-white/10 rounded-2xl p-8'><h2 class='text-xl font-bold mb-2'>Starter</h2><div class='text-4xl font-black my-4'>$0</div><p class='text-gray-400 text-sm mb-6'>Free forever</p><ul class='text-sm text-left space-y-2 mb-8 text-gray-300'><li>✓ 3 projects</li><li>✓ 100 AI messages/day</li><li>✓ Community support</li></ul><button class='w-full border border-white/20 py-3 rounded-xl hover:bg-white/5 transition'>Get started</button></div><div class='bg-[#0d1020] border border-blue-500/50 rounded-2xl p-8 relative'><div class='absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full'>Popular</div><h2 class='text-xl font-bold mb-2'>Pro</h2><div class='text-4xl font-black my-4'>$20</div><p class='text-gray-400 text-sm mb-6'>per month</p><ul class='text-sm text-left space-y-2 mb-8 text-gray-300'><li>✓ Unlimited projects</li><li>✓ Unlimited AI</li><li>✓ All deploy targets</li><li>✓ Priority support</li></ul><button class='w-full bg-blue-500 text-white font-bold py-3 rounded-xl hover:bg-blue-400 transition'>Start trial</button></div><div class='bg-[#0d1020] border border-white/10 rounded-2xl p-8'><h2 class='text-xl font-bold mb-2'>Team</h2><div class='text-4xl font-black my-4'>$50</div><p class='text-gray-400 text-sm mb-6'>per seat/month</p><ul class='text-sm text-left space-y-2 mb-8 text-gray-300'><li>✓ Everything in Pro</li><li>✓ Team collaboration</li><li>✓ Custom agents</li><li>✓ Dedicated support</li></ul><button class='w-full border border-white/20 py-3 rounded-xl hover:bg-white/5 transition'>Contact sales</button></div></div></div></body></html>"}},
-    {"id":"login-page","name":"Login & Signup","category":"saas","emoji":"🔐","description":"Auth pages with email/password and OAuth buttons, validation, dark theme","tags":["auth","login","signup","form"],"preview_color":"#4cc98a","files":{"index.html":"<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Sign In</title><script src='https://cdn.tailwindcss.com'></script></head><body class='bg-[#08090e] text-white min-h-screen flex items-center justify-center p-4'><div class='w-full max-w-sm'><div class='text-center mb-8'><div class='text-4xl mb-2'>🧠</div><h1 class='text-2xl font-black'>Welcome back</h1><p class='text-gray-400 text-sm mt-1'>Sign in to your account</p></div><div class='bg-[#0d1020] border border-white/10 rounded-2xl p-6'><form onsubmit='event.preventDefault();alert(\"Logged in!\")'><div class='space-y-4'><div><label class='text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1.5'>Email</label><input type='email' placeholder='you@example.com' class='w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition' required></div><div><label class='text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1.5'>Password</label><input type='password' placeholder='••••••••' class='w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition' required></div><div class='flex items-center justify-between text-sm'><label class='flex items-center gap-2 text-gray-400 cursor-pointer'><input type='checkbox' class='accent-blue-500'> Remember me</label><a href='#' class='text-blue-400 hover:underline'>Forgot password?</a></div><button type='submit' class='w-full bg-blue-500 text-white font-bold py-3 rounded-xl hover:bg-blue-400 transition mt-2'>Sign in</button></div></form><div class='flex items-center gap-3 my-4'><div class='flex-1 h-px bg-white/10'></div><span class='text-gray-500 text-xs'>or continue with</span><div class='flex-1 h-px bg-white/10'></div></div><div class='grid grid-cols-2 gap-3'><button class='flex items-center justify-center gap-2 border border-white/10 rounded-xl py-2.5 hover:bg-white/5 transition text-sm'><span>G</span>Google</button><button class='flex items-center justify-center gap-2 border border-white/10 rounded-xl py-2.5 hover:bg-white/5 transition text-sm'><span>🐙</span>GitHub</button></div></div><p class='text-center text-gray-500 text-sm mt-6'>Don't have an account? <a href='#' class='text-blue-400 hover:underline'>Sign up free</a></p></div></body></html>"}},
-    {"id":"product-page","name":"Product Page","category":"ecommerce","emoji":"🛒","description":"E-commerce product page with image gallery, variants, add to cart, reviews","tags":["ecommerce","product","shop","cart"],"preview_color":"#f06080","files":{"index.html":"<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Product</title><script src='https://cdn.tailwindcss.com'></script></head><body class='bg-[#08090e] text-white p-6'><div class='max-w-5xl mx-auto grid md:grid-cols-2 gap-10'><div class='space-y-3'><div class='aspect-square bg-gradient-to-br from-blue-900 to-purple-900 rounded-2xl flex items-center justify-center text-8xl'>📦</div><div class='grid grid-cols-4 gap-2'><div class='aspect-square bg-[#0d1020] rounded-xl border border-white/10 flex items-center justify-center text-2xl cursor-pointer hover:border-blue-500/50 transition'>📦</div><div class='aspect-square bg-[#0d1020] rounded-xl border border-white/10 flex items-center justify-center text-2xl cursor-pointer hover:border-blue-500/50 transition'>🎁</div><div class='aspect-square bg-[#0d1020] rounded-xl border border-white/10 flex items-center justify-center text-2xl cursor-pointer hover:border-blue-500/50 transition'>✨</div><div class='aspect-square bg-[#0d1020] rounded-xl border border-white/10 flex items-center justify-center text-2xl cursor-pointer hover:border-blue-500/50 transition'>🎯</div></div></div><div><div class='text-sm text-blue-400 mb-2'>YourBrand</div><h1 class='text-3xl font-black mb-2'>Premium Product Name</h1><div class='flex items-center gap-2 mb-4'><div class='flex text-yellow-400'>★★★★★</div><span class='text-gray-400 text-sm'>4.9 (247 reviews)</span></div><div class='text-3xl font-black mb-6'>$99 <span class='text-gray-500 text-lg line-through font-normal'>$149</span> <span class='text-green-400 text-sm font-bold'>33% off</span></div><div class='mb-6'><div class='text-sm font-bold mb-2'>Color</div><div class='flex gap-2'><button class='w-8 h-8 rounded-full bg-blue-500 border-2 border-white'></button><button class='w-8 h-8 rounded-full bg-gray-500 border-2 border-transparent hover:border-white transition'></button><button class='w-8 h-8 rounded-full bg-red-500 border-2 border-transparent hover:border-white transition'></button></div></div><div class='mb-6'><div class='text-sm font-bold mb-2'>Size</div><div class='flex gap-2'><button class='border border-blue-500 bg-blue-500/20 text-blue-300 px-4 py-2 rounded-xl text-sm font-bold'>S</button><button class='border border-white/20 px-4 py-2 rounded-xl text-sm hover:border-white/50 transition'>M</button><button class='border border-white/20 px-4 py-2 rounded-xl text-sm hover:border-white/50 transition'>L</button><button class='border border-white/20 px-4 py-2 rounded-xl text-sm hover:border-white/50 transition'>XL</button></div></div><button onclick='alert(\"Added to cart!\")' class='w-full bg-blue-500 text-white font-bold py-4 rounded-2xl text-lg hover:bg-blue-400 transition mb-3'>Add to cart — $99</button><button class='w-full border border-white/20 py-4 rounded-2xl hover:bg-white/5 transition'>♡ Save for later</button></div></div></body></html>"}},
-    {"id":"url-shortener","name":"URL Shortener","category":"apps","emoji":"🔗","description":"URL shortener with copy button, link history, and QR code generation","tags":["utility","url","tool","qr"],"preview_color":"#38c5d8","files":{"index.html":"<!DOCTYPE html><html><head><meta charset='UTF-8'><title>URL Shortener</title><script src='https://cdn.tailwindcss.com'></script></head><body class='bg-[#08090e] text-white min-h-screen flex items-center justify-center p-4'><div class='w-full max-w-lg'><div class='text-center mb-10'><div class='text-5xl mb-3'>🔗</div><h1 class='text-4xl font-black mb-2'>Shorten URLs</h1><p class='text-gray-400'>Make long links short and shareable</p></div><div class='bg-[#0d1020] border border-white/10 rounded-2xl p-6'><div class='flex gap-3 mb-6'><input id='urlInput' type='url' placeholder='https://your-very-long-url.com/with/many/params?and=values' class='flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-teal-500/50 focus:outline-none transition text-sm'><button onclick='shortenUrl()' class='bg-teal-500 hover:bg-teal-400 text-[#08090e] font-bold px-5 py-3 rounded-xl transition whitespace-nowrap'>Shorten</button></div><div id='result' class='hidden'><div class='flex items-center gap-3 bg-teal-500/10 border border-teal-500/20 rounded-xl p-4'><div class='flex-1'><div class='text-xs text-gray-400 mb-1'>Shortened URL</div><div class='font-mono text-teal-300 font-bold' id='shortUrl'>agos.link/abc123</div></div><button onclick='copyShort()' class='bg-teal-500/20 text-teal-300 px-3 py-2 rounded-lg text-sm hover:bg-teal-500/30 transition'>Copy</button></div></div><div class='mt-4'><div class='text-xs text-gray-500 mb-2 uppercase tracking-wider font-semibold'>Recent links</div><div id='history' class='space-y-2'><div class='flex items-center gap-3 text-sm py-2 border-b border-white/5'><span class='text-teal-400 font-mono'>agos.link/demo</span><span class='text-gray-500 flex-1 truncate'>→ https://example.com/demo</span><span class='text-gray-600 text-xs'>42 clicks</span></div></div></div></div></div><script>let links=[];function shortenUrl(){const u=document.getElementById('urlInput').value;if(!u)return;const id=Math.random().toString(36).slice(2,8);const short='agos.link/'+id;links.unshift({short,original:u,clicks:0});document.getElementById('shortUrl').textContent=short;document.getElementById('result').classList.remove('hidden');renderHistory();}function copyShort(){const t=document.getElementById('shortUrl').textContent;navigator.clipboard.writeText(t).then(()=>alert('Copied!'));}function renderHistory(){const h=document.getElementById('history');h.innerHTML=links.map(l=>`<div class='flex items-center gap-3 text-sm py-2 border-b border-white/5'><span class='text-teal-400 font-mono flex-shrink-0'>${l.short}</span><span class='text-gray-500 flex-1 truncate'>→ ${l.original}</span><span class='text-gray-600 text-xs'>${l.clicks} clicks</span></div>`).join('');}</script></body></html>"}},
-    {"id":"weather-app","name":"Weather App","category":"apps","emoji":"🌤️","description":"Beautiful weather card with animated icons, 5-day forecast, search by city","tags":["weather","api","animation","cards"],"preview_color":"#f0c060","files":{"index.html":"<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Weather</title><script src='https://cdn.tailwindcss.com'></script><style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}.float{animation:float 3s ease-in-out infinite}body{background:linear-gradient(135deg,#0a0f2e,#1a0a2e);min-height:100vh;color:white;font-family:Inter,system-ui,sans-serif}</style></head><body class='flex items-center justify-center p-6'><div class='w-full max-w-sm'><div class='bg-white/10 backdrop-blur border border-white/20 rounded-3xl p-6'><div class='flex items-center gap-3 mb-6'><input id='cityInput' placeholder='Search city…' class='flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-white placeholder-white/40 focus:outline-none text-sm' onkeydown=\"if(event.key==='Enter')search()\" value='Charlotte, NC'><button onclick='search()' class='bg-yellow-400 text-black font-bold px-4 py-2.5 rounded-xl text-sm'>Go</button></div><div class='text-center mb-6'><div id='icon' class='text-8xl mb-3 float'>🌤️</div><div class='text-5xl font-black mb-1' id='temp'>72°F</div><div class='text-white/70 text-lg' id='desc'>Partly Cloudy</div><div class='text-white/50 text-sm mt-1' id='city'>Charlotte, NC</div></div><div class='grid grid-cols-3 gap-3 mb-6'><div class='bg-white/10 rounded-xl p-3 text-center'><div class='text-xs text-white/50 mb-1'>Humidity</div><div class='font-bold' id='hum'>62%</div></div><div class='bg-white/10 rounded-xl p-3 text-center'><div class='text-xs text-white/50 mb-1'>Wind</div><div class='font-bold' id='wind'>8 mph</div></div><div class='bg-white/10 rounded-xl p-3 text-center'><div class='text-xs text-white/50 mb-1'>UV Index</div><div class='font-bold' id='uv'>4</div></div></div><div class='space-y-2'><div class='text-xs text-white/50 uppercase tracking-wider mb-2'>5-Day Forecast</div><div id='forecast' class='space-y-2'></div></div></div></div><script>const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];const icons=['☀️','🌤️','⛅','🌧️','⛈️'];const cities={charlotte:{temp:72,desc:'Partly Cloudy',hum:'62%',wind:'8 mph',uv:'4',icon:'🌤️'},london:{temp:58,desc:'Overcast',hum:'78%',wind:'12 mph',uv:'2',icon:'⛅'},tokyo:{temp:81,desc:'Sunny',hum:'55%',wind:'6 mph',uv:'7',icon:'☀️'},sydney:{temp:68,desc:'Clear',hum:'48%',wind:'14 mph',uv:'6',icon:'☀️'}};function search(){const c=document.getElementById('cityInput').value.toLowerCase().replace(/[,\s]+/g,'');const d=cities[c]||{temp:Math.floor(60+Math.random()*30),desc:'Partly Cloudy',hum:Math.floor(40+Math.random()*40)+'%',wind:Math.floor(5+Math.random()*15)+' mph',uv:Math.floor(1+Math.random()*9)+'',icon:icons[Math.floor(Math.random()*icons.length)]};document.getElementById('temp').textContent=d.temp+'°F';document.getElementById('desc').textContent=d.desc;document.getElementById('hum').textContent=d.hum;document.getElementById('wind').textContent=d.wind;document.getElementById('uv').textContent=d.uv;document.getElementById('icon').textContent=d.icon;document.getElementById('city').textContent=document.getElementById('cityInput').value||'Your City';renderForecast();}function renderForecast(){const today=new Date().getDay();document.getElementById('forecast').innerHTML=[1,2,3,4,5].map(i=>`<div class='flex items-center justify-between bg-white/5 rounded-xl px-4 py-2'><span class='text-sm text-white/70 w-10'>${days[(today+i)%7]}</span><span class='text-xl'>${icons[Math.floor(Math.random()*3)]}</span><span class='font-semibold text-sm'>${Math.floor(60+Math.random()*20)}°</span></div>`).join('');}search();</script></body></html>"}},
-    {"id":"agency-site","name":"Agency Website","category":"marketing","emoji":"🏢","description":"Creative agency homepage with case studies, team, services, contact","tags":["agency","marketing","business","professional"],"preview_color":"#9d74f5","files":{"index.html":"<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Creative Agency</title><script src='https://cdn.tailwindcss.com'></script><style>body{background:#050810;color:#fff;font-family:Inter,system-ui,sans-serif}</style></head><body><nav class='flex items-center justify-between px-8 py-4 border-b border-white/10'><span class='font-black text-xl'>STUDIO<span class='text-purple-400'>.</span></span><div class='hidden md:flex gap-6 text-sm text-gray-400'><a class='hover:text-white' href='#'>Work</a><a class='hover:text-white' href='#'>Services</a><a class='hover:text-white' href='#'>Team</a><a class='hover:text-white' href='#'>Contact</a></div><a href='#' class='border border-purple-500/50 text-purple-300 text-sm px-4 py-2 rounded-xl hover:bg-purple-500/10 transition'>Let's talk →</a></nav><section class='px-8 py-32 max-w-5xl'><div class='text-sm text-purple-400 mb-4 font-mono'>// WE BUILD DIGITAL EXPERIENCES</div><h1 class='text-6xl md:text-8xl font-black leading-none mb-8'>We design<br>the <span class='text-purple-400'>future.</span></h1><p class='text-gray-400 text-xl max-w-xl mb-10'>Crafting digital products that matter. Strategy, design, and engineering — all under one roof.</p><a href='#' class='inline-flex items-center gap-3 bg-purple-500 text-white font-bold px-8 py-4 rounded-2xl hover:bg-purple-400 transition text-lg'>View our work <span>→</span></a></section><section class='border-t border-white/10 px-8 py-16'><div class='max-w-5xl mx-auto grid md:grid-cols-3 gap-8'><div><div class='text-4xl font-black text-purple-400 mb-2'>120+</div><div class='text-gray-400'>Projects shipped</div></div><div><div class='text-4xl font-black text-purple-400 mb-2'>8 yrs</div><div class='text-gray-400'>In the industry</div></div><div><div class='text-4xl font-black text-purple-400 mb-2'>98%</div><div class='text-gray-400'>Client satisfaction</div></div></div></section></body></html>"}},
-    {"id":"chat-app","name":"Chat Interface","category":"apps","emoji":"💬","description":"Real-time chat UI with message bubbles, typing indicator, emoji, file attach","tags":["chat","messaging","realtime","ui"],"preview_color":"#5b8af8","files":{"index.html":"<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Chat</title><script src='https://cdn.tailwindcss.com'></script><style>body{background:#08090e;color:#e8f0ff;font-family:Inter,system-ui,sans-serif}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#1a2040;border-radius:99px}</style></head><body class='flex h-screen'><aside class='w-64 bg-[#0d1020] border-r border-white/10 flex flex-col'><div class='p-4 border-b border-white/10'><div class='flex items-center gap-3 mb-3'><div class='w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center font-bold'>J</div><div><div class='font-semibold text-sm'>jstrick9</div><div class='text-xs text-green-400'>● Online</div></div></div><input placeholder='Search messages…' class='w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500/50 transition'></div><div class='flex-1 overflow-y-auto p-2'><div class='text-xs text-gray-500 px-2 py-1 uppercase tracking-wider mb-1'>Direct Messages</div><div class='flex items-center gap-3 px-3 py-2 rounded-xl bg-blue-500/20 cursor-pointer'><div class='w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-sm font-bold'>B</div><div><div class='text-sm font-semibold'>Brain Agent</div><div class='text-xs text-gray-400 truncate'>Ready to help…</div></div><div class='w-2 h-2 rounded-full bg-blue-500 ml-auto flex-shrink-0'></div></div><div class='flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 cursor-pointer mt-1'><div class='w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold'>R</div><div><div class='text-sm font-semibold'>Researcher</div><div class='text-xs text-gray-400'>Idle</div></div></div></div></aside><main class='flex-1 flex flex-col'><div class='flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-[#0a0b12]'><div class='w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center font-bold'>B</div><div><div class='font-semibold'>Brain Agent</div><div class='text-xs text-green-400'>● Active now</div></div></div><div class='flex-1 overflow-y-auto p-6 space-y-4' id='msgs'><div class='flex gap-3'><div class='w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-sm font-bold flex-shrink-0'>B</div><div class='max-w-xs lg:max-w-md'><div class='bg-[#0d1020] border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3 text-sm'>Hey! How can I help you build something amazing today? 🚀</div><div class='text-xs text-gray-600 mt-1 ml-1'>10:30 AM</div></div></div></div><div id='typing' class='hidden px-6 py-2 text-sm text-gray-500 italic'>Brain is typing…</div><div class='px-6 py-4 border-t border-white/10'><div class='flex items-center gap-3 bg-[#0d1020] border border-white/10 rounded-2xl px-4 py-3'><button class='text-gray-500 hover:text-white transition text-xl'>📎</button><input id='msgInput' placeholder='Message Brain Agent…' class='flex-1 bg-transparent text-white placeholder-gray-600 text-sm focus:outline-none' onkeydown=\"if(event.key==='Enter')sendMsg()\"><button class='text-gray-500 hover:text-white transition text-xl'>😊</button><button onclick='sendMsg()' class='bg-blue-500 text-white w-8 h-8 rounded-xl flex items-center justify-center hover:bg-blue-400 transition flex-shrink-0'>→</button></div></div></main><script>const replies=['Great question! Let me think about that…','I can help you build that! What framework do you prefer?','Interesting idea. Here is my analysis…','Done! Check the preview pane for the result.','I found some relevant context in your Memory Galaxy.','Running the swarm now — 4 agents analyzing your request…'];let c=0;function sendMsg(){const i=document.getElementById('msgInput');const t=i.value.trim();if(!t)return;i.value='';const m=document.getElementById('msgs');m.innerHTML+=`<div class='flex gap-3 flex-row-reverse'><div class='w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-bold flex-shrink-0'>J</div><div class='max-w-xs lg:max-w-md'><div class='bg-blue-500 rounded-2xl rounded-tr-sm px-4 py-3 text-sm'>${t}</div><div class='text-xs text-gray-600 mt-1 mr-1 text-right'>Now</div></div></div>`;m.scrollTop=m.scrollHeight;const typing=document.getElementById('typing');typing.classList.remove('hidden');setTimeout(()=>{typing.classList.add('hidden');m.innerHTML+=`<div class='flex gap-3'><div class='w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-sm font-bold flex-shrink-0'>B</div><div class='max-w-xs lg:max-w-md'><div class='bg-[#0d1020] border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3 text-sm'>${replies[c++%replies.length]}</div><div class='text-xs text-gray-600 mt-1 ml-1'>Now</div></div></div>`;m.scrollTop=m.scrollHeight;},1200+Math.random()*800);}</script></body></html>"}},
-    {"id":"invoice-generator","name":"Invoice Generator","category":"saas","emoji":"🧾","description":"Professional invoice builder with line items, taxes, print/PDF export","tags":["invoice","billing","pdf","business"],"preview_color":"#4cc98a","files":{"index.html":"<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Invoice Generator</title><script src='https://cdn.tailwindcss.com'></script><style>body{background:#f0f4ff;color:#0d1020;font-family:Inter,system-ui,sans-serif}@media print{.no-print{display:none!important}body{background:white}}</style></head><body class='p-6'><div class='max-w-3xl mx-auto'><div class='flex justify-between mb-6 no-print'><h1 class='text-2xl font-black text-[#0d1020]'>📄 Invoice Generator</h1><div class='flex gap-2'><button onclick='addLine()' class='border border-[#0d1020]/20 px-4 py-2 rounded-xl text-sm hover:bg-[#0d1020]/5 transition'>+ Add item</button><button onclick='window.print()' class='bg-green-500 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-green-400 transition'>🖨️ Print / PDF</button></div></div><div class='bg-white rounded-2xl shadow-xl p-8'><div class='flex justify-between mb-10'><div><div class='font-black text-2xl mb-1'>Your Company</div><div class='text-gray-400 text-sm'>123 Main Street<br>Charlotte, NC 28201<br>you@company.com</div></div><div class='text-right'><div class='text-3xl font-black text-green-600 mb-1'>INVOICE</div><div class='text-gray-400 text-sm'>#INV-<input id='invNum' value='001' class='w-12 border-b border-gray-300 bg-transparent text-right focus:outline-none font-bold'></div><div class='text-gray-400 text-sm mt-1'>Date: <input type='date' class='border-b border-gray-300 bg-transparent focus:outline-none text-sm'></div></div></div><div class='mb-8'><div class='text-xs font-bold text-gray-400 uppercase tracking-wider mb-2'>Bill To</div><input placeholder='Client name' class='block font-bold text-lg border-b border-gray-200 w-full mb-1 focus:outline-none focus:border-green-500'><input placeholder='Client email' class='block text-sm text-gray-400 border-b border-gray-200 w-full focus:outline-none focus:border-green-500'></div><table class='w-full mb-6'><thead><tr class='border-b-2 border-gray-200'><th class='text-left pb-2 text-xs uppercase text-gray-400'>Description</th><th class='text-right pb-2 text-xs uppercase text-gray-400 w-20'>Qty</th><th class='text-right pb-2 text-xs uppercase text-gray-400 w-28'>Rate</th><th class='text-right pb-2 text-xs uppercase text-gray-400 w-28'>Amount</th><th class='w-8 no-print'></th></tr></thead><tbody id='lines'></tbody></table><div class='flex justify-end'><div class='w-60'><div class='flex justify-between py-2 text-sm'><span class='text-gray-400'>Subtotal</span><span id='subtotal' class='font-semibold'>$0.00</span></div><div class='flex justify-between py-2 text-sm'><span class='text-gray-400'>Tax (10%)</span><span id='tax' class='font-semibold'>$0.00</span></div><div class='flex justify-between py-2 border-t-2 border-gray-800 mt-1'><span class='font-black'>Total</span><span id='total' class='font-black text-lg text-green-600'>$0.00</span></div></div></div></div></div><script>let lines=[];function addLine(){lines.push({desc:'Service item',qty:1,rate:100});renderLines();}function renderLines(){const tb=document.getElementById('lines');tb.innerHTML=lines.map((l,i)=>`<tr class='border-b border-gray-100'><td class='py-2 pr-2'><input value='${l.desc}' oninput='lines[${i}].desc=this.value' class='w-full border-b border-transparent focus:border-green-400 focus:outline-none text-sm'></td><td class='py-2 px-1'><input type='number' value='${l.qty}' oninput='lines[${i}].qty=+this.value;calc()' class='w-full text-right border-b border-transparent focus:border-green-400 focus:outline-none text-sm'></td><td class='py-2 px-1'><input type='number' value='${l.rate}' oninput='lines[${i}].rate=+this.value;calc()' class='w-full text-right border-b border-transparent focus:border-green-400 focus:outline-none text-sm'></td><td class='py-2 pl-2 text-right text-sm font-semibold'>$${(l.qty*l.rate).toFixed(2)}</td><td class='no-print'><button onclick='lines.splice(${i},1);renderLines();calc()' class='text-red-400 hover:text-red-600 text-xs ml-1'>✕</button></td></tr>`).join('');calc();}function calc(){const s=lines.reduce((a,l)=>a+l.qty*l.rate,0);const t=s*.1;document.getElementById('subtotal').textContent='$'+s.toFixed(2);document.getElementById('tax').textContent='$'+t.toFixed(2);document.getElementById('total').textContent='$'+(s+t).toFixed(2);}addLine();addLine();</script></body></html>"}},
+    {
+        'id': 'pricing-page',
+        'name': 'Pricing Page',
+        'category': 'saas',
+        'emoji': '💰',
+        'description': '3-tier pricing with toggle (monthly/annual), feature comparison table',
+        'tags': ['pricing', 'saas', 'conversion'],
+        'preview_color': '#9d74f5',
+        'files': {
+            'index.html': "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Pricing</title><script src='https://cdn.tailwindcss.com'></script></head><body class='bg-[#08090e] text-white p-8'><div class='max-w-5xl mx-auto text-center'><h1 class='text-5xl font-black mb-4'>Simple pricing</h1><p class='text-gray-400 mb-12 text-xl'>Start free. Upgrade when ready.</p><div class='grid md:grid-cols-3 gap-6'><div class='bg-[#0d1020] border border-white/10 rounded-2xl p-8'><h2 class='text-xl font-bold mb-2'>Starter</h2><div class='text-4xl font-black my-4'>$0</div><p class='text-gray-400 text-sm mb-6'>Free forever</p><ul class='text-sm text-left space-y-2 mb-8 text-gray-300'><li>✓ 3 projects</li><li>✓ 100 AI messages/day</li><li>✓ Community support</li></ul><button class='w-full border border-white/20 py-3 rounded-xl hover:bg-white/5 transition'>Get started</button></div><div class='bg-[#0d1020] border border-blue-500/50 rounded-2xl p-8 relative'><div class='absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full'>Popular</div><h2 class='text-xl font-bold mb-2'>Pro</h2><div class='text-4xl font-black my-4'>$20</div><p class='text-gray-400 text-sm mb-6'>per month</p><ul class='text-sm text-left space-y-2 mb-8 text-gray-300'><li>✓ Unlimited projects</li><li>✓ Unlimited AI</li><li>✓ All deploy targets</li><li>✓ Priority support</li></ul><button class='w-full bg-blue-500 text-white font-bold py-3 rounded-xl hover:bg-blue-400 transition'>Start trial</button></div><div class='bg-[#0d1020] border border-white/10 rounded-2xl p-8'><h2 class='text-xl font-bold mb-2'>Team</h2><div class='text-4xl font-black my-4'>$50</div><p class='text-gray-400 text-sm mb-6'>per seat/month</p><ul class='text-sm text-left space-y-2 mb-8 text-gray-300'><li>✓ Everything in Pro</li><li>✓ Team collaboration</li><li>✓ Custom agents</li><li>✓ Dedicated support</li></ul><button class='w-full border border-white/20 py-3 rounded-xl hover:bg-white/5 transition'>Contact sales</button></div></div></div></body></html>"
+        },
+    },
+    {
+        'id': 'login-page',
+        'name': 'Login & Signup',
+        'category': 'saas',
+        'emoji': '🔐',
+        'description': 'Auth pages with email/password and OAuth buttons, validation, dark theme',
+        'tags': ['auth', 'login', 'signup', 'form'],
+        'preview_color': '#4cc98a',
+        'files': {
+            'index.html': "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Sign In</title><script src='https://cdn.tailwindcss.com'></script></head><body class='bg-[#08090e] text-white min-h-screen flex items-center justify-center p-4'><div class='w-full max-w-sm'><div class='text-center mb-8'><div class='text-4xl mb-2'>🧠</div><h1 class='text-2xl font-black'>Welcome back</h1><p class='text-gray-400 text-sm mt-1'>Sign in to your account</p></div><div class='bg-[#0d1020] border border-white/10 rounded-2xl p-6'><form onsubmit='event.preventDefault();alert(\"Logged in!\")'><div class='space-y-4'><div><label class='text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1.5'>Email</label><input type='email' placeholder='you@example.com' class='w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition' required></div><div><label class='text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1.5'>Password</label><input type='password' placeholder='••••••••' class='w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-blue-500/50 focus:outline-none transition' required></div><div class='flex items-center justify-between text-sm'><label class='flex items-center gap-2 text-gray-400 cursor-pointer'><input type='checkbox' class='accent-blue-500'> Remember me</label><a href='#' class='text-blue-400 hover:underline'>Forgot password?</a></div><button type='submit' class='w-full bg-blue-500 text-white font-bold py-3 rounded-xl hover:bg-blue-400 transition mt-2'>Sign in</button></div></form><div class='flex items-center gap-3 my-4'><div class='flex-1 h-px bg-white/10'></div><span class='text-gray-500 text-xs'>or continue with</span><div class='flex-1 h-px bg-white/10'></div></div><div class='grid grid-cols-2 gap-3'><button class='flex items-center justify-center gap-2 border border-white/10 rounded-xl py-2.5 hover:bg-white/5 transition text-sm'><span>G</span>Google</button><button class='flex items-center justify-center gap-2 border border-white/10 rounded-xl py-2.5 hover:bg-white/5 transition text-sm'><span>🐙</span>GitHub</button></div></div><p class='text-center text-gray-500 text-sm mt-6'>Don't have an account? <a href='#' class='text-blue-400 hover:underline'>Sign up free</a></p></div></body></html>"
+        },
+    },
+    {
+        'id': 'product-page',
+        'name': 'Product Page',
+        'category': 'ecommerce',
+        'emoji': '🛒',
+        'description': 'E-commerce product page with image gallery, variants, add to cart, reviews',
+        'tags': ['ecommerce', 'product', 'shop', 'cart'],
+        'preview_color': '#f06080',
+        'files': {
+            'index.html': "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Product</title><script src='https://cdn.tailwindcss.com'></script></head><body class='bg-[#08090e] text-white p-6'><div class='max-w-5xl mx-auto grid md:grid-cols-2 gap-10'><div class='space-y-3'><div class='aspect-square bg-gradient-to-br from-blue-900 to-purple-900 rounded-2xl flex items-center justify-center text-8xl'>📦</div><div class='grid grid-cols-4 gap-2'><div class='aspect-square bg-[#0d1020] rounded-xl border border-white/10 flex items-center justify-center text-2xl cursor-pointer hover:border-blue-500/50 transition'>📦</div><div class='aspect-square bg-[#0d1020] rounded-xl border border-white/10 flex items-center justify-center text-2xl cursor-pointer hover:border-blue-500/50 transition'>🎁</div><div class='aspect-square bg-[#0d1020] rounded-xl border border-white/10 flex items-center justify-center text-2xl cursor-pointer hover:border-blue-500/50 transition'>✨</div><div class='aspect-square bg-[#0d1020] rounded-xl border border-white/10 flex items-center justify-center text-2xl cursor-pointer hover:border-blue-500/50 transition'>🎯</div></div></div><div><div class='text-sm text-blue-400 mb-2'>YourBrand</div><h1 class='text-3xl font-black mb-2'>Premium Product Name</h1><div class='flex items-center gap-2 mb-4'><div class='flex text-yellow-400'>★★★★★</div><span class='text-gray-400 text-sm'>4.9 (247 reviews)</span></div><div class='text-3xl font-black mb-6'>$99 <span class='text-gray-500 text-lg line-through font-normal'>$149</span> <span class='text-green-400 text-sm font-bold'>33% off</span></div><div class='mb-6'><div class='text-sm font-bold mb-2'>Color</div><div class='flex gap-2'><button class='w-8 h-8 rounded-full bg-blue-500 border-2 border-white'></button><button class='w-8 h-8 rounded-full bg-gray-500 border-2 border-transparent hover:border-white transition'></button><button class='w-8 h-8 rounded-full bg-red-500 border-2 border-transparent hover:border-white transition'></button></div></div><div class='mb-6'><div class='text-sm font-bold mb-2'>Size</div><div class='flex gap-2'><button class='border border-blue-500 bg-blue-500/20 text-blue-300 px-4 py-2 rounded-xl text-sm font-bold'>S</button><button class='border border-white/20 px-4 py-2 rounded-xl text-sm hover:border-white/50 transition'>M</button><button class='border border-white/20 px-4 py-2 rounded-xl text-sm hover:border-white/50 transition'>L</button><button class='border border-white/20 px-4 py-2 rounded-xl text-sm hover:border-white/50 transition'>XL</button></div></div><button onclick='alert(\"Added to cart!\")' class='w-full bg-blue-500 text-white font-bold py-4 rounded-2xl text-lg hover:bg-blue-400 transition mb-3'>Add to cart — $99</button><button class='w-full border border-white/20 py-4 rounded-2xl hover:bg-white/5 transition'>♡ Save for later</button></div></div></body></html>"
+        },
+    },
+    {
+        'id': 'url-shortener',
+        'name': 'URL Shortener',
+        'category': 'apps',
+        'emoji': '🔗',
+        'description': 'URL shortener with copy button, link history, and QR code generation',
+        'tags': ['utility', 'url', 'tool', 'qr'],
+        'preview_color': '#38c5d8',
+        'files': {
+            'index.html': "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>URL Shortener</title><script src='https://cdn.tailwindcss.com'></script></head><body class='bg-[#08090e] text-white min-h-screen flex items-center justify-center p-4'><div class='w-full max-w-lg'><div class='text-center mb-10'><div class='text-5xl mb-3'>🔗</div><h1 class='text-4xl font-black mb-2'>Shorten URLs</h1><p class='text-gray-400'>Make long links short and shareable</p></div><div class='bg-[#0d1020] border border-white/10 rounded-2xl p-6'><div class='flex gap-3 mb-6'><input id='urlInput' type='url' placeholder='https://your-very-long-url.com/with/many/params?and=values' class='flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-teal-500/50 focus:outline-none transition text-sm'><button onclick='shortenUrl()' class='bg-teal-500 hover:bg-teal-400 text-[#08090e] font-bold px-5 py-3 rounded-xl transition whitespace-nowrap'>Shorten</button></div><div id='result' class='hidden'><div class='flex items-center gap-3 bg-teal-500/10 border border-teal-500/20 rounded-xl p-4'><div class='flex-1'><div class='text-xs text-gray-400 mb-1'>Shortened URL</div><div class='font-mono text-teal-300 font-bold' id='shortUrl'>agos.link/abc123</div></div><button onclick='copyShort()' class='bg-teal-500/20 text-teal-300 px-3 py-2 rounded-lg text-sm hover:bg-teal-500/30 transition'>Copy</button></div></div><div class='mt-4'><div class='text-xs text-gray-500 mb-2 uppercase tracking-wider font-semibold'>Recent links</div><div id='history' class='space-y-2'><div class='flex items-center gap-3 text-sm py-2 border-b border-white/5'><span class='text-teal-400 font-mono'>agos.link/demo</span><span class='text-gray-500 flex-1 truncate'>→ https://example.com/demo</span><span class='text-gray-600 text-xs'>42 clicks</span></div></div></div></div></div><script>let links=[];function shortenUrl(){const u=document.getElementById('urlInput').value;if(!u)return;const id=Math.random().toString(36).slice(2,8);const short='agos.link/'+id;links.unshift({short,original:u,clicks:0});document.getElementById('shortUrl').textContent=short;document.getElementById('result').classList.remove('hidden');renderHistory();}function copyShort(){const t=document.getElementById('shortUrl').textContent;navigator.clipboard.writeText(t).then(()=>alert('Copied!'));}function renderHistory(){const h=document.getElementById('history');h.innerHTML=links.map(l=>`<div class='flex items-center gap-3 text-sm py-2 border-b border-white/5'><span class='text-teal-400 font-mono flex-shrink-0'>${l.short}</span><span class='text-gray-500 flex-1 truncate'>→ ${l.original}</span><span class='text-gray-600 text-xs'>${l.clicks} clicks</span></div>`).join('');}</script></body></html>"
+        },
+    },
+    {
+        'id': 'weather-app',
+        'name': 'Weather App',
+        'category': 'apps',
+        'emoji': '🌤️',
+        'description': 'Beautiful weather card with animated icons, 5-day forecast, search by city',
+        'tags': ['weather', 'api', 'animation', 'cards'],
+        'preview_color': '#f0c060',
+        'files': {
+            'index.html': "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Weather</title><script src='https://cdn.tailwindcss.com'></script><style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}.float{animation:float 3s ease-in-out infinite}body{background:linear-gradient(135deg,#0a0f2e,#1a0a2e);min-height:100vh;color:white;font-family:Inter,system-ui,sans-serif}</style></head><body class='flex items-center justify-center p-6'><div class='w-full max-w-sm'><div class='bg-white/10 backdrop-blur border border-white/20 rounded-3xl p-6'><div class='flex items-center gap-3 mb-6'><input id='cityInput' placeholder='Search city…' class='flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-white placeholder-white/40 focus:outline-none text-sm' onkeydown=\"if(event.key==='Enter')search()\" value='Charlotte, NC'><button onclick='search()' class='bg-yellow-400 text-black font-bold px-4 py-2.5 rounded-xl text-sm'>Go</button></div><div class='text-center mb-6'><div id='icon' class='text-8xl mb-3 float'>🌤️</div><div class='text-5xl font-black mb-1' id='temp'>72°F</div><div class='text-white/70 text-lg' id='desc'>Partly Cloudy</div><div class='text-white/50 text-sm mt-1' id='city'>Charlotte, NC</div></div><div class='grid grid-cols-3 gap-3 mb-6'><div class='bg-white/10 rounded-xl p-3 text-center'><div class='text-xs text-white/50 mb-1'>Humidity</div><div class='font-bold' id='hum'>62%</div></div><div class='bg-white/10 rounded-xl p-3 text-center'><div class='text-xs text-white/50 mb-1'>Wind</div><div class='font-bold' id='wind'>8 mph</div></div><div class='bg-white/10 rounded-xl p-3 text-center'><div class='text-xs text-white/50 mb-1'>UV Index</div><div class='font-bold' id='uv'>4</div></div></div><div class='space-y-2'><div class='text-xs text-white/50 uppercase tracking-wider mb-2'>5-Day Forecast</div><div id='forecast' class='space-y-2'></div></div></div></div><script>const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];const icons=['☀️','🌤️','⛅','🌧️','⛈️'];const cities={charlotte:{temp:72,desc:'Partly Cloudy',hum:'62%',wind:'8 mph',uv:'4',icon:'🌤️'},london:{temp:58,desc:'Overcast',hum:'78%',wind:'12 mph',uv:'2',icon:'⛅'},tokyo:{temp:81,desc:'Sunny',hum:'55%',wind:'6 mph',uv:'7',icon:'☀️'},sydney:{temp:68,desc:'Clear',hum:'48%',wind:'14 mph',uv:'6',icon:'☀️'}};function search(){const c=document.getElementById('cityInput').value.toLowerCase().replace(/[,\\s]+/g,'');const d=cities[c]||{temp:Math.floor(60+Math.random()*30),desc:'Partly Cloudy',hum:Math.floor(40+Math.random()*40)+'%',wind:Math.floor(5+Math.random()*15)+' mph',uv:Math.floor(1+Math.random()*9)+'',icon:icons[Math.floor(Math.random()*icons.length)]};document.getElementById('temp').textContent=d.temp+'°F';document.getElementById('desc').textContent=d.desc;document.getElementById('hum').textContent=d.hum;document.getElementById('wind').textContent=d.wind;document.getElementById('uv').textContent=d.uv;document.getElementById('icon').textContent=d.icon;document.getElementById('city').textContent=document.getElementById('cityInput').value||'Your City';renderForecast();}function renderForecast(){const today=new Date().getDay();document.getElementById('forecast').innerHTML=[1,2,3,4,5].map(i=>`<div class='flex items-center justify-between bg-white/5 rounded-xl px-4 py-2'><span class='text-sm text-white/70 w-10'>${days[(today+i)%7]}</span><span class='text-xl'>${icons[Math.floor(Math.random()*3)]}</span><span class='font-semibold text-sm'>${Math.floor(60+Math.random()*20)}°</span></div>`).join('');}search();</script></body></html>"
+        },
+    },
+    {
+        'id': 'agency-site',
+        'name': 'Agency Website',
+        'category': 'marketing',
+        'emoji': '🏢',
+        'description': 'Creative agency homepage with case studies, team, services, contact',
+        'tags': ['agency', 'marketing', 'business', 'professional'],
+        'preview_color': '#9d74f5',
+        'files': {
+            'index.html': "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Creative Agency</title><script src='https://cdn.tailwindcss.com'></script><style>body{background:#050810;color:#fff;font-family:Inter,system-ui,sans-serif}</style></head><body><nav class='flex items-center justify-between px-8 py-4 border-b border-white/10'><span class='font-black text-xl'>STUDIO<span class='text-purple-400'>.</span></span><div class='hidden md:flex gap-6 text-sm text-gray-400'><a class='hover:text-white' href='#'>Work</a><a class='hover:text-white' href='#'>Services</a><a class='hover:text-white' href='#'>Team</a><a class='hover:text-white' href='#'>Contact</a></div><a href='#' class='border border-purple-500/50 text-purple-300 text-sm px-4 py-2 rounded-xl hover:bg-purple-500/10 transition'>Let's talk →</a></nav><section class='px-8 py-32 max-w-5xl'><div class='text-sm text-purple-400 mb-4 font-mono'>// WE BUILD DIGITAL EXPERIENCES</div><h1 class='text-6xl md:text-8xl font-black leading-none mb-8'>We design<br>the <span class='text-purple-400'>future.</span></h1><p class='text-gray-400 text-xl max-w-xl mb-10'>Crafting digital products that matter. Strategy, design, and engineering — all under one roof.</p><a href='#' class='inline-flex items-center gap-3 bg-purple-500 text-white font-bold px-8 py-4 rounded-2xl hover:bg-purple-400 transition text-lg'>View our work <span>→</span></a></section><section class='border-t border-white/10 px-8 py-16'><div class='max-w-5xl mx-auto grid md:grid-cols-3 gap-8'><div><div class='text-4xl font-black text-purple-400 mb-2'>120+</div><div class='text-gray-400'>Projects shipped</div></div><div><div class='text-4xl font-black text-purple-400 mb-2'>8 yrs</div><div class='text-gray-400'>In the industry</div></div><div><div class='text-4xl font-black text-purple-400 mb-2'>98%</div><div class='text-gray-400'>Client satisfaction</div></div></div></section></body></html>"
+        },
+    },
+    {
+        'id': 'chat-app',
+        'name': 'Chat Interface',
+        'category': 'apps',
+        'emoji': '💬',
+        'description': 'Real-time chat UI with message bubbles, typing indicator, emoji, file attach',
+        'tags': ['chat', 'messaging', 'realtime', 'ui'],
+        'preview_color': '#5b8af8',
+        'files': {
+            'index.html': "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Chat</title><script src='https://cdn.tailwindcss.com'></script><style>body{background:#08090e;color:#e8f0ff;font-family:Inter,system-ui,sans-serif}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#1a2040;border-radius:99px}</style></head><body class='flex h-screen'><aside class='w-64 bg-[#0d1020] border-r border-white/10 flex flex-col'><div class='p-4 border-b border-white/10'><div class='flex items-center gap-3 mb-3'><div class='w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center font-bold'>J</div><div><div class='font-semibold text-sm'>jstrick9</div><div class='text-xs text-green-400'>● Online</div></div></div><input placeholder='Search messages…' class='w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500/50 transition'></div><div class='flex-1 overflow-y-auto p-2'><div class='text-xs text-gray-500 px-2 py-1 uppercase tracking-wider mb-1'>Direct Messages</div><div class='flex items-center gap-3 px-3 py-2 rounded-xl bg-blue-500/20 cursor-pointer'><div class='w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-sm font-bold'>B</div><div><div class='text-sm font-semibold'>Brain Agent</div><div class='text-xs text-gray-400 truncate'>Ready to help…</div></div><div class='w-2 h-2 rounded-full bg-blue-500 ml-auto flex-shrink-0'></div></div><div class='flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 cursor-pointer mt-1'><div class='w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold'>R</div><div><div class='text-sm font-semibold'>Researcher</div><div class='text-xs text-gray-400'>Idle</div></div></div></div></aside><main class='flex-1 flex flex-col'><div class='flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-[#0a0b12]'><div class='w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center font-bold'>B</div><div><div class='font-semibold'>Brain Agent</div><div class='text-xs text-green-400'>● Active now</div></div></div><div class='flex-1 overflow-y-auto p-6 space-y-4' id='msgs'><div class='flex gap-3'><div class='w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-sm font-bold flex-shrink-0'>B</div><div class='max-w-xs lg:max-w-md'><div class='bg-[#0d1020] border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3 text-sm'>Hey! How can I help you build something amazing today? 🚀</div><div class='text-xs text-gray-600 mt-1 ml-1'>10:30 AM</div></div></div></div><div id='typing' class='hidden px-6 py-2 text-sm text-gray-500 italic'>Brain is typing…</div><div class='px-6 py-4 border-t border-white/10'><div class='flex items-center gap-3 bg-[#0d1020] border border-white/10 rounded-2xl px-4 py-3'><button class='text-gray-500 hover:text-white transition text-xl'>📎</button><input id='msgInput' placeholder='Message Brain Agent…' class='flex-1 bg-transparent text-white placeholder-gray-600 text-sm focus:outline-none' onkeydown=\"if(event.key==='Enter')sendMsg()\"><button class='text-gray-500 hover:text-white transition text-xl'>😊</button><button onclick='sendMsg()' class='bg-blue-500 text-white w-8 h-8 rounded-xl flex items-center justify-center hover:bg-blue-400 transition flex-shrink-0'>→</button></div></div></main><script>const replies=['Great question! Let me think about that…','I can help you build that! What framework do you prefer?','Interesting idea. Here is my analysis…','Done! Check the preview pane for the result.','I found some relevant context in your Memory Galaxy.','Running the swarm now — 4 agents analyzing your request…'];let c=0;function sendMsg(){const i=document.getElementById('msgInput');const t=i.value.trim();if(!t)return;i.value='';const m=document.getElementById('msgs');m.innerHTML+=`<div class='flex gap-3 flex-row-reverse'><div class='w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-bold flex-shrink-0'>J</div><div class='max-w-xs lg:max-w-md'><div class='bg-blue-500 rounded-2xl rounded-tr-sm px-4 py-3 text-sm'>${t}</div><div class='text-xs text-gray-600 mt-1 mr-1 text-right'>Now</div></div></div>`;m.scrollTop=m.scrollHeight;const typing=document.getElementById('typing');typing.classList.remove('hidden');setTimeout(()=>{typing.classList.add('hidden');m.innerHTML+=`<div class='flex gap-3'><div class='w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-sm font-bold flex-shrink-0'>B</div><div class='max-w-xs lg:max-w-md'><div class='bg-[#0d1020] border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3 text-sm'>${replies[c++%replies.length]}</div><div class='text-xs text-gray-600 mt-1 ml-1'>Now</div></div></div>`;m.scrollTop=m.scrollHeight;},1200+Math.random()*800);}</script></body></html>"
+        },
+    },
+    {
+        'id': 'invoice-generator',
+        'name': 'Invoice Generator',
+        'category': 'saas',
+        'emoji': '🧾',
+        'description': 'Professional invoice builder with line items, taxes, print/PDF export',
+        'tags': ['invoice', 'billing', 'pdf', 'business'],
+        'preview_color': '#4cc98a',
+        'files': {
+            'index.html': "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Invoice Generator</title><script src='https://cdn.tailwindcss.com'></script><style>body{background:#f0f4ff;color:#0d1020;font-family:Inter,system-ui,sans-serif}@media print{.no-print{display:none!important}body{background:white}}</style></head><body class='p-6'><div class='max-w-3xl mx-auto'><div class='flex justify-between mb-6 no-print'><h1 class='text-2xl font-black text-[#0d1020]'>📄 Invoice Generator</h1><div class='flex gap-2'><button onclick='addLine()' class='border border-[#0d1020]/20 px-4 py-2 rounded-xl text-sm hover:bg-[#0d1020]/5 transition'>+ Add item</button><button onclick='window.print()' class='bg-green-500 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-green-400 transition'>🖨️ Print / PDF</button></div></div><div class='bg-white rounded-2xl shadow-xl p-8'><div class='flex justify-between mb-10'><div><div class='font-black text-2xl mb-1'>Your Company</div><div class='text-gray-400 text-sm'>123 Main Street<br>Charlotte, NC 28201<br>you@company.com</div></div><div class='text-right'><div class='text-3xl font-black text-green-600 mb-1'>INVOICE</div><div class='text-gray-400 text-sm'>#INV-<input id='invNum' value='001' class='w-12 border-b border-gray-300 bg-transparent text-right focus:outline-none font-bold'></div><div class='text-gray-400 text-sm mt-1'>Date: <input type='date' class='border-b border-gray-300 bg-transparent focus:outline-none text-sm'></div></div></div><div class='mb-8'><div class='text-xs font-bold text-gray-400 uppercase tracking-wider mb-2'>Bill To</div><input placeholder='Client name' class='block font-bold text-lg border-b border-gray-200 w-full mb-1 focus:outline-none focus:border-green-500'><input placeholder='Client email' class='block text-sm text-gray-400 border-b border-gray-200 w-full focus:outline-none focus:border-green-500'></div><table class='w-full mb-6'><thead><tr class='border-b-2 border-gray-200'><th class='text-left pb-2 text-xs uppercase text-gray-400'>Description</th><th class='text-right pb-2 text-xs uppercase text-gray-400 w-20'>Qty</th><th class='text-right pb-2 text-xs uppercase text-gray-400 w-28'>Rate</th><th class='text-right pb-2 text-xs uppercase text-gray-400 w-28'>Amount</th><th class='w-8 no-print'></th></tr></thead><tbody id='lines'></tbody></table><div class='flex justify-end'><div class='w-60'><div class='flex justify-between py-2 text-sm'><span class='text-gray-400'>Subtotal</span><span id='subtotal' class='font-semibold'>$0.00</span></div><div class='flex justify-between py-2 text-sm'><span class='text-gray-400'>Tax (10%)</span><span id='tax' class='font-semibold'>$0.00</span></div><div class='flex justify-between py-2 border-t-2 border-gray-800 mt-1'><span class='font-black'>Total</span><span id='total' class='font-black text-lg text-green-600'>$0.00</span></div></div></div></div></div><script>let lines=[];function addLine(){lines.push({desc:'Service item',qty:1,rate:100});renderLines();}function renderLines(){const tb=document.getElementById('lines');tb.innerHTML=lines.map((l,i)=>`<tr class='border-b border-gray-100'><td class='py-2 pr-2'><input value='${l.desc}' oninput='lines[${i}].desc=this.value' class='w-full border-b border-transparent focus:border-green-400 focus:outline-none text-sm'></td><td class='py-2 px-1'><input type='number' value='${l.qty}' oninput='lines[${i}].qty=+this.value;calc()' class='w-full text-right border-b border-transparent focus:border-green-400 focus:outline-none text-sm'></td><td class='py-2 px-1'><input type='number' value='${l.rate}' oninput='lines[${i}].rate=+this.value;calc()' class='w-full text-right border-b border-transparent focus:border-green-400 focus:outline-none text-sm'></td><td class='py-2 pl-2 text-right text-sm font-semibold'>$${(l.qty*l.rate).toFixed(2)}</td><td class='no-print'><button onclick='lines.splice(${i},1);renderLines();calc()' class='text-red-400 hover:text-red-600 text-xs ml-1'>✕</button></td></tr>`).join('');calc();}function calc(){const s=lines.reduce((a,l)=>a+l.qty*l.rate,0);const t=s*.1;document.getElementById('subtotal').textContent='$'+s.toFixed(2);document.getElementById('tax').textContent='$'+t.toFixed(2);document.getElementById('total').textContent='$'+(s+t).toFixed(2);}addLine();addLine();</script></body></html>"
+        },
+    },
 ]
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 _CATEGORY_LABELS = {
-    "saas":      "SaaS & Business",
-    "apps":      "Apps & Tools",
-    "portfolio": "Portfolio",
-    "marketing": "Marketing",
-    "ecommerce": "E-Commerce",
+    'saas': 'SaaS & Business',
+    'apps': 'Apps & Tools',
+    'portfolio': 'Portfolio',
+    'marketing': 'Marketing',
+    'ecommerce': 'E-Commerce',
 }
+
 
 def _safe_name(name: str) -> str:
     """Sanitize a project name for HTML substitution."""
-    return re.sub(r"[^\w\s\-]", "", (name or "").strip())[:80]
+    return re.sub(r'[^\w\s\-]', '', (name or '').strip())[:80]
 
 
 def _template_summary(t: dict) -> dict:
     """Return safe public fields (no raw file content)."""
     return {
-        "id":            t["id"],
-        "name":          t["name"],
-        "category":      t["category"],
-        "emoji":         t["emoji"],
-        "description":   t["description"],
-        "tags":          t["tags"],
-        "preview_color": t.get("preview_color", "#5b8af8"),
-        "file_count":    len(t.get("files", {})),
-        "file_names":    list(t.get("files", {}).keys()),
+        'id': t['id'],
+        'name': t['name'],
+        'category': t['category'],
+        'emoji': t['emoji'],
+        'description': t['description'],
+        'tags': t['tags'],
+        'preview_color': t.get('preview_color', '#5b8af8'),
+        'file_count': len(t.get('files', {})),
+        'file_names': list(t.get('files', {}).keys()),
     }
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
-@router.get("")
-def list_templates(category: str = "", q: str = ""):
+
+@router.get('')
+def list_templates(category: str = '', q: str = ''):
     """List all templates, optionally filtered by category or search query."""
     results = [_template_summary(t) for t in TEMPLATES]
     if category:
-        results = [t for t in results if t["category"] == category]
+        results = [t for t in results if t['category'] == category]
     if q:
         ql = q.lower()
-        results = [t for t in results if
-                   ql in t["name"].lower() or
-                   ql in t["description"].lower() or
-                   any(ql in tag.lower() for tag in t["tags"])]
+        results = [
+            t
+            for t in results
+            if ql in t['name'].lower() or ql in t['description'].lower() or any(ql in tag.lower() for tag in t['tags'])
+        ]
     return {
-        "templates": results,
-        "count":     len(results),
-        "total":     len(TEMPLATES),
+        'templates': results,
+        'count': len(results),
+        'total': len(TEMPLATES),
     }
 
 
-@router.get("/categories")
+@router.get('/categories')
 def list_categories():
     """Return all categories with counts and labels."""
     cats: dict = {}
     for t in TEMPLATES:
-        c = t["category"]
+        c = t['category']
         cats[c] = cats.get(c, 0) + 1
-    return [
-        {"id": k, "label": _CATEGORY_LABELS.get(k, k.title()), "count": v}
-        for k, v in sorted(cats.items())
-    ]
+    return [{'id': k, 'label': _CATEGORY_LABELS.get(k, k.title()), 'count': v} for k, v in sorted(cats.items())]
 
 
-@router.get("/search")
-def search_templates(q: str = "", limit: int = 10):
+@router.get('/search')
+def search_templates(q: str = '', limit: int = 10):
     """Search templates by name, description, or tags."""
     if not q.strip():
-        return {"results": [], "count": 0}
+        return {'results': [], 'count': 0}
     ql = q.lower().strip()
     results = [
-        _template_summary(t) for t in TEMPLATES
-        if ql in t["name"].lower()
-        or ql in t["description"].lower()
-        or any(ql in tag.lower() for tag in t["tags"])
-    ][:min(limit, 50)]
-    return {"results": results, "count": len(results), "query": q}
+        _template_summary(t)
+        for t in TEMPLATES
+        if ql in t['name'].lower() or ql in t['description'].lower() or any(ql in tag.lower() for tag in t['tags'])
+    ][: min(limit, 50)]
+    return {'results': results, 'count': len(results), 'query': q}
 
 
-@router.get("/{template_id}/preview")
+@router.get('/{template_id}/preview')
 def get_template_preview(template_id: str):
     """Return the first HTML file content for in-pane preview."""
-    t = next((t for t in TEMPLATES if t["id"] == template_id), None)
+    t = next((t for t in TEMPLATES if t['id'] == template_id), None)
     if not t:
-        return {"ok": False, "error": f"Template '{template_id}' not found"}
+        return {'ok': False, 'error': f"Template '{template_id}' not found"}
     # Return the first html file
-    files = t.get("files", {})
+    files = t.get('files', {})
     for fname, fcontent in files.items():
-        if fname.endswith(".html"):
-            return {"ok": True, "filename": fname, "content": fcontent, "template": t["name"]}
-    return {"ok": False, "error": "No HTML file in template"}
+        if fname.endswith('.html'):
+            return {'ok': True, 'filename': fname, 'content': fcontent, 'template': t['name']}
+    return {'ok': False, 'error': 'No HTML file in template'}
 
 
-@router.get("/{template_id}")
+@router.get('/{template_id}')
 def get_template(template_id: str):
     """Get full template details including file names (not content)."""
-    t = next((t for t in TEMPLATES if t["id"] == template_id), None)
+    t = next((t for t in TEMPLATES if t['id'] == template_id), None)
     if not t:
-        return {"ok": False, "error": f"Template '{template_id}' not found"}
-    return {**_template_summary(t), "ok": True}
+        return {'ok': False, 'error': f"Template '{template_id}' not found"}
+    return {**_template_summary(t), 'ok': True}
 
 
-@router.post("/{template_id}/scaffold")
+@router.post('/{template_id}/scaffold')
 async def scaffold_template(template_id: str, req: Request):
     """Scaffold a template into preview/."""
     try:
         body = await req.json()
-    except Exception:
+    except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    t    = next((t for t in TEMPLATES if t["id"] == template_id), None)
+    t = next((t for t in TEMPLATES if t['id'] == template_id), None)
     if not t:
-        return {"ok": False, "error": f"Template '{template_id}' not found"}
+        return {'ok': False, 'error': f"Template '{template_id}' not found"}
 
     # Sanitised project name for substitution
-    raw_name    = body.get("project_name", "")
-    custom_name = _safe_name(raw_name) if raw_name else ""
-    custom_desc = (body.get("description") or "").strip()[:200]
+    raw_name = body.get('project_name', '')
+    custom_name = _safe_name(raw_name) if raw_name else ''
+    custom_desc = (body.get('description') or '').strip()[:200]
 
     PREV.mkdir(parents=True, exist_ok=True)
     created: list = []
 
     con = get_conn()
     try:
-        for filename, file_content in t["files"].items():
+        for filename, file_content in t['files'].items():
             # Substitute project name placeholders
             if custom_name:
-                for placeholder in ["YourSaaS", "Your Name", "Your Company", "My App"]:
+                for placeholder in ['YourSaaS', 'Your Name', 'Your Company', 'My App']:
                     file_content = file_content.replace(placeholder, custom_name)
 
             # Path traversal guard
             target = (PREV / filename).resolve()
             if not str(target).startswith(str(PREV.resolve())):
-                log.warning("Blocked path traversal attempt in template: %s", filename)
+                log.warning('Blocked path traversal attempt in template: %s', filename)
                 continue
 
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(file_content, encoding="utf-8")
+            target.write_text(file_content, encoding='utf-8')
             created.append(filename)
 
             # Record in file_versions
             try:
                 con.execute(
-                    "INSERT INTO file_versions(path,content,author,message) VALUES (?,?,?,?)",
-                    (filename, file_content, "template", f"Template: {t['name']}")
+                    'INSERT INTO file_versions(path,content,author,message) VALUES (?,?,?,?)',
+                    (filename, file_content, 'template', f'Template: {t["name"]}'),
                 )
-            except Exception:
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                 pass
 
         con.commit()
-        audit_log("template_scaffold", f"{template_id}: {', '.join(created)}")
+        audit_log('template_scaffold', f'{template_id}: {", ".join(created)}')
     finally:
         con.close()
 
     # Determine primary preview URL
-    preview_url = "/preview/index.html"
+    preview_url = '/preview/index.html'
     for fn in created:
-        if fn.endswith(".html"):
-            preview_url = f"/preview/{fn}"
+        if fn.endswith('.html'):
+            preview_url = f'/preview/{fn}'
             break
 
     return {
-        "ok":          True,
-        "template":    t["name"],
-        "template_id": template_id,
-        "files":       created,
-        "preview_url": preview_url,
-        "message":     f"✅ {t['name']} scaffolded — {len(created)} file(s)",
+        'ok': True,
+        'template': t['name'],
+        'template_id': template_id,
+        'files': created,
+        'preview_url': preview_url,
+        'message': f'✅ {t["name"]} scaffolded — {len(created)} file(s)',
     }
 
 
-@router.post("/scaffold-custom")
+@router.post('/scaffold-custom')
 async def scaffold_custom(req: Request):
     """Save current preview/index.html as a named template backup."""
     try:
-        body    = await req.json()
-    except Exception:
-        body    = {}
-    name    = (body.get("name") or "").strip()[:80]
+        body = await req.json()
+    except (json.JSONDecodeError, TypeError, ValueError):
+        body = {}
+    name = (body.get('name') or '').strip()[:80]
     if not name:
-        return {"ok": False, "error": "name required"}
+        return {'ok': False, 'error': 'name required'}
 
-    src = PREV / "index.html"
+    src = PREV / 'index.html'
     if not src.exists():
-        return {"ok": False, "error": "No index.html in preview/ to save"}
+        return {'ok': False, 'error': 'No index.html in preview/ to save'}
 
     # Save as a named backup in preview/templates/
-    backup_dir = PREV / "templates"
+    backup_dir = PREV / 'templates'
     backup_dir.mkdir(exist_ok=True)
-    safe_fname = re.sub(r"[^\w\-]", "_", name.lower())[:40] + ".html"
+    safe_fname = re.sub(r'[^\w\-]', '_', name.lower())[:40] + '.html'
     dest = backup_dir / safe_fname
-    dest.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
-    audit_log("template_custom_save", name)
+    dest.write_text(src.read_text(encoding='utf-8'), encoding='utf-8')
+    audit_log('template_custom_save', name)
     return {
-        "ok":      True,
-        "name":    name,
-        "saved_to": str(dest.relative_to(ROOT)),
-        "url":     f"/preview/templates/{safe_fname}",
+        'ok': True,
+        'name': name,
+        'saved_to': str(dest.relative_to(ROOT)),
+        'url': f'/preview/templates/{safe_fname}',
     }
