@@ -26,7 +26,7 @@ from backend.config import get_data_dir
 ROOT = get_data_dir()
 PLUGIN_DIR = ROOT / 'plugins'
 PLUGIN_DIR.mkdir(exist_ok=True)
-REGISTRY_URL = 'https://raw.githubusercontent.com/jstrick9/agentic-os/main/plugins/registry.json'
+REGISTRY_URL = 'https://raw.githubusercontent.com/jstrick9/strick_tech/main/plugins/registry.json'
 
 # ── Built-in registry (always available offline) ──────────────────────────────
 BUILTIN_REGISTRY = [

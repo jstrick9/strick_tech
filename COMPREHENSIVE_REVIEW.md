@@ -5,7 +5,7 @@
 
 ## 📊 Executive Summary & Score Evolution
 
-**Agentic OS Platform** by **Joshua Strickland and Strick Tech** (`https://github.com/jstrick9/agentic-os`) is built as premier software for individuals and organizations to build, run, and scale autonomous AI workflows. Set up across **Free, Pro, and Enterprise** versions, the platform has undergone a complete, multi-phase engineering transformation into a 10/10 local-first AI operating system.
+**Agentic OS Platform** by **Joshua Strickland and Strick Tech** (`https://github.com/jstrick9/strick_tech`) is built as premier software for individuals and organizations to build, run, and scale autonomous AI workflows. Set up across **Free, Pro, and Enterprise** versions, the platform has undergone a complete, multi-phase engineering transformation into a 10/10 local-first AI operating system.
 
 ### Overall Score: 10.0 / 10.0 across all categories! 🏆 (was 6.5 / 10.0)
 

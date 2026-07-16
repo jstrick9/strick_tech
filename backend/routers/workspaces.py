@@ -312,7 +312,7 @@ def export_workspace_zip(ws_id: str):
                 rel = f.relative_to(ws_preview).as_posix()
                 zf.write(f, rel)
         # Add a README
-        readme = f'# {name}\n\nExported from Agentic OS — {time.strftime("%Y-%m-%d")}\n\nBuilt with Agentic OS v6.0 (https://github.com/jstrick9/agentic-os)\n'
+        readme = f'# {name}\n\nExported from Agentic OS — {time.strftime("%Y-%m-%d")}\n\nBuilt with Agentic OS Platform (https://github.com/jstrick9/strick_tech)\n'
         zf.writestr('README.md', readme)
 
     buf.seek(0)
