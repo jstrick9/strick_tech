@@ -1,29 +1,53 @@
 @echo off
-:: Agentic OS v6.0 — Windows Launcher
-title Agentic OS v6.0 — Mission Control
-cd /d "%~dp0"
+REM ═══════════════════════════════════════════════════════════════
+REM  Agentic OS — Startup Script (Windows)
+REM  Run: start.bat
+REM ═══════════════════════════════════════════════════════════════
 
-:: Check Python
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: Python not found. Install from https://python.org
+echo.
+echo   🧠 Agentic OS v6.0 — Mission Control
+echo   ══════════════════════════════════════
+echo.
+
+REM ── Check Python ─────────────────────────────────────────────
+where python >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo   ❌ Python not found.
+    echo      Install: https://python.org
     pause
     exit /b 1
 )
 
-:: Create .env from example if missing
-if not exist .env (
-    if exist .env.example (
+for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYVER=%%i
+echo   ✅ Python: %PYVER%
+
+REM ── Check .env ───────────────────────────────────────────────
+if not exist ".env" (
+    if exist ".env.example" (
+        echo.
+        echo   ⚠️  No .env file found.
+        echo      Copying .env.example to .env
         copy .env.example .env
-        echo Created .env from .env.example - add your OPENROUTER_API_KEY
+        echo      Edit .env and add your OPENROUTER_API_KEY
+        echo      Get a free key: https://openrouter.ai/keys
+        echo.
     )
 )
 
-:: Install dependencies
-echo Installing dependencies...
-python -m pip install -r requirements.txt -q
+REM ── Install dependencies ────────────────────────────────────
+echo.
+echo   📦 Checking dependencies...
+python -c "import fastapi" >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo   Installing requirements...
+    python -m pip install -r requirements.txt -q
+)
 
-:: Run
-echo Starting Agentic OS...
+REM ── Run ──────────────────────────────────────────────────────
+echo.
+echo   🚀 Starting Agentic OS...
+echo   🌐 http://localhost:8787
+echo.
+
 python run.py
 pause

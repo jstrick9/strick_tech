@@ -4,13 +4,6 @@ Covers: cost time-series, budget breach alerts, KPI trends, anomaly resolution, 
 """
 import pytest, httpx, time
 
-BASE = "http://127.0.0.1:8787"
-
-@pytest.fixture(scope="module")
-def client():
-    return httpx.Client(base_url=BASE, timeout=15)
-
-
 class TestFinOpsAdvanced:
     def test_dashboard_fields(self, client):
         d = client.get("/api/finops/dashboard").json()

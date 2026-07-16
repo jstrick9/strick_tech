@@ -4,13 +4,6 @@ Covers: multi-file editing, plugin dev SDK, AI test gen, performance profiler
 """
 import pytest, httpx
 
-BASE = "http://127.0.0.1:8787"
-
-@pytest.fixture(scope="module")
-def client():
-    return httpx.Client(base_url=BASE, timeout=20)
-
-
 class TestMultifileComposer:
     def test_composer_preview_files(self, client):
         r = client.get("/api/composer/preview/branches")

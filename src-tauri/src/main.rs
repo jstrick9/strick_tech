@@ -7,8 +7,81 @@ use std::process::{Command, Child};
 use std::sync::Mutex;
 use std::time::Duration;
 use std::thread;
+use std::path::PathBuf;
 
 struct BackendProcess(Mutex<Option<Child>>);
+
+fn find_run_py() -> String {
+    // Try multiple locations for run.py
+    let candidates = vec![
+        PathBuf::from("run.py"),
+        PathBuf::from("../run.py"),
+        PathBuf::from("../../run.py"),
+    ];
+
+    // Also try relative to executable
+    if let Ok(exe_dir) = std::env::current_exe() {
+        if let Some(parent) = exe_dir.parent() {
+            let candidates_from_exe = vec![
+                parent.join("run.py"),
+                parent.join("../run.py"),
+                parent.join("../../run.py"),
+                parent.join("Resources/run.py"),       // macOS bundle
+                parent.join("../Resources/run.py"),     // macOS bundle alt
+            ];
+            for c in candidates_from_exe {
+                if c.exists() {
+                    return c.to_string_lossy().to_string();
+                }
+            }
+        }
+    }
+
+    for c in &candidates {
+        if c.exists() {
+            return c.to_string_lossy().to_string();
+        }
+    }
+
+    // Default fallback
+    "run.py".to_string()
+}
+
+fn find_python_binary() -> String {
+    // 1. Check for bundled standalone embedded Python runtime inside Resources/python_embedded/bin/python3
+    if let Ok(exe_dir) = std::env::current_exe() {
+        if let Some(parent) = exe_dir.parent() {
+            let embedded_candidates = vec![
+                parent.join("Resources/python_embedded/bin/python3"),     // macOS bundle standalone
+                parent.join("../Resources/python_embedded/bin/python3"),  // macOS alt
+                parent.join("python_embedded/bin/python3"),               // linux/unix bundle
+                parent.join("python_embedded/python.exe"),                // windows standalone
+                parent.join("Resources/python_embedded/python.exe"),
+            ];
+            for c in embedded_candidates {
+                if c.exists() {
+                    println!("[Agentic OS] Found embedded standalone Python runtime: {:?}", c);
+                    return c.to_string_lossy().to_string();
+                }
+            }
+        }
+    }
+
+    // 2. Check local relative directory
+    let local_candidates = vec![
+        PathBuf::from("python_embedded/bin/python3"),
+        PathBuf::from("python_embedded/python.exe"),
+    ];
+    for c in local_candidates {
+        if c.exists() {
+            println!("[Agentic OS] Found local embedded Python runtime: {:?}", c);
+            return c.to_string_lossy().to_string();
+        }
+    }
+
+    // 3. Fallback to system Python
+    if cfg!(windows) { "python".to_string() } else { "python3".to_string() }
+}
 
 fn main() {
     tauri::Builder::default()
@@ -16,29 +89,27 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::init())
         .manage(BackendProcess(Mutex::new(None)))
         .setup(|app| {
-            // Spawn Python backend
-            let app_dir = app.path().app_data_dir()
-                .unwrap_or_else(|_| std::path::PathBuf::from("."));
+            let run_py = find_run_py();
+            let python = find_python_binary();
 
-            let python = if cfg!(windows) { "python" } else { "python3" };
+            let run_dir = std::path::Path::new(&run_py)
+                .parent()
+                .map(|p| p.to_path_buf())
+                .unwrap_or_else(|| {
+                    std::env::current_exe()
+                        .ok()
+                        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+                        .unwrap_or_else(|| PathBuf::from("."))
+                });
 
-            // Look for run.py relative to executable
-            let exe_dir = std::env::current_exe()
-                .ok()
-                .and_then(|p| p.parent().map(|p| p.to_path_buf()))
-                .unwrap_or_else(|| std::path::PathBuf::from("."));
-
-            let run_py = exe_dir.join("run.py");
-            let run_py_str = if run_py.exists() {
-                run_py.to_string_lossy().to_string()
-            } else {
-                "run.py".to_string()
-            };
+            println!("[Agentic OS] Starting backend: {} {} (cwd: {:?})", python, run_py, run_dir);
 
             let child = Command::new(python)
-                .arg(&run_py_str)
+                .arg(&run_py)
+                .current_dir(run_dir)
                 .spawn();
 
             match child {
@@ -46,12 +117,13 @@ fn main() {
                     let state = app.state::<BackendProcess>();
                     *state.0.lock().unwrap() = Some(c);
                     // Give backend time to start
-                    thread::sleep(Duration::from_millis(1500));
+                    thread::sleep(Duration::from_millis(2000));
                     println!("[Agentic OS] Backend started → http://localhost:8787");
                 }
                 Err(e) => {
                     eprintln!("[Agentic OS] Failed to start backend: {}", e);
-                    eprintln!("Make sure Python 3 is installed: https://python.org");
+                    eprintln!("Make sure Python 3.10+ is installed: https://python.org");
+                    eprintln!("And run: pip install -r requirements.txt");
                 }
             }
 
@@ -59,12 +131,20 @@ fn main() {
         })
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
-                // Backend will be killed when the process exits
+                use tauri::Manager;
+                let state = _window.state::<BackendProcess>();
+                if let Ok(mut guard) = state.0.lock() {
+                    if let Some(mut child) = guard.take() {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                    }
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
             get_version,
             open_data_dir,
+            get_backend_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Agentic OS");
@@ -72,7 +152,13 @@ fn main() {
 
 #[tauri::command]
 fn get_version() -> String {
-    "6.0.0".to_string()
+    "10.0.0".to_string()
+}
+
+#[tauri::command]
+fn get_backend_url() -> String {
+    let port = std::env::var("AGENTIC_OS_PORT").unwrap_or_else(|_| "8787".to_string());
+    format!("http://localhost:{}", port)
 }
 
 #[tauri::command]

@@ -4,13 +4,6 @@ Covers: agent run lifecycle, kill switches, budget enforcement, full HITL flow
 """
 import pytest, httpx, time
 
-BASE = "http://127.0.0.1:8787"
-
-@pytest.fixture(scope="module")
-def client():
-    return httpx.Client(base_url=BASE, timeout=15)
-
-
 class TestControlTower:
     def test_list_runs(self, client):
         r = client.get("/api/control/runs")

@@ -4,13 +4,6 @@ Covers: Supervisor advanced flows, Goal Manager edge cases, MCP Gateway policies
 """
 import pytest, httpx, time
 
-BASE = "http://127.0.0.1:8787"
-
-@pytest.fixture(scope="module")
-def client():
-    return httpx.Client(base_url=BASE, timeout=15)
-
-
 class TestSupervisorAdvanced:
     def test_supervisor_stats_fields(self, client):
         d = client.get("/api/supervisor/stats").json()

@@ -3,57 +3,82 @@ Agentic OS — Real-time Collaboration Router
 Shared sessions, live cursors, presence indicators.
 Uses in-memory state + WebSocket broadcast.
 """
+
 from __future__ import annotations
-import asyncio, json, time, uuid
+
+import contextlib
+
+import asyncio
+import json
+import time
+import uuid
+
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 
-router = APIRouter(prefix="/api/collab", tags=["collab"])
+router = APIRouter(prefix='/api/collab', tags=['collab'])
+
 
 # ── In-memory session state ────────────────────────────────────────────────────
 class CollabSession:
+    """Data structure or service class representing CollabSession."""
+
     def __init__(self, session_id: str):
-        self.id         = session_id
-        self.created    = time.time()
-        self.peers: dict[str, dict]         = {}  # peer_id → {name, color, pane, cursor}
+        self.id = session_id
+        self.created = time.time()
+        self.peers: dict[str, dict] = {}  # peer_id → {name, color, pane, cursor}
         self.connections: dict[str, WebSocket] = {}  # peer_id → ws
-        self.shared_state: dict             = {}  # shared key-value store
+        self.shared_state: dict = {}  # shared key-value store
 
     def add_peer(self, peer_id: str, name: str, color: str):
+        """Create and initialize a new peer."""
         self.peers[peer_id] = {
-            "id": peer_id, "name": name, "color": color,
-            "pane": "chat", "cursor": None, "last_seen": time.time(),
+            'id': peer_id,
+            'name': name,
+            'color': color,
+            'pane': 'chat',
+            'cursor': None,
+            'last_seen': time.time(),
         }
 
     def remove_peer(self, peer_id: str):
+        """Delete or remove specified remove peer."""
         self.peers.pop(peer_id, None)
         self.connections.pop(peer_id, None)
 
-    async def broadcast(self, event: dict, exclude: str = ""):
+    async def broadcast(self, event: dict, exclude: str = ''):
+        """Execute or process broadcast operation."""
         dead = []
         for pid, ws in self.connections.items():
             if pid == exclude:
                 continue
             try:
                 await ws.send_text(json.dumps(event, default=str))
-            except Exception:
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                 dead.append(pid)
         for pid in dead:
             self.remove_peer(pid)
 
     def snapshot(self) -> dict:
+        """Execute or process snapshot operation."""
         return {
-            "id":     self.id,
-            "peers":  list(self.peers.values()),
-            "state":  self.shared_state,
-            "created": self.created,
+            'id': self.id,
+            'peers': list(self.peers.values()),
+            'state': self.shared_state,
+            'created': self.created,
         }
 
 
 _sessions: dict[str, CollabSession] = {}
 
 PEER_COLORS = [
-    "#5b8af8", "#9d74f5", "#4cc98a", "#f0c060",
-    "#f06080", "#38c5d8", "#f08850", "#c084fc",
+    '#5b8af8',
+    '#9d74f5',
+    '#4cc98a',
+    '#f0c060',
+    '#f06080',
+    '#38c5d8',
+    '#f08850',
+    '#c084fc',
 ]
 
 
@@ -64,67 +89,96 @@ def _get_or_create(session_id: str) -> CollabSession:
 
 
 # ── REST endpoints ─────────────────────────────────────────────────────────────
-@router.get("/sessions")
+@router.get('/sessions')
 def list_sessions():
+    """Retrieve and return list sessions."""
     return [s.snapshot() for s in _sessions.values()]
 
 
-@router.post("/sessions")
+@router.post('/sessions')
 async def create_session():
     # FIX 1: removed broken 'req: dict = None' parameter — session creation needs no body
+    """Create and initialize a new session."""
     sid = str(uuid.uuid4())[:8]
     _sessions[sid] = CollabSession(sid)
-    return {"ok": True, "session_id": sid, "invite_url": f"/?collab={sid}"}
+    return {'ok': True, 'session_id': sid, 'invite_url': f'/?collab={sid}'}
 
 
-@router.get("/sessions/{session_id}")
+@router.get('/rooms/active')
+def list_active_rooms():
+    """Retrieve all active multi-user collaboration rooms and peer counts."""
+    rooms = [s.snapshot() for s in _sessions.values()]
+    total_peers = sum(len(r.get('peers', {})) for r in rooms)
+    return {'ok': True, 'count': len(rooms), 'total_peers': total_peers, 'rooms': rooms}
+
+
+@router.post('/rooms/{session_id}/join')
+async def join_collab_room(session_id: str, req: Request):
+    """Join an active collaborative room and return current CRDT state snapshot."""
+    try:
+        body = await req.json()
+    except (json.JSONDecodeError, TypeError, ValueError):
+        body = {}
+    peer_id = body.get('peer_id') or f'peer_{uuid.uuid4().hex[:6]}'
+    name = body.get('name', 'Collaborator')
+    color = body.get('color', '#3b82f6')
+    sess = _get_or_create(session_id)
+    sess.add_peer(peer_id, name, color)
+    return {'ok': True, 'session_id': session_id, 'peer_id': peer_id, 'snapshot': sess.snapshot()}
+
+
+@router.get('/sessions/{session_id}')
 def get_session(session_id: str):
+    """Retrieve and return get session."""
     if session_id not in _sessions:
-        return {"ok": False, "error": "Session not found"}
+        return {'ok': False, 'error': 'Session not found'}
     return _sessions[session_id].snapshot()
 
 
-@router.delete("/sessions/{session_id}")
+@router.delete('/sessions/{session_id}')
 def close_session(session_id: str):
+    """Execute or process close session operation."""
     _sessions.pop(session_id, None)
-    return {"ok": True}
+    return {'ok': True}
 
 
-@router.get("/sessions/{session_id}/state")
-def get_shared_state(session_id: str, key: str = ""):
+@router.get('/sessions/{session_id}/state')
+def get_shared_state(session_id: str, key: str = ''):
+    """Retrieve and return get shared state."""
     sess = _sessions.get(session_id)
     if not sess:
-        return {"ok": False, "error": "Session not found"}
+        return {'ok': False, 'error': 'Session not found'}
     if key:
-        return {"ok": True, "key": key, "value": sess.shared_state.get(key)}
-    return {"ok": True, "state": sess.shared_state}
+        return {'ok': True, 'key': key, 'value': sess.shared_state.get(key)}
+    return {'ok': True, 'state': sess.shared_state}
 
 
-@router.post("/sessions/{session_id}/state")
+@router.post('/sessions/{session_id}/state')
 async def set_shared_state(session_id: str, req: Request):
     # FIX 2: implement the stub — actually store state + broadcast to peers
+    """Execute or process set shared state operation."""
     sess = _sessions.get(session_id)
     if not sess:
-        return {"ok": False, "error": "Session not found"}
+        return {'ok': False, 'error': 'Session not found'}
     try:
         try:
             body = await req.json()
-        except Exception:
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
             body = {}
-    except Exception:
-        return {"ok": False, "error": "Invalid JSON body"}
-    key   = str(body.get("key",""))[:64]
-    value = body.get("value")
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+        return {'ok': False, 'error': 'Invalid JSON body'}
+    key = str(body.get('key', ''))[:64]
+    value = body.get('value')
     if not key:
-        return {"ok": False, "error": "key required"}
+        return {'ok': False, 'error': 'key required'}
     sess.shared_state[key] = value
     # Broadcast to connected peers
-    await sess.broadcast({"type": "state_changed", "key": key, "value": value})
-    return {"ok": True, "key": key, "value": value}
+    await sess.broadcast({'type': 'state_changed', 'key': key, 'value': value})
+    return {'ok': True, 'key': key, 'value': value}
 
 
 # ── WebSocket endpoint ─────────────────────────────────────────────────────────
-@router.websocket("/sessions/{session_id}/ws")
+@router.websocket('/sessions/{session_id}/ws')
 async def collab_ws(ws: WebSocket, session_id: str):
     """
     WebSocket for real-time collaboration.
@@ -135,35 +189,42 @@ async def collab_ws(ws: WebSocket, session_id: str):
 
     # Assign peer ID and color
     peer_id = str(uuid.uuid4())[:8]
-    sess    = _get_or_create(session_id)
-    idx     = len(sess.peers) % len(PEER_COLORS)
-    color   = PEER_COLORS[idx]
+    sess = _get_or_create(session_id)
+    idx = len(sess.peers) % len(PEER_COLORS)
+    color = PEER_COLORS[idx]
 
     try:
         # Wait for join message
-        raw  = await asyncio.wait_for(ws.receive_text(), timeout=5.0)
+        raw = await asyncio.wait_for(ws.receive_text(), timeout=5.0)
         join = json.loads(raw)
-        name = join.get("name", f"User {peer_id[:4]}")
+        name = join.get('name', f'User {peer_id[:4]}')
 
         sess.add_peer(peer_id, name, color)
         sess.connections[peer_id] = ws
 
         # Send welcome
-        await ws.send_text(json.dumps({
-            "type":    "joined",
-            "peer_id": peer_id,
-            "color":   color,
-            "session": sess.snapshot(),
-        }))
+        await ws.send_text(
+            json.dumps(
+                {
+                    'type': 'joined',
+                    'peer_id': peer_id,
+                    'color': color,
+                    'session': sess.snapshot(),
+                }
+            )
+        )
 
         # Broadcast peer join
-        await sess.broadcast({
-            "type":    "peer_joined",
-            "peer_id": peer_id,
-            "name":    name,
-            "color":   color,
-            "peers":   list(sess.peers.values()),
-        }, exclude=peer_id)
+        await sess.broadcast(
+            {
+                'type': 'peer_joined',
+                'peer_id': peer_id,
+                'name': name,
+                'color': color,
+                'peers': list(sess.peers.values()),
+            },
+            exclude=peer_id,
+        )
 
         # Message loop
         while True:
@@ -173,60 +234,69 @@ async def collab_ws(ws: WebSocket, session_id: str):
                 await _handle_collab_msg(sess, peer_id, msg)
             except asyncio.TimeoutError:
                 # Send ping
-                await ws.send_text(json.dumps({"type": "ping"}))
+                await ws.send_text(json.dumps({'type': 'ping'}))
             except WebSocketDisconnect:
                 break
 
     except WebSocketDisconnect:
         pass
-    except Exception:
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         pass
     finally:
         sess.remove_peer(peer_id)
-        await sess.broadcast({
-            "type":    "peer_left",
-            "peer_id": peer_id,
-            "peers":   list(sess.peers.values()),
-        })
+        await sess.broadcast(
+            {
+                'type': 'peer_left',
+                'peer_id': peer_id,
+                'peers': list(sess.peers.values()),
+            }
+        )
         # Clean up empty sessions
         if not sess.peers:
             _sessions.pop(session_id, None)
 
 
 async def _handle_collab_msg(sess: CollabSession, peer_id: str, msg: dict):
-    mtype = msg.get("type", "")
-    payload = msg.get("payload", {})
+    mtype = msg.get('type', '')
+    payload = msg.get('payload', {})
 
-    if mtype == "pong":
+    if mtype == 'pong':
         if peer_id in sess.peers:
-            sess.peers[peer_id]["last_seen"] = time.time()
+            sess.peers[peer_id]['last_seen'] = time.time()
         return
 
-    if mtype == "cursor":
+    if mtype == 'cursor':
         if peer_id in sess.peers:
-            sess.peers[peer_id]["cursor"] = payload
-            sess.peers[peer_id]["pane"]   = payload.get("pane", "chat")
-        await sess.broadcast({"type": "cursor", "peer_id": peer_id, "payload": payload}, exclude=peer_id)
+            sess.peers[peer_id]['cursor'] = payload
+            sess.peers[peer_id]['pane'] = payload.get('pane', 'chat')
+        await sess.broadcast({'type': 'cursor', 'peer_id': peer_id, 'payload': payload}, exclude=peer_id)
 
-    elif mtype == "nav":
+    elif mtype == 'nav':
         if peer_id in sess.peers:
-            sess.peers[peer_id]["pane"] = payload.get("pane", "")
-        await sess.broadcast({"type": "nav", "peer_id": peer_id, "pane": payload.get("pane")}, exclude=peer_id)
+            sess.peers[peer_id]['pane'] = payload.get('pane', '')
+        await sess.broadcast({'type': 'nav', 'peer_id': peer_id, 'pane': payload.get('pane')}, exclude=peer_id)
 
-    elif mtype == "chat":
+    elif mtype == 'chat':
         # Broadcast chat message to all peers
-        await sess.broadcast({"type": "chat", "peer_id": peer_id,
-                               "name": sess.peers.get(peer_id, {}).get("name", peer_id),
-                               "message": str(payload.get("message", ""))[:2000]}, exclude=peer_id)
+        await sess.broadcast(
+            {
+                'type': 'chat',
+                'peer_id': peer_id,
+                'name': sess.peers.get(peer_id, {}).get('name', peer_id),
+                'message': str(payload.get('message', ''))[:2000],
+            },
+            exclude=peer_id,
+        )
 
-    elif mtype == "state_set":
-        key   = str(payload.get("key", ""))[:64]
-        value = payload.get("value")
+    elif mtype == 'state_set':
+        key = str(payload.get('key', ''))[:64]
+        value = payload.get('value')
         if key:
             sess.shared_state[key] = value
-            await sess.broadcast({"type": "state_changed", "peer_id": peer_id,
-                                   "key": key, "value": value}, exclude=peer_id)
+            await sess.broadcast(
+                {'type': 'state_changed', 'peer_id': peer_id, 'key': key, 'value': value}, exclude=peer_id
+            )
 
-    elif mtype == "file_edit":
+    elif mtype == 'file_edit':
         # Broadcast Monaco edit operations
-        await sess.broadcast({"type": "file_edit", "peer_id": peer_id, "payload": payload}, exclude=peer_id)
+        await sess.broadcast({'type': 'file_edit', 'peer_id': peer_id, 'payload': payload}, exclude=peer_id)

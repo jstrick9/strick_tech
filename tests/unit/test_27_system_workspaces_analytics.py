@@ -3,13 +3,6 @@ Unit Tests — System Health, Workspaces Full, Analytics Full, Marketplace
 """
 import pytest, httpx, time
 
-BASE = "http://127.0.0.1:8787"
-
-@pytest.fixture(scope="module")
-def client():
-    return httpx.Client(base_url=BASE, timeout=15)
-
-
 class TestSystemFull:
     def test_health_check(self, client):
         r = client.get("/api/system/health")

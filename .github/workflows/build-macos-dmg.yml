@@ -1,0 +1,73 @@
+name: Build macOS Desktop Application (.dmg / .app)
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_python:
+        description: 'Bundle standalone embedded Python runtime (python-build-standalone)'
+        required: false
+        default: true
+        type: boolean
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-macos:
+    name: Build macOS Native Desktop App (Apple Silicon & Intel)
+    runs-only: macos-14
+    strategy:
+      matrix:
+        target: [aarch64-apple-darwin, x86_64-apple-darwin]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python Backend Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Optional — Bundle Embedded Standalone Python Runtime
+        if: ${{ inputs.bundle_python == true }}
+        run: |
+          ./build_macos_desktop.sh --bundle-python
+
+      - name: Install Tauri CLI
+        run: |
+          cargo install tauri-cli --version "^2.0.0" --locked
+
+      - name: Build Tauri macOS Bundle (.dmg / .app)
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          cd src-tauri
+          if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+            cargo tauri build --target ${{ matrix.target }} --config '{"bundle": {"macOS": {"signingIdentity": "'"$APPLE_SIGNING_IDENTITY"'"}}}'
+          else
+            cargo tauri build --target ${{ matrix.target }}
+          fi
+
+      - name: Upload .dmg and .app Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgenticOS-macOS-${{ matrix.target }}
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
+          if-no-files-found: warn

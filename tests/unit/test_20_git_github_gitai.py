@@ -4,13 +4,6 @@ Covers: gitai analysis, commit suggestions, changelog, github endpoints
 """
 import pytest, httpx
 
-BASE = "http://127.0.0.1:8787"
-
-@pytest.fixture(scope="module")
-def client():
-    return httpx.Client(base_url=BASE, timeout=20)
-
-
 class TestGitAI:
     def test_gitai_status(self, client):
         r = client.get("/api/gitai/status")

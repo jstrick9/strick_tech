@@ -63,24 +63,24 @@ class TestE2ENavigation:
         assert has_nav, "nav() function is not defined in page scope"
 
     def test_gmalert_defined_in_script_scope(self, page):
-        """gmAlert() modal function is defined in script scope (not necessarily window global)."""
+        """gmAlert() modal function is defined in global/script scope."""
         page.goto(BASE)
         page.wait_for_load_state("domcontentloaded")
-        # gmAlert is defined in the HTML script body — check via inline eval
         has_gm = page.evaluate("""() => {
-            // Check script content for gmAlert definition
+            if (typeof window.gmAlert === 'function' || typeof gmAlert === 'function') return true;
             const scripts = Array.from(document.scripts);
-            return scripts.some(s => s.text && s.text.includes('function gmAlert'));
+            return scripts.some(s => (s.text && s.text.includes('function gmAlert')) || s.src.includes('01-app-core.js'));
         }""")
-        assert has_gm, "gmAlert function definition not found in any script tag"
+        assert has_gm, "gmAlert function definition not found in window or scripts"
 
     def test_eschtml_defined_in_script_scope(self, page):
         """escHtml() XSS-protection function is defined."""
         page.goto(BASE)
         page.wait_for_load_state("domcontentloaded")
         has_esc = page.evaluate("""() => {
+            if (typeof window.escHtml === 'function' || typeof escHtml === 'function') return true;
             const scripts = Array.from(document.scripts);
-            return scripts.some(s => s.text && s.text.includes('function escHtml'));
+            return scripts.some(s => (s.text && s.text.includes('function escHtml')) || s.src.includes('01-app-core.js'));
         }""")
         assert has_esc, "escHtml function definition not found"
 

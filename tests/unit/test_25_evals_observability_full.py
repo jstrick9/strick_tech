@@ -4,13 +4,6 @@ Covers: eval datasets, A/B tests, red team, traces, spans, DORA, EU AI Act
 """
 import pytest, httpx
 
-BASE = "http://127.0.0.1:8787"
-
-@pytest.fixture(scope="module")
-def client():
-    return httpx.Client(base_url=BASE, timeout=20)
-
-
 class TestEvalsDatasets:
     def test_list_datasets(self, client):
         r = client.get("/api/evals/datasets")

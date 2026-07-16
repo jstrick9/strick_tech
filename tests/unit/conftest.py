@@ -46,6 +46,13 @@ def client():
             yield c
 
 # ── Per-test fresh client (for tests needing isolation) ────────────────────
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """Reset the global rate limiter store before each test so tests don't get 429."""
+    from backend.app import _rate_limit_store
+    _rate_limit_store.clear()
+    yield
+
 @pytest.fixture
 def fresh_client():
     from backend.app import app
