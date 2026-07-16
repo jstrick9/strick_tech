@@ -41,8 +41,10 @@ def check_requirements():
 
 def seed_db():
     """Seed initial data if DB is empty."""
-    db_path = ROOT / "memory" / "agentic.db"
-    db_path.parent.mkdir(exist_ok=True)
+    _data_dir = os.environ.get("AGENTIC_OS_DATA_DIR")
+    memory_dir = Path(_data_dir) / "memory" if _data_dir else (ROOT / "memory")
+    memory_dir.mkdir(parents=True, exist_ok=True)
+    db_path = memory_dir / "agentic.db"
     con = sqlite3.connect(db_path)
     cur = con.cursor()
 

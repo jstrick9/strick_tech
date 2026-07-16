@@ -90,7 +90,6 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(BackendProcess(Mutex::new(None)))
         .setup(|app| {
             let run_py = find_run_py();
@@ -108,9 +107,23 @@ fn main() {
 
             println!("[Agentic OS] Starting backend: {} {} (cwd: {:?})", python, run_py, run_dir);
 
+            let data_dir = if cfg!(target_os = "macos") {
+                let home = std::env::var("HOME").unwrap_or_else(|_| "~".to_string());
+                PathBuf::from(format!("{}/Library/Application Support/com.stricktech.agenticos", home))
+            } else if cfg!(windows) {
+                let appdata = std::env::var("APPDATA").unwrap_or_else(|_| "C:\\Users\\Public".to_string());
+                PathBuf::from(format!("{}\\agentic-os", appdata))
+            } else {
+                let home = std::env::var("HOME").unwrap_or_else(|_| "~".to_string());
+                PathBuf::from(format!("{}/.local/share/agentic-os", home))
+            };
+            let _ = std::fs::create_dir_all(&data_dir);
+            std::env::set_var("AGENTIC_OS_DATA_DIR", &data_dir);
+
             let child = Command::new(python)
                 .arg(&run_py)
                 .current_dir(run_dir)
+                .env("AGENTIC_OS_DATA_DIR", &data_dir)
                 .spawn();
 
             match child {
@@ -167,7 +180,7 @@ fn open_data_dir() -> String {
     if cfg!(windows) {
         std::env::var("APPDATA").unwrap_or_else(|_| "C:\\Users\\Public".to_string())
     } else if cfg!(target_os = "macos") {
-        format!("{}/Library/Application Support/com.agenticosvault.app",
+        format!("{}/Library/Application Support/com.stricktech.agenticos",
             std::env::var("HOME").unwrap_or_else(|_| "~".to_string()))
     } else {
         format!("{}/.local/share/agentic-os",
