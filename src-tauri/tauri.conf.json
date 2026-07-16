@@ -39,16 +39,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "../backend",
-      "../frontend",
-      "../requirements.txt",
-      "../run.py",
-      "../config.yaml",
-      "../agents",
-      "../skills",
-      "python_embedded"
-    ],
+    "resources": {
+      "../backend": "backend/",
+      "../frontend": "frontend/",
+      "../requirements.txt": "requirements.txt",
+      "../run.py": "run.py",
+      "../config.yaml": "config.yaml",
+      "../agents": "agents/",
+      "../skills": "skills/",
+      "python_embedded": "python_embedded/"
+    },
     "externalBin": [],
     "macOS": {
       "minimumSystemVersion": "12.0",
