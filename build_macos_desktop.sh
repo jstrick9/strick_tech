@@ -69,17 +69,30 @@ if [ "$BUNDLE_PYTHON" -eq 1 ]; then
   echo ""
   echo "🌟 [--bundle-python active] Preparing standalone embedded Python runtime..."
   ARCH=$(uname -m)
-  PYTHON_DIST="cpython-3.12.7+20241016-${ARCH}-apple-darwin-install_only.tar.gz"
-  PYTHON_URL="https://github.com/indygreg/python-build-standalone/releases/download/20241016/${PYTHON_DIST}"
+  if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
+    PYTHON_ARCH="aarch64"
+  else
+    PYTHON_ARCH="x86_64"
+  fi
+  PYTHON_DIST="cpython-3.12.7+20241016-${PYTHON_ARCH}-apple-darwin-install_only.tar.gz"
+  PYTHON_URL="https://github.com/astral-sh/python-build-standalone/releases/download/20241016/${PYTHON_DIST}"
   
-  mkdir -p src-tauri/python_embedded
   if [ ! -f "src-tauri/python_embedded/bin/python3" ]; then
-    echo "📥 Downloading official python-build-standalone runtime (${ARCH})..."
-    curl -L -o "/tmp/${PYTHON_DIST}" "$PYTHON_URL"
+    echo "📥 Downloading official python-build-standalone runtime (${PYTHON_ARCH})..."
+    rm -rf src-tauri/python_embedded
+    mkdir -p src-tauri/python_embedded
+    curl -L --fail --retry 3 -o "/tmp/${PYTHON_DIST}" "$PYTHON_URL"
     tar -xzf "/tmp/${PYTHON_DIST}" -C src-tauri/python_embedded --strip-components=1
     rm -f "/tmp/${PYTHON_DIST}"
   fi
   
+  if [ ! -f "src-tauri/python_embedded/bin/python3" ]; then
+    echo "❌ Error: Embedded Python binary could not be found after extraction."
+    exit 1
+  fi
+  
+  EMBEDDED_PYTHON_VER=$(src-tauri/python_embedded/bin/python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+  echo "✅ Embedded standalone Python $EMBEDDED_PYTHON_VER verified."
   echo "📦 Installing Agentic OS requirements directly into embedded runtime..."
   src-tauri/python_embedded/bin/python3 -m pip install --upgrade pip --quiet
   src-tauri/python_embedded/bin/python3 -m pip install -r requirements.txt --quiet
@@ -102,11 +115,16 @@ cd src-tauri
 ARCH=$(uname -m)
 BUILD_FLAGS=()
 
-if [ "$ARCH" = "arm64" ]; then
+if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
   echo "🌟 Apple Silicon (M1/M2/M3/M4) detected. Compiling native aarch64 target..."
-  BUILD_FLAGS+=("--target" "aarch64-apple-darwin")
+  if rustup target list 2>/dev/null | grep -q "aarch64-apple-darwin (installed)"; then
+    BUILD_FLAGS+=("--target" "aarch64-apple-darwin")
+  fi
 else
   echo "🌟 Intel / Standard architecture ($ARCH) detected. Compiling native x86_64 target..."
+  if rustup target list 2>/dev/null | grep -q "x86_64-apple-darwin (installed)"; then
+    BUILD_FLAGS+=("--target" "x86_64-apple-darwin")
+  fi
 fi
 
 # Apply Apple Code Signing Configuration if requested
@@ -123,7 +141,7 @@ cd ..
 if [ "$NOTARIZE_APP" -eq 1 ] && [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
   echo ""
   echo "🛡️  Submitting .dmg installer to Apple notarytool for verification..."
-  DMG_PATH=$(find src-tauri/target/release/bundle/dmg -name "*.dmg" | head -n 1)
+  DMG_PATH=$(find src-tauri/target -name "*.dmg" 2>/dev/null | head -n 1)
   if [ -n "$DMG_PATH" ]; then
     xcrun notarytool submit "$DMG_PATH" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
     xcrun stapler staple "$DMG_PATH"
@@ -131,10 +149,16 @@ if [ "$NOTARIZE_APP" -eq 1 ] && [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] &
   fi
 fi
 
+DMG_FOUND=$(find src-tauri/target -name "*.dmg" 2>/dev/null | head -n 1)
+APP_FOUND=$(find src-tauri/target -name "*.app" 2>/dev/null | head -n 1)
+
 echo ""
 echo "🎉 ====================================================================="
 echo "🎉  Agentic OS Platform v10.0 macOS Desktop App Built Successfully!"
-echo "🎉  Your standalone .app and .dmg installers are located in:"
-echo "🎉  👉 src-tauri/target/release/bundle/dmg/"
-echo "🎉  👉 src-tauri/target/release/bundle/macos/"
+if [ -n "$DMG_FOUND" ]; then
+  echo "🎉  👉 DMG Installer : $DMG_FOUND"
+fi
+if [ -n "$APP_FOUND" ]; then
+  echo "🎉  👉 App Bundle    : $APP_FOUND"
+fi
 echo "🎉 ====================================================================="
