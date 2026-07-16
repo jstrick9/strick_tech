@@ -120,10 +120,28 @@ fn main() {
             let _ = std::fs::create_dir_all(&data_dir);
             std::env::set_var("AGENTIC_OS_DATA_DIR", &data_dir);
 
-            let child = Command::new(python)
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if let Ok(meta) = std::fs::metadata(&python) {
+                    let mut perms = meta.permissions();
+                    if perms.mode() & 0o111 == 0 {
+                        perms.set_mode(0o755);
+                        let _ = std::fs::set_permissions(&python, perms);
+                    }
+                }
+            }
+
+            let log_path = data_dir.join("backend.log");
+            let stdout_file = std::fs::File::create(&log_path).expect("failed to create log file");
+            let stderr_file = stdout_file.try_clone().expect("failed to clone log file");
+
+            let child = Command::new(&python)
                 .arg(&run_py)
-                .current_dir(run_dir)
+                .current_dir(&run_dir)
                 .env("AGENTIC_OS_DATA_DIR", &data_dir)
+                .stdout(std::process::Stdio::from(stdout_file))
+                .stderr(std::process::Stdio::from(stderr_file))
                 .spawn();
 
             match child {
@@ -131,9 +149,24 @@ fn main() {
                     if let Ok(mut guard) = app.state::<BackendProcess>().inner().0.lock() {
                         *guard = Some(c);
                     }
-                    // Give backend time to start
-                    thread::sleep(Duration::from_millis(2000));
-                    println!("[Agentic OS] Backend started → http://localhost:8787");
+                    println!("[Agentic OS] Polling TCP 127.0.0.1:8787 until backend is ready...");
+                    let mut online = false;
+                    for _ in 0..150 {
+                        if std::net::TcpStream::connect("127.0.0.1:8787").is_ok() {
+                            online = true;
+                            break;
+                        }
+                        thread::sleep(Duration::from_millis(100));
+                    }
+                    if online {
+                        println!("[Agentic OS] Backend online → http://localhost:8787");
+                    } else {
+                        eprintln!("[Agentic OS] Warning: Backend did not open TCP port 8787 within 15 seconds. Check {:?}", log_path);
+                    }
+                    for (label, win) in app.webview_windows() {
+                        println!("[Agentic OS] Reloading window '{}' to http://localhost:8787", label);
+                        let _ = win.eval("window.location.replace('http://localhost:8787');");
+                    }
                 }
                 Err(e) => {
                     eprintln!("[Agentic OS] Failed to start backend: {}", e);
