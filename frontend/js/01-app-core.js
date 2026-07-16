@@ -6986,32 +6986,49 @@ async function obNext(skip = false) {
     }
   }
   obStep++;
-  if (obStep >= obSteps.length) {
-    // Complete
+  if (obStep >= obSteps.length || skip === true) {
+    // Complete immediately so modal always dismisses
+    closeOnboardingModal();
     try {
-      const r = await fetch('/api/onboarding/complete', {
+      fetch('/api/onboarding/complete', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify(obPrefs)
-      });
-      if (!r.ok) { showToast('⚠️ Could not save onboarding settings, please retry'); obStep--; return; }
-      const j = await r.json();
-      const modal = document.getElementById('onboarding-modal');
-      if (modal) modal.style.display = 'none';
-      showToast('🚀 Welcome to Agentic OS!');
-      applyPreferences(j.preferences || obPrefs);
-      // Update workspace name in topbar if set
-      if (obPrefs.workspace_name) {
-        const sbVer = document.getElementById('sb-version');
-        if (sbVer) sbVer.textContent = `Agentic OS — ${obPrefs.workspace_name}`;
-      }
-    } catch(ex) {
-      showToast('⚠️ Error completing onboarding: ' + (ex?.message || String(ex)));
-      obStep--;
-    }
+      }).then(r => r.json()).then(j => {
+        applyPreferences(j.preferences || obPrefs);
+        if (obPrefs.workspace_name) {
+          const sbVer = document.getElementById('sb-version');
+          if (sbVer) sbVer.textContent = `Agentic OS — ${obPrefs.workspace_name}`;
+        }
+      }).catch(()=>{});
+    } catch(ex) {}
+    showToast('🚀 Welcome to Agentic OS!');
   } else {
     showOnboarding();
   }
 }
+
+window.closeOnboardingModal = function() {
+  const modal = document.getElementById('onboarding-modal');
+  if (modal) {
+    modal.style.display = 'none';
+    if (modal.parentNode) modal.parentNode.removeChild(modal);
+  }
+  const overlay = document.getElementById('onboarding-overlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  }
+  try { localStorage.setItem('agentic_os_onboarded', 'true'); } catch(e) {}
+  try { if (window.nav) nav('chat'); } catch(e) {}
+};
+
+window.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    if (document.getElementById('onboarding-modal') || document.getElementById('onboarding-overlay')) {
+      window.closeOnboardingModal();
+    }
+  }
+});
 
 function obBack() {
   if (obStep > 0) { obStep--; showOnboarding(); }
