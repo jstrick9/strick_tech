@@ -344,6 +344,61 @@ DEFAULT_AGENTS = [
         'system_prompt': "You are Memory — a knowledge retrieval specialist. You search the vector database for relevant context, synthesize stored knowledge, and answer questions grounded in the user's own data. Always cite which memories informed your response.",
     },
     {
+        'id': 'orchestrator',
+        'name': 'Swarm Orchestrator',
+        'role': 'State Machine • DAG Pipeline Driver',
+        'model': 'claude-opus',
+        'provider': 'openrouter',
+        'color': '#a855f7',
+        'avatar': '✨',
+        'status': 'idle',
+        'system_prompt': 'You are Swarm Orchestrator — the state machine and DAG pipeline driver for Strick Tech Agentic OS. You decompose complex engineering tasks into modular sub-agent assignments, track execution state, verify behavioral rules (.agenticrules), and enforce zero-defect quality standards before shipping.',
+    },
+    {
+        'id': 'visual_tester',
+        'name': 'Visual UI Tester',
+        'role': 'Figma Fidelity • Viewport QA',
+        'model': 'gemini',
+        'provider': 'openrouter',
+        'color': '#ec4899',
+        'avatar': '❖',
+        'status': 'idle',
+        'system_prompt': 'You are Visual UI Tester — a specialist pixel-perfect QA engineer. You compare live multi-preview viewports (desktop, tablet, mobile) against design guidelines and geometric UI/UX standards, checking for layout shifts, contrast WCAG AAA compliance, and visual hierarchy.',
+    },
+    {
+        'id': 'functional_tester',
+        'name': 'Functional Tester',
+        'role': 'E2E Flows • API Verification',
+        'model': 'gpt4o',
+        'provider': 'openrouter',
+        'color': '#3b82f6',
+        'avatar': '◈',
+        'status': 'idle',
+        'system_prompt': 'You are Functional Tester — a dedicated automation and E2E test engineer. You verify backend REST endpoints, execute browser agent loops, and assert strict business logic constraints. Whenever a test fails, you generate actionable reproduction steps for the Coder/Builder.',
+    },
+    {
+        'id': 'design_decomposer',
+        'name': 'Design Decomposer',
+        'role': 'Wireframe Scanner • Spec Architect',
+        'model': 'claude',
+        'provider': 'openrouter',
+        'color': '#06b6d4',
+        'avatar': '☷',
+        'status': 'idle',
+        'system_prompt': 'You are Design Decomposer — a UI/UX architect specializing in breaking down complex wireframes, user stories, and feature specs into clean, modular, reusable frontend components and backend schema definitions.',
+    },
+    {
+        'id': 'test_creator',
+        'name': 'Test Case Creator',
+        'role': 'PyTest • Unit & Regression Architect',
+        'model': 'hermes',
+        'provider': 'openrouter',
+        'color': '#10b981',
+        'avatar': '⚗',
+        'status': 'idle',
+        'system_prompt': 'You are Test Case Creator — a PyTest and automated testing specialist. You inspect source code ASTs, identify edge cases and security boundaries, and write comprehensive, deterministic unit and regression test suites.',
+    },
+    {
         'id': 'local',
         'name': 'Local LLM',
         'role': 'Private • Ollama • Offline',
@@ -365,9 +420,15 @@ def agents_list() -> list[dict]:
         agents = [dict(r) for r in rows]
     finally:
         con.close()
-    if not agents:
+    if not agents or len(agents) < len(DEFAULT_AGENTS):
         agents_seed_defaults()
-        return agents_list()
+        if not agents:
+            return agents_list()
+        con2 = get_conn()
+        try:
+            return [dict(r) for r in con2.execute('SELECT * FROM agents ORDER BY created_at').fetchall()]
+        finally:
+            con2.close()
     return agents
 
 

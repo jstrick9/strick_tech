@@ -976,7 +976,7 @@ function renderSwarm() {
 async function renderSwarmAgents() {
   const grid = document.getElementById('sw-agent-grid');
   if (!grid) return;
-  const defaultOn = new Set(['brain','builder','researcher','creative']);
+  const defaultOn = new Set(['orchestrator','brain','builder','visual_tester','functional_tester','design_decomposer','test_creator']);
   // Fetch live agent list from API so newly created/toggled agents appear
   let agents = S.agents;
   try {
