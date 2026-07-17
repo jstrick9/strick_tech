@@ -93,20 +93,108 @@ function setupSidebarResizer() {
   } catch(e) {}
 }
 
-function nav(pane) {
+window.MASTER_PANE_REGISTRY = {
+  'chat':           () => {},
+  'studio':         () => typeof window.initStudio === 'function' && window.initStudio(),
+  'builder':        () => typeof window.initBuilder === 'function' && window.initBuilder(),
+  'templates':      () => typeof window.renderTemplates === 'function' && window.renderTemplates(),
+  'composer':       () => typeof window.renderComposer === 'function' && window.renderComposer(),
+  'kanban':         () => typeof window.renderKanban === 'function' && window.renderKanban(),
+  'swarm':          () => typeof window.renderSwarm === 'function' && window.renderSwarm(),
+  'galaxy':         () => typeof window.initGalaxy === 'function' && window.initGalaxy(),
+  'hierarchy':      () => typeof window.renderHierarchy === 'function' && window.renderHierarchy(),
+  'settings':       () => typeof window.loadSettings === 'function' && window.loadSettings(),
+  'dashboard':      () => typeof window.renderDashboard === 'function' && window.renderDashboard(),
+  'skills':         () => typeof window.renderSkills === 'function' && window.renderSkills(),
+  'deploy':         () => typeof window.renderDeploy === 'function' && window.renderDeploy(),
+  'pipeline':       () => typeof window.renderPipeline === 'function' && window.renderPipeline(),
+  'obsidian':       () => typeof window.renderObsidian === 'function' && window.renderObsidian(),
+  'system':         () => typeof window.renderSystem === 'function' && window.renderSystem(),
+  'workspaces':     () => typeof window.renderWorkspaces === 'function' && window.renderWorkspaces(),
+  'mcp':            () => typeof window.renderMCP === 'function' && window.renderMCP(),
+  'loops':          () => typeof window.renderLoops === 'function' && window.renderLoops(),
+  'github':         () => typeof window.renderGitHub === 'function' && window.renderGitHub(),
+  'dbstudio':       () => typeof window.renderDBStudio === 'function' && window.renderDBStudio(),
+  'plugins':        () => typeof window.renderPlugins === 'function' && window.renderPlugins(),
+  'control':        () => typeof window.renderControlTower === 'function' && window.renderControlTower(),
+  'webhooks':       () => typeof window.renderWebhooks === 'function' && window.renderWebhooks(),
+  'testgen':        () => typeof window.renderTestGen === 'function' && window.renderTestGen(),
+  'terminal':       () => typeof window.renderTerminal === 'function' && window.renderTerminal(),
+  'secrets':        () => typeof window.renderSecretsVault === 'function' && window.renderSecretsVault(),
+  'integrations':   () => typeof window.renderIntegrations === 'function' && window.renderIntegrations(),
+  'imagegen':       () => typeof window.renderImageGen === 'function' && window.renderImageGen(),
+  'prompts':        () => typeof window.renderPrompts === 'function' && window.renderPrompts(),
+  'codesearch':     () => typeof window.renderCodeSearch === 'function' && window.renderCodeSearch(),
+  'workflow':       () => typeof window.renderWorkflow === 'function' && window.renderWorkflow(),
+  'profiler':       () => typeof window.renderProfiler === 'function' && window.renderProfiler(),
+  'pluginsdk':      () => typeof window.renderPluginSDK === 'function' && window.renderPluginSDK(),
+  'multitab':       () => typeof window.renderMultitab === 'function' && window.renderMultitab(),
+  'specs':          () => typeof window.renderSpecs === 'function' && window.renderSpecs(),
+  'hooks':          () => typeof window.renderHooks === 'function' && window.renderHooks(),
+  'codeindex':      () => typeof window.renderCodeIndex === 'function' && window.renderCodeIndex(),
+  'arena':          () => typeof window.renderArena === 'function' && window.renderArena(),
+  'steering':       () => typeof window.renderSteering === 'function' && window.renderSteering(),
+  'bugbot':         () => typeof window.renderBugBot === 'function' && window.renderBugBot(),
+  'health':         () => typeof window.renderHealth === 'function' && window.renderHealth(),
+  'gitai':          () => typeof window.renderGitAI === 'function' && window.renderGitAI(),
+  'ambient':        () => typeof window.renderAmbient === 'function' && window.renderAmbient(),
+  'fusion':         () => typeof window.renderFusion === 'function' && window.renderFusion(),
+  'hitl':           () => typeof window.renderHITL === 'function' && window.renderHITL(),
+  'browser':        () => typeof window.renderBrowserAgent === 'function' && window.renderBrowserAgent(),
+  'websearch':      () => typeof window.renderWebSearch === 'function' && window.renderWebSearch(),
+  'leaderboard':    () => typeof window.renderLeaderboard === 'function' && window.renderLeaderboard(),
+  'audit-log':      () => typeof window.renderAuditLog === 'function' && window.renderAuditLog(),
+  'agent-identity': () => typeof window.renderAgentIdentity === 'function' && window.renderAgentIdentity(),
+  'supervisor':     () => typeof window.renderSupervisor === 'function' && window.renderSupervisor(),
+  'goals':          () => typeof window.renderGoals === 'function' && window.renderGoals(),
+  'mcp-gateway':    () => typeof window.renderMCPGateway === 'function' && window.renderMCPGateway(),
+  'connectors':     () => typeof window.renderConnectors === 'function' && window.renderConnectors(),
+  'a2a':            () => typeof window.renderA2A === 'function' && window.renderA2A(),
+  'agent-monitor':  () => typeof window.renderAgentMonitor === 'function' && window.renderAgentMonitor(),
+  'finops':         () => typeof window.renderFinOps === 'function' && window.renderFinOps(),
+  'eval-framework': () => typeof window.renderEvalFramework === 'function' && window.renderEvalFramework(),
+  'docs':           () => typeof window.renderDocs === 'function' && window.renderDocs(),
+  'evals':          () => typeof window.renderEvals === 'function' && window.renderEvals(),
+  'observability':  () => typeof window.renderObservability === 'function' && window.renderObservability(),
+  'knowledge-graph':() => typeof window.renderKnowledgeGraph === 'function' && window.renderKnowledgeGraph(),
+  'rag':            () => typeof window.renderRAG === 'function' && window.renderRAG(),
+  'replay':         () => typeof window.renderReplay === 'function' && window.renderReplay(),
+  'collabedit':     () => typeof window.renderCollabEdit === 'function' && window.renderCollabEdit(),
+  'marketplace':    () => typeof window.renderMarketplace === 'function' && window.renderMarketplace(),
+  'pqc':            () => typeof window.renderPQCVault === 'function' && window.renderPQCVault(),
+};
+
+window.nav = function(pane) {
+  if (!pane) return;
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const el = document.getElementById('pane-' + pane);
-  if (el) el.classList.add('active');
+  
+  let el = document.getElementById('pane-' + pane);
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'pane';
+    el.id = 'pane-' + pane;
+    el.style.cssText = 'overflow:auto;padding:20px;background:var(--bg-0);flex:1';
+    el.innerHTML = `<div style="flex:1;display:flex;flex-direction:column"><div style="padding:24px;color:var(--text-2)">⚡ Initializing ${escHtml(pane)} component...</div></div>`;
+    const content = document.getElementById('content');
+    if (content) content.appendChild(el);
+  }
+  el.classList.add('active');
+  
   const navEl = document.querySelector(`[data-nav="${pane}"]`);
   if (navEl) navEl.classList.add('active');
 
-  if (pane === 'builder')   initBuilder();
-  if (pane === 'kanban')    renderKanban();
-  if (pane === 'swarm')     renderSwarm();
-  if (pane === 'galaxy')    initGalaxy();
-  if (pane === 'settings')  loadSettings();
-}
+  const renderer = window.MASTER_PANE_REGISTRY[pane];
+  if (renderer) {
+    try { renderer(); } catch(e) { console.warn('Master renderer error for ' + pane + ':', e); }
+  }
+
+  if (typeof window.showSmartSuggestionsForPane === 'function') {
+    try { window.showSmartSuggestionsForPane(pane); } catch(e) {}
+  }
+
+  try { history.replaceState(null, '', '#/' + pane); } catch(e) {}
+};
 
 // ── Agents ───────────────────────────────────────────────────────
 async function loadAgents() {
