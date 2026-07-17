@@ -216,3 +216,15 @@ class TestNavigationAndSettingsIntegrity:
         assert "orchestrator" in app_core_js and "visual_tester" in app_core_js and "design_decomposer" in app_core_js, (
             "renderSwarmAgents inside 01-app-core.js must check our full 7+ specialist swarm team by default"
         )
+
+    def test_phase4_developer_workstation_studio_and_code_graph(self, app_core_js):
+        """Verify execution of Phase 4: Monaco studio fallback, Multi-preview hub, and code search/graph exports."""
+        assert "window.initStudio = function()" in app_core_js, "initStudio must be globally assigned in 01-app-core.js"
+        assert "studio-fallback-textarea" in app_core_js, "studioLoadMonaco must provide an offline/sandboxed fallback textarea"
+        assert "window.renderCodeSearch = renderCodeSearch;" in app_core_js, "renderCodeSearch must be globally assigned"
+
+        features_a_js = (JS_DIR / "03-features-a.js").read_text(encoding="utf-8")
+        assert "window.renderMultitab = renderMultitab;" in features_a_js, "renderMultitab must be globally assigned"
+
+        features_b_js = (JS_DIR / "03-features-b.js").read_text(encoding="utf-8")
+        assert "window.renderCodeIndex = renderCodeIndex;" in features_b_js, "renderCodeIndex must be globally assigned"

@@ -632,6 +632,7 @@ async function renderCodeIndex() {
 
   await ciLoadStats();
 }
+window.renderCodeIndex = renderCodeIndex;
 
 async function ciIndexNow() {
   const btn = document.querySelector('#pane-codeindex .btn') || null;  // FIX 4: logical OR
