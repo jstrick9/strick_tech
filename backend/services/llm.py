@@ -140,9 +140,25 @@ async def complete(
             }
     except httpx.HTTPStatusError as e:
         log.error('OpenRouter HTTP error: %s %s', e.response.status_code, e.response.text[:300])
+        try:
+            fallback_model = os.getenv('OLLAMA_FALLBACK_MODEL', 'llama3.1:8b')
+            res = await _ollama_complete(messages, fallback_model, temperature, max_tokens, timeout)
+            if res.get('ok'):
+                res['telemetry_note'] = f'OpenRouter fallback (HTTP {e.response.status_code}) -> Local Ollama ({fallback_model})'
+                return res
+        except Exception as fe:
+            log.error('Local Ollama fallback also failed: %s', fe)
         return {'text': f'[LLM error {e.response.status_code}]: {e.response.text[:200]}', 'ok': False, 'error': str(e)}
     except Exception as e:
         log.error('LLM complete error: %s', e)
+        try:
+            fallback_model = os.getenv('OLLAMA_FALLBACK_MODEL', 'llama3.1:8b')
+            res = await _ollama_complete(messages, fallback_model, temperature, max_tokens, timeout)
+            if res.get('ok'):
+                res['telemetry_note'] = f'OpenRouter fallback ({e}) -> Local Ollama ({fallback_model})'
+                return res
+        except Exception as fe:
+            log.error('Local Ollama fallback also failed: %s', fe)
         return {'text': f'[LLM error]: {e}', 'ok': False, 'error': str(e)}
 
 
@@ -210,6 +226,14 @@ async def stream(
                     pass
     except Exception as e:
         log.error('LLM stream error: %s', e)
+        try:
+            fallback_model = os.getenv('OLLAMA_FALLBACK_MODEL', 'llama3.1:8b')
+            yield f'data: {json.dumps({"delta": f" [OpenRouter disconnected ({e}). Auto-falling back to local {fallback_model}...]\n\n", "done": False})}\n\n'
+            async for chunk in _ollama_stream(messages, fallback_model, temperature, max_tokens, timeout):
+                yield chunk
+            return
+        except Exception as fe:
+            log.error('Local Ollama fallback stream also failed: %s', fe)
         yield f'data: {json.dumps({"delta": f"[stream error]: {e}", "done": True, "error": str(e)})}\n\n'
 
 
