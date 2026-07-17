@@ -479,9 +479,11 @@
     }
   };
 
-  // Register with window.PANE_RENDERERS
+  // Register with window.PANE_RENDERERS and globally
   if (typeof window.PANE_RENDERERS === 'undefined') window.PANE_RENDERERS = {};
   window.PANE_RENDERERS['hierarchy'] = renderHierarchyPane;
+  window.renderHierarchy = renderHierarchyPane;
+  window.renderHierarchyPane = renderHierarchyPane;
 
   // Register command in PALETTE_CMDS if available
   setTimeout(() => {

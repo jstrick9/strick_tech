@@ -3052,23 +3052,7 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// ── Settings → Appearance mode buttons ──────────────────────────
-function switchUIMode(mode) {
-  if (window.setMode) setMode(mode);
-}
-function updateSettingsModeButtons() {
-  var currentMode = localStorage.getItem('agentic_os_mode') || 'simple';
-  var simpleBtn = document.getElementById('settings-simple-btn');
-  var powerBtn = document.getElementById('settings-power-btn');
-  if (simpleBtn) {
-    simpleBtn.style.borderColor = currentMode === 'simple' ? 'var(--accent)' : 'var(--border)';
-    simpleBtn.style.background = currentMode === 'simple' ? 'var(--accent-glow)' : 'var(--bg-3)';
-  }
-  if (powerBtn) {
-    powerBtn.style.borderColor = currentMode === 'power' ? 'var(--accent)' : 'var(--border)';
-    powerBtn.style.background = currentMode === 'power' ? 'var(--accent-glow)' : 'var(--bg-3)';
-  }
-}
+
 </script>
 
 
@@ -3109,8 +3093,8 @@ function updateSettingsModeButtons() {
 
   window.toggleAdvanced = function() { advancedOpen = !advancedOpen; showAdv(advancedOpen); };
   window.setMode = function(mode) {
-    applyMode(mode);
-    if (window.showToast) showToast('Switched to ' + (mode === 'simple' ? 'Simple' : 'Power') + ' mode');
+    if (typeof window.switchUIMode === 'function') window.switchUIMode(mode);
+    else applyMode(mode);
   };
 
   function injectModeToggle() {

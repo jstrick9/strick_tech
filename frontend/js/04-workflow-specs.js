@@ -148,19 +148,7 @@ function ensureSimpleHeader() {
   sidebar.insertBefore(hdr, sidebar.querySelector('.sidebar-section') || sidebar.firstChild);
 }
 
-async function switchUIMode(mode) {
-  if (mode !== 'simple' && mode !== 'power') return; // guard invalid calls
-  try {
-    const r = await fetch('/api/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({ui_mode:mode})});
-    if (!r.ok) { showToast('⚠️ Could not save mode preference — try again'); return; }
-  } catch(e) {
-    showToast('⚠️ Network error saving mode preference');
-    return;
-  }
-  _UI.uiMode = mode;
-  applyUIMode(mode);
-  showToast(mode === 'power' ? '⚡ Power Mode enabled — all features unlocked' : '✨ Simple Mode — showing core features');
-}
+
 
 
 // ══════════════════════════════════════════════════════════════════
