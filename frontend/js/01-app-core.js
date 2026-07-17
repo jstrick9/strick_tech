@@ -6330,26 +6330,48 @@ const Studio = {
 // ── Init ───────────────────────────────────────────────────────────
 let studioMonacoLoaded = false;
 
-function initStudio() {
+window.initStudio = function() {
   studioLoadFileTree();
   if (!studioMonacoLoaded) studioLoadMonaco();
   initStudioResizer();
   initStudioHMR();
   initStudioErrorBridge();
-  // Sync nav item
   document.querySelectorAll('[data-nav]').forEach(el =>
     el.classList.toggle('active', el.dataset.nav === 'studio'));
-}
+};
+function initStudio() { window.initStudio(); }
 
 // ── Monaco in Studio ───────────────────────────────────────────────
 function studioLoadMonaco() {
   if (window.monaco && studioMonacoLoaded) { studioSetupMonaco(); return; }
   if (window.monaco) { studioSetupMonaco(); return; }
+  const host = document.getElementById('studio-monaco-host');
   const s = document.createElement('script');
   s.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.47.0/min/vs/loader.js';
   s.onload = () => {
     require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.47.0/min/vs' }});
     require(['vs/editor/editor.main'], studioSetupMonaco);
+  };
+  s.onerror = () => {
+    if (host && !Studio.editor) {
+      host.innerHTML = `<textarea id="studio-fallback-textarea" spellcheck="false" style="width:100%;height:100%;background:var(--bg-0);color:var(--text-0);font-family:monospace;font-size:13.5px;padding:14px;border:none;outline:none;resize:none;line-height:1.6"></textarea>`;
+      const ta = document.getElementById('studio-fallback-textarea');
+      Studio.editor = {
+        getValue: () => ta ? ta.value : '',
+        setValue: (v) => { if (ta) ta.value = v; },
+        setModel: () => {},
+        onDidChangeModelContent: (cb) => { if (ta) ta.addEventListener('input', cb); }
+      };
+      if (ta) {
+        ta.addEventListener('input', () => {
+          studioMarkAutosave('saving');
+          clearTimeout(Studio.autoSaveTimer);
+          Studio.autoSaveTimer = setTimeout(studioAutoSave, 600);
+        });
+      }
+      studioOpenFile(Studio.currentFile);
+      toast('⚡ Offline/Sandboxed fallback editor initialized', 'ok', 3000);
+    }
   };
   document.head.appendChild(s);
 }
@@ -9885,6 +9907,8 @@ async function runCodeSearch(){
   }catch(e){res.innerHTML=`<div style="color:var(--danger);padding:12px">Error: ${e.message}</div>`;}
   finally{btn.disabled=false;btn.textContent='🔍 Search';}
 }
+window.renderCodeSearch = renderCodeSearch;
+window.runCodeSearch = runCodeSearch;
 
 // ══════════════════════════════════════════════════════
 //  SMART NEXT-ACTION SUGGESTIONS BAR

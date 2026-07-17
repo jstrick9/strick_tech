@@ -1966,6 +1966,7 @@ async function renderMultitab() {
     });
   }
 }
+window.renderMultitab = renderMultitab;
 
 async function mtLoadTabs() {
   try {
