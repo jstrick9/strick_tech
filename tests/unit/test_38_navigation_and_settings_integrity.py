@@ -142,3 +142,20 @@ class TestNavigationAndSettingsIntegrity:
 
         assert "window.toggleSidebarGroup =" in app_core_js, "toggleSidebarGroup must be defined in 01-app-core.js"
         assert "window.initSidebarGroups =" in app_core_js, "initSidebarGroups must be defined in 01-app-core.js"
+
+    def test_phase1_ux_ui_ergonomics_and_navigation_polish(self, app_core_js):
+        """Verify formal execution of Phase 1: URL deep linking, command palette dynamic search, and font/contrast scaling."""
+        assert "window.initDeepLinkRouter =" in app_core_js, "initDeepLinkRouter must be defined in 01-app-core.js"
+        assert "window.saveFontSize = async function(size)" in app_core_js, "saveFontSize must instantly scale font-size"
+        assert "const sizeMap = { sm: '13px', base: '14px', lg: '16px' };" in app_core_js, "Must map exact typography scales"
+        assert "Object.keys(window.MASTER_PANE_REGISTRY).forEach" in app_core_js, (
+            "filterPalette must dynamically merge all 68 panes from MASTER_PANE_REGISTRY"
+        )
+        assert "window.toggleSidebarGroup(gid, true)" in app_core_js, (
+            "nav(pane) must automatically uncollapse the parent group folder when navigating"
+        )
+
+        styles_css = (FRONTEND_DIR / "styles.css").read_text(encoding="utf-8")
+        assert "body.theme-high-contrast {" in styles_css, "High-contrast WCAG AAA theme rule must exist in styles.css"
+        ui_ergonomics_js = (JS_DIR / "13-ui-ergonomics.js").read_text(encoding="utf-8")
+        assert "window.toggleHighContrastTheme = function()" in ui_ergonomics_js, "toggleHighContrastTheme must be globally assigned"
