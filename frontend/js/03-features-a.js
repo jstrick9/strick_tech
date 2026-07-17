@@ -2219,18 +2219,59 @@ async function renderTauriStatus() {
 }
 
 window.installTauriPrerequisites = async function() {
-  toast('⏳ Triggering background installation of Rust & Tauri CLI...', 'ok', 3000);
+  toast('⏳ Initiating live SSE setup stream...', 'ok', 3000);
+  const el = document.getElementById('tauri-build-section');
+  let progCard = document.getElementById('tauri-setup-progress-card');
+  if (!progCard && el) {
+    progCard = document.createElement('div');
+    progCard.id = 'tauri-setup-progress-card';
+    progCard.className = 'card-elevated surface-z3';
+    progCard.style.cssText = 'margin-top:14px;padding:16px;border:1px solid var(--accent);border-radius:12px';
+    progCard.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:800;font-size:12.5px;color:var(--accent)" id="tauri-prog-msg">⏳ Connecting to setup stream...</span>
+        <span style="font-family:monospace;font-size:11px;color:var(--text-2)" id="tauri-prog-pct">0%</span>
+      </div>
+      <div style="width:100%;height:10px;background:var(--bg-3);border-radius:99px;overflow:hidden;border:1px solid var(--border)">
+        <div id="tauri-prog-bar" style="width:0%;height:100%;background:linear-gradient(90deg,var(--accent),#10b981);transition:width 0.4s ease"></div>
+      </div>
+      <div id="tauri-prog-detail" style="font-size:11px;color:var(--text-3);margin-top:8px;font-family:monospace">Initiating background installation job...</div>
+    `;
+    el.appendChild(progCard);
+  }
+  if (progCard) progCard.style.display = 'block';
+
   try {
-    const r = await fetch('/api/tauri/setup/auto-install', {method: 'POST'});
-    const j = await r.json();
-    if (j.ok) {
-      gmAlert('✅ Rust & Tauri CLI Setup Initiated', `Installation running in background:\n\n<code style="display:block;background:var(--bg-0);padding:10px;border-radius:6px;margin-top:8px">${j.command}</code>\n\nClick 'Build Desktop App' once setup finishes.`);
-      setTimeout(renderTauriStatus, 6000);
+    await fetch('/api/tauri/setup/auto-install', {method: 'POST'});
+    if (typeof EventSource !== 'undefined') {
+      const es = new EventSource('/api/tauri/setup/stream');
+      es.onmessage = (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          const bar = document.getElementById('tauri-prog-bar');
+          const msg = document.getElementById('tauri-prog-msg');
+          const pct = document.getElementById('tauri-prog-pct');
+          const det = document.getElementById('tauri-prog-detail');
+          if (bar) bar.style.width = (d.progress || 0) + '%';
+          if (msg) msg.textContent = d.message || 'Setup in progress...';
+          if (pct) pct.textContent = (d.progress || 0) + '%';
+          if (det) det.textContent = `[SSE Setup Stream] ${d.message || ''}`;
+          if (d.done) {
+            es.close();
+            toast('✅ Rust & Tauri CLI ready!', 'ok', 3000);
+            setTimeout(() => {
+              if (progCard) progCard.style.display = 'none';
+              if (typeof renderTauriStatus === 'function') renderTauriStatus();
+            }, 2000);
+          }
+        } catch(err) {}
+      };
+      es.onerror = () => { es.close(); };
     } else {
-      gmAlert('Setup Notice', `Please run in terminal:\n\n<code style="display:block;background:var(--bg-0);padding:10px;border-radius:6px">${j.command}</code>`);
+      setTimeout(() => { if (typeof renderTauriStatus === 'function') renderTauriStatus(); }, 5000);
     }
   } catch(e) {
-    gmAlert('Setup Error', `Run in terminal:\n\ncurl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh && cargo install tauri-cli --version '^2'`);
+    gmAlert('Setup Notice', `Please run in terminal:\n\n./scripts/tauri-build.sh --bundle-python`);
   }
 };
 

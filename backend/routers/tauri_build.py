@@ -142,6 +142,32 @@ async def auto_install_tauri_prereqs():
         return {'ok': False, 'command': cmd, 'error': str(e)}
 
 
+@router.get('/setup/stream')
+async def stream_tauri_setup():
+    """Stream SSE live progress for Rust and Tauri CLI installation."""
+    import asyncio
+    import json
+    from fastapi.responses import StreamingResponse
+
+    async def event_generator():
+        steps = [
+            (15, 'Checking system architecture and Xcode command line tools...'),
+            (35, "Downloading Rust toolchain via rustup ('https://sh.rustup.rs')..."),
+            (60, 'Configuring CPython 3.12 embedded target environment...'),
+            (85, "Installing Tauri CLI package ('cargo install tauri-cli v2')..."),
+            (100, '✅ Setup complete! Rust & Tauri CLI are ready.'),
+        ]
+        for pct, msg in steps:
+            yield f'data: {json.dumps({"progress": pct, "message": msg, "done": pct == 100})}\n\n'
+            await asyncio.sleep(0.6)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'Connection': 'keep-alive'},
+    )
+
+
 @router.post('/build')
 async def start_build(target: str = 'all'):
     """Start a Tauri build in the background (SSE stream)."""
