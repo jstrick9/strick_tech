@@ -59,10 +59,14 @@ def _or_headers() -> dict:
 def resolve_model(agent_id: str, custom_model: str = '') -> tuple[str, str]:
     """Returns (provider, model_string). custom_model overrides registry."""
     if custom_model:
+        if custom_model.startswith('ollama:'):
+            return 'ollama', custom_model.replace('ollama:', '', 1).strip()
+        if custom_model.startswith('custom_url:'):
+            return 'custom_url', custom_model.replace('custom_url:', '', 1).strip()
         # if it looks like an ollama model (no slash), route to ollama
-        if '/' not in custom_model and not custom_model.startswith('ollama:'):
-            return 'ollama', custom_model
-        return 'openrouter', custom_model
+        if '/' not in custom_model:
+            return 'ollama', custom_model.strip()
+        return 'openrouter', custom_model.strip()
     model = OPENROUTER_MODELS.get(agent_id.lower(), OPENROUTER_MODELS['default'])
     return 'openrouter', model
 
@@ -240,30 +244,59 @@ async def stream(
 # ── Ollama ─────────────────────────────────────────────────────────────────────
 async def _ollama_complete(messages, model, temperature, max_tokens, timeout) -> dict:
     t0 = time.time()
+    base_clean = OLLAMA_BASE.rstrip('/').removesuffix('/v1').rstrip('/')
+    clean_model = model.replace('ollama:', '', 1).strip()
     try:
         payload = {
-            'model': model,
+            'model': clean_model,
             'messages': messages,
             'stream': False,
             'options': {'temperature': temperature, 'num_predict': max_tokens},
         }
         async with httpx.AsyncClient(timeout=timeout) as client:
-            resp = await client.post(f'{OLLAMA_BASE}/api/chat', json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            text = data.get('message', {}).get('content', '')
-            return {
-                'text': text,
-                'tokens': data.get('eval_count', 0),
-                'cost': 0.0,
-                'model': model,
-                'provider': 'ollama',
-                'latency_ms': round((time.time() - t0) * 1000),
-                'ok': True,
-            }
+            try:
+                resp = await client.post(f'{base_clean}/api/chat', json=payload)
+                if resp.status_code == 404:
+                    raise httpx.HTTPStatusError('404 Not Found', request=resp.request, response=resp)
+                resp.raise_for_status()
+                data = resp.json()
+                text = data.get('message', {}).get('content', '')
+                return {
+                    'text': text,
+                    'tokens': data.get('eval_count', 0),
+                    'cost': 0.0,
+                    'model': clean_model,
+                    'provider': 'ollama',
+                    'latency_ms': round((time.time() - t0) * 1000),
+                    'ok': True,
+                }
+            except (httpx.HTTPStatusError, httpx.RequestError) as e:
+                if isinstance(e, httpx.HTTPStatusError) and e.response.status_code != 404:
+                    raise
+                # Fallback to OpenAI-compatible /v1/chat/completions (Ollama >= 0.1.24 & LM Studio / Jan)
+                oai_payload = {
+                    'model': clean_model,
+                    'messages': messages,
+                    'stream': False,
+                    'temperature': temperature,
+                    'max_tokens': max_tokens,
+                }
+                resp2 = await client.post(f'{base_clean}/v1/chat/completions', json=oai_payload)
+                resp2.raise_for_status()
+                data2 = resp2.json()
+                text2 = data2.get('choices', [{}])[0].get('message', {}).get('content', '')
+                return {
+                    'text': text2,
+                    'tokens': data2.get('usage', {}).get('total_tokens', 0),
+                    'cost': 0.0,
+                    'model': clean_model,
+                    'provider': 'ollama',
+                    'latency_ms': round((time.time() - t0) * 1000),
+                    'ok': True,
+                }
     except Exception as e:
         return {
-            'text': f'[Ollama error — is Ollama running? Install: https://ollama.com]\n\n{e}',
+            'text': f'[Ollama complete error — is Ollama running on {base_clean}? Verify model `{clean_model}` is installed via `ollama list`]\n\nDetails: {e}',
             'ok': False,
             'error': str(e),
             'provider': 'ollama',
@@ -271,44 +304,90 @@ async def _ollama_complete(messages, model, temperature, max_tokens, timeout) ->
 
 
 async def _ollama_stream(messages, model, temperature, max_tokens, timeout) -> AsyncGenerator[str, None]:
+    base_clean = OLLAMA_BASE.rstrip('/').removesuffix('/v1').rstrip('/')
+    clean_model = model.replace('ollama:', '', 1).strip()
     payload = {
-        'model': model,
+        'model': clean_model,
         'messages': messages,
         'stream': True,
         'options': {'temperature': temperature, 'num_predict': max_tokens},
     }
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            async with client.stream('POST', f'{OLLAMA_BASE}/api/chat', json=payload) as resp:
-                resp.raise_for_status()
-                async for line in resp.aiter_lines():
-                    if not line:
-                        continue
-                    try:
-                        chunk = json.loads(line)
-                        delta = chunk.get('message', {}).get('content', '')
-                        done = chunk.get('done', False)
-                        if delta:
-                            yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
-                        if done:
-                            yield f'data: {json.dumps({"delta": "", "done": True, "model": model})}\n\n'
-                    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-                        pass
+            try:
+                async with client.stream('POST', f'{base_clean}/api/chat', json=payload) as resp:
+                    if resp.status_code == 404:
+                        raise httpx.HTTPStatusError('404 Not Found', request=resp.request, response=resp)
+                    resp.raise_for_status()
+                    async for line in resp.aiter_lines():
+                        if not line:
+                            continue
+                        try:
+                            chunk = json.loads(line)
+                            delta = chunk.get('message', {}).get('content', '')
+                            done = chunk.get('done', False)
+                            if delta:
+                                yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
+                            if done:
+                                yield f'data: {json.dumps({"delta": "", "done": True, "model": clean_model})}\n\n'
+                        except Exception:
+                            pass
+                return
+            except (httpx.HTTPStatusError, httpx.RequestError) as e:
+                if isinstance(e, httpx.HTTPStatusError) and e.response.status_code != 404:
+                    raise
+                # Fallback to OpenAI-compatible /v1/chat/completions (Ollama >= 0.1.24 & LM Studio / Jan)
+                oai_payload = {
+                    'model': clean_model,
+                    'messages': messages,
+                    'stream': True,
+                    'temperature': temperature,
+                    'max_tokens': max_tokens,
+                }
+                async with client.stream('POST', f'{base_clean}/v1/chat/completions', json=oai_payload) as resp2:
+                    resp2.raise_for_status()
+                    async for line in resp2.aiter_lines():
+                        if not line.startswith('data: '):
+                            continue
+                        raw = line[6:].strip()
+                        if raw == '[DONE]':
+                            yield f'data: {json.dumps({"delta": "", "done": True, "model": clean_model})}\n\n'
+                            break
+                        try:
+                            chunk = json.loads(raw)
+                            delta = chunk['choices'][0]['delta'].get('content', '')
+                            if delta:
+                                yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
+                        except Exception:
+                            pass
     except Exception as e:
-        yield f'data: {json.dumps({"delta": f"[Ollama stream error]: {e}", "done": True})}\n\n'
+        yield f'data: {json.dumps({"delta": f"[Ollama stream error]: Client or server error for url `{base_clean}`.\n\nMake sure Ollama is running and model `{clean_model}` is installed via `ollama list`.\n\nDetails: {e}", "done": True})}\n\n'
 
 
 # ── Ollama health check ─────────────────────────────────────────────────────────
 async def ollama_health() -> dict:
     """Execute or process ollama health operation."""
+    base_clean = OLLAMA_BASE.rstrip('/').removesuffix('/v1').rstrip('/')
     try:
         async with httpx.AsyncClient(timeout=4.0) as client:
-            resp = await client.get(f'{OLLAMA_BASE}/api/tags')
-            data = resp.json()
-            models = [m['name'] for m in data.get('models', [])]
-            return {'running': True, 'models': models, 'url': OLLAMA_BASE}
+            try:
+                resp = await client.get(f'{base_clean}/api/tags')
+                if resp.status_code == 404:
+                    raise httpx.HTTPStatusError('404 Not Found', request=resp.request, response=resp)
+                resp.raise_for_status()
+                data = resp.json()
+                models = [m['name'] for m in data.get('models', [])]
+                return {'running': True, 'models': models, 'url': base_clean}
+            except (httpx.HTTPStatusError, httpx.RequestError) as e:
+                if isinstance(e, httpx.HTTPStatusError) and e.response.status_code != 404:
+                    raise
+                resp2 = await client.get(f'{base_clean}/v1/models')
+                resp2.raise_for_status()
+                data2 = resp2.json()
+                models = [m.get('id', m.get('name', 'unknown')) for m in data2.get('data', [])]
+                return {'running': True, 'models': models, 'url': base_clean}
     except Exception as e:
-        return {'running': False, 'models': [], 'url': OLLAMA_BASE, 'error': str(e)}
+        return {'running': False, 'models': [], 'url': base_clean, 'error': str(e)}
 
 
 # ── Cost estimation ─────────────────────────────────────────────────────────────

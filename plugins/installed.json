@@ -2529,5 +2529,25 @@
     "emoji": "\ud83e\uddea",
     "skill_count": 0,
     "installed_at": "2026-07-17"
+  },
+  "unit_test_24aa07": {
+    "id": "unit_test_24aa07",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-17"
+  },
+  "unit_test_ef47fd": {
+    "id": "unit_test_ef47fd",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-17"
   }
 }

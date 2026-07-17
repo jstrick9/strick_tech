@@ -1581,6 +1581,80 @@ window.lpSaveVerifyKey = async function() {
   }
 };
 
+window.openExternalLink = function(url) {
+  if (!url) return;
+  try {
+    if (window.__TAURI__ && window.__TAURI__.shell && typeof window.__TAURI__.shell.open === 'function') {
+      window.__TAURI__.shell.open(url);
+      return;
+    }
+  } catch(e) {}
+  
+  try {
+    fetch('/api/system/open-url', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url: url})
+    }).then(r => r.json()).then(j => {
+      if (!j.ok) window.open(url, '_blank');
+    }).catch(() => { window.open(url, '_blank'); });
+  } catch(e) {
+    window.open(url, '_blank');
+  }
+};
+
+window.showNoviceApiGuide = function() {
+  let modal = document.getElementById('novice-api-guide-modal');
+  if (modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'novice-api-guide-modal';
+  modal.className = 'modal-back open';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:11000;display:flex;align-items:center;justify-content:center;background:rgba(4,6,15,0.85);backdrop-filter:blur(8px)';
+  modal.innerHTML = `
+    <div class="card-elevated surface-z4" style="max-width:620px;width:95%;padding:28px;border:2px solid var(--accent);border-radius:20px;position:relative;max-height:90vh;overflow-y:auto">
+      <button onclick="document.getElementById('novice-api-guide-modal').remove()" style="position:absolute;top:16px;right:18px;background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
+      
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+        <div class="neural-orb-3d" style="width:46px;height:46px;flex-shrink:0"></div>
+        <div>
+          <h3 style="margin:0;font-size:18px;font-weight:900;color:var(--text-0)">🌟 Novice Quick Setup: Get Your Free API Key</h3>
+          <p style="margin:2px 0 0;font-size:12px;color:var(--accent)">Follow these 3 simple steps to unlock 140+ AI models across your operating system right now.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:22px">
+        <!-- Step 1 -->
+        <div class="surface-z2" style="padding:16px;border-radius:12px;border-left:4px solid var(--accent)">
+          <div style="font-weight:800;font-size:13.5px;color:var(--text-0);margin-bottom:6px">Step 1: Open OpenRouter & Create Your Free Account</div>
+          <div style="font-size:12.5px;color:var(--text-1);line-height:1.6;margin-bottom:12px">OpenRouter is our primary cloud gateway. It lets you use Claude, ChatGPT, Gemini, and Llama from one place. No credit card required (many models run at zero cost). Click below to launch their key generator:</div>
+          <button onclick="openExternalLink('https://openrouter.ai/keys')" class="btn-3d btn-primary btn-sm" style="padding:10px 18px;background:var(--accent);color:#fff;font-weight:800">🌐 1. Launch OpenRouter Key Page in Browser ↗</button>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="surface-z2" style="padding:16px;border-radius:12px;border-left:4px solid #a855f7">
+          <div style="font-weight:800;font-size:13.5px;color:var(--text-0);margin-bottom:6px">Step 2: Copy & Paste Your New Key Below</div>
+          <div style="font-size:12.5px;color:var(--text-1);line-height:1.6;margin-bottom:12px">On the webpage that opened, sign in, click <strong style="color:var(--accent)">+ Create Key</strong>, give it any name (e.g. Agentic OS), and copy the key (it starts with sk-or-v1-...). Paste it right here:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="novice-guide-key-inp" type="password" placeholder="Paste sk-or-v1-... key right here" style="flex:1;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
+            <button onclick="const k=document.getElementById('novice-guide-key-inp')?.value?.trim(); if(!k){toast('Please paste your sk-or-v1-... key first','warn');return;} const o=document.getElementById('or-key-input'); if(o)o.value=k; document.getElementById('novice-api-guide-modal').remove(); saveApiKey();" class="btn-3d btn-primary" style="padding:10px 20px;background:#10b981;border:none;color:#fff;font-weight:800">⚡ 2. Save & Unlock All Models</button>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="surface-z2" style="padding:16px;border-radius:12px;border-left:4px solid #10b981">
+          <div style="font-weight:800;font-size:13.5px;color:var(--text-0);margin-bottom:4px">Step 3: Start Chatting!</div>
+          <div style="font-size:12px;color:var(--text-2);line-height:1.5">Once saved, your key is encrypted locally inside your hardware vault (~/.vault_key). Claude 3.5 Sonnet, GPT-4o, Gemini 2.5 Pro, and Llama 3.3 70B instantly become selectable inside your Chat dropdown!</div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:14px;font-size:11.5px;color:var(--text-3);flex-wrap:wrap;gap:8px">
+        <span>🔒 100% Zero-Trust Local Hardware Encryption</span>
+        <button onclick="document.getElementById('novice-api-guide-modal').remove()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">I already have a key / Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
+
 window.toggleKeyVisibility = function(inputId) {
   const inp = document.getElementById(inputId);
   if (!inp) return;

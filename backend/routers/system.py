@@ -253,14 +253,22 @@ async def hmr_trigger(req: Request):
     return {'ok': True, 'clients': len(_hmr_clients)}
 
 
-@router.get('/hmr/status')
-def hmr_status():
-    """Execute or process hmr status operation."""
-    return {
-        'clients': len(_hmr_clients),
-        'watching': len(_hmr_watchers),
-        'watch_dir': str(ROOT / 'preview'),
-    }
+@router.post('/open-url')
+async def open_external_url(req: Request):
+    """Safely open an external URL across host browser / native OS shell."""
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
+    url = (body.get('url') or '').strip()
+    if not url.startswith(('http://', 'https://')):
+        return {'ok': False, 'error': 'Invalid URL protocol'}
+    import webbrowser
+    try:
+        webbrowser.open(url)
+        return {'ok': True, 'url': url}
+    except Exception as e:
+        return {'ok': False, 'error': str(e)}
 
 
 # ── Git status ─────────────────────────────────────────────────────────────────
