@@ -1018,18 +1018,43 @@
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* ── Button v9 ───────────────────────────────────────────── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:var(--text-sm);font-weight:600;padding:0 16px;height:36px;border-radius:var(--radius-sm);border:none;cursor:pointer;transition:all .12s cubic-bezier(0,0,.2,1);font-family:inherit;white-space:nowrap;user-select:none;position:relative;overflow:hidden}
-.btn:active{transform:scale(.97)}
-.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.btn:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
-.btn-primary{background:var(--accent);color:#fff;box-shadow:0 1px 3px rgba(91,138,248,.3)}
-.btn-primary:hover{background:var(--accent-hi);box-shadow:0 4px 12px rgba(91,138,248,.4)}
-.btn-ghost{background:transparent;color:var(--text-1);border:1px solid var(--border)}
-.btn-ghost:hover{background:var(--bg-3);border-color:var(--border-hi);color:var(--text-0)}
-.btn-danger{background:rgba(232,82,82,.1);color:#e85252;border:1px solid rgba(232,82,82,.25)}
-.btn-danger:hover{background:#e85252;color:#fff}
-.btn-sm{height:28px;padding:0 12px;font-size:var(--text-xs)}
+/* ── 3D Tactile Physical Buttons (.btn / .btn-3d) ─────────────── */
+.btn, .btn-primary, .btn-ghost, .btn-danger, .btn-sm, .btn-3d, button[class*="btn"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: var(--text-sm, 13px);
+  font-weight: 700;
+  padding: 0 16px;
+  height: 38px;
+  border-radius: var(--radius-sm, 10px);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.08s cubic-bezier(0,0,.2,1), box-shadow 0.08s cubic-bezier(0,0,.2,1), background 0.15s ease;
+  font-family: inherit;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3), 0 6px 14px rgba(0, 0, 0, 0.2);
+}
+.btn:hover, .btn-primary:hover, .btn-ghost:hover, .btn-danger:hover, .btn-sm:hover, .btn-3d:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35), 0 10px 18px rgba(0, 0, 0, 0.25);
+}
+.btn:active, .btn-primary:active, .btn-ghost:active, .btn-danger:active, .btn-sm:active, .btn-3d:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4), inset 0 2px 5px rgba(0, 0, 0, 0.35) !important;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hi); }
+.btn-ghost { background: var(--bg-3); color: var(--text-0); border: 1px solid var(--border-hi); }
+.btn-ghost:hover { background: var(--bg-4); color: var(--text-0); }
+.btn-danger { background: rgba(232,82,82,.15); color: #ff5555; border: 1px solid rgba(232,82,82,.4); }
+.btn-danger:hover { background: #ff4444; color: #fff; }
+.btn-sm { height: 30px; padding: 0 12px; font-size: var(--text-xs, 12px); box-shadow: 0 3px 0 rgba(0,0,0,0.25), 0 4px 8px rgba(0,0,0,0.15); }
+.btn-sm:hover { transform: translateY(-1.5px); box-shadow: 0 4.5px 0 rgba(0,0,0,0.3), 0 6px 12px rgba(0,0,0,0.2); }
+.btn-sm:active { transform: translateY(2px) !important; box-shadow: 0 1px 0 rgba(0,0,0,0.35), inset 0 2px 4px rgba(0,0,0,0.3) !important; }
 .btn-lg{height:44px;padding:0 24px;font-size:var(--text-md)}
 .btn-icon{width:32px;padding:0;border-radius:var(--radius-sm)}
 .btn.loading{color:transparent;pointer-events:none}

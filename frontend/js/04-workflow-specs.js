@@ -179,6 +179,7 @@ async function togglePaneVisibility(paneId) {
   }
 }
 
+window.showSidebarCustomizer = function() { showSidebarCustomizer(); };
 function showSidebarCustomizer() {
   const existing = document.getElementById('sidebar-customizer');
   if (existing) { existing.remove(); return; }
@@ -1345,20 +1346,42 @@ async function showUserProfile() {
 
   const panel = document.createElement('div');
   panel.id = 'profile-panel';
-  panel.style.cssText = `position:fixed;top:${panelTop}px;right:12px;width:300px;background:var(--bg-2);border:1px solid var(--border);border-radius:14px;z-index:9995;box-shadow:0 8px 32px rgba(0,0,0,.4);overflow:hidden`;
+  panel.style.cssText = `position:fixed;top:${panelTop}px;right:12px;width:320px;background:var(--bg-2);border:1px solid var(--border);border-radius:14px;z-index:9995;box-shadow:0 8px 32px rgba(0,0,0,.4);overflow:hidden`;
   panel.innerHTML = `
     <div style="padding:18px;background:linear-gradient(135deg,var(--bg-3),var(--bg-2));border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-        <div style="width:44px;height:44px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${escHtml(profile.avatar||'\u{1F9D1}\u{200D}\u{1F4BB}')}</div>
+        <div id="profile-avatar-display" style="width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;overflow:hidden">${escHtml(profile.avatar||'\u{1F9D1}\u{200D}\u{1F4BB}')}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;color:var(--text-0);font-size:15px">${escHtml(profile.name||'User')}</div>
+          <div style="font-weight:700;color:var(--text-0);font-size:15px">${escHtml(profile.name||'Joshua')}</div>
           <div style="font-size:11px;color:${tierColor};font-weight:700">${(licStatus.tier||'trial').toUpperCase()} ${licStatus.is_trial&&licStatus.trial_days_left>0?`\xB7 ${licStatus.trial_days_left} days left`:''}</div>
         </div>
         <button onclick="document.getElementById('profile-panel')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px">\u2715</button>
       </div>
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <input type="file" id="profile-avatar-file" accept="image/*" style="display:none" onchange="if(typeof uploadProfileAvatar==='function') uploadProfileAvatar(this)">
+        <button class="btn-3d btn-sm" onclick="document.getElementById('profile-avatar-file')?.click()" style="flex:1;font-size:11px">📸 Upload Picture</button>
+      </div>
       <div style="display:flex;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:3px">
-        <button onclick="switchUIMode('simple');document.getElementById('profile-panel')?.remove()" style="flex:1;padding:5px;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;background:${_UI.uiMode==='simple'?'var(--accent)':'transparent'};color:${_UI.uiMode==='simple'?'#fff':'var(--text-2)'}">&#x2728; Simple</button>
-        <button onclick="switchUIMode('power');document.getElementById('profile-panel')?.remove()" style="flex:1;padding:5px;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;background:${_UI.uiMode==='power'?'var(--accent)':'transparent'};color:${_UI.uiMode==='power'?'#fff':'var(--text-2)'}">&#x26A1; Power</button>
+        <button onclick="switchUIMode('simple');document.getElementById('profile-panel')?.remove()" class="btn-3d" style="flex:1;padding:5px;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;background:${_UI.uiMode==='simple'?'var(--accent)':'transparent'};color:${_UI.uiMode==='simple'?'#fff':'var(--text-2)'}">&#x2728; Simple</button>
+        <button onclick="switchUIMode('power');document.getElementById('profile-panel')?.remove()" class="btn-3d" style="flex:1;padding:5px;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;background:${_UI.uiMode==='power'?'var(--accent)':'transparent'};color:${_UI.uiMode==='power'?'#fff':'var(--text-2)'}">&#x26A1; Power</button>
+      </div>
+    </div>
+    <div style="padding:12px 14px;border-bottom:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;margin-bottom:8px">Identity & Custom App Branding</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div>
+          <label style="font-size:10.5px;color:var(--text-2);display:block;margin-bottom:2px">Custom Username</label>
+          <input id="custom-username-input" value="${escHtml(profile.name||'Joshua')}" placeholder="Username" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text-0);font-size:12px" onchange="if(typeof saveCustomIdentity==='function') saveCustomIdentity()">
+        </div>
+        <div>
+          <label style="font-size:10.5px;color:var(--text-2);display:block;margin-bottom:2px">Custom Current Role</label>
+          <input id="custom-role-input" value="${escHtml(profile.role||'Senior Architect')}" placeholder="Role or Title" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text-0);font-size:12px" onchange="if(typeof saveCustomIdentity==='function') saveCustomIdentity()">
+        </div>
+        <div>
+          <label style="font-size:10.5px;color:var(--text-2);display:block;margin-bottom:2px">Custom Agentic OS App Name</label>
+          <input id="custom-app-name-input" value="${escHtml(profile.workspace_name||'Strick Tech')}" placeholder="e.g. Strick Tech Command Center" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text-0);font-size:12px" onchange="if(typeof saveCustomIdentity==='function') saveCustomIdentity()">
+        </div>
+        <button class="btn-primary btn-sm btn-3d" onclick="if(typeof saveCustomIdentity==='function') saveCustomIdentity()" style="width:100%;margin-top:4px">💾 Save Identity & Branding</button>
       </div>
     </div>
     <div style="padding:10px 14px">
@@ -1369,24 +1392,15 @@ async function showUserProfile() {
         {icon:'\u{1F4B3}',label:'View Plans',action:"showTierPlans();document.getElementById('profile-panel')?.remove()"},
         {icon:'\u2699\uFE0F',label:'Settings',action:"nav('settings');document.getElementById('profile-panel')?.remove()"},
       ].map(item=>`
-        <button onclick="${item.action}" style="width:100%;display:flex;align-items:center;gap:8px;padding:9px 10px;background:none;border:none;border-radius:8px;color:var(--text-1);cursor:pointer;font-size:13px;text-align:left;transition:background .1s" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background='none'">
+        <button onclick="${item.action}" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;background:none;border:none;border-radius:8px;color:var(--text-1);cursor:pointer;font-size:12.5px;text-align:left;transition:background .1s" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background='none'">
           <span>${item.icon}</span><span>${item.label}</span>
         </button>`).join('')}
-    </div>
-    <div style="padding:0 14px 14px">
-      <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Current Role</div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px">
-        ${[['developer','\u{1F4BB}'],['analyst','\u{1F4CA}'],['writer','\u270D\uFE0F'],['designer','\u{1F3A8}'],['manager','\u{1F4CB}'],['student','\u{1F393}']].map(([id,icon])=>`
-          <button onclick="applyRole(${JSON.stringify(id)})" style="padding:4px 10px;border-radius:6px;border:1px solid ${profile.role===id?'var(--accent)':'var(--border)'};background:${profile.role===id?'rgba(91,138,248,.15)':'var(--bg-3)'};color:${profile.role===id?'var(--accent)':'var(--text-2)'};cursor:pointer;font-size:11px">
-            ${icon} ${id}
-          </button>`).join('')}
-      </div>
     </div>
     ${licStatus.is_trial?`
     <div style="margin:0 14px 14px;background:rgba(91,138,248,.1);border:1px solid var(--accent)33;border-radius:8px;padding:10px 12px">
       <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:4px">&#x23F0; ${licStatus.trial_days_left} days of trial remaining</div>
       <div style="font-size:11px;color:var(--text-2);margin-bottom:8px">Upgrade to keep access to all features.</div>
-      <button onclick="showTierPlans();document.getElementById('profile-panel')?.remove()" style="width:100%;padding:7px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">View Upgrade Options</button>
+      <button onclick="showTierPlans();document.getElementById('profile-panel')?.remove()" class="btn-3d" style="width:100%;padding:7px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">View Upgrade Options</button>
     </div>`:''}
   `;
 
@@ -1398,6 +1412,54 @@ async function showUserProfile() {
   }, { capture: true });
   document.body.appendChild(panel);
 }
+window.openUserProfileModal = function() { showUserProfile(); };
+
+window.saveCustomIdentity = async function() {
+  const name = document.getElementById('custom-username-input')?.value?.trim() || 'Joshua';
+  const role = document.getElementById('custom-role-input')?.value?.trim() || 'Senior Architect';
+  const appName = document.getElementById('custom-app-name-input')?.value?.trim() || 'Strick Tech';
+  
+  const titleEl = document.getElementById('custom-app-title');
+  if (titleEl) titleEl.innerHTML = `${escHtml(appName)} <span style="color:var(--accent)">Agentic OS</span>`;
+  const nameEl = document.getElementById('topbar-user-name');
+  if (nameEl) nameEl.textContent = name;
+  if (document.title) document.title = `${appName} Agentic OS — Mission Control`;
+
+  try {
+    localStorage.setItem('agentic_os_app_name', appName);
+    localStorage.setItem('agentic_os_username', name);
+    localStorage.setItem('agentic_os_userrole', role);
+  } catch(e) {}
+
+  showToast('✅ Identity & App Name Saved!', 2000);
+  try {
+    await fetch('/api/profile', {
+      method: 'PATCH', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name, role, workspace_name: appName})
+    });
+  } catch(e) {}
+};
+
+window.uploadProfileAvatar = function(input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const dataUri = e.target?.result;
+    if (!dataUri) return;
+    const avEl = document.getElementById('topbar-user-avatar');
+    if (avEl) avEl.innerHTML = `<img src="${dataUri}" style="width:20px;height:20px;border-radius:50%;object-fit:cover">`;
+    try { localStorage.setItem('agentic_os_avatar_picture', dataUri); } catch(err) {}
+    showToast('📸 Profile picture uploaded & saved!', 2500);
+    try {
+      await fetch('/api/profile', {
+        method: 'PATCH', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({avatar: dataUri})
+      });
+    } catch(err) {}
+  };
+  reader.readAsDataURL(file);
+};
 
 async function applyRole(roleId) {
   // FIX B: try/catch; FIX G: targeted state update instead of full loadUIConfig()
@@ -1450,20 +1512,7 @@ function applyProfileTheme(profile) {
   topbar.insertBefore(btn, spacer);
 })();
 
-(function addCustomizeSidebarBtn() {
-  const sidebar = document.getElementById('sidebar');
-  if (!sidebar || document.getElementById('customize-sidebar-btn')) return;
 
-  const btn = document.createElement('button');
-  btn.id = 'customize-sidebar-btn';
-  btn.title = 'Customize sidebar';
-  btn.style.cssText = 'position:absolute;bottom:48px;left:0;right:0;padding:8px 12px;background:transparent;border:none;border-top:1px solid var(--border);color:var(--text-3);cursor:pointer;font-size:11px;text-align:center;transition:all .12s';
-  btn.innerHTML = '🎛️ Customize';
-  btn.onclick = showSidebarCustomizer;
-  btn.onmouseover = () => { btn.style.color='var(--text-0)'; btn.style.background='var(--bg-2)'; };
-  btn.onmouseout  = () => { btn.style.color='var(--text-3)'; btn.style.background='transparent'; };
-  sidebar.appendChild(btn);
-})();
 
 
 // ══════════════════════════════════════════════════════════════════

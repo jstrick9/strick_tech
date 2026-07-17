@@ -1190,6 +1190,30 @@ async function deleteGxNode(memId) {
   }
 }
 
+window.gxAddMemory = async function() {
+  const text = await gmPrompt('New Memory Content:', 'e.g. User prefers Python and Tailwind CSS over Bootstrap', '', true);
+  if (!text) return;
+  const source = await gmPrompt('Source / Category (e.g. user_prefs, project_rules, architecture):', 'user_prefs');
+  if (!source) return;
+  const tags = await gmPrompt('Tags (comma-separated, optional):', 'python, tailwind, ui');
+  try {
+    toast('⏳ Storing vector memory...', 'ok', 2000);
+    const r = await fetch('/api/memory/add', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({content: text, source, tags: (tags||'').split(',').map(t=>t.trim()).filter(Boolean)})
+    });
+    const j = await r.json();
+    if (j.ok || j.id) {
+      toast('✅ Memory #' + (j.id || 'new') + ' stored & indexed!', 'ok', 3000);
+      if (typeof refreshGalaxy === 'function') refreshGalaxy();
+    } else {
+      gmAlert('Error adding memory: ' + (j.error || 'Unknown error'));
+    }
+  } catch(e) {
+    gmAlert('Network error adding memory: ' + e.message);
+  }
+};
+
 async function doGxSearch() {
   const q = document.getElementById('gx-search')?.value?.trim();
   if (!q) return;
@@ -1488,7 +1512,7 @@ async function saveApiKey() {
 window.testOllamaConnection = async function() {
   const urlInp = document.getElementById('ollama-url-input');
   const statusEl = document.getElementById('ollama-status');
-  const modelsEl = document.getElementById('ollama-models');
+  const modelsEl = document.getElementById('ollama-models') || document.getElementById('settings-api-ollama-models');
   const url = urlInp ? urlInp.value.trim() : 'http://localhost:11434';
   if (statusEl) statusEl.innerHTML = '<span style="color:var(--accent)">Testing…</span>';
   try {
@@ -1501,6 +1525,7 @@ window.testOllamaConnection = async function() {
       if (statusEl) statusEl.innerHTML = '<span style="color:var(--success)">✅ Online</span>';
       if (modelsEl) modelsEl.innerHTML = `<div style="margin-top:6px;color:var(--success);font-weight:700">${escHtml(j.message)}</div>`;
       toast('⚡ Local Ollama connection confirmed active!', 'ok', 3000);
+      if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
     } else {
       if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger)">❌ Offline</span>';
       if (modelsEl) modelsEl.innerHTML = `<div style="margin-top:6px;color:var(--danger)">Could not connect to Ollama at ${escHtml(url)}. Make sure Ollama app is running.</div>`;
@@ -1511,8 +1536,8 @@ window.testOllamaConnection = async function() {
 };
 
 window.pullOllamaModel = async function(modelName) {
-  const modelsEl = document.getElementById('ollama-models');
-  const urlInp = document.getElementById('ollama-url-input');
+  const modelsEl = document.getElementById('ollama-models') || document.getElementById('settings-api-ollama-models');
+  const urlInp = document.getElementById('ollama-url-input') || document.getElementById('settings-api-ollama-url');
   const url = urlInp ? urlInp.value.trim() : 'http://localhost:11434';
   toast(`⚡ Triggering model pull for ${modelName}... Check Ollama local server`, 'ok', 4000);
   if (modelsEl) modelsEl.innerHTML = `<div style="margin-top:6px;color:var(--accent);font-weight:700">⏳ Pulling model '${modelName}' via Ollama API...</div>`;
@@ -1524,12 +1549,76 @@ window.pullOllamaModel = async function(modelName) {
     if (r.ok) {
       if (modelsEl) modelsEl.innerHTML = `<div style="margin-top:6px;color:var(--success);font-weight:700">✅ Model '${modelName}' downloaded and ready locally!</div>`;
       toast(`✅ Model ${modelName} ready!`, 'ok', 4000);
+      if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
     } else {
       if (modelsEl) modelsEl.innerHTML = `<div style="margin-top:6px;color:var(--warning);font-weight:700">⚠️ Ollama pull requested (${modelName}). If CORS blocked direct browser call, run: 'ollama pull ${modelName}' in Terminal.</div>`;
     }
   } catch(e) {
     if (modelsEl) modelsEl.innerHTML = `<div style="margin-top:6px;color:var(--warning);font-weight:700">⚠️ Run 'ollama pull ${modelName}' inside your macOS Terminal to install offline.</div>`;
   }
+};
+
+window.saveCustomConnection = async function() {
+  const baseUrl = document.getElementById('custom-api-base-url')?.value?.trim();
+  const apiKey  = document.getElementById('custom-api-key')?.value?.trim();
+  const statusEl = document.getElementById('settings-api-custom-status');
+  const msgEl    = document.getElementById('custom-api-status-msg');
+  if (!baseUrl) { toast('Enter a custom Base URL', 'warn'); return; }
+  if (msgEl) msgEl.innerHTML = '<span style="color:var(--accent)">⏳ Testing connection...</span>';
+  try {
+    localStorage.setItem('agentic_os_custom_base_url', baseUrl);
+    if (apiKey) localStorage.setItem('agentic_os_custom_api_key', apiKey);
+    const r = await fetch(baseUrl + '/models', {
+      headers: apiKey ? {'Authorization': 'Bearer ' + apiKey} : {}
+    }).catch(() => null);
+    if (r && r.ok) {
+      const d = await r.json();
+      const count = d.data?.length || 1;
+      if (statusEl) { statusEl.textContent = `ONLINE (${count} models)`; statusEl.style.color = 'var(--success)'; }
+      if (msgEl) msgEl.innerHTML = `<span style="color:var(--success)">✅ Connected to ${escHtml(baseUrl)} — ${count} model(s) discovered!</span>`;
+      toast(`✅ Custom connection verified! (${count} models)`, 'ok', 3000);
+      if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
+    } else {
+      if (statusEl) { statusEl.textContent = 'SAVED / OFFLINE'; statusEl.style.color = 'var(--warning)'; }
+      if (msgEl) msgEl.innerHTML = `<span style="color:var(--warning)">🔗 Endpoint saved to local storage. (Could not fetch models directly: check server or CORS)</span>`;
+      if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
+    }
+  } catch(e) {
+    if (msgEl) msgEl.innerHTML = `<span style="color:var(--danger)">Error saving: ${escHtml(e.message)}</span>`;
+  }
+};
+
+window.syncOpenWebUIConnections = async function() {
+  const select = document.getElementById('chat-model-select');
+  if (!select) return;
+  
+  const customUrl = localStorage.getItem('agentic_os_custom_base_url');
+  const customGroup = document.getElementById('custom-model-optgroup');
+  if (customGroup && customUrl) {
+    customGroup.innerHTML = `<option value="custom_url:${escHtml(customUrl)}">Custom: ${escHtml(customUrl)}</option>`;
+  }
+
+  try {
+    const r = await fetch('/api/agents/models');
+    if (r.ok) {
+      const j = await r.json();
+      const ollamaGroup = document.getElementById('ollama-model-optgroup');
+      const ollamaStatus = document.getElementById('settings-api-ollama-status');
+      const ollamaModelsEl = document.getElementById('settings-api-ollama-models');
+      if (j.ollama?.running && j.ollama.models?.length) {
+        if (ollamaGroup) {
+          ollamaGroup.innerHTML = j.ollama.models.map(m => `<option value="ollama:${escHtml(m)}">Ollama: ${escHtml(m)}</option>`).join('');
+        }
+        if (ollamaStatus) { ollamaStatus.textContent = `ONLINE (${j.ollama.models.length} models)`; ollamaStatus.style.color = 'var(--success)'; }
+        if (ollamaModelsEl) {
+          ollamaModelsEl.innerHTML = `<div style="font-weight:700;color:var(--success);margin-bottom:6px">Installed Local Models:</div>` +
+            j.ollama.models.map(m => `<span class="tag" style="margin:3px;background:var(--bg-3);border:1px solid var(--border);padding:3px 8px;border-radius:6px;display:inline-block">${escHtml(m)}</span>`).join('');
+        }
+      } else if (ollamaStatus) {
+        ollamaStatus.textContent = 'OFFLINE'; ollamaStatus.style.color = 'var(--danger)';
+      }
+    }
+  } catch(e) {}
 };
 
 // ── Command Palette ───────────────────────────────────────────────
@@ -2431,15 +2520,17 @@ async function loadSkills() {
     const [sr, cr] = await Promise.all([fetch('/api/skills'), fetch('/api/skills/categories')]);
     if (!sr.ok) throw new Error('Skills API error ' + sr.status);
     if (!cr.ok) throw new Error('Categories API error ' + cr.status);
-    allSkills = await sr.json();
-    const cats = await cr.json();
+    const sData = await sr.json();
+    const cData = await cr.json();
+    allSkills = Array.isArray(sData) ? sData : (Array.isArray(sData?.skills) ? sData.skills : []);
+    const cats = Array.isArray(cData) ? cData : (Array.isArray(cData?.categories) ? cData.categories : []);
     // Render category pills
     const catEl = document.getElementById('skill-cats');
     if (catEl) catEl.innerHTML =
       `<span class="tag ${skillCategory==='all'?'blue':''}" data-cat="all" style="cursor:pointer;padding:5px 12px" onclick="filterSkills('all')">All (${allSkills.length})</span>` +
       cats.map(c => `<span class="tag ${skillCategory===c.id?'blue':''}" data-cat="${c.id}" style="cursor:pointer;padding:5px 12px" onclick="filterSkills('${escHtml(c.id)}')">${escHtml(c.id)} (${c.count})</span>`).join('');
     renderSkillGrid();
-  } catch(e) { toast('Failed to load skills', 'err'); }
+  } catch(e) { console.warn('Failed to load skills:', e); toast('Failed to load skills', 'err'); }
 }
 
 function filterSkills(cat) {
@@ -7573,12 +7664,23 @@ window.switchUIMode = async function(mode) {
   if (typeof window.applyUIMode === 'function') window.applyUIMode(mode);
   if (typeof updateSettingsModeButtons === 'function') updateSettingsModeButtons();
   
-  const advItems = document.querySelectorAll('.nav-item[data-tier="advanced"], [data-tier="advanced"]');
+  const advItems = document.querySelectorAll('.nav-item[data-tier="advanced"], .sidebar-group-label[data-tier="advanced"], [data-tier="advanced"]');
   advItems.forEach(el => { el.style.display = mode === 'power' ? '' : 'none'; });
   
+  const agentsSection = document.querySelectorAll('.sidebar-section, #agent-list, .sidebar-add-agent');
+  agentsSection.forEach(el => { el.style.display = mode === 'power' ? '' : 'none'; });
+
+  if (mode === 'simple') {
+    if (typeof window.toggleSidebarGroup === 'function') window.toggleSidebarGroup('core', true);
+  } else {
+    ['core', 'build', 'ship', 'tools', 'enterprise'].forEach(gid => {
+      if (typeof window.toggleSidebarGroup === 'function') window.toggleSidebarGroup(gid, false);
+    });
+  }
+
   try {
     fetch('/api/profile', {
-      method:'PATCH', headers:{'Content-Type':'application/json'},
+      method: 'PATCH', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ui_mode: mode})
     }).catch(()=>{});
   } catch(e) {}
