@@ -67,6 +67,56 @@ def system_info():
     return _system_info()
 
 
+@router.get('/hardware')
+def hardware_info():
+    """Return comprehensive local hardware telemetry and model quantization recommendations."""
+    import platform
+    try:
+        import psutil
+        ram_bytes = psutil.virtual_memory().total
+        ram_gb = round(ram_bytes / (1024**3))
+        cpu_cores = psutil.cpu_count(logical=False) or os.cpu_count() or 4
+    except ImportError:
+        ram_gb = 16
+        cpu_cores = os.cpu_count() or 4
+
+    arch = platform.machine()
+    sys_name = platform.system()
+    is_apple_silicon = sys_name == 'Darwin' and arch in ('arm64', 'aarch64')
+    metal_mps = is_apple_silicon
+
+    if ram_gb >= 64:
+        rec_model = 'llama3.3:70b'
+        quant = 'Q4_K_M or Q8_0'
+        capacity = 'Super-heavy local inference capacity — run 70B parameters with zero memory swapping'
+    elif ram_gb >= 32:
+        rec_model = 'qwen2.5-coder:32b'
+        quant = 'Q4_K_M'
+        capacity = 'High memory capacity — ideal for local LoRA fine-tuning and multi-agent swarms'
+    elif ram_gb >= 16:
+        rec_model = 'llama3.1:8b'
+        quant = 'Q4_K_M or Q8_0'
+        capacity = 'Optimized Apple Silicon / AVX inference capacity — zero latency coding & chat'
+    else:
+        rec_model = 'llama3.2:3b'
+        quant = 'Q4_0'
+        capacity = 'Lightweight edge inference capacity'
+
+    return {
+        'ok': True,
+        'os': sys_name,
+        'architecture': arch,
+        'is_apple_silicon': is_apple_silicon,
+        'metal_mps_available': metal_mps,
+        'cpu_physical_cores': cpu_cores,
+        'ram_total_gb': ram_gb,
+        'recommended_model': rec_model,
+        'recommended_quantization': quant,
+        'telemetry_summary': capacity,
+        'creator': 'Joshua Strickland and Strick Tech'
+    }
+
+
 # ── HMR — file-watch + auto-broadcast ─────────────────────────────────────────
 import threading as _threading_hmr
 

@@ -1489,7 +1489,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- BUILD & AI ENGINE -->
-        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD & AI ENGINE <span class="group-count" style="float:right;font-size:10px;opacity:0.7">11</span></div>
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD & AI ENGINE <span class="group-count" style="float:right;font-size:10px;opacity:0.7">12</span></div>
         <div class="sidebar-group-content" id="group-build" data-tier="advanced" style="display:none">
           <div class="nav-item" data-nav="builder" data-tier="advanced" onclick="nav('builder')"><span class="icon">⌨</span><span class="label">Editor</span></div>
           <div class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')"><span class="icon">✦</span><span class="label">Composer</span></div>
@@ -1502,6 +1502,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div class="nav-item" data-nav="plugins" data-tier="advanced" onclick="nav('plugins')"><span class="icon">❖</span><span class="label">Plugins</span></div>
           <div class="nav-item" data-nav="terminal" data-tier="advanced" onclick="nav('terminal')"><span class="icon">＞_</span><span class="label">Terminal</span></div>
           <div class="nav-item" data-nav="secrets" data-tier="advanced" onclick="nav('secrets')"><span class="icon">🔐</span><span class="label">Vault</span></div>
+          <div class="nav-item" data-nav="finetune" data-tier="advanced" onclick="nav('finetune')"><span class="icon">⚗</span><span class="label">Fine-Tuning (LoRA)</span></div>
         </div>
 
         <!-- SHIP & GOVERNANCE -->
@@ -2849,6 +2850,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div><!-- /settings-workstation -->
       </div><!-- /pane-settings -->
       <div class="pane" id="pane-pqc" style="overflow:auto;padding:20px;background:var(--bg-0)"><div style="flex:1;display:flex;flex-direction:column"></div></div>
+      <div class="pane" id="pane-finetune" style="overflow:auto;padding:20px;background:var(--bg-0)"><div style="flex:1;display:flex;flex-direction:column"></div></div>
 
     </div><!-- /content -->
   </div><!-- /main -->

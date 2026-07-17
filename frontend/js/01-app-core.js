@@ -84,7 +84,7 @@ window.initSidebarGroups = function() {
 
 window.PANE_TO_GROUP = {
   'chat':'core', 'studio':'core', 'templates':'core', 'swarm':'core', 'galaxy':'core', 'hierarchy':'core', 'kanban':'core', 'settings':'core',
-  'builder':'build', 'composer':'build', 'pipeline':'build', 'skills':'build', 'loops':'build', 'mcp':'build', 'fusion':'build', 'arena':'build', 'plugins':'build', 'terminal':'build', 'secrets':'build',
+  'builder':'build', 'composer':'build', 'pipeline':'build', 'skills':'build', 'loops':'build', 'mcp':'build', 'fusion':'build', 'arena':'build', 'plugins':'build', 'terminal':'build', 'secrets':'build', 'finetune':'build',
   'github':'ship', 'deploy':'ship', 'dbstudio':'ship', 'dashboard':'ship', 'system':'ship', 'workspaces':'ship', 'control':'ship', 'supervisor':'ship', 'goals':'ship',
   'workflow':'tools', 'specs':'tools', 'steering':'tools', 'bugbot':'tools', 'gitai':'tools', 'marketplace':'tools', 'replay':'tools', 'collabedit':'tools', 'ambient':'tools', 'hitl':'tools', 'connectors':'tools', 'mcp-gateway':'tools', 'a2a':'tools', 'agent-identity':'tools',
   'audit-log':'enterprise', 'leaderboard':'enterprise', 'agent-monitor':'enterprise', 'finops':'enterprise', 'eval-framework':'enterprise', 'docs':'enterprise', 'websearch':'enterprise', 'browser':'enterprise', 'knowledge-graph':'enterprise', 'rag':'enterprise', 'hooks':'enterprise', 'codeindex':'enterprise', 'observability':'enterprise', 'evals':'enterprise', 'health':'enterprise', 'integrations':'enterprise', 'imagegen':'enterprise', 'prompts':'enterprise', 'codesearch':'enterprise', 'obsidian':'enterprise', 'pluginsdk':'enterprise', 'multitab':'enterprise', 'profiler':'enterprise', 'webhooks':'enterprise', 'testgen':'enterprise', 'pqc':'enterprise'
@@ -203,6 +203,7 @@ window.MASTER_PANE_REGISTRY = {
   'collabedit':     () => typeof window.renderCollabEdit === 'function' && window.renderCollabEdit(),
   'marketplace':    () => typeof window.renderMarketplace === 'function' && window.renderMarketplace(),
   'pqc':            () => typeof window.renderPQCVault === 'function' && window.renderPQCVault(),
+  'finetune':       () => typeof window.renderFinetuneWorkstation === 'function' && window.renderFinetuneWorkstation(),
 };
 
 window.nav = function(pane) {
@@ -1313,6 +1314,10 @@ window.switchSettingsTab = function(tabId) {
   if (navBtn) navBtn.classList.add('active');
   if (pane) pane.classList.add('active');
   try { localStorage.setItem('agentic_os_settings_tab', tabId); } catch(e) {}
+  try { history.replaceState(null, '', '#/settings/' + tabId); } catch(e) {}
+  if (tabId === 'ollama' && typeof window.checkHardwareRecommendations === 'function') {
+    window.checkHardwareRecommendations();
+  }
 };
 
 window.setupSettingsWorkstation = function() {
