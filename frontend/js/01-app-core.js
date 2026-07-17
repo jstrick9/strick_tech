@@ -39,11 +39,15 @@ window.toggleSidebar = function() {
   if (!sb) return;
   const isCollapsed = sb.classList.toggle('collapsed');
   if (isCollapsed) {
-    sb.dataset.savedWidth = sb.style.width || '260px';
+    let currentW = parseInt(sb.style.width || '260', 10);
+    if (isNaN(currentW) || currentW <= 60) currentW = 260;
+    sb.dataset.savedWidth = currentW + 'px';
     sb.style.width = '56px';
     if (btn) btn.innerHTML = '▶';
   } else {
-    sb.style.width = sb.dataset.savedWidth || '260px';
+    let restoreW = parseInt(sb.dataset.savedWidth || '260', 10);
+    if (isNaN(restoreW) || restoreW <= 60) restoreW = 260;
+    sb.style.width = restoreW + 'px';
     if (btn) btn.innerHTML = '◀';
   }
   try { localStorage.setItem('agentic_os_sidebar_collapsed', isCollapsed ? 'true' : 'false'); } catch(e) {}
@@ -1316,10 +1320,17 @@ window.setupDragAndDrop = function() {
 };
 
 // ── Settings ──────────────────────────────────────────────────────
-async function loadSettings() {
-  setupSettingsWorkstation();
-  renderAgentList();
-  // check ollama
+window.loadSettings = async function() {
+  if (typeof setupSettingsWorkstation === 'function') setupSettingsWorkstation();
+  if (typeof renderAgentList === 'function') renderAgentList();
+  try {
+    const pr = await fetch('/api/onboarding/preferences');
+    if (pr.ok) {
+      const p = await pr.json();
+      const keyInp = document.getElementById('or-key-input');
+      if (keyInp && p.workspace_name) keyInp.placeholder = `Current workspace: ${p.workspace_name}`;
+    }
+  } catch(e) {}
   try {
     const r = await fetch('/api/agents/models');
     const j = await r.json();
@@ -1335,10 +1346,10 @@ async function loadSettings() {
       }
     }
   } catch(e) {}
-  // system info
   const info = document.getElementById('system-info');
   if (info) info.innerHTML = `<div>Port: 8787 · Memory: SQLite FTS5 · Build: ${new Date().toLocaleDateString()}</div>`;
-}
+  if (typeof updateSettingsModeButtons === 'function') updateSettingsModeButtons();
+};
 
 window.lpSaveVerifyKey = async function() {
   const keyInp = document.getElementById('lp-api-key');
@@ -7403,62 +7414,31 @@ function applyTheme(themeId, accentOverride) {
 // Expose globally for settings panel
 window.applyTheme = applyTheme;
 
-// Settings pane: add Theme section
-async function loadSettings() {
-  renderAgentList();
-  // Load prefs
+window.switchUIMode = async function(mode) {
+  if (mode !== 'simple' && mode !== 'power') return;
+  try { localStorage.setItem('agentic_os_mode', mode); } catch(e) {}
+  if (typeof _UI !== 'undefined') _UI.uiMode = mode;
+  if (window._UI) window._UI.uiMode = mode;
+  document.documentElement.setAttribute('data-ui-mode', mode);
+  
+  if (typeof window.applyMode === 'function') window.applyMode(mode);
+  if (typeof window.applyUIMode === 'function') window.applyUIMode(mode);
+  if (typeof updateSettingsModeButtons === 'function') updateSettingsModeButtons();
+  
+  const advItems = document.querySelectorAll('.nav-item[data-tier="advanced"], [data-tier="advanced"]');
+  advItems.forEach(el => { el.style.display = mode === 'power' ? '' : 'none'; });
+  
   try {
-    const r = await fetch('/api/onboarding/preferences');
-    if (r.ok) {
-      const p = await r.json();
-      // Fill API key field hint and workspace info
-      const keyInp = document.getElementById('or-key-input');
-      if (keyInp && p.workspace_name) keyInp.placeholder = `Current workspace: ${p.workspace_name}`;
-    }
+    fetch('/api/profile', {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ui_mode: mode})
+    }).catch(()=>{});
   } catch(e) {}
-  // Check ollama
-  try {
-    const r = await fetch('/api/agents/models');
-    const j = await r.json();
-    const el = document.getElementById('ollama-status');
-    if (el) {
-      if (j.ollama?.running) {
-        el.innerHTML = `<span style="color:var(--green)">✅ Ollama running</span> — ${j.ollama.models?.length||0} models`;
-      } else {
-        el.innerHTML = `<span style="color:var(--red)">❌ Ollama not running</span> — see setup below`;
-      }
-    }
-  } catch(e) {}
-
-  // Add theme switcher to settings card
-  const aboutCard = document.querySelector('#pane-settings .settings-card:last-child');
-  if (aboutCard && !document.getElementById('theme-switcher')) {
-    const tc = document.createElement('div');
-    tc.className = 'settings-card';
-    tc.innerHTML = `<h3>🎨 Visual Theme Hub</h3>
-      <p style="font-size:12.5px;color:var(--text-2);margin-bottom:12px">Switch between ultra-crisp Light Cyber-Glass and multidimensional Obsidian/Midnight Dark modes anytime.</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap" id="theme-switcher">
-        ${Object.entries(THEME_VARS).map(([id,t]) =>
-          `<div onclick="applyTheme(${JSON.stringify(id)});toast('🎨 Theme set to ' + ${JSON.stringify(id.toUpperCase())})" style="cursor:pointer;padding:12px 18px;border-radius:12px;border:1px solid var(--border-hi);background:${t.bg0};transition:var(--transition);min-width:100px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.15)">
-            <div style="width:22px;height:22px;border-radius:50%;background:${t.accent};margin:0 auto 6px;box-shadow:0 0 10px ${t.accent}66"></div>
-            <div style="font-size:12px;font-weight:700;color:${t.text0 || '#ccc'}">${id.charAt(0).toUpperCase()+id.slice(1)}</div>
-          </div>`
-        ).join('')}
-      </div>`;
-    aboutCard.parentNode.insertBefore(tc, aboutCard);
-  }
-
-  // System info
-  const info = document.getElementById('system-info');
-  if (info) info.innerHTML = `<div>Port: 8787 · SQLite FTS5 · v6.0 · ${new Date().toLocaleDateString()}</div>`;
-
-  // Sync Appearance card buttons to current mode
-  updateSettingsModeButtons();
-}
+};
 
 // ── Settings Appearance helpers ────────────────────────────────────
-function updateSettingsModeButtons() {
-  const mode = _UI.uiMode;
+window.updateSettingsModeButtons = function() {
+  const mode = localStorage.getItem('agentic_os_mode') || (typeof _UI !== 'undefined' ? _UI.uiMode : 'simple') || 'simple';
   const simBtn = document.getElementById('settings-simple-btn');
   const pwrBtn = document.getElementById('settings-power-btn');
   if (simBtn) {
@@ -7469,8 +7449,7 @@ function updateSettingsModeButtons() {
     pwrBtn.style.borderColor = mode === 'power' ? 'var(--accent)' : 'var(--border)';
     pwrBtn.style.background  = mode === 'power' ? 'rgba(91,138,248,.12)' : 'var(--bg-3)';
   }
-  // Highlight active font-size button
-  const fs = _UI.profile?.font_size || 'base';
+  const fs = (typeof _UI !== 'undefined' ? _UI.profile?.font_size : 'base') || 'base';
   ['sm','base','lg'].forEach(s => {
     const b = document.getElementById(`fs-${s}`);
     if (b) {
@@ -7479,7 +7458,7 @@ function updateSettingsModeButtons() {
       b.style.borderColor  = s === fs ? 'var(--accent)' : '';
     }
   });
-}
+};
 
 async function saveFontSize(size) {
   try {
