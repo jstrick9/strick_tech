@@ -2838,6 +2838,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           </div><!-- /settings-content-area -->
         </div><!-- /settings-workstation -->
       </div><!-- /pane-settings -->
+      <div class="pane" id="pane-pqc" style="overflow:auto;padding:20px;background:var(--bg-0)"><div style="flex:1;display:flex;flex-direction:column"></div></div>
 
     </div><!-- /content -->
   </div><!-- /main -->
@@ -3349,122 +3350,7 @@ function updateSettingsModeButtons() {
 </script>
 
 
-<!-- ═══════════════════════════════════════════════════════════════
-     CONSOLIDATED NAV — Single source of truth for all pane routing
-     This replaces the 10+ monkey-patched nav functions.
-     ═══════════════════════════════════════════════════════════════ -->
-<script>
-(function() {
-  // Master pane→render function mapping
-  var PANE_RENDERERS = {
-    'chat':           null, // chat is always visible, no render needed
-    'studio':         function() { if (window.initStudio) initStudio(); },
-    'builder':        function() { if (window.initBuilder) initBuilder(); },
-    'templates':      function() { if (window.renderTemplates) renderTemplates(); },
-    'composer':       function() { if (window.renderComposer) renderComposer(); },
-    'kanban':         function() { if (window.renderKanban) renderKanban(); },
-    'swarm':          function() { if (window.renderSwarm) renderSwarm(); },
-    'galaxy':         function() { if (window.initGalaxy) initGalaxy(); },
-    'settings':       function() { if (window.loadSettings) loadSettings(); },
-    'dashboard':      function() { if (window.renderDashboard) renderDashboard(); },
-    'skills':         function() { if (window.renderSkills) renderSkills(); },
-    'deploy':         function() { if (window.renderDeploy) renderDeploy(); },
-    'pipeline':       function() { if (window.renderPipeline) renderPipeline(); },
-    'obsidian':       function() { if (window.renderObsidian) renderObsidian(); },
-    'system':         function() { if (window.renderSystem) renderSystem(); },
-    'mcp':            function() { if (window.renderMCP) renderMCP(); },
-    'loops':          function() { if (window.renderLoops) renderLoops(); },
-    'github':         function() { if (window.renderGitHub) renderGitHub(); },
-    'dbstudio':       function() { if (window.renderDBStudio) renderDBStudio(); },
-    'plugins':        function() { if (window.renderPlugins) renderPlugins(); },
-    'control':        function() { if (window.renderControlTower) renderControlTower(); },
-    'workspaces':     function() { if (window.renderWorkspaces) renderWorkspaces(); },
-    'webhooks':       function() { if (window.renderWebhooks) renderWebhooks(); },
-    'testgen':        function() { if (window.renderTestGen) renderTestGen(); },
-    'terminal':       function() { if (window.renderTerminal) renderTerminal(); },
-    'secrets':        function() { if (window.renderSecretsVault) renderSecretsVault(); },
-    'integrations':   function() { if (window.renderIntegrations) renderIntegrations(); },
-    'imagegen':       function() { if (window.renderImageGen) renderImageGen(); },
-    'prompts':        function() { if (window.renderPrompts) renderPrompts(); },
-    'codesearch':     function() { if (window.renderCodeSearch) renderCodeSearch(); },
-    'workflow':       function() { if (window.renderWorkflow) renderWorkflow(); },
-    'profiler':       function() { if (window.renderProfiler) renderProfiler(); },
-    'pluginsdk':      function() { if (window.renderPluginSDK) renderPluginSDK(); },
-    'multitab':       function() { if (window.renderMultitab) renderMultitab(); },
-    'specs':          function() { if (window.renderSpecs) renderSpecs(); },
-    'hooks':          function() { if (window.renderHooks) renderHooks(); },
-    'codeindex':      function() { if (window.renderCodeIndex) renderCodeIndex(); },
-    'arena':          function() { if (window.renderArena) renderArena(); },
-    'steering':       function() { if (window.renderSteering) renderSteering(); },
-    'bugbot':         function() { if (window.renderBugBot) renderBugBot(); },
-    'health':         function() { if (window.renderHealth) renderHealth(); },
-    'gitai':          function() { if (window.renderGitAI) renderGitAI(); },
-    'ambient':        function() { if (window.renderAmbient) renderAmbient(); },
-    'fusion':         function() { if (window.renderFusion) renderFusion(); },
-    'hitl':           function() { if (window.renderHITL) renderHITL(); },
-    'browser':        function() { if (window.renderBrowserAgent) renderBrowserAgent(); },
-    'websearch':      function() { if (window.renderWebSearch) renderWebSearch(); },
-    'leaderboard':    function() { if (window.renderLeaderboard) renderLeaderboard(); },
-    'audit-log':      function() { if (window.renderAuditLog) renderAuditLog(); },
-    'agent-identity': function() { if (window.renderAgentIdentity) renderAgentIdentity(); },
-    'supervisor':     function() { if (window.renderSupervisor) renderSupervisor(); },
-    'goals':          function() { if (window.renderGoals) renderGoals(); },
-    'mcp-gateway':    function() { if (window.renderMCPGateway) renderMCPGateway(); },
-    'connectors':     function() { if (window.renderConnectors) renderConnectors(); },
-    'a2a':            function() { if (window.renderA2A) renderA2A(); },
-    'agent-monitor':  function() { if (window.renderAgentMonitor) renderAgentMonitor(); },
-    'finops':         function() { if (window.renderFinOps) renderFinOps(); },
-    'eval-framework': function() { if (window.renderEvalFramework) renderEvalFramework(); },
-    'docs':           function() { if (window.renderDocs) renderDocs(); },
-    'evals':          function() { if (window.renderEvals) renderEvals(); },
-    'observability':  function() { if (window.renderObservability) renderObservability(); },
-    'knowledge-graph':function() { if (window.renderKnowledgeGraph) renderKnowledgeGraph(); },
-    'rag':            function() { if (window.renderRAG) renderRAG(); },
-    'replay':         function() { if (window.renderReplay) renderReplay(); },
-    'collabedit':     function() { if (window.renderCollabEdit) renderCollabEdit(); },
-    'marketplace':    function() { if (window.renderMarketplace) renderMarketplace(); },
-  };
 
-  // Store original base nav for reference
-  var _baseNav = window.nav;
-
-  // Override with consolidated nav
-  window.nav = function(pane) {
-    // 1. Switch pane visibility
-    document.querySelectorAll('.pane').forEach(function(p) { p.classList.remove('active'); });
-    document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
-    var el = document.getElementById('pane-' + pane);
-    if (el) el.classList.add('active');
-    var navEl = document.querySelector('[data-nav="' + pane + '"]');
-    if (navEl) navEl.classList.add('active');
-
-    // 2. Call the render function for this pane
-    var renderer = PANE_RENDERERS[pane];
-    if (renderer) {
-      try { renderer(); } catch(e) { console.warn('Render error for ' + pane + ':', e); }
-    }
-
-    // 2b. Hook: Getting Started checklist
-    if (window._checklistNavHook) { try { _checklistNavHook(pane); } catch(e) {} }
-
-    // 3. Update URL hash for deep linking
-    try { history.replaceState(null, '', '#/' + pane); } catch(e) {}
-  };
-
-  // Deep link: open pane from URL hash on load
-  setTimeout(function() {
-    var hash = location.hash;
-    if (hash && hash.startsWith('#/')) {
-      var pane = hash.slice(2);
-      if (PANE_RENDERERS.hasOwnProperty(pane)) {
-        window.nav(pane);
-      }
-    }
-  }, 500);
-
-  console.log('%c✅ Consolidated Nav loaded — ' + Object.keys(PANE_RENDERERS).length + ' panes registered', 'color:#3dba7a;font-weight:bold');
-})();
-</script>
 
 </body>
 </html>
