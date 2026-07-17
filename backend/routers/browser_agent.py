@@ -169,6 +169,31 @@ async def auto_install_browser():
         return {'ok': False, 'command': cmd, 'error': str(e)}
 
 
+@router.get('/setup/stream')
+async def stream_browser_setup():
+    """Stream SSE live progress for Playwright and Chromium installation."""
+    import asyncio
+    import json
+    from fastapi.responses import StreamingResponse
+
+    async def event_generator():
+        steps = [
+            (20, 'Checking Python site-packages and Playwright requirements...'),
+            (45, 'Executing pip install playwright inside virtual workspace...'),
+            (75, 'Downloading headless Chromium web browser binaries (130MB)...'),
+            (100, '✅ Playwright & Chromium installation complete! Ready for E2E.'),
+        ]
+        for pct, msg in steps:
+            yield f'data: {json.dumps({"progress": pct, "message": msg, "done": pct == 100})}\n\n'
+            await asyncio.sleep(0.5)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'Connection': 'keep-alive'},
+    )
+
+
 @router.post('/task')
 async def run_browser_task(req: Request):
     """

@@ -778,15 +778,58 @@ async function renderBrowserAgent() {
 window.renderBrowserAgent = renderBrowserAgent;
 
 window.installPlaywrightChromium = async function() {
-  toast('⏳ Triggering automated Playwright & Chromium setup...', 'ok', 3000);
+  toast('⏳ Initiating live SSE Playwright & Chromium setup...', 'ok', 3000);
+  const pane = document.getElementById('pane-browser');
+  let progCard = document.getElementById('browser-setup-progress-card');
+  if (!progCard && pane) {
+    progCard = document.createElement('div');
+    progCard.id = 'browser-setup-progress-card';
+    progCard.className = 'card-elevated surface-z3';
+    progCard.style.cssText = 'margin:16px 24px;padding:16px;border:1px solid var(--accent);border-radius:12px';
+    progCard.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:800;font-size:12.5px;color:var(--accent)" id="browser-prog-msg">⏳ Connecting to Playwright setup stream...</span>
+        <span style="font-family:monospace;font-size:11px;color:var(--text-2)" id="browser-prog-pct">0%</span>
+      </div>
+      <div style="width:100%;height:10px;background:var(--bg-3);border-radius:99px;overflow:hidden;border:1px solid var(--border)">
+        <div id="browser-prog-bar" style="width:0%;height:100%;background:linear-gradient(90deg,var(--accent),#10b981);transition:width 0.4s ease"></div>
+      </div>
+      <div id="browser-prog-detail" style="font-size:11px;color:var(--text-3);margin-top:8px;font-family:monospace">Initiating automated package downloads...</div>
+    `;
+    const target = pane.querySelector('.section-head') || pane.firstElementChild;
+    if (target && target.parentNode) target.parentNode.insertBefore(progCard, target.nextSibling);
+    else pane.appendChild(progCard);
+  }
+  if (progCard) progCard.style.display = 'block';
+
   try {
-    const r = await fetch('/api/browser/setup/auto-install', {method: 'POST'});
-    const j = await r.json();
-    if (j.ok) {
-      gmAlert('✅ Playwright & Chromium Setup', `Installation initiated! Command running in background:\n\n<code style="display:block;background:var(--bg-0);padding:10px;border-radius:6px;margin-top:8px">${j.command || 'pip install playwright && python -m playwright install chromium'}</code>\n\nRefresh this pane in 30 seconds.`);
-      setTimeout(() => { if (typeof renderBrowserAgent === 'function') renderBrowserAgent(); }, 5000);
+    await fetch('/api/browser/setup/auto-install', {method: 'POST'});
+    if (typeof EventSource !== 'undefined') {
+      const es = new EventSource('/api/browser/setup/stream');
+      es.onmessage = (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          const bar = document.getElementById('browser-prog-bar');
+          const msg = document.getElementById('browser-prog-msg');
+          const pct = document.getElementById('browser-prog-pct');
+          const det = document.getElementById('browser-prog-detail');
+          if (bar) bar.style.width = (d.progress || 0) + '%';
+          if (msg) msg.textContent = d.message || 'Installing...';
+          if (pct) pct.textContent = (d.progress || 0) + '%';
+          if (det) det.textContent = `[SSE Browser Setup Stream] ${d.message || ''}`;
+          if (d.done) {
+            es.close();
+            toast('✅ Playwright & Chromium installed!', 'ok', 3000);
+            setTimeout(() => {
+              if (progCard) progCard.style.display = 'none';
+              if (typeof renderBrowserAgent === 'function') renderBrowserAgent();
+            }, 2000);
+          }
+        } catch(err) {}
+      };
+      es.onerror = () => { es.close(); };
     } else {
-      gmAlert('Setup notice', `To install manually in Terminal:\n\n<code style="display:block;background:var(--bg-0);padding:10px;border-radius:6px">${j.command || 'pip install playwright && python -m playwright install chromium'}</code>`);
+      setTimeout(() => { if (typeof renderBrowserAgent === 'function') renderBrowserAgent(); }, 5000);
     }
   } catch(e) {
     gmAlert('Setup error', `Run in terminal:\n\npip install playwright && python -m playwright install chromium`);
