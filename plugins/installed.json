@@ -2449,5 +2449,75 @@
     "emoji": "\ud83e\uddea",
     "skill_count": 0,
     "installed_at": "2026-07-17"
+  },
+  "unit_test_ea1119": {
+    "id": "unit_test_ea1119",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-17"
+  },
+  "unit_test_8f3371": {
+    "id": "unit_test_8f3371",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-17"
+  },
+  "unit_test_42a9d1": {
+    "id": "unit_test_42a9d1",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-17"
+  },
+  "unit_test_da8fba": {
+    "id": "unit_test_da8fba",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-17"
+  },
+  "unit_test_2843ef": {
+    "id": "unit_test_2843ef",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-17"
+  },
+  "unit_test_fcbc85": {
+    "id": "unit_test_fcbc85",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-17"
+  },
+  "unit_test_683248": {
+    "id": "unit_test_683248",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-17"
   }
 }

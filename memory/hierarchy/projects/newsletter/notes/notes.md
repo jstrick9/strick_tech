@@ -53,3 +53,10 @@
 - **[2026-07-17 18:27] (joshua):** Issue #14 had 42% open rate. The storytelling hook about friction tax worked best.
 - **[2026-07-17 18:28] (joshua):** Issue #14 had 42% open rate. The storytelling hook about friction tax worked best.
 - **[2026-07-17 18:29] (joshua):** Issue #14 had 42% open rate. The storytelling hook about friction tax worked best.
+- **[2026-07-17 18:30] (joshua):** Issue #14 had 42% open rate. The storytelling hook about friction tax worked best.
+- **[2026-07-17 18:33] (joshua):** Issue #14 had 42% open rate. The storytelling hook about friction tax worked best.
+- **[2026-07-17 18:34] (joshua):** Issue #14 had 42% open rate. The storytelling hook about friction tax worked best.
+- **[2026-07-17 18:35] (joshua):** Issue #14 had 42% open rate. The storytelling hook about friction tax worked best.
+- **[2026-07-17 18:36] (joshua):** Issue #14 had 42% open rate. The storytelling hook about friction tax worked best.
+- **[2026-07-17 18:36] (joshua):** Issue #14 had 42% open rate. The storytelling hook about friction tax worked best.
+- **[2026-07-17 18:38] (joshua):** Issue #14 had 42% open rate. The storytelling hook about friction tax worked best.
