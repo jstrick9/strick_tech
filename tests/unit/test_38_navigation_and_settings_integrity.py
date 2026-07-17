@@ -246,11 +246,11 @@ class TestNavigationAndSettingsIntegrity:
         """Verify execution of Phase 6: CPython embedding, Application Support write redirect, and splash binding."""
         stats_r = client.get("/api/system/stats")
         assert stats_r.status_code == 200
-        assert stats_r.json()["version"] == "10.0.0"
+        assert stats_r.json()["version"] == "11.5.0"
 
         health_r = client.get("/api/system/health")
         assert health_r.status_code == 200
-        assert health_r.json()["version"] == "10.0.0"
+        assert health_r.json()["version"] == "11.5.0"
 
         tauri_conf = ROOT / "src-tauri" / "tauri.conf.json"
         assert tauri_conf.exists(), "src-tauri/tauri.conf.json must exist"
