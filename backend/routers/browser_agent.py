@@ -157,6 +157,18 @@ async def browser_status():
     }
 
 
+@router.post('/setup/auto-install')
+async def auto_install_browser():
+    """Trigger background installation of Playwright and Chromium."""
+    import subprocess
+    cmd = 'pip install playwright && python -m playwright install chromium'
+    try:
+        subprocess.Popen(cmd, shell=True)
+        return {'ok': True, 'command': cmd, 'message': 'Installation spawned in background'}
+    except Exception as e:
+        return {'ok': False, 'command': cmd, 'error': str(e)}
+
+
 @router.post('/task')
 async def run_browser_task(req: Request):
     """

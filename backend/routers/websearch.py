@@ -331,6 +331,12 @@ async def grounded_completion(req: Request):
         inject_steering=False,
     )
 
+    if not result.get('ok') or '[LLM error' in result.get('text', ''):
+        summary_lines = [f"### 🌐 DuckDuckGo Search Results for: **{query}**\n*Pure search extraction summary (no API key required)*\n"]
+        for i, r in enumerate(results, 1):
+            summary_lines.append(f"**{i}. [{r['title']}]({r['url']})**\n> {r['snippet']}\n")
+        result['text'] = "\n".join(summary_lines)
+
     _record_search(query, 'grounded', len(results))
 
     return {

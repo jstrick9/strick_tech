@@ -2157,8 +2157,11 @@ async function renderTauriStatus() {
     const pyOk    = d.python?.available;
     
     el.innerHTML = `
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px">
-        <h3 style="margin:0 0 12px;font-size:14px">🖥️ Tauri Desktop App</h3>
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px;position:relative">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <h3 style="margin:0;font-size:14px">🖥️ Tauri Desktop App Workstation</h3>
+          <button onclick="const s=document.getElementById('tauri-build-section');if(s)s.style.display='none'" class="btn-ghost btn-sm" style="font-size:10px;padding:2px 8px">✕ Dismiss Panel</button>
+        </div>
         
         <!-- Status indicators -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
@@ -2202,17 +2205,34 @@ async function renderTauriStatus() {
         ` : ''}
         
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" onclick="tauriBuildStart()" ${!rustOk||!tauriOk?'disabled title="Install prerequisites first"':''}>🔨 Build Desktop App</button>
-          <button class="btn-sm" onclick="tauriDevStart()" ${!rustOk||!tauriOk?'disabled':''}>▶ Dev Mode</button>
-          <button class="btn-sm" onclick="window.open('/api/tauri/build/log?_=${Date.now()}','_blank')">📋 Build Log</button>
+          <button class="btn btn-primary btn-3d" onclick="tauriBuildStart()" ${!rustOk||!tauriOk?'disabled title="Install prerequisites first"':''}>🔨 Build Desktop App (.app / .dmg)</button>
+          <button class="btn-sm btn-ghost btn-3d" onclick="tauriDevStart()" ${!rustOk||!tauriOk?'disabled':''}>▶ Dev Mode</button>
+          ${!rustOk||!tauriOk?`<button class="btn-sm btn-primary btn-3d" style="background:#10b981;border:none;color:#fff" onclick="if(typeof installTauriPrerequisites==='function')installTauriPrerequisites()">⚡ Auto-Install Rust & Tauri CLI</button>`:''}
+          <button class="btn-sm btn-ghost btn-3d" onclick="window.open('/api/tauri/build/log?_=${Date.now()}','_blank')">📋 Build Log</button>
         </div>
         <div style="margin-top:8px;font-size:11px;color:var(--text-3)">
-          Or run: <code style="background:var(--bg-3);padding:2px 6px;border-radius:4px">./scripts/tauri-build.sh</code>
+          Or run in terminal: <code style="background:var(--bg-3);padding:2px 6px;border-radius:4px">./scripts/tauri-build.sh --bundle-python</code>
         </div>
       </div>
     `;
   } catch(e) {}
 }
+
+window.installTauriPrerequisites = async function() {
+  toast('⏳ Triggering background installation of Rust & Tauri CLI...', 'ok', 3000);
+  try {
+    const r = await fetch('/api/tauri/setup/auto-install', {method: 'POST'});
+    const j = await r.json();
+    if (j.ok) {
+      gmAlert('✅ Rust & Tauri CLI Setup Initiated', `Installation running in background:\n\n<code style="display:block;background:var(--bg-0);padding:10px;border-radius:6px;margin-top:8px">${j.command}</code>\n\nClick 'Build Desktop App' once setup finishes.`);
+      setTimeout(renderTauriStatus, 6000);
+    } else {
+      gmAlert('Setup Notice', `Please run in terminal:\n\n<code style="display:block;background:var(--bg-0);padding:10px;border-radius:6px">${j.command}</code>`);
+    }
+  } catch(e) {
+    gmAlert('Setup Error', `Run in terminal:\n\ncurl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh && cargo install tauri-cli --version '^2'`);
+  }
+};
 
 async function tauriBuildStart() {
   const ok = await gmDanger('Start Tauri Build — This will take 5-10 minutes on first build and requires Rust + Tauri CLI to be installed.');
@@ -2352,30 +2372,7 @@ document.addEventListener('keydown', e => {
 })();
 
 
-// ══════════════════════════════════════════════════════════════════
-//  COLLAB BUTTON in topbar (if topbar exists)
-// ══════════════════════════════════════════════════════════════════
-(function addCollabToTopbar() {
-  const topbar = document.getElementById('topbar');
-  if (!topbar || document.getElementById('collab-topbar-btn')) return;
-  
-  const btn = document.createElement('button');
-  btn.id = 'collab-topbar-btn';
-  btn.title = 'Start Collaboration Session';
-  btn.style.cssText = `
-    background:transparent;border:1px solid var(--border);border-radius:8px;
-    color:var(--text-2);padding:4px 10px;cursor:pointer;font-size:12px;
-    display:flex;align-items:center;gap:5px;transition:all .12s;
-  `;
-  btn.innerHTML = '🤝 Collab';
-  btn.onclick = () => typeof window.startCollab === 'function' ? window.startCollab() : (typeof window.toggleCollabPanel === 'function' && window.toggleCollabPanel());
-  btn.onmouseover = () => { btn.style.borderColor='var(--accent)'; btn.style.color='var(--text-0)'; };
-  btn.onmouseout  = () => { btn.style.borderColor='var(--border)'; btn.style.color='var(--text-2)'; };
-  
-  // Insert before last element in topbar
-  const topbarContent = topbar.querySelector('.spacer') || topbar.lastChild;
-  topbar.insertBefore(btn, topbarContent);
-})();
+// Collab button is located cleanly in the sidebar (#pane-collabedit)
 
 // ══════════════════════════════════════════════════════════════════
 //  POST-QUANTUM CRYPTOGRAPHY (PQC) VAULT WORKSTATION

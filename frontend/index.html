@@ -1429,7 +1429,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         <span id="key-label">Configuring API...</span>
       </div>
       <!-- Settings -->
-      <button class="btn-3d btn-sm" onclick="nav('settings')" title="Settings & API Keys Hub (⌘,)" style="background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc">⚙ <span class="btn-text">Settings</span></button>
+      <button class="icon-btn btn-3d" onclick="nav('settings')" title="Settings & API Keys Hub (⌘,)" style="width:32px;height:32px;padding:0;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc;font-size:16px">⚙</button>
       <!-- Backup -->
       <button class="icon-btn btn-3d" onclick="doBackup()" title="Backup agentic.db database" style="width:32px;height:32px;padding:0">💾</button>
       <!-- User Profile Avatar / Identity Hub -->
@@ -1525,7 +1525,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div class="nav-item" data-nav="steering" data-tier="advanced" onclick="nav('steering')"><span class="icon">✦</span><span class="label">Steering</span></div>
           <div class="nav-item" data-nav="bugbot" data-tier="advanced" onclick="nav('bugbot')"><span class="icon">🛡</span><span class="label">BugBot</span></div>
           <div class="nav-item" data-nav="gitai" data-tier="advanced" onclick="nav('gitai')"><span class="icon">⎇</span><span class="label">Git AI</span></div>
-          <div class="nav-item" data-nav="marketplace" data-tier="advanced" onclick="nav('marketplace')"><span class="icon">❖</span><span class="label">Marketplace</span></div>
+          <div class="nav-item" data-nav="marketplace" data-tier="advanced" onclick="nav('marketplace')"><span class="icon">🏬</span><span class="label">Marketplace</span></div>
           <div class="nav-item" data-nav="replay" data-tier="advanced" onclick="nav('replay')"><span class="icon">⟲</span><span class="label">Replay</span></div>
           <div class="nav-item" data-nav="collabedit" data-tier="advanced" onclick="nav('collabedit')"><span class="icon">✍</span><span class="label">Collab Edit</span></div>
           <div class="nav-item" data-nav="ambient" data-tier="advanced" onclick="nav('ambient')"><span class="icon">≈</span><span class="label">Ambient</span></div>
@@ -1631,39 +1631,39 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <h3 style="font-size:22px;font-weight:900;letter-spacing:-0.4px">Agentic OS — Mission Control</h3>
             <p style="color:var(--text-1);font-size:13.5px">Your local-first AI operating system. Chat with any agent, run the swarm, build apps, search memory.</p>
             
-            <!-- Optional Interactive Mission Launchpad Deck (Non-mandatory Getting Started) -->
-            <div id="mission-launchpad-deck" style="margin-top:14px;background:radial-gradient(circle at 50% 0%,rgba(56,189,248,0.14),rgba(11,15,34,0.92));border:1px solid var(--border-hi);border-radius:20px;padding:24px;max-width:680px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.6);text-align:left;position:relative;margin-bottom:20px">
-              <button onclick="document.getElementById('mission-launchpad-deck').style.display='none';try{localStorage.setItem('agentic_os_launchpad_hidden','true')}catch(e){}" title="Dismiss Launchpad" style="position:absolute;top:16px;right:18px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:var(--text-1);font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;display:flex;align-items:center;gap:4px">✕ Dismiss Launchpad</button>
+            <!-- Optional Interactive Mission Launchpad Deck & Quick Setup Hub -->
+            <div id="mission-launchpad-deck" style="margin-top:14px;background:radial-gradient(circle at 50% 0%,rgba(56,189,248,0.14),rgba(11,15,34,0.92));border:1px solid var(--border-hi);border-radius:20px;padding:24px;max-width:740px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.6);text-align:left;position:relative;margin-bottom:20px">
+              <button onclick="document.getElementById('mission-launchpad-deck').style.display='none';try{localStorage.setItem('agentic_os_launchpad_hidden','true')}catch(e){}" title="Dismiss Launchpad" class="btn-3d btn-ghost btn-sm" style="position:absolute;top:16px;right:18px;font-size:11px">✕ Dismiss Quick Setup</button>
               
               <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-                <div class="neural-orb-3d" style="width:34px;height:34px"></div>
+                <div class="neural-orb-3d" style="width:36px;height:36px"></div>
                 <div>
-                  <h3 style="font-size:17px;font-weight:900;color:var(--text-0);margin:0;letter-spacing:-0.3px">🚀 Strick Tech Mission Launchpad</h3>
-                  <p style="font-size:12px;color:var(--accent-hi);margin:2px 0 0">Optional interactive quick-start to unlock 100% of your AI operating system</p>
+                  <h3 style="font-size:17px;font-weight:900;color:var(--text-0);margin:0;letter-spacing:-0.3px">🚀 Strick Tech Quick Setup & Walkthrough Hub</h3>
+                  <p style="font-size:12px;color:var(--accent-hi);margin:2px 0 0">Minimum necessary setup to start chatting + live interactive examples</p>
                 </div>
               </div>
 
-              <!-- Step 1: Inline API Key Wire -->
+              <!-- Step 1: Minimum Necessary Setup (Connect Key OR Local Ollama) -->
               <div style="background:rgba(3,6,18,0.7);border:1px solid rgba(56,189,248,0.25);border-radius:14px;padding:16px;margin-bottom:12px">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-                  <span style="font-size:13px;font-weight:800;color:var(--text-0)">Step 1: Wire Your AI Powerhouse <span class="tech-badge" style="font-size:9.5px;padding:1px 6px">OpenRouter / Ollama</span></span>
+                  <span style="font-size:13px;font-weight:800;color:var(--text-0)">Step 1: Wire Your AI Engine <span class="tech-badge" style="font-size:9.5px;padding:1px 6px">OpenRouter OR Local Ollama</span></span>
                   <a href="https://openrouter.ai/keys" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none;font-weight:700">→ Get Free API Key ↗</a>
                 </div>
-                <div style="display:flex;gap:8px">
-                  <input id="lp-api-key" type="password" placeholder="Paste sk-or-v1-... key here" autocomplete="off" style="flex:1;background:var(--bg-1);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;outline:none;font-family:monospace">
-                  <button onclick="lpSaveVerifyKey()" class="btn btn-primary btn-sm" style="padding:8px 16px;font-weight:700;border-radius:8px;background:var(--accent);color:#fff;border:none;cursor:pointer">⚡ Save & Verify</button>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <input id="lp-api-key" type="password" placeholder="Paste sk-or-v1-... key OR leave empty for local Ollama" autocomplete="off" style="flex:1;min-width:220px;background:var(--bg-1);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;outline:none;font-family:monospace">
+                  <button onclick="if(typeof lpSaveVerifyKey === 'function') lpSaveVerifyKey()" class="btn-3d btn-primary btn-sm" style="padding:8px 16px">⚡ Save & Verify</button>
+                  <button onclick="if(typeof testOllamaConnection === 'function') testOllamaConnection()" class="btn-3d btn-ghost btn-sm" style="padding:8px 14px">⚡ Use Local Ollama</button>
                 </div>
                 <div id="lp-key-status" style="font-size:11.5px;color:var(--text-2);margin-top:8px">Keys are stored encrypted inside your local vault (~/Library/Application Support/com.stricktech.agenticos/.vault_key).</div>
               </div>
 
-              <!-- Step 2: Universal Context IVREN -->
+              <!-- Step 2: Interactive Examples & Walkthroughs -->
               <div style="background:rgba(3,6,18,0.7);border:1px solid rgba(168,85,247,0.25);border-radius:14px;padding:16px;margin-bottom:12px">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-                  <div>
-                    <span style="font-size:13px;font-weight:800;color:var(--text-0)">Step 2: Establish Universal Context <span class="tech-badge" style="background:rgba(168,85,247,0.15);border-color:rgba(168,85,247,0.4);color:#d8b4fe;font-size:9.5px;padding:1px 6px">Strick Tech IVREN</span></span>
-                    <div style="font-size:11px;color:var(--text-2);margin-top:2px">Make every AI agent compound smarter across your projects.</div>
-                  </div>
-                  <button onclick="openInterviewModal()" class="btn-sm" style="background:linear-gradient(135deg,#38bdf8,#a855f7);border:none;color:#fff;font-weight:700;padding:7px 14px;border-radius:8px;cursor:pointer;box-shadow:0 0 16px rgba(168,85,247,0.4)">✨ Launch AI Interview Me</button>
+                <div style="font-size:13px;font-weight:800;color:var(--text-0);margin-bottom:8px">Step 2: Try Live Interactive Examples</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+                  <button onclick="if(typeof openHierarchyInterview === 'function') openHierarchyInterview()" class="btn-3d btn-sm" style="width:100%;padding:10px;background:linear-gradient(135deg,#38bdf8,#a855f7);color:#fff;border:none">✨ Launch AI Interview Me</button>
+                  <button onclick="document.getElementById('chat-input').value='Analyze the top 3 architectural bottlenecks in modern React vs Svelte apps and propose solutions.';showToast('Example inserted! Press Enter or -> to chat.')" class="btn-3d btn-ghost btn-sm" style="width:100%;padding:10px;color:var(--success)">💡 Try Chat Example</button>
+                  <button onclick="nav('swarm');showToast('Swarm opened! Send one prompt to 7+ specialist models in parallel.')" class="btn-3d btn-ghost btn-sm" style="width:100%;padding:10px;color:#d8b4fe">◈ Try Swarm Fan-out</button>
                 </div>
               </div>
 
@@ -1671,14 +1671,14 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <div style="background:rgba(3,6,18,0.7);border:1px solid rgba(16,185,129,0.25);border-radius:14px;padding:16px">
                 <div style="font-size:13px;font-weight:800;color:var(--text-0);margin-bottom:8px">Step 3: Select Interface Complexity</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                  <div onclick="switchUIMode('simple');toast('✨ Core Mode active')" class="card-3d-tilt" style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer">
+                  <button onclick="switchUIMode('simple');toast('✨ Core Workstation active')" class="btn-3d card-3d-tilt" style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;align-items:flex-start">
                     <div style="font-weight:800;font-size:12.5px;color:#7dd3fc;margin-bottom:2px">⚡ Core Workstation</div>
-                    <div style="font-size:11px;color:var(--text-2)">Streamlined 8-pane view. Clean & focused.</div>
-                  </div>
-                  <div onclick="switchUIMode('power');toast('🌌 Power Mode active')" class="card-3d-tilt" style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer">
+                    <div style="font-size:11px;color:var(--text-2);font-weight:normal">Streamlined view. Essential Chat, Studio, & AI OPs Manual.</div>
+                  </button>
+                  <button onclick="switchUIMode('power');toast('🌌 Power Workstation active')" class="btn-3d card-3d-tilt" style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;align-items:flex-start">
                     <div style="font-weight:800;font-size:12.5px;color:#d8b4fe;margin-bottom:2px">🌌 Power Workstation</div>
-                    <div style="font-size:11px;color:var(--text-2)">All 65+ panes, tools, and telemetry active.</div>
-                  </div>
+                    <div style="font-size:11px;color:var(--text-2);font-weight:normal">All 65+ panes, tools, and enterprise telemetry active.</div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -2716,32 +2716,37 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
             <!-- TAB 2: Theme & Visual Aesthetics -->
             <div id="settings-tab-appearance" class="settings-tab-pane">
+              <div id="settings-tab-theme"></div>
               <div class="section-head" style="margin-bottom:24px">
                 <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🎨 Theme & Visual Aesthetics</h2>
                 <p style="color:var(--text-2);font-size:13.5px">Customize your visual interface palette, 2D/3D depth, and Workstation Complexity.</p>
               </div>
 
-              <!-- 5 Themes Selector -->
+              <!-- 6 Themes Selector -->
               <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px">
-                <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:14px">Select Visual Palette (5 Themes Available)</label>
+                <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:14px">Select Visual Palette (6 Themes Available)</label>
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
-                  <button onclick="applyTheme('light');toast('✨ Ultra-Techy Light Theme applied')" class="card-3d-tilt" style="padding:16px;border-radius:14px;border:2px solid #e2e8f0;background:#ffffff;color:#0f172a;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.05)">
+                  <button onclick="applyTheme('light');toast('✨ Ultra-Techy Light Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #e2e8f0;background:#ffffff;color:#0f172a;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.05)">
                     <div style="font-size:20px;margin-bottom:6px">☀️</div>
                     Light (Default)
                   </button>
-                  <button onclick="applyTheme('dark');toast('🌌 Cyber Dark Theme applied')" class="card-3d-tilt" style="padding:16px;border-radius:14px;border:2px solid #334155;background:#0f172a;color:#f8fafc;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
+                  <button onclick="applyTheme('dark');toast('🌌 Cyber Dark Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #334155;background:#0f172a;color:#f8fafc;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
                     <div style="font-size:20px;margin-bottom:6px">🌑</div>
                     Dark Cyber
                   </button>
-                  <button onclick="applyTheme('obsidian');toast('🪨 Obsidian Jet Theme applied')" class="card-3d-tilt" style="padding:16px;border-radius:14px;border:2px solid #27272a;background:#09090b;color:#fafafa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
+                  <button onclick="applyTheme('obsidian');toast('🪨 Obsidian Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #27272a;background:#09090b;color:#fafafa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
                     <div style="font-size:20px;margin-bottom:6px">🪨</div>
-                    Obsidian Jet
+                    Obsidian Theme
                   </button>
-                  <button onclick="applyTheme('midnight');toast('✨ Midnight Blue Theme applied')" class="card-3d-tilt" style="padding:16px;border-radius:14px;border:2px solid #1e293b;background:#020617;color:#60a5fa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
+                  <button onclick="applyTheme('jet');toast('✈️ Jet Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #3f3f4e;background:#000000;color:#f8fafc;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
+                    <div style="font-size:20px;margin-bottom:6px">✈️</div>
+                    Jet Theme
+                  </button>
+                  <button onclick="applyTheme('midnight');toast('✨ Midnight Blue Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #1e293b;background:#020617;color:#60a5fa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
                     <div style="font-size:20px;margin-bottom:6px">🌌</div>
                     Midnight Blue
                   </button>
-                  <button onclick="applyTheme('forest');toast('🌲 Forest Emerald Theme applied')" class="card-3d-tilt" style="padding:16px;border-radius:14px;border:2px solid #14532d;background:#052e16;color:#4ade80;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
+                  <button onclick="applyTheme('forest');toast('🌲 Forest Emerald Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #14532d;background:#052e16;color:#4ade80;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
                     <div style="font-size:20px;margin-bottom:6px">🌲</div>
                     Forest Emerald
                   </button>
