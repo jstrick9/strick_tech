@@ -2422,5 +2422,59 @@
     "category": "testing",
     "emoji": "\ud83e\uddea",
     "skills": []
+  },
+  {
+    "id": "unit_test_97d958",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "unit_test_c6fe9e",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "unit_test_93983a",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "unit_test_251935",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "unit_test_f318ac",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "unit_test_24e26c",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
   }
 ]
