@@ -228,3 +228,16 @@ class TestNavigationAndSettingsIntegrity:
 
         features_b_js = (JS_DIR / "03-features-b.js").read_text(encoding="utf-8")
         assert "window.renderCodeIndex = renderCodeIndex;" in features_b_js, "renderCodeIndex must be globally assigned"
+
+    def test_phase5_enterprise_governance_hitl_pqc_and_finops(self, app_core_js):
+        """Verify execution of Phase 5: Control Tower, HITL interrupt gates, PQC hardened vault, and FinOps exports."""
+        assert "window.renderControlTower = renderControlTower;" in app_core_js, "renderControlTower must be globally assigned"
+
+        features_a_js = (JS_DIR / "03-features-a.js").read_text(encoding="utf-8")
+        assert "window.renderPQCVault = async function()" in features_a_js, "renderPQCVault must be globally assigned"
+
+        sprint_features_js = (JS_DIR / "06-sprint-features.js").read_text(encoding="utf-8")
+        assert "window.renderHITL = renderHITL;" in sprint_features_js, "renderHITL must be globally assigned"
+        assert "window.hitlDecide = hitlDecide;" in sprint_features_js, "hitlDecide must be globally assigned"
+        assert "window.renderFinOps = renderFinOps;" in sprint_features_js, "renderFinOps must be globally assigned"
+        assert "window.finopsCreateCap = finopsCreateCap;" in sprint_features_js, "finopsCreateCap must be globally assigned"

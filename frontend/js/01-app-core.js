@@ -7812,6 +7812,9 @@ async function renderControlTower() {
   await refreshControlTower();
   controlRefreshTimer = setInterval(refreshControlTower, 5000);
 }
+window.renderControlTower = renderControlTower;
+window.refreshControlTower = refreshControlTower;
+
 async function refreshControlTower() {
   const pane = document.getElementById('pane-control');
   if (!pane || !pane.classList.contains('active')) { clearInterval(controlRefreshTimer); return; }

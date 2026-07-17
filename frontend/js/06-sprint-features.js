@@ -661,6 +661,9 @@ async function hitlModify(id) {
     renderHITL();
   } catch(ex) { gmAlert('Modify failed: ' + ex.message); }
 }
+window.renderHITL = renderHITL;
+window.hitlDecide = hitlDecide;
+window.hitlModify = hitlModify;
 
 async function hitlTestInterrupt() {
   const r = await fetch('/api/hitl/interrupt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
@@ -7113,6 +7116,8 @@ async function finopsRecordCost() {
   showToast(d.ok ? `💰 Cost recorded: $${cost}` : '⚠️ Failed');
   if (d.ok) renderFinOps();
 }
+window.renderFinOps = renderFinOps;
+window.finopsCreateCap = finopsCreateCap;
 
 
 // ══════════════════════════════════════════════════════════════════
