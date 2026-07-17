@@ -1392,8 +1392,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <a class="logo" href="#" onclick="nav('chat');return false" style="display:flex;align-items:center;gap:8px">
       <div class="neural-orb-3d" id="agent-status-orb" title="Neural Core: Online & Active"></div>
       <div style="display:flex;flex-direction:column;line-height:1.1">
-        <span style="font-size:15px;font-weight:900;letter-spacing:-0.3px;color:var(--text-0)">Strick Tech <span style="color:var(--accent)">Agentic OS</span></span>
-        <span style="font-size:9.5px;color:var(--accent-hi);font-weight:700;letter-spacing:0.6px">MISSION CONTROL v10.0</span>
+        <span id="custom-app-title" style="font-size:15px;font-weight:900;letter-spacing:-0.3px;color:var(--text-0)">Strick Tech <span style="color:var(--accent)">Agentic OS</span></span>
+        <span id="custom-app-subtitle" style="font-size:9.5px;color:var(--accent-hi);font-weight:700;letter-spacing:0.6px">MISSION CONTROL v10.0</span>
       </div>
     </a>
     <span class="tech-badge" style="background:linear-gradient(135deg,rgba(56,189,248,0.2),rgba(168,85,247,0.2));border:1px solid rgba(56,189,248,0.4);color:#fff">PRO / ENTERPRISE</span>
@@ -1401,24 +1401,20 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
     <!-- Quick Component Navigation Hub -->
     <div style="display:flex;align-items:center;gap:6px;margin-left:12px;flex-wrap:wrap">
-      <button onclick="nav('chat')" class="btn-sm" style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:var(--text-0);font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer">💬 <span class="btn-text">Chat & Swarm</span></button>
-      <button onclick="nav('studio')" class="btn-sm" style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);color:var(--text-0);font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer">📝 <span class="btn-text">Studio Editor</span></button>
-      <button onclick="nav('hierarchy')" class="btn-sm" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--text-0);font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer">🧭 <span class="btn-text">IVREN Manual</span></button>
-      <button onclick="openInterviewModal()" class="btn-sm" style="background:linear-gradient(135deg,#38bdf8,#a855f7);border:none;color:#fff;font-weight:700;padding:6px 14px;border-radius:8px;cursor:pointer;box-shadow:0 0 14px rgba(56,189,248,0.4)">✨ <span class="btn-text">AI Interview Wizard</span></button>
+      <button onclick="nav('hierarchy')" class="btn-3d btn-sm" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--text-0);font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer">🧭 <span class="btn-text">AI OPs Manual</span></button>
+      <button onclick="if(typeof openHierarchyInterview === 'function') openHierarchyInterview()" class="btn-3d btn-sm" style="background:linear-gradient(135deg,#38bdf8,#a855f7);border:none;color:#fff;font-weight:700;padding:6px 14px;border-radius:8px;cursor:pointer;box-shadow:0 0 14px rgba(56,189,248,0.4)">✨ <span class="btn-text">AI Interview Wizard</span></button>
+      <button id="palette-btn" onclick="openPalette()" class="btn-3d btn-sm" style="background:var(--bg-2);border:1px solid var(--border-hi);color:var(--text-1);border-radius:8px;cursor:pointer;font-weight:600;padding:6px 12px">
+        <span>⌘K</span> <span class="btn-text">Search Commands...</span>
+      </button>
     </div>
-
-    <button id="palette-btn" onclick="openPalette()">
-      <span>⌘</span> Search commands, agents, files…
-      <kbd>⌘K</kbd>
-    </button>
 
     <div class="spacer"></div>
 
     <div id="topbar-actions" style="display:flex;align-items:center;gap:6px">
       <!-- Notification bell -->
       <div style="position:relative;display:inline-flex">
-        <button class="icon-btn" id="notif-bell-btn" onclick="toggleNotifPanel()"
-          title="Notifications" aria-label="Notifications" style="font-size:16px">🔔</button>
+        <button class="icon-btn btn-3d" id="notif-bell-btn" onclick="toggleNotifPanel()"
+          title="Notifications" aria-label="Notifications" style="font-size:15px;width:32px;height:32px;padding:0">🔔</button>
         <span id="notif-badge" style="display:none;position:absolute;top:2px;right:2px;
           min-width:14px;height:14px;padding:0 3px;border-radius:999px;background:var(--danger);
           color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;
@@ -1426,19 +1422,22 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       </div>
       <!-- API key status -->
       <div id="key-status" onclick="nav('settings')" title="API Key Status — click to configure inside Settings"
-        style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+        class="btn-3d" style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
         background:rgba(17,22,51,0.8);border:1px solid var(--border-hi);border-radius:8px;
         padding:5px 12px;cursor:pointer;transition:var(--transition)">
         <span class="key-dot" id="key-dot" style="width:8px;height:8px;border-radius:50%;background:#f59e0b"></span>
         <span id="key-label">Configuring API...</span>
       </div>
       <!-- Settings -->
-      <button class="icon-btn" onclick="nav('settings')" title="Settings & API Keys Hub (⌘,)" style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:#7dd3fc;border-radius:8px">⚙️ Settings</button>
+      <button class="btn-3d btn-sm" onclick="nav('settings')" title="Settings & API Keys Hub (⌘,)" style="background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc">⚙ <span class="btn-text">Settings</span></button>
       <!-- Backup -->
-      <button class="icon-btn" onclick="doBackup()" title="Backup agentic.db database">💾</button>
-      <!-- Sidebar toggle -->
-      <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar (⌘\)" id="topbar-sidebar-btn">☰</button>
-      <button class="icon-btn" onclick="showKeyboardShortcuts()" title="Keyboard shortcuts (?)">❓</button>
+      <button class="icon-btn btn-3d" onclick="doBackup()" title="Backup agentic.db database" style="width:32px;height:32px;padding:0">💾</button>
+      <!-- User Profile Avatar / Identity Hub -->
+      <div id="user-identity-hub" onclick="if(typeof openUserProfileModal === 'function') openUserProfileModal(); else nav('settings')" class="btn-3d" title="User Profile Hub — click to customize identity"
+        style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:8px;cursor:pointer">
+        <span id="topbar-user-avatar" style="font-size:16px">👤</span>
+        <span id="topbar-user-name" class="btn-text" style="font-size:12px;font-weight:700;color:var(--text-0)">Joshua</span>
+      </div>
     </div>
   </div>
 
@@ -1447,15 +1446,21 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
     <!-- ── Sidebar ─────────────────────────────────────── -->
     <div id="sidebar" role="navigation" aria-label="Main navigation">
+      <div id="sidebar-top-nav-header" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <span style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px">Navigation</span>
+        <div id="sidebar-top-nav-buttons" style="display:flex;align-items:center;gap:6px">
+          <button onclick="if(typeof showSidebarCustomizer==='function') showSidebarCustomizer()" title="Customize Sidebar Categories & Mode" class="btn-3d" style="width:28px;height:28px;padding:0;font-size:13px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer">🎛️</button>
+          <div id="sidebar-toggle-btn" onclick="toggleSidebar()" title="Collapse sidebar (⌘\)" class="btn-3d" style="width:28px;height:28px;padding:0;font-size:12px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);display:inline-flex;align-items:center;justify-content:center;cursor:pointer">◀</div>
+        </div>
+      </div>
 
       <!-- Navigation -->
-      <!-- Nav: grouped and organized -->
       <div class="sidebar-scroll">
         <!-- ═══ CORE: Always visible in all modes ═══ -->
         <div class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> CORE AI WORKSTATION <span class="group-count" style="float:right;font-size:10px;opacity:0.7">8</span></div>
         <div class="sidebar-group-content" id="group-core" style="display:none">
           <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI agents" role="menuitem" aria-label="Chat">
-            <span class="icon">✨</span><span class="label">Chat & Swarm</span>
+            <span class="icon">✨</span><span class="label">Chat</span>
           </div>
           <div class="nav-item" data-nav="studio" data-tier="core" onclick="nav('studio')" data-tooltip="Live editor + preview" role="menuitem" aria-label="Studio">
             <span class="icon">⚡</span><span class="label">Studio</span>
@@ -1471,7 +1476,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <span class="icon">🕸</span><span class="label">Memory</span>
           </div>
           <div class="nav-item" data-nav="hierarchy" data-tier="core" onclick="nav('hierarchy')" data-tooltip="2-Tier AI Operating Manual (IVREN)" role="menuitem" aria-label="Hierarchy">
-            <span class="icon">✦</span><span class="label">Hierarchy</span>
+            <span class="icon">✦</span><span class="label">AI OPs Manual</span>
           </div>
           <div class="nav-item" data-nav="kanban" data-tier="core" onclick="nav('kanban')" data-tooltip="Task board" role="menuitem" aria-label="Kanban">
             <span class="icon">☷</span><span class="label">Kanban</span>
@@ -1479,13 +1484,6 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div class="nav-item" data-nav="settings" data-tier="core" onclick="nav('settings')" data-tooltip="Settings & API keys" role="menuitem" aria-label="Settings">
             <span class="icon">⚙</span><span class="label">Settings</span>
           </div>
-        </div>
-
-        <!-- ═══ ADVANCED: Power mode toggle ═══ -->
-        <div class="advanced-toggle" id="advanced-toggle" onclick="toggleAdvanced()">
-          <span class="toggle-arrow" id="adv-arrow">▶</span>
-          <span>More Features</span>
-          <span style="margin-left:auto;font-size:10px;opacity:.5" id="advanced-count"></span>
         </div>
 
         <!-- BUILD & AI ENGINE -->
@@ -1575,9 +1573,6 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         <div class="sidebar-label">Agents</div>
       </div>
       <div class="agent-list" id="agent-list"></div>
-      <div id="sidebar-toggle-btn" onclick="toggleSidebar()" title="Collapse sidebar (⌘\)">
-        ◀
-      </div>
       <div class="sidebar-add-agent" onclick="openAgentModal()">
         <span>＋</span> New Agent
       </div>
@@ -1597,16 +1592,37 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
       <!-- CHAT PANE -->
       <div class="pane active" id="pane-chat">
-        <div class="chat-header">
-          <div class="chat-agent-pill" id="active-agent-pill" onclick="showAgentPicker()">
+        <div class="chat-header" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg-1);flex-shrink:0;flex-wrap:wrap">
+          <div class="chat-agent-pill btn-3d" id="active-agent-pill" onclick="showAgentPicker()" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;cursor:pointer">
             <span id="active-agent-avatar">🧠</span>
-            <span id="active-agent-name">Brain</span>
-            <span class="dot" id="active-agent-dot" style="background:var(--green)"></span>
+            <span id="active-agent-name" style="font-weight:700">Brain</span>
+            <span class="dot" id="active-agent-dot" style="width:8px;height:8px;border-radius:50%;background:var(--green)"></span>
             <span style="color:var(--text-3);font-size:12px">▾</span>
           </div>
-          <span class="badge" id="active-model-badge">claude-3.5-sonnet</span>
+          
+          <div style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:4px 10px">
+            <span style="font-size:14px">🤖</span>
+            <select id="chat-model-select" onchange="if(typeof selectChatModel === 'function') selectChatModel(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
+              <optgroup label="Primary Cloud Gateways (OpenRouter)">
+                <option value="claude">Claude 3.5 Sonnet (Primary)</option>
+                <option value="claude-opus">Claude Opus 4 (Deep Reasoning)</option>
+                <option value="gpt4o">OpenAI GPT-4o (Universal)</option>
+                <option value="gemini">Google Gemini 2.5 Pro (1M Context)</option>
+                <option value="grok">xAI Grok 3 (Real-time)</option>
+                <option value="llama">Meta Llama 3.3 70B (Free)</option>
+                <option value="qwen">Alibaba Qwen3 235B (Free)</option>
+              </optgroup>
+              <optgroup id="ollama-model-optgroup" label="Local Inference Engine (Ollama / Offline)">
+                <option value="local">Ollama Auto-Detect (http://localhost:11434)</option>
+              </optgroup>
+              <optgroup id="custom-model-optgroup" label="Custom OpenAI-Compatible Connections">
+                <option value="custom">Custom Endpoint Model</option>
+              </optgroup>
+            </select>
+          </div>
+
           <div class="spacer"></div>
-          <button class="btn btn-ghost btn-sm" onclick="clearChatHistory()">Clear</button>
+          <button class="btn-3d btn-ghost btn-sm" onclick="clearChatHistory()" style="padding:6px 12px">🗑 Clear Chat</button>
         </div>
 
         <div id="chat-messages">
@@ -2264,9 +2280,10 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <div class="pane" id="pane-galaxy">
         <div id="galaxy-container">
           <div id="gx-graph"></div>
-          <div style="position:absolute;top:12px;left:12px;display:flex;gap:8px">
-            <button onclick="refreshGalaxy()" class="btn btn-ghost btn-sm">⟳ Refresh</button>
-            <button onclick="fitGalaxy()" class="btn btn-ghost btn-sm">⊡ Fit</button>
+          <div style="position:absolute;top:12px;left:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button onclick="if(typeof gxAddMemory==='function') gxAddMemory()" class="btn-primary btn-sm btn-3d" style="background:var(--accent);color:#fff">＋ Add Memory</button>
+            <button onclick="refreshGalaxy()" class="btn-ghost btn-sm btn-3d">⟳ Refresh</button>
+            <button onclick="fitGalaxy()" class="btn-ghost btn-sm btn-3d">⊡ Fit</button>
             <select id="gx-limit" onchange="refreshGalaxy()" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text-1);font-size:12px">
               <option value="120">120 nodes</option>
               <option value="250" selected>250 nodes</option>
@@ -2646,25 +2663,54 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <!-- Right Content Area -->
           <div class="settings-content-area" style="flex:1;overflow-y:auto;padding:36px 44px;background:var(--bg-0)">
             
-            <!-- TAB 1: API Providers & Vault Secrets -->
+            <!-- TAB 1: API Providers & Vault Secrets (Open WebUI 3-Card Connections Hub) -->
             <div id="settings-tab-api" class="settings-tab-pane active">
               <div class="section-head" style="margin-bottom:24px">
-                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🔑 AI Providers & Local Vault Secrets</h2>
-                <p style="color:var(--text-2);font-size:13.5px">All API keys are encrypted inside your macOS local vault (~/Library/Application Support/com.stricktech.agenticos/.vault_key) via AES-256 and never leave your hardware.</p>
+                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🔑 API Providers & Vault Connections Hub</h2>
+                <p style="color:var(--text-2);font-size:13.5px">Manage primary cloud gateways, local inference engines, and custom OpenAI-compatible endpoints. All connections auto-sync models directly into your primary Chat selector.</p>
               </div>
 
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px;box-shadow:var(--shadow)">
+              <!-- CARD 1: OpenRouter Primary Cloud Gateway -->
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                  <label style="font-size:13px;font-weight:800;color:var(--text-0)">OpenRouter API Key (Primary AI Gateway)</label>
+                  <label style="font-size:13px;font-weight:800;color:var(--text-0)">1. OpenRouter API Gateway (Primary Cloud)</label>
                   <a href="https://openrouter.ai/keys" target="_blank" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:700">→ Get Free API Key ↗</a>
                 </div>
                 <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Unlocks Claude 3.5 Sonnet, GPT-4o, Gemini 1.5 Pro, Grok 3, and Llama 3.3 70B via a single universal key.</p>
-                
-                <div class="key-input-row" style="display:flex;gap:10px;margin-bottom:14px">
-                  <input id="or-key-input" type="password" class="key-input" placeholder="Paste sk-or-v1-… key here" autocomplete="off" style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none">
-                  <button onclick="saveApiKey()" class="btn btn-primary" style="padding:11px 24px;font-weight:700;border-radius:10px;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">💾 Save & Verify</button>
+                <div class="key-input-row" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+                  <input id="or-key-input" type="password" class="key-input" placeholder="Paste sk-or-v1-… key here" autocomplete="off" style="flex:1;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none">
+                  <button onclick="saveApiKey()" class="btn-primary btn-3d" style="padding:11px 24px;border-radius:10px">💾 Save & Sync Models</button>
                 </div>
                 <div id="settings-key-test-result" style="font-size:12.5px;margin-top:10px;padding:10px;border-radius:8px;background:var(--bg-2);display:none"></div>
+              </div>
+
+              <!-- CARD 2: Local Ollama Endpoint & Model Manager -->
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="font-size:13px;font-weight:800;color:var(--text-0)">2. Local Ollama Server & Model Manager</label>
+                  <span id="settings-api-ollama-status" class="tech-badge" style="color:var(--text-2);border-color:var(--border)">Checking...</span>
+                </div>
+                <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Run open-source neural models 100% offline and zero-latency right on your Mac Apple Silicon or Intel CPU.</p>
+                <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+                  <input id="settings-api-ollama-url" type="text" value="http://localhost:11434" style="flex:1;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
+                  <button onclick="if(typeof testOllamaConnection === 'function') testOllamaConnection()" class="btn-ghost btn-3d" style="padding:10px 20px">⚡ Check & Sync Models</button>
+                </div>
+                <div id="settings-api-ollama-models" style="font-size:12px;color:var(--text-2);padding:10px;background:var(--bg-2);border-radius:8px"></div>
+              </div>
+
+              <!-- CARD 3: Custom OpenAI-Compatible Connections -->
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;box-shadow:var(--shadow)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="font-size:13px;font-weight:800;color:var(--text-0)">3. Custom OpenAI-Compatible Base URL & Key</label>
+                  <span id="settings-api-custom-status" class="tech-badge" style="color:var(--accent);border-color:var(--accent)">LM Studio · Jan · Any Endpoint</span>
+                </div>
+                <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Connect to any external or local OpenAI-compatible endpoint. Models discovered here auto-populate your chat dropdown.</p>
+                <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+                  <input id="custom-api-base-url" type="text" placeholder="http://localhost:1234/v1" style="flex:2;min-width:200px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
+                  <input id="custom-api-key" type="password" placeholder="API Key (if required)" style="flex:1;min-width:140px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
+                  <button onclick="if(typeof saveCustomConnection === 'function') saveCustomConnection()" class="btn-primary btn-3d" style="padding:10px 20px">🔗 Connect & Sync</button>
+                </div>
+                <div id="custom-api-status-msg" style="font-size:12px;color:var(--text-2);margin-top:6px"></div>
               </div>
             </div>
 
