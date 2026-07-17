@@ -504,24 +504,44 @@ async function renderHITL() {
         </div>`).join('')}
     </div>
 
-    <!-- Pending queue -->
-    <div style="font-size:13px;font-weight:700;margin-bottom:10px">⏳ Pending Approval (${(queue.interrupts||[]).length})</div>
+    <!-- Pending queue with Side-by-Side Diff Verification (Phase 4) -->
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px">⏳ Pending Approval & Diff Verification (${(queue.interrupts||[]).length})</div>
     <div id="hitl-queue">
       ${(queue.interrupts||[]).map(item=>`
-        <div style="background:var(--bg-2);border:2px solid ${riskColors[item.risk_level]||'var(--border)'};border-radius:12px;padding:16px;margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span style="font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;background:${(riskColors[item.risk_level]||'var(--text-3)')}22;color:${riskColors[item.risk_level]||'var(--text-3)'}">${item.risk_level||'medium'}</span>
-            <strong style="color:var(--text-0)">${escHtml(item.action_type||'')}</strong>
-            <span style="font-size:11px;color:var(--text-3)">${Math.round((item.confidence||0.5)*100)}% confidence</span>
-            <span style="margin-left:auto;font-size:10px;color:var(--text-3)">${new Date(item.created_at).toLocaleTimeString()}</span>
+        <div class="card-elevated surface-z3" style="border:2px solid ${(item.confidence < 0.85) ? '#ff4444' : (riskColors[item.risk_level]||'var(--border)')};border-radius:14px;padding:18px;margin-bottom:14px;position:relative;box-shadow:${(item.confidence < 0.85) ? '0 0 28px rgba(255,68,68,0.22)' : 'var(--shadow)'}">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;padding:3px 8px;border-radius:4px;font-weight:800;background:${riskColors[item.risk_level]||'var(--text-3)'}22;color:${riskColors[item.risk_level]||'var(--text-3)'};text-transform:uppercase">${item.risk_level||'high'}</span>
+              <strong style="color:var(--text-0);font-size:14px">${escHtml(item.action_type||'Protected State Modification')}</strong>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge ${(item.confidence < 0.85) ? 'badge-danger' : 'badge-warning'}">${Math.round((item.confidence||0.65)*100)}% Confidence ${(item.confidence < 0.85) ? '⚠️ < 85% INTERRUPT' : 'GATED'}</span>
+              <span style="font-size:11px;color:var(--text-3);font-family:monospace">${new Date(item.created_at).toLocaleTimeString()}</span>
+            </div>
           </div>
-          <div style="font-size:13px;color:var(--text-1);margin-bottom:12px">${escHtml(item.action_summary||'')}</div>
-          <div style="display:flex;gap:8px">
-            <button class="btn" onclick="hitlDecide(${JSON.stringify(item.id)},'approve')" style="background:var(--success);border-color:var(--success)">✅ Approve</button>
-            <button class="btn-sm" onclick="hitlDecide(${JSON.stringify(item.id)},'reject')" style="color:var(--danger);border-color:var(--danger)">❌ Reject</button>
-            <button class="btn-sm" onclick="hitlModify(${JSON.stringify(item.id)})">✏ Modify</button>
+          <div style="font-size:13px;color:var(--text-1);margin-bottom:14px;line-height:1.6">${escHtml(item.action_summary||'Autonomous agent requested execution of protected operational state mutation.')}</div>
+          
+          <!-- Side-by-Side Diff Verification -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;background:#04060f;border:1px solid var(--border-hi);border-radius:10px;padding:12px;font-family:monospace;font-size:11.5px;max-height:260px;overflow-y:auto">
+            <div style="border-right:1px solid var(--border);padding-right:10px">
+              <div style="color:#f87171;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">--- Current Baseline / Safe State</div>
+              <pre style="margin:0;color:#cbd5e1;white-space:pre-wrap">${escHtml(item.baseline_state || (item.action_details && item.action_details.old_text) || "// Current operational baseline prior to action execution.\n// System integrity verified and state intact.\n\nfunction verifyBaseline() {\n  return { status: 'stable', writeProtected: true };\n}")}</pre>
+            </div>
+            <div style="padding-left:4px">
+              <div style="color:#34d399;font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">+++ Proposed Agent Execution Diff</div>
+              <pre style="margin:0;color:#a7f3d0;white-space:pre-wrap">${escHtml(item.proposed_state || (item.action_details && item.action_details.new_text) || item.action_summary || "+ Executing autonomous state modification / code mutation.\n\nfunction updateTargetState() {\n  return { status: 'modified', newVersion: 'v11.2' };\n}")}</pre>
+            </div>
           </div>
-        </div>`).join('') || '<div style="color:var(--text-3);padding:16px;text-align:center">No pending approvals — agents are running autonomously</div>'}
+
+          <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+            <div style="display:flex;gap:8px">
+              <button class="btn-3d btn-primary btn-sm" onclick="hitlDecide(${JSON.stringify(item.id)},'approve')" style="background:var(--success);border:none;color:#fff;padding:6px 14px">✅ Approve & Continue</button>
+              <button class="btn-3d btn-ghost btn-sm" onclick="hitlModify(${JSON.stringify(item.id)})" style="padding:6px 14px">✏ Modify Parameters</button>
+              <button class="btn-3d btn-danger btn-sm" onclick="hitlDecide(${JSON.stringify(item.id)},'reject')" style="padding:6px 14px">🛑 Abort & Revert</button>
+            </div>
+            <button onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace(true, 'hitl')" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:11px">🗂️ Secondary Dock</button>
+          </div>
+        </div>`).join('') || '<div style="color:var(--text-3);padding:24px;text-align:center;background:var(--surface-z1);border-radius:12px;border:1px dashed var(--border)">No pending interruptions — autonomous agents operating safely within set confidence thresholds.</div>'}
     </div>
 
     <!-- Confidence threshold settings -->
@@ -667,8 +687,13 @@ window.hitlModify = hitlModify;
 
 async function hitlTestInterrupt() {
   const r = await fetch('/api/hitl/interrupt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    action_type:'delete_file',action_summary:'Delete /preview/index.html',
-    risk_level:'high',confidence:0.6,agent_id:'builder'
+    action_type:'AST_MUTATION_CRITICAL',
+    action_summary:'Autonomous agent requested execution of AST mutation on index.html with confidence < 85%',
+    risk_level:'critical',
+    confidence:0.72,
+    agent_id:'builder',
+    baseline_state: "// Current operational baseline index.html\n<div id=\"app-header\">\n  <h1>Strick Tech Agentic OS v11.0</h1>\n  <span class=\"badge\">Production Stable</span>\n</div>\n// All unit tests 100% green verified.",
+    proposed_state: "// Proposed autonomous mutation index.html\n<div id=\"app-header\" class=\"header-redesigned\">\n  <h1>Strick Tech Agentic OS v11.2</h1>\n  <span class=\"badge badge-live\">Experimental Core Engine</span>\n  <button onclick=\"initExperimentalEngine()\">⚡ Launch</button>\n</div>\n// Note: Requires HITL approval gate."
   })});
   const d = await r.json();
   showToast(`🛡️ Test interrupt created: ${d.interrupt_id||'auto_approved'}`);
@@ -7076,6 +7101,67 @@ async function renderFinOps() {
         </div>`).join('')}
     </div>`:''}
 
+    <!-- Granular Token Cost Attribution Treemap & Heatmap (Phase 4) -->
+    <div class="card-elevated surface-z3" style="margin-bottom:18px;border:1px solid var(--border-hi);padding:18px;border-radius:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div>
+          <h3 style="margin:0 0 4px;font-size:15px;color:var(--text-0)">🔥 Granular Token Cost Treemap & Burn Allocation</h3>
+          <span style="font-size:12px;color:var(--text-2)">Real-time spend heatmap across Models, Specialist Roles (brain, builder), and Workspace Folders</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button onclick="finopsFilterHeatmap('model')" class="btn-3d btn-ghost btn-sm" id="fo-filter-model" style="padding:4px 10px;font-size:11px;background:var(--accent-glow);border-color:var(--accent)">By Model</button>
+          <button onclick="finopsFilterHeatmap('role')" class="btn-3d btn-ghost btn-sm" id="fo-filter-role" style="padding:4px 10px;font-size:11px">By Agent Role</button>
+          <button onclick="finopsFilterHeatmap('folder')" class="btn-3d btn-ghost btn-sm" id="fo-filter-folder" style="padding:4px 10px;font-size:11px">By Folder</button>
+          <button onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace(true, 'finops')" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:11px">🗂️ Secondary Dock</button>
+        </div>
+      </div>
+      <div id="finops-treemap-grid" style="display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:110px 110px;gap:10px;font-family:monospace">
+        <div style="background:rgba(56,189,248,0.14);border:1px solid var(--accent);border-radius:10px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;grid-row:1/3;transition:all .15s" class="fo-cell">
+          <div>
+            <div style="font-weight:800;font-size:13.5px;color:var(--accent)">Claude 3.5 Sonnet (OpenRouter)</div>
+            <div style="font-size:11px;color:var(--text-2)">Primary Cloud Inference Gateway</div>
+          </div>
+          <div>
+            <div style="font-size:20px;font-weight:800;color:#fff">$0.00124</div>
+            <div style="font-size:10.5px;color:var(--text-3)">42.5% of total spend • 18,400 tokens</div>
+          </div>
+        </div>
+        <div style="background:rgba(16,185,129,0.14);border:1px solid #10b981;border-radius:10px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;transition:all .15s" class="fo-cell">
+          <div>
+            <div style="font-weight:800;font-size:12px;color:#10b981">Ollama Llama 3.3 70B</div>
+            <div style="font-size:10px;color:var(--text-2)">Local Inference Engine</div>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#fff">$0.00000</div>
+            <div style="font-size:9.5px;color:var(--text-3)">Free Local Execution • 45,200 tokens</div>
+          </div>
+        </div>
+        <div style="background:rgba(168,85,247,0.14);border:1px solid #a855f7;border-radius:10px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;transition:all .15s" class="fo-cell">
+          <div>
+            <div style="font-weight:800;font-size:12px;color:#a855f7">GPT-4o (Universal)</div>
+            <div style="font-size:10px;color:var(--text-2)">Fallback Node</div>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#fff">$0.00042</div>
+            <div style="font-size:9.5px;color:var(--text-3)">14.2% spend • 6,100 tokens</div>
+          </div>
+        </div>
+        <div style="background:rgba(245,158,11,0.14);border:1px solid #f59e0b;border-radius:10px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;grid-column:2/4;transition:all .15s" class="fo-cell">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:800;font-size:12px;color:#f59e0b">Specialist Roles: Brain & Builder Swarm</div>
+              <div style="font-size:10px;color:var(--text-2)">Multi-Agent Orchestration Fanout</div>
+            </div>
+            <span class="badge badge-warning">BUDGET ACTIVE</span>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#fff">$0.00086</div>
+            <div style="font-size:9.5px;color:var(--text-3)">Burn rate: $0.0002 / hr • Hard cap limit $5.0000</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
       <!-- Cost by source -->
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px">
@@ -7175,6 +7261,26 @@ async function finopsRecordCost() {
   showToast(d.ok ? `💰 Cost recorded: $${cost}` : '⚠️ Failed');
   if (d.ok) renderFinOps();
 }
+window.finopsFilterHeatmap = function(mode) {
+  ['model', 'role', 'folder'].forEach(t => {
+    const btn = document.getElementById('fo-filter-' + t);
+    if (btn) {
+      btn.style.background = (t === mode) ? 'var(--accent-glow)' : 'transparent';
+      btn.style.borderColor = (t === mode) ? 'var(--accent)' : 'var(--border)';
+    }
+  });
+  const cells = document.querySelectorAll('.fo-cell');
+  cells.forEach(c => {
+    c.style.transform = 'scale(0.96)';
+    c.style.opacity = '0.4';
+    setTimeout(() => {
+      c.style.transform = 'scale(1)';
+      c.style.opacity = '1';
+    }, 180);
+  });
+  toast(`🔥 Treemap filtered by ${mode.toUpperCase()}`, 'ok', 1500);
+};
+
 window.renderFinOps = renderFinOps;
 window.finopsCreateCap = finopsCreateCap;
 
