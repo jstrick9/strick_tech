@@ -1256,10 +1256,42 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
    NAVIGATION FIX — make all 24 panes accessible
    ═══════════════════════════════════════════════════════════════ */
 
-/* Ensure shell fills viewport and is flex column */
-#shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-#main{display:flex;flex:1;overflow:hidden;min-height:0}
-#content{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+/* Ensure shell fills viewport exactly and locks status bar footer */
+html, body, #shell {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  margin: 0;
+  padding: 0;
+}
+#shell {
+  display: flex !important;
+  flex-direction: column !important;
+}
+#main {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+  max-height: calc(100vh - 56px - 26px) !important;
+}
+#content {
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+#statusbar {
+  height: 26px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  background: var(--bg-1) !important;
+  border-top: 1px solid var(--border) !important;
+  z-index: 1000 !important;
+}
 
 /* Pane base — hidden by default, shown when .active */
 [id^="pane-"]:not(.active), .pane:not(.active) {

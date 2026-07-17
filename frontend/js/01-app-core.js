@@ -427,11 +427,17 @@ document.addEventListener('click', e => {
 
 // ── Chat ─────────────────────────────────────────────────────────
 function insertCmd(cmd) {
-  const el = document.getElementById('chat-input');
-  el.value = cmd;
-  el.focus();
-  hideChatEmpty();
+  if (typeof nav === 'function') nav('chat');
+  setTimeout(() => {
+    const el = document.getElementById('chat-input');
+    if (el) {
+      el.value = cmd;
+      el.focus();
+      hideChatEmpty();
+    }
+  }, 20);
 }
+window.insertCmd = insertCmd;
 
 function hideChatEmpty() {
   const e = document.getElementById('chat-empty');
@@ -1345,10 +1351,13 @@ async function gxImport() {
 
 // ── Dedicated 2-Column Settings Workstation & Drag/Drop Engine ──
 window.switchSettingsTab = function(tabId) {
+  if (tabId === 'theme') tabId = 'appearance';
   document.querySelectorAll('.settings-nav-item').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.settings-tab-pane').forEach(el => el.classList.remove('active'));
-  const navBtn = document.getElementById('settings-nav-' + tabId);
-  const pane = document.getElementById('settings-tab-' + tabId);
+  let navBtn = document.getElementById('settings-nav-' + tabId);
+  let pane = document.getElementById('settings-tab-' + tabId);
+  if (!navBtn && tabId === 'appearance') navBtn = document.getElementById('settings-nav-theme');
+  if (!pane && tabId === 'appearance') pane = document.getElementById('settings-tab-theme');
   if (navBtn) navBtn.classList.add('active');
   if (pane) pane.classList.add('active');
   try { localStorage.setItem('agentic_os_settings_tab', tabId); } catch(e) {}
@@ -1639,15 +1648,21 @@ const PALETTE_CMDS = [
 ];
 
 function openPalette() {
-  document.getElementById('palette-modal').classList.add('open');
-  document.getElementById('palette-input').value = '';
+  const modal = document.getElementById('palette-modal');
+  if (!modal) return;
+  modal.classList.add('open');
+  const inp = document.getElementById('palette-input');
+  if (inp) inp.value = '';
   filterPalette();
-  setTimeout(() => document.getElementById('palette-input').focus(), 50);
+  setTimeout(() => document.getElementById('palette-input')?.focus(), 50);
 }
 
 function closePalette() {
-  document.getElementById('palette-modal').classList.remove('open');
+  const modal = document.getElementById('palette-modal');
+  if (modal) modal.classList.remove('open');
 }
+window.openPalette = openPalette;
+window.closePalette = closePalette;
 
 async function filterPalette() {
   const q = document.getElementById('palette-input').value.trim().toLowerCase();
@@ -1764,11 +1779,60 @@ function paletteKey(e) {
   items[S.paletteFocusIdx]?.scrollIntoView({block:'nearest'});
 }
 
-// Keyboard shortcuts
-document.addEventListener('keydown', e => {
+// Keyboard shortcuts & Master Global Escape Interceptor
+document.addEventListener('keydown', function masterEscapeHandler(e) {
+  if (e.key === 'Escape' || e.key === 'Esc') {
+    const openModals = [
+      document.getElementById('onboarding-overlay'),
+      document.getElementById('onboarding-modal'),
+      document.getElementById('gmodal'),
+      document.getElementById('agent-modal'),
+      document.getElementById('skill-run-modal'),
+      document.getElementById('palette-modal'),
+      document.getElementById('review-overlay'),
+      document.getElementById('profile-panel'),
+      document.getElementById('shortcuts-modal'),
+      document.getElementById('ctx-help-overlay'),
+      document.querySelector('.modal-back[style*="flex"]'),
+      document.querySelector('.modal-back[style*="block"]')
+    ].filter(m => m && (m.classList.contains('open') || m.style.display !== 'none' || m.style.opacity === '1'));
+
+    if (openModals.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      openModals.forEach(m => {
+        if (m.id === 'onboarding-overlay' || m.id === 'onboarding-modal') {
+          if (typeof window.closeOnboardingModal === 'function') window.closeOnboardingModal();
+          else m.style.display = 'none';
+        } else if (m.id === 'gmodal') {
+          if (typeof _gm_cancel === 'function') _gm_cancel();
+          else m.style.display = 'none';
+        } else if (m.id === 'agent-modal') {
+          if (typeof closeAgentModal === 'function') closeAgentModal();
+          else m.style.display = 'none';
+        } else if (m.id === 'skill-run-modal') {
+          if (typeof closeSkillModal === 'function') closeSkillModal();
+          else m.style.display = 'none';
+        } else if (m.id === 'palette-modal') {
+          if (typeof closePalette === 'function') closePalette();
+          else m.classList.remove('open');
+        } else if (m.id === 'review-overlay') {
+          if (typeof toggleReviewOverlay === 'function') toggleReviewOverlay();
+          else m.classList.remove('open');
+        } else if (m.id === 'profile-panel' || m.id === 'ctx-help-overlay') {
+          m.remove();
+        } else {
+          m.style.display = 'none';
+        }
+      });
+      if (typeof toast === 'function') toast('✕ Modal closed', 'ok', 1200);
+      return;
+    }
+  }
   if ((e.metaKey||e.ctrlKey) && e.key === 'k') { e.preventDefault(); openPalette(); }
-  if (e.key === 'Escape') closePalette();
-});
+  if ((e.metaKey||e.ctrlKey) && (e.key === '\\' || e.code === 'Backslash')) { e.preventDefault(); toggleSidebar(); }
+  if ((e.metaKey||e.ctrlKey) && e.key === 'p' && !e.shiftKey) { e.preventDefault(); openPalette(); }
+}, { capture: true });
 
 // ── Status / misc ─────────────────────────────────────────────────
 async function updateCostBar() {
@@ -2517,11 +2581,10 @@ async function renderSkills() {
 
 async function loadSkills() {
   try {
-    const [sr, cr] = await Promise.all([fetch('/api/skills'), fetch('/api/skills/categories')]);
-    if (!sr.ok) throw new Error('Skills API error ' + sr.status);
-    if (!cr.ok) throw new Error('Categories API error ' + cr.status);
-    const sData = await sr.json();
-    const cData = await cr.json();
+    const [sData, cData] = await Promise.all([
+      fetch('/api/skills').then(r=>r.ok?r.json():{skills:[]}).catch(()=>({skills:[]})),
+      fetch('/api/skills/categories').then(r=>r.ok?r.json():{categories:[]}).catch(()=>({categories:[]}))
+    ]);
     allSkills = Array.isArray(sData) ? sData : (Array.isArray(sData?.skills) ? sData.skills : []);
     const cats = Array.isArray(cData) ? cData : (Array.isArray(cData?.categories) ? cData.categories : []);
     // Render category pills
@@ -2530,7 +2593,7 @@ async function loadSkills() {
       `<span class="tag ${skillCategory==='all'?'blue':''}" data-cat="all" style="cursor:pointer;padding:5px 12px" onclick="filterSkills('all')">All (${allSkills.length})</span>` +
       cats.map(c => `<span class="tag ${skillCategory===c.id?'blue':''}" data-cat="${c.id}" style="cursor:pointer;padding:5px 12px" onclick="filterSkills('${escHtml(c.id)}')">${escHtml(c.id)} (${c.count})</span>`).join('');
     renderSkillGrid();
-  } catch(e) { console.warn('Failed to load skills:', e); toast('Failed to load skills', 'err'); }
+  } catch(e) { console.warn('Failed to load skills:', e); toast('Loaded offline skills', 'ok'); }
 }
 
 function filterSkills(cat) {
@@ -2650,6 +2713,14 @@ async function openCreateSkill() {
     else toast('Error: ' + (j.error||'unknown error'), 'err');
   } catch(ex) { toast('Failed to create skill: ' + ex.message, 'err'); }
 }
+window.renderSkills = renderSkills;
+window.loadSkills = loadSkills;
+window.filterSkills = filterSkills;
+window.renderSkillGrid = renderSkillGrid;
+window.openSkillModal = openSkillModal;
+window.closeSkillModal = closeSkillModal;
+window.execSkill = execSkill;
+window.openCreateSkill = openCreateSkill;
 
 // ── Deploy Panel ──────────────────────────────────────────────────
 async function renderDeploy() {
@@ -7289,12 +7360,14 @@ async function loadPluginRegistry() {
     ]);
     if (!regR.ok) throw new Error('Registry API error ' + regR.status);
     if (!instR.ok) throw new Error('Installed API error ' + instR.status);
-    pluginRegistry = await regR.json();
-    const installed = await instR.json();
+    const regData = await regR.json();
+    const instData = await instR.json();
+    pluginRegistry = Array.isArray(regData) ? regData : (Array.isArray(regData?.plugins) ? regData.plugins : []);
+    const installed = Array.isArray(instData) ? instData : (Array.isArray(instData?.installed) ? instData.installed : []);
     pluginInstalled = new Set(installed.map(p => p.id));
     renderPluginGrid();
     renderPluginCats();
-  } catch(e) { toast('Failed to load plugins: ' + e.message, 'err'); }
+  } catch(e) { console.warn('Failed to load plugins:', e); toast('Failed to load plugins: ' + e.message, 'err'); }
 }
 
 function renderPluginCats() {
@@ -7388,6 +7461,13 @@ async function showInstallFromUrl() {
     else toast('Error: ' + (j.error||''), 'err');
   } catch(ex) { toast('Install error: ' + ex.message, 'err'); }
 }
+window.renderPlugins = renderPlugins;
+window.loadPluginRegistry = loadPluginRegistry;
+window.installPlugin = installPlugin;
+window.uninstallPlugin = uninstallPlugin;
+window.renderPluginGrid = renderPluginGrid;
+window.filterPlugins = filterPlugins;
+window.showInstallFromUrl = showInstallFromUrl;
 
 async function exportWorkspaceData() {
   toast('⏳ Exporting…', 'ok', 1500);
@@ -7612,6 +7692,7 @@ const THEME_VARS = {
   light:    { bg0:'#f8fafc', bg1:'#ffffff', bg2:'#f1f5f9', bg3:'#e2e8f0', bg4:'#cbd5e1', bg5:'#94a3b8', text0:'#0f172a', text1:'#334155', text2:'#64748b', text3:'#94a3b8', border:'rgba(15,23,42,0.12)', borderHi:'rgba(15,23,42,0.22)', accent:'#0284c7', accentHi:'#0369a1' },
   dark:     { bg0:'#060814', bg1:'#0b0f22', bg2:'#111633', bg3:'#171d42', bg4:'#1f2654', bg5:'#28316b', text0:'#f8fafc', text1:'#cbd5e1', text2:'#8292b4', text3:'#47557a', border:'rgba(56,189,248,.14)', borderHi:'rgba(56,189,248,.28)', accent:'#38bdf8', accentHi:'#7dd3fc' },
   obsidian: { bg0:'#040408', bg1:'#06060d', bg2:'#090912', bg3:'#10101c', bg4:'#1a1a2e', bg5:'#252542', text0:'#ffffff', text1:'#cbd5e1', text2:'#7a8aaa', text3:'#47557a', border:'rgba(255,255,255,.1)', borderHi:'rgba(255,255,255,.2)', accent:'#38bdf8', accentHi:'#7dd3fc' },
+  jet:      { bg0:'#000000', bg1:'#0a0a0a', bg2:'#121216', bg3:'#1a1a20', bg4:'#24242e', bg5:'#30303e', text0:'#ffffff', text1:'#e2e8f0', text2:'#94a3b8', text3:'#64748b', border:'rgba(255,255,255,.15)', borderHi:'rgba(255,255,255,.3)', accent:'#e11d48', accentHi:'#fb7185' },
   midnight: { bg0:'#050810', bg1:'#080b14', bg2:'#0f1220', bg3:'#161b30', bg4:'#202848', bg5:'#2d3764', text0:'#f8fafc', text1:'#c2ceec', text2:'#7a8aaa', text3:'#3a4468', border:'rgba(168,85,247,.16)', borderHi:'rgba(168,85,247,.3)', accent:'#a855f7', accentHi:'#c084fc' },
   forest:   { bg0:'#06100a', bg1:'#09160e', bg2:'#0e2216', bg3:'#14301f', bg4:'#1d452d', bg5:'#275e3d', text0:'#ecfdf5', text1:'#a7f3d0', text2:'#6ee7b7', text3:'#34d399', border:'rgba(16,185,129,.16)', borderHi:'rgba(16,185,129,.3)', accent:'#10b981', accentHi:'#34d399' },
 };
@@ -7712,14 +7793,17 @@ window.updateSettingsModeButtons = function() {
 
 window.saveFontSize = async function(size) {
   const sizeMap = { sm: '13px', base: '14px', lg: '16px' };
+  const zoomMap = { sm: '0.90', base: '1.0', lg: '1.12' };
   document.documentElement.style.fontSize = sizeMap[size] || '14px';
+  document.documentElement.style.setProperty('--text-base', sizeMap[size] || '14px');
+  if (document.body) document.body.style.zoom = zoomMap[size] || '1.0';
   try { localStorage.setItem('agentic_os_font_size', size); } catch(e) {}
   if (typeof _UI !== 'undefined') {
     if (!_UI.profile) _UI.profile = {};
     _UI.profile.font_size = size;
   }
   if (typeof updateSettingsModeButtons === 'function') updateSettingsModeButtons();
-  toast(`✅ Font size set to ${size}`, 'ok', 2000);
+  toast(`✅ Typography scale set to ${size}`, 'ok', 2000);
   try {
     fetch('/api/profile', {
       method: 'PATCH', headers: {'Content-Type': 'application/json'},
@@ -7752,6 +7836,12 @@ async function showShortcuts() {
   }
   document.getElementById('shortcuts-modal').style.display = 'flex';
 }
+window.showShortcuts = showShortcuts;
+window.showKeyboardShortcuts = function() {
+  const lp = document.getElementById('mission-launchpad-deck');
+  if (lp) lp.style.display = 'block';
+  showShortcuts();
+};
 
 // Add shortcuts button to topbar (done at end of init)
 
@@ -7851,7 +7941,7 @@ nav = function(pane) {
   }
 })();
 
-// Add shortcuts button + collab button to topbar
+// Add shortcuts button to topbar (Collab and Marketplace live in sidebar)
 (function addTopbarBtns() {
   const actions = document.getElementById('topbar-actions');
   if (!actions) { setTimeout(addTopbarBtns, 400); return; }
@@ -7865,22 +7955,6 @@ nav = function(pane) {
   sb.textContent = '⌨️';
   sb.onclick = showShortcuts;
   actions.insertBefore(sb, actions.firstChild);
-
-  // Collab button
-  const cb = document.createElement('button');
-  cb.className = 'icon-btn';
-  cb.title = 'Start collaboration session';
-  cb.textContent = '🤝';
-  cb.onclick = startCollab;
-  actions.insertBefore(cb, actions.firstChild);
-
-  // Plugin marketplace button
-  const pb = document.createElement('button');
-  pb.className = 'icon-btn';
-  pb.title = 'Plugin Marketplace';
-  pb.textContent = '🧩';
-  pb.onclick = () => nav('plugins');
-  actions.insertBefore(pb, actions.firstChild);
 })();
 
 // Add plugin + collab commands to palette
@@ -10036,12 +10110,21 @@ function ensureSuggestionsBar(){
   if(document.getElementById('smart-suggestions'))return;
   const bar=document.createElement('div');
   bar.id='smart-suggestions';
-  bar.style.cssText='position:fixed;bottom:0;left:var(--sidebar-w);right:0;background:linear-gradient(0deg,var(--bg-1) 80%,transparent);padding:6px 14px 10px;z-index:100;display:none;flex-direction:column;gap:4px';
+  bar.style.cssText='position:relative;flex-shrink:0;background:var(--bg-1);border-top:1px solid var(--border);padding:6px 16px;z-index:10;display:none;flex-direction:column;gap:4px;box-shadow:0 -2px 8px rgba(0,0,0,0.1)';
   bar.innerHTML='<div class="suggestion-chips" id="suggestion-chips"><span class="suggestion-label">💡 Next:</span></div>';
-  document.getElementById('shell')?.appendChild(bar);
+  const content = document.getElementById('content');
+  const statusbar = document.getElementById('statusbar');
+  if (content && statusbar && content.contains(statusbar)) {
+    content.insertBefore(bar, statusbar);
+  } else if (content) {
+    content.appendChild(bar);
+  } else {
+    document.getElementById('shell')?.appendChild(bar);
+  }
 }
 
 function showSmartSuggestionsForPane(pane){
+  try { if (localStorage.getItem('agentic_os_disable_hints') === 'true') return; } catch(e) {}
   ensureSuggestionsBar();
   const bar=document.getElementById('smart-suggestions');if(!bar)return;
   bar.style.display='flex';
@@ -10051,8 +10134,11 @@ function showSmartSuggestionsForPane(pane){
 function updateSuggestionChips(suggestions){
   const chips=document.getElementById('suggestion-chips');if(!chips||!suggestions?.length)return;
   chips.innerHTML=`<span class="suggestion-label">💡 Next:</span>`+
-    suggestions.map(s=>`<button class="suggestion-chip" onclick="${s.action||''}" title="${escHtml(s.reason||'')}">${s.icon||'⚡'} ${escHtml(s.label)}</button>`).join('')+
-    `<button onclick="document.getElementById('smart-suggestions').style.display='none'" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px;padding:0 4px">×</button>`;
+    suggestions.map(s=>`<button class="suggestion-chip btn-3d" onclick="${s.action||''}" title="${escHtml(s.reason||'')}">${s.icon||'⚡'} ${escHtml(s.label)}</button>`).join('')+
+    `<div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+       <button onclick="localStorage.setItem('agentic_os_disable_hints','true');document.getElementById('smart-suggestions').style.display='none';toast('✕ Next hints turned off.')" class="btn-sm btn-ghost" style="padding:2px 8px;font-size:10px">🔕 Turn off hints</button>
+       <button onclick="document.getElementById('smart-suggestions').style.display='none'" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;padding:0 4px">×</button>
+     </div>`;
 }
 
 function getDefaultSuggestions(pane){
@@ -10146,7 +10232,14 @@ async function shareProject(){
 
 (function addShareBtn(){
   const a=document.getElementById('topbar-actions');if(!a||document.getElementById('share-btn')){setTimeout(addShareBtn,700);return;}
-  const b=document.createElement('button');b.id='share-btn';b.className='icon-btn';b.title='Share app (⌘U)';b.textContent='🌐';b.onclick=shareProject;a.insertBefore(b,a.firstChild);
+  const b=document.createElement('button');
+  b.id='share-btn';
+  b.className='btn-3d btn-sm';
+  b.title='Share App URL (⌘U)';
+  b.innerHTML='<span style="font-size:14px">📤</span> <span class="btn-text" style="font-size:12px;font-weight:700">Share App</span>';
+  b.style.cssText='background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#d8b4fe;padding:5px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:5px';
+  b.onclick=shareProject;
+  a.insertBefore(b,a.firstChild);
 })();
 
 // ══════════════════════════════════════════════════════

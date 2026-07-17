@@ -726,6 +726,28 @@ async def install_pack(pack_id: str, req: Request):
     }
     (sdk_dir / f'{pack_id}.json').write_text(json.dumps(sdk_pack, indent=2))
 
+    # Sync installed skills into the active Skills Hub (skills.json)
+    with contextlib.suppress(Exception):
+        from .skills import load_skills, save_skills
+        active_skills = load_skills()
+        existing_ids = {s['id'] for s in active_skills}
+        for sk in skills:
+            if sk.get('id') not in existing_ids:
+                active_skills.append({
+                    **sk,
+                    'source_plugin': pack_id,
+                    'category': dict(pack).get('category', 'marketplace') if pack else 'marketplace',
+                })
+                existing_ids.add(sk.get('id'))
+        save_skills(active_skills)
+
+    # Sync plugin registration into plugins system (plugins/installed.json)
+    with contextlib.suppress(Exception):
+        from .plugins import _load_installed, _save_installed
+        p_inst = _load_installed()
+        p_inst[pack_id] = {**sdk_pack, 'installed': True}
+        _save_installed(p_inst)
+
     return {
         'ok': True,
         'pack_id': pack_id,
@@ -751,6 +773,22 @@ def uninstall_pack(pack_id: str):
     if sdk_pack.exists():
         with contextlib.suppress(Exception):
             sdk_pack.unlink()
+
+    # Sync uninstallation with active Skills Hub
+    with contextlib.suppress(Exception):
+        from .skills import load_skills, save_skills
+        active_skills = load_skills()
+        active_skills = [s for s in active_skills if s.get('source_plugin') != pack_id]
+        save_skills(active_skills)
+
+    # Sync uninstallation with plugins registry
+    with contextlib.suppress(Exception):
+        from .plugins import _load_installed, _save_installed
+        p_inst = _load_installed()
+        if pack_id in p_inst:
+            del p_inst[pack_id]
+            _save_installed(p_inst)
+
     return {'ok': True, 'pack_id': pack_id}
 
 

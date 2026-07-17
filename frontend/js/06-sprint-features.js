@@ -728,7 +728,7 @@ async function renderBrowserAgent() {
       <span style="font-size:11px;padding:2px 8px;border-radius:5px;${status.ready ? 'background:rgba(61,186,122,.15);color:var(--success)' : 'background:rgba(232,162,55,.15);color:var(--warning)'}">
         ${status.ready ? '✅ Ready' : '⚠️ ' + escHtml(status.mode === 'simulation' ? 'Simulation Mode' : 'Chromium Missing')}
       </span>
-      ${!status.ready ? `<span style="font-size:10px;color:var(--text-3);font-family:monospace">${escHtml(status.install_cmd || 'pip install playwright && python -m playwright install chromium')}</span>` : ''}
+      ${!status.ready ? `<span style="font-size:10px;color:var(--text-3);font-family:monospace">${escHtml(status.install_cmd || 'pip install playwright && python -m playwright install chromium')}</span> <button onclick="if(typeof installPlaywrightChromium === 'function') installPlaywrightChromium()" class="btn-3d btn-primary btn-sm" style="padding:3px 10px;font-size:11px">⚡ Auto-Install Playwright & Chromium</button>` : ''}
       <div style="margin-left:auto;display:flex;gap:6px">
         <button class="btn-sm" onclick="baLoadHistory()">📋 History</button>
         <button class="btn-sm" onclick="baListScreenshots()">🖼 Screenshots</button>
@@ -775,6 +775,23 @@ async function renderBrowserAgent() {
     </div>
   </div>`;
 }
+window.renderBrowserAgent = renderBrowserAgent;
+
+window.installPlaywrightChromium = async function() {
+  toast('⏳ Triggering automated Playwright & Chromium setup...', 'ok', 3000);
+  try {
+    const r = await fetch('/api/browser/setup/auto-install', {method: 'POST'});
+    const j = await r.json();
+    if (j.ok) {
+      gmAlert('✅ Playwright & Chromium Setup', `Installation initiated! Command running in background:\n\n<code style="display:block;background:var(--bg-0);padding:10px;border-radius:6px;margin-top:8px">${j.command || 'pip install playwright && python -m playwright install chromium'}</code>\n\nRefresh this pane in 30 seconds.`);
+      setTimeout(() => { if (typeof renderBrowserAgent === 'function') renderBrowserAgent(); }, 5000);
+    } else {
+      gmAlert('Setup notice', `To install manually in Terminal:\n\n<code style="display:block;background:var(--bg-0);padding:10px;border-radius:6px">${j.command || 'pip install playwright && python -m playwright install chromium'}</code>`);
+    }
+  } catch(e) {
+    gmAlert('Setup error', `Run in terminal:\n\npip install playwright && python -m playwright install chromium`);
+  }
+};
 
 let _baStepCount = 0;
 

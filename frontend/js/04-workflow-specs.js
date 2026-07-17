@@ -988,7 +988,9 @@ async function renderDocs() {
     </div>
   </div>`;
 
-  docsTab('quickstarts', pane.querySelector('.docs-tab.active'));
+  if (!window._docsPreventAutoTab) {
+    docsTab('quickstarts', pane.querySelector('.docs-tab.active'));
+  }
 }
 
 async function docsTab(tab, el) {
@@ -1037,9 +1039,9 @@ async function docsTab(tab, el) {
       <div style="font-size:13px;font-weight:700;color:var(--text-0);margin-bottom:12px">Frequently Asked Questions</div>
       ${(d.faq||[]).map((f, i)=>`
         <div class="faq-item">
-          <div class="faq-q" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block';this.querySelector('span').textContent=this.nextElementSibling.style.display==='block'?'▲':'▼'">
-            <span style="flex:1">${escHtml(f.q||'')}</span>
-            <span style="color:var(--text-3);font-size:10px">▼</span>
+          <div class="faq-q" onclick="const a=this.nextElementSibling; const arr=this.querySelector('.faq-arrow') || this.querySelectorAll('span')[1]; const open=a.style.display==='block'; a.style.display=open?'none':'block'; if(arr) arr.textContent=open?'▼':'▲';">
+            <span style="flex:1;font-weight:600">${escHtml(f.q||'')}</span>
+            <span class="faq-arrow" style="color:var(--text-3);font-size:11px">▼</span>
           </div>
           <div class="faq-a">${escHtml(f.a||'')}</div>
         </div>`).join('')}`;
@@ -1070,7 +1072,7 @@ async function docsTab(tab, el) {
           {icon:'🧮',title:'Agent Evals & Red Teaming',dur:'6:30',level:'Advanced'},
           {icon:'📚',title:'Building a RAG Pipeline',dur:'7:00',level:'Advanced'},
         ].map(v=>`
-          <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .12s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div onclick="if(typeof docsShowVideoGuide==='function') docsShowVideoGuide(${JSON.stringify(v).replace(/"/g, '&quot;')})" style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .12s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
             <div style="background:var(--bg-3);height:120px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px">
               <span style="font-size:40px">${v.icon}</span>
               <div style="background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 12px;font-size:11px;color:#fff;display:flex;align-items:center;gap:5px">
@@ -1124,16 +1126,18 @@ function docsSearchResultClick(result) {
 }
 
 async function docsShowQuickStart(qsId) {
+  window._docsPreventAutoTab = true;
+  if (typeof nav === 'function') nav('docs');
   const content = document.getElementById('docs-content');
   if (!content) return;
-  content.innerHTML = '<div style="color:var(--text-2);padding:20px">Loading…</div>';
+  content.innerHTML = '<div style="color:var(--text-2);padding:20px">Loading quick start steps…</div>';
   try {
     const r = await fetch(`/api/docs/quick-starts/${encodeURIComponent(qsId)}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const qs = await r.json();
     content.innerHTML=`
-      <button onclick="docsTab('quickstarts',document.querySelector('#pane-docs .docs-tab'))" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;margin-bottom:16px">← Back to Quick Starts</button>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <button onclick="window._docsPreventAutoTab=false;docsTab('quickstarts',document.querySelector('#pane-docs .docs-tab'))" class="btn-sm btn-3d" style="background:var(--bg-3);color:var(--text-1);border:1px solid var(--border);cursor:pointer;margin-bottom:16px">← Back to Quick Starts</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <span style="font-size:32px">${escHtml(qs.icon||'📄')}</span>
         <div>
           <h2 style="margin:0;color:var(--text-0)">${escHtml(qs.title||'')}</h2>
@@ -1141,25 +1145,27 @@ async function docsShowQuickStart(qsId) {
         </div>
       </div>
       ${(qs.steps||[]).map(s =>`
-        <div style="display:flex;gap:14px;margin-bottom:16px">
-          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;margin-top:4px">${s.step}</div>
-          <div>
+        <div style="display:flex;gap:14px;margin-bottom:16px;background:var(--bg-2);padding:14px;border-radius:12px;border:1px solid var(--border)">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px">${s.step}</div>
+          <div style="flex:1">
             <div style="font-weight:700;color:var(--text-0);font-size:14px;margin-bottom:4px">${escHtml(s.title||'')}</div>
             <div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:6px">${escHtml(s.desc||'')}</div>
-            ${s.tip?`<div style="font-size:11px;background:rgba(91,138,248,.1);border:1px solid var(--accent)33;border-radius:6px;padding:6px 10px;color:var(--accent)">💡 ${escHtml(s.tip)}</div>`:''}
+            ${s.tip?`<div style="font-size:11px;background:rgba(91,138,248,.1);border:1px solid var(--accent)33;border-radius:6px;padding:6px 10px;color:var(--accent)">💡 Pro Tip: ${escHtml(s.tip)}</div>`:''}
           </div>
         </div>`).join('')}
-      ${(qs.related||[]).length?`<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px"><div style="font-size:12px;font-weight:700;color:var(--text-3);margin-bottom:8px">RELATED GUIDES</div><div style="display:flex;gap:8px">${(qs.related||[]).map(rel=>`<button onclick="docsShowQuickStart(${JSON.stringify(rel)})" class="btn-sm">${escHtml(rel.replace('qs_','').replace(/_/g,' '))}</button>`).join('')}</div></div>`:''}`;
+      ${(qs.related||[]).length?`<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px"><div style="font-size:12px;font-weight:700;color:var(--text-3);margin-bottom:8px">RELATED GUIDES</div><div style="display:flex;gap:8px">${(qs.related||[]).map(rel=>`<button onclick="docsShowQuickStart(${JSON.stringify(rel)})" class="btn-sm btn-3d">${escHtml(rel.replace('qs_','').replace(/_/g,' '))}</button>`).join('')}</div></div>`:''}`;
   } catch(ex) {
-    content.innerHTML = `<div style="color:var(--danger);padding:20px">${escHtml(ex?.message||String(ex))}<br><button class="btn-sm" style="margin-top:8px" onclick="docsShowQuickStart(${JSON.stringify(qsId)})">Retry</button></div>`;
+    content.innerHTML = `<div style="color:var(--danger);padding:20px">${escHtml(ex?.message||String(ex))}<br><button class="btn-sm btn-3d" style="margin-top:8px" onclick="docsShowQuickStart(${JSON.stringify(qsId)})">Retry</button></div>`;
   }
 }
 
 function docsShowFeature(feature) {
+  window._docsPreventAutoTab = true;
+  if (typeof nav === 'function') nav('docs');
   const content = document.getElementById('docs-content');
   if (!content) return;
   content.innerHTML=`
-    <button onclick="docsTab('features',document.querySelectorAll('#pane-docs .docs-tab')[1])" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;margin-bottom:16px">← Back to Features</button>
+    <button onclick="window._docsPreventAutoTab=false;docsTab('features',document.querySelectorAll('#pane-docs .docs-tab')[1])" class="btn-sm btn-3d" style="background:var(--bg-3);color:var(--text-1);border:1px solid var(--border);cursor:pointer;margin-bottom:16px">← Back to Features</button>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <span style="font-size:36px">${feature.icon||'🔧'}</span>
       <div>
@@ -1175,33 +1181,109 @@ function docsShowFeature(feature) {
         <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:8px">💡 PRO TIPS</div>
         ${(feature.tips||[]).map((t) =>`<div style="font-size:12px;color:var(--text-2);padding:3px 0;border-bottom:1px solid var(--border)">→ ${escHtml(t)}</div>`).join('')}
       </div>`:''}
-    <button onclick="nav('${(feature.id||'chat')}')" class="btn">Open ${escHtml(feature.title||'')} →</button>`;
+    <button onclick="nav('${(feature.id||'chat')}')" class="btn btn-primary btn-3d">Open ${escHtml(feature.title||'')} →</button>`;
 }
+window.openFeatureDoc = function(doc) {
+  window._docsPreventAutoTab = true;
+  if (typeof nav === 'function') nav('docs');
+  setTimeout(() => { if (typeof docsShowFeature === 'function') docsShowFeature(doc); }, 30);
+};
+window.docsShowQuickStart = docsShowQuickStart;
+window.docsShowFeature = docsShowFeature;
+window.docsTab = docsTab;
+window.docsSearch = docsSearch;
+window.docsSearchResultClick = docsSearchResultClick;
+
+window.docsShowVideoGuide = function(video) {
+  const content = document.getElementById('docs-content');
+  if (!content) return;
+  const vidId = 'vid-frame-' + Math.random().toString(36).slice(2, 8);
+  content.innerHTML = `
+    <button onclick="docsTab('videos',document.querySelector('#pane-docs .docs-tab:nth-child(4)'))" class="btn-sm btn-3d" style="background:var(--bg-3);color:var(--text-1);border:1px solid var(--border);cursor:pointer;margin-bottom:16px">← Back to Video Guides</button>
+    <div style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:16px;padding:24px;max-width:800px;margin:0 auto;box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <span style="font-size:38px">${escHtml(video.icon||'🎬')}</span>
+        <div>
+          <h3 style="margin:0;font-size:20px;color:var(--text-0)">${escHtml(video.title)}</h3>
+          <span class="tech-badge" style="color:var(--accent);border-color:var(--accent);margin-top:4px;display:inline-block">⏱ ${escHtml(video.dur)} · ${escHtml(video.level)} Walkthrough</span>
+        </div>
+      </div>
+      
+      <div id="${vidId}" style="background:#04060e;border-radius:12px;aspect-ratio:16/9;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;position:relative;overflow:hidden;margin-bottom:20px;border:1px solid var(--border-hi);box-shadow:inset 0 0 40px rgba(0,0,0,0.8)">
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 50%, rgba(56,189,248,0.15), rgba(0,0,0,0.85));pointer-events:none"></div>
+        <div id="${vidId}-play-btn" style="font-size:54px;z-index:2;cursor:pointer;transition:transform 0.15s" onclick="startInteractiveVideoWalkthrough('${vidId}', ${JSON.stringify(video.title).replace(/"/g, '&quot;')})">▶️</div>
+        <div id="${vidId}-label" style="font-size:14px;font-weight:700;margin-top:12px;z-index:2;color:#e2e8f0">Click to Play Interactive Walkthrough (${escHtml(video.title)})</div>
+        <div id="${vidId}-sim-box" style="display:none;z-index:2;width:90%;height:75%;background:rgba(8,12,28,0.9);border:1px solid rgba(56,189,248,0.3);border-radius:8px;padding:16px;font-family:monospace;font-size:12px;color:#38bdf8;overflow-y:auto;text-align:left"></div>
+        <div style="position:absolute;bottom:12px;left:14px;right:14px;display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;z-index:2">
+          <span id="${vidId}-progress">0:00 / ${escHtml(video.dur)}</span>
+          <span>HD 1080p · Strick Tech Studio</span>
+        </div>
+      </div>
+
+      <h4 style="margin:0 0 10px;font-size:15px;color:var(--text-0)">Video Script & Key Takeaways</h4>
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:16px;font-size:13px;color:var(--text-2);line-height:1.7">
+        <div style="margin-bottom:8px"><strong>0:00 - Introduction:</strong> Welcome to ${escHtml(video.title)}. In this quick guide, we cover step-by-step best practices.</div>
+        <div style="margin-bottom:8px"><strong>1:10 - Core Concepts:</strong> How to configure your workspace, attach context files, and trigger the right specialist agent.</div>
+        <div><strong>2:00 - Pro Tip:</strong> Use <code style="color:var(--accent)">⌘K</code> anytime to jump directly to this component or run automated actions.</div>
+      </div>
+    </div>
+  `;
+};
+
+window.startInteractiveVideoWalkthrough = function(vidId, title) {
+  const playBtn = document.getElementById(vidId + '-play-btn');
+  const label   = document.getElementById(vidId + '-label');
+  const simBox  = document.getElementById(vidId + '-sim-box');
+  const prog    = document.getElementById(vidId + '-progress');
+  if (playBtn) playBtn.style.display = 'none';
+  if (label)   label.style.display   = 'none';
+  if (simBox) {
+    simBox.style.display = 'block';
+    const steps = [
+      `▶ [00:01] Launching walkthrough: ${title}...`,
+      `▶ [00:05] Connecting to local-first Agentic OS engine (port 8787)...`,
+      `▶ [00:12] Synchronizing 4-Tier information hierarchy & memory Galaxy...`,
+      `▶ [00:25] Spawning Swarm Fan-out: 7 specialist neural agents online...`,
+      `▶ [00:42] Executing live code preview inside Studio workstation...`,
+      `▶ [01:10] Running E2E verification suite... 100% green passing checks ✅`,
+      `▶ [01:30] Walkthrough complete! Press Esc or ← Back to explore more.`
+    ];
+    let i = 0;
+    simBox.innerHTML = `<div style="color:#7dd3fc;font-weight:700;margin-bottom:8px">🎬 STRICK TECH INTERACTIVE PLAYER</div>`;
+    const interval = setInterval(() => {
+      if (i < steps.length && document.getElementById(vidId + '-sim-box')) {
+        simBox.innerHTML += `<div style="margin-top:6px;animation:fadeIn 0.2s">${steps[i]}</div>`;
+        simBox.scrollTop = simBox.scrollHeight;
+        if (prog) prog.textContent = `0:${(i+1)*15 < 10 ? '0' : ''}${(i+1)*15} / 2:30`;
+        i++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 1200);
+  }
+};
 
 // Contextual help button — added to every pane's header on navigation
 function addContextualHelp(paneId, container) {
-  // Idempotency guard: only one ? button per container
-  if (container.querySelector('.ctx-help-btn')) return;
+  if (!container || container.querySelector('.ctx-help-btn')) return;
 
+  const header = container.querySelector('.section-head > div:first-child, .chat-header, h2, .page-header > div:first-child') || container.querySelector('.section-head, h2') || container;
   const btn = document.createElement('button');
-  btn.className = 'ctx-help-btn';
-  btn.style.cssText = 'position:absolute;top:8px;right:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text-3);transition:all .12s;z-index:10';
+  btn.className = 'ctx-help-btn btn-3d';
+  btn.style.cssText = 'position:relative;display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--bg-3);border:1px solid var(--border);align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:var(--text-3);transition:all .12s;z-index:10;margin-left:8px;vertical-align:middle;flex-shrink:0';
   btn.innerHTML = '?';
   btn.title = 'Help for this feature';
 
   btn.onclick = async () => {
-    // FIX 2: try/catch prevents uncaught crash on network/parse error
     try {
       const r = await fetch(`/api/docs/contextual/${encodeURIComponent(paneId)}`);
       const d = await r.json();
       const doc = d.doc;
       if (doc) {
-        // FIX 3+4: stable overlay id so close buttons reliably target it
         document.getElementById('ctx-help-overlay')?.remove();
         const overlay = document.createElement('div');
         overlay.id = 'ctx-help-overlay';
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:flex-start;justify-content:flex-end;padding:60px 16px 16px';
-        // FIX 5: escHtml on all rendered doc fields to prevent XSS
         overlay.innerHTML = `
           <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:320px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.4)">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -1210,19 +1292,16 @@ function addContextualHelp(paneId, container) {
             </div>
             <p style="font-size:12px;color:var(--text-2);line-height:1.6;margin:0 0 12px">${escHtml(doc.summary||'')}</p>
             ${doc.tips?.length?`<div style="font-size:11px;color:var(--text-3)">\u{1F4A1} ${escHtml(doc.tips[0])}</div>`:''}
-            <button onclick="document.getElementById('ctx-help-overlay')?.remove();nav('docs');docsShowFeature(${JSON.stringify(doc)})" class="btn-sm" style="margin-top:12px;width:100%">Read Full Docs \u2192</button>
+            <button onclick="document.getElementById('ctx-help-overlay')?.remove();if(typeof openFeatureDoc === 'function') openFeatureDoc(${JSON.stringify(doc).replace(/"/g, '&quot;')}); else { nav('docs'); docsShowFeature(${JSON.stringify(doc).replace(/"/g, '&quot;')}); }" class="btn-sm btn-3d" style="margin-top:12px;width:100%">Read Full Docs \u2192</button>
           </div>`;
-        // click-outside-to-close using stable id
         overlay.addEventListener('click', e => {
           if (e.target === overlay) document.getElementById('ctx-help-overlay')?.remove();
         });
         document.body.appendChild(overlay);
       } else {
-        // No feature doc for this pane — open docs center
         nav('docs');
       }
     } catch(e) {
-      // FIX 2: network/JSON error — fall back to docs center gracefully
       console.warn('Contextual help fetch failed:', e);
       nav('docs');
     }
@@ -1230,8 +1309,7 @@ function addContextualHelp(paneId, container) {
 
   btn.onmouseover = () => { btn.style.borderColor='var(--accent)'; btn.style.color='var(--accent)'; };
   btn.onmouseout  = () => { btn.style.borderColor='var(--border)'; btn.style.color='var(--text-3)'; };
-  container.style.position = 'relative';
-  container.appendChild(btn);
+  header.appendChild(btn);
 }
 
 // FIX 1 (CRITICAL): Wire ? button into every pane navigation.

@@ -130,6 +130,18 @@ def _missing_steps(rust_ok: bool, tauri_ok: bool) -> list[str]:
     return steps
 
 
+@router.post('/setup/auto-install')
+async def auto_install_tauri_prereqs():
+    """Trigger background installation of Rust and Tauri CLI."""
+    import subprocess
+    cmd = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source $HOME/.cargo/env && cargo install tauri-cli --version '^2'"
+    try:
+        subprocess.Popen(cmd, shell=True, executable='/bin/bash')
+        return {'ok': True, 'command': cmd, 'message': 'Rust and Tauri CLI installation spawned in background'}
+    except Exception as e:
+        return {'ok': False, 'command': cmd, 'error': str(e)}
+
+
 @router.post('/build')
 async def start_build(target: str = 'all'):
     """Start a Tauri build in the background (SSE stream)."""
