@@ -830,12 +830,16 @@ async function obNext() {
 // Both blocks share global scope; re-declaring 'const' across script blocks
 // throws a SyntaxError that would crash this entire script block.
 const _TOUR_STEPS = [
-  {target:'#topbar',          title:'Top Bar',            desc:'Model switcher, voice button, collab, and quick settings all live here.',         position:'bottom'},
-  {target:'#sidebar',         title:'Sidebar Navigation', desc:'All your features are here. In Simple Mode only the essentials show. Toggle with ⌘\\.',position:'right'},
-  {target:'#pane-chat',       title:'Chat — Your AI Hub', desc:'Chat with any AI model. Switch agents, pick models, and the conversation is saved.',position:'center'},
-  {target:'.sidebar-add-agent',title:'Add Agent',         desc:'Create specialized AI agents — a Python expert, a writing coach, a research assistant.',position:'right'},
-  {target:'[data-nav="docs"]',  title:'Documentation',   desc:'Everything explained — quick-starts, video guides, FAQ, and keyboard shortcuts.',   position:'right'},
-  {target:'[data-nav="settings"]',title:'Settings',       desc:'API keys, theme, model defaults, and your license all live here.',                 position:'right'},
+  {target:'#topbar',          title:'Top Bar',            desc:'Model switcher, AI OPs Manual shortcut, and User Identity Hub live here.',         position:'bottom'},
+  {target:'#sidebar',         title:'Sidebar Navigation', desc:'All 60+ features are categorized across 5 folders. Toggle Simple vs Power mode anytime.',position:'right'},
+  {target:'#pane-chat',       title:'Chat — Your AI Hub', desc:'Single-model chat default or Swarm Fan-out. Switch agents, pick models, and save prompts.',position:'center', group:'core'},
+  {target:'[onclick="toggleSidebarGroup(\'core\')"]', title:'Core Workstation', desc:'Essential daily tools: Chat, Studio live code editor, Swarm fan-out, and your 3D Memory Galaxy.', position:'right', group:'core'},
+  {target:'[onclick="toggleSidebarGroup(\'build\')"]', title:'Build & AI Engine', desc:'Full developer engine room: AST Code Graph, Specialist Skills Hub, and LoRA Fine-Tuning workstation.', position:'right', group:'build'},
+  {target:'[onclick="toggleSidebarGroup(\'ship\')"]', title:'Ship & Governance', desc:'One-click deployment to Vercel/Netlify, GitHub PR automation, and executive Control Tower.', position:'right', group:'ship'},
+  {target:'[onclick="toggleSidebarGroup(\'tools\')"]', title:'Agentic Orchestration', desc:'Spec Builder, BugBot automated repair, real-time CRDT Collaboration, and Marketplace packs.', position:'right', group:'tools'},
+  {target:'[onclick="toggleSidebarGroup(\'enterprise\')"]', title:'Enterprise Governance & Telemetry', desc:'Executive SLA Tower, HITL Approval Gates (<85% confidence interrupt), and Post-Quantum Lattice Cryptography.', position:'right', group:'enterprise'},
+  {target:'[data-nav="docs"]',  title:'Documentation & Video Guides',   desc:'Everything explained — interactive video walkthroughs, Quick Starts, FAQ, and keyboard shortcuts.',   position:'right', group:'enterprise'},
+  {target:'[data-nav="settings"]',title:'Settings & Open WebUI Hub',       desc:'Open WebUI 3-card connection hub (`OpenRouter`, `Ollama`, `Custom URL`), themes, and identity branding.', position:'right', group:'core'},
 ];
 
 let _tourStep = 0;
@@ -871,7 +875,10 @@ function showTourStep() {
     showToast('✅ Tour complete! Press ⌘K to search anything.');
     return;
   }
-  const step   = _TOUR_STEPS[_tourStep];
+  const step = _TOUR_STEPS[_tourStep];
+  if (step.group && typeof window.toggleSidebarGroup === 'function') {
+    window.toggleSidebarGroup(step.group, true);
+  }
   const target = document.querySelector(step.target);
 
   // Skip step if target element not found in DOM

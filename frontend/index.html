@@ -1539,32 +1539,40 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         <!-- ENTERPRISE GOVERNANCE & TELEMETRY -->
         <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> ENTERPRISE GOVERNANCE & TELEMETRY <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
         <div class="sidebar-group-content" id="group-enterprise" data-tier="advanced" style="display:none">
+          <!-- Subgroup 1: SLA & Telemetry Tower -->
+          <div style="font-size:9.5px;color:var(--text-3);padding:8px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85">📊 SLA & Telemetry Tower</div>
           <div class="nav-item" data-nav="audit-log" data-tier="advanced" onclick="nav('audit-log')"><span class="icon">🔏</span><span class="label">Audit Log</span></div>
           <div class="nav-item" data-nav="leaderboard" data-tier="advanced" onclick="nav('leaderboard')"><span class="icon">★</span><span class="label">Leaderboard</span></div>
           <div class="nav-item" data-nav="agent-monitor" data-tier="advanced" onclick="nav('agent-monitor')"><span class="icon">◈</span><span class="label">Live Monitor</span></div>
           <div class="nav-item" data-nav="finops" data-tier="advanced" onclick="nav('finops')"><span class="icon">◇</span><span class="label">FinOps</span></div>
           <div class="nav-item" data-nav="eval-framework" data-tier="advanced" onclick="nav('eval-framework')"><span class="icon">⚗</span><span class="label">Eval Framework</span></div>
+          <div class="nav-item" data-nav="observability" data-tier="advanced" onclick="nav('observability')"><span class="icon">◎</span><span class="label">Observability</span></div>
+          <div class="nav-item" data-nav="evals" data-tier="advanced" onclick="nav('evals')"><span class="icon">⚗️</span><span class="label">Evals</span></div>
+          <div class="nav-item" data-nav="health" data-tier="advanced" onclick="nav('health')"><span class="icon">✚</span><span class="label">Health</span></div>
+          <div class="nav-item" data-nav="profiler" data-tier="advanced" onclick="nav('profiler')"><span class="icon">📈</span><span class="label">Profiler</span></div>
+
+          <!-- Subgroup 2: Security & PQC Vaults -->
+          <div style="font-size:9.5px;color:var(--text-3);padding:10px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85;border-top:1px solid var(--border)">🛡️ Security & PQC Vaults</div>
+          <div class="nav-item" data-nav="pqc" data-tier="advanced" onclick="nav('pqc')"><span class="icon">🛡️</span><span class="label">PQC Vault</span></div>
+          <div class="nav-item" data-nav="obsidian" data-tier="advanced" onclick="nav('obsidian')"><span class="icon">◈</span><span class="label">Obsidian</span></div>
+          <div class="nav-item" data-nav="webhooks" data-tier="advanced" onclick="nav('webhooks')"><span class="icon">⇶</span><span class="label">Webhooks</span></div>
+          <div class="nav-item" data-nav="integrations" data-tier="advanced" onclick="nav('integrations')"><span class="icon">⇋</span><span class="label">Integrations</span></div>
+
+          <!-- Subgroup 3: Advanced Engineering Index -->
+          <div style="font-size:9.5px;color:var(--text-3);padding:10px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85;border-top:1px solid var(--border)">🕸️ Advanced Engineering Index</div>
           <div class="nav-item" data-nav="docs" data-tier="advanced" onclick="nav('docs')"><span class="icon">☷</span><span class="label">Docs</span></div>
           <div class="nav-item" data-nav="websearch" data-tier="advanced" onclick="nav('websearch')"><span class="icon">◎</span><span class="label">Web Search</span></div>
           <div class="nav-item" data-nav="browser" data-tier="advanced" onclick="nav('browser')"><span class="icon">❖</span><span class="label">Browser Agent</span></div>
           <div class="nav-item" data-nav="knowledge-graph" data-tier="advanced" onclick="nav('knowledge-graph')"><span class="icon">🕸</span><span class="label">Knowledge Graph</span></div>
           <div class="nav-item" data-nav="rag" data-tier="advanced" onclick="nav('rag')"><span class="icon">▤</span><span class="label">RAG</span></div>
           <div class="nav-item" data-nav="hooks" data-tier="advanced" onclick="nav('hooks')"><span class="icon">⚡</span><span class="label">Hooks</span></div>
-          <div class="nav-item" data-nav="codeindex" data-tier="advanced" onclick="nav('codeindex')"><span class="icon">🕸</span><span class="label">Code Graph</span></div>
-          <div class="nav-item" data-nav="observability" data-tier="advanced" onclick="nav('observability')"><span class="icon">◎</span><span class="label">Observability</span></div>
-          <div class="nav-item" data-nav="evals" data-tier="advanced" onclick="nav('evals')"><span class="icon">⚗</span><span class="label">Evals</span></div>
-          <div class="nav-item" data-nav="health" data-tier="advanced" onclick="nav('health')"><span class="icon">✚</span><span class="label">Health</span></div>
-          <div class="nav-item" data-nav="integrations" data-tier="advanced" onclick="nav('integrations')"><span class="icon">⇋</span><span class="label">Integrations</span></div>
+          <div class="nav-item" data-nav="codeindex" data-tier="advanced" onclick="nav('codeindex')"><span class="icon">🕸️</span><span class="label">Code Graph</span></div>
           <div class="nav-item" data-nav="imagegen" data-tier="advanced" onclick="nav('imagegen')"><span class="icon">❖</span><span class="label">Image Gen</span></div>
           <div class="nav-item" data-nav="prompts" data-tier="advanced" onclick="nav('prompts')"><span class="icon">✦</span><span class="label">Prompts</span></div>
           <div class="nav-item" data-nav="codesearch" data-tier="advanced" onclick="nav('codesearch')"><span class="icon">⌕</span><span class="label">Code Search</span></div>
-          <div class="nav-item" data-nav="obsidian" data-tier="advanced" onclick="nav('obsidian')"><span class="icon">◈</span><span class="label">Obsidian</span></div>
           <div class="nav-item" data-nav="pluginsdk" data-tier="advanced" onclick="nav('pluginsdk')"><span class="icon">⌥</span><span class="label">Plugin SDK</span></div>
           <div class="nav-item" data-nav="multitab" data-tier="advanced" onclick="nav('multitab')"><span class="icon">◫</span><span class="label">Multi-Preview</span></div>
-          <div class="nav-item" data-nav="profiler" data-tier="advanced" onclick="nav('profiler')"><span class="icon">📈</span><span class="label">Profiler</span></div>
-          <div class="nav-item" data-nav="webhooks" data-tier="advanced" onclick="nav('webhooks')"><span class="icon">⇶</span><span class="label">Webhooks</span></div>
           <div class="nav-item" data-nav="testgen" data-tier="advanced" onclick="nav('testgen')"><span class="icon">⚗</span><span class="label">Test Gen</span></div>
-          <div class="nav-item" data-nav="pqc" data-tier="advanced" onclick="nav('pqc')"><span class="icon">🛡</span><span class="label">PQC Vault</span></div>
         </div>
       </div>
 
@@ -3266,18 +3274,18 @@ document.addEventListener('keydown', function(e) {
     if (existing) return; // Don't double-show
     
     var errorDiv = document.createElement('div');
-    errorDiv.className = 'pane-error-state';
-    errorDiv.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px;text-align:center;flex:1';
+    errorDiv.className = 'pane-error-state card-elevated surface-z2';
+    errorDiv.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px;text-align:center;flex:1;margin:20px;border-radius:18px';
     errorDiv.innerHTML = 
-      '<div style="font-size:40px;opacity:.4;margin-bottom:16px">⚠️</div>' +
-      '<div style="font-size:16px;font-weight:600;color:var(--text-1);margin-bottom:8px">Something went wrong</div>' +
-      '<div style="font-size:13px;color:var(--text-2);max-width:400px;line-height:1.6;margin-bottom:16px">' +
-        'The <strong>' + paneId + '</strong> pane encountered an error while loading. ' +
-        'This might be a temporary issue.' +
+      '<div class="neural-orb-3d" style="width:50px;height:50px;margin:0 auto 16px;filter:hue-rotate(140deg)"></div>' +
+      '<div style="font-size:18px;font-weight:800;color:var(--text-0);margin-bottom:8px">Workstation Panel Notice</div>' +
+      '<div style="font-size:13px;color:var(--text-2);max-width:440px;line-height:1.6;margin-bottom:20px">' +
+        'The <strong>' + paneId + '</strong> workstation encountered a rendering check while loading (' + (error || 'status refresh') + '). ' +
+        'You can retry initialization or return to active chat.' +
       '</div>' +
-      '<div style="display:flex;gap:8px">' +
-        '<button class="btn btn-primary" onclick="retryPane(\'' + paneId + '\')">↻ Retry</button>' +
-        '<button class="btn btn-ghost" onclick="nav(\'chat\')">← Back to Chat</button>' +
+      '<div style="display:flex;gap:10px">' +
+        '<button class="btn-3d btn-primary btn-sm" onclick="retryPane(\'' + paneId + '\')" style="padding:8px 18px">↻ Retry Workstation</button>' +
+        '<button class="btn-3d btn-ghost btn-sm" onclick="nav(\'chat\')" style="padding:8px 18px">← Back to Chat</button>' +
       '</div>';
     pane.appendChild(errorDiv);
   };
@@ -3294,13 +3302,15 @@ document.addEventListener('keydown', function(e) {
     var pane = document.getElementById('pane-' + paneId);
     if (!pane) return;
     var target = pane.querySelector('.page-content') || pane;
+    var existing = target.querySelector('.empty-state');
+    if (existing) return;
     var emptyDiv = document.createElement('div');
-    emptyDiv.className = 'empty-state';
+    emptyDiv.className = 'empty-state surface-z1';
     emptyDiv.innerHTML = 
-      '<div class="empty-state__icon">' + (config.icon || '📭') + '</div>' +
-      '<div class="empty-state__title">' + (config.title || 'Nothing here yet') + '</div>' +
-      '<div class="empty-state__body">' + (config.body || 'Get started by creating your first item.') + '</div>' +
-      (config.action ? '<div class="empty-state__actions"><button class="btn btn-primary" onclick="' + config.action + '">' + (config.actionLabel || 'Get Started') + '</button></div>' : '');
+      (config.icon ? '<div class="empty-state__icon">' + config.icon + '</div>' : '<div class="neural-orb-3d" style="width:48px;height:48px;margin:0 auto 16px"></div>') +
+      '<div class="empty-state__title">' + (config.title || 'Workstation Ready') + '</div>' +
+      '<div class="empty-state__body">' + (config.body || 'This specialist workstation is armed and waiting for your first task.') + '</div>' +
+      (config.action ? '<div class="empty-state__actions"><button class="btn-3d btn-primary" onclick="' + config.action + '">' + (config.actionLabel || '⚡ Launch Task') + '</button></div>' : '');
     target.appendChild(emptyDiv);
   };
 

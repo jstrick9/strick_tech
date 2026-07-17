@@ -28,6 +28,12 @@
   --glass-bg:rgba(255,255,255,0.85);
   --glass-blur:blur(24px) saturate(180%);
 
+  /* Multi-Layered Surface Stratification (`Design System 2.0`) */
+  --surface-z1:rgba(15,23,42,0.02);
+  --surface-z2:rgba(15,23,42,0.04);
+  --surface-z3:rgba(15,23,42,0.07);
+  --surface-z4:rgba(15,23,42,0.12);
+
   /* Text — 4-step scale */
   --text-0:#0f172a;
   --text-1:#334155;
@@ -60,6 +66,12 @@
   --border-focus:rgba(56,189,248,.7);
   --glass-bg:rgba(11,15,34,.76);
   --glass-blur:blur(24px) saturate(180%);
+
+  /* Multi-Layered Surface Stratification (`Design System 2.0`) */
+  --surface-z1:rgba(255,255,255,0.02);
+  --surface-z2:rgba(255,255,255,0.04);
+  --surface-z3:rgba(255,255,255,0.07);
+  --surface-z4:rgba(255,255,255,0.12);
 
   /* Text — 4-step scale */
   --text-0:#f8fafc;
@@ -943,11 +955,18 @@
 .skeleton-text{height:14px;margin-bottom:8px}
 .skeleton-title{height:22px;width:60%;margin-bottom:12px}
 
-/* ── Empty state ─────────────────────────────────────────── */
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:var(--space-8) var(--space-6);min-height:260px}
-.empty-state__icon{font-size:40px;opacity:.3;margin-bottom:var(--space-4)}
-.empty-state__title{font-size:var(--text-lg);font-weight:var(--fw-bold);color:var(--text-1);margin-bottom:var(--space-2)}
-.empty-state__body{font-size:var(--text-sm);color:var(--text-2);max-width:320px;line-height:1.65;margin-bottom:var(--space-5)}
+/* ── Empty state & Surface Stratification (`Design System 2.0`) ─────────── */
+.surface-z1 { background: var(--surface-z1); border: 1px solid var(--border); }
+.surface-z2 { background: var(--surface-z2); border: 1px solid var(--border-hi); }
+.surface-z3 { background: var(--surface-z3); border: 1px solid var(--border-hi); box-shadow: var(--shadow-sm); }
+.surface-z4 { background: var(--surface-z4); border: 1px solid var(--border-focus); box-shadow: var(--shadow); }
+.card-elevated { background: var(--bg-1); border: 1px solid var(--border-hi); border-radius: var(--radius-lg, 16px); padding: var(--space-6); transition: all 0.15s ease; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+.card-elevated:hover { border-color: var(--accent); box-shadow: 0 12px 32px rgba(0,0,0,0.25); transform: translateY(-2px); }
+
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:var(--space-8) var(--space-6);min-height:280px;background:var(--surface-z1);border:1px dashed var(--border-hi);border-radius:18px;margin:16px}
+.empty-state__icon{font-size:48px;margin-bottom:var(--space-4);filter:drop-shadow(0 0 12px var(--accent-glow))}
+.empty-state__title{font-size:var(--text-lg);font-weight:var(--fw-heavy);color:var(--text-0);margin-bottom:var(--space-2)}
+.empty-state__body{font-size:var(--text-sm);color:var(--text-2);max-width:380px;line-height:1.65;margin-bottom:var(--space-5)}
 .empty-state__actions{display:flex;gap:var(--space-2);flex-wrap:wrap;justify-content:center}
 
 /* ── Badge system ────────────────────────────────────────── */
