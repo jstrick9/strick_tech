@@ -53,6 +53,43 @@ window.toggleSidebar = function() {
   try { localStorage.setItem('agentic_os_sidebar_collapsed', isCollapsed ? 'true' : 'false'); } catch(e) {}
 };
 
+window.toggleSidebarGroup = function(groupId, forceOpen) {
+  const content = document.getElementById('group-' + groupId);
+  const arrow = document.getElementById('arrow-' + groupId);
+  if (!content) return;
+  
+  let isOpen;
+  if (typeof forceOpen === 'boolean') {
+    isOpen = forceOpen;
+  } else {
+    isOpen = content.style.display === 'none';
+  }
+  
+  content.style.display = isOpen ? '' : 'none';
+  if (arrow) arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+  
+  try { localStorage.setItem('agentic_os_group_' + groupId + '_open', isOpen ? 'true' : 'false'); } catch(e) {}
+};
+
+window.initSidebarGroups = function() {
+  ['core', 'build', 'ship', 'tools', 'enterprise'].forEach(gid => {
+    const saved = localStorage.getItem('agentic_os_group_' + gid + '_open');
+    const isOpen = saved === 'true';
+    const content = document.getElementById('group-' + gid);
+    const arrow = document.getElementById('arrow-' + gid);
+    if (content) content.style.display = isOpen ? '' : 'none';
+    if (arrow) arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+  });
+};
+
+window.PANE_TO_GROUP = {
+  'chat':'core', 'studio':'core', 'templates':'core', 'swarm':'core', 'galaxy':'core', 'hierarchy':'core', 'kanban':'core', 'settings':'core',
+  'builder':'build', 'composer':'build', 'pipeline':'build', 'skills':'build', 'loops':'build', 'mcp':'build', 'fusion':'build', 'arena':'build', 'plugins':'build', 'terminal':'build', 'secrets':'build',
+  'github':'ship', 'deploy':'ship', 'dbstudio':'ship', 'dashboard':'ship', 'system':'ship', 'workspaces':'ship', 'control':'ship', 'supervisor':'ship', 'goals':'ship',
+  'workflow':'tools', 'specs':'tools', 'steering':'tools', 'bugbot':'tools', 'gitai':'tools', 'marketplace':'tools', 'replay':'tools', 'collabedit':'tools', 'ambient':'tools', 'hitl':'tools', 'connectors':'tools', 'mcp-gateway':'tools', 'a2a':'tools', 'agent-identity':'tools',
+  'audit-log':'enterprise', 'leaderboard':'enterprise', 'agent-monitor':'enterprise', 'finops':'enterprise', 'eval-framework':'enterprise', 'docs':'enterprise', 'websearch':'enterprise', 'browser':'enterprise', 'knowledge-graph':'enterprise', 'rag':'enterprise', 'hooks':'enterprise', 'codeindex':'enterprise', 'observability':'enterprise', 'evals':'enterprise', 'health':'enterprise', 'integrations':'enterprise', 'imagegen':'enterprise', 'prompts':'enterprise', 'codesearch':'enterprise', 'obsidian':'enterprise', 'pluginsdk':'enterprise', 'multitab':'enterprise', 'profiler':'enterprise', 'webhooks':'enterprise', 'testgen':'enterprise', 'pqc':'enterprise'
+};
+
 function setupSidebarResizer() {
   const resizer = document.getElementById('sidebar-resizer');
   const sb = document.getElementById('sidebar');
@@ -187,6 +224,11 @@ window.nav = function(pane) {
   
   const navEl = document.querySelector(`[data-nav="${pane}"]`);
   if (navEl) navEl.classList.add('active');
+
+  const gid = window.PANE_TO_GROUP?.[pane];
+  if (gid && typeof window.toggleSidebarGroup === 'function') {
+    window.toggleSidebarGroup(gid, true);
+  }
 
   const renderer = window.MASTER_PANE_REGISTRY[pane];
   if (renderer) {
@@ -3842,6 +3884,7 @@ Object.entries(wrappedRenders).forEach(([key, fn]) => {
     document.querySelectorAll('.swarm-card,.plugin-card,.template-card').forEach(el => {
       el.classList.add('lift');
     });
+    try { if (typeof initSidebarGroups === 'function') initSidebarGroups(); } catch(e) {}
     try { if (typeof setupSidebarResizer === 'function') setupSidebarResizer(); } catch(e) {}
     try { if (typeof setupSettingsWorkstation === 'function') setupSettingsWorkstation(); } catch(e) {}
     try { if (typeof setupDragAndDrop === 'function') setupDragAndDrop(); } catch(e) {}

@@ -125,3 +125,20 @@ class TestNavigationAndSettingsIntegrity:
             text = hitl_py.read_text(encoding="utf-8")
             matches = competitor_pattern.findall(text)
             assert not matches, f"Found forbidden competitor references {matches} in hitl.py"
+
+    def test_sidebar_categorized_group_folders_collapsable(self, html_soup, app_core_js):
+        """Verify that the 5 categorized group folders in the sidebar are collapsable and expandable with default state = collapsable."""
+        groups = ["core", "build", "ship", "tools", "enterprise"]
+        for g in groups:
+            content = html_soup.find(id=f"group-{g}")
+            assert content is not None, f"Sidebar group content container #group-{g} must exist in index.html"
+            style_str = content.get("style", "")
+            assert "display:none" in style_str or "display: none" in style_str, (
+                f"Sidebar group #group-{g} must start collapsed by default (display: none)"
+            )
+            arrow = html_soup.find(id=f"arrow-{g}")
+            assert arrow is not None, f"Group arrow #arrow-{g} must exist in index.html"
+            assert arrow.text.strip() == "▶", f"Default arrow state for #arrow-{g} must be collapsed '▶'"
+
+        assert "window.toggleSidebarGroup =" in app_core_js, "toggleSidebarGroup must be defined in 01-app-core.js"
+        assert "window.initSidebarGroups =" in app_core_js, "initSidebarGroups must be defined in 01-app-core.js"
