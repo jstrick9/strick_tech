@@ -241,3 +241,37 @@ class TestNavigationAndSettingsIntegrity:
         assert "window.hitlDecide = hitlDecide;" in sprint_features_js, "hitlDecide must be globally assigned"
         assert "window.renderFinOps = renderFinOps;" in sprint_features_js, "renderFinOps must be globally assigned"
         assert "window.finopsCreateCap = finopsCreateCap;" in sprint_features_js, "finopsCreateCap must be globally assigned"
+
+    def test_phase6_macos_desktop_packaging_sandbox_isolation_and_telemetry(self, client):
+        """Verify execution of Phase 6: CPython embedding, Application Support write redirect, and splash binding."""
+        stats_r = client.get("/api/system/stats")
+        assert stats_r.status_code == 200
+        assert stats_r.json()["version"] == "10.0.0"
+
+        health_r = client.get("/api/system/health")
+        assert health_r.status_code == 200
+        assert health_r.json()["version"] == "10.0.0"
+
+        tauri_conf = ROOT / "src-tauri" / "tauri.conf.json"
+        assert tauri_conf.exists(), "src-tauri/tauri.conf.json must exist"
+        conf_text = tauri_conf.read_text(encoding="utf-8")
+        assert '"productName": "Agentic OS Platform"' in conf_text and '"url": "splash.html"' in conf_text, (
+            "tauri.conf.json must bind productName to Agentic OS Platform and initial window to splash.html"
+        )
+
+        main_rs = ROOT / "src-tauri" / "src" / "main.rs"
+        assert main_rs.exists(), "src-tauri/src/main.rs must exist"
+        rs_text = main_rs.read_text(encoding="utf-8")
+        assert "Library/Application Support/com.stricktech.agenticos" in rs_text and "AGENTIC_OS_DATA_DIR" in rs_text, (
+            "main.rs must redirect write targets to Application Support to prevent write-protected bundle errors"
+        )
+        assert '"--no-browser"' in rs_text and '"TAURI_APP"' in rs_text, (
+            "main.rs must pass --no-browser and TAURI_APP to run.py to suppress external browser launching"
+        )
+
+        build_sh = ROOT / "build_macos_desktop.sh"
+        assert build_sh.exists(), "build_macos_desktop.sh must exist"
+        sh_text = build_sh.read_text(encoding="utf-8")
+        assert "--bundle-python" in sh_text and "cpython-3.12" in sh_text, (
+            "build_macos_desktop.sh must support --bundle-python and download standalone CPython 3.12 target"
+        )

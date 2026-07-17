@@ -25,6 +25,12 @@ ROOT = get_data_dir()
 
 
 # ── Health & metrics ───────────────────────────────────────────────────────────
+@router.get('/stats')
+def system_stats():
+    """Lightweight stats endpoint for docker healthcheck and quick polling."""
+    return {'ok': True, 'version': '10.0.0', 'timestamp': time.time()}
+
+
 @router.get('/health')
 def system_health():
     """Full system health snapshot."""
@@ -39,7 +45,7 @@ def system_health():
         'disk': disk,
         'database': db,
         'processes': procs,
-        'version': '6.0.0',
+        'version': '10.0.0',
     }
 
 
