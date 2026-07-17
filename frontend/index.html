@@ -2712,47 +2712,107 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               </div>
 
               <!-- CARD 1: OpenRouter Primary Cloud Gateway -->
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                  <label style="font-size:13px;font-weight:800;color:var(--text-0)">1. OpenRouter API Gateway (Primary Cloud)</label>
-                  <a href="https://openrouter.ai/keys" target="_blank" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:700">→ Get Free API Key ↗</a>
+              <div class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:20px">🌐</span>
+                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">1. OpenRouter API Gateway (Primary Cloud Engine)</label>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span id="or-key-status-badge" class="tech-badge" style="color:var(--text-2);border-color:var(--border)">NOT CONFIGURED</span>
+                    <a href="https://openrouter.ai/keys" target="_blank" class="btn-3d btn-ghost btn-sm" style="font-size:11px;color:var(--accent);text-decoration:none;font-weight:700">→ Get Free API Key ↗</a>
+                  </div>
                 </div>
-                <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Unlocks Claude 3.5 Sonnet, GPT-4o, Gemini 1.5 Pro, Grok 3, and Llama 3.3 70B via a single universal key.</p>
-                <div class="key-input-row" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-                  <input id="or-key-input" type="password" class="key-input" placeholder="Paste sk-or-v1-… key here" autocomplete="off" style="flex:1;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none">
-                  <button onclick="saveApiKey()" class="btn-primary btn-3d" style="padding:11px 24px;border-radius:10px">💾 Save & Sync Models</button>
+                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Unlocks over 140+ frontier and open models (`Claude 3.5 Sonnet`, `GPT-4o`, `Gemini 2.5 Pro`, `Grok 3`, `Llama 3.3 70B`) with a single universal API key. Free-tier models run at zero cost.</p>
+                <div class="key-input-row" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+                  <div style="position:relative;flex:1;min-width:240px;display:flex">
+                    <input id="or-key-input" type="password" class="key-input" placeholder="Paste sk-or-v1-… key here" autocomplete="off" style="width:100%;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 40px 11px 14px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none">
+                    <button onclick="toggleKeyVisibility('or-key-input')" type="button" title="Show/Hide Key" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px">👁️</button>
+                  </div>
+                  <button onclick="saveApiKey()" class="btn-primary btn-3d" style="padding:11px 24px;border-radius:10px">⚡ Save, Test & Sync Models</button>
+                  <button onclick="removeApiKey()" class="btn-ghost btn-3d" style="padding:11px 16px;border-radius:10px;color:var(--danger);border-color:var(--danger)" title="Clear API Key">🗑 Remove</button>
                 </div>
-                <div id="settings-key-test-result" style="font-size:12.5px;margin-top:10px;padding:10px;border-radius:8px;background:var(--bg-2);display:none"></div>
+                <div id="settings-key-test-result" style="font-size:12.5px;margin-top:10px;padding:12px;border-radius:10px;background:var(--bg-2);display:none;border:1px solid var(--border)"></div>
               </div>
 
               <!-- CARD 2: Local Ollama Endpoint & Model Manager -->
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                  <label style="font-size:13px;font-weight:800;color:var(--text-0)">2. Local Ollama Server & Model Manager</label>
+              <div class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:20px">🦙</span>
+                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">2. Local Ollama Server & Model Manager (100% Offline)</label>
+                  </div>
                   <span id="settings-api-ollama-status" class="tech-badge" style="color:var(--text-2);border-color:var(--border)">Checking...</span>
                 </div>
-                <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Run open-source neural models 100% offline and zero-latency right on your Mac Apple Silicon or Intel CPU.</p>
-                <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-                  <input id="settings-api-ollama-url" type="text" value="http://localhost:11434" style="flex:1;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
-                  <button onclick="if(typeof testOllamaConnection === 'function') testOllamaConnection()" class="btn-ghost btn-3d" style="padding:10px 20px">⚡ Check & Sync Models</button>
+                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Run open-source neural models 100% offline and zero-latency directly on your Mac Apple Silicon (`M1/M2/M3/M4 Metal MPS`) or Intel CPU. No data ever leaves your computer.</p>
+                <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+                  <input id="settings-api-ollama-url" type="text" value="http://localhost:11434" style="flex:1;min-width:240px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
+                  <button onclick="if(typeof testOllamaConnection === 'function') testOllamaConnection()" class="btn-ghost btn-3d" style="padding:11px 22px;border-radius:10px">⚡ Check & Auto-Discover Models</button>
                 </div>
-                <div id="settings-api-ollama-models" style="font-size:12px;color:var(--text-2);padding:10px;background:var(--bg-2);border-radius:8px"></div>
+
+                <!-- 1-Click Ollama Model Puller (`Open WebUI pattern`) -->
+                <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
+                  <div style="font-size:12px;font-weight:800;color:var(--text-0);margin-bottom:8px">📥 1-Click Local Model Puller & Downloader</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                    <select id="ollama-quick-pull-sel" onchange="const inp=document.getElementById('ollama-custom-pull-inp');if(inp)inp.style.display=this.value==='custom'?'block':'none';" style="background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-weight:600">
+                      <option value="llama3.2:3b">Llama 3.2 3B (Fast / 2.0 GB RAM)</option>
+                      <option value="llama3.1:8b">Llama 3.1 8B (General / 4.7 GB RAM)</option>
+                      <option value="mistral:7b">Mistral 7B v0.3 (Reasoning / 4.1 GB RAM)</option>
+                      <option value="deepseek-r1:8b">DeepSeek R1 8B (Math & Code / 4.9 GB RAM)</option>
+                      <option value="qwen2.5:7b">Qwen 2.5 7B (Code & Logic / 4.5 GB RAM)</option>
+                      <option value="nomic-embed-text">Nomic Embed Text (RAG Embeddings / 274 MB)</option>
+                      <option value="custom">Custom Model Name...</option>
+                    </select>
+                    <input id="ollama-custom-pull-inp" type="text" placeholder="e.g. phi3:3.8b" style="display:none;width:150px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-family:monospace">
+                    <button onclick="quickPullSelectedOllamaModel()" class="btn-primary btn-3d btn-sm" style="padding:8px 16px;border-radius:8px">⚡ Pull Model to Mac</button>
+                  </div>
+                </div>
+
+                <div id="settings-api-ollama-models" style="font-size:12px;color:var(--text-2);padding:12px;background:var(--bg-2);border-radius:10px;border:1px solid var(--border)">Checking detected models on localhost:11434...</div>
               </div>
 
               <!-- CARD 3: Custom OpenAI-Compatible Connections -->
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;box-shadow:var(--shadow)">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                  <label style="font-size:13px;font-weight:800;color:var(--text-0)">3. Custom OpenAI-Compatible Base URL & Key</label>
+              <div class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:20px">🔌</span>
+                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">3. Custom OpenAI-Compatible & Local Endpoints (`LM Studio · Jan · vLLM`)</label>
+                  </div>
                   <span id="settings-api-custom-status" class="tech-badge" style="color:var(--accent);border-color:var(--accent)">LM Studio · Jan · Any Endpoint</span>
                 </div>
-                <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Connect to any external or local OpenAI-compatible endpoint. Models discovered here auto-populate your chat dropdown.</p>
-                <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-                  <input id="custom-api-base-url" type="text" placeholder="http://localhost:1234/v1" style="flex:2;min-width:200px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
-                  <input id="custom-api-key" type="password" placeholder="API Key (if required)" style="flex:1;min-width:140px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
-                  <button onclick="if(typeof saveCustomConnection === 'function') saveCustomConnection()" class="btn-primary btn-3d" style="padding:10px 20px">🔗 Connect & Sync</button>
+                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Connect to any local (`LM Studio` on `:1234/v1`, `Jan` on `:1337/v1`) or cloud (`Groq`, `DeepSeek`) OpenAI-compatible API base path. Discovered models automatically populate your Chat selector.</p>
+                <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                  <button onclick="document.getElementById('custom-api-base-url').value='http://localhost:1234/v1';saveCustomConnection()" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: LM Studio (:1234/v1)</button>
+                  <button onclick="document.getElementById('custom-api-base-url').value='http://localhost:1337/v1';saveCustomConnection()" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: Jan (:1337/v1)</button>
+                  <button onclick="document.getElementById('custom-api-base-url').value='http://localhost:8000/v1';saveCustomConnection()" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: vLLM (:8000/v1)</button>
+                  <button onclick="document.getElementById('custom-api-base-url').value='https://api.groq.com/openai/v1';document.getElementById('custom-api-key').focus()" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: Groq Cloud</button>
                 </div>
-                <div id="custom-api-status-msg" style="font-size:12px;color:var(--text-2);margin-top:6px"></div>
+                <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+                  <input id="custom-api-base-url" type="text" placeholder="http://localhost:1234/v1" style="flex:2;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
+                  <input id="custom-api-key" type="password" placeholder="API Key (if required by endpoint)" style="flex:1;min-width:160px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
+                  <button onclick="if(typeof saveCustomConnection === 'function') saveCustomConnection()" class="btn-primary btn-3d" style="padding:11px 22px;border-radius:10px">🔗 Connect & Sync</button>
+                </div>
+                <div id="custom-api-status-msg" style="font-size:12.5px;color:var(--text-2);padding:10px;background:var(--bg-2);border-radius:8px;border:1px solid var(--border);display:none"></div>
               </div>
+
+              <!-- CARD 4: Enterprise Cryptographic Secret Vault & Local Storage Audit -->
+              <div class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;box-shadow:var(--shadow)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:20px">🔐</span>
+                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">4. Enterprise Cryptographic Secret Vault & Storage Audit</label>
+                  </div>
+                  <span class="badge badge-success">ZERO-TRUST LOCAL STORAGE</span>
+                </div>
+                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">All API keys, tokens, and custom headers are encrypted using local AES-256-GCM cryptography tied to your hardware master key (<code style="color:var(--accent);font-family:monospace">~/.vault_key</code> & <code style="color:var(--accent);font-family:monospace">~/Library/Application Support/com.stricktech.agenticos/secrets/vault.json</code>). No credentials ever leave your machine or transmit to third-party telemetry servers.</p>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                  <button onclick="checkVaultIntegrity()" class="btn-3d btn-primary btn-sm" style="padding:8px 18px;border-radius:8px">🔍 Run Cryptographic Vault Audit</button>
+                  <button onclick="exportEncryptedVaultBackup()" class="btn-3d btn-ghost btn-sm" style="padding:8px 18px;border-radius:8px">📥 Backup Encrypted Secrets (.json)</button>
+                  <button onclick="clearAllSecrets()" class="btn-3d btn-danger btn-sm" style="padding:8px 18px;border-radius:8px">🗑 Clear All Local Credentials</button>
+                </div>
+                <div id="vault-audit-result" style="font-size:12px;color:var(--text-2);margin-top:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--border);display:none;font-family:monospace"></div>
+              </div>
+            </div>
             </div>
 
             <!-- TAB 2: Theme & Visual Aesthetics -->
