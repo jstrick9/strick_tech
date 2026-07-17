@@ -57,7 +57,7 @@ async def swarm_run(req: Request):
     if len(agent_ids) < 2:
         return {'ok': False, 'error': 'select at least 2 agents'}
 
-    agent_ids = agent_ids[:6]  # cap at 6
+    agent_ids = agent_ids[:16]  # cap at 16 for full multi-agent swarm teams
     all_agents = {a['id']: a for a in memory_db.agents_list()}
 
     run_id = f'swarm_{uuid.uuid4().hex[:8]}'
@@ -83,7 +83,7 @@ async def swarm_run(req: Request):
             model=agent.get('model', ''),
             max_tokens=max_tokens,
             temperature=0.7,
-            inject_steering=False,
+            inject_steering=True,  # Enforce runtime .agenticrules and steering context across all swarm agents
         )
         return {
             'agent': agent_id,

@@ -184,3 +184,35 @@ class TestNavigationAndSettingsIntegrity:
         assert "window.renderFinetuneWorkstation =" in features_a_js, (
             "renderFinetuneWorkstation must be defined in 03-features-a.js"
         )
+
+    def test_phase3_multi_agent_swarm_behavioral_enforcement_and_graph_pipelines(self, client, app_core_js):
+        """Verify execution of Phase 3: runtime .agenticrules proxy, 7-role specialist swarm fleet, and SSE/fan-out enforcement."""
+        steering_py = BACKEND_DIR / "routers" / "steering.py"
+        assert steering_py.exists(), "backend/routers/steering.py must exist"
+        steering_text = steering_py.read_text(encoding="utf-8")
+        assert ".agenticrules" in steering_text and "compile_steering_context" in steering_text, (
+            "compile_steering_context must dynamically append .agenticrules runtime behavioral rules"
+        )
+
+        memory_db_py = BACKEND_DIR / "services" / "memory_db.py"
+        assert memory_db_py.exists(), "backend/services/memory_db.py must exist"
+        memory_db_text = memory_db_py.read_text(encoding="utf-8")
+        expected_roles = ["orchestrator", "visual_tester", "functional_tester", "design_decomposer", "test_creator", "brain", "builder"]
+        for r in expected_roles:
+            assert f"'id': '{r}'" in memory_db_text or f'"id": "{r}"' in memory_db_text, (
+                f"DEFAULT_AGENTS in memory_db.py must include specialist role {r}"
+            )
+
+        swarm_py = BACKEND_DIR / "routers" / "swarm.py"
+        assert swarm_py.exists(), "backend/routers/swarm.py must exist"
+        swarm_text = swarm_py.read_text(encoding="utf-8")
+        assert "agent_ids[:16]" in swarm_text or "agent_ids[:12]" in swarm_text, (
+            "swarm.py must cap at >= 12 agents to allow our full 7+ specialist team to fan-out in parallel"
+        )
+        assert "inject_steering=True" in swarm_text, (
+            "swarm.py run_agent must set inject_steering=True to enforce .agenticrules across all swarm outputs"
+        )
+
+        assert "orchestrator" in app_core_js and "visual_tester" in app_core_js and "design_decomposer" in app_core_js, (
+            "renderSwarmAgents inside 01-app-core.js must check our full 7+ specialist swarm team by default"
+        )

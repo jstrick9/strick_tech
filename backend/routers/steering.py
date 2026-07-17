@@ -219,7 +219,14 @@ def compile_steering_context(max_chars: int = 8000) -> str:
         return ''
 
     parts = ['# Project Steering Context\n']
-    total = len(parts[0])
+    try:
+        rules_path = ROOT / '.agenticrules'
+        if rules_path.exists() and rules_path.stat().st_size > 0:
+            rules_text = rules_path.read_text(encoding='utf-8')[:3000]
+            parts.append(f'\n## Runtime Behavioral Enforcement (.agenticrules)\n{rules_text}\n')
+    except Exception:
+        pass
+    total = len(parts[0]) + (len(parts[1]) if len(parts) > 1 else 0)
     skipped = []
     for row in rows:
         section = f'\n## {row["title"]}\n{row["content"]}\n'
