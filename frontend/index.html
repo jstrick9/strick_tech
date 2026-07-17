@@ -1406,6 +1406,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <button id="palette-btn" onclick="openPalette()" class="btn-3d btn-sm" style="background:var(--bg-2);border:1px solid var(--border-hi);color:var(--text-1);border-radius:8px;cursor:pointer;font-weight:600;padding:6px 12px">
         <span>⌘K</span> <span class="btn-text">Search Commands...</span>
       </button>
+      <button id="split-toggle-btn" onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace()" class="btn-3d btn-sm" style="background:var(--bg-2);border:1px solid var(--border-hi);color:var(--text-1);border-radius:8px;cursor:pointer;font-weight:600;padding:6px 12px" title="Split Workspace Dual-Pane (⌘\)">
+        <span>🗂️</span> <span class="btn-text">Split View</span>
+      </button>
     </div>
 
     <div class="spacer"></div>
@@ -1789,7 +1792,10 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- Centre: Monaco editor -->
-        <div class="studio-editor-panel" id="studio-editor-panel" style="width:42%;min-width:200px">
+        <!-- Studio Main Column (Editor + Preview top row, Console bottom row) -->
+        <div id="studio-main-area" style="display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden">
+          <div id="studio-editor-row" style="display:flex;flex-direction:row;flex:1;min-height:0;overflow:hidden">
+            <div class="studio-editor-panel" id="studio-editor-panel" style="width:42%;min-width:200px">
           <!-- Editor toolbar -->
           <div class="studio-toolbar">
             <button onclick="toggleStudioSidebar()" class="icon-btn" title="Toggle sidebar">☰</button>
@@ -1881,6 +1887,33 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <div class="diff-overlay-body" id="studio-diff-host"></div>
           </div>
         </div>
+          </div><!-- /studio-editor-row -->
+
+          <!-- Integrated Bottom Terminal & Console Drawer (`#studio-console-drawer`) -->
+          <div id="studio-console-drawer" style="display:flex;flex-direction:column;height:170px;flex-shrink:0;background:var(--bg-1);border-top:1px solid var(--border-hi);transition:height 0.2s ease">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 14px;background:var(--bg-2);border-bottom:1px solid var(--border);flex-shrink:0">
+              <div style="display:flex;align-items:center;gap:6px">
+                <button class="studio-console-tab active btn-3d btn-sm" onclick="switchStudioConsoleTab('build')" id="con-tab-build" style="padding:4px 10px;font-size:11px">🖥️ Live Build Output</button>
+                <button class="studio-console-tab btn-3d btn-ghost btn-sm" onclick="switchStudioConsoleTab('lint')" id="con-tab-lint" style="padding:4px 10px;font-size:11px">🐍 Python Diagnostics (ruff)</button>
+                <button class="studio-console-tab btn-3d btn-ghost btn-sm" onclick="switchStudioConsoleTab('hmr')" id="con-tab-hmr" style="padding:4px 10px;font-size:11px">⚡ HMR Events (<span id="con-hmr-count">0</span>)</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <button onclick="runStudioConsoleLint()" class="btn-3d btn-ghost btn-sm" style="padding:3px 8px;font-size:10.5px" title="Run Linter Now">▶ Linter</button>
+                <button onclick="clearStudioConsole()" class="btn-3d btn-ghost btn-sm" style="padding:3px 8px;font-size:10.5px">🗑 Clear</button>
+                <button onclick="toggleStudioConsoleDrawer()" id="con-collapse-btn" class="btn-3d btn-ghost btn-sm" style="padding:3px 8px;font-size:10.5px" title="Toggle Console Height">▼ Collapse</button>
+              </div>
+            </div>
+            <div id="con-panel-build" class="studio-console-panel" style="flex:1;overflow-y:auto;padding:12px;font-family:monospace;font-size:12px;background:#04060f;color:#a7f3d0">
+              <div>[Studio Console] Ready. Edits across index.html/styles.css auto-trigger HMR reload.</div>
+            </div>
+            <div id="con-panel-lint" class="studio-console-panel" style="display:none;flex:1;overflow-y:auto;padding:12px;font-family:monospace;font-size:12px;background:#04060f;color:#fce7f3">
+              <div>[Ruff Linter] 0 syntax/linter issues detected. Python execution environment clean.</div>
+            </div>
+            <div id="con-panel-hmr" class="studio-console-panel" style="display:none;flex:1;overflow-y:auto;padding:12px;font-family:monospace;font-size:12px;background:#04060f;color:#7dd3fc">
+              <div>[HMR Stream] Connected to /api/system/hmr Server-Sent Events...</div>
+            </div>
+          </div>
+        </div><!-- /studio-main-area -->
       </div>
 
       <!-- BUILDER PANE -->
@@ -2912,6 +2945,40 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <div class="pane" id="pane-finetune" style="overflow:auto;padding:20px;background:var(--bg-0)"><div style="flex:1;display:flex;flex-direction:column"></div></div>
 
     </div><!-- /content -->
+
+    <!-- Split Workspace Divider -->
+    <div id="workspace-splitter" style="display:none;width:6px;background:var(--border);cursor:col-resize;flex-shrink:0;z-index:20;transition:background 0.15s" onmouseover="this.style.background='var(--accent)'" onmouseout="if(!window._isSplitResizing)this.style.background='var(--border)'"></div>
+
+    <!-- Secondary Split Workstation Slot -->
+    <div id="content-right" style="display:none;flex:1;overflow:hidden;flex-direction:column;min-width:280px;height:100% !important;background:var(--bg-0);border-left:1px solid var(--border)">
+      <div class="split-header" style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--bg-1);border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:14px">🗂️</span>
+          <span style="font-size:12.5px;font-weight:800;color:var(--text-0)">Secondary Workstation Slot</span>
+          <select id="split-pane-select" onchange="if(typeof renderSplitPane === 'function') renderSplitPane(this.value)" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:6px;padding:4px 8px;color:var(--text-0);font-size:12px;font-weight:700;outline:none;cursor:pointer">
+            <option value="studio">⚡ Studio Code Editor</option>
+            <option value="browser">❖ Browser Agent</option>
+            <option value="terminal">＞_ Terminal</option>
+            <option value="codeindex">🕸️ Code Graph</option>
+            <option value="pqc">🛡️ PQC Lattice Vault</option>
+            <option value="finops">◇ FinOps</option>
+            <option value="evals">⚗️ Evals Engine</option>
+            <option value="rag">▤ RAG Pipeline</option>
+            <option value="observability">◎ Observability</option>
+            <option value="control">🎛 Control Tower</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="if(typeof swapSplitPanes==='function') swapSplitPanes()" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="Swap Left and Right Panes">↔ Swap</button>
+          <button onclick="if(typeof setSplitRatio==='function') setSplitRatio(0.5)" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="Equal 50/50 Split">50/50</button>
+          <button onclick="if(typeof setSplitRatio==='function') setSplitRatio(0.65)" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="65/35 Primary Split">65/35</button>
+          <button onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace(false)" class="btn-3d btn-primary btn-sm" style="padding:2px 8px;font-size:11px;background:var(--danger)" title="Close Split View">✕ Close</button>
+        </div>
+      </div>
+      <div id="pane-right-slot" style="flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column">
+        <div style="color:var(--text-2);padding:24px">⚡ Select a tool from the dropdown to dock in secondary slot...</div>
+      </div>
+    </div>
   </div><!-- /main -->
 
   <!-- Status bar -->

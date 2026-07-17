@@ -1287,24 +1287,7 @@ function addContextualHelp(paneId, container) {
       const d = await r.json();
       const doc = d.doc;
       if (doc) {
-        document.getElementById('ctx-help-overlay')?.remove();
-        const overlay = document.createElement('div');
-        overlay.id = 'ctx-help-overlay';
-        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:flex-start;justify-content:flex-end;padding:60px 16px 16px';
-        overlay.innerHTML = `
-          <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:320px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.4)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-              <h4 style="margin:0;color:var(--text-0)">${escHtml(doc.icon||'')} ${escHtml(doc.title||'')} Help</h4>
-              <button onclick="document.getElementById('ctx-help-overlay')?.remove()" style="background:none;border:none;color:var(--text-3);font-size:16px;cursor:pointer">\u2715</button>
-            </div>
-            <p style="font-size:12px;color:var(--text-2);line-height:1.6;margin:0 0 12px">${escHtml(doc.summary||'')}</p>
-            ${doc.tips?.length?`<div style="font-size:11px;color:var(--text-3)">\u{1F4A1} ${escHtml(doc.tips[0])}</div>`:''}
-            <button onclick="document.getElementById('ctx-help-overlay')?.remove();if(typeof openFeatureDoc === 'function') openFeatureDoc(${JSON.stringify(doc).replace(/"/g, '&quot;')}); else { nav('docs'); docsShowFeature(${JSON.stringify(doc).replace(/"/g, '&quot;')}); }" class="btn-sm btn-3d" style="margin-top:12px;width:100%">Read Full Docs \u2192</button>
-          </div>`;
-        overlay.addEventListener('click', e => {
-          if (e.target === overlay) document.getElementById('ctx-help-overlay')?.remove();
-        });
-        document.body.appendChild(overlay);
+        openInspectionDrawer(doc);
       } else {
         nav('docs');
       }
@@ -1318,6 +1301,55 @@ function addContextualHelp(paneId, container) {
   btn.onmouseout  = () => { btn.style.borderColor='var(--border)'; btn.style.color='var(--text-3)'; };
   header.appendChild(btn);
 }
+
+window.openInspectionDrawer = function(doc) {
+  if (!doc) return;
+  let drawer = document.getElementById('inspection-drawer');
+  if (!drawer) {
+    drawer = document.createElement('div');
+    drawer.id = 'inspection-drawer';
+    drawer.style.cssText = 'position:fixed;top:0;right:0;width:360px;height:100vh;z-index:9950;background:var(--bg-1);border-left:1px solid var(--border-hi);box-shadow:-12px 0 48px rgba(0,0,0,0.65);display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.25s cubic-bezier(0,0,.2,1)';
+    document.body.appendChild(drawer);
+  }
+  drawer.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--bg-2);border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:24px">${escHtml(doc.icon||'📘')}</span>
+        <div>
+          <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--text-0)">${escHtml(doc.title||'Workstation Inspection')}</h3>
+          <span style="font-size:11px;color:var(--accent);font-weight:700">${escHtml((doc.tier||'PRO').toUpperCase())} TIER WORKSTATION</span>
+        </div>
+      </div>
+      <button onclick="closeInspectionDrawer()" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:14px">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div class="surface-z2" style="padding:14px;border-radius:12px;font-size:13px;color:var(--text-1);line-height:1.65">
+        ${escHtml(doc.summary||doc.details||'No summary available.')}
+      </div>
+      ${doc.tips?.length ? `
+        <div class="surface-z1" style="padding:14px;border-radius:12px;border:1px solid var(--border)">
+          <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;margin-bottom:8px">💡 Pro Tips & Best Practices</div>
+          ${doc.tips.map(t => `<div style="font-size:12.5px;color:var(--text-2);padding:4px 0;border-bottom:1px solid var(--border)">→ ${escHtml(t)}</div>`).join('')}
+        </div>` : ''}
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:14px;border-top:1px solid var(--border)">
+        <button onclick="closeInspectionDrawer();if(typeof openFeatureDoc === 'function') openFeatureDoc(${JSON.stringify(doc).replace(/"/g, '&quot;')}); else { nav('docs'); docsShowFeature(${JSON.stringify(doc).replace(/"/g, '&quot;')}); }" class="btn-3d btn-primary" style="width:100%">Read Full Documentation ↗</button>
+        <button onclick="closeInspectionDrawer();if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace(true, '${doc.id||'docs'}')" class="btn-3d btn-ghost" style="width:100%">🗂️ Dock in Secondary Slot</button>
+      </div>
+    </div>
+  `;
+  drawer.style.display = 'flex';
+  setTimeout(() => drawer.style.transform = 'translateX(0)', 20);
+};
+
+window.closeInspectionDrawer = function() {
+  const drawer = document.getElementById('inspection-drawer');
+  if (drawer) {
+    drawer.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      if (drawer.style.transform === 'translateX(100%)') drawer.style.display = 'none';
+    }, 250);
+  }
+};
 
 // FIX 1 (CRITICAL): Wire ? button into every pane navigation.
 // Called by masterNav20 after each nav() so the button appears on the active pane.
