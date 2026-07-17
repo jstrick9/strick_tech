@@ -244,130 +244,273 @@ async def stream(
 # ── Ollama ─────────────────────────────────────────────────────────────────────
 async def _ollama_complete(messages, model, temperature, max_tokens, timeout) -> dict:
     t0 = time.time()
-    base_clean = OLLAMA_BASE.rstrip('/').removesuffix('/v1').rstrip('/')
+    base_clean = os.getenv('OLLAMA_BASE_URL', OLLAMA_BASE).rstrip('/').removesuffix('/v1').rstrip('/')
     clean_model = model.replace('ollama:', '', 1).strip()
-    try:
-        payload = {
+    candidates = [base_clean]
+    if 'localhost' in base_clean:
+        candidates.append(base_clean.replace('localhost', '127.0.0.1'))
+    elif '127.0.0.1' in base_clean:
+        candidates.append(base_clean.replace('127.0.0.1', 'localhost'))
+
+    prompt_lines = []
+    for m in messages:
+        role = m.get('role', 'user')
+        content = m.get('content', '')
+        prompt_lines.append(f'[{role.upper()}]: {content}')
+    prompt_lines.append('[ASSISTANT]:')
+    formatted_prompt = '\n\n'.join(prompt_lines)
+
+    last_error = None
+
+    for base in candidates:
+        payload_chat = {
             'model': clean_model,
             'messages': messages,
             'stream': False,
             'options': {'temperature': temperature, 'num_predict': max_tokens},
         }
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            try:
-                resp = await client.post(f'{base_clean}/api/chat', json=payload)
-                if resp.status_code == 404:
-                    raise httpx.HTTPStatusError('404 Not Found', request=resp.request, response=resp)
-                resp.raise_for_status()
-                data = resp.json()
-                text = data.get('message', {}).get('content', '')
-                return {
-                    'text': text,
-                    'tokens': data.get('eval_count', 0),
-                    'cost': 0.0,
-                    'model': clean_model,
-                    'provider': 'ollama',
-                    'latency_ms': round((time.time() - t0) * 1000),
-                    'ok': True,
-                }
-            except (httpx.HTTPStatusError, httpx.RequestError) as e:
-                if isinstance(e, httpx.HTTPStatusError) and e.response.status_code != 404:
-                    raise
-                # Fallback to OpenAI-compatible /v1/chat/completions (Ollama >= 0.1.24 & LM Studio / Jan)
-                oai_payload = {
-                    'model': clean_model,
-                    'messages': messages,
-                    'stream': False,
-                    'temperature': temperature,
-                    'max_tokens': max_tokens,
-                }
-                resp2 = await client.post(f'{base_clean}/v1/chat/completions', json=oai_payload)
-                resp2.raise_for_status()
-                data2 = resp2.json()
-                text2 = data2.get('choices', [{}])[0].get('message', {}).get('content', '')
-                return {
-                    'text': text2,
-                    'tokens': data2.get('usage', {}).get('total_tokens', 0),
-                    'cost': 0.0,
-                    'model': clean_model,
-                    'provider': 'ollama',
-                    'latency_ms': round((time.time() - t0) * 1000),
-                    'ok': True,
-                }
-    except Exception as e:
-        return {
-            'text': f'[Ollama complete error — is Ollama running on {base_clean}? Verify model `{clean_model}` is installed via `ollama list`]\n\nDetails: {e}',
-            'ok': False,
-            'error': str(e),
-            'provider': 'ollama',
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp = await client.post(f'{base}/api/chat', json=payload_chat)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    text = data.get('message', {}).get('content', '')
+                    return {
+                        'text': text,
+                        'tokens': data.get('eval_count', 0),
+                        'cost': 0.0,
+                        'model': clean_model,
+                        'provider': 'ollama',
+                        'latency_ms': round((time.time() - t0) * 1000),
+                        'ok': True,
+                    }
+                last_error = f'HTTP {resp.status_code} on {base}/api/chat'
+        except Exception as e:
+            last_error = str(e)
+
+        payload_gen = {
+            'model': clean_model,
+            'prompt': formatted_prompt,
+            'stream': False,
+            'options': {'temperature': temperature, 'num_predict': max_tokens},
         }
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp_gen = await client.post(f'{base}/api/generate', json=payload_gen)
+                if resp_gen.status_code == 200:
+                    data_gen = resp_gen.json()
+                    text_gen = data_gen.get('response', '')
+                    return {
+                        'text': text_gen,
+                        'tokens': data_gen.get('eval_count', 0),
+                        'cost': 0.0,
+                        'model': clean_model,
+                        'provider': 'ollama',
+                        'latency_ms': round((time.time() - t0) * 1000),
+                        'ok': True,
+                    }
+                last_error = f'HTTP {resp_gen.status_code} on {base}/api/generate'
+        except Exception as e:
+            last_error = str(e)
+
+        payload_oai = {
+            'model': clean_model,
+            'messages': messages,
+            'stream': False,
+            'temperature': temperature,
+            'max_tokens': max_tokens,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp_oai = await client.post(f'{base}/v1/chat/completions', json=payload_oai)
+                if resp_oai.status_code == 200:
+                    data_oai = resp_oai.json()
+                    text_oai = data_oai.get('choices', [{}])[0].get('message', {}).get('content', '')
+                    return {
+                        'text': text_oai,
+                        'tokens': data_oai.get('usage', {}).get('total_tokens', 0),
+                        'cost': 0.0,
+                        'model': clean_model,
+                        'provider': 'ollama',
+                        'latency_ms': round((time.time() - t0) * 1000),
+                        'ok': True,
+                    }
+                last_error = f'HTTP {resp_oai.status_code} on {base}/v1/chat/completions'
+        except Exception as e:
+            last_error = str(e)
+
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                t_resp = await client.get(f'{base}/api/tags')
+                if t_resp.status_code == 200:
+                    installed = [m.get('name') for m in t_resp.json().get('models', []) if m.get('name')]
+                    if installed and clean_model not in installed:
+                        fallback_local = next((m for m in installed if clean_model.split(':')[0] in m), installed[0])
+                        payload_chat['model'] = fallback_local
+                        resp_fb = await client.post(f'{base}/api/chat', json=payload_chat)
+                        if resp_fb.status_code == 200:
+                            data_fb = resp_fb.json()
+                            text_fb = data_fb.get('message', {}).get('content', '')
+                            return {
+                                'text': text_fb,
+                                'tokens': data_fb.get('eval_count', 0),
+                                'cost': 0.0,
+                                'model': fallback_local,
+                                'provider': 'ollama',
+                                'latency_ms': round((time.time() - t0) * 1000),
+                                'ok': True,
+                            }
+        except Exception:
+            pass
+
+    return {
+        'text': f'[Ollama complete error — could not connect or generate on `{base_clean}` ({last_error}). Verify Ollama is running and model `{clean_model}` is installed via `ollama list`]',
+        'ok': False,
+        'error': str(last_error),
+        'provider': 'ollama',
+    }
 
 
 async def _ollama_stream(messages, model, temperature, max_tokens, timeout) -> AsyncGenerator[str, None]:
-    base_clean = OLLAMA_BASE.rstrip('/').removesuffix('/v1').rstrip('/')
+    base_clean = os.getenv('OLLAMA_BASE_URL', OLLAMA_BASE).rstrip('/').removesuffix('/v1').rstrip('/')
     clean_model = model.replace('ollama:', '', 1).strip()
-    payload = {
-        'model': clean_model,
-        'messages': messages,
-        'stream': True,
-        'options': {'temperature': temperature, 'num_predict': max_tokens},
-    }
-    try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            try:
-                async with client.stream('POST', f'{base_clean}/api/chat', json=payload) as resp:
-                    if resp.status_code == 404:
-                        raise httpx.HTTPStatusError('404 Not Found', request=resp.request, response=resp)
-                    resp.raise_for_status()
-                    async for line in resp.aiter_lines():
-                        if not line:
-                            continue
-                        try:
-                            chunk = json.loads(line)
-                            delta = chunk.get('message', {}).get('content', '')
-                            done = chunk.get('done', False)
-                            if delta:
-                                yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
-                            if done:
+    candidates = [base_clean]
+    if 'localhost' in base_clean:
+        candidates.append(base_clean.replace('localhost', '127.0.0.1'))
+    elif '127.0.0.1' in base_clean:
+        candidates.append(base_clean.replace('127.0.0.1', 'localhost'))
+
+    prompt_lines = []
+    for m in messages:
+        role = m.get('role', 'user')
+        content = m.get('content', '')
+        prompt_lines.append(f'[{role.upper()}]: {content}')
+    prompt_lines.append('[ASSISTANT]:')
+    formatted_prompt = '\n\n'.join(prompt_lines)
+
+    last_error = None
+
+    for base in candidates:
+        payload_chat = {
+            'model': clean_model,
+            'messages': messages,
+            'stream': True,
+            'options': {'temperature': temperature, 'num_predict': max_tokens},
+        }
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                async with client.stream('POST', f'{base}/api/chat', json=payload_chat) as resp:
+                    if resp.status_code == 200:
+                        async for line in resp.aiter_lines():
+                            if not line:
+                                continue
+                            try:
+                                chunk = json.loads(line)
+                                delta = chunk.get('message', {}).get('content', '')
+                                done = chunk.get('done', False)
+                                if delta:
+                                    yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
+                                if done:
+                                    yield f'data: {json.dumps({"delta": "", "done": True, "model": clean_model})}\n\n'
+                            except Exception:
+                                pass
+                        return
+                    last_error = f'HTTP {resp.status_code} on {base}/api/chat'
+        except Exception as e:
+            last_error = str(e)
+
+        payload_gen = {
+            'model': clean_model,
+            'prompt': formatted_prompt,
+            'stream': True,
+            'options': {'temperature': temperature, 'num_predict': max_tokens},
+        }
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                async with client.stream('POST', f'{base}/api/generate', json=payload_gen) as resp_gen:
+                    if resp_gen.status_code == 200:
+                        async for line in resp_gen.aiter_lines():
+                            if not line:
+                                continue
+                            try:
+                                chunk = json.loads(line)
+                                delta = chunk.get('response', '')
+                                done = chunk.get('done', False)
+                                if delta:
+                                    yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
+                                if done:
+                                    yield f'data: {json.dumps({"delta": "", "done": True, "model": clean_model})}\n\n'
+                            except Exception:
+                                pass
+                        return
+                    last_error = f'HTTP {resp_gen.status_code} on {base}/api/generate'
+        except Exception as e:
+            last_error = str(e)
+
+        payload_oai = {
+            'model': clean_model,
+            'messages': messages,
+            'stream': True,
+            'temperature': temperature,
+            'max_tokens': max_tokens,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                async with client.stream('POST', f'{base}/v1/chat/completions', json=payload_oai) as resp_oai:
+                    if resp_oai.status_code == 200:
+                        async for line in resp_oai.aiter_lines():
+                            if not line.startswith('data: '):
+                                continue
+                            raw = line[6:].strip()
+                            if raw == '[DONE]':
                                 yield f'data: {json.dumps({"delta": "", "done": True, "model": clean_model})}\n\n'
-                        except Exception:
-                            pass
-                return
-            except (httpx.HTTPStatusError, httpx.RequestError) as e:
-                if isinstance(e, httpx.HTTPStatusError) and e.response.status_code != 404:
-                    raise
-                # Fallback to OpenAI-compatible /v1/chat/completions (Ollama >= 0.1.24 & LM Studio / Jan)
-                oai_payload = {
-                    'model': clean_model,
-                    'messages': messages,
-                    'stream': True,
-                    'temperature': temperature,
-                    'max_tokens': max_tokens,
-                }
-                async with client.stream('POST', f'{base_clean}/v1/chat/completions', json=oai_payload) as resp2:
-                    resp2.raise_for_status()
-                    async for line in resp2.aiter_lines():
-                        if not line.startswith('data: '):
-                            continue
-                        raw = line[6:].strip()
-                        if raw == '[DONE]':
-                            yield f'data: {json.dumps({"delta": "", "done": True, "model": clean_model})}\n\n'
-                            break
-                        try:
-                            chunk = json.loads(raw)
-                            delta = chunk['choices'][0]['delta'].get('content', '')
-                            if delta:
-                                yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
-                        except Exception:
-                            pass
-    except Exception as e:
-        yield f'data: {json.dumps({"delta": f"[Ollama stream error]: Client or server error for url `{base_clean}`.\n\nMake sure Ollama is running and model `{clean_model}` is installed via `ollama list`.\n\nDetails: {e}", "done": True})}\n\n'
+                                break
+                            try:
+                                chunk = json.loads(raw)
+                                delta = chunk['choices'][0]['delta'].get('content', '')
+                                if delta:
+                                    yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
+                            except Exception:
+                                pass
+                        return
+                    last_error = f'HTTP {resp_oai.status_code} on {base}/v1/chat/completions'
+        except Exception as e:
+            last_error = str(e)
+
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                t_resp = await client.get(f'{base}/api/tags')
+                if t_resp.status_code == 200:
+                    installed = [m.get('name') for m in t_resp.json().get('models', []) if m.get('name')]
+                    if installed and clean_model not in installed:
+                        fallback_local = next((m for m in installed if clean_model.split(':')[0] in m), installed[0])
+                        payload_chat['model'] = fallback_local
+                        async with client.stream('POST', f'{base}/api/chat', json=payload_chat) as resp_fb:
+                            if resp_fb.status_code == 200:
+                                async for line in resp_fb.aiter_lines():
+                                    if not line:
+                                        continue
+                                    try:
+                                        chunk = json.loads(line)
+                                        delta = chunk.get('message', {}).get('content', '')
+                                        done = chunk.get('done', False)
+                                        if delta:
+                                            yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
+                                        if done:
+                                            yield f'data: {json.dumps({"delta": "", "done": True, "model": fallback_local})}\n\n'
+                                    except Exception:
+                                        pass
+                                return
+        except Exception:
+            pass
+
+    yield f'data: {json.dumps({"delta": f"[Ollama stream error]: Could not stream or connect on `{base_clean}` ({last_error}).\n\nMake sure Ollama (`ollama serve`) is running and model `{clean_model}` is installed via `ollama list`.", "done": True})}\n\n'
 
 
 # ── Ollama health check ─────────────────────────────────────────────────────────
 async def ollama_health() -> dict:
     """Execute or process ollama health operation."""
-    base_clean = OLLAMA_BASE.rstrip('/').removesuffix('/v1').rstrip('/')
+    base_clean = os.getenv('OLLAMA_BASE_URL', OLLAMA_BASE).rstrip('/').removesuffix('/v1').rstrip('/')
     try:
         async with httpx.AsyncClient(timeout=4.0) as client:
             try:

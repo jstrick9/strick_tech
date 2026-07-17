@@ -253,6 +253,22 @@ async def hmr_trigger(req: Request):
     return {'ok': True, 'clients': len(_hmr_clients)}
 
 
+@router.post('/reload-engine')
+async def reload_backend_engine():
+    """Dynamically hot-reload core AI service modules (llm.py, chat.py, secrets.py) inside running uvicorn process."""
+    import importlib
+    import sys
+    reloaded = []
+    for mod_name in ['backend.services.llm', 'backend.routers.secrets', 'backend.routers.chat']:
+        if mod_name in sys.modules:
+            try:
+                importlib.reload(sys.modules[mod_name])
+                reloaded.append(mod_name)
+            except Exception as e:
+                log.warning('Could not hot-reload %s: %s', mod_name, e)
+    return {'ok': True, 'reloaded': reloaded, 'message': f'✅ Hot-reloaded {len(reloaded)} core AI backend modules in RAM!'}
+
+
 @router.post('/open-url')
 async def open_external_url(req: Request):
     """Safely open an external URL across host browser / native OS shell."""

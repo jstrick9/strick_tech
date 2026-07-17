@@ -2748,6 +2748,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
                   <input id="settings-api-ollama-url" type="text" value="http://localhost:11434" style="flex:1;min-width:240px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
                   <button onclick="if(typeof testOllamaConnection === 'function') testOllamaConnection()" class="btn-ghost btn-3d" style="padding:11px 22px;border-radius:10px">⚡ Check & Auto-Discover Models</button>
+                  <button onclick="if(typeof hotReloadBackendEngine === 'function') hotReloadBackendEngine()" class="btn-primary btn-3d" style="padding:11px 18px;border-radius:10px;background:#10b981;border:none;color:#fff" title="Reload internal Python AI services in RAM to ensure exact endpoint sync">⚡ Reload Engine & Sync</button>
                 </div>
 
                 <!-- 1-Click Ollama Model Puller (`Open WebUI pattern`) -->

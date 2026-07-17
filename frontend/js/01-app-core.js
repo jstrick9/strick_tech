@@ -1875,6 +1875,34 @@ window.clearAllSecrets = async function() {
   }
 };
 
+window.hotReloadBackendEngine = async function() {
+  toast('⚡ Hot-reloading core AI services (llm.py, chat.py, secrets.py) in backend RAM...', 'ok', 3000);
+  const statusEl = document.getElementById('settings-api-ollama-status');
+  if (statusEl) { statusEl.textContent = 'HOT-RELOADING...'; statusEl.style.color = 'var(--accent)'; }
+  try {
+    const r = await fetch('/api/system/reload-engine', { method: 'POST' });
+    const j = await r.json();
+    if (j.ok) {
+      toast(j.message || '✅ Backend Python engine hot-reloaded successfully!', 'ok', 4000);
+      if (typeof window.testOllamaConnection === 'function') window.testOllamaConnection();
+      if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
+    } else {
+      toast('⚠️ Reload note: ' + (j.error || 'Check server status'), 'warn', 3000);
+    }
+  } catch(e) {
+    toast('⚠️ Server hot-reload network timeout — check terminal running python3 run.py', 'warn', 4000);
+  }
+};
+
+window.selectChatModel = function(val) {
+  if (!val) return;
+  S.currentModel = val;
+  try { localStorage.setItem('agentic_os_chat_model', val); } catch(e) {}
+  const pill = document.getElementById('chat-model-select');
+  if (pill && pill.value !== val) pill.value = val;
+  toast(`🤖 Active Chat Model: ${val.replace('ollama:', 'Local Ollama: ').replace('custom_url:', 'Custom: ')}`, 'ok', 1500);
+};
+
 window.syncOpenWebUIConnections = async function() {
   const select = document.getElementById('chat-model-select');
   if (!select) return;
@@ -10840,6 +10868,16 @@ if(typeof PALETTE_CMDS!=='undefined'){
 
 // ── Cost tracking polling ─────────────────────────────────────────
 setInterval(updateCostBar, 30000);
+
+setTimeout(() => {
+  if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
+  const savedModel = localStorage.getItem('agentic_os_chat_model');
+  if (savedModel) {
+    S.currentModel = savedModel;
+    const sel = document.getElementById('chat-model-select');
+    if (sel) sel.value = savedModel;
+  }
+}, 800);
 
 window.gmAlert = gmAlert;
 window.gmConfirm = gmConfirm;
