@@ -219,7 +219,7 @@ class TestNavigationAndSettingsIntegrity:
 
     def test_phase4_developer_workstation_studio_and_code_graph(self, app_core_js):
         """Verify execution of Phase 4: Monaco studio fallback, Multi-preview hub, and code search/graph exports."""
-        assert "window.initStudio = function()" in app_core_js, "initStudio must be globally assigned in 01-app-core.js"
+        assert "window.initStudio = initStudio" in app_core_js or "window.initStudio = function()" in app_core_js, "initStudio must be globally assigned in 01-app-core.js"
         assert "studio-fallback-textarea" in app_core_js, "studioLoadMonaco must provide an offline/sandboxed fallback textarea"
         assert "window.renderCodeSearch = renderCodeSearch;" in app_core_js, "renderCodeSearch must be globally assigned"
 

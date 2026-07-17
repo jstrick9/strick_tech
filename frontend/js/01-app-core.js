@@ -7,28 +7,32 @@
 // ═══════════════════════════════════════════════════════════════
 
 // ── State ───────────────────────────────────────────────────────
-const S = {
-  agents: [], currentAgent,
+var currentAgent = null, monacoEditor = null, diffEditor = null, agentModalId = null, studioMonacoLoaded = false;
+const S = window.S || {
+  agents: [], currentAgent: null,
   chatHistory: [],
   sessionId: 'session_' + Date.now(),
   useRag: true,
   useStream: true,
   currentFile: 'index.html',
-  fileVersions: [], monacoEditor, diffEditor, gxGraph,
+  fileVersions: [], monacoEditor: null, diffEditor: null, gxGraph: null,
   paletteFocusIdx: 0,
-  agentModalMode: 'create', agentModalId,
+  agentModalMode: 'create', agentModalId: null,
   selectedAvatar: '🤖',
   selectedColor: '#5b8af8',
 };
+window.S = S;
 
 // ── Toast ────────────────────────────────────────────────────────
 function toast(msg, type = 'ok', duration = 3000) {
   const c = document.getElementById('toast-container');
+  if (!c) return;
   const t = document.createElement('div');
   t.className = 'toast ' + type;
   t.innerHTML = `<span>${msg}</span><span class="toast-close" onclick="this.parentElement.remove()">×</span>`;
   c.appendChild(t);
-  requestAnimationFrame(() => t.classList.add('show'));
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => t.classList.add('show'));
+  else setTimeout(() => t.classList.add('show'), 16);
   setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 250); }, duration);
 }
 
@@ -247,7 +251,8 @@ window.nav = function(pane) {
 async function loadAgents() {
   try {
     const r = await fetch('/api/agents');
-    S.agents = await r.json();
+    const data = await r.json();
+    S.agents = Array.isArray(data) ? data : (data.agents || []);
     renderAgentList();
     if (!S.currentAgent && S.agents.length) setActiveAgent(S.agents[0]);
     updateStatusBar();
@@ -653,12 +658,16 @@ function setupMonaco() {
     cursorBlinking: 'smooth',
     renderLineHighlight: 'line',
   });
-  S.monacoEditor.onDidChangeCursorPosition(e => {
-    const p = e.position;
-    document.getElementById('ed-cursor').textContent = `Ln ${p.lineNumber}, Col ${p.column}`;
-  });
-  // Ctrl+S to save
-  S.monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveFile);
+  if (S.monacoEditor && typeof S.monacoEditor.onDidChangeCursorPosition === 'function') {
+    S.monacoEditor.onDidChangeCursorPosition(e => {
+      const p = e.position;
+      const cur = document.getElementById('ed-cursor');
+      if (cur) cur.textContent = `Ln ${p.lineNumber}, Col ${p.column}`;
+    });
+  }
+  if (S.monacoEditor && typeof S.monacoEditor.addCommand === 'function' && window.monaco?.KeyMod && window.monaco?.KeyCode) {
+    S.monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveFile);
+  }
   openFile(S.currentFile);
 }
 
@@ -686,8 +695,9 @@ async function loadFileTree() {
 }
 
 async function openFile(path) {
+  if (!path || typeof path !== 'string') return;
   S.currentFile = path;
-  document.getElementById('ed-file').textContent = path;
+  const edFile = document.getElementById('ed-file'); if (edFile) edFile.textContent = path;
   if (!S.monacoEditor) return;
   try {
     const r    = await fetch('/api/preview/read?path=' + encodeURIComponent(path));
@@ -977,12 +987,16 @@ async function renderSwarmAgents() {
   const grid = document.getElementById('sw-agent-grid');
   if (!grid) return;
   const defaultOn = new Set(['orchestrator','brain','builder','visual_tester','functional_tester','design_decomposer','test_creator']);
-  // Fetch live agent list from API so newly created/toggled agents appear
   let agents = S.agents;
   try {
     const r = await fetch('/api/swarm/agents');
-    if (r.ok) agents = await r.json();
+    if (r.ok) {
+      const data = await r.json();
+      if (Array.isArray(data)) agents = data;
+      else if (Array.isArray(data.agents)) agents = data.agents;
+    }
   } catch(e) { /* fall back to cached S.agents */ }
+  if (!Array.isArray(agents)) agents = Array.isArray(S.agents) ? S.agents : [];
   grid.innerHTML = agents.map(a => `
     <label style="display:flex;align-items:center;gap:6px;background:var(--bg-3);border-radius:var(--radius-sm);
       padding:6px 10px;cursor:pointer;border:1px solid var(--border);font-size:12px;transition:var(--transition)"
@@ -1785,6 +1799,7 @@ async function init() {
   // init rag/stream toggles
   document.getElementById('rag-btn')?.classList.toggle('active', S.useRag);
   document.getElementById('stream-btn')?.classList.toggle('active', S.useStream);
+  setTimeout(() => { if (typeof checkOnboarding === 'function') checkOnboarding(); }, 800);
 }
 
 init();
@@ -2981,7 +2996,7 @@ nav = function(pane) {
 async function renderPipeline() {
   const pane = document.getElementById('pane-pipeline');
   let templates = [];
-  try { const r = await fetch('/api/pipeline/templates'); templates = await r.json(); } catch(e){}
+  try { const r = await fetch('/api/pipeline/templates'); const d = await r.json(); templates = Array.isArray(d) ? d : (Array.isArray(d.templates) ? d.templates : []); } catch(e){}
 
   pane.innerHTML = `<div class="section-head">
     <div><h2>🏛️ Pipeline</h2><p>Autonomous multi-stage: Goal → Research → Code → Review → Ship</p></div>
@@ -3514,7 +3529,8 @@ async function doGitCommit() {
 let hmrSource = null;
 
 function startHMR() {
-  if (hmrSource) hmrSource.close();
+  if (hmrSource && typeof hmrSource.close === 'function') hmrSource.close();
+  if (typeof window.EventSource === 'undefined') return;
   hmrSource = new EventSource('/api/system/hmr');
   hmrSource.onmessage = e => {
     try {
@@ -5602,7 +5618,7 @@ async function showGHPR() {
 }
 
 // ── Database Studio ────────────────────────────────────────────────
-let dbActiveTable = '', dbActiveTab = 'sqlite';
+var dbActiveTable = '', dbActiveTab = 'sqlite';
 
 async function renderDBStudio() {
   const pane = document.getElementById('pane-dbstudio');
@@ -5640,7 +5656,8 @@ async function renderSQLiteTab(el) {
   try {
     const r = await fetch('/api/db/sqlite/tables');
     if (!r.ok) throw new Error('Tables API error ' + r.status);
-    tables = await r.json();
+    const data = await r.json();
+    tables = Array.isArray(data) ? data : (Array.isArray(data?.tables) ? data.tables : []);
   } catch(ex) {
     el.innerHTML = `<div style="color:var(--red);padding:16px">Error loading tables: ${escHtml(ex.message)}</div>`;
     return;
@@ -6319,7 +6336,7 @@ const Studio = {
   diffEditor:     null,     // Monaco diff editor
   currentFile:    'index.html',
   currentDevice:  'desktop',
-  zoom:           100, autoSaveTimer, diffPending,     // {original, modified, path}
+  zoom:           100, autoSaveTimer: null, diffPending: null,     // {original, modified, path}
   lastError:      null,
   sidebarOpen:    true,
   hmrConnected:   false,
@@ -6328,9 +6345,8 @@ const Studio = {
 };
 
 // ── Init ───────────────────────────────────────────────────────────
-let studioMonacoLoaded = false;
 
-window.initStudio = function() {
+function initStudio() {
   studioLoadFileTree();
   if (!studioMonacoLoaded) studioLoadMonaco();
   initStudioResizer();
@@ -6338,8 +6354,8 @@ window.initStudio = function() {
   initStudioErrorBridge();
   document.querySelectorAll('[data-nav]').forEach(el =>
     el.classList.toggle('active', el.dataset.nav === 'studio'));
-};
-function initStudio() { window.initStudio(); }
+}
+window.initStudio = initStudio;
 
 // ── Monaco in Studio ───────────────────────────────────────────────
 function studioLoadMonaco() {
@@ -6422,22 +6438,25 @@ function studioSetupMonaco() {
     suggest:              { preview: true },
   });
 
-  // Cursor position in status bar
-  Studio.editor.onDidChangeCursorPosition(e => {
-    const p = e.position;
-    const el = document.getElementById('studio-ed-cursor');
-    if (el) el.textContent = `Ln ${p.lineNumber}, Col ${p.column}`;
-  });
+  if (Studio.editor && typeof Studio.editor.onDidChangeCursorPosition === 'function') {
+    Studio.editor.onDidChangeCursorPosition(e => {
+      const p = e.position;
+      const el = document.getElementById('studio-ed-cursor');
+      if (el) el.textContent = `Ln ${p.lineNumber}, Col ${p.column}`;
+    });
+  }
 
-  // Auto-save with debounce (600ms) + preview refresh
-  Studio.editor.onDidChangeModelContent(() => {
-    studioMarkAutosave('saving');
-    clearTimeout(Studio.autoSaveTimer);
-    Studio.autoSaveTimer = setTimeout(studioAutoSave, 600);
-  });
+  if (Studio.editor && typeof Studio.editor.onDidChangeModelContent === 'function') {
+    Studio.editor.onDidChangeModelContent(() => {
+      studioMarkAutosave('saving');
+      clearTimeout(Studio.autoSaveTimer);
+      Studio.autoSaveTimer = setTimeout(studioAutoSave, 600);
+    });
+  }
 
-  // ⌘S to save
-  Studio.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, studioSaveFile);
+  if (Studio.editor && typeof Studio.editor.addCommand === 'function' && window.monaco?.KeyMod && window.monaco?.KeyCode) {
+    Studio.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, studioSaveFile);
+  }
 
   // Open default file
   studioOpenFile(Studio.currentFile);
@@ -6480,18 +6499,18 @@ async function studioOpenFile(path) {
     const r = await fetch('/api/preview/read?path=' + encodeURIComponent(path));
     if (!r.ok) return;
     const text = await r.text();
-    const ext  = path.rsplit ? path.rsplit('.', 1)[1] : path.split('.').pop();
-    const langMap = {html:'html',css:'css',js:'javascript',jsx:'javascript',
-                     ts:'typescript',tsx:'typescript',json:'json',md:'markdown',
-                     py:'python',svelte:'html',vue:'html'};
+    const ext = path.split('.').pop();
+    const langMap = {html:'html',css:'css',js:'javascript',jsx:'javascript',ts:'typescript',tsx:'typescript',json:'json',md:'markdown',py:'python'};
     const lang = langMap[ext] || 'plaintext';
-    const model = monaco.editor.createModel(text, lang);
-    Studio.editor.setModel(model);
+    if (window.monaco?.editor?.createModel) {
+      const model = monaco.editor.createModel(text, lang);
+      Studio.editor.setModel(model);
+    } else if (typeof Studio.editor.setValue === 'function') {
+      Studio.editor.setValue(text);
+    }
     const langEl = document.getElementById('studio-ed-lang');
     if (langEl) langEl.textContent = lang;
-    // Load version scrubber & count
     updateStudioScrubber(path);
-    // Update file tree highlight
     document.querySelectorAll('#studio-file-tree .file-row').forEach(el =>
       el.classList.toggle('active', el.getAttribute('onclick')?.includes(`'${path}'`)));
   } catch(e) { console.warn('studioOpenFile error:', e); }
@@ -6764,7 +6783,7 @@ async function studioQR() {
 let studioHmrSource = null;
 
 function initStudioHMR() {
-  if (studioHmrSource) return;
+  if (studioHmrSource || typeof window.EventSource === 'undefined') return;
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   // Use SSE (same as main HMR)
   studioHmrSource = new EventSource('/api/system/hmr');
@@ -7780,12 +7799,7 @@ fetch('/api/onboarding/preferences').then(r=>r.ok?r.json():{}).then(p=>{
   applyPreferences(p);
 }).catch(()=>{});
 
-// Run onboarding check after agents load
-const _origInit = init;
-async function init() {
-  await _origInit();
-  setTimeout(checkOnboarding, 800);
-}
+
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -7804,7 +7818,7 @@ function _disabled__s10NavBase(pane) {
 }
 
 // ── Control Tower ──────────────────────────────────────────────────
-let controlRefreshTimer = null;
+var controlRefreshTimer = null;
 async function renderControlTower() {
   const pane = document.getElementById('pane-control');
   pane.innerHTML = skeletonPage();

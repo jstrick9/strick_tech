@@ -2368,7 +2368,7 @@ document.addEventListener('keydown', e => {
     display:flex;align-items:center;gap:5px;transition:all .12s;
   `;
   btn.innerHTML = '🤝 Collab';
-  btn.onclick = startCollabSession;
+  btn.onclick = () => typeof window.startCollab === 'function' ? window.startCollab() : (typeof window.toggleCollabPanel === 'function' && window.toggleCollabPanel());
   btn.onmouseover = () => { btn.style.borderColor='var(--accent)'; btn.style.color='var(--text-0)'; };
   btn.onmouseout  = () => { btn.style.borderColor='var(--border)'; btn.style.color='var(--text-2)'; };
   
