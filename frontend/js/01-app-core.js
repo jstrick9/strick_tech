@@ -1544,7 +1544,32 @@ function closePalette() {
 async function filterPalette() {
   const q = document.getElementById('palette-input').value.trim().toLowerCase();
   const results = document.getElementById('palette-results');
-  const items = PALETTE_CMDS.filter(c =>
+  
+  const allCommands = [...PALETTE_CMDS];
+  if (window.MASTER_PANE_REGISTRY) {
+    Object.keys(window.MASTER_PANE_REGISTRY).forEach(pk => {
+      if (!allCommands.some(c => c.label.toLowerCase() === pk.toLowerCase() || (c.desc && c.desc.toLowerCase().includes(`nav('${pk}')`)))) {
+        allCommands.push({
+          icon: '⚡',
+          label: 'Open ' + pk.toUpperCase().replace(/-/g, ' '),
+          desc: 'Switch directly to the ' + pk + ' workspace component',
+          action: () => window.nav(pk)
+        });
+      }
+    });
+  }
+  if (S.agents && S.agents.length) {
+    S.agents.forEach(a => {
+      allCommands.push({
+        icon: a.avatar || '🤖',
+        label: 'Agent: ' + a.name,
+        desc: a.role || a.model || 'Specialist AI Agent',
+        action: () => { if (typeof setActiveAgent === 'function') setActiveAgent(a); window.nav('chat'); }
+      });
+    });
+  }
+
+  const items = allCommands.filter(c =>
     !q || c.label.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q));
   S.paletteFocusIdx = 0;
   let html = [
@@ -3878,6 +3903,39 @@ Object.entries(wrappedRenders).forEach(([key, fn]) => {
 
 // ── Micro-interactions ─────────────────────────────────────────────
 
+window.initDeepLinkRouter = function() {
+  const hash = location.hash || '';
+  if (hash && hash.startsWith('#/')) {
+    const parts = hash.slice(2).split('/');
+    const pane = parts[0];
+    const subTab = parts[1];
+    if (pane && window.MASTER_PANE_REGISTRY && window.MASTER_PANE_REGISTRY.hasOwnProperty(pane)) {
+      setTimeout(() => {
+        window.nav(pane);
+        if (pane === 'settings' && subTab && typeof window.switchSettingsTab === 'function') {
+          window.switchSettingsTab(subTab);
+        } else if (pane === 'hierarchy' && subTab && typeof window.switchIvrenSection === 'function') {
+          window.switchIvrenSection(subTab);
+        }
+      }, 100);
+    }
+  }
+  window.addEventListener('hashchange', () => {
+    const h = location.hash || '';
+    if (h && h.startsWith('#/')) {
+      const parts = h.slice(2).split('/');
+      const p = parts[0];
+      const sub = parts[1];
+      if (p && window.MASTER_PANE_REGISTRY && window.MASTER_PANE_REGISTRY.hasOwnProperty(p)) {
+        window.nav(p);
+        if (p === 'settings' && sub && typeof window.switchSettingsTab === 'function') {
+          window.switchSettingsTab(sub);
+        }
+      }
+    }
+  });
+};
+
 // Add lift class to all cards dynamically and initialize UI controllers
 (function addLiftToCards() {
   document.addEventListener('DOMContentLoaded', () => {
@@ -3888,6 +3946,7 @@ Object.entries(wrappedRenders).forEach(([key, fn]) => {
     try { if (typeof setupSidebarResizer === 'function') setupSidebarResizer(); } catch(e) {}
     try { if (typeof setupSettingsWorkstation === 'function') setupSettingsWorkstation(); } catch(e) {}
     try { if (typeof setupDragAndDrop === 'function') setupDragAndDrop(); } catch(e) {}
+    try { if (typeof window.initDeepLinkRouter === 'function') window.initDeepLinkRouter(); } catch(e) {}
   });
 })();
 
@@ -7492,7 +7551,7 @@ window.updateSettingsModeButtons = function() {
     pwrBtn.style.borderColor = mode === 'power' ? 'var(--accent)' : 'var(--border)';
     pwrBtn.style.background  = mode === 'power' ? 'rgba(91,138,248,.12)' : 'var(--bg-3)';
   }
-  const fs = (typeof _UI !== 'undefined' ? _UI.profile?.font_size : 'base') || 'base';
+  const fs = localStorage.getItem('agentic_os_font_size') || (typeof _UI !== 'undefined' ? _UI.profile?.font_size : 'base') || 'base';
   ['sm','base','lg'].forEach(s => {
     const b = document.getElementById(`fs-${s}`);
     if (b) {
@@ -7503,17 +7562,23 @@ window.updateSettingsModeButtons = function() {
   });
 };
 
-async function saveFontSize(size) {
-  try {
-    await fetch('/api/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({font_size:size})});
-    if (_UI.profile) _UI.profile.font_size = size;
-    applyProfileTheme(_UI.profile);
-    updateSettingsModeButtons();
-    showToast(`✅ Font size set to ${size}`);
-  } catch(e) {
-    showToast('⚠️ Could not save font size');
+window.saveFontSize = async function(size) {
+  const sizeMap = { sm: '13px', base: '14px', lg: '16px' };
+  document.documentElement.style.fontSize = sizeMap[size] || '14px';
+  try { localStorage.setItem('agentic_os_font_size', size); } catch(e) {}
+  if (typeof _UI !== 'undefined') {
+    if (!_UI.profile) _UI.profile = {};
+    _UI.profile.font_size = size;
   }
-}
+  if (typeof updateSettingsModeButtons === 'function') updateSettingsModeButtons();
+  toast(`✅ Font size set to ${size}`, 'ok', 2000);
+  try {
+    fetch('/api/profile', {
+      method: 'PATCH', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({font_size: size})
+    }).catch(()=>{});
+  } catch(e) {}
+};
 
 // ── Keyboard Shortcuts Overlay ─────────────────────────────────────
 async function showShortcuts() {
