@@ -1452,31 +1452,33 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <!-- Nav: grouped and organized -->
       <div class="sidebar-scroll">
         <!-- ═══ CORE: Always visible in all modes ═══ -->
-        <div class="sidebar-group-label" style="display:block;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px">CORE AI WORKSTATION <span class="group-count" style="float:right;font-size:10px;opacity:0.7">8</span></div>
-        <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI agents" role="menuitem" aria-label="Chat">
-          <span class="icon">✨</span><span class="label">Chat & Swarm</span>
-        </div>
-        <div class="nav-item" data-nav="studio" data-tier="core" onclick="nav('studio')" data-tooltip="Live editor + preview" role="menuitem" aria-label="Studio">
-          <span class="icon">⚡</span><span class="label">Studio</span>
-          <span class="badge badge-live" style="font-size:9px;padding:1px 6px">LIVE</span>
-        </div>
-        <div class="nav-item" data-nav="templates" data-tier="core" onclick="nav('templates')" data-tooltip="Starter templates" role="menuitem" aria-label="Templates">
-          <span class="icon">❖</span><span class="label">Templates</span>
-        </div>
-        <div class="nav-item" data-nav="swarm" data-tier="core" onclick="nav('swarm')" data-tooltip="Multi-agent fan-out" role="menuitem" aria-label="Swarm">
-          <span class="icon">◈</span><span class="label">Swarm</span>
-        </div>
-        <div class="nav-item" data-nav="galaxy" data-tier="core" onclick="nav('galaxy')" data-tooltip="3D memory graph" role="menuitem" aria-label="Memory">
-          <span class="icon">🕸</span><span class="label">Memory</span>
-        </div>
-        <div class="nav-item" data-nav="hierarchy" data-tier="core" onclick="nav('hierarchy')" data-tooltip="2-Tier AI Operating Manual (IVREN)" role="menuitem" aria-label="Hierarchy">
-          <span class="icon">✦</span><span class="label">Hierarchy</span>
-        </div>
-        <div class="nav-item" data-nav="kanban" data-tier="core" onclick="nav('kanban')" data-tooltip="Task board" role="menuitem" aria-label="Kanban">
-          <span class="icon">☷</span><span class="label">Kanban</span>
-        </div>
-        <div class="nav-item" data-nav="settings" data-tier="core" onclick="nav('settings')" data-tooltip="Settings & API keys" role="menuitem" aria-label="Settings">
-          <span class="icon">⚙</span><span class="label">Settings</span>
+        <div class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> CORE AI WORKSTATION <span class="group-count" style="float:right;font-size:10px;opacity:0.7">8</span></div>
+        <div class="sidebar-group-content" id="group-core" style="display:none">
+          <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI agents" role="menuitem" aria-label="Chat">
+            <span class="icon">✨</span><span class="label">Chat & Swarm</span>
+          </div>
+          <div class="nav-item" data-nav="studio" data-tier="core" onclick="nav('studio')" data-tooltip="Live editor + preview" role="menuitem" aria-label="Studio">
+            <span class="icon">⚡</span><span class="label">Studio</span>
+            <span class="badge badge-live" style="font-size:9px;padding:1px 6px">LIVE</span>
+          </div>
+          <div class="nav-item" data-nav="templates" data-tier="core" onclick="nav('templates')" data-tooltip="Starter templates" role="menuitem" aria-label="Templates">
+            <span class="icon">❖</span><span class="label">Templates</span>
+          </div>
+          <div class="nav-item" data-nav="swarm" data-tier="core" onclick="nav('swarm')" data-tooltip="Multi-agent fan-out" role="menuitem" aria-label="Swarm">
+            <span class="icon">◈</span><span class="label">Swarm</span>
+          </div>
+          <div class="nav-item" data-nav="galaxy" data-tier="core" onclick="nav('galaxy')" data-tooltip="3D memory graph" role="menuitem" aria-label="Memory">
+            <span class="icon">🕸</span><span class="label">Memory</span>
+          </div>
+          <div class="nav-item" data-nav="hierarchy" data-tier="core" onclick="nav('hierarchy')" data-tooltip="2-Tier AI Operating Manual (IVREN)" role="menuitem" aria-label="Hierarchy">
+            <span class="icon">✦</span><span class="label">Hierarchy</span>
+          </div>
+          <div class="nav-item" data-nav="kanban" data-tier="core" onclick="nav('kanban')" data-tooltip="Task board" role="menuitem" aria-label="Kanban">
+            <span class="icon">☷</span><span class="label">Kanban</span>
+          </div>
+          <div class="nav-item" data-nav="settings" data-tier="core" onclick="nav('settings')" data-tooltip="Settings & API keys" role="menuitem" aria-label="Settings">
+            <span class="icon">⚙</span><span class="label">Settings</span>
+          </div>
         </div>
 
         <!-- ═══ ADVANCED: Power mode toggle ═══ -->
@@ -1487,76 +1489,84 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- BUILD & AI ENGINE -->
-        <div class="sidebar-group-label" data-tier="advanced" style="color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px">BUILD & AI ENGINE <span class="group-count" style="float:right;font-size:10px;opacity:0.7">11</span></div>
-        <div class="nav-item" data-nav="builder" data-tier="advanced" onclick="nav('builder')"><span class="icon">⌨</span><span class="label">Editor</span></div>
-        <div class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')"><span class="icon">✦</span><span class="label">Composer</span></div>
-        <div class="nav-item" data-nav="pipeline" data-tier="advanced" onclick="nav('pipeline')"><span class="icon">⎈</span><span class="label">Pipeline</span></div>
-        <div class="nav-item" data-nav="skills" data-tier="advanced" onclick="nav('skills')"><span class="icon">⚡</span><span class="label">Skills</span></div>
-        <div class="nav-item" data-nav="loops" data-tier="advanced" onclick="nav('loops')"><span class="icon">♾</span><span class="label">Loops</span><span class="count" id="loop-count">0</span></div>
-        <div class="nav-item" data-nav="mcp" data-tier="advanced" onclick="nav('mcp')"><span class="icon">⌥</span><span class="label">MCP Tools</span></div>
-        <div class="nav-item" data-nav="fusion" data-tier="advanced" onclick="nav('fusion')"><span class="icon">⇋</span><span class="label">Fusion</span></div>
-        <div class="nav-item" data-nav="arena" data-tier="advanced" onclick="nav('arena')"><span class="icon">⚔</span><span class="label">Arena</span></div>
-        <div class="nav-item" data-nav="plugins" data-tier="advanced" onclick="nav('plugins')"><span class="icon">❖</span><span class="label">Plugins</span></div>
-        <div class="nav-item" data-nav="terminal" data-tier="advanced" onclick="nav('terminal')"><span class="icon">＞_</span><span class="label">Terminal</span></div>
-        <div class="nav-item" data-nav="secrets" data-tier="advanced" onclick="nav('secrets')"><span class="icon">🔐</span><span class="label">Vault</span></div>
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD & AI ENGINE <span class="group-count" style="float:right;font-size:10px;opacity:0.7">11</span></div>
+        <div class="sidebar-group-content" id="group-build" data-tier="advanced" style="display:none">
+          <div class="nav-item" data-nav="builder" data-tier="advanced" onclick="nav('builder')"><span class="icon">⌨</span><span class="label">Editor</span></div>
+          <div class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')"><span class="icon">✦</span><span class="label">Composer</span></div>
+          <div class="nav-item" data-nav="pipeline" data-tier="advanced" onclick="nav('pipeline')"><span class="icon">⎈</span><span class="label">Pipeline</span></div>
+          <div class="nav-item" data-nav="skills" data-tier="advanced" onclick="nav('skills')"><span class="icon">⚡</span><span class="label">Skills</span></div>
+          <div class="nav-item" data-nav="loops" data-tier="advanced" onclick="nav('loops')"><span class="icon">♾</span><span class="label">Loops</span><span class="count" id="loop-count">0</span></div>
+          <div class="nav-item" data-nav="mcp" data-tier="advanced" onclick="nav('mcp')"><span class="icon">⌥</span><span class="label">MCP Tools</span></div>
+          <div class="nav-item" data-nav="fusion" data-tier="advanced" onclick="nav('fusion')"><span class="icon">⇋</span><span class="label">Fusion</span></div>
+          <div class="nav-item" data-nav="arena" data-tier="advanced" onclick="nav('arena')"><span class="icon">⚔</span><span class="label">Arena</span></div>
+          <div class="nav-item" data-nav="plugins" data-tier="advanced" onclick="nav('plugins')"><span class="icon">❖</span><span class="label">Plugins</span></div>
+          <div class="nav-item" data-nav="terminal" data-tier="advanced" onclick="nav('terminal')"><span class="icon">＞_</span><span class="label">Terminal</span></div>
+          <div class="nav-item" data-nav="secrets" data-tier="advanced" onclick="nav('secrets')"><span class="icon">🔐</span><span class="label">Vault</span></div>
+        </div>
 
         <!-- SHIP & GOVERNANCE -->
-        <div class="sidebar-group-label" data-tier="advanced" style="color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px">SHIP & GOVERNANCE <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
-        <div class="nav-item" data-nav="github" data-tier="advanced" onclick="nav('github')"><span class="icon">⌥</span><span class="label">GitHub</span></div>
-        <div class="nav-item" data-nav="deploy" data-tier="advanced" onclick="nav('deploy')"><span class="icon">⚡</span><span class="label">Deploy</span></div>
-        <div class="nav-item" data-nav="dbstudio" data-tier="advanced" onclick="nav('dbstudio')"><span class="icon">⛁</span><span class="label">Database Studio</span></div>
-        <div class="nav-item" data-nav="dashboard" data-tier="advanced" onclick="nav('dashboard')"><span class="icon">▤</span><span class="label">Dashboard</span></div>
-        <div class="nav-item" data-nav="system" data-tier="advanced" onclick="nav('system')"><span class="icon">⛭</span><span class="label">System</span></div>
-        <div class="nav-item" data-nav="workspaces" data-tier="advanced" onclick="nav('workspaces')"><span class="icon">◫</span><span class="label">Workspaces</span></div>
-        <div class="nav-item" data-nav="control" data-tier="advanced" onclick="nav('control')"><span class="icon">🎛</span><span class="label">Control Tower</span></div>
-        <div class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')"><span class="icon">◈</span><span class="label">Supervisor</span></div>
-        <div class="nav-item" data-nav="goals" data-tier="advanced" onclick="nav('goals')"><span class="icon">◎</span><span class="label">Goals</span></div>
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> SHIP & GOVERNANCE <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
+        <div class="sidebar-group-content" id="group-ship" data-tier="advanced" style="display:none">
+          <div class="nav-item" data-nav="github" data-tier="advanced" onclick="nav('github')"><span class="icon">⌥</span><span class="label">GitHub</span></div>
+          <div class="nav-item" data-nav="deploy" data-tier="advanced" onclick="nav('deploy')"><span class="icon">⚡</span><span class="label">Deploy</span></div>
+          <div class="nav-item" data-nav="dbstudio" data-tier="advanced" onclick="nav('dbstudio')"><span class="icon">⛁</span><span class="label">Database Studio</span></div>
+          <div class="nav-item" data-nav="dashboard" data-tier="advanced" onclick="nav('dashboard')"><span class="icon">▤</span><span class="label">Dashboard</span></div>
+          <div class="nav-item" data-nav="system" data-tier="advanced" onclick="nav('system')"><span class="icon">⛭</span><span class="label">System</span></div>
+          <div class="nav-item" data-nav="workspaces" data-tier="advanced" onclick="nav('workspaces')"><span class="icon">◫</span><span class="label">Workspaces</span></div>
+          <div class="nav-item" data-nav="control" data-tier="advanced" onclick="nav('control')"><span class="icon">🎛</span><span class="label">Control Tower</span></div>
+          <div class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')"><span class="icon">◈</span><span class="label">Supervisor</span></div>
+          <div class="nav-item" data-nav="goals" data-tier="advanced" onclick="nav('goals')"><span class="icon">◎</span><span class="label">Goals</span></div>
+        </div>
 
         <!-- AGENTIC ORCHESTRATION & TOOLS -->
-        <div class="sidebar-group-label" data-tier="advanced" style="color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px">AGENTIC ORCHESTRATION & TOOLS <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
-        <div class="nav-item" data-nav="workflow" data-tier="advanced" onclick="nav('workflow')"><span class="icon">⎈</span><span class="label">Workflows</span></div>
-        <div class="nav-item" data-nav="specs" data-tier="advanced" onclick="nav('specs')"><span class="icon">☷</span><span class="label">Spec Builder</span></div>
-        <div class="nav-item" data-nav="steering" data-tier="advanced" onclick="nav('steering')"><span class="icon">✦</span><span class="label">Steering</span></div>
-        <div class="nav-item" data-nav="bugbot" data-tier="advanced" onclick="nav('bugbot')"><span class="icon">🛡</span><span class="label">BugBot</span></div>
-        <div class="nav-item" data-nav="gitai" data-tier="advanced" onclick="nav('gitai')"><span class="icon">⎇</span><span class="label">Git AI</span></div>
-        <div class="nav-item" data-nav="marketplace" data-tier="advanced" onclick="nav('marketplace')"><span class="icon">❖</span><span class="label">Marketplace</span></div>
-        <div class="nav-item" data-nav="replay" data-tier="advanced" onclick="nav('replay')"><span class="icon">⟲</span><span class="label">Replay</span></div>
-        <div class="nav-item" data-nav="collabedit" data-tier="advanced" onclick="nav('collabedit')"><span class="icon">✍</span><span class="label">Collab Edit</span></div>
-        <div class="nav-item" data-nav="ambient" data-tier="advanced" onclick="nav('ambient')"><span class="icon">≈</span><span class="label">Ambient</span></div>
-        <div class="nav-item" data-nav="hitl" data-tier="advanced" onclick="nav('hitl')"><span class="icon">🛡</span><span class="label">HITL</span></div>
-        <div class="nav-item" data-nav="connectors" data-tier="advanced" onclick="nav('connectors')"><span class="icon">⇋</span><span class="label">Connectors</span></div>
-        <div class="nav-item" data-nav="mcp-gateway" data-tier="advanced" onclick="nav('mcp-gateway')"><span class="icon">⇶</span><span class="label">MCP Gateway</span></div>
-        <div class="nav-item" data-nav="a2a" data-tier="advanced" onclick="nav('a2a')"><span class="icon">∿</span><span class="label">A2A Network</span></div>
-        <div class="nav-item" data-nav="agent-identity" data-tier="advanced" onclick="nav('agent-identity')"><span class="icon">🪪</span><span class="label">Identity</span></div>
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTIC ORCHESTRATION & TOOLS <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
+        <div class="sidebar-group-content" id="group-tools" data-tier="advanced" style="display:none">
+          <div class="nav-item" data-nav="workflow" data-tier="advanced" onclick="nav('workflow')"><span class="icon">⎈</span><span class="label">Workflows</span></div>
+          <div class="nav-item" data-nav="specs" data-tier="advanced" onclick="nav('specs')"><span class="icon">☷</span><span class="label">Spec Builder</span></div>
+          <div class="nav-item" data-nav="steering" data-tier="advanced" onclick="nav('steering')"><span class="icon">✦</span><span class="label">Steering</span></div>
+          <div class="nav-item" data-nav="bugbot" data-tier="advanced" onclick="nav('bugbot')"><span class="icon">🛡</span><span class="label">BugBot</span></div>
+          <div class="nav-item" data-nav="gitai" data-tier="advanced" onclick="nav('gitai')"><span class="icon">⎇</span><span class="label">Git AI</span></div>
+          <div class="nav-item" data-nav="marketplace" data-tier="advanced" onclick="nav('marketplace')"><span class="icon">❖</span><span class="label">Marketplace</span></div>
+          <div class="nav-item" data-nav="replay" data-tier="advanced" onclick="nav('replay')"><span class="icon">⟲</span><span class="label">Replay</span></div>
+          <div class="nav-item" data-nav="collabedit" data-tier="advanced" onclick="nav('collabedit')"><span class="icon">✍</span><span class="label">Collab Edit</span></div>
+          <div class="nav-item" data-nav="ambient" data-tier="advanced" onclick="nav('ambient')"><span class="icon">≈</span><span class="label">Ambient</span></div>
+          <div class="nav-item" data-nav="hitl" data-tier="advanced" onclick="nav('hitl')"><span class="icon">🛡</span><span class="label">HITL</span></div>
+          <div class="nav-item" data-nav="connectors" data-tier="advanced" onclick="nav('connectors')"><span class="icon">⇋</span><span class="label">Connectors</span></div>
+          <div class="nav-item" data-nav="mcp-gateway" data-tier="advanced" onclick="nav('mcp-gateway')"><span class="icon">⇶</span><span class="label">MCP Gateway</span></div>
+          <div class="nav-item" data-nav="a2a" data-tier="advanced" onclick="nav('a2a')"><span class="icon">∿</span><span class="label">A2A Network</span></div>
+          <div class="nav-item" data-nav="agent-identity" data-tier="advanced" onclick="nav('agent-identity')"><span class="icon">🪪</span><span class="label">Identity</span></div>
+        </div>
 
         <!-- ENTERPRISE GOVERNANCE & TELEMETRY -->
-        <div class="sidebar-group-label" data-tier="advanced" style="color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px">ENTERPRISE GOVERNANCE & TELEMETRY <span class="group-count" style="float:right;font-size:10px;opacity:0.7">17</span></div>
-        <div class="nav-item" data-nav="audit-log" data-tier="advanced" onclick="nav('audit-log')"><span class="icon">🔏</span><span class="label">Audit Log</span></div>
-        <div class="nav-item" data-nav="leaderboard" data-tier="advanced" onclick="nav('leaderboard')"><span class="icon">★</span><span class="label">Leaderboard</span></div>
-        <div class="nav-item" data-nav="agent-monitor" data-tier="advanced" onclick="nav('agent-monitor')"><span class="icon">◈</span><span class="label">Live Monitor</span></div>
-        <div class="nav-item" data-nav="finops" data-tier="advanced" onclick="nav('finops')"><span class="icon">◇</span><span class="label">FinOps</span></div>
-        <div class="nav-item" data-nav="eval-framework" data-tier="advanced" onclick="nav('eval-framework')"><span class="icon">⚗</span><span class="label">Eval Framework</span></div>
-        <div class="nav-item" data-nav="docs" data-tier="advanced" onclick="nav('docs')"><span class="icon">☷</span><span class="label">Docs</span></div>
-        <div class="nav-item" data-nav="websearch" data-tier="advanced" onclick="nav('websearch')"><span class="icon">◎</span><span class="label">Web Search</span></div>
-        <div class="nav-item" data-nav="browser" data-tier="advanced" onclick="nav('browser')"><span class="icon">❖</span><span class="label">Browser Agent</span></div>
-        <div class="nav-item" data-nav="knowledge-graph" data-tier="advanced" onclick="nav('knowledge-graph')"><span class="icon">🕸</span><span class="label">Knowledge Graph</span></div>
-        <div class="nav-item" data-nav="rag" data-tier="advanced" onclick="nav('rag')"><span class="icon">▤</span><span class="label">RAG</span></div>
-        <div class="nav-item" data-nav="hooks" data-tier="advanced" onclick="nav('hooks')"><span class="icon">⚡</span><span class="label">Hooks</span></div>
-        <div class="nav-item" data-nav="codeindex" data-tier="advanced" onclick="nav('codeindex')"><span class="icon">🕸</span><span class="label">Code Graph</span></div>
-        <div class="nav-item" data-nav="observability" data-tier="advanced" onclick="nav('observability')"><span class="icon">◎</span><span class="label">Observability</span></div>
-        <div class="nav-item" data-nav="evals" data-tier="advanced" onclick="nav('evals')"><span class="icon">⚗</span><span class="label">Evals</span></div>
-        <div class="nav-item" data-nav="health" data-tier="advanced" onclick="nav('health')"><span class="icon">✚</span><span class="label">Health</span></div>
-        <div class="nav-item" data-nav="integrations" data-tier="advanced" onclick="nav('integrations')"><span class="icon">⇋</span><span class="label">Integrations</span></div>
-        <div class="nav-item" data-nav="imagegen" data-tier="advanced" onclick="nav('imagegen')"><span class="icon">❖</span><span class="label">Image Gen</span></div>
-        <div class="nav-item" data-nav="prompts" data-tier="advanced" onclick="nav('prompts')"><span class="icon">✦</span><span class="label">Prompts</span></div>
-        <div class="nav-item" data-nav="codesearch" data-tier="advanced" onclick="nav('codesearch')"><span class="icon">⌕</span><span class="label">Code Search</span></div>
-        <div class="nav-item" data-nav="obsidian" data-tier="advanced" onclick="nav('obsidian')"><span class="icon">◈</span><span class="label">Obsidian</span></div>
-        <div class="nav-item" data-nav="pluginsdk" data-tier="advanced" onclick="nav('pluginsdk')"><span class="icon">⌥</span><span class="label">Plugin SDK</span></div>
-        <div class="nav-item" data-nav="multitab" data-tier="advanced" onclick="nav('multitab')"><span class="icon">◫</span><span class="label">Multi-Preview</span></div>
-        <div class="nav-item" data-nav="profiler" data-tier="advanced" onclick="nav('profiler')"><span class="icon">📈</span><span class="label">Profiler</span></div>
-        <div class="nav-item" data-nav="webhooks" data-tier="advanced" onclick="nav('webhooks')"><span class="icon">⇶</span><span class="label">Webhooks</span></div>
-        <div class="nav-item" data-nav="testgen" data-tier="advanced" onclick="nav('testgen')"><span class="icon">⚗</span><span class="label">Test Gen</span></div>
-        <div class="nav-item" data-nav="pqc" data-tier="advanced" onclick="nav('pqc')"><span class="icon">🛡</span><span class="label">PQC Vault</span></div>
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> ENTERPRISE GOVERNANCE & TELEMETRY <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
+        <div class="sidebar-group-content" id="group-enterprise" data-tier="advanced" style="display:none">
+          <div class="nav-item" data-nav="audit-log" data-tier="advanced" onclick="nav('audit-log')"><span class="icon">🔏</span><span class="label">Audit Log</span></div>
+          <div class="nav-item" data-nav="leaderboard" data-tier="advanced" onclick="nav('leaderboard')"><span class="icon">★</span><span class="label">Leaderboard</span></div>
+          <div class="nav-item" data-nav="agent-monitor" data-tier="advanced" onclick="nav('agent-monitor')"><span class="icon">◈</span><span class="label">Live Monitor</span></div>
+          <div class="nav-item" data-nav="finops" data-tier="advanced" onclick="nav('finops')"><span class="icon">◇</span><span class="label">FinOps</span></div>
+          <div class="nav-item" data-nav="eval-framework" data-tier="advanced" onclick="nav('eval-framework')"><span class="icon">⚗</span><span class="label">Eval Framework</span></div>
+          <div class="nav-item" data-nav="docs" data-tier="advanced" onclick="nav('docs')"><span class="icon">☷</span><span class="label">Docs</span></div>
+          <div class="nav-item" data-nav="websearch" data-tier="advanced" onclick="nav('websearch')"><span class="icon">◎</span><span class="label">Web Search</span></div>
+          <div class="nav-item" data-nav="browser" data-tier="advanced" onclick="nav('browser')"><span class="icon">❖</span><span class="label">Browser Agent</span></div>
+          <div class="nav-item" data-nav="knowledge-graph" data-tier="advanced" onclick="nav('knowledge-graph')"><span class="icon">🕸</span><span class="label">Knowledge Graph</span></div>
+          <div class="nav-item" data-nav="rag" data-tier="advanced" onclick="nav('rag')"><span class="icon">▤</span><span class="label">RAG</span></div>
+          <div class="nav-item" data-nav="hooks" data-tier="advanced" onclick="nav('hooks')"><span class="icon">⚡</span><span class="label">Hooks</span></div>
+          <div class="nav-item" data-nav="codeindex" data-tier="advanced" onclick="nav('codeindex')"><span class="icon">🕸</span><span class="label">Code Graph</span></div>
+          <div class="nav-item" data-nav="observability" data-tier="advanced" onclick="nav('observability')"><span class="icon">◎</span><span class="label">Observability</span></div>
+          <div class="nav-item" data-nav="evals" data-tier="advanced" onclick="nav('evals')"><span class="icon">⚗</span><span class="label">Evals</span></div>
+          <div class="nav-item" data-nav="health" data-tier="advanced" onclick="nav('health')"><span class="icon">✚</span><span class="label">Health</span></div>
+          <div class="nav-item" data-nav="integrations" data-tier="advanced" onclick="nav('integrations')"><span class="icon">⇋</span><span class="label">Integrations</span></div>
+          <div class="nav-item" data-nav="imagegen" data-tier="advanced" onclick="nav('imagegen')"><span class="icon">❖</span><span class="label">Image Gen</span></div>
+          <div class="nav-item" data-nav="prompts" data-tier="advanced" onclick="nav('prompts')"><span class="icon">✦</span><span class="label">Prompts</span></div>
+          <div class="nav-item" data-nav="codesearch" data-tier="advanced" onclick="nav('codesearch')"><span class="icon">⌕</span><span class="label">Code Search</span></div>
+          <div class="nav-item" data-nav="obsidian" data-tier="advanced" onclick="nav('obsidian')"><span class="icon">◈</span><span class="label">Obsidian</span></div>
+          <div class="nav-item" data-nav="pluginsdk" data-tier="advanced" onclick="nav('pluginsdk')"><span class="icon">⌥</span><span class="label">Plugin SDK</span></div>
+          <div class="nav-item" data-nav="multitab" data-tier="advanced" onclick="nav('multitab')"><span class="icon">◫</span><span class="label">Multi-Preview</span></div>
+          <div class="nav-item" data-nav="profiler" data-tier="advanced" onclick="nav('profiler')"><span class="icon">📈</span><span class="label">Profiler</span></div>
+          <div class="nav-item" data-nav="webhooks" data-tier="advanced" onclick="nav('webhooks')"><span class="icon">⇶</span><span class="label">Webhooks</span></div>
+          <div class="nav-item" data-nav="testgen" data-tier="advanced" onclick="nav('testgen')"><span class="icon">⚗</span><span class="label">Test Gen</span></div>
+          <div class="nav-item" data-nav="pqc" data-tier="advanced" onclick="nav('pqc')"><span class="icon">🛡</span><span class="label">PQC Vault</span></div>
+        </div>
       </div>
 
       <!-- Agents -->
