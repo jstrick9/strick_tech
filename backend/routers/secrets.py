@@ -198,16 +198,30 @@ async def test_secret_connection(req: Request):
         except Exception as e:
             return {'ok': False, 'error': f'Network verification error: {e}'}
     elif provider == 'ollama':
-        url = body.get('url') or os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
+        raw_url = body.get('url') or os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
+        url = raw_url.rstrip('/').removesuffix('/v1').rstrip('/')
         try:
             async with httpx.AsyncClient(timeout=4.0) as client:
-                r = await client.get(f'{url.rstrip("/")}/api/tags')
-                if r.status_code == 200:
-                    data = r.json()
-                    models = data.get('models', [])
-                    return {'ok': True, 'provider': 'ollama', 'models_count': len(models), 'message': f'✅ Verified Ollama connection on {url}! {len(models)} local models found.'}
-                else:
-                    return {'ok': False, 'error': f'Ollama returned HTTP {r.status_code}'}
+                try:
+                    r = await client.get(f'{url}/api/tags')
+                    if r.status_code == 404:
+                        raise httpx.HTTPStatusError('404 Not Found', request=r.request, response=r)
+                    if r.status_code == 200:
+                        data = r.json()
+                        models = data.get('models', [])
+                        return {'ok': True, 'provider': 'ollama', 'models_count': len(models), 'message': f'✅ Verified Ollama connection on {url}! {len(models)} local models found.'}
+                    else:
+                        return {'ok': False, 'error': f'Ollama returned HTTP {r.status_code}'}
+                except (httpx.HTTPStatusError, httpx.RequestError) as e:
+                    if isinstance(e, httpx.HTTPStatusError) and e.response.status_code != 404:
+                        raise
+                    r2 = await client.get(f'{url}/v1/models')
+                    if r2.status_code == 200:
+                        data2 = r2.json()
+                        models2 = data2.get('data', [])
+                        return {'ok': True, 'provider': 'ollama', 'models_count': len(models2), 'message': f'✅ Verified Ollama connection on {url} (/v1/models)! {len(models2)} local models found.'}
+                    else:
+                        return {'ok': False, 'error': f'Ollama returned HTTP {r2.status_code}'}
         except Exception as e:
             return {'ok': False, 'error': f'Could not connect to local Ollama at {url}: {e}'}
     return {'ok': False, 'error': f'Unknown provider: {provider}'}
