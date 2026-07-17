@@ -75,6 +75,7 @@ async def chat_stream(req: Request):
         body = {}
     message = (body.get('message') or '').strip()
     agent_id = (body.get('agent_id') or 'default').lower()
+    req_model = (body.get('model') or '').strip()
     session_id = body.get('session_id') or str(uuid.uuid4())
     history = body.get('history') or []  # [{role, content}, ...]
     temperature = float(body.get('temperature', 0.7))
@@ -185,7 +186,7 @@ async def chat_stream(req: Request):
             async for chunk in llm.stream(
                 messages,
                 agent_id=agent.get('model') or agent_id,
-                model=agent.get('model', ''),
+                model=req_model or agent.get('model', ''),
                 temperature=temperature,
                 max_tokens=max_tokens,
                 inject_steering=False,

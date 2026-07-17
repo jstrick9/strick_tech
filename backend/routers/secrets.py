@@ -209,6 +209,10 @@ async def test_secret_connection(req: Request):
                     if r.status_code == 200:
                         data = r.json()
                         models = data.get('models', [])
+                        os.environ['OLLAMA_BASE_URL'] = url
+                        import sys
+                        if 'backend.services.llm' in sys.modules:
+                            sys.modules['backend.services.llm'].OLLAMA_BASE = url
                         return {'ok': True, 'provider': 'ollama', 'models_count': len(models), 'message': f'✅ Verified Ollama connection on {url}! {len(models)} local models found.'}
                     else:
                         return {'ok': False, 'error': f'Ollama returned HTTP {r.status_code}'}
@@ -219,6 +223,10 @@ async def test_secret_connection(req: Request):
                     if r2.status_code == 200:
                         data2 = r2.json()
                         models2 = data2.get('data', [])
+                        os.environ['OLLAMA_BASE_URL'] = url
+                        import sys
+                        if 'backend.services.llm' in sys.modules:
+                            sys.modules['backend.services.llm'].OLLAMA_BASE = url
                         return {'ok': True, 'provider': 'ollama', 'models_count': len(models2), 'message': f'✅ Verified Ollama connection on {url} (/v1/models)! {len(models2)} local models found.'}
                     else:
                         return {'ok': False, 'error': f'Ollama returned HTTP {r2.status_code}'}
