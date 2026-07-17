@@ -810,9 +810,7 @@ async function obNext() {
   } catch(ex) {
     window._onboardingDismissed = true;
     if (typeof window.closeOnboardingModal === 'function') window.closeOnboardingModal();
-    else document.getElementById('onboarding-overlay')?.remove();
-  }
-    // Non-fatal: log and continue — user can fix settings later
+    else { const ov = document.getElementById('onboarding-overlay'); if (ov) ov.remove(); }
     console.warn('[Onboarding] Step save failed (non-critical):', ex?.message || String(ex));
   }
 

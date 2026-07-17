@@ -2046,7 +2046,7 @@ function showToast(msg, dur=3000) {
   t.textContent = msg;
   t.style.opacity='1';
   clearTimeout((t)._timer);
-  (t)._timer = setTimeout(()=>{ t?.style.opacity='0'; }, dur);
+  (t)._timer = setTimeout(()=>{ if (t) t.style.opacity='0'; }, dur);
 }
 
 

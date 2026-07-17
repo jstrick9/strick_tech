@@ -662,7 +662,7 @@ async function ciLoadStats() {
       status.textContent = `${d.total_files} files · ${d.total_symbols} symbols`;
     }
     if (d.total_symbols>0) {
-      document.getElementById('ci-empty-state')?.style.display = 'none';
+      const emptySt = document.getElementById('ci-empty-state'); if (emptySt) emptySt.style.display = 'none';
       await ciLoadGraph();
     }
   } catch(e) {}
@@ -1049,15 +1049,17 @@ async function arenaStartBattle() {
   if (btn) { btn.disabled=true; btn.textContent='⚔️ Battling…'; }
 
   // Reset UI
-  document.getElementById('arena-resp-a')?.innerHTML = '<span class="typing-cursor"></span>';
-  document.getElementById('arena-resp-b')?.innerHTML = '<span class="typing-cursor"></span>';
-  document.getElementById('arena-label-a')?.textContent = modelA;
-  document.getElementById('arena-label-b')?.textContent = modelB;
-  document.getElementById('arena-lat-a')?.textContent = '';
-  document.getElementById('arena-lat-b')?.textContent = '';
-  document.getElementById('arena-footer-a')?.textContent = '';
-  document.getElementById('arena-footer-b')?.textContent = '';
-  document.getElementById('arena-vote-area')?.style.display = 'none';
+  const setHtml = (id, val) => { const e = document.getElementById(id); if (e) e.innerHTML = val; };
+  const setText = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+  setHtml('arena-resp-a', '<span class="typing-cursor"></span>');
+  setHtml('arena-resp-b', '<span class="typing-cursor"></span>');
+  setText('arena-label-a', modelA);
+  setText('arena-label-b', modelB);
+  setText('arena-lat-a', '');
+  setText('arena-lat-b', '');
+  setText('arena-footer-a', '');
+  setText('arena-footer-b', '');
+  const voteArea = document.getElementById('arena-vote-area'); if (voteArea) voteArea.style.display = 'none';
 
   let textA='', textB='';
 
@@ -1066,7 +1068,8 @@ async function arenaStartBattle() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({prompt, model_a:modelA, model_b:modelB})
     });
-    const reader = resp.body!.getReader();
+    const reader = resp.body ? resp.body.getReader() : null;
+    if (!reader) return;
     const dec    = new TextDecoder();
     let   buf    = '';
 
@@ -1082,18 +1085,20 @@ async function arenaStartBattle() {
           const d = JSON.parse(part.slice(5).trim());
           if (d.type==='battle_start') { _arenaBattleId = d.battle_id; }
           else if (d.type==='chunk') {
-            const el = document.getElementById(`arena-resp-${d.side}`)!;
+            const el = document.getElementById(`arena-resp-${d.side}`);
             if (d.side==='a') textA+=d.text||'';
             else              textB+=d.text||'';
-            el.innerHTML = escHtml(d.side==='a'?textA:textB)+'<span class="typing-cursor"></span>';
-            el.scrollTop = el.scrollHeight;
+            if (el) {
+              el.innerHTML = escHtml(d.side==='a'?textA:textB)+'<span class="typing-cursor"></span>';
+              el.scrollTop = el.scrollHeight;
+            }
           } else if (d.type==='model_done') {
-            const lat = document.getElementById(`arena-lat-${d.side}`)!;
-            lat.textContent = `${d.latency_ms}ms · ~${d.tokens} tokens`;
-            const el = document.getElementById(`arena-resp-${d.side}`)!;
-            el.innerHTML = escHtml(d.side==='a'?textA:textB);
+            const lat = document.getElementById(`arena-lat-${d.side}`);
+            if (lat) lat.textContent = `${d.latency_ms}ms · ~${d.tokens} tokens`;
+            const el = document.getElementById(`arena-resp-${d.side}`);
+            if (el) el.innerHTML = escHtml(d.side==='a'?textA:textB);
           } else if (d.type==='battle_ready') {
-            document.getElementById('arena-vote-area')?.style.display = '';
+            const voteEl = document.getElementById('arena-vote-area'); if (voteEl) voteEl.style.display = '';
           }
         } catch(e) {}
       }
@@ -1113,10 +1118,13 @@ async function arenaVote(winner) {
     });
 
     const labels = {a:'Model A 👈',b:'Model B 👉',tie:'Tie 🤝'};
-    document.getElementById('arena-vote-area')?.innerHTML = `
-      <div style="font-size:16px;font-weight:700;color:var(--success)">✅ Vote recorded: <strong>${labels[winner]}</strong></div>
-      <div style="font-size:12px;color:var(--text-2);margin-top:6px">ELO updated. Run another battle!</div>
-    `;
+    const voteEl = document.getElementById('arena-vote-area');
+    if (voteEl) {
+      voteEl.innerHTML = `
+        <div style="font-size:16px;font-weight:700;color:var(--success)">✅ Vote recorded: <strong>${labels[winner]}</strong></div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:6px">ELO updated. Run another battle!</div>
+      `;
+    }
 
     // Refresh leaderboard
     setTimeout(async () => {
