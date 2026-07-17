@@ -237,8 +237,8 @@ async function evalRunQuick() {
   const response = await gmPrompt('Enter an agent response to evaluate:','FastAPI is a modern web framework for building APIs.');
   if (!response) return;
   const el=document.getElementById('eval-pane-run');
-  const pa=document.getElementById('eval-prompt') as HTMLTextAreaElement;
-  const ra=document.getElementById('eval-response') as HTMLTextAreaElement;
+  const pa=document.getElementById('eval-prompt');
+  const ra=document.getElementById('eval-response');
   if(pa) pa.value=prompt;
   if(ra) ra.value=response;
   await evalSubmit();
@@ -447,7 +447,7 @@ async function renderObservability() {
           lead_time_ms: dora.lead_time_ms,
           change_failure_rate: dora.change_failure_rate,
           mttr_ms: dora.mttr_ms,
-        }).map(([key,m]:any)=>`
+        }).map(([key,m])=>`
           <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
             <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">${key.replace(/_/g,' ')}</div>
             <div style="font-size:24px;font-weight:800;color:var(--text-0)">${m?.value||0}</div>

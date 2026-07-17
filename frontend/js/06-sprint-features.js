@@ -722,14 +722,13 @@ async function renderBrowserAgent() {
   ];
 
   pane.innerHTML = `
-  
   <div style="display:flex;flex-direction:column;height:100%;overflow:hidden">
     <div style="padding:10px 16px;background:var(--bg-1);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap">
       <span style="font-size:15px;font-weight:700">🌐 Browser Agent</span>
-      <span style="font-size:11px;padding:2px 8px;border-radius:5px;${status.ready?\'background:rgba(61,186,122,.15);color:var(--success)\':\'background:rgba(232,162,55,.15);color:var(--warning)\'}">
-        ${status.ready?\'✅ Ready\':\'⚠️ \'+escHtml(status.mode===\'simulation\'?\'Simulation Mode\':\'Chromium Missing\')}
+      <span style="font-size:11px;padding:2px 8px;border-radius:5px;${status.ready ? 'background:rgba(61,186,122,.15);color:var(--success)' : 'background:rgba(232,162,55,.15);color:var(--warning)'}">
+        ${status.ready ? '✅ Ready' : '⚠️ ' + escHtml(status.mode === 'simulation' ? 'Simulation Mode' : 'Chromium Missing')}
       </span>
-      ${!status.ready?`<span style="font-size:10px;color:var(--text-3);font-family:monospace">${escHtml(status.install_cmd||\'pip install playwright && python -m playwright install chromium\')}</span>`:\'\'}
+      ${!status.ready ? `<span style="font-size:10px;color:var(--text-3);font-family:monospace">${escHtml(status.install_cmd || 'pip install playwright && python -m playwright install chromium')}</span>` : ''}
       <div style="margin-left:auto;display:flex;gap:6px">
         <button class="btn-sm" onclick="baLoadHistory()">📋 History</button>
         <button class="btn-sm" onclick="baListScreenshots()">🖼 Screenshots</button>
@@ -741,14 +740,14 @@ async function renderBrowserAgent() {
                style="width:200px;background:var(--bg-3);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 10px">
         <input id="ba-task" placeholder="Task — e.g. Search for Python tutorials and summarize results"
                style="flex:1;min-width:200px;background:var(--bg-3);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:13px;padding:7px 10px"
-               onkeydown="if(event.key===\'Enter\')baRun()">
+               onkeydown="if(event.key === 'Enter') baRun()">
         <input id="ba-steps" type="number" min="1" max="20" value="10"
                style="width:55px;background:var(--bg-3);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 8px" title="Max steps">
         <button class="btn" onclick="baRun()" id="ba-run-btn">▶ Run</button>
         <button class="btn-sm" onclick="baScreenshot()" title="Quick screenshot of start URL">📸</button>
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${QUICK_TASKS.map(t=>`<button class="btn-sm" onclick="document.getElementById(\'ba-task\').value=${JSON.stringify(t)}" style="font-size:10px">${escHtml(t.slice(0,42))}…</button>`).join(\'\')}
+        ${QUICK_TASKS.map(t=>`<button class="btn-sm" onclick="document.getElementById('ba-task').value=${JSON.stringify(t)}" style="font-size:10px">${escHtml(t.slice(0,42))}…</button>`).join('')}
       </div>
     </div>
     <div style="display:flex;flex:1;overflow:hidden">

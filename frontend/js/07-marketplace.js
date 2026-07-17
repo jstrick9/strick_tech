@@ -121,7 +121,7 @@ async function steerSaveNew(title, cat, btn) {
 async function steerToggle(fileId, btn) {
   // FIX 9: try/catch for silent failure; FIX 9b: re-render compiled preview on change
   try {
-    const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}`/toggle`,{method:'POST'});
+    const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}/toggle`,{method:'POST'});
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     if (!d.ok) throw new Error(d.error||'Toggle failed');
@@ -143,7 +143,7 @@ async function steerToggle(fileId, btn) {
 }
 
 async function steerEdit(fileId) {
-  const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}``);
+  const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}`);
   const f = await r.json();
   const overlay = document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -169,7 +169,7 @@ async function steerSaveEdit(fileId, btn) {
   try {
     btn.textContent = '⏳ Saving…';
     btn.disabled = true;
-    const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}``, {
+    const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}`, {
       method:'PUT', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({content: c})
     });
@@ -188,7 +188,7 @@ async function steerDelete(fileId) {
   // FIX 10: use gmDanger for destructive action + showToast feedback
   if (!(await gmDanger('Delete Steering File', 'This rule will no longer be injected into prompts.', 'Delete'))) return;
   try {
-    const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}``,{method:'DELETE'});
+    const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}`,{method:'DELETE'});
     const d = await r.json();
     showToast(d.deleted !== false ? '🗑 Steering file deleted' : '⚠️ File not found', d.deleted !== false ? 'ok' : 'err', 2000);
   } catch(ex) { showToast('⚠️ Delete failed', 'err', 2000); }
