@@ -2629,5 +2629,15 @@
     "emoji": "\ud83e\uddea",
     "skill_count": 0,
     "installed_at": "2026-07-20"
+  },
+  "unit_test_4dffa2": {
+    "id": "unit_test_4dffa2",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-07-20"
   }
 }
