@@ -4923,60 +4923,93 @@ window.runCodeInTerminal = function(codeId) {
 // Patch the main renderMarkdown to use enhanced version
 window.renderMarkdown = renderMarkdownEnhanced;
 
-// ── Message actions (copy, regenerate, branch) ─────────────────────
+// ── Message actions (copy, regenerate, listen, fork) ─────────────────────
 function addMessageActions(bubbleEl, role, content, msgId) {
   if (!bubbleEl) return;
+  const hideOnHoverOnly = (localStorage.getItem('agentic_os_hide_actions_hover') === 'true');
   const actEl = document.createElement('div');
   actEl.className = 'msg-actions';
-  actEl.style.cssText = 'display:flex;gap:4px;margin-top:6px;opacity:0;transition:opacity .15s';
+  actEl.style.cssText = `display:flex;gap:6px;margin-top:8px;opacity:${hideOnHoverOnly ? '0' : '1'};transition:opacity .15s;flex-wrap:wrap`;
   actEl.innerHTML = `
-    <button onclick="copyMsgContent(${JSON.stringify(msgId)})" class="msg-action-btn" title="Copy message">📋</button>
+    <button onclick="copyMsgContent(${JSON.stringify(msgId)})" class="msg-action-btn" title="Copy message" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">📋 Copy</button>
     ${role === 'agent' ? `
-    <button onclick="regenerateMsg(${JSON.stringify(msgId)})" class="msg-action-btn" title="Regenerate response">↺</button>
-    <button onclick="speakText(window._msgContents?.[msgId]||'', (S.currentAgent||{}).id||'brain')" class="msg-action-btn" title="Listen">🔊</button>
+    <button onclick="regenerateMsg(${JSON.stringify(msgId)})" class="msg-action-btn" title="Regenerate response" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">↺ Regenerate</button>
+    <button onclick="listenToMsg(${JSON.stringify(msgId)})" class="msg-action-btn" title="Read response aloud" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">🔊 Listen</button>
     ` : ''}
-    <button onclick="branchFromMsg(${JSON.stringify(msgId)})" class="msg-action-btn" title="Fork conversation here">⎇</button>
+    <button onclick="branchFromMsg(${JSON.stringify(msgId)})" class="msg-action-btn" title="Fork conversation here" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">⎇ Fork</button>
   `;
   bubbleEl.parentElement?.appendChild(actEl);
-  // Show on hover
   const msgDiv = bubbleEl.closest('.msg');
-  if (msgDiv) {
+  if (msgDiv && hideOnHoverOnly) {
     msgDiv.addEventListener('mouseenter', () => actEl.style.opacity = '1');
     msgDiv.addEventListener('mouseleave', () => actEl.style.opacity = '0');
   }
-  // Store content for later
   if (!window._msgContents) window._msgContents = {};
   window._msgContents[msgId] = content;
 }
 
-function copyMsgContent(msgId) {
-  const content = window._msgContents?.[msgId] || '';
-  navigator.clipboard.writeText(content).then(() => toast('📋 Copied', 'ok', 1200));
-}
+window.copyMsgContent = function(msgId) {
+  const targetMsg = document.getElementById(msgId);
+  const bubble = targetMsg?.querySelector('.msg-bubble');
+  const text = bubble?.innerText || bubble?.textContent || window._msgContents?.[msgId] || '';
+  if (!text.trim()) { toast('Could not find text to copy', 'err', 1500); return; }
+  navigator.clipboard.writeText(text.trim()).then(() => toast('📋 Message copied to clipboard!', 'ok', 1500));
+};
 
-async function regenerateMsg(msgId) {
-  // Find the user message just before this agent message
-  const msgs = document.querySelectorAll('.msg');
-  let userMsg = '';
-  for (const m of msgs) {
-    if (m.id === msgId) break;
-    if (m.classList.contains('user')) {
-      userMsg = m.querySelector('.msg-bubble')?.textContent || '';
-    }
+window.listenToMsg = function(msgId) {
+  const targetMsg = document.getElementById(msgId);
+  const bubble = targetMsg?.querySelector('.msg-bubble');
+  const text = bubble?.innerText || bubble?.textContent || window._msgContents?.[msgId] || '';
+  if (!text.trim()) { toast('No text found to speak', 'err', 1500); return; }
+  const agentId = targetMsg?.dataset?.agentId || S.currentAgentId || 'default';
+  if (typeof window.speakMessage === 'function') {
+    if (window._ttsPlaying) window.stopSpeaking?.();
+    else window.speakMessage(text, agentId);
+  } else if (typeof window.speakText === 'function') {
+    window.speakText(text, agentId);
+  } else {
+    toast('🔊 Speaking response...', 'ok', 1500);
   }
-  if (userMsg) {
-    toast('↺ Regenerating…', 'ok', 1500);
-    document.getElementById(msgId)?.closest('.msg')?.remove();
-    // Re-send last user message
-    const fakeInput = document.getElementById('chat-input');
-    if (fakeInput) { fakeInput.value = userMsg; }
+};
+
+window.regenerateMsg = async function(msgId) {
+  const targetMsg = document.getElementById(msgId);
+  if (!targetMsg) return;
+  let prev = targetMsg.previousElementSibling;
+  let userText = '';
+  while (prev) {
+    if (prev.classList.contains('user')) {
+      const b = prev.querySelector('.msg-bubble');
+      userText = b?.innerText || b?.textContent || '';
+      break;
+    }
+    prev = prev.previousElementSibling;
+  }
+  if (!userText) { toast('Could not find previous user prompt to regenerate', 'err', 2000); return; }
+  toast('↺ Regenerating response...', 'ok', 1500);
+  targetMsg.remove();
+  const inp = document.getElementById('chat-input');
+  if (inp) {
+    inp.value = userText.trim();
     await sendChat();
   }
-}
+};
 
-function branchFromMsg(msgId) {
-  toast('⎇ Branch conversation — session fork coming soon', 'ok', 3000);
-}
+window.branchFromMsg = function(msgId) {
+  const msgs = document.querySelectorAll('#chat-messages .msg');
+  let cut = false;
+  let count = 0;
+  msgs.forEach(m => {
+    if (cut) { m.remove(); count++; }
+    if (m.id === msgId) cut = true;
+  });
+  if (count > 0) {
+    if (Array.isArray(S.chatHistory)) S.chatHistory = S.chatHistory.slice(0, msgs.length - count);
+    toast(`⎇ Forked conversation! Removed ${count} subsequent messages. You can steer from here.`, 'ok', 3000);
+  } else {
+    toast('⎇ Already at the latest branch of the conversation.', 'ok', 2000);
+  }
+};
 
 // Patch addMessage to include actions
 const _origAddMessage = addMessage;

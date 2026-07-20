@@ -57,7 +57,7 @@ DEFAULT_PROFILE: dict = {
     'sidebar_order': [],
     'enabled_features': {},
     'quick_actions': ['chat', 'workflow', 'arena', 'bugbot'],
-    'default_agent': 'builder',
+    'default_agent': 'default',
     'default_model': 'free',
     'created_at': '',
     'updated_at': '',
@@ -67,32 +67,32 @@ ROLE_DEFAULTS: dict[str, dict] = {
     'developer': {
         'pinned_panes': ['chat', 'studio', 'github', 'terminal', 'bugbot', 'codeindex'],
         'quick_actions': ['chat', 'studio', 'bugbot', 'gitai'],
-        'default_agent': 'builder',
+        'default_agent': 'default',
     },
     'analyst': {
         'pinned_panes': ['chat', 'dashboard', 'dbstudio', 'rag', 'evals'],
         'quick_actions': ['chat', 'rag', 'evals', 'dashboard'],
-        'default_agent': 'researcher',
+        'default_agent': 'default',
     },
     'writer': {
         'pinned_panes': ['chat', 'prompts', 'templates', 'docs'],
         'quick_actions': ['chat', 'prompts', 'templates', 'websearch'],
-        'default_agent': 'builder',
+        'default_agent': 'default',
     },
     'designer': {
         'pinned_panes': ['chat', 'imagegen', 'studio', 'templates'],
         'quick_actions': ['chat', 'imagegen', 'studio', 'collabedit'],
-        'default_agent': 'builder',
+        'default_agent': 'default',
     },
     'manager': {
         'pinned_panes': ['chat', 'kanban', 'dashboard', 'control', 'leaderboard'],
         'quick_actions': ['chat', 'kanban', 'dashboard', 'ambient'],
-        'default_agent': 'orchestrator',
+        'default_agent': 'default',
     },
     'student': {
         'pinned_panes': ['chat', 'docs', 'templates', 'kanban'],
         'quick_actions': ['chat', 'docs', 'templates', 'arena'],
-        'default_agent': 'builder',
+        'default_agent': 'default',
     },
 }
 
