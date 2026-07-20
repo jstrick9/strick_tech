@@ -280,6 +280,20 @@ async def reload_backend_engine(req: Request):
     return {'ok': True, 'reloaded': reloaded, 'message': f'✅ Hot-reloaded {len(reloaded)} core AI modules and re-bound FastAPI router in RAM!'}
 
 
+@router.post('/reboot-engine')
+def reboot_engine():
+    """Execute a clean process restart so run.py (or Tauri) reboots with fresh RAM."""
+    def _do_reboot():
+        time.sleep(0.4)
+        import os
+        try:
+            sys.exit(101)
+        except Exception:
+            os._exit(101)
+    threading.Thread(target=_do_reboot, daemon=True).start()
+    return {'ok': True, 'message': '🛑 Hard reboot initiated. Application engine restarting cleanly in 3 seconds...'}
+
+
 @router.post('/open-url')
 async def open_external_url(req: Request):
     """Safely open an external URL across host browser / native OS shell."""

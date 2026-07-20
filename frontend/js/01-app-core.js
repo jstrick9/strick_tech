@@ -1883,7 +1883,7 @@ window.hotReloadBackendEngine = async function() {
     const r = await fetch('/api/system/reload-engine', { method: 'POST' });
     if (r.status === 404) {
       if (statusEl) { statusEl.textContent = 'RESTART NEEDED'; statusEl.style.color = 'var(--warning)'; }
-      gmAlert('Restart Required After Git Pull', `Your running Python backend server (<code style="color:var(--accent)">python3 run.py</code> or native desktop app) was started before our latest updates were pulled via <code style="color:var(--accent)">git pull</code>.\n\nBecause of this, your running server in RAM does not yet have our new hot-reload (<code style="color:var(--accent)">/api/system/reload-engine</code>) and Ollama 404 self-healing fallback loops registered inside Python.\n\n<strong style="color:var(--success)">Exact 5-Second Solution:</strong>\n1. Go to your Terminal where <code style="color:var(--accent)">python3 run.py</code> is running and press <code style="color:var(--accent)">Ctrl + C</code> to stop it (or close your native desktop app window).\n2. Start it again (<code style="color:var(--accent)">python3 run.py</code>).\n\nOnce restarted, your Ollama chat and all future hot-reloads will work instantly with zero 404 errors!`);
+      gmAlert('How to Apply Updates Right Now', `Because your application was running when you updated the code (<code style="color:var(--accent)">git pull</code>), the running process in your computer's memory needs one quick restart to load our new endpoints.\n\n<strong style="color:var(--success)">How to restart based on how you open the app:</strong>\n\n🖥️ <strong>If using the Native Desktop App (Agentic OS.app):</strong>\n• Simply quit the app (press Cmd + Q or click Agentic OS > Quit in your top menu bar) and double-click Agentic OS.app to open it right back up.\n\n＞_ <strong>If running via Command Line / Terminal (python3 run.py):</strong>\n• Go to the command window where run.py (or uvicorn) is running, press <code style="color:var(--accent)">Ctrl + C</code> to stop it, and type <code style="color:var(--accent)">python3 run.py</code> to start it right back up.\n\nOnce reopened, your Ollama chat and all future 1-click reloads will work instantly!`);
       return;
     }
     const j = await r.json();
@@ -1895,7 +1895,28 @@ window.hotReloadBackendEngine = async function() {
       toast('⚠️ Reload note: ' + (j.error || 'Check server status'), 'warn', 3000);
     }
   } catch(e) {
-    toast('⚠️ Server hot-reload network timeout — check terminal running python3 run.py', 'warn', 4000);
+    toast('⚠️ Server hot-reload network timeout — please restart your application window once to apply updates', 'warn', 4000);
+  }
+};
+
+window.hardRebootBackendEngine = async function() {
+  const ok = await gmConfirm('Restart Application Engine?', 'Are you ready to perform a clean process restart? Your background AI engine will cleanly reboot in 3 seconds to pick up all recent code updates.');
+  if (!ok) return;
+  toast('🛑 Initiating clean application engine reboot...', 'ok', 3000);
+  const statusEl = document.getElementById('settings-api-ollama-status');
+  if (statusEl) { statusEl.textContent = 'REBOOTING...'; statusEl.style.color = 'var(--warning)'; }
+  try {
+    const r = await fetch('/api/system/reboot-engine', { method: 'POST' });
+    if (r.status === 404) {
+      gmAlert('How to Restart Right Now', `To apply our latest engine updates to your running application:\n\n🖥️ <strong>If using the Native Desktop App (Agentic OS.app):</strong>\n• Quit the application (Cmd + Q or Quit Agentic OS) and open Agentic OS.app again.\n\n＞_ <strong>If running from Command Line (python3 run.py):</strong>\n• In that window, press <code style="color:var(--accent)">Ctrl + C</code> and type <code style="color:var(--accent)">python3 run.py</code> to start it back up.\n\nOnce restarted, this button and your Ollama model chats will work with 1 click!`);
+      return;
+    }
+    const j = await r.json();
+    if (j.ok) {
+      gmAlert('🛑 Application Engine Rebooting', `The Python backend process has scheduled a clean restart (Code 101).\n\nPlease wait 4 seconds for the engine to re-spawn in your system memory, and then <strong style="color:var(--success)">refresh this page</strong> or re-open your window.`);
+    }
+  } catch(e) {
+    toast('🛑 Engine restarting... Please wait 4 seconds and refresh.', 'ok', 4000);
   }
 };
 

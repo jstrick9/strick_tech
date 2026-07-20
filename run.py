@@ -177,12 +177,21 @@ if __name__ == "__main__":
         threading.Thread(target=open_browser, daemon=True).start()
 
     import uvicorn
-    uvicorn.run(
-        "backend.app:app",
-        app_dir=str(ROOT),
-        host=HOST,
-        port=PORT,
-        reload=False,
-        log_level="info",
-        access_log=True,
-    )
+    while True:
+        try:
+            uvicorn.run(
+                "backend.app:app",
+                app_dir=str(ROOT),
+                host=HOST,
+                port=PORT,
+                reload=os.environ.get("AGENTIC_OS_DEV", "0") == "1",
+                log_level="info",
+                access_log=True,
+            )
+            break
+        except SystemExit as e:
+            if e.code == 101:
+                print("\n⚡ [Agentic OS Engine] Hard reboot requested (Code 101) — restarting server in fresh RAM...\n")
+                time.sleep(1)
+                continue
+            break
