@@ -57,16 +57,19 @@ def _or_headers() -> dict:
 
 
 def resolve_model(agent_id: str, custom_model: str = '') -> tuple[str, str]:
-    """Returns (provider, model_string). custom_model overrides registry."""
+    """Returns (provider, model_string). custom_model explicitly chosen by user overrides agent defaults."""
     if custom_model:
-        if custom_model.startswith('ollama:'):
-            return 'ollama', custom_model.replace('ollama:', '', 1).strip()
-        if custom_model.startswith('custom_url:'):
-            return 'custom_url', custom_model.replace('custom_url:', '', 1).strip()
-        # if it looks like an ollama model (no slash), route to ollama
-        if '/' not in custom_model:
-            return 'ollama', custom_model.strip()
-        return 'openrouter', custom_model.strip()
+        clean_custom = custom_model.strip()
+        if clean_custom.startswith('ollama:'):
+            return 'ollama', clean_custom.replace('ollama:', '', 1).strip()
+        if clean_custom.startswith('custom_url:'):
+            return 'custom_url', clean_custom.replace('custom_url:', '', 1).strip()
+        if clean_custom.lower() in OPENROUTER_MODELS:
+            return 'openrouter', OPENROUTER_MODELS[clean_custom.lower()]
+        if '/' in clean_custom:
+            return 'openrouter', clean_custom
+        # Any unslashed custom model string (e.g. 'local', 'llama3.2:3b', 'mistral:7b', 'deepseek-r1:8b', 'qwen2.5:7b') routes to local Ollama!
+        return 'ollama', clean_custom
     model = OPENROUTER_MODELS.get(agent_id.lower(), OPENROUTER_MODELS['default'])
     return 'openrouter', model
 

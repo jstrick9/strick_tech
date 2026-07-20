@@ -254,32 +254,37 @@ async function loadAgents() {
     const data = await r.json();
     S.agents = Array.isArray(data) ? data : (data.agents || []);
     renderAgentList();
-    if (!S.currentAgent && S.agents.length) setActiveAgent(S.agents[0]);
+    if (!S.currentAgent) setActiveAgent({ id: 'default', name: 'Direct AI Chat', avatar: '💬', model: '' });
     updateStatusBar();
   } catch(e) { console.warn('Agents load failed:', e); }
 }
 
 function renderAgentList() {
   const el = document.getElementById('agent-list');
-  if (!el) return;
-  el.innerHTML = S.agents.map(a => `
-    <div class="agent-row ${S.currentAgent?.id === a.id ? 'active-agent' : ''}"
-         onclick="setActiveAgent(${JSON.stringify(a).replace(/"/g,'&quot;')})"
-         ondblclick="openAgentModal(${JSON.stringify(a.id)})">
-      <div class="agent-avatar" style="background:${a.color}22;border:1px solid ${a.color}44">
-        <span>${a.avatar || '🤖'}</span>
+  if (el && S.agents) {
+    el.innerHTML = S.agents.map(a => `
+      <div class="agent-row ${S.currentAgent?.id === a.id ? 'active-agent' : ''}"
+           onclick="setActiveAgent(${JSON.stringify(a).replace(/"/g,'&quot;')})"
+           ondblclick="openAgentModal(${JSON.stringify(a.id)})">
+        <div class="agent-avatar" style="background:${a.color}22;border:1px solid ${a.color}44">
+          <span>${a.avatar || '🤖'}</span>
+        </div>
+        <div class="agent-info">
+          <div class="agent-name">${escHtml(a.name)}</div>
+          <div class="agent-role">${escHtml(a.role || a.model || '')}</div>
+        </div>
+        <div class="agent-status ${a.status || 'idle'}"></div>
       </div>
-      <div class="agent-info">
-        <div class="agent-name">${escHtml(a.name)}</div>
-        <div class="agent-role">${escHtml(a.role || a.model || '')}</div>
-      </div>
-      <div class="agent-status ${a.status || 'idle'}"></div>
-    </div>
-  `).join('');
+    `).join('');
+  }
 
-  // also update settings agents list
+  const po = document.getElementById('chat-persona-optgroup');
+  if (po && S.agents?.length) {
+    po.innerHTML = S.agents.map(a => `<option value="${escHtml(a.id)}">${a.avatar||'🤖'} ${escHtml(a.name)} (${escHtml(a.role||'')})</option>`).join('');
+  }
+
   const sl = document.getElementById('settings-agents-list');
-  if (sl) {
+  if (sl && S.agents) {
     sl.innerHTML = S.agents.map(a => `
       <div style="display:flex;align-items:center;gap:10px;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 12px;">
         <span style="font-size:18px">${a.avatar||'🤖'}</span>
@@ -294,26 +299,34 @@ function renderAgentList() {
 }
 
 function setActiveAgent(agent) {
+  if (!agent) agent = { id: 'default', name: 'Direct AI Chat', avatar: '💬', model: '' };
   S.currentAgent = agent;
-  document.getElementById('active-agent-avatar').textContent = agent.avatar || '🤖';
-  document.getElementById('active-agent-name').textContent = agent.name;
-  document.getElementById('active-agent-dot').style.background =
+  S.currentAgentId = agent.id || 'default';
+  const avatarEl = document.getElementById('active-agent-avatar');
+  if (avatarEl) avatarEl.textContent = agent.avatar || '💬';
+  const nameEl = document.getElementById('active-agent-name');
+  if (nameEl) nameEl.textContent = agent.name || 'Direct AI Chat';
+  const dotEl = document.getElementById('active-agent-dot');
+  if (dotEl) dotEl.style.background =
     agent.status === 'working' ? 'var(--yellow)' :
     agent.status === 'active'  ? 'var(--green)' : 'var(--text-3)';
-  document.getElementById('active-model-badge').textContent = agent.model || 'default';
+  const badgeEl = document.getElementById('active-model-badge');
+  if (badgeEl) badgeEl.textContent = agent.model || 'default';
+  const personaSelect = document.getElementById('chat-persona-select');
+  if (personaSelect && personaSelect.value !== (agent.id || 'default')) personaSelect.value = agent.id || 'default';
   renderAgentList();
 }
 
 function showAgentPicker() {
-  const items = S.agents.map(a =>
+  const items = (S.agents || []).map(a =>
     `<div class="palette-item" onclick="setActiveAgent(${JSON.stringify(a).replace(/"/g,'&quot;')});closePalette()">
       <span class="p-icon">${a.avatar||'🤖'}</span>
       <span class="p-label">${escHtml(a.name)}</span>
       <span class="p-desc">${escHtml(a.model||'')}</span>
     </div>`
   ).join('');
-  document.getElementById('palette-results').innerHTML =
-    `<div class="palette-section">Select Agent</div>${items}`;
+  const pr = document.getElementById('palette-results');
+  if (pr) pr.innerHTML = `<div class="palette-section">Select Agent</div>${items}`;
   openPalette();
 }
 
@@ -474,7 +487,10 @@ async function sendChat() {
   // Getting Started checklist hook
   if (window.markChecklistStep) markChecklistStep('first_chat');
 
-  const agent = S.currentAgent || { id: 'brain', name: 'Brain', avatar: '🧠' };
+  const selectedModel = S.currentModel || document.getElementById('chat-model-select')?.value || '';
+  const personaSelect = document.getElementById('chat-persona-select');
+  const selectedPersonaId = personaSelect?.value || S.currentAgentId || 'default';
+  const agent = S.currentAgent || { id: selectedPersonaId, name: selectedPersonaId === 'default' ? 'Direct AI Chat' : selectedPersonaId.title(), avatar: selectedPersonaId === 'default' ? '💬' : '🧠' };
 
   // Render user bubble
   addMessage(msg, 'user', '👤', 'You');
@@ -496,7 +512,8 @@ async function sendChat() {
       headers: {'Content-Type':'application/json'},
       body:    JSON.stringify({
         message:    msg,
-        agent_id:   agent.id,
+        model:      selectedModel,
+        agent_id:   selectedPersonaId,
         session_id: S.sessionId,
         history:    S.chatHistory.slice(-20),
       }),
@@ -1927,6 +1944,25 @@ window.selectChatModel = function(val) {
   const pill = document.getElementById('chat-model-select');
   if (pill && pill.value !== val) pill.value = val;
   toast(`🤖 Active Chat Model: ${val.replace('ollama:', 'Local Ollama: ').replace('custom_url:', 'Custom: ')}`, 'ok', 1500);
+};
+
+window.selectChatPersona = function(val) {
+  if (!val || val === 'default') {
+    S.currentAgent = { id: 'default', name: 'Direct AI Chat', avatar: '💬', model: '' };
+    S.currentAgentId = 'default';
+    try { localStorage.setItem('agentic_os_chat_persona', 'default'); } catch(e) {}
+    toast('💬 Direct AI Chat active (No Agent persona applied)', 'ok', 1500);
+    return;
+  }
+  const found = S.agents?.find(a => a.id === val) || { id: val, name: val.title(), avatar: '🧠', model: '' };
+  S.currentAgent = found;
+  S.currentAgentId = val;
+  try { localStorage.setItem('agentic_os_chat_persona', val); } catch(e) {}
+  const avatarEl = document.getElementById('active-agent-avatar');
+  if (avatarEl) avatarEl.textContent = found.avatar || '🤖';
+  const nameEl = document.getElementById('active-agent-name');
+  if (nameEl) nameEl.textContent = found.name;
+  toast(`🤖 Persona applied: ${found.name}`, 'ok', 1500);
 };
 
 window.syncOpenWebUIConnections = async function() {
@@ -10902,6 +10938,10 @@ setTimeout(() => {
     S.currentModel = savedModel;
     const sel = document.getElementById('chat-model-select');
     if (sel) sel.value = savedModel;
+  }
+  const savedPersona = localStorage.getItem('agentic_os_chat_persona');
+  if (savedPersona && typeof window.selectChatPersona === 'function') {
+    window.selectChatPersona(savedPersona);
   }
 }, 800);
 
