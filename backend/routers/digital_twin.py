@@ -8,7 +8,7 @@ import json
 import time
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -36,7 +36,7 @@ if not (ANCHORS_DIR / "anchor_desk_main.json").exists():
 
 class SpatialAnchorRequest(BaseModel):
     """Pydantic data model for SpatialAnchorRequest."""
-    anchor_id: str | None = None
+    anchor_id: Optional[str] = None
     name: str = "Warehouse Shelf B Spatial Overlay"
     pose: dict[str, Any] = {"position": [4.5, 1.8, 12.0], "orientation_quaternion": [0.0, 0.0, 0.0, 1.0]}
     bound_agent_id: str = "robotics_orchestrator"

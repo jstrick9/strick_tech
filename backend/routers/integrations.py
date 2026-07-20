@@ -5,6 +5,7 @@ and auto-documentation generation (README, API docs, changelog).
 """
 
 from __future__ import annotations
+from typing import Optional, Union, Any, Dict, List
 
 import contextlib
 import httpx
@@ -115,7 +116,7 @@ _INT_BY_ID = {i['id']: i for i in INTEGRATIONS}
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-def _safe_preview_path(filename: str) -> Path | None:
+def _safe_preview_path(filename: str) ->Optional[ Path]:
     """Resolve a filename inside PREVIEW_DIR, blocking path traversal."""
     # Strip any leading slashes / dotdot components from filename
     safe_name = Path(filename).name if '/' not in filename else Path(filename).as_posix().lstrip('/')

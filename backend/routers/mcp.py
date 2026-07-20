@@ -11,7 +11,7 @@ import asyncio
 import json
 import time
 from pathlib import Path
-from typing import Any
+from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
 
 from fastapi import APIRouter, Request
 
@@ -619,7 +619,7 @@ async def _run_python(code: str) -> dict:
         raise ToolError(str(e))
 
 
-def _extract_json(text: str) -> dict | None:
+def _extract_json(text: str) ->Optional[ dict]:
     """Extract first JSON object from text (handles nested objects)."""
     # Find JSON objects using bracket counting (not regex) to handle nesting
     for i, ch in enumerate(text):

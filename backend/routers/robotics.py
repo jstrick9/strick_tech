@@ -8,7 +8,7 @@ import json
 import time
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -33,7 +33,7 @@ _DEFAULT_SENSORS = [
 
 class ActuatorRegisterRequest(BaseModel):
     """Pydantic data model for ActuatorRegisterRequest."""
-    actuator_id: str | None = None
+    actuator_id:Optional[ str] = None
     name: str = "6-Axis Robotic Arm Joint 1"
     protocol: str = "ros2_topic"  # ros2_topic, mqtt, modbus
     topic_or_address: str = "/robot/arm/joint_1/cmd_vel"

@@ -11,6 +11,7 @@ All artifacts stored in workspaces/<workspace>/specs/<spec_id>/
 """
 
 from __future__ import annotations
+from typing import Optional, Union, Any, Dict, List
 
 import contextlib
 
@@ -106,7 +107,7 @@ def _load_artifact(spec_id: str, filename: str) -> str:
     return p.read_text(encoding='utf-8') if p.exists() else ''
 
 
-def _get_spec(spec_id: str) -> dict | None:
+def _get_spec(spec_id: str) ->Optional[ dict]:
     from ..services.memory_db import get_conn
 
     con = get_conn()

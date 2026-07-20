@@ -5,6 +5,7 @@ Falls back gracefully if Qdrant is not running.
 """
 
 from __future__ import annotations
+from typing import Optional, Union, Any, Dict, List
 
 import contextlib
 import json
@@ -142,7 +143,7 @@ def ensure_schema():
 
 
 # ── Memory CRUD ────────────────────────────────────────────────────────────────
-def memory_add(source: str, content: str, tags: str = '', embedding: list | None = None) -> int:
+def memory_add(source: str, content: str, tags: str = '', embedding:Optional[ list] = None) -> int:
     """Execute or process memory add operation."""
     con = get_conn()
     try:
@@ -582,7 +583,7 @@ def _load_st_model():
         return False
 
 
-def embed_text(text: str) -> list[float] | None:
+def embed_text(text: str) ->Optional[ list[float]]:
     """Embed text to a vector. Supports fastembed and sentence-transformers."""
     if not _load_st_model() or not _ST_MODEL:
         return None
@@ -694,7 +695,7 @@ def _qdrant_client():
             return None
 
 
-def qdrant_upsert(memory_id: int, content: str, metadata: dict | None = None):
+def qdrant_upsert(memory_id: int, content: str, metadata:Optional[ dict] = None):
     """Upsert a memory entry into Qdrant."""
     client = _qdrant_client()
     if not client:
@@ -818,7 +819,7 @@ def hybrid_search(query: str, limit: int = 20) -> list[dict]:
     return sorted(results.values(), key=lambda x: x['score'], reverse=True)[:limit]
 
 
-def memory_add_with_vector(source: str, content: str, tags: str = '', metadata: dict | None = None) -> int:
+def memory_add_with_vector(source: str, content: str, tags: str = '', metadata:Optional[ dict] = None) -> int:
     """Add to SQLite + optionally embed and store in Qdrant."""
     # First embed (may be None)
     embedding = embed_text(content)

@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Any
+from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -95,10 +95,10 @@ def _ensure_tier1_init() -> None:
 
 class Tier1SaveRequest(BaseModel):
     """Pydantic data model for Tier1SaveRequest."""
-    about_me: str | None = None
-    about_my_business: str | None = None
-    about_my_voice: str | None = None
-    about_my_offers: str | None = None
+    about_me:Optional[ str] = None
+    about_my_business:Optional[ str] = None
+    about_my_voice:Optional[ str] = None
+    about_my_offers:Optional[ str] = None
 
 
 class InterviewAnswerRequest(BaseModel):
@@ -119,11 +119,11 @@ class ProjectCreateRequest(BaseModel):
 
 class ProjectSaveRequest(BaseModel):
     """Pydantic data model for ProjectSaveRequest."""
-    instructions: str | None = None
-    voice: str | None = None
-    references: str | None = None
-    examples: str | None = None
-    notes: str | None = None
+    instructions:Optional[ str] = None
+    voice:Optional[ str] = None
+    references:Optional[ str] = None
+    examples:Optional[ str] = None
+    notes:Optional[ str] = None
 
 
 class NoteAppendRequest(BaseModel):
@@ -347,7 +347,7 @@ def append_project_note(project_id: str, payload: NoteAppendRequest) -> dict[str
 
 
 @router.get("/compiled-context")
-def get_compiled_context(project_id: str | None = Query(None, description="Optional project ID to merge with Tier 1")) -> dict[str, Any]:
+def get_compiled_context(project_id:Optional[ str] = Query(None, description="Optional project ID to merge with Tier 1")) -> dict[str, Any]:
     """Generate the full, compiled Information Hierarchy context block ready for system prompt injection."""
     _ensure_tier1_init()
     tier1_text = (

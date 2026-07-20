@@ -8,7 +8,7 @@ from __future__ import annotations
 import secrets
 import time
 import uuid
-from typing import Any
+from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
 
 from fastapi import APIRouter, Header, Request, Response
 from pydantic import BaseModel
@@ -53,7 +53,7 @@ async def get_csrf_token(response: Response) -> dict[str, Any]:
 @router.post('/validate-csrf')
 async def validate_csrf_token(
     payload: CSRFValidateRequest,
-    x_csrf_token: str | None = Header(None, alias='X-CSRF-Token'),
+    x_csrf_token:Optional[ str] = Header(None, alias='X-CSRF-Token'),
 ) -> dict[str, Any]:
     """Validate a provided CSRF token against active valid session tokens."""
     _clean_expired_tokens()

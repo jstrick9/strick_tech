@@ -5,6 +5,7 @@ Nodes: trigger, agent, condition, transform, output, loop, delay, webhook
 """
 
 from __future__ import annotations
+from typing import Optional, Union, Any, Dict, List
 
 import contextlib
 
@@ -185,7 +186,7 @@ def _load_all() -> list[dict]:
     return wfs
 
 
-def _load_one(wf_id: str) -> dict | None:
+def _load_one(wf_id: str) ->Optional[ dict]:
     p = _wf_path(wf_id)
     if p.exists():
         return json.loads(p.read_text())
