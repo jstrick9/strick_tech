@@ -58,18 +58,18 @@ def _or_headers() -> dict:
 
 def resolve_model(agent_id: str, custom_model: str = '') -> tuple[str, str]:
     """Returns (provider, model_string). custom_model explicitly chosen by user overrides agent defaults."""
-    if custom_model:
-        clean_custom = custom_model.strip()
-        if clean_custom.startswith('ollama:'):
-            return 'ollama', clean_custom.replace('ollama:', '', 1).strip()
-        if clean_custom.startswith('custom_url:'):
-            return 'custom_url', clean_custom.replace('custom_url:', '', 1).strip()
-        if clean_custom.lower() in OPENROUTER_MODELS:
-            return 'openrouter', OPENROUTER_MODELS[clean_custom.lower()]
-        if '/' in clean_custom:
-            return 'openrouter', clean_custom
+    target = (custom_model or '').strip()
+    if target:
+        if target.startswith('ollama:'):
+            return 'ollama', target.replace('ollama:', '', 1).strip()
+        if target.startswith('custom_url:'):
+            return 'custom_url', target.replace('custom_url:', '', 1).strip()
+        if target.lower() in OPENROUTER_MODELS:
+            return 'openrouter', OPENROUTER_MODELS[target.lower()]
+        if '/' in target:
+            return 'openrouter', target
         # Any unslashed custom model string (e.g. 'local', 'llama3.2:3b', 'mistral:7b', 'deepseek-r1:8b', 'qwen2.5:7b') routes to local Ollama!
-        return 'ollama', clean_custom
+        return 'ollama', target
     model = OPENROUTER_MODELS.get(agent_id.lower(), OPENROUTER_MODELS['default'])
     return 'openrouter', model
 
@@ -114,6 +114,17 @@ async def complete(
 
     key = _or_key()
     if not key:
+        try:
+            base_check = os.getenv('OLLAMA_BASE_URL', OLLAMA_BASE).rstrip('/').removesuffix('/v1').rstrip('/')
+            async with httpx.AsyncClient(timeout=1.5) as client:
+                t_resp = await client.get(f'{base_check}/api/tags')
+                if t_resp.status_code == 200:
+                    models_data = t_resp.json().get('models', [])
+                    if models_data:
+                        fb_model = models_data[0].get('name', 'llama3.2:3b')
+                        return await _ollama_complete(messages, fb_model, temperature, max_tokens, timeout)
+        except Exception:
+            pass
         return _stub_reply(messages, agent_id, model_str)
 
     payload = {
@@ -191,6 +202,19 @@ async def stream(
 
     key = _or_key()
     if not key:
+        try:
+            base_check = os.getenv('OLLAMA_BASE_URL', OLLAMA_BASE).rstrip('/').removesuffix('/v1').rstrip('/')
+            async with httpx.AsyncClient(timeout=1.5) as client:
+                t_resp = await client.get(f'{base_check}/api/tags')
+                if t_resp.status_code == 200:
+                    models_data = t_resp.json().get('models', [])
+                    if models_data:
+                        fb_model = models_data[0].get('name', 'llama3.2:3b')
+                        async for chunk in _ollama_stream(messages, fb_model, temperature, max_tokens, timeout):
+                            yield chunk
+                        return
+        except Exception:
+            pass
         # stream a helpful stub
         stub = _stub_reply(messages, agent_id, model_str)['text']
         for word in stub.split(' '):
