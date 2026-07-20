@@ -254,8 +254,8 @@ async def hmr_trigger(req: Request):
 
 
 @router.post('/reload-engine')
-async def reload_backend_engine():
-    """Dynamically hot-reload core AI service modules (llm.py, chat.py, secrets.py) inside running uvicorn process."""
+async def reload_backend_engine(req: Request):
+    """Dynamically hot-reload core AI service modules and rebind FastAPI router inside running uvicorn process."""
     import importlib
     import sys
     reloaded = []
@@ -266,7 +266,18 @@ async def reload_backend_engine():
                 reloaded.append(mod_name)
             except Exception as e:
                 log.warning('Could not hot-reload %s: %s', mod_name, e)
-    return {'ok': True, 'reloaded': reloaded, 'message': f'✅ Hot-reloaded {len(reloaded)} core AI backend modules in RAM!'}
+
+    # Rebind chat endpoints inside FastAPI's active router
+    try:
+        app = req.app
+        new_chat_mod = sys.modules.get('backend.routers.chat')
+        if new_chat_mod and hasattr(new_chat_mod, 'router'):
+            app.router.routes = [r for r in app.router.routes if not (hasattr(r, 'path') and r.path.startswith('/api/chat'))]
+            app.include_router(new_chat_mod.router)
+    except Exception as e:
+        log.warning('Could not rebind FastAPI router: %s', e)
+
+    return {'ok': True, 'reloaded': reloaded, 'message': f'✅ Hot-reloaded {len(reloaded)} core AI modules and re-bound FastAPI router in RAM!'}
 
 
 @router.post('/open-url')
