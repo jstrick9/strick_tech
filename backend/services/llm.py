@@ -340,19 +340,30 @@ async def _ollama_complete(messages, model, temperature, max_tokens, timeout) ->
             last_error = str(e)
 
         try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
-                t_resp = await client.get(f'{base}/api/tags')
-                if t_resp.status_code == 200:
-                    installed = [m.get('name') for m in t_resp.json().get('models', []) if m.get('name')]
-                    if installed and clean_model not in installed:
-                        fallback_local = next((m for m in installed if clean_model.split(':')[0] in m), installed[0])
-                        payload_chat['model'] = fallback_local
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                installed = []
+                try:
+                    t_resp = await client.get(f'{base}/api/tags')
+                    if t_resp.status_code == 200:
+                        installed = [m.get('name') for m in t_resp.json().get('models', []) if m.get('name')]
+                except Exception:
+                    pass
+                if not installed:
+                    try:
+                        v_resp = await client.get(f'{base}/v1/models')
+                        if v_resp.status_code == 200:
+                            installed = [m.get('id', m.get('name')) for m in v_resp.json().get('data', []) if m.get('id') or m.get('name')]
+                    except Exception:
+                        pass
+                if installed:
+                    fallback_local = next((m for m in installed if clean_model.split(':')[0] in m), installed[0])
+                    payload_chat['model'] = fallback_local
+                    try:
                         resp_fb = await client.post(f'{base}/api/chat', json=payload_chat)
                         if resp_fb.status_code == 200:
                             data_fb = resp_fb.json()
-                            text_fb = data_fb.get('message', {}).get('content', '')
                             return {
-                                'text': text_fb,
+                                'text': data_fb.get('message', {}).get('content', ''),
                                 'tokens': data_fb.get('eval_count', 0),
                                 'cost': 0.0,
                                 'model': fallback_local,
@@ -360,6 +371,40 @@ async def _ollama_complete(messages, model, temperature, max_tokens, timeout) ->
                                 'latency_ms': round((time.time() - t0) * 1000),
                                 'ok': True,
                             }
+                    except Exception:
+                        pass
+                    payload_gen['model'] = fallback_local
+                    try:
+                        resp_gen_fb = await client.post(f'{base}/api/generate', json=payload_gen)
+                        if resp_gen_fb.status_code == 200:
+                            data_gen_fb = resp_gen_fb.json()
+                            return {
+                                'text': data_gen_fb.get('response', ''),
+                                'tokens': data_gen_fb.get('eval_count', 0),
+                                'cost': 0.0,
+                                'model': fallback_local,
+                                'provider': 'ollama',
+                                'latency_ms': round((time.time() - t0) * 1000),
+                                'ok': True,
+                            }
+                    except Exception:
+                        pass
+                    payload_oai['model'] = fallback_local
+                    try:
+                        resp_oai_fb = await client.post(f'{base}/v1/chat/completions', json=payload_oai)
+                        if resp_oai_fb.status_code == 200:
+                            data_oai_fb = resp_oai_fb.json()
+                            return {
+                                'text': data_oai_fb.get('choices', [{}])[0].get('message', {}).get('content', ''),
+                                'tokens': data_oai_fb.get('usage', {}).get('total_tokens', 0),
+                                'cost': 0.0,
+                                'model': fallback_local,
+                                'provider': 'ollama',
+                                'latency_ms': round((time.time() - t0) * 1000),
+                                'ok': True,
+                            }
+                    except Exception:
+                        pass
         except Exception:
             pass
 
@@ -478,13 +523,25 @@ async def _ollama_stream(messages, model, temperature, max_tokens, timeout) -> A
             last_error = str(e)
 
         try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
-                t_resp = await client.get(f'{base}/api/tags')
-                if t_resp.status_code == 200:
-                    installed = [m.get('name') for m in t_resp.json().get('models', []) if m.get('name')]
-                    if installed and clean_model not in installed:
-                        fallback_local = next((m for m in installed if clean_model.split(':')[0] in m), installed[0])
-                        payload_chat['model'] = fallback_local
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                installed = []
+                try:
+                    t_resp = await client.get(f'{base}/api/tags')
+                    if t_resp.status_code == 200:
+                        installed = [m.get('name') for m in t_resp.json().get('models', []) if m.get('name')]
+                except Exception:
+                    pass
+                if not installed:
+                    try:
+                        v_resp = await client.get(f'{base}/v1/models')
+                        if v_resp.status_code == 200:
+                            installed = [m.get('id', m.get('name')) for m in v_resp.json().get('data', []) if m.get('id') or m.get('name')]
+                    except Exception:
+                        pass
+                if installed:
+                    fallback_local = next((m for m in installed if clean_model.split(':')[0] in m), installed[0])
+                    payload_chat['model'] = fallback_local
+                    try:
                         async with client.stream('POST', f'{base}/api/chat', json=payload_chat) as resp_fb:
                             if resp_fb.status_code == 200:
                                 async for line in resp_fb.aiter_lines():
@@ -501,6 +558,49 @@ async def _ollama_stream(messages, model, temperature, max_tokens, timeout) -> A
                                     except Exception:
                                         pass
                                 return
+                    except Exception:
+                        pass
+                    payload_gen['model'] = fallback_local
+                    try:
+                        async with client.stream('POST', f'{base}/api/generate', json=payload_gen) as resp_gen_fb:
+                            if resp_gen_fb.status_code == 200:
+                                async for line in resp_gen_fb.aiter_lines():
+                                    if not line:
+                                        continue
+                                    try:
+                                        chunk = json.loads(line)
+                                        delta = chunk.get('response', '')
+                                        done = chunk.get('done', False)
+                                        if delta:
+                                            yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
+                                        if done:
+                                            yield f'data: {json.dumps({"delta": "", "done": True, "model": fallback_local})}\n\n'
+                                    except Exception:
+                                        pass
+                                return
+                    except Exception:
+                        pass
+                    payload_oai['model'] = fallback_local
+                    try:
+                        async with client.stream('POST', f'{base}/v1/chat/completions', json=payload_oai) as resp_oai_fb:
+                            if resp_oai_fb.status_code == 200:
+                                async for line in resp_oai_fb.aiter_lines():
+                                    if not line.startswith('data: '):
+                                        continue
+                                    raw = line[6:].strip()
+                                    if raw == '[DONE]':
+                                        yield f'data: {json.dumps({"delta": "", "done": True, "model": fallback_local})}\n\n'
+                                        break
+                                    try:
+                                        chunk = json.loads(raw)
+                                        delta = chunk['choices'][0]['delta'].get('content', '')
+                                        if delta:
+                                            yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
+                                    except Exception:
+                                        pass
+                                return
+                    except Exception:
+                        pass
         except Exception:
             pass
 
