@@ -8,7 +8,7 @@ import json
 import time
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -30,7 +30,7 @@ ADAPTERS_DIR.mkdir(parents=True, exist_ok=True)
 
 class DatasetCreateRequest(BaseModel):
     """Pydantic data model for DatasetCreateRequest."""
-    dataset_id: str | None = None
+    dataset_id:Optional[ str] = None
     name: str = "Chat History Fine-Tune Set"
     source_type: str = "chat_history"  # chat_history, eval_suites, custom_rows
     custom_rows: list[dict[str, str]] = []
@@ -38,7 +38,7 @@ class DatasetCreateRequest(BaseModel):
 
 class JobStartRequest(BaseModel):
     """Pydantic data model for JobStartRequest."""
-    job_id: str | None = None
+    job_id:Optional[ str] = None
     dataset_id: str
     base_model: str = "llama3.1:8b"
     lora_rank: int = 16

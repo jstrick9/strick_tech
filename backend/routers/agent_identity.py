@@ -18,6 +18,7 @@ Based on:
 """
 
 from __future__ import annotations
+from typing import Optional, Union, Any, Dict, List
 
 import hashlib
 import hmac
@@ -240,7 +241,7 @@ def _seed_default_permissions(con, agent_id: str, authority_level: str):
         )
 
 
-def get_agent_identity(agent_id: str) -> dict | None:
+def get_agent_identity(agent_id: str) ->Optional[ dict]:
     """Fetch identity record (without signing_key for security)."""
     con = _get_conn()
     try:
@@ -268,7 +269,7 @@ def get_agent_identity(agent_id: str) -> dict | None:
 def issue_jit_token(
     agent_id: str,
     task_id: str = '',
-    scope: list[str] | None = None,
+    scope:Optional[ list[str]] = None,
     ttl_seconds: int = DEFAULT_TOKEN_TTL_SECONDS,
     max_uses: int = DEFAULT_MAX_USES,
 ) -> dict:

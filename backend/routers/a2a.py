@@ -49,7 +49,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -353,7 +353,7 @@ def _role_to_skills(agent_id: str, role: str, perms, tools) -> list[dict]:
 
 
 # ── Task lifecycle helpers ─────────────────────────────────────────────────────
-def _load_task(task_id: str) -> dict | None:
+def _load_task(task_id: str) ->Optional[ dict]:
     con = _get_conn()
     try:
         row = con.execute('SELECT * FROM a2a_tasks WHERE task_id=?', (task_id,)).fetchone()
@@ -405,7 +405,7 @@ def _task_to_a2a_response(task: dict) -> dict:
     }
 
 
-def _last_agent_message(task: dict) -> dict | None:
+def _last_agent_message(task: dict) ->Optional[ dict]:
     """Get the most recent agent message from the task's message history."""
     messages = task.get('messages', [])
     for msg in reversed(messages):
@@ -868,7 +868,7 @@ async def _stream_task_subscribe(agent_id: str, params: dict, request: Request):
 
 # ── Outbound delegation to remote A2A agents ───────────────────────────────────
 async def _delegate_to_remote(
-    agent_id: str, endpoint: str, method: str, params: dict, auth_type: str = 'none', auth_config: dict | None = None
+    agent_id: str, endpoint: str, method: str, params: dict, auth_type: str = 'none', auth_config:Optional[ dict] = None
 ) -> dict:
     """
     Send a JSON-RPC 2.0 request to a remote A2A agent endpoint.

@@ -19,6 +19,7 @@ Based on:
 """
 
 from __future__ import annotations
+from typing import Optional, Union, Any, Dict, List
 
 import contextlib
 import hashlib
@@ -406,7 +407,7 @@ def _check_rate_limit(agent_id: str, server_id: str, limit_rpm: int) -> bool:
 
 
 # ── Core Gateway call ──────────────────────────────────────────────────────────
-async def gateway_call(agent_id: str, server_id: str, tool_name: str, args: dict, context: dict | None = None) -> dict:
+async def gateway_call(agent_id: str, server_id: str, tool_name: str, args: dict, context:Optional[ dict] = None) -> dict:
     """
     Single entry point for all MCP tool calls through the Gateway.
     Returns structured result with policy_decision, duration_ms, and audit trail.

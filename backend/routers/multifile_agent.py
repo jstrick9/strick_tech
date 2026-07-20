@@ -8,6 +8,7 @@ Like Cursor Composer or Windsurf Cascade:
 """
 
 from __future__ import annotations
+from typing import Optional, Union, Any, Dict, List
 
 import contextlib
 
@@ -438,7 +439,7 @@ def _get_project_files() -> list[str]:
     return sorted(files)[:50]
 
 
-def _extract_plan(text: str) -> dict | None:
+def _extract_plan(text: str) ->Optional[ dict]:
     m = re.search(r'<PLAN>(.*?)</PLAN>', text, re.DOTALL)
     if not m:
         return None

@@ -9,6 +9,7 @@ Bi-directional sync with a local Obsidian vault:
 """
 
 from __future__ import annotations
+from typing import Optional, Union, Any, Dict, List
 
 import contextlib
 
@@ -28,7 +29,7 @@ ROOT = get_data_dir()
 
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-def _vault_path() -> Path | None:
+def _vault_path() ->Optional[ Path]:
     """Get configured vault path from config or env."""
     vault = os.getenv('OBSIDIAN_VAULT_PATH', '')
     if vault and Path(vault).exists():

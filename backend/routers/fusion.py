@@ -12,6 +12,7 @@ Also includes:
 """
 
 from __future__ import annotations
+from typing import Optional, Union, Any, Dict, List
 
 import contextlib
 
@@ -165,7 +166,7 @@ Synthesize into one optimal answer:"""
     return result.get('text', '')
 
 
-def _validate_prompt_or_messages(prompt: str, messages: list | None) -> str | None:
+def _validate_prompt_or_messages(prompt: str, messages:Optional[ list]) ->Optional[ str]:
     """Return error string if neither prompt nor messages are usable."""
     if prompt:
         return None

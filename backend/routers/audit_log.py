@@ -16,6 +16,7 @@ Tables:
 """
 
 from __future__ import annotations
+from typing import Optional, Union, Any, Dict, List
 
 import contextlib
 import csv
@@ -151,7 +152,7 @@ def append_entry(
     authority: str = 'user',
     risk_level: str = 'low',
     outcome: str = 'success',
-    metadata: dict | None = None,
+    metadata:Optional[ dict] = None,
 ) -> dict:
     """
     Append a new entry to the immutable audit chain.

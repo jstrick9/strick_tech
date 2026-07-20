@@ -16,6 +16,7 @@ OT operation types:
 """
 
 from __future__ import annotations
+from typing import Optional, Union, Any, Dict, List
 
 import contextlib
 
@@ -377,7 +378,7 @@ class CRDTDoc:
                 pos += abs(c)
         return _compact(inv)
 
-    async def undo(self, peer_id: str) -> dict | None:
+    async def undo(self, peer_id: str) ->Optional[ dict]:
         """Execute or process undo operation."""
         stack = self.undo_stacks.get(peer_id, [])
         if not stack:
@@ -385,7 +386,7 @@ class CRDTDoc:
         entry = stack.pop()
         return await self.apply_and_broadcast(peer_id, f'{peer_id}(undo)', self.revision, entry['op'])
 
-    async def redo(self, peer_id: str) -> dict | None:
+    async def redo(self, peer_id: str) ->Optional[ dict]:
         """Execute or process redo operation."""
         stack = self.redo_stacks.get(peer_id, [])
         if not stack:
