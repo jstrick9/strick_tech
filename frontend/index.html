@@ -1605,16 +1605,10 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
       <!-- CHAT PANE -->
       <div class="pane active" id="pane-chat">
-        <div class="chat-header" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg-1);flex-shrink:0;flex-wrap:wrap">
-          <div class="chat-agent-pill btn-3d" id="active-agent-pill" onclick="showAgentPicker()" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;cursor:pointer">
-            <span id="active-agent-avatar">🧠</span>
-            <span id="active-agent-name" style="font-weight:700">Brain</span>
-            <span class="dot" id="active-agent-dot" style="width:8px;height:8px;border-radius:50%;background:var(--green)"></span>
-            <span style="color:var(--text-3);font-size:12px">▾</span>
-          </div>
-          
-          <div style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:4px 10px">
-            <span style="font-size:14px">🤖</span>
+        <div class="chat-header" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg-1);flex-shrink:0;flex-wrap:wrap;overflow:visible;z-index:10">
+          <div style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:4px 10px;box-shadow:0 2px 6px rgba(0,0,0,0.2)">
+            <span style="font-size:14px" title="AI Inference Model">⚡</span>
+            <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-right:2px">Model:</span>
             <select id="chat-model-select" onchange="if(typeof selectChatModel === 'function') selectChatModel(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
               <optgroup label="Primary Cloud Gateways (OpenRouter)">
                 <option value="claude">Claude 3.5 Sonnet (Primary)</option>
@@ -1633,6 +1627,26 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               </optgroup>
             </select>
           </div>
+
+          <div style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:4px 10px;box-shadow:0 2px 6px rgba(0,0,0,0.2)">
+            <span style="font-size:14px" title="Optional Agent Persona">👤</span>
+            <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-right:2px">Persona:</span>
+            <select id="chat-persona-select" onchange="if(typeof selectChatPersona === 'function') selectChatPersona(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
+              <option value="default">💬 Direct AI Chat (No Agent Required)</option>
+              <optgroup id="chat-persona-optgroup" label="Specialized Agent Personas">
+                <option value="brain">🧠 Brain (Deep Reasoning & Planning)</option>
+                <option value="orchestrator">🌀 Orchestrator (Task Fan-Out)</option>
+                <option value="builder">⚡ Builder (Full-Stack Code Generation)</option>
+                <option value="specs">📋 Specs & Architecture</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- Hidden legacy elements to preserve existing DOM function bindings cleanly -->
+          <span id="active-agent-avatar" style="display:none">💬</span>
+          <span id="active-agent-name" style="display:none">Direct AI Chat</span>
+          <span id="active-agent-dot" style="display:none"></span>
+          <span id="active-model-badge" style="display:none"></span>
 
           <div class="spacer"></div>
           <button class="btn-3d btn-ghost btn-sm" onclick="clearChatHistory()" style="padding:6px 12px">🗑 Clear Chat</button>

@@ -185,7 +185,7 @@ async def chat_stream(req: Request):
         try:
             async for chunk in llm.stream(
                 messages,
-                agent_id=agent.get('model') or agent_id,
+                agent_id=agent_id if req_model else (agent.get('model') or agent_id),
                 model=req_model or agent.get('model', ''),
                 temperature=temperature,
                 max_tokens=max_tokens,
