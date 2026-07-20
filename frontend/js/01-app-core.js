@@ -514,6 +514,7 @@ async function sendChat() {
         message:    msg,
         model:      selectedModel,
         agent_id:   selectedPersonaId,
+        use_rag:    S.useRag,
         session_id: S.sessionId,
         history:    S.chatHistory.slice(-20),
       }),
@@ -10021,22 +10022,7 @@ function setProjectType(prompt) {
   if (input) { input.value = prompt; input.focus(); const e=document.getElementById('chat-empty'); if(e)e.style.display='none'; autoResizeInput?.(input); }
 }
 
-// ── UX: Continue button on cut-off responses ─────────────────────
-const _origUMB = window.updateMessageBubble;
-window.updateMessageBubble = function(el, text) {
-  if (_origUMB) _origUMB(el, text);
-  const trimmed = (text||'').trim();
-  if (trimmed.length > 300 && !trimmed.match(/[.!?`\]})>]$/) && !el.querySelector('.continue-btn')) {
-    setTimeout(() => {
-      const btn = document.createElement('button');
-      btn.className = 'continue-btn';
-      btn.textContent = '→ Continue';
-      btn.style.cssText = 'display:block;margin-top:8px;font-size:11px;background:var(--accent-glow);border:1px solid var(--accent);color:var(--accent-hi);padding:4px 10px;border-radius:6px;cursor:pointer';
-      btn.onclick = () => { btn.remove(); const i=document.getElementById('chat-input'); if(i){i.value='Please continue from where you left off.';sendChat?.();} };
-      el?.appendChild(btn);
-    }, 300);
-  }
-};
+
 
 // ── Add Sprint 12 to command palette ────────────────────────────
 if (typeof PALETTE_CMDS !== 'undefined') {
