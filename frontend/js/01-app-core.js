@@ -1881,6 +1881,11 @@ window.hotReloadBackendEngine = async function() {
   if (statusEl) { statusEl.textContent = 'HOT-RELOADING...'; statusEl.style.color = 'var(--accent)'; }
   try {
     const r = await fetch('/api/system/reload-engine', { method: 'POST' });
+    if (r.status === 404) {
+      if (statusEl) { statusEl.textContent = 'RESTART NEEDED'; statusEl.style.color = 'var(--warning)'; }
+      gmAlert('Restart Required After Git Pull', `Your running Python backend server (<code style="color:var(--accent)">python3 run.py</code> or native desktop app) was started before our latest updates were pulled via <code style="color:var(--accent)">git pull</code>.\n\nBecause of this, your running server in RAM does not yet have our new hot-reload (<code style="color:var(--accent)">/api/system/reload-engine</code>) and Ollama 404 self-healing fallback loops registered inside Python.\n\n<strong style="color:var(--success)">Exact 5-Second Solution:</strong>\n1. Go to your Terminal where <code style="color:var(--accent)">python3 run.py</code> is running and press <code style="color:var(--accent)">Ctrl + C</code> to stop it (or close your native desktop app window).\n2. Start it again (<code style="color:var(--accent)">python3 run.py</code>).\n\nOnce restarted, your Ollama chat and all future hot-reloads will work instantly with zero 404 errors!`);
+      return;
+    }
     const j = await r.json();
     if (j.ok) {
       toast(j.message || '✅ Backend Python engine hot-reloaded successfully!', 'ok', 4000);
