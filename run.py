@@ -168,10 +168,26 @@ def seed_data_dir():
             pass
 
 
+def reclaim_port(port: int):
+    """If port is already occupied by an old background process, kill it cleanly so the new build can start."""
+    import socket
+    import subprocess
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        if s.connect_ex(('127.0.0.1', port)) == 0:
+            print(f"\n⚠️  [Agentic OS Engine] Port {port} is already occupied by an older background server. Reclaiming port...")
+            try:
+                subprocess.run(f"lsof -ti :{port} | xargs kill -9", shell=True, stderr=subprocess.DEVNULL)
+                time.sleep(1.0)
+                print(f"✅ Port {port} reclaimed cleanly for fresh build.")
+            except Exception as e:
+                print(f"⚠️  Could not auto-kill process on port {port}: {e}")
+
+
 if __name__ == "__main__":
     check_requirements()
     seed_data_dir()
     seed_db()
+    reclaim_port(PORT)
     print_banner()
     if not os.environ.get("AGENTIC_OS_DATA_DIR") and not os.environ.get("TAURI_APP") and "--no-browser" not in sys.argv:
         threading.Thread(target=open_browser, daemon=True).start()
