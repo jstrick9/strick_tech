@@ -1433,6 +1433,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       </div>
       <!-- Settings -->
       <button class="icon-btn btn-3d" onclick="nav('settings')" title="Settings & API Keys Hub (⌘,)" style="width:32px;height:32px;padding:0;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc;font-size:16px">⚙</button>
+      <!-- Hard Restart Engine -->
+      <button onclick="if(typeof hardRebootBackendEngine === 'function') hardRebootBackendEngine()" class="btn-3d btn-sm" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;padding:4px 10px;border-radius:8px;font-weight:700" title="Clean Hard Restart AI Backend Engine (Code 101)"><span>🛑</span> <span class="btn-text">Restart Engine</span></button>
       <!-- Backup -->
       <button class="icon-btn btn-3d" onclick="doBackup()" title="Backup agentic.db database" style="width:32px;height:32px;padding:0">💾</button>
       <!-- User Profile Avatar / Identity Hub -->

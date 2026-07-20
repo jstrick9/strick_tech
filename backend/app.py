@@ -346,6 +346,12 @@ async def _security_middleware(request: Request, call_next):
     for header, value in SECURITY_HEADERS.items():
         response.headers[str(header).strip()] = str(value).strip()
 
+    # Prevent aggressive caching of HTML/JS/CSS during development and updates
+    if path == '/' or path.endswith(('.html', '.js', '.css')):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+
     return response
 
 
@@ -582,7 +588,7 @@ async def hitl_ws_endpoint(ws: WebSocket):
 @app.get('/')
 def index():
     """Execute or process index operation."""
-    return FileResponse(FRONTEND_DIR / 'index.html')
+    return FileResponse(FRONTEND_DIR / 'index.html', headers={'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0', 'Pragma': 'no-cache', 'Expires': '0'})
 
 
 @app.get('/manifest.json')

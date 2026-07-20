@@ -1,0 +1,62 @@
+{
+  "id": "pack_109c11",
+  "name": "unit-test-pack",
+  "version": "1.0.0",
+  "description": "Unit test plugin pack",
+  "author": "test_suite",
+  "license": "MIT",
+  "tags": [
+    "utility",
+    "ai"
+  ],
+  "icon": "\ud83d\udd27",
+  "homepage": "",
+  "skills": [
+    {
+      "id": "my_skill",
+      "name": "My Skill",
+      "description": "What this skill does",
+      "prompt": "You are a helpful assistant. {{input}}",
+      "model": "auto",
+      "tags": [
+        "utility"
+      ],
+      "icon": "\u26a1",
+      "inputs": [
+        {
+          "name": "input",
+          "label": "Input",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "label": "Result",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "hooks": {
+    "on_chat_send": null,
+    "on_file_save": null,
+    "on_pane_open": null,
+    "on_agent_run": null,
+    "on_deploy": null
+  },
+  "ui": {
+    "sidebar_item": null,
+    "settings_tab": null,
+    "pane": null
+  },
+  "permissions": [
+    "chat",
+    "memory",
+    "files"
+  ],
+  "min_version": "6.0.0",
+  "created_at": "2026-07-20T19:49:55Z",
+  "updated_at": "2026-07-20T19:49:55Z"
+}
