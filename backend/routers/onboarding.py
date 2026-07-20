@@ -35,7 +35,7 @@ DEFAULT_PREFS: dict = {
     'chat_rag': True,
     'voice_mode': False,
     'tts_voice': 'aria',
-    'default_agent': 'brain',
+    'default_agent': 'default',
     'hmr_enabled': True,
     'auto_save_ms': 600,
     'default_framework': 'web',

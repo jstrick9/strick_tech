@@ -79,35 +79,9 @@
     });
   }
 
-  // ── Inject speak buttons into messages ──────────────────────
+  // ── Inject speak buttons into messages (disabled per user preference; Listen button inside .msg-actions handles TTS directly) ──
   window.injectSpeakButtons = function() {
-    document.querySelectorAll('.msg-bubble').forEach(function(bubble) {
-      if (bubble.querySelector('.speak-btn')) return; // already injected
-      var msg = bubble.closest('.msg');
-      if (!msg || msg.classList.contains('user')) return; // only for agent messages
-      
-      var text = bubble.textContent || '';
-      if (text.length < 10) return; // too short to speak
-      
-      var btn = document.createElement('button');
-      btn.className = 'speak-btn';
-      btn.dataset.text = text.slice(0, 50);
-      btn.textContent = '🔊';
-      btn.title = 'Read aloud';
-      btn.style.cssText = 'position:absolute;top:8px;right:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:12px;cursor:pointer;opacity:0;transition:opacity .2s;z-index:5';
-      btn.onclick = function(e) {
-        e.stopPropagation();
-        if (_ttsPlaying) { stopSpeaking(); }
-        else { speakMessage(text, msg.dataset?.agentId); }
-      };
-      
-      bubble.style.position = 'relative';
-      bubble.appendChild(btn);
-      
-      // Show on hover
-      bubble.addEventListener('mouseenter', function() { btn.style.opacity = '1'; });
-      bubble.addEventListener('mouseleave', function() { btn.style.opacity = '0'; });
-    });
+    // No-op: removed top-right absolute speak buttons so only bottom .msg-actions Listen button is shown
   };
 
   // ── Voice Input (WebSpeech API) ────────────────────────────
