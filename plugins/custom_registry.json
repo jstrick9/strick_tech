@@ -2620,5 +2620,14 @@
     "category": "testing",
     "emoji": "\ud83e\uddea",
     "skills": []
+  },
+  {
+    "id": "unit_test_9a35df",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
   }
 ]

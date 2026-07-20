@@ -174,13 +174,30 @@ fi
 DMG_FOUND=$(find src-tauri/target -name "*.dmg" 2>/dev/null | head -n 1)
 APP_FOUND=$(find src-tauri/target -name "*.app" 2>/dev/null | head -n 1)
 
+# Ensure standard target/release paths exist for universal / aarch64 consistency
+mkdir -p src-tauri/target/release/bundle/macos
+mkdir -p src-tauri/target/release/bundle/dmg
+
+if [ -n "$APP_FOUND" ] && [ "$APP_FOUND" != "src-tauri/target/release/bundle/macos/Agentic OS Platform.app" ]; then
+  rm -rf "src-tauri/target/release/bundle/macos/Agentic OS Platform.app"
+  cp -R "$APP_FOUND" "src-tauri/target/release/bundle/macos/Agentic OS Platform.app"
+fi
+
+if [ -n "$DMG_FOUND" ] && [ "$DMG_FOUND" != "src-tauri/target/release/bundle/dmg/Agentic OS Platform.dmg" ]; then
+  rm -f "src-tauri/target/release/bundle/dmg/Agentic OS Platform.dmg"
+  cp "$DMG_FOUND" "src-tauri/target/release/bundle/dmg/Agentic OS Platform.dmg"
+fi
+
 echo ""
 echo "🎉 ====================================================================="
-echo "🎉  Agentic OS Platform v10.0 macOS Desktop App Built Successfully!"
+echo "🎉  Agentic OS Platform v11.5.0 macOS Desktop App Built Successfully!"
 if [ -n "$DMG_FOUND" ]; then
-  echo "🎉  👉 DMG Installer : $DMG_FOUND"
+  echo "🎉  👉 DMG Installer : src-tauri/target/release/bundle/dmg/Agentic OS Platform.dmg"
 fi
 if [ -n "$APP_FOUND" ]; then
-  echo "🎉  👉 App Bundle    : $APP_FOUND"
+  echo "🎉  👉 App Bundle    : src-tauri/target/release/bundle/macos/Agentic OS Platform.app"
+  echo ""
+  echo "🚀  To launch your newly compiled desktop bundle right now, run:"
+  echo '    open "src-tauri/target/release/bundle/macos/Agentic OS Platform.app"'
 fi
 echo "🎉 ====================================================================="
