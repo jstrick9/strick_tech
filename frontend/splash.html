@@ -110,7 +110,7 @@
         document.getElementById('status').innerHTML = '✅ Engine confirmed online! Launching Mission Control...';
         document.getElementById('spinner').style.display = 'none';
         setTimeout(() => {
-          window.location.replace('http://localhost:8787/');
+          window.location.replace('http://localhost:8787/?_cb=' + Date.now());
         }, 150);
       })
       .catch(err => {
