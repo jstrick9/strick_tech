@@ -355,12 +355,12 @@ def get_ui_config():
         lic = _load_license()
         eff_tier = _effective_tier(lic)
         days_left = _days_remaining(lic)
-        is_trial = lic.get('tier') == 'trial'
+        is_trial = False
     except Exception as exc:
-        log.warning('ui-config: license load failed (%s), defaulting to trial', exc)
-        eff_tier = 'trial'
-        days_left = 14
-        is_trial = True
+        log.warning('ui-config: license load failed (%s), defaulting to enterprise lifetime', exc)
+        eff_tier = 'enterprise'
+        days_left = 36500
+        is_trial = False
 
     return {
         'ok': True,

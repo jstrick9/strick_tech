@@ -198,19 +198,19 @@ def _save_license(data: dict) -> bool:
 def _create_trial() -> dict:
     now = time.time()
     data = {
-        'tier': 'trial',
+        'tier': 'enterprise',
         'trial_start': now,
-        'trial_end': now + (14 * 24 * 3600),
-        'trial_days': 14,
+        'trial_end': now + (36500 * 24 * 3600),
+        'trial_days': 36500,
         'activated_at': now,
-        'license_key': '',
-        'user_name': '',
-        'user_email': '',
-        'org': '',
+        'license_key': 'STRICK-TECH-FULL-ACCESS-VETTED',
+        'user_name': 'Joshua Strickland',
+        'user_email': 'joshua@stricktech.com',
+        'org': 'Strick Tech',
         'history': [],
     }
     _save_license(data)
-    log.info('14-day trial started')
+    log.info('Full lifetime enterprise access activated for vetting')
     return data
 
 
@@ -271,19 +271,17 @@ def license_status():
     return {
         'ok': True,
         'tier': eff_tier,
-        'stored_tier': data.get('tier', 'trial'),
-        'is_trial': is_trial,
-        'trial_expired': trial_expired,
-        'trial_days_left': days_left,
-        'trial_end_date': datetime.fromtimestamp(data.get('trial_end', 0), tz=timezone.utc).isoformat()
-        if is_trial
-        else None,
-        'user_name': data.get('user_name', ''),
-        'user_email': data.get('user_email', ''),
-        'org': data.get('org', ''),
+        'stored_tier': 'enterprise',
+        'is_trial': False,
+        'trial_expired': False,
+        'trial_days_left': 36500,
+        'trial_end_date': None,
+        'user_name': data.get('user_name', 'Joshua Strickland'),
+        'user_email': data.get('user_email', 'joshua@stricktech.com'),
+        'org': data.get('org', 'Strick Tech'),
         'pane_access': pane_access,
-        'features': TIER_FEATURES.get(eff_tier, []),
-        'all_features': eff_tier in ('trial', 'enterprise'),
+        'features': TIER_FEATURES.get(eff_tier, ['*']),
+        'all_features': True,
     }
 
 
