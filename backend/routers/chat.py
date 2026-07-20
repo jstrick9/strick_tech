@@ -45,18 +45,25 @@ def _parse_slash(message: str) -> tuple[str, str]:
 
 
 def _system_prompt_for_agent(agent: dict) -> str:
+    agent_id = (agent.get('id') or '').lower()
+    if agent_id in ('default', 'direct ai chat', ''):
+        return (
+            'You are a helpful, intelligent, and accurate AI assistant. '
+            'Provide clear, well-structured, and concise responses in Markdown format. '
+            'When writing code, use proper syntax blocks. '
+            'Answer questions directly and naturally, exactly like ChatGPT or Claude.'
+        )
     custom = (agent.get('system_prompt') or '').strip()
     if custom:
         return custom
     name = agent.get('name', 'AI')
     role = agent.get('role', 'AI assistant')
     return (
-        f'You are {name}, an AI agent in Agentic OS — a local-first autonomous AI operating system. '
+        f'You are {name}, a specialized AI assistant. '
         f'Your role: {role}. '
         f'You are helpful, direct, and technically precise. '
         f'Format responses in Markdown. '
         f'When writing code, use proper code blocks with language tags. '
-        f"You have access to the user's Memory Galaxy (semantic memory store). "
         f'Keep responses focused and actionable.'
     )
 
@@ -145,11 +152,15 @@ async def chat_stream(req: Request):
     # build messages list
     system_prompt = _system_prompt_for_agent(agent)
 
-    # memory-augment: search galaxy for relevant context
-    mem_results = memory_db.memory_search_fts(message[:200], limit=4)
-    if mem_results:
-        ctx = '\n'.join(f'- [{r["source"]}] {r["content"][:200]}' for r in mem_results)
-        system_prompt += f'\n\n**Relevant memories:**\n{ctx}'
+    # memory-augment: search galaxy for relevant context if use_rag is True
+    use_rag = bool(body.get('use_rag', True))
+    if use_rag:
+        mem_results = memory_db.memory_search_fts(message[:200], limit=4)
+        if mem_results:
+            filtered = [r for r in mem_results if 'agentic os' not in r.get('content', '').lower() or agent_id not in ('default', 'direct ai chat', '')]
+            if filtered:
+                ctx = '\n'.join(f'- [{r["source"]}] {r["content"][:200]}' for r in filtered)
+                system_prompt += f'\n\n**Relevant memories:**\n{ctx}'
 
     # Auto-inject compounding 2-Tier Information Hierarchy (Universal Context + Project IVREN)
     try:
@@ -159,9 +170,10 @@ async def chat_stream(req: Request):
             if p['project_id'] in message.lower() or p['name'].lower() in message.lower():
                 project_match = p['project_id']
                 break
-        hierarchy_ctx = get_compiled_context(project_match).get('compiled_context', '')
-        if hierarchy_ctx:
-            system_prompt += f'\n\n{hierarchy_ctx}'
+        if project_match:
+            hierarchy_ctx = get_compiled_context(project_match).get('compiled_context', '')
+            if hierarchy_ctx:
+                system_prompt += f'\n\n{hierarchy_ctx}'
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         pass
 
