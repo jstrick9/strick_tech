@@ -196,7 +196,7 @@ fn main() {
                             println!("[Agentic OS] Backend confirmed online! Navigating windows...");
                             for (label, win) in app_handle.webview_windows() {
                                 println!("[Agentic OS] Navigating window '{}' to http://localhost:8787", label);
-                                let _ = win.eval("window.location.href = 'http://localhost:8787';");
+                                let _ = win.eval("window.location.href = 'http://localhost:8787/?_cb=' + Date.now() + (window.location.hash || '');");
                             }
                         } else {
                             eprintln!("[Agentic OS] Error: Backend did not respond on port 8787 within 30 seconds. Check {:?}", log_path);
@@ -259,7 +259,7 @@ fn get_backend_log() -> String {
 
 #[tauri::command]
 fn get_version() -> String {
-    "10.0.0".to_string()
+    "11.5.0".to_string()
 }
 
 #[tauri::command]
