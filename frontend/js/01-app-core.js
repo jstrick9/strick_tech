@@ -451,6 +451,18 @@ document.addEventListener('click', e => {
 });
 
 // ── Chat ─────────────────────────────────────────────────────────
+// Start users with a useful outcome, then leave the prompt editable before send.
+window.startGuidedChat = function(prompt = '') {
+  const input = document.getElementById('chat-input');
+  if (!input) return;
+  input.value = prompt;
+  if (typeof autoResizeInput === 'function') autoResizeInput(input);
+  input.focus();
+  const launchpad = document.getElementById('mission-launchpad-deck');
+  if (launchpad) launchpad.style.display = 'none';
+  if (prompt) toast('Add a few details, then send when ready.', 'ok', 1800);
+};
+
 function insertCmd(cmd) {
   if (typeof nav === 'function') nav('chat');
   setTimeout(() => {
