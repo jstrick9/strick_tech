@@ -3860,3 +3860,18 @@ body.theme-high-contrast a {
 .connection-status.error::before { color:var(--danger); }
 #chat-connection-status { border:1px solid var(--border); border-radius:999px; font-size:10.5px; font-weight:700; margin:0 2px 0 0; padding:3px 7px; white-space:nowrap; }
 #chat-connection-status:hover { border-color:var(--accent); color:var(--accent); }
+
+
+/* Minimal persistent header: brand, selected model, and the one critical recovery action. */
+#topbar-quick-actions, #topbar > .tech-badge { display:none !important; }
+#topbar-actions > * { display:none !important; }
+#topbar-actions > #restart-engine-btn { align-items:center; display:inline-flex !important; }
+#topbar #chat-model-control { box-shadow:none; margin-left:20px; max-width:min(360px, 42vw); }
+#topbar #chat-model-control select { max-width:250px; overflow:hidden; text-overflow:ellipsis; }
+#topbar #chat-model-control + * { }
+@media (max-width:760px) {
+  #topbar #chat-model-control { margin-left:8px; max-width:52vw; }
+  #topbar #chat-model-control > span:nth-child(2) { display:none; }
+  #topbar #chat-model-control select { max-width:42vw; }
+  #restart-engine-btn .btn-text { display:none; }
+}
