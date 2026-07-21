@@ -532,10 +532,17 @@ function clearChatHistory() {
 
 async function sendChat() {
   const input = document.getElementById('chat-input');
-  const msg   = input.value.trim();
-  if (!msg) return;
+  const typedMessage = input.value.trim();
+  const attachments = [...(window._chatAttachments || [])];
+  if (!typedMessage && !attachments.length) return;
+  const attachmentContext = attachments.map((item) => `\n\n[Attached ${attachmentKind(item.file).label}: ${item.file.name}]\n\`\`\`\n${item.text}\n\`\`\``).join('');
+  const msg = typedMessage || 'Please review the attached file(s) and tell me what is most important.';
+  const messageForModel = msg + attachmentContext;
+  const displayMessage = attachments.length ? `${msg}\n\n📎 ${attachments.map((item) => item.file.name).join(', ')}` : msg;
   hideChatEmpty();
   input.value = '';
+  window._chatAttachments = [];
+  window.renderChatAttachments();
   autoResizeInput(input);
 
   // Getting Started checklist hook
@@ -547,9 +554,9 @@ async function sendChat() {
   const agent = S.currentAgent || { id: selectedPersonaId, name: selectedPersonaId === 'default' ? 'Direct AI Chat' : formatAgentName(selectedPersonaId), avatar: selectedPersonaId === 'default' ? '💬' : '🧠' };
 
   // Render user bubble
-  addMessage(msg, 'user', '👤', 'You');
+  addMessage(displayMessage, 'user', '👤', 'You');
 
-  S.chatHistory.push({ role: 'user', content: msg });
+  S.chatHistory.push({ role: 'user', content: messageForModel });
 
   // Auto-create or update named session in /api/sessions (with AI/smart auto-titling)
   if (!S.sessionName) {
@@ -591,7 +598,7 @@ async function sendChat() {
       method:  'POST',
       headers: {'Content-Type':'application/json'},
       body:    JSON.stringify({
-        message:    msg,
+        message:    messageForModel,
         model:      selectedModel,
         agent_id:   selectedPersonaId,
         use_rag:    S.useRag,
@@ -1597,42 +1604,96 @@ window.setupSettingsWorkstation = function() {
   switchSettingsTab(savedTab);
 };
 
+window._chatAttachments = window._chatAttachments || [];
+
+function attachmentKind(file) {
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (['csv', 'tsv'].includes(ext)) return {icon: '📊', label: 'data file'};
+  if (['json', 'yaml', 'yml', 'xml'].includes(ext)) return {icon: '🧩', label: 'structured data'};
+  if (['js', 'jsx', 'ts', 'tsx', 'py', 'html', 'css', 'sql', 'java', 'go', 'rs', 'rb', 'php', 'c', 'cpp', 'h', 'sh'].includes(ext)) return {icon: '💻', label: 'code file'};
+  return {icon: '📄', label: 'document'};
+}
+
+function attachmentHint(file) {
+  const kind = attachmentKind(file).label;
+  if (kind === 'data file') return 'I can summarize the data, identify patterns, or help plan next steps.';
+  if (kind === 'structured data') return 'I can explain the structure, validate it, or help transform it.';
+  if (kind === 'code file') return 'I can explain, review, debug, or improve this code.';
+  return 'I can summarize, extract action items, or answer questions about this document.';
+}
+
+window.renderChatAttachments = function() {
+  const tray = document.getElementById('chat-attachment-tray');
+  if (!tray) return;
+  tray.replaceChildren();
+  (window._chatAttachments || []).forEach((attachment) => {
+    const chip = document.createElement('div');
+    chip.className = 'chat-attachment-chip';
+    chip.title = `${attachmentHint(attachment.file)} ${attachment.file.size.toLocaleString()} bytes.`;
+    const icon = document.createElement('span'); icon.textContent = attachmentKind(attachment.file).icon;
+    const name = document.createElement('span'); name.className = 'attachment-name'; name.textContent = attachment.file.name;
+    const remove = document.createElement('button'); remove.type = 'button'; remove.title = `Remove ${attachment.file.name}`; remove.setAttribute('aria-label', remove.title); remove.textContent = '×';
+    remove.addEventListener('click', () => {
+      window._chatAttachments = window._chatAttachments.filter((item) => item.id !== attachment.id);
+      window.renderChatAttachments();
+    });
+    chip.append(icon, name, remove); tray.appendChild(chip);
+  });
+};
+
+window.addChatFiles = async function(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  const maxFileBytes = 250 * 1024;
+  const maxAttachments = 5;
+  const accepted = [];
+  const skipped = [];
+  for (const file of files) {
+    if ((window._chatAttachments || []).length + accepted.length >= maxAttachments) { skipped.push(`${file.name} (limit: ${maxAttachments} files)`); continue; }
+    if (file.size > maxFileBytes) { skipped.push(`${file.name} (larger than 250 KB)`); continue; }
+    const looksTextual = file.type.startsWith('text/') || /\.(txt|md|markdown|csv|tsv|json|js|jsx|ts|tsx|py|html|css|xml|yaml|yml|log|sql|sh|java|go|rs|rb|php|c|cpp|h)$/i.test(file.name);
+    if (!looksTextual) { skipped.push(`${file.name} (use a text, code, CSV, or JSON file)`); continue; }
+    try {
+      const text = await file.text();
+      accepted.push({id: `attachment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, file, text: text.slice(0, maxFileBytes)});
+    } catch (_) { skipped.push(`${file.name} (could not read)`); }
+  }
+  if (accepted.length) {
+    window._chatAttachments.push(...accepted);
+    window.renderChatAttachments();
+    const last = accepted[accepted.length - 1].file;
+    toast(`${accepted.length} file${accepted.length === 1 ? '' : 's'} ready. ${attachmentHint(last)}`, 'ok', 3500);
+  }
+  if (skipped.length) toast(`Not attached: ${skipped.join(', ')}`, 'warn', 4000);
+};
+
 window.setupDragAndDrop = function() {
   const content = document.getElementById('content');
   if (!content || document.getElementById('chat-dropzone')) return;
+  const input = document.getElementById('chat-file-input');
+  if (input) input.addEventListener('change', (event) => { window.addChatFiles(event.target.files); input.value = ''; });
   const dropzone = document.createElement('div');
   dropzone.id = 'chat-dropzone';
   dropzone.className = 'dropzone-overlay';
-  dropzone.innerHTML = '<div>⚡ Drop files here to attach to AI Context & Studio (~/Library/Application Support/com.stricktech.agenticos/workspaces/)</div>';
+  dropzone.textContent = 'Drop text, code, CSV, or JSON files to add them to this chat';
   content.appendChild(dropzone);
-
   let dragCounter = 0;
-  content.addEventListener('dragenter', e => {
-    e.preventDefault(); dragCounter++;
-    dropzone.classList.add('active');
+  const hasFiles = (event) => Boolean(event.dataTransfer?.types && Array.from(event.dataTransfer.types).includes('Files'));
+  content.addEventListener('dragenter', (event) => {
+    if (!hasFiles(event) || event.target.closest('#pane-studio')) return;
+    event.preventDefault(); dragCounter += 1; dropzone.classList.add('active');
+    document.querySelector('.chat-input-row')?.classList.add('is-dragging');
   });
-  content.addEventListener('dragleave', e => {
-    e.preventDefault(); dragCounter--;
-    if (dragCounter <= 0) { dragCounter = 0; dropzone.classList.remove('active'); }
+  content.addEventListener('dragleave', (event) => {
+    if (!hasFiles(event)) return;
+    event.preventDefault(); dragCounter -= 1;
+    if (dragCounter <= 0) { dragCounter = 0; dropzone.classList.remove('active'); document.querySelector('.chat-input-row')?.classList.remove('is-dragging'); }
   });
-  content.addEventListener('dragover', e => e.preventDefault());
-  content.addEventListener('drop', async e => {
-    e.preventDefault(); dragCounter = 0; dropzone.classList.remove('active');
-    const files = e.dataTransfer?.files;
-    if (!files || !files.length) return;
-    toast(`⚡ Uploading ${files.length} file(s) into workspace...`, 'ok', 3000);
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const reader = new FileReader();
-      reader.onload = async (evt) => {
-        const text = evt.target?.result || '';
-        if (document.getElementById('chat-input')) {
-          const inp = document.getElementById('chat-input');
-          inp.value += `\n[Attached File: ${file.name}]\n\`\`\`\n${text.slice(0, 2000)}\n\`\`\`\n`;
-        }
-      };
-      reader.readAsText(file);
-    }
+  content.addEventListener('dragover', (event) => { if (hasFiles(event) && !event.target.closest('#pane-studio')) event.preventDefault(); });
+  content.addEventListener('drop', (event) => {
+    if (!hasFiles(event) || event.target.closest('#pane-studio')) return;
+    event.preventDefault(); dragCounter = 0; dropzone.classList.remove('active'); document.querySelector('.chat-input-row')?.classList.remove('is-dragging');
+    window.addChatFiles(event.dataTransfer.files);
   });
 };
 
