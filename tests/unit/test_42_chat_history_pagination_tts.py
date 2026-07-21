@@ -42,3 +42,10 @@ def test_legacy_chat_log_schema_is_migrated_before_history_is_read():
     memory_db = (ROOT / 'backend' / 'services' / 'memory_db.py').read_text(encoding='utf-8')
     assert "ALTER TABLE chat_log ADD COLUMN model TEXT DEFAULT" in memory_db
     assert "parseSessionResponse" in CORE_JS
+
+
+def test_history_rendering_never_uses_python_style_string_title_method():
+    assert 'selectedPersonaId.title()' not in CORE_JS
+    assert "(m.agent || 'AI').title()" not in CORE_JS
+    assert 'function formatAgentName(value)' in CORE_JS
+    assert "formatAgentName(m.agent || 'AI')" in CORE_JS

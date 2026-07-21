@@ -24,6 +24,14 @@ const S = window.S || {
 };
 window.S = S;
 
+// JavaScript has no native Python-style title-case calls. Keep agent labels safe in
+// every browser, including WKWebView/Safari used by the macOS desktop app.
+function formatAgentName(value) {
+  return String(value || 'AI')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, char => char.toUpperCase());
+}
+
 // ── Toast ────────────────────────────────────────────────────────
 function toast(msg, type = 'ok', duration = 3000) {
   const c = document.getElementById('toast-container');
@@ -512,7 +520,7 @@ async function sendChat() {
   const selectedModel = S.currentModel || document.getElementById('chat-model-select')?.value || '';
   const personaSelect = document.getElementById('chat-persona-select');
   const selectedPersonaId = personaSelect?.value || S.currentAgentId || 'default';
-  const agent = S.currentAgent || { id: selectedPersonaId, name: selectedPersonaId === 'default' ? 'Direct AI Chat' : selectedPersonaId.title(), avatar: selectedPersonaId === 'default' ? '💬' : '🧠' };
+  const agent = S.currentAgent || { id: selectedPersonaId, name: selectedPersonaId === 'default' ? 'Direct AI Chat' : formatAgentName(selectedPersonaId), avatar: selectedPersonaId === 'default' ? '💬' : '🧠' };
 
   // Render user bubble
   addMessage(msg, 'user', '👤', 'You');
@@ -2029,7 +2037,7 @@ window.selectChatPersona = function(val) {
     toast('💬 Direct AI Chat active (No Agent persona applied)', 'ok', 1500);
     return;
   }
-  const found = S.agents?.find(a => a.id === val) || { id: val, name: val.title(), avatar: '🧠', model: '' };
+  const found = S.agents?.find(a => a.id === val) || { id: val, name: formatAgentName(val), avatar: '🧠', model: '' };
   S.currentAgent = found;
   S.currentAgentId = val;
   try { localStorage.setItem('agentic_os_chat_persona', val); } catch(e) {}
@@ -2269,7 +2277,7 @@ window.loadChatSession = async function(sid) {
 
     messages.forEach(m => {
       const avatar = m.role === 'user' ? '👤' : (m.agent === 'brain' ? '🧠' : '💬');
-      const name = m.role === 'user' ? 'You' : (m.agent === 'default' ? 'Direct AI Chat' : (m.agent || 'AI').title());
+      const name = m.role === 'user' ? 'You' : (m.agent === 'default' ? 'Direct AI Chat' : formatAgentName(m.agent || 'AI'));
       const bubble = addMessage(m.message, m.role, avatar, name, m.model || (m.agent !== 'default' ? m.agent : ''));
       if (m.role !== 'user' && bubble && (m.message || '').trim().length > 0) {
         const msgId = bubble.closest('.msg')?.id;
