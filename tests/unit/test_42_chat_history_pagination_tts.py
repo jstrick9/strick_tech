@@ -36,3 +36,9 @@ def test_listen_toggle_and_chat_exit_cancel_every_playback_path():
     assert "destination && destination !== 'chat'" in CORE_JS
     assert "window.addEventListener('pagehide', stop);" in CORE_JS
     assert "_ttsAudio.src = ''; _ttsAudio.load();" in VOICE_JS
+
+
+def test_legacy_chat_log_schema_is_migrated_before_history_is_read():
+    memory_db = (ROOT / 'backend' / 'services' / 'memory_db.py').read_text(encoding='utf-8')
+    assert "ALTER TABLE chat_log ADD COLUMN model TEXT DEFAULT" in memory_db
+    assert "parseSessionResponse" in CORE_JS

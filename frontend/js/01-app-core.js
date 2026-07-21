@@ -2233,8 +2233,22 @@ window.loadChatSession = async function(sid) {
       fetch(`/api/sessions/${encodeURIComponent(sid)}`),
       fetch(`/api/sessions/${encodeURIComponent(sid)}/messages?limit=200`)
     ]);
-    const info = await infoR.json();
-    const msgsData = await msgsR.json();
+    // A legacy database can return a plain-text 500. Parse defensively so the
+    // user sees the actual API status instead of a misleading JSON exception.
+    const parseSessionResponse = async (response, label) => {
+      const raw = await response.text();
+      let payload;
+      try { payload = JSON.parse(raw); }
+      catch (_) {
+        throw new Error(`${label} service returned HTTP ${response.status}: ${raw.slice(0, 180)}`);
+      }
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error || `${label} service returned HTTP ${response.status}`);
+      }
+      return payload;
+    };
+    const info = await parseSessionResponse(infoR, 'Chat session');
+    const msgsData = await parseSessionResponse(msgsR, 'Chat history');
     if (info.ok && info.name) {
       S.sessionName = info.name;
       S.sessionFolder = info.description || 'General';
