@@ -59,11 +59,11 @@ def test_chat_sessions_onclick_attributes_use_html_safe_quotes():
 
 
 def test_message_actions_onclick_attributes_use_html_safe_quotes():
-    """Verify that copy, regenerate, listen, and fork buttons in addMessageActions escape quotes and pass `this` element context."""
-    assert 'copyMsgContent(this, &quot;${midSafe}&quot;)' in CORE_JS
-    assert 'regenerateMsg(this, &quot;${midSafe}&quot;)' in CORE_JS
-    assert 'listenToMsg(this, &quot;${midSafe}&quot;)' in CORE_JS
-    assert 'branchFromMsg(this, &quot;${midSafe}&quot;)' in CORE_JS
+    """Verify that copy, regenerate, listen, and fork buttons in addMessageActions use direct addEventListener bindings without inline onclick."""
+    assert 'copyBtn.addEventListener(\'click\', (e) => {' in CORE_JS
+    assert 'regBtn.addEventListener(\'click\', (e) => {' in CORE_JS
+    assert 'lisBtn.addEventListener(\'click\', (e) => {' in CORE_JS
+    assert 'forkBtn.addEventListener(\'click\', (e) => {' in CORE_JS
 
 
 def test_message_actions_fallback_to_btn_closest_msg():
@@ -87,3 +87,10 @@ def test_direct_ai_chat_system_prompt():
     prompt = _system_prompt_for_agent(agent)
     assert 'helpful, intelligent, and accurate AI assistant' in prompt
     assert 'Agentic OS — a local-first autonomous AI operating system' not in prompt
+
+
+def test_session_messages_queries_model_and_autocreates():
+    """Verify that session_messages queries COALESCE(model, '') as model and auto-creates missing chat_sessions entries."""
+    SESSIONS_PY = (ROOT / 'backend' / 'routers' / 'sessions.py').read_text(encoding='utf-8')
+    assert "COALESCE(model, '') as model" in SESSIONS_PY
+    assert "INSERT OR IGNORE INTO chat_sessions(id, name, agent_id, description)" in SESSIONS_PY
