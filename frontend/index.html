@@ -2742,7 +2742,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;padding:0 12px 10px">SETTINGS WORKSTATION</div>
             
             <button id="settings-nav-api" onclick="switchSettingsTab('api')" class="settings-nav-item active" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
-              <span style="font-size:16px">🔑</span> <span style="flex:1">API Providers & Vault</span>
+              <span style="font-size:16px">🔑</span> <span style="flex:1">Connect AI & Privacy</span>
             </button>
             <button id="settings-nav-appearance" onclick="switchSettingsTab('appearance')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
               <span style="font-size:16px">🎨</span> <span style="flex:1">Theme & Aesthetics</span>
@@ -2767,23 +2767,32 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <!-- TAB 1: API Providers & Vault Secrets (Open WebUI 3-Card Connections Hub) -->
             <div id="settings-tab-api" class="settings-tab-pane active">
               <div class="section-head" style="margin-bottom:24px">
-                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🔑 API Providers & Vault Connections Hub</h2>
-                <p style="color:var(--text-2);font-size:13.5px">Manage primary cloud gateways, local inference engines, and custom OpenAI-compatible endpoints. All connections auto-sync models directly into your primary Chat selector.</p>
+                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🔑 Connect AI</h2>
+                <p style="color:var(--text-2);font-size:13.5px">Choose the simplest way to power Chat. Your available models appear automatically when a connection is ready.</p>
               </div>
 
-              <!-- CARD 1: OpenRouter Primary Cloud Gateway -->
-              <div class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
+              <section class="connection-quickstart" aria-label="Choose how to connect AI">
+                <div><p class="connection-quickstart-kicker">START HERE</p><h3>Choose one way to get started</h3><p>Most people only need one connection. You can add more later.</p></div>
+                <div class="connection-paths">
+                  <button class="connection-path btn-3d" onclick="startConnectionPath('local')"><span>🖥️</span><strong>Use AI on this Mac</strong><small>Private local models. No account required.</small></button>
+                  <button class="connection-path btn-3d" onclick="startConnectionPath('cloud')"><span>☁️</span><strong>Connect cloud AI</strong><small>Add one secure key for more model choices.</small></button>
+                  <button class="connection-path btn-3d" onclick="startConnectionPath('custom')"><span>🔌</span><strong>Use another connection</strong><small>For a compatible server you already use.</small></button>
+                </div>
+              </section>
+
+              <!-- CARD 1: Cloud connection -->
+              <div id="connection-cloud-card" class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
                   <div style="display:flex;align-items:center;gap:8px">
                     <span style="font-size:20px">🌐</span>
-                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">1. OpenRouter API Gateway (Primary Cloud Engine)</label>
+                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">1. Cloud AI connection</label>
                   </div>
                   <div style="display:flex;align-items:center;gap:8px">
                     <span id="or-key-status-badge" class="tech-badge" style="color:var(--text-2);border-color:var(--border)">NOT CONFIGURED</span>
-                    <button onclick="if(typeof showNoviceApiGuide === 'function') showNoviceApiGuide(); else openExternalLink('https://openrouter.ai/keys');" type="button" class="btn-3d btn-ghost btn-sm" style="font-size:11px;color:var(--accent);font-weight:800">🌟 Get Free API Key (Novice Guide) ↗</button>
+                    <button onclick="if(typeof showNoviceApiGuide === 'function') showNoviceApiGuide(); else openExternalLink('https://openrouter.ai/keys');" type="button" class="btn-3d btn-ghost btn-sm" style="font-size:11px;color:var(--accent);font-weight:800">🌟 Help getting a key</button>
                   </div>
                 </div>
-                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Unlocks over 140+ frontier and open models (`Claude 3.5 Sonnet`, `GPT-4o`, `Gemini 2.5 Pro`, `Grok 3`, `Llama 3.3 70B`) with a single universal API key. Free-tier models run at zero cost.</p>
+                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Connect a secure cloud AI key to add more model choices. Your key stays in your local encrypted vault and models become available in Chat automatically.</p>
                 <div class="key-input-row" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
                   <div style="position:relative;flex:1;min-width:240px;display:flex">
                     <input id="or-key-input" type="password" class="key-input" placeholder="Paste sk-or-v1-… key here" autocomplete="off" style="width:100%;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 40px 11px 14px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none">
@@ -2796,15 +2805,15 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               </div>
 
               <!-- CARD 2: Local Ollama Endpoint & Model Manager -->
-              <div class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
+              <div id="connection-local-card" class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
                   <div style="display:flex;align-items:center;gap:8px">
-                    <span style="font-size:20px">🦙</span>
-                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">2. Local Ollama Server & Model Manager (100% Offline)</label>
+                    <span style="font-size:20px">🖥️</span>
+                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">2. Local AI on this Mac</label>
                   </div>
                   <span id="settings-api-ollama-status" class="tech-badge" style="color:var(--text-2);border-color:var(--border)">Checking...</span>
                 </div>
-                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Run open-source neural models 100% offline and zero-latency directly on your Mac Apple Silicon (`M1/M2/M3/M4 Metal MPS`) or Intel CPU. No data ever leaves your computer.</p>
+                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Use models that run on your Mac. Your conversations stay on this device. Check once and your available models will appear in Chat.</p>
                 <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
                   <input id="settings-api-ollama-url" type="text" value="http://localhost:11434" style="flex:1;min-width:240px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
                   <button onclick="if(typeof testOllamaConnection === 'function') testOllamaConnection()" class="btn-ghost btn-3d" style="padding:11px 22px;border-radius:10px">⚡ Check & Auto-Discover Models</button>
@@ -2833,16 +2842,16 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <div id="settings-api-ollama-models" style="font-size:12px;color:var(--text-2);padding:12px;background:var(--bg-2);border-radius:10px;border:1px solid var(--border)">Checking detected models on localhost:11434...</div>
               </div>
 
-              <!-- CARD 3: Custom OpenAI-Compatible Connections -->
-              <div class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
+              <!-- CARD 3: Custom connection -->
+              <div id="connection-custom-card" class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
                   <div style="display:flex;align-items:center;gap:8px">
                     <span style="font-size:20px">🔌</span>
-                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">3. Custom OpenAI-Compatible & Local Endpoints (`LM Studio · Jan · vLLM`)</label>
+                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">3. Another AI connection</label>
                   </div>
                   <span id="settings-api-custom-status" class="tech-badge" style="color:var(--accent);border-color:var(--accent)">LM Studio · Jan · Any Endpoint</span>
                 </div>
-                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Connect to any local (`LM Studio` on `:1234/v1`, `Jan` on `:1337/v1`) or cloud (`Groq`, `DeepSeek`) OpenAI-compatible API base path. Discovered models automatically populate your Chat selector.</p>
+                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Connect a compatible local or hosted AI server you already use. Available models will appear in Chat automatically after a successful connection.</p>
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
                   <button onclick="document.getElementById('custom-api-base-url').value='http://localhost:1234/v1';saveCustomConnection()" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: LM Studio (:1234/v1)</button>
                   <button onclick="document.getElementById('custom-api-base-url').value='http://localhost:1337/v1';saveCustomConnection()" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: Jan (:1337/v1)</button>

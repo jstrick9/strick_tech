@@ -3889,3 +3889,15 @@ body.theme-high-contrast a {
 .chat-input-row.is-dragging { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
 .dropzone-overlay { align-items:center; backdrop-filter:blur(3px); background:color-mix(in srgb, var(--bg-0) 82%, transparent); border:2px dashed var(--accent); color:var(--text-0); display:none; font-size:16px; font-weight:750; inset:16px; justify-content:center; position:fixed; text-align:center; z-index:12000; }
 .dropzone-overlay.active { display:flex; }
+
+
+/* Plain-language connection choices keep setup approachable. */
+.connection-quickstart { background:linear-gradient(135deg, var(--bg-1), var(--bg-2)); border:1px solid var(--border-hi); border-radius:18px; margin-bottom:20px; padding:22px; }
+.connection-quickstart-kicker { color:var(--accent); font-size:11px; font-weight:800; letter-spacing:.12em; margin:0 0 5px; }
+.connection-quickstart h3 { color:var(--text-0); font-size:18px; margin:0; }
+.connection-quickstart > div > p:last-child { color:var(--text-2); font-size:13px; margin:6px 0 16px; }
+.connection-paths { display:grid; gap:10px; grid-template-columns:repeat(3, minmax(0, 1fr)); }
+.connection-path { align-items:flex-start; background:var(--bg-1); border:1px solid var(--border); border-radius:12px; color:var(--text-0); cursor:pointer; display:flex; flex-direction:column; gap:4px; min-height:110px; padding:14px; text-align:left; }
+.connection-path:hover { border-color:var(--accent); box-shadow:0 10px 22px var(--accent-glow); }
+.connection-path > span { font-size:20px; }.connection-path strong { font-size:13px; }.connection-path small { color:var(--text-2); font-size:11.5px; line-height:1.35; }
+@media (max-width:760px) { .connection-paths { grid-template-columns:1fr; } }
