@@ -58,16 +58,27 @@ def run_verification():
 
             assert not errors, f"Console errors detected on startup: {errors}"
 
-            # Test message actions
+            # Verify no action buttons while thinking/empty before stream finishes
             page.evaluate("window.nav('chat')")
+            # Select All tab first
+            page.evaluate("window.selectChatFolder('All')")
             page.fill("#chat-input", "Hello e2e verification turn 1")
             page.click("#chat-send")
+            # Check immediately right after sending (during thinking/initial stream start)
+            time.sleep(0.15)
+            early_actions = page.evaluate("document.querySelectorAll('#chat-messages .msg.agent .msg-actions').length")
+            assert early_actions == 0, f"Action buttons must NOT appear while model is thinking/streaming, found {early_actions}"
+
             time.sleep(3.5)
+
+            # Check that creating chat while on All tab saved into General folder (not All)
+            folder_badges = page.evaluate("Array.from(document.querySelectorAll('.session-folder-badge')).map(el => el.textContent)")
+            assert len(folder_badges) > 0 and all("All" not in b for b in folder_badges), f"Session created under All tab must save to General folder, got badges: {folder_badges}"
 
             meta = page.evaluate("document.querySelector('#chat-messages .msg.agent .msg-meta')?.textContent || ''")
             assert "⚡" in meta, f"Model badge missing from .msg-meta: {meta}"
 
-            # Verify action buttons click cleanly
+            # Verify action buttons click cleanly after response is complete
             page.click(".msg-actions button[title='Copy message']")
             page.click(".msg-actions button[title='Read response aloud']")
             assert not errors, f"Console errors detected during button clicks: {errors}"

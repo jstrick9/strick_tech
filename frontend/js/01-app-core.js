@@ -612,11 +612,12 @@ async function sendChat() {
     }
 
     S.chatHistory.push({ role: 'assistant', content: fullText });
-    if (bubbleEl) {
+    if (bubbleEl && (fullText || '').trim().length > 0) {
       const finalId = bubbleEl.closest('.msg')?.id;
       if (finalId) {
         if (!window._msgContents) window._msgContents = {};
         window._msgContents[finalId] = fullText;
+        addMessageActions(bubbleEl, 'agent', fullText, finalId);
       }
     }
 
@@ -2120,6 +2121,7 @@ window.loadChatSessions = async function(q = '') {
       bottomRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-3)';
 
       const folderSpan = document.createElement('span');
+      folderSpan.className = 'session-folder-badge';
       folderSpan.style.cssText = 'background:var(--bg-2); padding:1px 6px; border-radius:4px; border:1px solid var(--border)';
       folderSpan.textContent = `${folderIcon} ${folder}`;
       bottomRow.appendChild(folderSpan);
@@ -2169,7 +2171,7 @@ window.loadChatSession = async function(sid) {
       const avatar = m.role === 'user' ? '👤' : (m.agent === 'brain' ? '🧠' : '💬');
       const name = m.role === 'user' ? 'You' : (m.agent === 'default' ? 'Direct AI Chat' : (m.agent || 'AI').title());
       const bubble = addMessage(m.message, m.role, avatar, name, m.model || (m.agent !== 'default' ? m.agent : ''));
-      if (m.role !== 'user' && bubble) {
+      if (m.role !== 'user' && bubble && (m.message || '').trim().length > 0) {
         const msgId = bubble.closest('.msg')?.id;
         if (msgId) addMessageActions(bubble, m.role, m.message, msgId);
       }
@@ -5394,14 +5396,13 @@ window.branchFromMsg = function(btn, msgId) {
   }
 };
 
-// Patch addMessage to include actions
+// Patch addMessage to include actions when explicitly invoked after response finishes
 const _origAddMessage = addMessage;
 addMessage = function(content, role, avatar, name, modelUsed = '') {
   const bubbleEl = _origAddMessage(content, role, avatar, name, modelUsed);
   const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2,5);
   const msgDiv = bubbleEl?.closest('.msg');
   if (msgDiv) msgDiv.id = msgId;
-  if (bubbleEl && role !== 'user') setTimeout(() => addMessageActions(bubbleEl, role, content, msgId), 100);
   return bubbleEl;
 };
 

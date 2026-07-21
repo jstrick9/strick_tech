@@ -187,7 +187,7 @@ async def chat_stream(req: Request):
         messages.append({'role': 'user', 'content': message})
 
     # log user message
-    _log_chat(session_id, agent_id, 'user', message)
+    _log_chat(session_id, agent_id, 'user', message, model=req_model or agent.get('model', ''))
 
     # update agent status
     _set_agent_status(agent_id, 'working')
@@ -214,7 +214,7 @@ async def chat_stream(req: Request):
                     pass
         finally:
             # log assistant reply
-            _log_chat(session_id, agent_id, 'assistant', full_text)
+            _log_chat(session_id, agent_id, 'assistant', full_text, model=req_model or agent.get('model', ''))
             _set_agent_status(agent_id, 'idle')
             # ingest to memory
             if full_text and len(full_text) > 50:
@@ -284,14 +284,15 @@ def chat_history(session_id: str = '', agent: str = '', limit: int = 100):
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-def _log_chat(session_id: str, agent: str, role: str, message: str, tokens: int = 0, cost: float = 0.0):
+def _log_chat(session_id: str, agent: str, role: str, message: str, tokens: int = 0, cost: float = 0.0, model: str = ''):
     try:
         con = memory_db.get_conn()
         try:
             con.execute(
-                'INSERT INTO chat_log(session_id, agent, role, message, tokens, cost) VALUES (?,?,?,?,?,?)',
-                (session_id, agent, role, message[:4000], tokens, cost),
+                'INSERT INTO chat_log(session_id, agent, role, message, tokens, cost, model) VALUES (?,?,?,?,?,?,?)',
+                (session_id, agent, role, message[:4000], tokens, cost, model),
             )
+            con.execute('UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_log WHERE session_id=?), updated_at = CURRENT_TIMESTAMP WHERE id=?', (session_id, session_id))
             con.commit()
         finally:
             con.close()

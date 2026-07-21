@@ -54,35 +54,40 @@ def _reconcile_orphan_sessions(con):
         con.execute("UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_log c WHERE TRIM(c.session_id) = TRIM(chat_sessions.id))")
         zero_sessions = con.execute("SELECT id, name, created_at FROM chat_sessions WHERE message_count = 0").fetchall()
         for sid, name, created_at in zero_sessions:
-            clean_name = name.replace('📌', '').strip()
-            if clean_name.endswith('...'):
-                clean_name = clean_name[:-3].strip()
+            clean_name = (name or '').replace('📌', '').strip()
+            while clean_name.endswith('.'):
+                clean_name = clean_name[:-1].strip()
 
             matched_sid = None
             if len(clean_name) >= 4 and not clean_name.startswith('Chat '):
-                prefix = clean_name[:25]
-                row = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE message = ? OR message LIKE ? || '%' LIMIT 1", (clean_name, prefix)).fetchone()
+                prefix = clean_name[:14].strip()
+                row = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE LOWER(message) LIKE LOWER(?) || '%' OR LOWER(message) LIKE '%' || LOWER(?) || '%' LIMIT 1", (prefix, prefix)).fetchone()
                 if row and row[0]:
                     matched_sid = row[0]
 
             if not matched_sid and created_at:
+                day_str = str(created_at)[:10]
                 row_ts = con.execute("""
                     SELECT DISTINCT session_id FROM chat_log 
-                    WHERE abs(unixepoch(created_at) - unixepoch(?)) <= 600
+                    WHERE (abs(unixepoch(created_at) - unixepoch(?)) <= 3600 OR SUBSTR(created_at, 1, 10) = ?)
                     AND session_id NOT IN (SELECT id FROM chat_sessions WHERE message_count > 0)
                     LIMIT 1
-                """, (created_at,)).fetchone()
+                """, (created_at, day_str)).fetchone()
                 if row_ts and row_ts[0]:
                     matched_sid = row_ts[0]
+
+            if not matched_sid:
+                row_any = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE session_id NOT IN (SELECT id FROM chat_sessions) LIMIT 1").fetchone()
+                if row_any and row_any[0]:
+                    matched_sid = row_any[0]
 
             if matched_sid and matched_sid != sid:
                 con.execute("UPDATE chat_log SET session_id = ? WHERE session_id = ?", (sid, matched_sid))
                 con.execute("UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_log c WHERE c.session_id = ?), updated_at = CURRENT_TIMESTAMP WHERE id = ?", (sid, sid))
                 first_txt = con.execute("SELECT message FROM chat_log WHERE session_id = ? ORDER BY id ASC LIMIT 1", (sid,)).fetchone()
                 if first_txt and first_txt[0] and name.startswith('Chat '):
-                    new_title = (first_txt[0].strip()[:42] + '...') if len(first_txt[0].strip()) > 42 else first_txt[0].strip()
-                    if new_title:
-                        con.execute("UPDATE chat_sessions SET name = ? WHERE id = ?", (new_title, sid))
+                    new_title = (first_txt[0].strip()[:256])
+                    con.execute("UPDATE chat_sessions SET name = ? WHERE id = ?", (new_title, sid))
                 con.commit()
     except Exception as e:
         log.warning("Reconciliation error: %s", e)
@@ -368,7 +373,7 @@ def session_messages(session_id: str, limit: int = 200, offset: int = 0):
         exists = con.execute('SELECT id FROM chat_sessions WHERE id=?', (session_id,)).fetchone()
         if not exists:
             first_msg = con.execute('SELECT message FROM chat_log WHERE session_id=? ORDER BY id ASC LIMIT 1', (session_id,)).fetchone()
-            name = (first_msg[0] if first_msg else f'Chat {session_id[:6]}')[:42] + ('...' if first_msg and len(first_msg[0]) > 42 else '')
+            name = (first_msg[0] if first_msg else f'Chat {session_id[:6]}')[:256]
             con.execute('INSERT OR IGNORE INTO chat_sessions(id, name, agent_id, description) VALUES (?,?,?,?)', (session_id, name, 'default', 'General'))
             con.commit()
 
@@ -382,14 +387,19 @@ def session_messages(session_id: str, limit: int = 200, offset: int = 0):
             sinfo_row = con.execute('SELECT name, created_at FROM chat_sessions WHERE id=?', (session_id,)).fetchone()
             if sinfo_row:
                 cname = (sinfo_row[0] or '').replace('📌', '').strip()
-                if cname.endswith('...'): cname = cname[:-3].strip()
+                while cname.endswith('.'): cname = cname[:-1].strip()
                 orphan_sid = None
                 if len(cname) >= 4 and not cname.startswith('Chat '):
-                    o_row = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE message = ? OR message LIKE ? || '%' LIMIT 1", (cname, cname[:25])).fetchone()
+                    prefix = cname[:14].strip()
+                    o_row = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE LOWER(message) LIKE LOWER(?) || '%' OR LOWER(message) LIKE '%' || LOWER(?) || '%' LIMIT 1", (prefix, prefix)).fetchone()
                     if o_row and o_row[0]: orphan_sid = o_row[0]
                 if not orphan_sid and sinfo_row[1]:
-                    o_row_ts = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE abs(unixepoch(created_at) - unixepoch(?)) <= 600 LIMIT 1", (sinfo_row[1],)).fetchone()
+                    day_str = str(sinfo_row[1])[:10]
+                    o_row_ts = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE (abs(unixepoch(created_at) - unixepoch(?)) <= 3600 OR SUBSTR(created_at, 1, 10) = ?) AND session_id NOT IN (SELECT id FROM chat_sessions WHERE message_count > 0) LIMIT 1", (sinfo_row[1], day_str)).fetchone()
                     if o_row_ts and o_row_ts[0]: orphan_sid = o_row_ts[0]
+                if not orphan_sid:
+                    o_any = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE session_id NOT IN (SELECT id FROM chat_sessions) LIMIT 1").fetchone()
+                    if o_any and o_any[0]: orphan_sid = o_any[0]
                 if orphan_sid and orphan_sid != session_id:
                     con.execute("UPDATE chat_log SET session_id=? WHERE session_id=?", (session_id, orphan_sid))
                     con.execute("UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_log WHERE session_id=?) WHERE id=?", (session_id, session_id))
