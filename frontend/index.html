@@ -1785,8 +1785,11 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <button class="chat-tool" onclick="toggleStream()" id="stream-btn" title="Streaming responses">⚡ Stream</button>
                 <button class="chat-tool" onclick="nav('swarm')" title="Run multi-agent swarm">🌀 Swarm</button>
               </div>
+              <div id="chat-attachment-tray" class="chat-attachment-tray" aria-live="polite"></div>
               <div class="chat-input-row">
-                <textarea id="chat-input" aria-label="Chat message input" placeholder="Message an agent… or /help for commands" rows="1"></textarea>
+                <input id="chat-file-input" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.js,.jsx,.ts,.tsx,.py,.html,.css,.xml,.yaml,.yml,.log,.sql,.sh,.java,.go,.rs,.rb,.php,.c,.cpp,.h">
+                <button class="chat-attach-btn btn-3d" onclick="document.getElementById('chat-file-input').click()" title="Attach text, code, CSV, or JSON files" aria-label="Attach files">📎</button>
+                <textarea id="chat-input" aria-label="Chat message input" placeholder="Message AI… or drop a file here" rows="1"></textarea>
                 <button class="chat-send-btn" id="chat-send" onclick="sendChat()" aria-label="Send message">➤</button>
               </div>
             </div>

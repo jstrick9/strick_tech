@@ -3875,3 +3875,17 @@ body.theme-high-contrast a {
   #topbar #chat-model-control select { max-width:42vw; }
   #restart-engine-btn .btn-text { display:none; }
 }
+
+
+/* Chat attachments: visible, removable context before it is sent. */
+.chat-attach-btn { align-items:center; align-self:center; background:transparent; border:0; border-radius:8px; color:var(--text-2); cursor:pointer; display:flex; font-size:16px; height:32px; justify-content:center; padding:0; width:32px; }
+.chat-attach-btn:hover { background:var(--bg-3); color:var(--accent); }
+.chat-attachment-tray { display:flex; flex-wrap:wrap; gap:7px; margin:0 0 8px; }
+.chat-attachment-tray:empty { display:none; }
+.chat-attachment-chip { align-items:center; background:var(--bg-2); border:1px solid var(--border); border-radius:9px; color:var(--text-1); display:inline-flex; font-size:12px; gap:6px; max-width:100%; padding:6px 8px; }
+.chat-attachment-chip .attachment-name { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chat-attachment-chip button { background:transparent; border:0; color:var(--text-2); cursor:pointer; font-size:15px; line-height:1; padding:0 2px; }
+.chat-attachment-chip button:hover { color:var(--danger); }
+.chat-input-row.is-dragging { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+.dropzone-overlay { align-items:center; backdrop-filter:blur(3px); background:color-mix(in srgb, var(--bg-0) 82%, transparent); border:2px dashed var(--accent); color:var(--text-0); display:none; font-size:16px; font-weight:750; inset:16px; justify-content:center; position:fixed; text-align:center; z-index:12000; }
+.dropzone-overlay.active { display:flex; }
