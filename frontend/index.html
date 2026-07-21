@@ -1605,150 +1605,179 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
       <!-- CHAT PANE -->
       <div class="pane active" id="pane-chat">
-        <div class="chat-header" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg-1);flex-shrink:0;flex-wrap:wrap;overflow:visible;z-index:10">
-          <div style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:4px 10px;box-shadow:0 2px 6px rgba(0,0,0,0.2)">
-            <span style="font-size:14px" title="AI Inference Model">⚡</span>
-            <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-right:2px">Model:</span>
-            <select id="chat-model-select" onchange="if(typeof selectChatModel === 'function') selectChatModel(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
-              <optgroup label="Primary Cloud Gateways (OpenRouter)">
-                <option value="claude">Claude 3.5 Sonnet (Primary)</option>
-                <option value="claude-opus">Claude Opus 4 (Deep Reasoning)</option>
-                <option value="gpt4o">OpenAI GPT-4o (Universal)</option>
-                <option value="gemini">Google Gemini 2.5 Pro (1M Context)</option>
-                <option value="grok">xAI Grok 3 (Real-time)</option>
-                <option value="llama">Meta Llama 3.3 70B (Free)</option>
-                <option value="qwen">Alibaba Qwen3 235B (Free)</option>
-              </optgroup>
-              <optgroup id="ollama-model-optgroup" label="Local Inference Engine (Ollama / Offline)">
-                <option value="local">Ollama Auto-Detect (http://localhost:11434)</option>
-              </optgroup>
-              <optgroup id="custom-model-optgroup" label="Custom OpenAI-Compatible Connections">
-                <option value="custom">Custom Endpoint Model</option>
-              </optgroup>
-            </select>
+        <div style="display:flex; height:100%; width:100%; overflow:hidden">
+          <!-- Chat Sessions & Folder Sidebar Drawer -->
+          <div id="chat-history-drawer" style="width:280px; border-right:1px solid var(--border); background:var(--bg-1); display:flex; flex-direction:column; flex-shrink:0; height:100%; transition:width .2s, opacity .2s; overflow:hidden">
+            <div style="padding:12px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:8px">
+              <div style="display:flex; align-items:center; justify-content:space-between">
+                <span style="font-size:13px; font-weight:800; color:var(--text-0); display:flex; align-items:center; gap:6px">📁 Chats & Folders</span>
+                <button onclick="startNewChatSession()" class="btn-3d btn-primary btn-sm" style="padding:4px 10px; font-size:11.5px; font-weight:700">＋ New</button>
+              </div>
+              <input type="text" id="chat-sessions-search" placeholder="🔍 Search chats or folders..." oninput="if(typeof filterChatSessions==='function')filterChatSessions(this.value)" style="width:100%; background:var(--bg-2); border:1px solid var(--border-hi); border-radius:8px; padding:6px 10px; color:var(--text-0); font-size:12px; outline:none">
+              <div style="display:flex; gap:4px; overflow-x:auto; padding-bottom:2px" id="chat-folder-pills">
+                <button class="tag active-folder" onclick="selectChatFolder('All')" style="cursor:pointer; font-weight:700; font-size:11px; padding:3px 8px; border-radius:6px; background:var(--accent); color:#fff; border:none; flex-shrink:0">All</button>
+                <button class="tag" onclick="selectChatFolder('General')" style="cursor:pointer; font-weight:600; font-size:11px; padding:3px 8px; border-radius:6px; background:var(--bg-2); color:var(--text-1); border:1px solid var(--border); flex-shrink:0">📁 General</button>
+                <button class="tag" onclick="selectChatFolder('Engineering')" style="cursor:pointer; font-weight:600; font-size:11px; padding:3px 8px; border-radius:6px; background:var(--bg-2); color:var(--text-1); border:1px solid var(--border); flex-shrink:0">⚙️ Engineering</button>
+                <button class="tag" onclick="selectChatFolder('Research')" style="cursor:pointer; font-weight:600; font-size:11px; padding:3px 8px; border-radius:6px; background:var(--bg-2); color:var(--text-1); border:1px solid var(--border); flex-shrink:0">🔬 Research</button>
+                <button class="tag" onclick="selectChatFolder('Ideas')" style="cursor:pointer; font-weight:600; font-size:11px; padding:3px 8px; border-radius:6px; background:var(--bg-2); color:var(--text-1); border:1px solid var(--border); flex-shrink:0">💡 Ideas</button>
+              </div>
+            </div>
+            <div id="chat-sessions-list" style="flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:4px">
+              <div style="color:var(--text-3); font-size:12px; text-align:center; padding:20px">Loading saved chat history...</div>
+            </div>
           </div>
 
-          <div style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:4px 10px;box-shadow:0 2px 6px rgba(0,0,0,0.2)">
-            <span style="font-size:14px" title="Optional Agent Persona">👤</span>
-            <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-right:2px">Persona:</span>
-            <select id="chat-persona-select" onchange="if(typeof selectChatPersona === 'function') selectChatPersona(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
-              <option value="default">💬 Direct AI Chat (No Agent Required)</option>
-              <optgroup id="chat-persona-optgroup" label="Specialized Agent Personas">
-                <option value="brain">🧠 Brain (Deep Reasoning & Planning)</option>
-                <option value="orchestrator">🌀 Orchestrator (Task Fan-Out)</option>
-                <option value="builder">⚡ Builder (Full-Stack Code Generation)</option>
-                <option value="specs">📋 Specs & Architecture</option>
-              </optgroup>
-            </select>
-          </div>
+          <!-- Main Chat Container -->
+          <div id="chat-main-container" style="flex:1; display:flex; flex-direction:column; min-width:0; height:100%">
+            <div class="chat-header" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg-1);flex-shrink:0;flex-wrap:wrap;overflow:visible;z-index:10">
+              <button class="btn-3d btn-ghost btn-sm" onclick="toggleChatHistoryDrawer()" style="padding:6px 10px;display:flex;align-items:center;gap:6px" title="Toggle Chat History & Folder Sidebar">📁 History</button>
+              <button class="btn-3d btn-primary btn-sm" onclick="startNewChatSession()" style="padding:6px 10px;display:flex;align-items:center;gap:6px;font-weight:700">＋ New</button>
 
-          <!-- Hidden legacy elements to preserve existing DOM function bindings cleanly -->
-          <span id="active-agent-avatar" style="display:none">💬</span>
-          <span id="active-agent-name" style="display:none">Direct AI Chat</span>
-          <span id="active-agent-dot" style="display:none"></span>
-          <span id="active-model-badge" style="display:none"></span>
-
-          <div class="spacer"></div>
-          <button class="btn-3d btn-ghost btn-sm" onclick="clearChatHistory()" style="padding:6px 12px">🗑 Clear Chat</button>
-        </div>
-
-        <div id="chat-messages">
-          <div id="chat-empty">
-            <div class="neural-orb-3d" style="width:48px;height:48px;margin-bottom:12px"></div>
-            <h3 style="font-size:22px;font-weight:900;letter-spacing:-0.4px">Agentic OS — Mission Control</h3>
-            <p style="color:var(--text-1);font-size:13.5px">Your local-first AI operating system. Chat with any agent, run the swarm, build apps, search memory.</p>
-            
-            <!-- Optional Interactive Mission Launchpad Deck & Quick Setup Hub -->
-            <div id="mission-launchpad-deck" style="margin-top:14px;background:radial-gradient(circle at 50% 0%,rgba(56,189,248,0.14),rgba(11,15,34,0.92));border:1px solid var(--border-hi);border-radius:20px;padding:24px;max-width:740px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.6);text-align:left;position:relative;margin-bottom:20px">
-              <button onclick="document.getElementById('mission-launchpad-deck').style.display='none';try{localStorage.setItem('agentic_os_launchpad_hidden','true')}catch(e){}" title="Dismiss Launchpad" class="btn-3d btn-ghost btn-sm" style="position:absolute;top:16px;right:18px;font-size:11px">✕ Dismiss Quick Setup</button>
-              
-              <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-                <div class="neural-orb-3d" style="width:36px;height:36px"></div>
-                <div>
-                  <h3 style="font-size:17px;font-weight:900;color:var(--text-0);margin:0;letter-spacing:-0.3px">🚀 Strick Tech Quick Setup & Walkthrough Hub</h3>
-                  <p style="font-size:12px;color:var(--accent-hi);margin:2px 0 0">Minimum necessary setup to start chatting + live interactive examples</p>
-                </div>
+              <div style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:4px 10px;box-shadow:0 2px 6px rgba(0,0,0,0.2)">
+                <span style="font-size:14px" title="AI Inference Model">⚡</span>
+                <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-right:2px">Model:</span>
+                <select id="chat-model-select" onchange="if(typeof selectChatModel === 'function') selectChatModel(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
+                  <optgroup label="Primary Cloud Gateways (OpenRouter)">
+                    <option value="claude">Claude 3.5 Sonnet (Primary)</option>
+                    <option value="claude-opus">Claude Opus 4 (Deep Reasoning)</option>
+                    <option value="gpt4o">OpenAI GPT-4o (Universal)</option>
+                    <option value="gemini">Google Gemini 2.5 Pro (1M Context)</option>
+                    <option value="grok">xAI Grok 3 (Real-time)</option>
+                    <option value="llama">Meta Llama 3.3 70B (Free)</option>
+                    <option value="qwen">Alibaba Qwen3 235B (Free)</option>
+                  </optgroup>
+                  <optgroup id="ollama-model-optgroup" label="Local Inference Engine (Ollama / Offline)">
+                    <option value="local">Ollama Auto-Detect (http://localhost:11434)</option>
+                  </optgroup>
+                  <optgroup id="custom-model-optgroup" label="Custom OpenAI-Compatible Connections">
+                    <option value="custom">Custom Endpoint Model</option>
+                  </optgroup>
+                </select>
               </div>
 
-              <!-- Step 1: Minimum Necessary Setup (Connect Key OR Local Ollama) -->
-              <div style="background:rgba(3,6,18,0.7);border:1px solid rgba(56,189,248,0.25);border-radius:14px;padding:16px;margin-bottom:12px">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-                  <span style="font-size:13px;font-weight:800;color:var(--text-0)">Step 1: Wire Your AI Engine <span class="tech-badge" style="font-size:9.5px;padding:1px 6px">OpenRouter OR Local Ollama</span></span>
-                  <a href="https://openrouter.ai/keys" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none;font-weight:700">→ Get Free API Key ↗</a>
-                </div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <input id="lp-api-key" type="password" placeholder="Paste sk-or-v1-... key OR leave empty for local Ollama" autocomplete="off" style="flex:1;min-width:220px;background:var(--bg-1);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;outline:none;font-family:monospace">
-                  <button onclick="if(typeof lpSaveVerifyKey === 'function') lpSaveVerifyKey()" class="btn-3d btn-primary btn-sm" style="padding:8px 16px">⚡ Save & Verify</button>
-                  <button onclick="if(typeof testOllamaConnection === 'function') testOllamaConnection()" class="btn-3d btn-ghost btn-sm" style="padding:8px 14px">⚡ Use Local Ollama</button>
-                </div>
-                <div id="lp-key-status" style="font-size:11.5px;color:var(--text-2);margin-top:8px">Keys are stored encrypted inside your local vault (~/Library/Application Support/com.stricktech.agenticos/.vault_key).</div>
+              <div style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:4px 10px;box-shadow:0 2px 6px rgba(0,0,0,0.2)">
+                <span style="font-size:14px" title="Optional Agent Persona">👤</span>
+                <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-right:2px">Persona:</span>
+                <select id="chat-persona-select" onchange="if(typeof selectChatPersona === 'function') selectChatPersona(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
+                  <option value="default">💬 Direct AI Chat (No Agent Required)</option>
+                  <optgroup id="chat-persona-optgroup" label="Specialized Agent Personas">
+                    <option value="brain">🧠 Brain (Deep Reasoning & Planning)</option>
+                    <option value="orchestrator">🌀 Orchestrator (Task Fan-Out)</option>
+                    <option value="builder">⚡ Builder (Full-Stack Code Generation)</option>
+                    <option value="specs">📋 Specs & Architecture</option>
+                  </optgroup>
+                </select>
               </div>
 
-              <!-- Step 2: Interactive Examples & Walkthroughs -->
-              <div style="background:rgba(3,6,18,0.7);border:1px solid rgba(168,85,247,0.25);border-radius:14px;padding:16px;margin-bottom:12px">
-                <div style="font-size:13px;font-weight:800;color:var(--text-0);margin-bottom:8px">Step 2: Try Live Interactive Examples</div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
-                  <button onclick="if(typeof openHierarchyInterview === 'function') openHierarchyInterview()" class="btn-3d btn-sm" style="width:100%;padding:10px;background:linear-gradient(135deg,#38bdf8,#a855f7);color:#fff;border:none">✨ Launch AI Interview Me</button>
-                  <button onclick="document.getElementById('chat-input').value='Analyze the top 3 architectural bottlenecks in modern React vs Svelte apps and propose solutions.';showToast('Example inserted! Press Enter or -> to chat.')" class="btn-3d btn-ghost btn-sm" style="width:100%;padding:10px;color:var(--success)">💡 Try Chat Example</button>
-                  <button onclick="nav('swarm');showToast('Swarm opened! Send one prompt to 7+ specialist models in parallel.')" class="btn-3d btn-ghost btn-sm" style="width:100%;padding:10px;color:#d8b4fe">◈ Try Swarm Fan-out</button>
-                </div>
-              </div>
+              <!-- Hidden legacy elements to preserve existing DOM function bindings cleanly -->
+              <span id="active-agent-avatar" style="display:none">💬</span>
+              <span id="active-agent-name" style="display:none">Direct AI Chat</span>
+              <span id="active-agent-dot" style="display:none"></span>
+              <span id="active-model-badge" style="display:none"></span>
 
-              <!-- Step 3: Workstation Mode -->
-              <div style="background:rgba(3,6,18,0.7);border:1px solid rgba(16,185,129,0.25);border-radius:14px;padding:16px">
-                <div style="font-size:13px;font-weight:800;color:var(--text-0);margin-bottom:8px">Step 3: Select Interface Complexity</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                  <button onclick="switchUIMode('simple');toast('✨ Core Workstation active')" class="btn-3d card-3d-tilt" style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;align-items:flex-start">
-                    <div style="font-weight:800;font-size:12.5px;color:#7dd3fc;margin-bottom:2px">⚡ Core Workstation</div>
-                    <div style="font-size:11px;color:var(--text-2);font-weight:normal">Streamlined view. Essential Chat, Studio, & AI OPs Manual.</div>
-                  </button>
-                  <button onclick="switchUIMode('power');toast('🌌 Power Workstation active')" class="btn-3d card-3d-tilt" style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;align-items:flex-start">
-                    <div style="font-weight:800;font-size:12.5px;color:#d8b4fe;margin-bottom:2px">🌌 Power Workstation</div>
-                    <div style="font-size:11px;color:var(--text-2);font-weight:normal">All 65+ panes, tools, and enterprise telemetry active.</div>
-                  </button>
+              <div class="spacer"></div>
+              <button class="btn-3d btn-ghost btn-sm" onclick="clearChatHistory()" style="padding:6px 12px">🗑 Clear Chat</button>
+            </div>
+
+            <div id="chat-messages">
+              <div id="chat-empty">
+                <div class="neural-orb-3d" style="width:48px;height:48px;margin-bottom:12px"></div>
+                <h3 style="font-size:22px;font-weight:900;letter-spacing:-0.4px">Agentic OS — Mission Control</h3>
+                <p style="color:var(--text-1);font-size:13.5px">Your local-first AI operating system. Chat with any agent, run the swarm, build apps, search memory.</p>
+                
+                <!-- Optional Interactive Mission Launchpad Deck & Quick Setup Hub -->
+                <div id="mission-launchpad-deck" style="margin-top:14px;background:radial-gradient(circle at 50% 0%,rgba(56,189,248,0.14),rgba(11,15,34,0.92));border:1px solid var(--border-hi);border-radius:20px;padding:24px;max-width:740px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.6);text-align:left;position:relative;margin-bottom:20px">
+                  <button onclick="document.getElementById('mission-launchpad-deck').style.display='none';try{localStorage.setItem('agentic_os_launchpad_hidden','true')}catch(e){}" title="Dismiss Launchpad" class="btn-3d btn-ghost btn-sm" style="position:absolute;top:16px;right:18px;font-size:11px">✕ Dismiss Quick Setup</button>
+                  
+                  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+                    <div class="neural-orb-3d" style="width:36px;height:36px"></div>
+                    <div>
+                      <h3 style="font-size:17px;font-weight:900;color:var(--text-0);margin:0;letter-spacing:-0.3px">🚀 Strick Tech Quick Setup & Walkthrough Hub</h3>
+                      <p style="font-size:12px;color:var(--accent-hi);margin:2px 0 0">Minimum necessary setup to start chatting + live interactive examples</p>
+                    </div>
+                  </div>
+
+                  <!-- Step 1: Minimum Necessary Setup (Connect Key OR Local Ollama) -->
+                  <div style="background:rgba(3,6,18,0.7);border:1px solid rgba(56,189,248,0.25);border-radius:14px;padding:16px;margin-bottom:12px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+                      <span style="font-size:13px;font-weight:800;color:var(--text-0)">Step 1: Wire Your AI Engine <span class="tech-badge" style="font-size:9.5px;padding:1px 6px">OpenRouter OR Local Ollama</span></span>
+                      <a href="https://openrouter.ai/keys" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none;font-weight:700">→ Get Free API Key ↗</a>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                      <input id="lp-api-key" type="password" placeholder="Paste sk-or-v1-... key OR leave empty for local Ollama" autocomplete="off" style="flex:1;min-width:220px;background:var(--bg-1);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;outline:none;font-family:monospace">
+                      <button onclick="if(typeof lpSaveVerifyKey === 'function') lpSaveVerifyKey()" class="btn-3d btn-primary btn-sm" style="padding:8px 16px">⚡ Save & Verify</button>
+                      <button onclick="if(typeof testOllamaConnection === 'function') testOllamaConnection()" class="btn-3d btn-ghost btn-sm" style="padding:8px 14px">⚡ Use Local Ollama</button>
+                    </div>
+                    <div id="lp-key-status" style="font-size:11.5px;color:var(--text-2);margin-top:8px">Keys are stored encrypted inside your local vault (~/Library/Application Support/com.stricktech.agenticos/.vault_key).</div>
+                  </div>
+
+                  <!-- Step 2: Interactive Examples & Walkthroughs -->
+                  <div style="background:rgba(3,6,18,0.7);border:1px solid rgba(168,85,247,0.25);border-radius:14px;padding:16px;margin-bottom:12px">
+                    <div style="font-size:13px;font-weight:800;color:var(--text-0);margin-bottom:8px">Step 2: Try Live Interactive Examples</div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+                      <button onclick="if(typeof openHierarchyInterview === 'function') openHierarchyInterview()" class="btn-3d btn-sm" style="width:100%;padding:10px;background:linear-gradient(135deg,#38bdf8,#a855f7);color:#fff;border:none">✨ Launch AI Interview Me</button>
+                      <button onclick="document.getElementById('chat-input').value='Analyze the top 3 architectural bottlenecks in modern React vs Svelte apps and propose solutions.';showToast('Example inserted! Press Enter or -> to chat.')" class="btn-3d btn-ghost btn-sm" style="width:100%;padding:10px;color:var(--success)">💡 Try Chat Example</button>
+                      <button onclick="nav('swarm');showToast('Swarm opened! Send one prompt to 7+ specialist models in parallel.')" class="btn-3d btn-ghost btn-sm" style="width:100%;padding:10px;color:#d8b4fe">◈ Try Swarm Fan-out</button>
+                    </div>
+                  </div>
+
+                  <!-- Step 3: Workstation Mode -->
+                  <div style="background:rgba(3,6,18,0.7);border:1px solid rgba(16,185,129,0.25);border-radius:14px;padding:16px">
+                    <div style="font-size:13px;font-weight:800;color:var(--text-0);margin-bottom:8px">Step 3: Select Interface Complexity</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                      <button onclick="switchUIMode('simple');toast('✨ Core Workstation active')" class="btn-3d card-3d-tilt" style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;align-items:flex-start">
+                        <div style="font-weight:800;font-size:12.5px;color:#7dd3fc;margin-bottom:2px">⚡ Core Workstation</div>
+                        <div style="font-size:11px;color:var(--text-2);font-weight:normal">Streamlined view. Essential Chat, Studio, & AI OPs Manual.</div>
+                      </button>
+                      <button onclick="switchUIMode('power');toast('🌌 Power Workstation active')" class="btn-3d card-3d-tilt" style="background:var(--bg-1);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;align-items:flex-start">
+                        <div style="font-weight:800;font-size:12.5px;color:#d8b4fe;margin-bottom:2px">🌌 Power Workstation</div>
+                        <div style="font-size:11px;color:var(--text-2);font-weight:normal">All 65+ panes, tools, and enterprise telemetry active.</div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div style="margin-top:16px;max-width:500px">
+                  <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Quick Actions</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div class="cmd-chip" onclick="insertCmd('/help')" style="text-align:left;padding:10px 14px;border-radius:10px">
+                      <div style="font-weight:600;margin-bottom:2px">💬 /help</div>
+                      <div style="font-size:11px;opacity:.7">See all commands</div>
+                    </div>
+                    <div class="cmd-chip" onclick="insertCmd('/swarm compare approaches to RAG')" style="text-align:left;padding:10px 14px;border-radius:10px">
+                      <div style="font-weight:600;margin-bottom:2px">🌀 /swarm</div>
+                      <div style="font-size:11px;opacity:.7">Multi-agent fan-out</div>
+                    </div>
+                    <div class="cmd-chip" onclick="insertCmd('/code build a landing page with dark mode')" style="text-align:left;padding:10px 14px;border-radius:10px">
+                      <div style="font-weight:600;margin-bottom:2px">⚡ /code</div>
+                      <div style="font-size:11px;opacity:.7">Build something</div>
+                    </div>
+                    <div class="cmd-chip" onclick="insertCmd('/research latest AI agent frameworks')" style="text-align:left;padding:10px 14px;border-radius:10px">
+                      <div style="font-weight:600;margin-bottom:2px">🔭 /research</div>
+                      <div style="font-size:11px;opacity:.7">Deep research</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Tips -->
+                <div style="margin-top:16px;font-size:11px;color:var(--text-3)">
+                  💡 Press <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px">⌘K</kbd> to open the command palette
                 </div>
               </div>
             </div>
-            
-            <!-- Quick Actions -->
-            <div style="margin-top:16px;max-width:500px">
-              <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Quick Actions</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                <div class="cmd-chip" onclick="insertCmd('/help')" style="text-align:left;padding:10px 14px;border-radius:10px">
-                  <div style="font-weight:600;margin-bottom:2px">💬 /help</div>
-                  <div style="font-size:11px;opacity:.7">See all commands</div>
-                </div>
-                <div class="cmd-chip" onclick="insertCmd('/swarm compare approaches to RAG')" style="text-align:left;padding:10px 14px;border-radius:10px">
-                  <div style="font-weight:600;margin-bottom:2px">🌀 /swarm</div>
-                  <div style="font-size:11px;opacity:.7">Multi-agent fan-out</div>
-                </div>
-                <div class="cmd-chip" onclick="insertCmd('/code build a landing page with dark mode')" style="text-align:left;padding:10px 14px;border-radius:10px">
-                  <div style="font-weight:600;margin-bottom:2px">⚡ /code</div>
-                  <div style="font-size:11px;opacity:.7">Build something</div>
-                </div>
-                <div class="cmd-chip" onclick="insertCmd('/research latest AI agent frameworks')" style="text-align:left;padding:10px 14px;border-radius:10px">
-                  <div style="font-weight:600;margin-bottom:2px">🔭 /research</div>
-                  <div style="font-size:11px;opacity:.7">Deep research</div>
-                </div>
+
+            <div class="chat-input-area">
+              <div class="chat-tools">
+                <button class="chat-tool" onclick="toggleRag()" id="rag-btn" title="Ground response in Memory Galaxy">🌌 RAG</button>
+                <button class="chat-tool" onclick="toggleStream()" id="stream-btn" title="Streaming responses">⚡ Stream</button>
+                <button class="chat-tool" onclick="nav('swarm')" title="Run multi-agent swarm">🌀 Swarm</button>
+              </div>
+              <div class="chat-input-row">
+                <textarea id="chat-input" aria-label="Chat message input" placeholder="Message an agent… or /help for commands" rows="1"></textarea>
+                <button class="chat-send-btn" id="chat-send" onclick="sendChat()" aria-label="Send message">➤</button>
               </div>
             </div>
-            
-            <!-- Tips -->
-            <div style="margin-top:16px;font-size:11px;color:var(--text-3)">
-              💡 Press <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px">⌘K</kbd> to open the command palette
-            </div>
-          </div>
-        </div>
-
-        <div class="chat-input-area">
-          <div class="chat-tools">
-            <button class="chat-tool" onclick="toggleRag()" id="rag-btn" title="Ground response in Memory Galaxy">🌌 RAG</button>
-            <button class="chat-tool" onclick="toggleStream()" id="stream-btn" title="Streaming responses">⚡ Stream</button>
-            <button class="chat-tool" onclick="nav('swarm')" title="Run multi-agent swarm">🌀 Swarm</button>
-          </div>
-          <div class="chat-input-row">
-            <textarea id="chat-input" aria-label="Chat message input" placeholder="Message an agent… or /help for commands" rows="1"></textarea>
-            <button class="chat-send-btn" id="chat-send" onclick="sendChat()" aria-label="Send message">➤</button>
           </div>
         </div>
       </div>

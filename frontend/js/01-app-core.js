@@ -243,6 +243,9 @@ window.nav = function(pane) {
   if (typeof window.showSmartSuggestionsForPane === 'function') {
     try { window.showSmartSuggestionsForPane(pane); } catch(e) {}
   }
+  if (pane === 'chat' && typeof window.loadChatSessions === 'function') {
+    window.loadChatSessions();
+  }
 
   try { history.replaceState(null, '', '#/' + pane); } catch(e) {}
 };
@@ -497,6 +500,21 @@ async function sendChat() {
 
   S.chatHistory.push({ role: 'user', content: msg });
 
+  // Auto-create or update named session in /api/sessions
+  if (!S.sessionName) {
+    S.sessionName = msg.slice(0, 42) + (msg.length > 42 ? '...' : '');
+  }
+  fetch('/api/sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: S.sessionId,
+      name: S.sessionName,
+      agent_id: selectedPersonaId || 'default',
+      description: S.sessionFolder || window._activeChatFolder || 'General'
+    })
+  }).then(() => { if (typeof window.loadChatSessions === 'function') window.loadChatSessions(); }).catch(()=>{});
+
   // Thinking indicator
   const thinkingId = 'thinking_' + Date.now();
   addThinking(thinkingId, agent);
@@ -516,7 +534,7 @@ async function sendChat() {
         agent_id:   selectedPersonaId,
         use_rag:    S.useRag,
         session_id: S.sessionId,
-        history:    S.chatHistory.slice(-20),
+        history:    S.chatHistory.slice(0, -1).slice(-20),
       }),
     });
 
@@ -1964,6 +1982,172 @@ window.selectChatPersona = function(val) {
   const nameEl = document.getElementById('active-agent-name');
   if (nameEl) nameEl.textContent = found.name;
   toast(`🤖 Persona applied: ${found.name}`, 'ok', 1500);
+};
+
+// ── Chat Sessions & Folder Organization Management ─────────────────────────────
+window.loadChatSessions = async function(q = '') {
+  const el = document.getElementById('chat-sessions-list');
+  if (!el) return;
+  try {
+    const r = await fetch(`/api/sessions?limit=100&q=${encodeURIComponent(q)}`);
+    const data = await r.json();
+    const sessions = data.sessions || [];
+    if (!sessions.length) {
+      el.innerHTML = `<div style="color:var(--text-3); font-size:12px; text-align:center; padding:20px">No saved conversations yet.<br><br><button onclick="startNewChatSession()" class="btn-3d btn-primary btn-sm">＋ Start First Chat</button></div>`;
+      return;
+    }
+    const folderFilter = window._activeChatFolder || 'All';
+    const filtered = folderFilter === 'All' ? sessions : sessions.filter(s => (s.description || 'General') === folderFilter);
+    if (!filtered.length) {
+      el.innerHTML = `<div style="color:var(--text-3); font-size:12px; text-align:center; padding:20px">No chats inside folder "${escHtml(folderFilter)}".<br><br><button onclick="startNewChatSession()" class="btn-3d btn-primary btn-sm">＋ New Chat Here</button></div>`;
+      return;
+    }
+    el.innerHTML = filtered.map(s => {
+      const isCurrent = (s.id === S.sessionId);
+      const folder = s.description || 'General';
+      const folderIcon = folder === 'Engineering' ? '⚙️' : folder === 'Research' ? '🔬' : folder === 'Ideas' ? '💡' : '📁';
+      return `
+      <div class="chat-session-item ${isCurrent ? 'active' : ''}" style="display:flex; flex-direction:column; gap:4px; padding:8px 10px; border-radius:8px; background:${isCurrent ? 'var(--bg-3)' : 'transparent'}; border:1px solid ${isCurrent ? 'var(--accent)' : 'transparent'}; cursor:pointer; transition:all .15s" onclick="loadChatSession(${JSON.stringify(s.id)})">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:6px">
+          <span style="font-size:12.5px; font-weight:${isCurrent ? '800' : '600'}; color:var(--text-0); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1">${s.pinned ? '📌 ' : ''}${escHtml(s.name)}</span>
+          <div style="display:flex; gap:2px; opacity:0.8" onclick="event.stopPropagation()">
+            <button onclick="pinChatSession(event, ${JSON.stringify(s.id)}, ${!s.pinned})" title="${s.pinned ? 'Unpin' : 'Pin to top'}" style="background:none; border:none; color:var(--text-2); font-size:11px; cursor:pointer; padding:2px">📌</button>
+            <button onclick="renameChatSessionModal(event, ${JSON.stringify(s.id)}, ${JSON.stringify(s.name)}, ${JSON.stringify(folder)})" title="Rename or Change Folder" style="background:none; border:none; color:var(--text-2); font-size:11px; cursor:pointer; padding:2px">✏️</button>
+            <button onclick="deleteChatSession(event, ${JSON.stringify(s.id)})" title="Delete chat" style="background:none; border:none; color:var(--danger); font-size:11px; cursor:pointer; padding:2px">🗑</button>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-3)">
+          <span style="background:var(--bg-2); padding:1px 6px; border-radius:4px; border:1px solid var(--border)">${folderIcon} ${escHtml(folder)}</span>
+          <span>${s.message_count || 0} msgs · ${s.updated_at ? s.updated_at.slice(5, 16) : ''}</span>
+        </div>
+      </div>
+      `;
+    }).join('');
+  } catch(e) {
+    console.warn('Failed to load chat sessions:', e);
+  }
+};
+
+window.loadChatSession = async function(sid) {
+  if (!sid) return;
+  S.sessionId = sid;
+  toast('💬 Loading chat history...', 'ok', 1000);
+  try {
+    const [infoR, msgsR] = await Promise.all([
+      fetch(`/api/sessions/${encodeURIComponent(sid)}`),
+      fetch(`/api/sessions/${encodeURIComponent(sid)}/messages?limit=200`)
+    ]);
+    const info = await infoR.json();
+    const msgsData = await msgsR.json();
+    if (info.ok && info.name) {
+      S.sessionName = info.name;
+      S.sessionFolder = info.description || 'General';
+      if (info.agent_id && typeof window.selectChatPersona === 'function') {
+        window.selectChatPersona(info.agent_id);
+      }
+    }
+    const messages = msgsData.messages || [];
+    S.chatHistory = messages.map(m => ({ role: m.role, content: m.message }));
+    const msgsContainer = document.getElementById('chat-messages');
+    if (!msgsContainer) return;
+    msgsContainer.innerHTML = '';
+    const emptyEl = document.getElementById('chat-empty');
+    if (emptyEl) emptyEl.style.display = messages.length ? 'none' : 'flex';
+
+    messages.forEach(m => {
+      const avatar = m.role === 'user' ? '👤' : (m.agent === 'brain' ? '🧠' : '💬');
+      const name = m.role === 'user' ? 'You' : (m.agent === 'default' ? 'Direct AI Chat' : (m.agent || 'AI').title());
+      const bubble = addMessage(m.message, m.role, avatar, name);
+      if (m.role !== 'user' && bubble) {
+        const msgId = bubble.closest('.msg')?.id;
+        if (msgId) addMessageActions(bubble, m.role, m.message, msgId);
+      }
+    });
+    loadChatSessions();
+  } catch(e) {
+    toast('❌ Error loading conversation: ' + e.message, 'err', 2000);
+  }
+};
+
+window.startNewChatSession = function() {
+  S.sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  S.sessionName = '';
+  S.sessionFolder = window._activeChatFolder && window._activeChatFolder !== 'All' ? window._activeChatFolder : 'General';
+  S.chatHistory = [];
+  const msgsContainer = document.getElementById('chat-messages');
+  if (msgsContainer) msgsContainer.innerHTML = '';
+  const emptyEl = document.getElementById('chat-empty');
+  if (emptyEl) emptyEl.style.display = 'flex';
+  if (msgsContainer && emptyEl) msgsContainer.appendChild(emptyEl);
+  loadChatSessions();
+  const inp = document.getElementById('chat-input');
+  if (inp) { inp.value = ''; inp.focus(); }
+  toast('＋ New chat session started', 'ok', 1200);
+};
+
+window.pinChatSession = async function(e, sid, pinned) {
+  if (e) e.stopPropagation();
+  await fetch(`/api/sessions/${encodeURIComponent(sid)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pinned: pinned ? 1 : 0 })
+  });
+  loadChatSessions();
+};
+
+window.deleteChatSession = async function(e, sid) {
+  if (e) e.stopPropagation();
+  const ok = await gmConfirm('Delete Chat Conversation?', 'Are you sure you want to permanently delete this chat session and all its messages?');
+  if (!ok) return;
+  await fetch(`/api/sessions/${encodeURIComponent(sid)}`, { method: 'DELETE' });
+  if (S.sessionId === sid) startNewChatSession();
+  else loadChatSessions();
+  toast('🗑 Chat deleted', 'ok', 1500);
+};
+
+window.renameChatSessionModal = async function(e, sid, oldName, oldFolder) {
+  if (e) e.stopPropagation();
+  const newName = prompt('Enter a new name for this chat:', oldName || '');
+  if (newName === null) return;
+  const newFolder = prompt('Enter folder/category (General, Engineering, Research, Ideas...):', oldFolder || 'General');
+  if (newFolder === null) return;
+  await fetch(`/api/sessions/${encodeURIComponent(sid)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: newName.trim(), description: newFolder.trim() })
+  });
+  if (S.sessionId === sid) { S.sessionName = newName.trim(); S.sessionFolder = newFolder.trim(); }
+  loadChatSessions();
+  toast('✏️ Chat renamed & categorized!', 'ok', 1500);
+};
+
+window.selectChatFolder = function(folder) {
+  window._activeChatFolder = folder;
+  document.querySelectorAll('#chat-folder-pills button').forEach(btn => {
+    const isSel = (btn.textContent.trim().includes(folder) || (folder === 'All' && btn.textContent.trim() === 'All'));
+    btn.style.background = isSel ? 'var(--accent)' : 'var(--bg-2)';
+    btn.style.color = isSel ? '#fff' : 'var(--text-1)';
+  });
+  loadChatSessions();
+};
+
+window.filterChatSessions = function(val) {
+  if (window._chatSearchTimeout) clearTimeout(window._chatSearchTimeout);
+  window._chatSearchTimeout = setTimeout(() => {
+    loadChatSessions(val.trim());
+  }, 250);
+};
+
+window.toggleChatHistoryDrawer = function() {
+  const dr = document.getElementById('chat-history-drawer');
+  if (!dr) return;
+  if (dr.style.display === 'none' || dr.style.width === '0px') {
+    dr.style.display = 'flex';
+    dr.style.width = '280px';
+  } else {
+    dr.style.width = '0px';
+    setTimeout(() => { if (dr.style.width === '0px') dr.style.display = 'none'; }, 200);
+  }
 };
 
 window.syncOpenWebUIConnections = async function() {
@@ -4931,12 +5115,12 @@ function addMessageActions(bubbleEl, role, content, msgId) {
   actEl.className = 'msg-actions';
   actEl.style.cssText = `display:flex;gap:6px;margin-top:8px;opacity:${hideOnHoverOnly ? '0' : '1'};transition:opacity .15s;flex-wrap:wrap`;
   actEl.innerHTML = `
-    <button onclick="copyMsgContent(${JSON.stringify(msgId)})" class="msg-action-btn" title="Copy message" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">📋 Copy</button>
+    <button onclick="copyMsgContent(this, ${JSON.stringify(msgId)})" class="msg-action-btn" title="Copy message" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">📋 Copy</button>
     ${role === 'agent' ? `
-    <button onclick="regenerateMsg(${JSON.stringify(msgId)})" class="msg-action-btn" title="Regenerate response" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">↺ Regenerate</button>
-    <button onclick="listenToMsg(${JSON.stringify(msgId)})" class="msg-action-btn" title="Read response aloud" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">🔊 Listen</button>
+    <button onclick="regenerateMsg(this, ${JSON.stringify(msgId)})" class="msg-action-btn" title="Regenerate response" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">↺ Regenerate</button>
+    <button onclick="listenToMsg(this, ${JSON.stringify(msgId)})" class="msg-action-btn" title="Read response aloud" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">🔊 Listen</button>
     ` : ''}
-    <button onclick="branchFromMsg(${JSON.stringify(msgId)})" class="msg-action-btn" title="Fork conversation here" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">⎇ Fork</button>
+    <button onclick="branchFromMsg(this, ${JSON.stringify(msgId)})" class="msg-action-btn" title="Fork conversation here" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">⎇ Fork</button>
   `;
   bubbleEl.parentElement?.appendChild(actEl);
   const msgDiv = bubbleEl.closest('.msg');
@@ -4948,32 +5132,58 @@ function addMessageActions(bubbleEl, role, content, msgId) {
   window._msgContents[msgId] = content;
 }
 
-window.copyMsgContent = function(msgId) {
-  const targetMsg = document.getElementById(msgId);
+window.copyMsgContent = function(btn, msgId) {
+  const targetMsg = (typeof msgId === 'string' && document.getElementById(msgId)) || btn?.closest?.('.msg');
   const bubble = targetMsg?.querySelector('.msg-bubble');
   const text = bubble?.innerText || bubble?.textContent || window._msgContents?.[msgId] || '';
-  if (!text.trim()) { toast('Could not find text to copy', 'err', 1500); return; }
-  navigator.clipboard.writeText(text.trim()).then(() => toast('📋 Message copied to clipboard!', 'ok', 1500));
+  if (!text || !text.trim()) { toast('Could not find text to copy', 'err', 1500); return; }
+  const clean = text.trim();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(clean).then(() => toast('📋 Message copied to clipboard!', 'ok', 1500)).catch(() => fallbackCopyText(clean));
+  } else {
+    fallbackCopyText(clean);
+  }
 };
 
-window.listenToMsg = function(msgId) {
-  const targetMsg = document.getElementById(msgId);
+function fallbackCopyText(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('📋 Message copied to clipboard!', 'ok', 1500);
+  } catch (e) {
+    toast('❌ Copy failed: ' + e.message, 'err', 2000);
+  }
+}
+
+window.listenToMsg = function(btn, msgId) {
+  const targetMsg = (typeof msgId === 'string' && document.getElementById(msgId)) || btn?.closest?.('.msg');
   const bubble = targetMsg?.querySelector('.msg-bubble');
   const text = bubble?.innerText || bubble?.textContent || window._msgContents?.[msgId] || '';
-  if (!text.trim()) { toast('No text found to speak', 'err', 1500); return; }
+  if (!text || !text.trim()) { toast('No text found to speak', 'err', 1500); return; }
   const agentId = targetMsg?.dataset?.agentId || S.currentAgentId || 'default';
   if (typeof window.speakMessage === 'function') {
     if (window._ttsPlaying) window.stopSpeaking?.();
     else window.speakMessage(text, agentId);
   } else if (typeof window.speakText === 'function') {
     window.speakText(text, agentId);
+  } else if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.slice(0, 1000));
+    window.speechSynthesis.speak(u);
+    toast('🔊 Reading response aloud...', 'ok', 1500);
   } else {
-    toast('🔊 Speaking response...', 'ok', 1500);
+    toast('TTS engine unavailable', 'err', 1500);
   }
 };
 
-window.regenerateMsg = async function(msgId) {
-  const targetMsg = document.getElementById(msgId);
+window.regenerateMsg = async function(btn, msgId) {
+  const targetMsg = (typeof msgId === 'string' && document.getElementById(msgId)) || btn?.closest?.('.msg');
   if (!targetMsg) return;
   let prev = targetMsg.previousElementSibling;
   let userText = '';
@@ -4991,17 +5201,19 @@ window.regenerateMsg = async function(msgId) {
   const inp = document.getElementById('chat-input');
   if (inp) {
     inp.value = userText.trim();
-    await sendChat();
+    if (typeof window.sendChat === 'function') await window.sendChat();
   }
 };
 
-window.branchFromMsg = function(msgId) {
+window.branchFromMsg = function(btn, msgId) {
+  const targetMsg = (typeof msgId === 'string' && document.getElementById(msgId)) || btn?.closest?.('.msg');
+  if (!targetMsg) return;
   const msgs = document.querySelectorAll('#chat-messages .msg');
   let cut = false;
   let count = 0;
   msgs.forEach(m => {
     if (cut) { m.remove(); count++; }
-    if (m.id === msgId) cut = true;
+    if (m === targetMsg || m.id === msgId) cut = true;
   });
   if (count > 0) {
     if (Array.isArray(S.chatHistory)) S.chatHistory = S.chatHistory.slice(0, msgs.length - count);
@@ -10962,6 +11174,7 @@ setTimeout(() => {
   if (savedPersona && typeof window.selectChatPersona === 'function') {
     window.selectChatPersona(savedPersona);
   }
+  if (typeof window.loadChatSessions === 'function') window.loadChatSessions();
 }, 800);
 
 window.gmAlert = gmAlert;

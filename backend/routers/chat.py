@@ -181,8 +181,10 @@ async def chat_stream(req: Request):
     # include history (last 20 turns)
     for h in history[-20:]:
         if h.get('role') in ('user', 'assistant') and h.get('content'):
-            messages.append({'role': h['role'], 'content': h['content']})
-    messages.append({'role': 'user', 'content': message})
+            if not messages or messages[-1].get('role') != h['role'] or messages[-1].get('content') != h['content']:
+                messages.append({'role': h['role'], 'content': h['content']})
+    if not messages or messages[-1].get('role') != 'user' or messages[-1].get('content') != message:
+        messages.append({'role': 'user', 'content': message})
 
     # log user message
     _log_chat(session_id, agent_id, 'user', message)

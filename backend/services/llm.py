@@ -104,6 +104,7 @@ async def complete(
     inject_steering: bool = True,
 ) -> dict:
     """Single-shot completion. Returns {text, tokens, cost, model, latency_ms}"""
+    messages = _normalize_messages(messages)
     if inject_steering and agent_id not in ('steering', 'gitai', 'bugbot', 'specs'):
         messages = _inject_steering(messages)
     t0 = time.time()
@@ -180,6 +181,22 @@ async def complete(
         return {'text': f'[LLM error]: {e}', 'ok': False, 'error': str(e)}
 
 
+def _normalize_messages(messages: list[dict]) -> list[dict]:
+    """Ensure messages strictly alternate user/assistant and remove consecutive duplicates to prevent API 400 errors across all providers."""
+    cleaned = []
+    for m in messages:
+        role = m.get('role', 'user')
+        content = (m.get('content') or '').strip()
+        if not content and role != 'system':
+            continue
+        if cleaned and cleaned[-1].get('role') == role and role in ('user', 'assistant'):
+            if content and content != cleaned[-1].get('content'):
+                cleaned[-1]['content'] = cleaned[-1]['content'] + '\n\n' + content
+        else:
+            cleaned.append({'role': role, 'content': content})
+    return cleaned
+
+
 # ── Streaming completion ────────────────────────────────────────────────────────
 async def stream(
     messages: list[dict],
@@ -191,6 +208,7 @@ async def stream(
     inject_steering: bool = True,
 ) -> AsyncGenerator[str, None]:
     """Yields SSE-formatted chunks: 'data: {json}\n\n'"""
+    messages = _normalize_messages(messages)
     if inject_steering and agent_id not in ('steering', 'gitai', 'bugbot', 'specs'):
         messages = _inject_steering(messages)
     provider, model_str = resolve_model(agent_id, model)
