@@ -1580,6 +1580,18 @@ async function gxImport() {
 }
 
 // ── Dedicated 2-Column Settings Workstation & Drag/Drop Engine ──
+window.startConnectionPath = function(path) {
+  const targets = {local: 'connection-local-card', cloud: 'connection-cloud-card', custom: 'connection-custom-card'};
+  const target = document.getElementById(targets[path]);
+  if (!target) return;
+  target.scrollIntoView({behavior: 'smooth', block: 'center'});
+  if (path === 'local') {
+    setTimeout(() => window.testOllamaConnection?.(), 250);
+  } else {
+    const input = document.getElementById(path === 'cloud' ? 'or-key-input' : 'custom-api-base-url');
+    setTimeout(() => input?.focus(), 300);
+  }
+};
 window.switchSettingsTab = function(tabId) {
   if (tabId === 'theme') tabId = 'appearance';
   document.querySelectorAll('.settings-nav-item').forEach(el => el.classList.remove('active'));
