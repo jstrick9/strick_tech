@@ -1,5 +1,5 @@
 """
-Agentic OS — Chat Sessions Router
+Agentic OS v11.5.0 — Verified Session & Action Button Build 2026-07-21
 Persistent named chat sessions with search, export, branching, and stats.
 Sessions survive page reloads, can be renamed, pinned, searched, and exported.
 """
@@ -48,12 +48,33 @@ _ensure_sessions_table()
 # ── List ───────────────────────────────────────────────────────────────────────
 
 
+def _reconcile_orphan_sessions(con):
+    """Automatically reconcile any chat_sessions row showing 0 messages by matching title with orphan chat_log entries."""
+    try:
+        con.execute("UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_log c WHERE c.session_id = chat_sessions.id)")
+        zero_sessions = con.execute("SELECT id, name FROM chat_sessions WHERE message_count = 0 AND name != ''").fetchall()
+        for sid, name in zero_sessions:
+            clean_name = name.replace('📌', '').strip()
+            if len(clean_name) >= 4:
+                matched = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE role='user' AND (message = ? OR message LIKE ? || '%') LIMIT 1", (clean_name, clean_name[:25])).fetchone()
+                if matched and matched[0] and matched[0] != sid:
+                    old_log_sid = matched[0]
+                    other = con.execute("SELECT id FROM chat_sessions WHERE id = ?", (old_log_sid,)).fetchone()
+                    if not other:
+                        con.execute("UPDATE chat_log SET session_id = ? WHERE session_id = ?", (sid, old_log_sid))
+                        con.execute("UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_log c WHERE c.session_id = ?), updated_at = CURRENT_TIMESTAMP WHERE id = ?", (sid, sid))
+                        con.commit()
+    except Exception as e:
+        log.warning("Reconciliation error: %s", e)
+
+
 @router.get('')
 def list_sessions(limit: int = 50, q: str = '', agent_id: str = ''):
     """List all chat sessions, pinned first then most recent."""
     limit = min(max(1, int(limit)), 200)
     con = get_conn()
     try:
+        _reconcile_orphan_sessions(con)
         where_clauses = []
         params: list = []
 
@@ -70,7 +91,8 @@ def list_sessions(limit: int = 50, q: str = '', agent_id: str = ''):
         where_sql = ('WHERE ' + ' AND '.join(where_clauses)) if where_clauses else ''
 
         rows = con.execute(
-            f"""SELECT s.id, s.name, s.agent_id, s.pinned, s.message_count,
+            f"""SELECT s.id, s.name, s.agent_id, s.pinned,
+                       (SELECT COUNT(*) FROM chat_log c WHERE c.session_id = s.id) as message_count,
                        s.description,
                        datetime(s.created_at,'localtime') as created_at,
                        datetime(s.updated_at,'localtime') as updated_at
@@ -109,7 +131,17 @@ def get_session(session_id: str):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Session not found'}
+        con2 = get_conn()
+        try:
+            first_msg = con2.execute('SELECT message FROM chat_log WHERE session_id=? ORDER BY id ASC LIMIT 1', (session_id,)).fetchone()
+            name = (first_msg[0] if first_msg else f'Chat {session_id[:6]}')[:42] + ('...' if first_msg and len(first_msg[0]) > 42 else '')
+            con2.execute('INSERT OR IGNORE INTO chat_sessions(id, name, agent_id, description) VALUES (?,?,?,?)', (session_id, name, 'default', 'General'))
+            con2.commit()
+            row = con2.execute('SELECT id, name, agent_id, pinned, message_count, description, datetime(created_at, "localtime") as created_at, datetime(updated_at, "localtime") as updated_at FROM chat_sessions WHERE id=?', (session_id,)).fetchone()
+        finally:
+            con2.close()
+    if not row:
+        return {'ok': True, 'id': session_id, 'name': f'Chat {session_id[:6]}', 'agent_id': 'default', 'pinned': 0, 'message_count': 0, 'description': 'General'}
     return {**dict(row), 'ok': True}
 
 
@@ -269,22 +301,40 @@ def session_messages(session_id: str, limit: int = 200, offset: int = 0):
     offset = max(0, int(offset))
     con = get_conn()
     try:
-        # Verify session exists
         exists = con.execute('SELECT id FROM chat_sessions WHERE id=?', (session_id,)).fetchone()
         if not exists:
-            return {'ok': False, 'error': 'Session not found'}
+            first_msg = con.execute('SELECT message FROM chat_log WHERE session_id=? ORDER BY id ASC LIMIT 1', (session_id,)).fetchone()
+            name = (first_msg[0] if first_msg else f'Chat {session_id[:6]}')[:42] + ('...' if first_msg and len(first_msg[0]) > 42 else '')
+            con.execute('INSERT OR IGNORE INTO chat_sessions(id, name, agent_id, description) VALUES (?,?,?,?)', (session_id, name, 'default', 'General'))
+            con.commit()
 
         rows = con.execute(
-            """SELECT id, agent, role, message, tokens, cost,
+            """SELECT id, agent, role, message, tokens, cost, COALESCE(model, '') as model,
                       datetime(created_at,'localtime') as created_at
                FROM chat_log WHERE session_id=? ORDER BY id ASC LIMIT ? OFFSET ?""",
             (session_id, limit, offset),
         ).fetchall()
+        if not rows:
+            sname_row = con.execute('SELECT name FROM chat_sessions WHERE id=?', (session_id,)).fetchone()
+            if sname_row and sname_row[0]:
+                cname = sname_row[0].replace('📌', '').strip()
+                if len(cname) >= 4:
+                    orphan_sid = con.execute("SELECT session_id FROM chat_log WHERE role='user' AND (message = ? OR message LIKE ? || '%') LIMIT 1", (cname, cname[:25])).fetchone()
+                    if orphan_sid and orphan_sid[0] and orphan_sid[0] != session_id:
+                        con.execute("UPDATE chat_log SET session_id=? WHERE session_id=?", (session_id, orphan_sid[0]))
+                        con.commit()
+                        rows = con.execute(
+                            """SELECT id, agent, role, message, tokens, cost, COALESCE(model, '') as model,
+                                      datetime(created_at,'localtime') as created_at
+                               FROM chat_log WHERE session_id=? ORDER BY id ASC LIMIT ? OFFSET ?""",
+                            (session_id, limit, offset),
+                        ).fetchall()
         total = con.execute('SELECT COUNT(*) FROM chat_log WHERE session_id=?', (session_id,)).fetchone()[0]
     finally:
         con.close()
 
     return {
+        'ok': True,
         'messages': [dict(r) for r in rows],
         'count': len(rows),
         'total': total,
