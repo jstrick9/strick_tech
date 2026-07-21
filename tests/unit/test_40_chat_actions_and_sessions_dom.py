@@ -51,11 +51,11 @@ def test_normalize_messages_merges_different_consecutive_user_prompts():
 
 
 def test_chat_sessions_onclick_attributes_use_html_safe_quotes():
-    """Verify that pin, rename, and delete button onclick attributes inside loadChatSessions escape double quotes using &quot;."""
-    assert 'pinChatSession(event, &quot;${sidSafe}&quot;, ${!s.pinned})' in CORE_JS
-    assert 'renameChatSessionModal(event, &quot;${sidSafe}&quot;, &quot;${snameSafe}&quot;, &quot;${folderSafe}&quot;)' in CORE_JS
-    assert 'deleteChatSession(event, &quot;${sidSafe}&quot;)' in CORE_JS
-    assert 'loadChatSession(&quot;${sidSafe}&quot;)' in CORE_JS
+    """Verify that pin, rename, delete, and session items use direct addEventListener bindings without inline onclick."""
+    assert 'itemDiv.addEventListener(\'click\', () => loadChatSession(s.id));' in CORE_JS
+    assert 'pinBtn.addEventListener(\'click\', (e) => {' in CORE_JS
+    assert 'renBtn.addEventListener(\'click\', (e) => {' in CORE_JS
+    assert 'delBtn.addEventListener(\'click\', (e) => {' in CORE_JS
 
 
 def test_message_actions_onclick_attributes_use_html_safe_quotes():
@@ -79,6 +79,20 @@ def test_model_used_badge_rendered_in_msg_meta():
     """Verify that addMessage and SSE streaming inject the model badge into .msg-meta."""
     assert 'const modelBadge = (modelUsed && role !== \'user\') ? ` <span class="model-used-tag tag"' in CORE_JS
     assert 'tag.innerHTML = `⚡ <strong>${escHtml(mStr)}</strong>`;' in CORE_JS
+
+
+def test_session_title_length_increased_to_256():
+    """Verify that chat conversation history titles support up to 256 characters across frontend and backend."""
+    assert 'snameSafe = (s.name || \'Chat\').slice(0, 256);' in CORE_JS
+    assert 'msg.slice(0, 256)' in CORE_JS
+    SESSIONS_PY = (ROOT / 'backend' / 'routers' / 'sessions.py').read_text(encoding='utf-8')
+    assert 'title[:256]' in SESSIONS_PY
+
+
+def test_auto_title_endpoint_exists():
+    """Verify that POST /api/sessions/auto-title endpoint is defined for AI auto-naming."""
+    SESSIONS_PY = (ROOT / 'backend' / 'routers' / 'sessions.py').read_text(encoding='utf-8')
+    assert '@router.post(\'/auto-title\')' in SESSIONS_PY
 
 
 def test_direct_ai_chat_system_prompt():
