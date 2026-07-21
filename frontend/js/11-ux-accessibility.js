@@ -185,50 +185,59 @@
 
   // ── 4. ARIA Attributes Enhancements Pass ────────────────────────────────────
   function applyAriaPass() {
-    // Nav items
-    document.querySelectorAll('.nav-item').forEach(el => {
-      el.setAttribute('role', 'menuitem');
-      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
-      const label = el.getAttribute('data-tooltip') || (el.querySelector('.label') ? el.querySelector('.label').textContent.trim() : '');
-      if (label && !el.hasAttribute('aria-label')) el.setAttribute('aria-label', label);
-    });
+    try {
+      // Nav items
+      document.querySelectorAll('.nav-item').forEach(el => {
+        try {
+          el.setAttribute('role', 'menuitem');
+          if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+          const label = el.getAttribute('data-tooltip') || (el.querySelector('.label') ? el.querySelector('.label').textContent.trim() : '');
+          if (label && !el.hasAttribute('aria-label')) el.setAttribute('aria-label', label);
+        } catch(e) {}
+      });
 
-    // Clickable divs/spans (buttons masquerading as divs)
-    document.querySelectorAll('[onclick]:not(button):not(a):not(input):not(select)').forEach(el => {
-      if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
-      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
-      const titleOrText = el.getAttribute('title') || el.getAttribute('data-tooltip') || el.textContent.trim();
-      if (titleOrText && !el.hasAttribute('aria-label')) el.setAttribute('aria-label', titleOrText.slice(0, 80));
-      // Add keyboard activation on enter/space for role=button elements
-      if (!el._a11yKeydown) {
-        el._a11yKeydown = true;
-        el.addEventListener('keydown', function(evt) {
-          if (evt.key === 'Enter' || evt.key === ' ') {
-            evt.preventDefault();
-            el.click();
+      // Clickable divs/spans (buttons masquerading as divs)
+      document.querySelectorAll('[onclick]:not(button):not(a):not(input):not(select)').forEach(el => {
+        try {
+          if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+          if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+          const titleOrText = el.getAttribute('title') || el.getAttribute('data-tooltip') || (el.textContent || '').trim();
+          if (titleOrText && !el.hasAttribute('aria-label')) el.setAttribute('aria-label', titleOrText.slice(0, 80));
+          if (!el._a11yKeydown) {
+            el._a11yKeydown = true;
+            el.addEventListener('keydown', function(evt) {
+              if (evt.key === 'Enter' || evt.key === ' ') {
+                evt.preventDefault();
+                el.click();
+              }
+            });
           }
-        });
-      }
-    });
+        } catch(e) {}
+      });
 
-    // Icon buttons & standard buttons without accessible names
-    document.querySelectorAll('button, input[type="button"], input[type="submit"]').forEach(btn => {
-      if (!btn.hasAttribute('aria-label') && !btn.textContent.trim()) {
-        const fallbackLabel = btn.getAttribute('title') || btn.getAttribute('data-tooltip') || btn.id || 'Action button';
-        btn.setAttribute('aria-label', fallbackLabel);
-      }
-    });
+      // Icon buttons & standard buttons without accessible names
+      document.querySelectorAll('button, input[type="button"], input[type="submit"]').forEach(btn => {
+        try {
+          if (!btn.hasAttribute('aria-label') && !(btn.textContent || '').trim()) {
+            const fallbackLabel = btn.getAttribute('title') || btn.getAttribute('data-tooltip') || btn.id || 'Action button';
+            btn.setAttribute('aria-label', fallbackLabel);
+          }
+        } catch(e) {}
+      });
 
-    // Form inputs and textareas
-    document.querySelectorAll('input, textarea, select').forEach(input => {
-      if (!input.hasAttribute('aria-label') && !input.getAttribute('aria-labelledby')) {
-        const placeholder = input.getAttribute('placeholder');
-        const title = input.getAttribute('title');
-        const id = input.id;
-        let labelText = placeholder || title || id || 'Input field';
-        input.setAttribute('aria-label', labelText);
-      }
-    });
+      // Form inputs and textareas
+      document.querySelectorAll('input, textarea, select').forEach(input => {
+        try {
+          if (!input.hasAttribute('aria-label') && !input.getAttribute('aria-labelledby')) {
+            const placeholder = input.getAttribute('placeholder');
+            const title = input.getAttribute('title');
+            const id = input.id;
+            let labelText = placeholder || title || id || 'Input field';
+            input.setAttribute('aria-label', labelText);
+          }
+        } catch(e) {}
+      });
+    } catch(err) {}
   }
 
   // Run initial passes after DOM content loaded
@@ -244,9 +253,11 @@
     }, 100);
   }
 
-  // Observe DOM additions so new elements or dynamically rendered panes get ARIA attributes
+  // Observe DOM additions so new elements or dynamically rendered panes get ARIA attributes (debounced)
+  let _ariaPassTimeout = null;
   const domObserver = new MutationObserver(() => {
-    applyAriaPass();
+    if (_ariaPassTimeout) clearTimeout(_ariaPassTimeout);
+    _ariaPassTimeout = setTimeout(() => applyAriaPass(), 250);
   });
   domObserver.observe(document.documentElement, { childList: true, subtree: true });
 
