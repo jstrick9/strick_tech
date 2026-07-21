@@ -1620,6 +1620,8 @@ window._chatAttachments = window._chatAttachments || [];
 
 function attachmentKind(file) {
   const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (ext === 'pdf') return {icon: '📕', label: 'PDF document'};
+  if (ext === 'docx') return {icon: '📝', label: 'Word document'};
   if (['csv', 'tsv'].includes(ext)) return {icon: '📊', label: 'data file'};
   if (['json', 'yaml', 'yml', 'xml'].includes(ext)) return {icon: '🧩', label: 'structured data'};
   if (['js', 'jsx', 'ts', 'tsx', 'py', 'html', 'css', 'sql', 'java', 'go', 'rs', 'rb', 'php', 'c', 'cpp', 'h', 'sh'].includes(ext)) return {icon: '💻', label: 'code file'};
@@ -1628,6 +1630,7 @@ function attachmentKind(file) {
 
 function attachmentHint(file) {
   const kind = attachmentKind(file).label;
+  if (kind === 'PDF document' || kind === 'Word document') return 'I can summarize this document, extract action items, and answer questions about it.';
   if (kind === 'data file') return 'I can summarize the data, identify patterns, or help plan next steps.';
   if (kind === 'structured data') return 'I can explain the structure, validate it, or help transform it.';
   if (kind === 'code file') return 'I can explain, review, debug, or improve this code.';
@@ -1656,19 +1659,33 @@ window.renderChatAttachments = function() {
 window.addChatFiles = async function(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return;
-  const maxFileBytes = 250 * 1024;
+  const maxTextFileBytes = 250 * 1024;
+  const maxDocumentBytes = 4 * 1024 * 1024;
   const maxAttachments = 5;
   const accepted = [];
   const skipped = [];
   for (const file of files) {
     if ((window._chatAttachments || []).length + accepted.length >= maxAttachments) { skipped.push(`${file.name} (limit: ${maxAttachments} files)`); continue; }
-    if (file.size > maxFileBytes) { skipped.push(`${file.name} (larger than 250 KB)`); continue; }
-    const looksTextual = file.type.startsWith('text/') || /\.(txt|md|markdown|csv|tsv|json|js|jsx|ts|tsx|py|html|css|xml|yaml|yml|log|sql|sh|java|go|rs|rb|php|c|cpp|h)$/i.test(file.name);
-    if (!looksTextual) { skipped.push(`${file.name} (use a text, code, CSV, or JSON file)`); continue; }
+    const extension = (file.name.split('.').pop() || '').toLowerCase();
+    const serverDocument = ['pdf', 'docx'].includes(extension);
+    const byteLimit = serverDocument ? maxDocumentBytes : maxTextFileBytes;
+    if (file.size > byteLimit) { skipped.push(`${file.name} (larger than ${serverDocument ? '4 MB' : '250 KB'})`); continue; }
+    const looksTextual = serverDocument || file.type.startsWith('text/') || /\.(txt|md|markdown|csv|tsv|json|js|jsx|ts|tsx|py|html|css|xml|yaml|yml|log|sql|sh|java|go|rs|rb|php|c|cpp|h)$/i.test(file.name);
+    if (!looksTextual) { skipped.push(`${file.name} (use text, code, CSV, JSON, PDF, or Word)`); continue; }
     try {
-      const text = await file.text();
-      accepted.push({id: `attachment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, file, text: text.slice(0, maxFileBytes)});
-    } catch (_) { skipped.push(`${file.name} (could not read)`); }
+      let extractedText;
+      if (serverDocument) {
+        toast(`Reading ${file.name}…`, 'ok', 1800);
+        const form = new FormData(); form.append('file', file);
+        const response = await fetch('/api/documents/extract', {method: 'POST', body: form});
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.ok) throw new Error(payload.detail || payload.error || 'could not read this document');
+        extractedText = payload.text;
+      } else {
+        extractedText = await file.text();
+      }
+      accepted.push({id: `attachment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, file, text: extractedText.slice(0, 30_000)});
+    } catch (error) { skipped.push(`${file.name} (${error.message || 'could not read'})`); }
   }
   if (accepted.length) {
     window._chatAttachments.push(...accepted);
@@ -1676,7 +1693,7 @@ window.addChatFiles = async function(fileList) {
     const last = accepted[accepted.length - 1].file;
     toast(`${accepted.length} file${accepted.length === 1 ? '' : 's'} ready. ${attachmentHint(last)}`, 'ok', 3500);
   }
-  if (skipped.length) toast(`Not attached: ${skipped.join(', ')}`, 'warn', 4000);
+  if (skipped.length) toast(`Not attached: ${skipped.join(', ')}`, 'warn', 4500);
 };
 
 window.setupDragAndDrop = function() {
@@ -1687,7 +1704,7 @@ window.setupDragAndDrop = function() {
   const dropzone = document.createElement('div');
   dropzone.id = 'chat-dropzone';
   dropzone.className = 'dropzone-overlay';
-  dropzone.textContent = 'Drop text, code, CSV, or JSON files to add them to this chat';
+  dropzone.textContent = 'Drop text, code, data, PDF, or Word files to add them to this chat';
   content.appendChild(dropzone);
   let dragCounter = 0;
   const hasFiles = (event) => Boolean(event.dataTransfer?.types && Array.from(event.dataTransfer.types).includes('Files'));
