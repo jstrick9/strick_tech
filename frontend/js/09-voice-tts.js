@@ -20,6 +20,7 @@
       _ttsAudio.pause();
       _ttsAudio = null;
       _ttsPlaying = null;
+      window._ttsPlaying = null;
       updateSpeakButtons();
     }
     
@@ -40,35 +41,45 @@
     
     _ttsAudio = new Audio(url);
     _ttsPlaying = text.slice(0, 50);
+    window._ttsPlaying = _ttsPlaying;
     updateSpeakButtons();
     
     _ttsAudio.play().catch(function(e) {
       console.warn('TTS play failed:', e);
       _ttsAudio = null;
       _ttsPlaying = null;
+      window._ttsPlaying = null;
       updateSpeakButtons();
     });
     
     _ttsAudio.onended = function() {
       _ttsAudio = null;
       _ttsPlaying = null;
+      window._ttsPlaying = null;
       updateSpeakButtons();
     };
     
     _ttsAudio.onerror = function() {
       _ttsAudio = null;
       _ttsPlaying = null;
+      window._ttsPlaying = null;
       updateSpeakButtons();
     };
   };
 
   window.stopSpeaking = function() {
+    // Cancel both supported playback paths. Clearing src releases the network
+    // stream immediately in WKWebView/Safari as well as Chromium.
     if (_ttsAudio) {
-      _ttsAudio.pause();
+      try { _ttsAudio.pause(); _ttsAudio.currentTime = 0; _ttsAudio.src = ''; _ttsAudio.load(); } catch (e) {}
       _ttsAudio = null;
-      _ttsPlaying = null;
-      updateSpeakButtons();
     }
+    if ('speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
+    _ttsPlaying = null;
+    window._ttsPlaying = null;
+    updateSpeakButtons();
   };
 
   function updateSpeakButtons() {

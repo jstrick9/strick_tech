@@ -639,6 +639,9 @@ function addMessage(content, role, avatar, name, modelUsed = '') {
   const msgs  = document.getElementById('chat-messages');
   const div   = document.createElement('div');
   div.className = `msg ${role}`;
+  // Assign a safe, non-empty ID synchronously. History rendering and WebKit
+  // accessibility passes can query this bubble immediately after insertion.
+  div.id = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   const modelBadge = (modelUsed && role !== 'user') ? ` <span class="model-used-tag tag" style="font-size:10.5px;padding:2px 8px;border-radius:4px;background:var(--bg-3);color:var(--accent);margin-left:8px;font-family:monospace;border:1px solid var(--border-hi);display:inline-flex;align-items:center;gap:3px">⚡ <strong>${escHtml(modelUsed)}</strong></span>` : '';
   div.innerHTML = `
     <div class="msg-avatar">${avatar}</div>
@@ -2038,11 +2041,39 @@ window.selectChatPersona = function(val) {
 };
 
 // ── Chat Sessions & Folder Organization Management ─────────────────────────────
+window._chatPageSize = window._chatPageSize || 5;
+window._chatCurrentPage = window._chatCurrentPage || 1;
+window._chatSortOrder = window._chatSortOrder || 'newest';
+window._chatLastQuery = window._chatLastQuery || '';
+
+window.setChatPageSize = function(size) {
+  window._chatPageSize = size || 5;
+  window._chatCurrentPage = 1;
+  loadChatSessions();
+};
+
+window.setChatSortOrder = function(order) {
+  window._chatSortOrder = order || 'newest';
+  window._chatCurrentPage = 1;
+  loadChatSessions();
+};
+
+window.changeChatPage = function(delta) {
+  window._chatCurrentPage = Math.max(1, (window._chatCurrentPage || 1) + delta);
+  loadChatSessions();
+};
+
 window.loadChatSessions = async function(q = '') {
+  q = String(q || '').trim();
+  // A new search is a new result set; always begin at its first page.
+  if (q !== window._chatLastQuery) {
+    window._chatLastQuery = q;
+    window._chatCurrentPage = 1;
+  }
   const el = document.getElementById('chat-sessions-list');
   if (!el) return;
   try {
-    const r = await fetch(`/api/sessions?limit=100&q=${encodeURIComponent(q)}`);
+    const r = await fetch(`/api/sessions?limit=200&q=${encodeURIComponent(q)}`);
     const data = await r.json();
     const sessions = data.sessions || [];
     if (!sessions.length) {
@@ -2052,18 +2083,73 @@ window.loadChatSessions = async function(q = '') {
       return;
     }
     const folderFilter = window._activeChatFolder || 'All';
-    const filtered = folderFilter === 'All' ? sessions : sessions.filter(s => (s.description || 'General') === folderFilter);
-    if (!filtered.length) {
-      el.innerHTML = `<div style="color:var(--text-3); font-size:12px; text-align:center; padding:20px">No chats inside folder "${escHtml(folderFilter)}".<br><br><button id="btn-start-here" class="btn-3d btn-primary btn-sm">＋ New Chat Here</button></div>`;
+    const filtered = folderFilter === 'All' ? sessions : sessions.filter(s => (s.description && s.description !== 'All' ? s.description : 'General') === folderFilter);
+
+    // Update folder sorting dropdown options visibility (only enabled when All folders is selected)
+    const optFAZ = document.getElementById('opt-sort-folder-az');
+    const optFZA = document.getElementById('opt-sort-folder-za');
+    if (optFAZ && optFZA) {
+      const showFolderSort = (folderFilter === 'All');
+      optFAZ.style.display = showFolderSort ? '' : 'none';
+      optFZA.style.display = showFolderSort ? '' : 'none';
+      if (!showFolderSort && (window._chatSortOrder === 'folder_az' || window._chatSortOrder === 'folder_za')) {
+        window._chatSortOrder = 'newest';
+        const sortSel = document.getElementById('chat-sort-select');
+        if (sortSel) sortSel.value = 'newest';
+      }
+    }
+
+    // Sort sessions
+    filtered.sort((a, b) => {
+      if (a.pinned !== b.pinned) return b.pinned - a.pinned;
+      const order = window._chatSortOrder || 'newest';
+      const nameA = (a.name || 'Chat').toLowerCase();
+      const nameB = (b.name || 'Chat').toLowerCase();
+      const folderA = (a.description && a.description !== 'All' ? a.description : 'General').toLowerCase();
+      const folderB = (b.description && b.description !== 'All' ? b.description : 'General').toLowerCase();
+      const timeA = new Date(a.updated_at || a.created_at || 0).getTime();
+      const timeB = new Date(b.updated_at || b.created_at || 0).getTime();
+
+      if (order === 'oldest') return timeA - timeB;
+      if (order === 'az') return nameA.localeCompare(nameB);
+      if (order === 'za') return nameB.localeCompare(nameA);
+      if (order === 'folder_az') return folderA.localeCompare(folderB) || nameA.localeCompare(nameB);
+      if (order === 'folder_za') return folderB.localeCompare(folderA) || nameA.localeCompare(nameB);
+      return timeB - timeA;
+    });
+
+    // Paginate
+    const pageSize = window._chatPageSize || 5;
+    const totalSessions = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(totalSessions / pageSize));
+    if (window._chatCurrentPage > totalPages) window._chatCurrentPage = totalPages;
+    const curPage = window._chatCurrentPage || 1;
+    const startIdx = (curPage - 1) * pageSize;
+    const pageSessions = filtered.slice(startIdx, startIdx + pageSize);
+
+    // Update UI pagination indicators
+    const pagEl = document.getElementById('chat-sessions-pagination');
+    if (pagEl) {
+      pagEl.style.display = totalSessions > 0 ? 'flex' : 'none';
+      const ind = document.getElementById('chat-page-indicator');
+      if (ind) ind.textContent = `Page ${curPage} of ${totalPages} (${totalSessions} total)`;
+      const prevBtn = document.getElementById('chat-page-prev');
+      const nextBtn = document.getElementById('chat-page-next');
+      if (prevBtn) prevBtn.disabled = (curPage <= 1);
+      if (nextBtn) nextBtn.disabled = (curPage >= totalPages);
+    }
+
+    if (!pageSessions.length) {
+      el.innerHTML = `<div style="color:var(--text-3); font-size:12px; text-align:center; padding:20px">${totalSessions === 0 ? 'No saved conversations yet.' : 'No chats on this page.'}<br><br><button id="btn-start-here" class="btn-3d btn-primary btn-sm">＋ New Chat Here</button></div>`;
       const hereBtn = document.getElementById('btn-start-here');
       if (hereBtn) hereBtn.addEventListener('click', () => startNewChatSession());
       return;
     }
 
     el.innerHTML = '';
-    filtered.forEach(s => {
+    pageSessions.forEach(s => {
       const isCurrent = (s.id === S.sessionId);
-      const folder = s.description || 'General';
+      const folder = (s.description && s.description !== 'All') ? s.description : 'General';
       const folderIcon = folder === 'Engineering' ? '⚙️' : folder === 'Research' ? '🔬' : folder === 'Ideas' ? '💡' : '📁';
       const snameSafe = (s.name || 'Chat').slice(0, 256);
 
@@ -2270,6 +2356,7 @@ window.renameChatSessionModal = async function(e, sid, oldName, oldFolder) {
 
 window.selectChatFolder = function(folder) {
   window._activeChatFolder = folder;
+  window._chatCurrentPage = 1;
   document.querySelectorAll('#chat-folder-pills button').forEach(btn => {
     const isSel = (btn.textContent.trim().includes(folder) || (folder === 'All' && btn.textContent.trim() === 'All'));
     btn.style.background = isSel ? 'var(--accent)' : 'var(--bg-2)';
@@ -5335,7 +5422,10 @@ function fallbackCopyText(text) {
 }
 
 window.listenToMsg = function(btn, msgId) {
-  if (window._activeListenBtn && window._activeListenBtn === btn && (window._ttsPlaying || (window.speechSynthesis && window.speechSynthesis.speaking))) {
+  // The selected action itself is authoritative. The API-backed Audio element
+  // is private to the TTS module, so checking only speechSynthesis.speaking
+  // incorrectly made a second click unable to stop it.
+  if (window._activeListenBtn === btn) {
     if (window.stopSpeaking) window.stopSpeaking();
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     window._ttsPlaying = null;
@@ -5454,9 +5544,10 @@ window.branchFromMsg = async function(btn, msgId) {
 const _origAddMessage = addMessage;
 addMessage = function(content, role, avatar, name, modelUsed = '') {
   const bubbleEl = _origAddMessage(content, role, avatar, name, modelUsed);
-  const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2,5);
   const msgDiv = bubbleEl?.closest('.msg');
-  if (msgDiv) msgDiv.id = msgId;
+  // _origAddMessage assigns this synchronously. Retain it so WebKit never
+  // observes an inserted message with an empty selector target.
+  if (msgDiv && !msgDiv.id) msgDiv.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
   return bubbleEl;
 };
 
@@ -11416,3 +11507,27 @@ setInterval(async () => {
     if (badge) badge.textContent = j.jobs || 0;
   } catch(e) {}
 }, 15000);
+
+
+// ── Chat TTS lifecycle ───────────────────────────────────────────────────────
+// Never leave a response playing after the user leaves Mission Control chat.
+(function installChatTtsAutoStop() {
+  const stop = () => {
+    if (typeof window.stopSpeaking === 'function') window.stopSpeaking();
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
+  window.addEventListener('pagehide', stop);
+  window.addEventListener('blur', stop);
+  window.addEventListener('DOMContentLoaded', () => {
+    const chatPane = document.getElementById('pane-chat');
+    // Leaving the chat component is an explicit stop request, not a pause.
+    if (chatPane) chatPane.addEventListener('mouseleave', stop);
+    document.querySelectorAll('[data-nav]').forEach((item) => {
+      item.addEventListener('click', () => {
+        const destination = item.dataset.nav;
+        if (destination && destination !== 'chat') stop();
+      });
+    });
+  });
+})();
