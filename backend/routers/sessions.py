@@ -178,7 +178,7 @@ async def create_session(req: Request):
             body = {}
     except Exception:
         body = {}
-    name = (body.get('name') or f'Chat {time.strftime("%b %d %H:%M")}').strip()[:120]
+    name = (body.get('name') or f'Chat {time.strftime("%b %d %H:%M")}').strip()[:256]
     agent_id = (body.get('agent_id') or 'brain').strip()[:64]
     sid = (body.get('id') or str(uuid.uuid4())).strip()
     description = (body.get('description') or '').strip()[:500]
@@ -200,6 +200,50 @@ async def create_session(req: Request):
     return {'ok': True, 'id': sid, 'name': name, 'agent_id': agent_id}
 
 
+@router.post('/auto-title')
+async def auto_title_session(req: Request):
+    """Use AI/smart heuristic to generate a concise 4-7 word title from the user's first prompt or chat history."""
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
+    prompt = (body.get('prompt') or '').strip()
+    session_id = (body.get('session_id') or '').strip()
+    if not prompt and session_id:
+        con = get_conn()
+        try:
+            row = con.execute("SELECT message FROM chat_log WHERE session_id=? AND role='user' ORDER BY id ASC LIMIT 1", (session_id,)).fetchone()
+            if row and row[0]:
+                prompt = row[0]
+        finally:
+            con.close()
+
+    if not prompt:
+        return {'ok': False, 'error': 'prompt or session_id required'}
+
+    clean_prompt = prompt.replace('\n', ' ').strip()
+    words = clean_prompt.split()
+    if len(words) <= 7 and len(clean_prompt) <= 45:
+        title = clean_prompt[:256]
+    else:
+        first_clause = clean_prompt.split('.')[0].split('?')[0].split('!')[0].strip()
+        clause_words = first_clause.split()
+        if len(clause_words) <= 8 and len(first_clause) > 8:
+            title = first_clause[:256]
+        else:
+            title = ' '.join(words[:7]) + '...'
+
+    if session_id:
+        con = get_conn()
+        try:
+            con.execute("UPDATE chat_sessions SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (title[:256], session_id))
+            con.commit()
+        finally:
+            con.close()
+
+    return {'ok': True, 'title': title[:256], 'session_id': session_id}
+
+
 # ── Update ─────────────────────────────────────────────────────────────────────
 
 
@@ -217,7 +261,7 @@ async def update_session(session_id: str, req: Request):
     vals: list = []
 
     if 'name' in body:
-        name = str(body['name']).strip()[:120]
+        name = str(body['name']).strip()[:256]
         if not name:
             return {'ok': False, 'error': 'name cannot be empty'}
         fields.append('name=?')

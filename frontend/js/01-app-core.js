@@ -519,9 +519,19 @@ async function sendChat() {
 
   S.chatHistory.push({ role: 'user', content: msg });
 
-  // Auto-create or update named session in /api/sessions
+  // Auto-create or update named session in /api/sessions (with AI/smart auto-titling)
   if (!S.sessionName) {
-    S.sessionName = msg.slice(0, 42) + (msg.length > 42 ? '...' : '');
+    S.sessionName = msg.slice(0, 256);
+    fetch('/api/sessions/auto-title', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: S.sessionId, prompt: msg })
+    }).then(r => r.json()).then(j => {
+      if (j.ok && j.title) {
+        S.sessionName = j.title;
+        if (typeof window.loadChatSessions === 'function') window.loadChatSessions();
+      }
+    }).catch(()=>{});
   }
   const cleanFolder = (S.sessionFolder && S.sessionFolder !== 'All') ? S.sessionFolder : ((window._activeChatFolder && window._activeChatFolder !== 'All') ? window._activeChatFolder : 'General');
   fetch('/api/sessions', {
@@ -2035,39 +2045,92 @@ window.loadChatSessions = async function(q = '') {
     const data = await r.json();
     const sessions = data.sessions || [];
     if (!sessions.length) {
-      el.innerHTML = `<div style="color:var(--text-3); font-size:12px; text-align:center; padding:20px">No saved conversations yet.<br><br><button onclick="startNewChatSession()" class="btn-3d btn-primary btn-sm">＋ Start First Chat</button></div>`;
+      el.innerHTML = `<div style="color:var(--text-3); font-size:12px; text-align:center; padding:20px">No saved conversations yet.<br><br><button id="btn-start-first" class="btn-3d btn-primary btn-sm">＋ Start First Chat</button></div>`;
+      const startBtn = document.getElementById('btn-start-first');
+      if (startBtn) startBtn.addEventListener('click', () => startNewChatSession());
       return;
     }
     const folderFilter = window._activeChatFolder || 'All';
     const filtered = folderFilter === 'All' ? sessions : sessions.filter(s => (s.description || 'General') === folderFilter);
     if (!filtered.length) {
-      el.innerHTML = `<div style="color:var(--text-3); font-size:12px; text-align:center; padding:20px">No chats inside folder "${escHtml(folderFilter)}".<br><br><button onclick="startNewChatSession()" class="btn-3d btn-primary btn-sm">＋ New Chat Here</button></div>`;
+      el.innerHTML = `<div style="color:var(--text-3); font-size:12px; text-align:center; padding:20px">No chats inside folder "${escHtml(folderFilter)}".<br><br><button id="btn-start-here" class="btn-3d btn-primary btn-sm">＋ New Chat Here</button></div>`;
+      const hereBtn = document.getElementById('btn-start-here');
+      if (hereBtn) hereBtn.addEventListener('click', () => startNewChatSession());
       return;
     }
-    el.innerHTML = filtered.map(s => {
+
+    el.innerHTML = '';
+    filtered.forEach(s => {
       const isCurrent = (s.id === S.sessionId);
       const folder = s.description || 'General';
       const folderIcon = folder === 'Engineering' ? '⚙️' : folder === 'Research' ? '🔬' : folder === 'Ideas' ? '💡' : '📁';
-      const sidSafe = escHtml(s.id || '');
-      const snameSafe = escHtml(s.name || '');
-      const folderSafe = escHtml(folder || '');
-      return `
-      <div class="chat-session-item ${isCurrent ? 'active' : ''}" style="display:flex; flex-direction:column; gap:4px; padding:8px 10px; border-radius:8px; background:${isCurrent ? 'var(--bg-3)' : 'transparent'}; border:1px solid ${isCurrent ? 'var(--accent)' : 'transparent'}; cursor:pointer; transition:all .15s" onclick="loadChatSession(&quot;${sidSafe}&quot;)">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:6px">
-          <span style="font-size:12.5px; font-weight:${isCurrent ? '800' : '600'}; color:var(--text-0); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1">${s.pinned ? '📌 ' : ''}${snameSafe}</span>
-          <div style="display:flex; gap:2px; opacity:0.8" onclick="event.stopPropagation()">
-            <button onclick="pinChatSession(event, &quot;${sidSafe}&quot;, ${!s.pinned})" title="${s.pinned ? 'Unpin' : 'Pin to top'}" style="background:none; border:none; color:var(--text-2); font-size:11px; cursor:pointer; padding:2px">📌</button>
-            <button onclick="renameChatSessionModal(event, &quot;${sidSafe}&quot;, &quot;${snameSafe}&quot;, &quot;${folderSafe}&quot;)" title="Rename or Change Folder" style="background:none; border:none; color:var(--text-2); font-size:11px; cursor:pointer; padding:2px">✏️</button>
-            <button onclick="deleteChatSession(event, &quot;${sidSafe}&quot;)" title="Delete chat" style="background:none; border:none; color:var(--danger); font-size:11px; cursor:pointer; padding:2px">🗑</button>
-          </div>
-        </div>
-        <div style="display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-3)">
-          <span style="background:var(--bg-2); padding:1px 6px; border-radius:4px; border:1px solid var(--border)">${folderIcon} ${folderSafe}</span>
-          <span>${s.message_count || 0} msgs · ${s.updated_at ? s.updated_at.slice(5, 16) : ''}</span>
-        </div>
-      </div>
-      `;
-    }).join('');
+      const snameSafe = (s.name || 'Chat').slice(0, 256);
+
+      const itemDiv = document.createElement('div');
+      itemDiv.className = `chat-session-item ${isCurrent ? 'active' : ''}`;
+      itemDiv.style.cssText = `display:flex; flex-direction:column; gap:4px; padding:8px 10px; border-radius:8px; background:${isCurrent ? 'var(--bg-3)' : 'transparent'}; border:1px solid ${isCurrent ? 'var(--accent)' : 'transparent'}; cursor:pointer; transition:all .15s`;
+      itemDiv.addEventListener('click', () => loadChatSession(s.id));
+
+      const topRow = document.createElement('div');
+      topRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:6px; flex-wrap:nowrap';
+
+      const titleSpan = document.createElement('span');
+      titleSpan.style.cssText = `font-size:12.5px; font-weight:${isCurrent ? '800' : '600'}; color:var(--text-0); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0`;
+      titleSpan.textContent = `${s.pinned ? '📌 ' : ''}${snameSafe}`;
+      topRow.appendChild(titleSpan);
+
+      const btnGroup = document.createElement('div');
+      btnGroup.style.cssText = 'display:flex; gap:4px; align-items:center; flex-shrink:0';
+      btnGroup.addEventListener('click', (e) => e.stopPropagation());
+
+      const pinBtn = document.createElement('button');
+      pinBtn.title = s.pinned ? 'Unpin' : 'Pin to top';
+      pinBtn.style.cssText = 'background:none; border:none; color:var(--text-2); font-size:12px; cursor:pointer; padding:2px';
+      pinBtn.textContent = '📌';
+      pinBtn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        pinChatSession(e, s.id, !s.pinned);
+      });
+      btnGroup.appendChild(pinBtn);
+
+      const renBtn = document.createElement('button');
+      renBtn.title = 'Rename or Change Folder';
+      renBtn.style.cssText = 'background:none; border:none; color:var(--text-2); font-size:12px; cursor:pointer; padding:2px';
+      renBtn.textContent = '✏️';
+      renBtn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        renameChatSessionModal(e, s.id, snameSafe, folder);
+      });
+      btnGroup.appendChild(renBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.title = 'Delete chat';
+      delBtn.style.cssText = 'background:none; border:none; color:var(--danger); font-size:12px; cursor:pointer; padding:2px';
+      delBtn.textContent = '🗑';
+      delBtn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        deleteChatSession(e, s.id);
+      });
+      btnGroup.appendChild(delBtn);
+
+      topRow.appendChild(btnGroup);
+      itemDiv.appendChild(topRow);
+
+      const bottomRow = document.createElement('div');
+      bottomRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-3)';
+
+      const folderSpan = document.createElement('span');
+      folderSpan.style.cssText = 'background:var(--bg-2); padding:1px 6px; border-radius:4px; border:1px solid var(--border)';
+      folderSpan.textContent = `${folderIcon} ${folder}`;
+      bottomRow.appendChild(folderSpan);
+
+      const metaSpan = document.createElement('span');
+      metaSpan.textContent = `${s.message_count || 0} msgs · ${s.updated_at ? s.updated_at.slice(5, 16) : ''}`;
+      bottomRow.appendChild(metaSpan);
+
+      itemDiv.appendChild(bottomRow);
+      el.appendChild(itemDiv);
+    });
   } catch(e) {
     console.warn('Failed to load chat sessions:', e);
   }
