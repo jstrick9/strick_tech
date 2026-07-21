@@ -77,6 +77,11 @@
       btn.textContent = isPlaying ? '⏹' : '🔊';
       btn.title = isPlaying ? 'Stop speaking' : 'Read aloud';
     });
+    if (!_ttsPlaying && window._activeListenBtn) {
+      window._activeListenBtn.innerHTML = '🔊 Listen';
+      window._activeListenBtn.style.borderColor = 'var(--border)';
+      window._activeListenBtn = null;
+    }
   }
 
   // ── Inject speak buttons into messages (disabled per user preference; Listen button inside .msg-actions handles TTS directly) ──

@@ -360,6 +360,36 @@ async def bulk_delete_sessions(req: Request):
     return {'ok': True, 'deleted': deleted}
 
 
+@router.post('/import-messages')
+async def import_session_messages(req: Request):
+    """Bulk import cloned/forked messages into a session (`⎇ Fork`)."""
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
+    session_id = (body.get('session_id') or '').strip()
+    messages = body.get('messages') or []
+    if not session_id or not isinstance(messages, list):
+        return {'ok': False, 'error': 'session_id and messages list required'}
+    con = get_conn()
+    try:
+        for m in messages:
+            role = (m.get('role') or 'user').strip()
+            msg_txt = (m.get('message') or '').strip()
+            agent = (m.get('agent') or 'default').strip()
+            model = (m.get('model') or '').strip()
+            if msg_txt:
+                con.execute(
+                    'INSERT INTO chat_log(session_id, agent, role, message, tokens, cost, model) VALUES (?,?,?,?,?,?,?)',
+                    (session_id, agent, role, msg_txt[:4000], 0, 0.0, model),
+                )
+        con.execute('UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_log WHERE session_id=?), updated_at = CURRENT_TIMESTAMP WHERE id=?', (session_id, session_id))
+        con.commit()
+    finally:
+        con.close()
+    return {'ok': True, 'imported': len(messages)}
+
+
 # ── Messages ───────────────────────────────────────────────────────────────────
 
 
