@@ -11,11 +11,12 @@ def test_chat_has_click_and_drop_file_intake():
     assert 'id="chat-file-input"' in INDEX
     assert 'id="chat-attachment-tray"' in INDEX
     assert 'window.setupDragAndDrop' in CORE
-    assert "Drop text, code, CSV, or JSON files" in CORE
+    assert "Drop text, code, data, PDF, or Word files" in CORE
 
 
 def test_file_intake_has_clear_safety_limits_and_removable_chips():
-    assert 'const maxFileBytes = 250 * 1024;' in CORE
+    assert 'const maxTextFileBytes = 250 * 1024;' in CORE
+    assert 'const maxDocumentBytes = 4 * 1024 * 1024;' in CORE
     assert 'const maxAttachments = 5;' in CORE
     assert 'window.renderChatAttachments' in CORE
     assert "remove.textContent = '×'" in CORE
@@ -26,3 +27,8 @@ def test_attached_text_becomes_explicit_model_context():
     assert 'const messageForModel = msg + attachmentContext;' in CORE
     assert 'message:    messageForModel' in CORE
     assert '.chat-attachment-chip' in CSS
+
+
+def test_chat_routes_pdf_and_word_documents_to_local_extraction():
+    assert "['pdf', 'docx'].includes(extension)" in CORE
+    assert "fetch('/api/documents/extract'" in CORE

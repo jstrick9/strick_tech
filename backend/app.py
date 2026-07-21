@@ -83,6 +83,7 @@ from .routers.crdt import router as crdt_router
 from .routers.database import router as database_router
 from .routers.deploy import router as deploy_router
 from .routers.docs_center import router as docs_router
+from .routers.documents import router as documents_router
 from .routers.drift import router as drift_router
 from .routers.e2e import router as e2e_router
 from .routers.evals import router as evals_router
@@ -283,8 +284,8 @@ SECURITY_HEADERS = {
     'Content-Security-Policy': (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://cdn.monaco-editor.net; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
-        "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+        "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; "
         "img-src 'self' data: blob: https:; "
         "connect-src 'self' ws: wss: http: https:; "
         "frame-src 'self' blob: data:; "
@@ -373,6 +374,8 @@ from backend.config import get_data_dir
 _data_root = get_data_dir()
 PREVIEW_DIR = _data_root / 'preview'
 PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
+if not (PREVIEW_DIR / 'index.html').exists():
+    (PREVIEW_DIR / 'index.html').write_text('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Agentic OS Preview</title></head><body style="background:#07080f;color:#64748b;font-family:sans-serif;padding:30px;text-align:center"><h3>⚡ Agentic OS Live Preview</h3><p>Open Studio or run scaffold to view your app here.</p></body></html>', encoding='utf-8')
 
 app.mount('/static', StaticFiles(directory=str(FRONTEND_DIR)), name='static')
 app.mount('/preview', StaticFiles(directory=str(PREVIEW_DIR), html=True), name='preview')
@@ -455,6 +458,7 @@ app.include_router(rag_router)
 app.include_router(license_router)
 app.include_router(userprofile_router)
 app.include_router(docs_router)
+app.include_router(documents_router)
 # Sprint A
 app.include_router(audit_log_router)
 app.include_router(compliance_router)
