@@ -64,6 +64,7 @@ def ensure_schema():
         session_id TEXT,
         agent TEXT, role TEXT, message TEXT,
         tokens INTEGER DEFAULT 0, cost REAL DEFAULT 0,
+        model TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS tasks (
@@ -137,6 +138,10 @@ def ensure_schema():
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
+        try:
+            con.execute('ALTER TABLE chat_log ADD COLUMN model TEXT DEFAULT ""')
+        except Exception:
+            pass
         con.commit()
     finally:
         con.close()
