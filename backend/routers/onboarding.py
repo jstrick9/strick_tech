@@ -25,7 +25,7 @@ PREFS_FILE = ROOT / 'memory' / 'preferences.json'
 # ── Default preferences ────────────────────────────────────────────────────────
 DEFAULT_PREFS: dict = {
     'onboarding_complete': False,
-    'theme': 'dark',  # "dark" | "midnight" | "forest" | "ember" | "ocean"
+    'theme': 'light',  # 'light' (default) | 'dark' | 'auto' | optional visual palettes
     'accent_color': '#5b8af8',
     'font_size': 14,  # integer px
     'font_family': 'Inter',
@@ -134,7 +134,7 @@ ONBOARDING_STEPS = [
         'id': 'theme',
         'title': 'Pick your vibe 🎨',
         'subtitle': 'Choose a theme for Mission Control',
-        'body': 'All themes are fully dark to protect your eyes during long builds.',
+        'body': 'Start with a bright, clear workspace, choose a dark workspace, or let the app follow your device automatically.',
         'action': None,
         'skip': False,
     },

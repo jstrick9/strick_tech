@@ -1296,6 +1296,20 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 }
 
 </style>
+<script>
+// Apply the saved appearance before styles render. Default is intentionally light;
+// Auto follows the device without replacing a deliberate user selection.
+(function () {
+  try {
+    var preference = localStorage.getItem('agentic_os_theme') || 'light';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var effective = preference === 'auto' ? (dark ? 'dark' : 'light') : preference;
+    document.documentElement.setAttribute('data-theme', effective);
+    document.documentElement.setAttribute('data-theme-preference', preference);
+    document.documentElement.style.colorScheme = effective === 'light' ? 'light' : 'dark';
+  } catch (e) {}
+}());
+</script>
 <link rel="stylesheet" href="/static/styles.css">
 
 
@@ -2900,7 +2914,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
               <!-- 6 Themes Selector -->
               <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px">
-                <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:14px">Select Visual Palette (6 Themes Available)</label>
+                <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:14px">Appearance Mode & Visual Palette</label>
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
                   <button onclick="applyTheme('light');toast('✨ Ultra-Techy Light Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #e2e8f0;background:#ffffff;color:#0f172a;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.05)">
                     <div style="font-size:20px;margin-bottom:6px">☀️</div>
@@ -2909,6 +2923,10 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   <button onclick="applyTheme('dark');toast('🌌 Cyber Dark Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #334155;background:#0f172a;color:#f8fafc;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
                     <div style="font-size:20px;margin-bottom:6px">🌑</div>
                     Dark Cyber
+                  </button>
+                  <button onclick="applyTheme('auto');toast('🌓 Auto appearance follows your device')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #94a3b8;background:linear-gradient(135deg,#ffffff 0%,#ffffff 48%,#0f172a 52%,#0f172a 100%);color:#0f172a;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.12)" title="Automatically follows your device light or dark appearance">
+                    <div style="font-size:20px;margin-bottom:6px">🌓</div>
+                    Auto (Device)
                   </button>
                   <button onclick="applyTheme('obsidian');toast('🪨 Obsidian Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #27272a;background:#09090b;color:#fafafa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
                     <div style="font-size:20px;margin-bottom:6px">🪨</div>

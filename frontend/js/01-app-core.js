@@ -8710,14 +8710,19 @@ const THEME_VARS = {
   forest:   { bg0:'#06100a', bg1:'#09160e', bg2:'#0e2216', bg3:'#14301f', bg4:'#1d452d', bg5:'#275e3d', text0:'#ecfdf5', text1:'#a7f3d0', text2:'#6ee7b7', text3:'#34d399', border:'rgba(16,185,129,.16)', borderHi:'rgba(16,185,129,.3)', accent:'#10b981', accentHi:'#34d399' },
 };
 
-function applyTheme(themeId, accentOverride) {
-  const tid    = themeId || localStorage.getItem('agentic_os_theme') || 'light';
-  const t      = THEME_VARS[tid] || THEME_VARS.light;
+function applyTheme(themeId, accentOverride, options = {}) {
+  // `auto` is a preference, not a palette. Resolve it to a concrete palette for
+  // CSS while retaining the preference so it follows OS changes in real time.
+  const preference = themeId || localStorage.getItem('agentic_os_theme') || 'light';
+  const followsSystem = preference === 'auto';
+  const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const tid = followsSystem ? (systemPrefersDark ? 'dark' : 'light') : preference;
+  const t = THEME_VARS[tid] || THEME_VARS.light;
   const accent = accentOverride || t.accent || '#0284c7';
-  const root   = document.documentElement;
-  root.style.setProperty('--bg-0',       t.bg0);
-  root.style.setProperty('--bg-1',       t.bg1);
-  root.style.setProperty('--bg-2',       t.bg2);
+  const root = document.documentElement;
+  root.style.setProperty('--bg-0', t.bg0);
+  root.style.setProperty('--bg-1', t.bg1);
+  root.style.setProperty('--bg-2', t.bg2);
   if (t.bg3) root.style.setProperty('--bg-3', t.bg3);
   if (t.bg4) root.style.setProperty('--bg-4', t.bg4);
   if (t.bg5) root.style.setProperty('--bg-5', t.bg5);
@@ -8727,21 +8732,41 @@ function applyTheme(themeId, accentOverride) {
   if (t.text3) root.style.setProperty('--text-3', t.text3);
   if (t.border) root.style.setProperty('--border', t.border);
   if (t.borderHi) root.style.setProperty('--border-hi', t.borderHi);
-  root.style.setProperty('--accent',     accent);
-  root.style.setProperty('--accent-hi',  t.accentHi || accent);
+  root.style.setProperty('--accent', accent);
+  root.style.setProperty('--accent-hi', t.accentHi || accent);
   root.style.setProperty('--accent-glow', accent + '22');
-  
   root.setAttribute('data-theme', tid);
-  if (document.body) document.body.setAttribute('data-theme', tid);
-  try { localStorage.setItem('agentic_os_theme', tid); } catch(e) {}
+  root.setAttribute('data-theme-preference', preference);
+  root.style.colorScheme = tid === 'light' ? 'light' : 'dark';
+  if (document.body) {
+    document.body.setAttribute('data-theme', tid);
+    document.body.setAttribute('data-theme-preference', preference);
+  }
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) themeMeta.content = tid === 'light' ? '#f8fafc' : '#060814';
 
-  // Persist (non-blocking, errors ignored since this is a background save)
+  if (options.persist === false) return;
+  try { localStorage.setItem('agentic_os_theme', preference); } catch(e) {}
   fetch('/api/onboarding/preferences', {
     method: 'PATCH', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({theme: tid, accent_color: accent})
+    body: JSON.stringify({theme: preference, accent_color: accent})
   }).then(r => {
     if (!r.ok) console.warn('[Theme] Persist failed: HTTP ' + r.status);
   }).catch(ex => console.warn('[Theme] Persist error:', ex?.message));
+}
+
+// Keep Auto mode synchronized when the operating-system appearance changes.
+if (window.matchMedia) {
+  const systemAppearance = window.matchMedia('(prefers-color-scheme: dark)');
+  const refreshAutoAppearance = () => {
+    try {
+      if ((localStorage.getItem('agentic_os_theme') || 'light') === 'auto') {
+        applyTheme('auto', undefined, {persist: false});
+      }
+    } catch (e) {}
+  };
+  if (systemAppearance.addEventListener) systemAppearance.addEventListener('change', refreshAutoAppearance);
+  else if (systemAppearance.addListener) systemAppearance.addListener(refreshAutoAppearance);
 }
 
 // Expose globally for settings panel
