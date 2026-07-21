@@ -3849,3 +3849,14 @@ body.theme-high-contrast a {
 .mission-connect-row span { color:var(--text-2); display:block; font-size:12px; margin-top:3px; }
 .mission-connect-actions { display:flex; flex-shrink:0; gap:8px; }
 @media (max-width:640px) { .mission-launchpad { border-radius:16px; padding:20px; } .mission-outcome-grid { grid-template-columns:1fr; } .mission-connect-row { align-items:flex-start; flex-direction:column; } }
+
+
+/* A single human-readable connection signal, reused in Chat and onboarding. */
+.connection-status { appearance:none; background:transparent; border:0; color:var(--text-2); cursor:pointer; font:inherit; font-size:12px; margin:3px 0 0; padding:0; text-align:left; }
+.connection-status::before { content:'●'; display:inline-block; font-size:10px; margin-right:5px; }
+.connection-status.checking::before { color:var(--warning); }
+.connection-status.ready::before { color:var(--success); }
+.connection-status.attention::before { color:var(--warning); }
+.connection-status.error::before { color:var(--danger); }
+#chat-connection-status { border:1px solid var(--border); border-radius:999px; font-size:10.5px; font-weight:700; margin:0 2px 0 0; padding:3px 7px; white-space:nowrap; }
+#chat-connection-status:hover { border-color:var(--accent); color:var(--accent); }

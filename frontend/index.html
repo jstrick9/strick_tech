@@ -1678,6 +1678,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <div style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:4px 10px;box-shadow:0 2px 6px rgba(0,0,0,0.2)">
                 <span style="font-size:14px" title="AI Inference Model">⚡</span>
                 <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-right:2px">Model:</span>
+                <button id="chat-connection-status" class="connection-status checking" onclick="nav('settings');switchSettingsTab('api')" title="Check or change your AI connection">Checking AI…</button>
                 <select id="chat-model-select" onchange="if(typeof selectChatModel === 'function') selectChatModel(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
                   <optgroup label="Primary Cloud Gateways (OpenRouter)">
                     <option value="claude">Claude 3.5 Sonnet (Primary)</option>
@@ -1740,7 +1741,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                     <button class="mission-outcome btn-3d" onclick="nav('studio')"><span>✨</span><strong>Create something</strong><small>Open Studio to build an app or workflow.</small></button>
                   </div>
                   <div class="mission-connect-row">
-                    <div><strong>Ready to use AI?</strong><span>Use a local model or connect a provider when you are ready.</span></div>
+                    <div><strong>Ready to use AI?</strong><span id="mission-connection-status" class="connection-status checking">Checking your connection…</span></div>
                     <div class="mission-connect-actions">
                       <button onclick="if(typeof testOllamaConnection==='function')testOllamaConnection()" class="btn-3d btn-ghost btn-sm">Use Local AI</button>
                       <button onclick="nav('settings');switchSettingsTab('api')" class="btn-3d btn-primary btn-sm">Connect AI</button>

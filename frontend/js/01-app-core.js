@@ -2418,6 +2418,23 @@ window.toggleChatHistoryDrawer = function() {
   }
 };
 
+window.renderConnectionReadiness = function(readiness = {}) {
+  const localModels = Number(readiness.localModels || 0);
+  const cloudReady = Boolean(readiness.cloudReady);
+  let state = 'attention';
+  let text = 'Connect AI to begin';
+  if (localModels > 0) { state = 'ready'; text = `Local AI ready · ${localModels} model${localModels === 1 ? '' : 's'}`; }
+  else if (cloudReady) { state = 'ready'; text = 'AI connection ready'; }
+  else if (readiness.checked) { text = 'Choose a connection to begin'; }
+  ['chat-connection-status', 'mission-connection-status'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('checking', 'ready', 'attention', 'error');
+    el.classList.add(state);
+  });
+};
+
 window.syncOpenWebUIConnections = async function() {
   const select = document.getElementById('chat-model-select');
   if (!select) return;
@@ -2459,7 +2476,14 @@ window.syncOpenWebUIConnections = async function() {
         if (ollamaModelsEl) ollamaModelsEl.innerHTML = `<div style="color:var(--warning)">Local Ollama instance not detected on http://localhost:11434. Start Ollama on your Mac to sync local models.</div>`;
       }
     }
-  } catch(e) {}
+    window.renderConnectionReadiness({
+      checked: true,
+      cloudReady: Boolean(secR && secR.ok && secR.fingerprint),
+      localModels: modR?.ollama?.running ? (modR.ollama.models || []).length : 0,
+    });
+  } catch(e) {
+    window.renderConnectionReadiness({checked: true});
+  }
 };
 
 // ── Command Palette ───────────────────────────────────────────────
