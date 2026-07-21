@@ -5335,23 +5335,55 @@ function fallbackCopyText(text) {
 }
 
 window.listenToMsg = function(btn, msgId) {
+  if (window._activeListenBtn && window._activeListenBtn === btn && (window._ttsPlaying || (window.speechSynthesis && window.speechSynthesis.speaking))) {
+    if (window.stopSpeaking) window.stopSpeaking();
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    window._ttsPlaying = null;
+    btn.innerHTML = '🔊 Listen';
+    btn.style.borderColor = 'var(--border)';
+    window._activeListenBtn = null;
+    toast('⏹ Stopped listening', 'ok', 1000);
+    return;
+  }
+  if (window._activeListenBtn) {
+    window._activeListenBtn.innerHTML = '🔊 Listen';
+    window._activeListenBtn.style.borderColor = 'var(--border)';
+    if (window.stopSpeaking) window.stopSpeaking();
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    window._ttsPlaying = null;
+  }
+
   const targetMsg = (typeof msgId === 'string' && document.getElementById(msgId)) || btn?.closest?.('.msg');
   const bubble = targetMsg?.querySelector('.msg-bubble');
   const text = bubble?.innerText || bubble?.textContent || window._msgContents?.[msgId] || '';
   if (!text || !text.trim()) { toast('No text found to speak', 'err', 1500); return; }
   const agentId = targetMsg?.dataset?.agentId || S.currentAgentId || 'default';
+
+  btn.innerHTML = '⏹ Stop Listening';
+  btn.style.borderColor = 'var(--accent)';
+  window._activeListenBtn = btn;
+
   if (typeof window.speakMessage === 'function') {
-    if (window._ttsPlaying) window.stopSpeaking?.();
-    else window.speakMessage(text, agentId);
+    window.speakMessage(text, agentId);
   } else if (typeof window.speakText === 'function') {
     window.speakText(text, agentId);
   } else if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text.slice(0, 1000));
+    const u = new SpeechSynthesisUtterance(text.slice(0, 1500));
+    u.onend = () => {
+      if (window._activeListenBtn === btn) {
+        btn.innerHTML = '🔊 Listen';
+        btn.style.borderColor = 'var(--border)';
+        window._activeListenBtn = null;
+      }
+    };
     window.speechSynthesis.speak(u);
     toast('🔊 Reading response aloud...', 'ok', 1500);
   } else {
     toast('TTS engine unavailable', 'err', 1500);
+    btn.innerHTML = '🔊 Listen';
+    btn.style.borderColor = 'var(--border)';
+    window._activeListenBtn = null;
   }
 };
 
@@ -5378,21 +5410,43 @@ window.regenerateMsg = async function(btn, msgId) {
   }
 };
 
-window.branchFromMsg = function(btn, msgId) {
+window.branchFromMsg = async function(btn, msgId) {
   const targetMsg = (typeof msgId === 'string' && document.getElementById(msgId)) || btn?.closest?.('.msg');
   if (!targetMsg) return;
-  const msgs = document.querySelectorAll('#chat-messages .msg');
-  let cut = false;
-  let count = 0;
-  msgs.forEach(m => {
-    if (cut) { m.remove(); count++; }
-    if (m === targetMsg || m.id === msgId) cut = true;
-  });
-  if (count > 0) {
-    if (Array.isArray(S.chatHistory)) S.chatHistory = S.chatHistory.slice(0, msgs.length - count);
-    toast(`⎇ Forked conversation! Removed ${count} subsequent messages. You can steer from here.`, 'ok', 3000);
-  } else {
-    toast('⎇ Already at the latest branch of the conversation.', 'ok', 2000);
+
+  const allMsgs = Array.from(document.querySelectorAll('#chat-messages .msg'));
+  const idx = allMsgs.indexOf(targetMsg);
+  const forkedMsgs = (idx >= 0 ? allMsgs.slice(0, idx + 1) : allMsgs).map(m => {
+    const isUser = m.classList.contains('user');
+    const b = m.querySelector('.msg-bubble');
+    return {
+      role: isUser ? 'user' : 'assistant',
+      message: b?.innerText || b?.textContent || '',
+      agent: isUser ? 'user' : (S.currentAgent?.id || 'default'),
+      model: m.querySelector('.model-used-tag')?.textContent?.replace('⚡', '').trim() || ''
+    };
+  }).filter(m => m.message.trim().length > 0);
+
+  const newSid = 'session_fork_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  const newName = ('⎇ Fork: ' + (S.sessionName || 'Chat ' + S.sessionId.slice(-4))).slice(0, 256);
+  const folder = (S.sessionFolder && S.sessionFolder !== 'All') ? S.sessionFolder : 'General';
+
+  toast('⎇ Forking into new conversation...', 'ok', 1200);
+  try {
+    await fetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: newSid, name: newName, agent_id: S.currentAgentId || 'default', description: folder })
+    });
+    await fetch('/api/sessions/import-messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: newSid, messages: forkedMsgs })
+    });
+    await window.loadChatSession(newSid);
+    toast(`✅ ⎇ Forked into new chat: "${newName}"!`, 'ok', 2500);
+  } catch(e) {
+    toast('❌ Error forking conversation: ' + e.message, 'err', 2500);
   }
 };
 

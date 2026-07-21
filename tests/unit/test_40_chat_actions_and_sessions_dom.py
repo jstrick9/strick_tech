@@ -72,7 +72,7 @@ def test_message_actions_fallback_to_btn_closest_msg():
     assert 'window.copyMsgContent = function(btn, msgId)' in CORE_JS
     assert 'window.listenToMsg = function(btn, msgId)' in CORE_JS
     assert 'window.regenerateMsg = async function(btn, msgId)' in CORE_JS
-    assert 'window.branchFromMsg = function(btn, msgId)' in CORE_JS
+    assert 'window.branchFromMsg = async function(btn, msgId)' in CORE_JS
 
 
 def test_model_used_badge_rendered_in_msg_meta():
