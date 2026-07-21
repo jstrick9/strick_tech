@@ -1,4 +1,5 @@
-// Agentic OS v6.0 — Core app logic — state, nav, chat, agents, builder, kanban, swarm, galaxy, settings
+// Agentic OS v11.5.0 — Verified Session & Action Button Build 2026-07-21
+// Core app logic — state, nav, chat, agents, builder, kanban, swarm, galaxy, settings
 // Extracted from index.html (block 0)
 
 
@@ -471,11 +472,29 @@ function toggleStream() {
   document.getElementById('stream-btn').classList.toggle('active', S.useStream);
 }
 
+function ensureChatEmpty() {
+  const msgsContainer = document.getElementById('chat-messages');
+  if (!msgsContainer) return null;
+  let emptyEl = document.getElementById('chat-empty');
+  if (!emptyEl) {
+    emptyEl = document.createElement('div');
+    emptyEl.id = 'chat-empty';
+    emptyEl.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:40px 20px';
+    emptyEl.innerHTML = `
+      <div class="neural-orb-3d" style="width:48px;height:48px;margin-bottom:12px"></div>
+      <h3 style="font-size:22px;font-weight:900;letter-spacing:-0.4px">Agentic OS — Mission Control</h3>
+      <p style="color:var(--text-1);font-size:13.5px">Your local-first AI operating system. Chat with any agent, run the swarm, build apps, search memory.</p>
+    `;
+  }
+  return emptyEl;
+}
+
 function clearChatHistory() {
   S.chatHistory = [];
-  document.getElementById('chat-messages').innerHTML = '';
-  const e = document.getElementById('chat-empty');
-  if (e) e.style.display = 'flex';
+  const msgs = document.getElementById('chat-messages');
+  if (msgs) msgs.innerHTML = '';
+  const e = ensureChatEmpty();
+  if (e && msgs) { e.style.display = 'flex'; msgs.appendChild(e); }
   toast('Chat cleared', 'ok', 1500);
 }
 
@@ -504,6 +523,7 @@ async function sendChat() {
   if (!S.sessionName) {
     S.sessionName = msg.slice(0, 42) + (msg.length > 42 ? '...' : '');
   }
+  const cleanFolder = (S.sessionFolder && S.sessionFolder !== 'All') ? S.sessionFolder : ((window._activeChatFolder && window._activeChatFolder !== 'All') ? window._activeChatFolder : 'General');
   fetch('/api/sessions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -511,7 +531,7 @@ async function sendChat() {
       id: S.sessionId,
       name: S.sessionName,
       agent_id: selectedPersonaId || 'default',
-      description: S.sessionFolder || window._activeChatFolder || 'General'
+      description: cleanFolder
     })
   }).then(() => { if (typeof window.loadChatSessions === 'function') window.loadChatSessions(); }).catch(()=>{});
 
@@ -560,6 +580,20 @@ async function sendChat() {
             fullText += data.delta;
             updateMessageBubble(bubbleEl, fullText);
           }
+          if (data.model || selectedModel) {
+            const mStr = data.model || selectedModel;
+            const metaEl = bubbleEl?.closest('.msg')?.querySelector('.msg-meta');
+            if (metaEl) {
+              let tag = metaEl.querySelector('.model-used-tag');
+              if (!tag) {
+                tag = document.createElement('span');
+                tag.className = 'model-used-tag tag';
+                tag.style.cssText = 'font-size:10.5px;padding:2px 8px;border-radius:4px;background:var(--bg-3);color:var(--accent);margin-left:8px;font-family:monospace;border:1px solid var(--border-hi);display:inline-flex;align-items:center;gap:3px';
+                metaEl.appendChild(tag);
+              }
+              tag.innerHTML = `⚡ <strong>${escHtml(mStr)}</strong>`;
+            }
+          }
           if (data.action === 'clear_history') {
             clearChatHistory();
           }
@@ -568,6 +602,13 @@ async function sendChat() {
     }
 
     S.chatHistory.push({ role: 'assistant', content: fullText });
+    if (bubbleEl) {
+      const finalId = bubbleEl.closest('.msg')?.id;
+      if (finalId) {
+        if (!window._msgContents) window._msgContents = {};
+        window._msgContents[finalId] = fullText;
+      }
+    }
 
   } catch(err) {
     document.getElementById(thinkingId)?.remove();
@@ -583,15 +624,16 @@ async function sendChat() {
   }
 }
 
-function addMessage(content, role, avatar, name) {
+function addMessage(content, role, avatar, name, modelUsed = '') {
   const msgs  = document.getElementById('chat-messages');
   const div   = document.createElement('div');
   div.className = `msg ${role}`;
+  const modelBadge = (modelUsed && role !== 'user') ? ` <span class="model-used-tag tag" style="font-size:10.5px;padding:2px 8px;border-radius:4px;background:var(--bg-3);color:var(--accent);margin-left:8px;font-family:monospace;border:1px solid var(--border-hi);display:inline-flex;align-items:center;gap:3px">⚡ <strong>${escHtml(modelUsed)}</strong></span>` : '';
   div.innerHTML = `
     <div class="msg-avatar">${avatar}</div>
     <div class="msg-body">
-      <div class="msg-meta">${escHtml(name)} · ${new Date().toLocaleTimeString()}</div>
-      <div class="msg-bubble">${role === 'user' ? escHtml(content) : renderMarkdown(content)}</div>
+      <div class="msg-meta" style="display:flex;align-items:center;flex-wrap:wrap">${escHtml(name)} · ${new Date().toLocaleTimeString()}${modelBadge}</div>
+      <div class="msg-bubble">${role === 'user' ? escHtml(content) : renderMarkdownEnhanced(content)}</div>
     </div>`;
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
@@ -2006,18 +2048,21 @@ window.loadChatSessions = async function(q = '') {
       const isCurrent = (s.id === S.sessionId);
       const folder = s.description || 'General';
       const folderIcon = folder === 'Engineering' ? '⚙️' : folder === 'Research' ? '🔬' : folder === 'Ideas' ? '💡' : '📁';
+      const sidSafe = escHtml(s.id || '');
+      const snameSafe = escHtml(s.name || '');
+      const folderSafe = escHtml(folder || '');
       return `
-      <div class="chat-session-item ${isCurrent ? 'active' : ''}" style="display:flex; flex-direction:column; gap:4px; padding:8px 10px; border-radius:8px; background:${isCurrent ? 'var(--bg-3)' : 'transparent'}; border:1px solid ${isCurrent ? 'var(--accent)' : 'transparent'}; cursor:pointer; transition:all .15s" onclick="loadChatSession(${JSON.stringify(s.id)})">
+      <div class="chat-session-item ${isCurrent ? 'active' : ''}" style="display:flex; flex-direction:column; gap:4px; padding:8px 10px; border-radius:8px; background:${isCurrent ? 'var(--bg-3)' : 'transparent'}; border:1px solid ${isCurrent ? 'var(--accent)' : 'transparent'}; cursor:pointer; transition:all .15s" onclick="loadChatSession(&quot;${sidSafe}&quot;)">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:6px">
-          <span style="font-size:12.5px; font-weight:${isCurrent ? '800' : '600'}; color:var(--text-0); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1">${s.pinned ? '📌 ' : ''}${escHtml(s.name)}</span>
+          <span style="font-size:12.5px; font-weight:${isCurrent ? '800' : '600'}; color:var(--text-0); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1">${s.pinned ? '📌 ' : ''}${snameSafe}</span>
           <div style="display:flex; gap:2px; opacity:0.8" onclick="event.stopPropagation()">
-            <button onclick="pinChatSession(event, ${JSON.stringify(s.id)}, ${!s.pinned})" title="${s.pinned ? 'Unpin' : 'Pin to top'}" style="background:none; border:none; color:var(--text-2); font-size:11px; cursor:pointer; padding:2px">📌</button>
-            <button onclick="renameChatSessionModal(event, ${JSON.stringify(s.id)}, ${JSON.stringify(s.name)}, ${JSON.stringify(folder)})" title="Rename or Change Folder" style="background:none; border:none; color:var(--text-2); font-size:11px; cursor:pointer; padding:2px">✏️</button>
-            <button onclick="deleteChatSession(event, ${JSON.stringify(s.id)})" title="Delete chat" style="background:none; border:none; color:var(--danger); font-size:11px; cursor:pointer; padding:2px">🗑</button>
+            <button onclick="pinChatSession(event, &quot;${sidSafe}&quot;, ${!s.pinned})" title="${s.pinned ? 'Unpin' : 'Pin to top'}" style="background:none; border:none; color:var(--text-2); font-size:11px; cursor:pointer; padding:2px">📌</button>
+            <button onclick="renameChatSessionModal(event, &quot;${sidSafe}&quot;, &quot;${snameSafe}&quot;, &quot;${folderSafe}&quot;)" title="Rename or Change Folder" style="background:none; border:none; color:var(--text-2); font-size:11px; cursor:pointer; padding:2px">✏️</button>
+            <button onclick="deleteChatSession(event, &quot;${sidSafe}&quot;)" title="Delete chat" style="background:none; border:none; color:var(--danger); font-size:11px; cursor:pointer; padding:2px">🗑</button>
           </div>
         </div>
         <div style="display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-3)">
-          <span style="background:var(--bg-2); padding:1px 6px; border-radius:4px; border:1px solid var(--border)">${folderIcon} ${escHtml(folder)}</span>
+          <span style="background:var(--bg-2); padding:1px 6px; border-radius:4px; border:1px solid var(--border)">${folderIcon} ${folderSafe}</span>
           <span>${s.message_count || 0} msgs · ${s.updated_at ? s.updated_at.slice(5, 16) : ''}</span>
         </div>
       </div>
@@ -2051,13 +2096,16 @@ window.loadChatSession = async function(sid) {
     const msgsContainer = document.getElementById('chat-messages');
     if (!msgsContainer) return;
     msgsContainer.innerHTML = '';
-    const emptyEl = document.getElementById('chat-empty');
-    if (emptyEl) emptyEl.style.display = messages.length ? 'none' : 'flex';
+    const emptyEl = ensureChatEmpty();
+    if (emptyEl && msgsContainer) {
+      emptyEl.style.display = messages.length ? 'none' : 'flex';
+      msgsContainer.appendChild(emptyEl);
+    }
 
     messages.forEach(m => {
       const avatar = m.role === 'user' ? '👤' : (m.agent === 'brain' ? '🧠' : '💬');
       const name = m.role === 'user' ? 'You' : (m.agent === 'default' ? 'Direct AI Chat' : (m.agent || 'AI').title());
-      const bubble = addMessage(m.message, m.role, avatar, name);
+      const bubble = addMessage(m.message, m.role, avatar, name, m.model || (m.agent !== 'default' ? m.agent : ''));
       if (m.role !== 'user' && bubble) {
         const msgId = bubble.closest('.msg')?.id;
         if (msgId) addMessageActions(bubble, m.role, m.message, msgId);
@@ -2076,9 +2124,11 @@ window.startNewChatSession = function() {
   S.chatHistory = [];
   const msgsContainer = document.getElementById('chat-messages');
   if (msgsContainer) msgsContainer.innerHTML = '';
-  const emptyEl = document.getElementById('chat-empty');
-  if (emptyEl) emptyEl.style.display = 'flex';
-  if (msgsContainer && emptyEl) msgsContainer.appendChild(emptyEl);
+  const emptyEl = ensureChatEmpty();
+  if (emptyEl && msgsContainer) {
+    emptyEl.style.display = 'flex';
+    msgsContainer.appendChild(emptyEl);
+  }
   loadChatSessions();
   const inp = document.getElementById('chat-input');
   if (inp) { inp.value = ''; inp.focus(); }
@@ -2086,39 +2136,71 @@ window.startNewChatSession = function() {
 };
 
 window.pinChatSession = async function(e, sid, pinned) {
-  if (e) e.stopPropagation();
-  await fetch(`/api/sessions/${encodeURIComponent(sid)}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pinned: pinned ? 1 : 0 })
-  });
-  loadChatSessions();
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  toast(pinned ? '📌 Pinning chat...' : 'Unpinning chat...', 'ok', 1000);
+  try {
+    const res = await fetch(`/api/sessions/${encodeURIComponent(sid)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pinned: pinned ? 1 : 0 })
+    });
+    const j = await res.json();
+    if (!j.ok) { toast('❌ Pin failed: ' + (j.error || 'Unknown'), 'err', 2500); return; }
+    if (typeof window.loadChatSessions === 'function') await window.loadChatSessions();
+    toast(pinned ? '📌 Chat pinned!' : 'Chat unpinned', 'ok', 1200);
+  } catch (err) {
+    toast('❌ Error pinning chat: ' + err.message, 'err', 2500);
+  }
 };
 
 window.deleteChatSession = async function(e, sid) {
-  if (e) e.stopPropagation();
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
   const ok = await gmConfirm('Delete Chat Conversation?', 'Are you sure you want to permanently delete this chat session and all its messages?');
   if (!ok) return;
-  await fetch(`/api/sessions/${encodeURIComponent(sid)}`, { method: 'DELETE' });
-  if (S.sessionId === sid) startNewChatSession();
-  else loadChatSessions();
-  toast('🗑 Chat deleted', 'ok', 1500);
+  toast('🗑 Deleting chat...', 'ok', 1000);
+  try {
+    const res = await fetch(`/api/sessions/${encodeURIComponent(sid)}`, { method: 'DELETE' });
+    const j = await res.json();
+    if (!j.ok) { toast('❌ Delete failed: ' + (j.error || 'Unknown'), 'err', 2500); return; }
+    if (S.sessionId === sid && typeof window.startNewChatSession === 'function') window.startNewChatSession();
+    else if (typeof window.loadChatSessions === 'function') await window.loadChatSessions();
+    toast('🗑 Chat deleted!', 'ok', 1500);
+  } catch (err) {
+    toast('❌ Error deleting chat: ' + err.message, 'err', 2500);
+  }
 };
 
 window.renameChatSessionModal = async function(e, sid, oldName, oldFolder) {
-  if (e) e.stopPropagation();
-  const newName = prompt('Enter a new name for this chat:', oldName || '');
-  if (newName === null) return;
-  const newFolder = prompt('Enter folder/category (General, Engineering, Research, Ideas...):', oldFolder || 'General');
-  if (newFolder === null) return;
-  await fetch(`/api/sessions/${encodeURIComponent(sid)}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: newName.trim(), description: newFolder.trim() })
-  });
-  if (S.sessionId === sid) { S.sessionName = newName.trim(); S.sessionFolder = newFolder.trim(); }
-  loadChatSessions();
-  toast('✏️ Chat renamed & categorized!', 'ok', 1500);
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  let newName = null;
+  if (typeof window.gmPrompt === 'function') {
+    newName = await window.gmPrompt('Rename Chat Conversation', 'Enter a new title for this chat:', oldName || '');
+  } else {
+    newName = prompt('Enter a new name for this chat:', oldName || '');
+  }
+  if (newName === null || !newName.trim()) return;
+  let newFolder = null;
+  if (typeof window.gmPrompt === 'function') {
+    newFolder = await window.gmPrompt('Move to Folder / Category', 'Enter folder name (General, Engineering, Research, Ideas...):', oldFolder || 'General');
+  } else {
+    newFolder = prompt('Enter folder/category (General, Engineering, Research, Ideas...):', oldFolder || 'General');
+  }
+  if (newFolder === null || !newFolder.trim()) return;
+  try {
+    toast('✏️ Updating chat...', 'ok', 1000);
+    const res = await fetch(`/api/sessions/${encodeURIComponent(sid)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName.trim(), description: newFolder.trim() })
+    });
+    const j = await res.json();
+    if (!j.ok) { toast('❌ Update failed: ' + (j.error || 'Unknown'), 'err', 2500); return; }
+    if (S.sessionId === sid) { S.sessionName = newName.trim(); S.sessionFolder = newFolder.trim(); }
+    if (typeof window.loadChatSessions === 'function') await window.loadChatSessions();
+    toast('✏️ Chat renamed & moved to ' + newFolder.trim() + '!', 'ok', 1500);
+  } catch (err) {
+    toast('❌ Error updating chat: ' + err.message, 'err', 2500);
+  }
 };
 
 window.selectChatFolder = function(folder) {
@@ -2542,8 +2624,8 @@ function connectWS() {
   ws = new WebSocket(`${proto}//${location.host}/ws`);
 
   ws.onopen = () => {
-    document.getElementById('ws-badge').textContent = '⚡ live';
-    document.getElementById('ws-badge').style.color = 'var(--green)';
+    const b = document.getElementById('ws-badge');
+    if (b) { b.textContent = '⚡ live'; b.style.color = 'var(--green)'; }
     clearTimeout(wsReconnectTimer);
   };
 
@@ -2555,8 +2637,8 @@ function connectWS() {
   };
 
   ws.onclose = () => {
-    document.getElementById('ws-badge').textContent = '⚡ offline';
-    document.getElementById('ws-badge').style.color = 'var(--red)';
+    const b = document.getElementById('ws-badge');
+    if (b) { b.textContent = '⚡ offline'; b.style.color = 'var(--red)'; }
     wsReconnectTimer = setTimeout(connectWS, 4000);
   };
 
@@ -4981,30 +5063,17 @@ function _disabled__s8NavBase(pane) {
 
 // ── Load highlight.js for syntax highlighting ──────────────────────
 (function loadHLJS() {
-  // Load highlight.js CSS
   const link = document.createElement('link');
   link.rel  = 'stylesheet';
-  link.href = 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css';
+  link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
   document.head.appendChild(link);
-  // Load highlight.js script
   const s = document.createElement('script');
-  s.src   = 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js';
+  s.src   = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
   s.onload = () => {
-    // Load common languages
-    const langs = ['javascript','typescript','python','bash','json','html','css','sql','rust','go','java','cpp'];
-    let loaded = 0;
-    langs.forEach(lang => {
-      const ls = document.createElement('script');
-      ls.src   = `https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/${lang}.min.js`;
-      ls.onload = () => {
-        loaded++;
-        if (loaded === langs.length) {
-          window.hljs.configure({ ignoreUnescapedHTML: true });
-          window._hljsReady = true;
-        }
-      };
-      document.head.appendChild(ls);
-    });
+    if (window.hljs) {
+      window.hljs.configure({ ignoreUnescapedHTML: true });
+      window._hljsReady = true;
+    }
   };
   document.head.appendChild(s);
 })();
@@ -5114,14 +5183,53 @@ function addMessageActions(bubbleEl, role, content, msgId) {
   const actEl = document.createElement('div');
   actEl.className = 'msg-actions';
   actEl.style.cssText = `display:flex;gap:6px;margin-top:8px;opacity:${hideOnHoverOnly ? '0' : '1'};transition:opacity .15s;flex-wrap:wrap`;
-  actEl.innerHTML = `
-    <button onclick="copyMsgContent(this, ${JSON.stringify(msgId)})" class="msg-action-btn" title="Copy message" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">📋 Copy</button>
-    ${role === 'agent' ? `
-    <button onclick="regenerateMsg(this, ${JSON.stringify(msgId)})" class="msg-action-btn" title="Regenerate response" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">↺ Regenerate</button>
-    <button onclick="listenToMsg(this, ${JSON.stringify(msgId)})" class="msg-action-btn" title="Read response aloud" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">🔊 Listen</button>
-    ` : ''}
-    <button onclick="branchFromMsg(this, ${JSON.stringify(msgId)})" class="msg-action-btn" title="Fork conversation here" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px">⎇ Fork</button>
-  `;
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'msg-action-btn';
+  copyBtn.title = 'Copy message';
+  copyBtn.style.cssText = 'background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px';
+  copyBtn.innerHTML = '📋 Copy';
+  copyBtn.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (typeof window.copyMsgContent === 'function') window.copyMsgContent(copyBtn, msgId);
+  });
+  actEl.appendChild(copyBtn);
+
+  if (role === 'agent') {
+    const regBtn = document.createElement('button');
+    regBtn.className = 'msg-action-btn';
+    regBtn.title = 'Regenerate response';
+    regBtn.style.cssText = 'background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px';
+    regBtn.innerHTML = '↺ Regenerate';
+    regBtn.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (typeof window.regenerateMsg === 'function') window.regenerateMsg(regBtn, msgId);
+    });
+    actEl.appendChild(regBtn);
+
+    const lisBtn = document.createElement('button');
+    lisBtn.className = 'msg-action-btn';
+    lisBtn.title = 'Read response aloud';
+    lisBtn.style.cssText = 'background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px';
+    lisBtn.innerHTML = '🔊 Listen';
+    lisBtn.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (typeof window.listenToMsg === 'function') window.listenToMsg(lisBtn, msgId);
+    });
+    actEl.appendChild(lisBtn);
+  }
+
+  const forkBtn = document.createElement('button');
+  forkBtn.className = 'msg-action-btn';
+  forkBtn.title = 'Fork conversation here';
+  forkBtn.style.cssText = 'background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11.5px;cursor:pointer;color:var(--text-1);display:flex;align-items:center;gap:4px';
+  forkBtn.innerHTML = '⎇ Fork';
+  forkBtn.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (typeof window.branchFromMsg === 'function') window.branchFromMsg(forkBtn, msgId);
+  });
+  actEl.appendChild(forkBtn);
+
   bubbleEl.parentElement?.appendChild(actEl);
   const msgDiv = bubbleEl.closest('.msg');
   if (msgDiv && hideOnHoverOnly) {
@@ -5225,8 +5333,8 @@ window.branchFromMsg = function(btn, msgId) {
 
 // Patch addMessage to include actions
 const _origAddMessage = addMessage;
-addMessage = function(content, role, avatar, name) {
-  const bubbleEl = _origAddMessage(content, role, avatar, name);
+addMessage = function(content, role, avatar, name, modelUsed = '') {
+  const bubbleEl = _origAddMessage(content, role, avatar, name, modelUsed);
   const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2,5);
   const msgDiv = bubbleEl?.closest('.msg');
   if (msgDiv) msgDiv.id = msgId;
