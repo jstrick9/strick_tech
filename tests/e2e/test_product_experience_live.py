@@ -151,6 +151,19 @@ def run_product_experience_smoke() -> None:
             page.get_by_text('Scaffolded web project', exact=False).wait_for(state='visible', timeout=7000)
             assert page.evaluate("async () => (await fetch('/preview/index.html')).status") == 200
 
+            # Edit the generated file, explicitly save it, create a checkpoint,
+            # and verify version history records the workflow.
+            versions = page.evaluate("""async () => {
+              const marker = '<!-- functional-save-marker -->';
+              Studio.editor.setValue(Studio.editor.getValue() + String.fromCharCode(10) + marker);
+              await studioSaveFile();
+              await studioCommit();
+              const history = await (await fetch('/api/preview/history?path=' + encodeURIComponent(Studio.currentFile))).json();
+              return {content: Studio.editor.getValue(), history};
+            }""")
+            assert 'functional-save-marker' in versions['content']
+            assert len(versions['history']) >= 1
+
             page.evaluate("window.nav('workspaces')")
             page.locator(f'button[data-workspace-id="{original_workspace["id"]}"]').filter(has_text='Switch →').click()
             page.wait_for_timeout(500)

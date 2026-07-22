@@ -51,3 +51,10 @@ def test_product_smoke_covers_temporary_project_studio_scaffold_and_preview():
     assert "studio-scaffold-prompt" in E2E
     assert "Scaffolded web project" in E2E
     assert "#studio-sidebar" in E2E
+
+
+def test_product_smoke_covers_studio_edit_save_checkpoint_and_history():
+    assert 'functional-save-marker' in E2E
+    assert 'await studioSaveFile()' in E2E
+    assert 'await studioCommit()' in E2E
+    assert '/api/preview/history?path=' in E2E
