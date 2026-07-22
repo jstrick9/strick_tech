@@ -75,3 +75,9 @@ def test_product_smoke_exercises_swarm_recovery_state():
 def test_product_smoke_verifies_auto_appearance_survives_reload():
     assert "page.reload(wait_until='domcontentloaded')" in E2E
     assert "document.documentElement.getAttribute('data-theme-preference')" in E2E
+
+
+def test_product_smoke_covers_chat_connection_recovery_destination():
+    assert '#chat-connection-status' in E2E
+    assert "page.get_by_text('Connect AI', exact=True)" in E2E
+    assert "#pane-settings.active" in E2E
