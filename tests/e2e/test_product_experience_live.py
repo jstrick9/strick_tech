@@ -238,6 +238,20 @@ def run_product_experience_smoke() -> None:
             page.locator('#am-delete-btn').click()
             page.locator('#gm-btns').get_by_text('Delete', exact=True).click()
             page.wait_for_function("!document.querySelector('#agent-modal') || document.querySelector('#agent-modal').style.display === 'none'", timeout=5000)
+            # Pipeline UI: template → staged SSE run → final completion → history.
+            page.evaluate("window.nav('pipeline')")
+            page.wait_for_selector('#pipe-goal', timeout=5000)
+            # Use an explicit goal here; the separate History button is also a
+            # ghost button and must never be mistaken for a template action.
+            page.locator('#pipe-goal').fill('Create a concise product brief')
+            page.locator('#pipe-run-btn').click()
+            page.wait_for_function("document.querySelector('#pipe-run-btn')?.disabled === false", timeout=15000)
+            assert 'Complete' in page.locator('#pipe-status').inner_text() or 'Done' in page.locator('#pipe-status').inner_text()
+            assert page.locator('#pipe-card-goal').count() == 1
+            page.get_by_text('📋 History', exact=True).click()
+            page.wait_for_selector('#gmodal', state='visible')
+            page.locator('#gm-btns').get_by_text('OK', exact=True).click()
+
             # Browser Agent must leave a usable result or recovery state and
             # always restore its Run control after execution completes.
             page.evaluate("window.nav('browser')")
@@ -248,6 +262,11 @@ def run_product_experience_smoke() -> None:
             page.locator('#ba-run-btn').click()
             page.wait_for_function("document.querySelector('#ba-run-btn')?.disabled === false", timeout=15000)
             assert page.locator('#ba-result').inner_text().strip()
+            page.locator('#pane-browser').get_by_text('📋 History', exact=True).click()
+            page.wait_for_selector('text=Browser Session History')
+            page.locator('button').filter(has_text='✕').last.click()
+            page.get_by_text('🖼 Screenshots', exact=True).click()
+            page.wait_for_timeout(250)
             assert not errors, f'Console errors during product interactions: {errors}'
             browser.close()
             print('✅ Product experience smoke passed cleanly.')
