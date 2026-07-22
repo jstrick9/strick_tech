@@ -52,7 +52,7 @@ def run_product_experience_smoke() -> None:
             page = context.new_page()
             page.add_init_script("""
               localStorage.setItem('agentic_os_onboarded', 'true');
-              localStorage.setItem('agentic_os_theme', 'light');
+              if (!localStorage.getItem('agentic_os_theme')) localStorage.setItem('agentic_os_theme', 'light');
               localStorage.removeItem('agentic_os_launchpad_hidden');
             """)
             page.on('console', lambda message: errors.append(f'{message.text} @ {message.location}') if message.type == 'error' else None)
@@ -85,6 +85,11 @@ def run_product_experience_smoke() -> None:
             # Auto appearance follows the OS and preserves the user's Auto preference.
             page.emulate_media(color_scheme='dark')
             page.evaluate("window.applyTheme('auto')")
+            assert page.evaluate("document.documentElement.getAttribute('data-theme-preference')") == 'auto'
+            assert page.evaluate("document.documentElement.getAttribute('data-theme')") == 'dark'
+            page.wait_for_timeout(300)
+            page.reload(wait_until='domcontentloaded')
+            time.sleep(1.2)
             assert page.evaluate("document.documentElement.getAttribute('data-theme-preference')") == 'auto'
             assert page.evaluate("document.documentElement.getAttribute('data-theme')") == 'dark'
 

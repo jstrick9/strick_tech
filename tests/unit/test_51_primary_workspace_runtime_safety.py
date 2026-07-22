@@ -70,3 +70,8 @@ def test_product_smoke_exercises_swarm_recovery_state():
     assert "Give one practical productivity tip." in E2E
     assert "#sw-run-btn" in E2E
     assert "Connect AI" in E2E
+
+
+def test_product_smoke_verifies_auto_appearance_survives_reload():
+    assert "page.reload(wait_until='domcontentloaded')" in E2E
+    assert "document.documentElement.getAttribute('data-theme-preference')" in E2E
