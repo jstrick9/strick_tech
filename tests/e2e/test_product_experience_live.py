@@ -141,6 +141,17 @@ def run_product_experience_smoke() -> None:
             assert project_card.get_by_text('Active', exact=True).is_visible()
             preview_response = page.evaluate("async () => (await fetch('/preview/index.html')).status")
             assert preview_response == 200
+
+            # Creator lifecycle runs in the temporary project: scaffold, wait
+            # for Studio feedback, and verify the preview remains available.
+            page.evaluate("window.nav('studio')")
+            page.wait_for_selector('#pane-studio.active .monaco-editor', timeout=7000)
+            page.locator('#studio-scaffold-prompt').fill('A simple product landing page for functional testing')
+            page.locator('#studio-sidebar').get_by_text('⚡ Scaffold', exact=True).click()
+            page.get_by_text('Scaffolded web project', exact=False).wait_for(state='visible', timeout=7000)
+            assert page.evaluate("async () => (await fetch('/preview/index.html')).status") == 200
+
+            page.evaluate("window.nav('workspaces')")
             page.locator(f'button[data-workspace-id="{original_workspace["id"]}"]').filter(has_text='Switch →').click()
             page.wait_for_timeout(500)
             project_card.locator('button[onclick^="deleteWorkspace"]').click()
