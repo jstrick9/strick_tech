@@ -45,3 +45,9 @@ def test_product_smoke_covers_memory_create_search_and_delete():
 def test_new_workspace_activation_keeps_a_live_preview_available():
     assert 'def _ensure_preview_index(directory: Path)' in (ROOT / 'backend' / 'routers' / 'workspaces.py').read_text(encoding='utf-8')
     assert 'Open Studio to start creating.' in (ROOT / 'backend' / 'routers' / 'workspaces.py').read_text(encoding='utf-8')
+
+
+def test_product_smoke_covers_temporary_project_studio_scaffold_and_preview():
+    assert "studio-scaffold-prompt" in E2E
+    assert "Scaffolded web project" in E2E
+    assert "#studio-sidebar" in E2E
