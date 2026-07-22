@@ -219,6 +219,25 @@ def run_product_experience_smoke() -> None:
             assert 'Connect AI' in page.locator('#sw-status').inner_text()
             assert page.locator('#sw-winner-box').is_visible()
             assert 'Connect AI' in page.locator('#sw-winner-box').inner_text()
+
+            # Agent lifecycle: create a specialist through the visible modal,
+            # load it into the runtime list, then remove it through edit/delete.
+            agent_name = f'Functional Agent {int(time.time())}'
+            page.evaluate('openAgentModal()')
+            page.locator('#am-name').fill(agent_name)
+            page.locator('#am-role').fill('Functional test specialist')
+            page.locator('#am-system').fill('Be concise and helpful.')
+            page.locator('#am-save-btn').click()
+            page.wait_for_function("!document.querySelector('#agent-modal') || document.querySelector('#agent-modal').style.display === 'none'", timeout=5000)
+            agent_id = page.evaluate("""async (name) => {
+              const agents = await (await fetch('/api/agents')).json();
+              return (Array.isArray(agents) ? agents : agents.agents).find(a => a.name === name)?.id || '';
+            }""", agent_name)
+            assert agent_id
+            page.evaluate('id => openAgentModal(id)', agent_id)
+            page.locator('#am-delete-btn').click()
+            page.locator('#gm-btns').get_by_text('Delete', exact=True).click()
+            page.wait_for_function("!document.querySelector('#agent-modal') || document.querySelector('#agent-modal').style.display === 'none'", timeout=5000)
             assert not errors, f'Console errors during product interactions: {errors}'
             browser.close()
             print('✅ Product experience smoke passed cleanly.')

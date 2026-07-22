@@ -98,3 +98,10 @@ def test_product_smoke_sweeps_all_settings_workstation_tabs():
     for tab in ('appearance', 'layout', 'agents', 'ollama', 'system'):
         assert f"'{tab}'" in E2E
     assert "#settings-tab-{tab}.active" in E2E
+
+
+def test_product_smoke_covers_agent_create_and_delete_lifecycle():
+    assert 'Functional Agent' in E2E
+    assert "page.evaluate('openAgentModal()')" in E2E
+    assert '#am-save-btn' in E2E
+    assert '#am-delete-btn' in E2E
