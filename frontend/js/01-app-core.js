@@ -1302,16 +1302,30 @@ async function runSwarm() {
       }
     });
 
-    if (j.winner || j.merged) {
+    const hasOutcome = Boolean(j.winner || j.merged);
+    const winnerBox = document.getElementById('sw-winner-box');
+    const winnerActions = winnerBox?.querySelectorAll('button');
+    if (hasOutcome) {
       swarmLastWinner = j.merged || j.winner_output || '';
-      document.getElementById('sw-winner-box').style.display = 'block';
+      winnerBox.style.display = 'block';
+      winnerActions?.forEach(button => { button.style.display = ''; });
       document.getElementById('sw-winner-title').textContent =
         j.merged ? '🔀 Merged Output' : `🏆 ${j.winner} — winner`;
       document.getElementById('sw-winner-reason').textContent = j.judge_reason || '';
       document.getElementById('sw-winner-body').innerHTML = renderMarkdown(swarmLastWinner);
+      statusEl.innerHTML = `✓ Done in ${j.total_latency_ms}ms · ${j.total_tokens} tokens · winner: <strong>${j.winner}</strong>`;
+    } else {
+      // A clean API response without a winner normally means no usable model
+      // was connected. Never present that as a successful completed swarm.
+      swarmLastWinner = '';
+      winnerBox.style.display = 'block';
+      winnerActions?.forEach(button => { button.style.display = 'none'; });
+      document.getElementById('sw-winner-title').textContent = '⚠️ Connect AI to run a swarm';
+      document.getElementById('sw-winner-reason').textContent = 'No AI connection returned a usable response.';
+      document.getElementById('sw-winner-body').innerHTML =
+        `<div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="nav('settings');switchSettingsTab('api')" class="btn btn-primary btn-sm">Connect AI</button><button onclick="testOllamaConnection?.()" class="btn btn-ghost btn-sm">Use Local AI</button></div>`;
+      statusEl.textContent = '⚠️ Connect AI, then run the swarm again.';
     }
-
-    statusEl.innerHTML = `✓ Done in ${j.total_latency_ms}ms · ${j.total_tokens} tokens · winner: <strong>${j.winner||'—'}</strong>`;
   } catch(e) {
     statusEl.textContent = '✗ ' + e.message;
     toast('Swarm error: ' + e.message,'err');

@@ -58,3 +58,15 @@ def test_product_smoke_covers_studio_edit_save_checkpoint_and_history():
     assert 'await studioSaveFile()' in E2E
     assert 'await studioCommit()' in E2E
     assert '/api/preview/history?path=' in E2E
+
+
+def test_swarm_without_a_model_offers_recovery_instead_of_false_success():
+    assert "const hasOutcome = Boolean(j.winner || j.merged);" in CORE
+    assert "Connect AI to run a swarm" in CORE
+    assert "⚠️ Connect AI, then run the swarm again." in CORE
+
+
+def test_product_smoke_exercises_swarm_recovery_state():
+    assert "Give one practical productivity tip." in E2E
+    assert "#sw-run-btn" in E2E
+    assert "Connect AI" in E2E

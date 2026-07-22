@@ -187,6 +187,17 @@ def run_product_experience_smoke() -> None:
             memory_card.locator('.gx-delete-memory').click()
             page.locator('#gm-btns').get_by_text('Delete', exact=True).click()
             page.wait_for_timeout(400)
+
+            # Swarm execution must render a completed result rather than leave
+            # users with a disabled control or an opaque failure.
+            page.evaluate("window.nav('swarm')")
+            page.wait_for_selector('#sw-agent-grid input:checked', timeout=5000)
+            page.locator('#sw-prompt').fill('Give one practical productivity tip.')
+            page.locator('#sw-run-btn').click()
+            page.wait_for_function("document.querySelector('#sw-run-btn')?.disabled === false", timeout=15000)
+            assert 'Connect AI' in page.locator('#sw-status').inner_text()
+            assert page.locator('#sw-winner-box').is_visible()
+            assert 'Connect AI' in page.locator('#sw-winner-box').inner_text()
             assert not errors, f'Console errors during product interactions: {errors}'
             browser.close()
             print('✅ Product experience smoke passed cleanly.')
