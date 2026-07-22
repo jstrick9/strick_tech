@@ -81,3 +81,14 @@ def test_product_smoke_covers_chat_connection_recovery_destination():
     assert '#chat-connection-status' in E2E
     assert "page.get_by_text('Connect AI', exact=True)" in E2E
     assert "#pane-settings.active" in E2E
+
+
+def test_settings_content_column_cannot_collapse_and_overlap_connection_choices():
+    css = (ROOT / 'frontend' / 'styles.css').read_text(encoding='utf-8')
+    assert '.settings-content-area { flex:1 1 auto !important; min-width:0;' in css
+    assert '.settings-tab-pane { width:100%; }' in css
+
+
+def test_product_smoke_clicks_local_connection_path_and_observes_status():
+    assert ".connection-path').filter(has_text='Use AI on this Mac')" in E2E
+    assert '#settings-api-ollama-status' in E2E

@@ -77,6 +77,10 @@ def run_product_experience_smoke() -> None:
             page.locator('#chat-connection-status').click()
             page.wait_for_selector('#pane-settings.active', timeout=4000)
             assert page.get_by_text('Connect AI', exact=True).count() >= 1
+            page.locator('.connection-path').filter(has_text='Use AI on this Mac').click()
+            page.wait_for_function("['ONLINE', 'OFFLINE', 'ERROR'].some(state => document.querySelector('#settings-api-ollama-status')?.textContent.includes(state))", timeout=7000)
+            local_status = page.locator('#settings-api-ollama-status').inner_text()
+            assert any(state in local_status for state in ('ONLINE', 'OFFLINE', 'ERROR'))
             page.evaluate("window.nav('chat'); window.startNewChatSession()")
 
             # An ordinary user can choose an outcome and edit the suggested prompt.

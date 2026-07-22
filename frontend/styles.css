@@ -3896,8 +3896,14 @@ body.theme-high-contrast a {
 .connection-quickstart-kicker { color:var(--accent); font-size:11px; font-weight:800; letter-spacing:.12em; margin:0 0 5px; }
 .connection-quickstart h3 { color:var(--text-0); font-size:18px; margin:0; }
 .connection-quickstart > div > p:last-child { color:var(--text-2); font-size:13px; margin:6px 0 16px; }
-.connection-paths { display:grid; gap:10px; grid-template-columns:repeat(3, minmax(0, 1fr)); }
-.connection-path { align-items:flex-start; background:var(--bg-1); border:1px solid var(--border); border-radius:12px; color:var(--text-0); cursor:pointer; display:flex; flex-direction:column; gap:4px; min-height:110px; padding:14px; text-align:left; }
+.connection-paths { display:grid; gap:10px; grid-template-columns:repeat(3, minmax(0, 1fr)); width:100%; }
+.connection-path { align-items:flex-start; background:var(--bg-1); border:1px solid var(--border); border-radius:12px; color:var(--text-0); cursor:pointer; display:flex; flex-direction:column; gap:4px; height:auto; justify-content:flex-start; min-height:110px; min-width:0; padding:14px; text-align:left; white-space:normal; width:100%; }
 .connection-path:hover { border-color:var(--accent); box-shadow:0 10px 22px var(--accent-glow); }
 .connection-path > span { font-size:20px; }.connection-path strong { font-size:13px; }.connection-path small { color:var(--text-2); font-size:11.5px; line-height:1.35; }
 @media (max-width:760px) { .connection-paths { grid-template-columns:1fr; } }
+
+/* Settings must use the remaining workstation width; an auto-sized flex basis
+   could collapse the content column to its padding and overlap setup choices. */
+.settings-content-area { flex:1 1 auto !important; min-width:0; width:calc(100% - 260px) !important; }
+.settings-tab-pane { width:100%; }
+@media (max-width:760px) { .settings-content-area { width:100% !important; } }
