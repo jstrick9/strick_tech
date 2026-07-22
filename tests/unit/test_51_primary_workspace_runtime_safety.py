@@ -28,3 +28,15 @@ def test_workspace_actions_use_dataset_values_not_breakable_json_inline_handlers
     assert 'activateWorkspace(this.dataset.workspaceId, this.dataset.workspaceName)' in CORE
     assert 'deleteWorkspace(this.dataset.workspaceId, this.dataset.workspaceName)' in CORE
     assert 'activateWorkspace(${JSON.stringify(w.id)}' not in CORE
+
+
+def test_memory_search_actions_bind_listeners_instead_of_inline_json_handlers():
+    assert "el.querySelectorAll('.gx-delete-memory')" in CORE
+    assert "deleteGxNode(button.dataset.memoryId)" in CORE
+    assert "deleteGxNode(${JSON.stringify(m.id)})" not in CORE
+
+
+def test_product_smoke_covers_memory_create_search_and_delete():
+    assert "Functional memory" in E2E
+    assert "#gx-ingest-text" in E2E
+    assert ".gx-delete-memory" in E2E

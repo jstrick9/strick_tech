@@ -1502,10 +1502,17 @@ async function doGxSearch() {
         <div class="gx-hit-source">${escHtml(m.source||'')}${m.tags?' · '+escHtml(m.tags):''} · mem #${m.id}</div>
         <div class="gx-hit-text">${escHtml((m.content||'').slice(0,150))}</div>
         <div style="margin-top:4px;display:flex;gap:4px">
-          <button onclick="insertCmd('Tell me about: '+${JSON.stringify((m.content||'').slice(0,60))});nav('chat')" class="btn btn-ghost btn-sm" style="font-size:10px">💬 Chat</button>
-          <button onclick="deleteGxNode(${JSON.stringify(m.id)})" class="btn btn-ghost btn-sm" style="font-size:10px;color:var(--danger)">🗑</button>
+          <button data-memory-content="${escHtml((m.content||'').slice(0,60))}" class="btn btn-ghost btn-sm gx-chat-memory" style="font-size:10px">💬 Chat</button>
+          <button data-memory-id="${escHtml(String(m.id))}" class="btn btn-ghost btn-sm gx-delete-memory" style="font-size:10px;color:var(--danger)">🗑</button>
         </div>
       </div>`).join('');
+    el.querySelectorAll('.gx-chat-memory').forEach(button => button.addEventListener('click', () => {
+      insertCmd('Tell me about: ' + (button.dataset.memoryContent || ''));
+      nav('chat');
+    }));
+    el.querySelectorAll('.gx-delete-memory').forEach(button => button.addEventListener('click', () => {
+      deleteGxNode(button.dataset.memoryId);
+    }));
   } catch(e) {
     el.innerHTML = `<div style="color:var(--danger);font-size:12px;padding:12px">Error: ${e?.message||String(e)}</div>`;
   }
