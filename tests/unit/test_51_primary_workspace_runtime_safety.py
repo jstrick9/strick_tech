@@ -92,3 +92,9 @@ def test_settings_content_column_cannot_collapse_and_overlap_connection_choices(
 def test_product_smoke_clicks_local_connection_path_and_observes_status():
     assert ".connection-path').filter(has_text='Use AI on this Mac')" in E2E
     assert '#settings-api-ollama-status' in E2E
+
+
+def test_product_smoke_sweeps_all_settings_workstation_tabs():
+    for tab in ('appearance', 'layout', 'agents', 'ollama', 'system'):
+        assert f"'{tab}'" in E2E
+    assert "#settings-tab-{tab}.active" in E2E
