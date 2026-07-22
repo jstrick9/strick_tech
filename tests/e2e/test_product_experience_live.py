@@ -93,6 +93,13 @@ def run_product_experience_smoke() -> None:
             page.evaluate("window.nav('studio')")
             page.wait_for_selector('#pane-studio.active .monaco-editor', timeout=7000)
             assert page.locator('#pane-studio.active .monaco-editor').count() == 1
+
+            # Sweep the primary workspaces. Navigation itself must not create
+            # hidden runtime failures as scripts and data visualizations load.
+            for pane in ('templates', 'swarm', 'galaxy', 'hierarchy', 'kanban', 'settings', 'builder'):
+                page.evaluate(f"window.nav('{pane}')")
+                page.wait_for_selector(f'#pane-{pane}.active', timeout=4000)
+                time.sleep(0.35)
             assert not errors, f'Console errors during product interactions: {errors}'
             browser.close()
             print('✅ Product experience smoke passed cleanly.')

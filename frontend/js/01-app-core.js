@@ -1353,15 +1353,38 @@ async function loadSwarmHistory() {
 
 // ── Galaxy ────────────────────────────────────────────────────────
 let gxGraph = null, gxInited = false;
+async function loadGalaxyLibrary(src) {
+  // Monaco installs a global AMD `define`. The 3D libraries are browser UMD
+  // bundles; when they see that AMD loader they issue an anonymous define call
+  // and fail instead of exposing their browser global. Load them explicitly as
+  // browser scripts, then restore Monaco immediately.
+  const amdDefine = window.define;
+  const amdRequire = window.require;
+  try {
+    window.define = undefined;
+    window.require = undefined;
+    await loadScript(src);
+  } finally {
+    window.define = amdDefine;
+    window.require = amdRequire;
+  }
+}
+
 async function initGalaxy() {
   if (gxInited) { refreshGalaxy(); gxLoadStats(); return; }
   gxInited = true;
-  // load 3D force graph
-  await loadScript('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js');
-  await loadScript('https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.0/dist/3d-force-graph.min.js');
-  setupGxGraph();
-  refreshGalaxy();
-  gxLoadStats();
+  try {
+    await loadGalaxyLibrary('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js');
+    await loadGalaxyLibrary('https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.0/dist/3d-force-graph.min.js');
+    setupGxGraph();
+    refreshGalaxy();
+    gxLoadStats();
+  } catch (error) {
+    gxInited = false;
+    console.warn('Memory Galaxy could not initialize:', error);
+    const stats = document.getElementById('gx-stats');
+    if (stats) stats.textContent = 'Visualization unavailable — your saved memories are still available.';
+  }
 }
 
 function setupGxGraph() {
