@@ -100,6 +100,30 @@ def run_product_experience_smoke() -> None:
                 page.evaluate(f"window.nav('{pane}')")
                 page.wait_for_selector(f'#pane-{pane}.active', timeout=4000)
                 time.sleep(0.35)
+
+            # Kanban is a complete core lifecycle: create through the UI, move
+            # through the persisted API, render its new state, then clean up.
+            task_title = f'Functional browser task {int(time.time())}'
+            page.evaluate("window.nav('kanban')")
+            page.locator('#pane-kanban button').filter(has_text='＋ Task').click()
+            page.locator('#gm-input').fill(task_title)
+            page.locator('#gm-btns').get_by_text('OK', exact=True).click()
+            page.wait_for_selector('#gm-input', state='visible')
+            page.locator('#gm-input').fill('builder')
+            page.locator('#gm-btns').get_by_text('OK', exact=True).click()
+            task_card = page.get_by_text(task_title, exact=True)
+            task_card.wait_for(state='visible', timeout=5000)
+            task_id = task_card.locator('xpath=ancestor::div[contains(@class, "kb-card")]').get_attribute('data-id')
+            assert task_id
+            page.evaluate("""async (id) => {
+                await fetch('/api/tasks/' + encodeURIComponent(id), {
+                  method: 'PATCH', headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({status: 'doing'})
+                });
+                await window.renderKanban();
+              }""", task_id)
+            assert page.locator('#kbcol-doing').get_by_text(task_title, exact=True).is_visible()
+            page.evaluate("id => fetch('/api/tasks/' + encodeURIComponent(id), {method: 'DELETE'})", task_id)
             assert not errors, f'Console errors during product interactions: {errors}'
             browser.close()
             print('✅ Product experience smoke passed cleanly.')
