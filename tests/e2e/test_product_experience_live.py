@@ -70,6 +70,15 @@ def run_product_experience_smoke() -> None:
             for outcome in ('Ask a question', 'Research a topic', 'Make a plan', 'Create something'):
                 assert page.get_by_text(outcome, exact=True).count() == 1
 
+            # Connection state must lead to a useful recovery destination instead
+            # of leaving users with technical errors in the Chat composer.
+            page.wait_for_function("document.querySelector('#chat-connection-status')?.textContent !== 'Checking AI…'", timeout=5000)
+            assert page.locator('#chat-connection-status').inner_text().strip()
+            page.locator('#chat-connection-status').click()
+            page.wait_for_selector('#pane-settings.active', timeout=4000)
+            assert page.get_by_text('Connect AI', exact=True).count() >= 1
+            page.evaluate("window.nav('chat'); window.startNewChatSession()")
+
             # An ordinary user can choose an outcome and edit the suggested prompt.
             page.get_by_text('Research a topic', exact=True).click()
             assert page.locator('#chat-input').input_value().startswith('Help me research this topic:')
