@@ -22,3 +22,9 @@ def test_product_smoke_covers_kanban_create_move_and_cleanup_lifecycle():
     assert "Functional browser task" in E2E
     assert "page.locator('#kbcol-doing')" in E2E
     assert "method: 'DELETE'" in E2E
+
+
+def test_workspace_actions_use_dataset_values_not_breakable_json_inline_handlers():
+    assert 'activateWorkspace(this.dataset.workspaceId, this.dataset.workspaceName)' in CORE
+    assert 'deleteWorkspace(this.dataset.workspaceId, this.dataset.workspaceName)' in CORE
+    assert 'activateWorkspace(${JSON.stringify(w.id)}' not in CORE

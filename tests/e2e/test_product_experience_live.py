@@ -124,6 +124,21 @@ def run_product_experience_smoke() -> None:
               }""", task_id)
             assert page.locator('#kbcol-doing').get_by_text(task_title, exact=True).is_visible()
             page.evaluate("id => fetch('/api/tasks/' + encodeURIComponent(id), {method: 'DELETE'})", task_id)
+
+            # Projects are a core separation boundary: create and remove one
+            # entirely through the visible UI without disturbing the active project.
+            workspace_name = f'Functional project {int(time.time())}'
+            page.evaluate("window.nav('workspaces')")
+            page.get_by_text('＋ New Project', exact=True).click()
+            page.locator('#gm-input').fill(workspace_name)
+            page.locator('#gm-btns').get_by_text('OK', exact=True).click()
+            project_label = page.get_by_text(workspace_name, exact=True)
+            project_label.wait_for(state='visible', timeout=5000)
+            project_card = page.locator('.card').filter(has_text=workspace_name).first
+            project_card.locator('button[onclick^="deleteWorkspace"]').click()
+            page.locator('#gm-btns').get_by_text('Delete', exact=True).click()
+            page.wait_for_timeout(400)
+            assert page.get_by_text(workspace_name, exact=True).count() == 0
             assert not errors, f'Console errors during product interactions: {errors}'
             browser.close()
             print('✅ Product experience smoke passed cleanly.')

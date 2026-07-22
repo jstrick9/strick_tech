@@ -9365,9 +9365,9 @@ async function renderWorkspaces() {
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             ${w.is_current
               ?`<button onclick="exportCurrentZip()" class="btn btn-ghost btn-sm">📦 Export</button>`
-              :`<button onclick="activateWorkspace(${JSON.stringify(w.id)},${JSON.stringify(w.name)})" class="btn btn-primary btn-sm">Switch →</button>
-                <button onclick="exportWorkspace(${JSON.stringify(w.id)})" class="btn btn-ghost btn-sm">📦</button>
-                <button onclick="deleteWorkspace(${JSON.stringify(w.id)},${JSON.stringify(w.name)})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">🗑</button>`}
+              :`<button data-workspace-id="${escHtml(w.id)}" data-workspace-name="${escHtml(w.name)}" onclick="activateWorkspace(this.dataset.workspaceId, this.dataset.workspaceName)" class="btn btn-primary btn-sm">Switch →</button>
+                <button data-workspace-id="${escHtml(w.id)}" onclick="exportWorkspace(this.dataset.workspaceId)" class="btn btn-ghost btn-sm">📦</button>
+                <button data-workspace-id="${escHtml(w.id)}" data-workspace-name="${escHtml(w.name)}" onclick="deleteWorkspace(this.dataset.workspaceId, this.dataset.workspaceName)" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">🗑</button>`}
           </div>
         </div>`).join('')}
         <div class="card card-interactive" onclick="createNewWorkspace()" style="display:flex;align-items:center;justify-content:center;min-height:120px;border-style:dashed;cursor:pointer">
