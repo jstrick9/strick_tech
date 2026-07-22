@@ -105,3 +105,9 @@ def test_product_smoke_covers_agent_create_and_delete_lifecycle():
     assert "page.evaluate('openAgentModal()')" in E2E
     assert '#am-save-btn' in E2E
     assert '#am-delete-btn' in E2E
+
+
+def test_product_smoke_covers_browser_agent_run_and_recovery_completion():
+    assert "window.nav('browser')" in E2E
+    assert '#ba-run-btn' in E2E
+    assert "https://example.com" in E2E
