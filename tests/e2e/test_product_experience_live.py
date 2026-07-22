@@ -81,6 +81,9 @@ def run_product_experience_smoke() -> None:
             page.wait_for_function("['ONLINE', 'OFFLINE', 'ERROR'].some(state => document.querySelector('#settings-api-ollama-status')?.textContent.includes(state))", timeout=7000)
             local_status = page.locator('#settings-api-ollama-status').inner_text()
             assert any(state in local_status for state in ('ONLINE', 'OFFLINE', 'ERROR'))
+            for tab in ('appearance', 'layout', 'agents', 'ollama', 'system'):
+                page.evaluate(f"window.switchSettingsTab('{tab}')")
+                assert page.locator(f'#settings-tab-{tab}.active').count() == 1
             page.evaluate("window.nav('chat'); window.startNewChatSession()")
 
             # An ordinary user can choose an outcome and edit the suggested prompt.
