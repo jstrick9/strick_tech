@@ -24,3 +24,8 @@ def test_launchpad_is_responsive_and_uses_design_tokens():
     assert '.mission-launchpad {' in CSS
     assert 'var(--bg-1)' in CSS
     assert '@media (max-width:640px)' in CSS
+
+
+def test_outcome_launchpad_survives_new_chat_and_history_clears():
+    assert "let chatEmptyTemplate = document.querySelector('#chat-messages #chat-empty')?.cloneNode(true) || null;" in CORE
+    assert 'emptyEl = chatEmptyTemplate.cloneNode(true);' in CORE

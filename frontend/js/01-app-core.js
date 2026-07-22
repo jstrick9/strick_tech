@@ -504,19 +504,29 @@ function toggleStream() {
   document.getElementById('stream-btn').classList.toggle('active', S.useStream);
 }
 
+// Keep the rich empty-state experience after clearing or loading a session.
+// `innerHTML = ''` previously discarded the launchpad and rebuilt only a bare
+// message, making a new chat less useful than the first one.
+let chatEmptyTemplate = document.querySelector('#chat-messages #chat-empty')?.cloneNode(true) || null;
 function ensureChatEmpty() {
   const msgsContainer = document.getElementById('chat-messages');
   if (!msgsContainer) return null;
   let emptyEl = document.getElementById('chat-empty');
   if (!emptyEl) {
-    emptyEl = document.createElement('div');
-    emptyEl.id = 'chat-empty';
-    emptyEl.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:40px 20px';
-    emptyEl.innerHTML = `
-      <div class="neural-orb-3d" style="width:48px;height:48px;margin-bottom:12px"></div>
-      <h3 style="font-size:22px;font-weight:900;letter-spacing:-0.4px">Agentic OS — Mission Control</h3>
-      <p style="color:var(--text-1);font-size:13.5px">Your local-first AI operating system. Chat with any agent, run the swarm, build apps, search memory.</p>
-    `;
+    if (!chatEmptyTemplate) {
+      // Capture the authored, outcome-first launchpad before it is removed.
+      const authored = document.querySelector('#chat-messages #chat-empty');
+      if (authored) chatEmptyTemplate = authored.cloneNode(true);
+    }
+    if (chatEmptyTemplate) {
+      emptyEl = chatEmptyTemplate.cloneNode(true);
+      emptyEl.id = 'chat-empty';
+    } else {
+      emptyEl = document.createElement('div');
+      emptyEl.id = 'chat-empty';
+      emptyEl.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:40px 20px';
+      emptyEl.innerHTML = '<div class="neural-orb-3d" style="width:48px;height:48px;margin-bottom:12px"></div><h3>Mission Control</h3><p>Start a conversation when you are ready.</p>';
+    }
   }
   return emptyEl;
 }
