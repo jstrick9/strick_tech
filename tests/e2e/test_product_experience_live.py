@@ -55,7 +55,7 @@ def run_product_experience_smoke() -> None:
               localStorage.setItem('agentic_os_theme', 'light');
               localStorage.removeItem('agentic_os_launchpad_hidden');
             """)
-            page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
+            page.on('console', lambda message: errors.append(f'{message.text} @ {message.location}') if message.type == 'error' else None)
             page.on('pageerror', lambda error: errors.append(f'UNHANDLED: {error}'))
             page.goto('http://localhost:8787/', wait_until='domcontentloaded')
             time.sleep(1.5)
@@ -129,12 +129,20 @@ def run_product_experience_smoke() -> None:
             # entirely through the visible UI without disturbing the active project.
             workspace_name = f'Functional project {int(time.time())}'
             page.evaluate("window.nav('workspaces')")
+            original_workspace = page.evaluate("async () => (await fetch('/api/workspaces/current')).json()")
             page.get_by_text('＋ New Project', exact=True).click()
             page.locator('#gm-input').fill(workspace_name)
             page.locator('#gm-btns').get_by_text('OK', exact=True).click()
             project_label = page.get_by_text(workspace_name, exact=True)
             project_label.wait_for(state='visible', timeout=5000)
             project_card = page.locator('.card').filter(has_text=workspace_name).first
+            project_card.get_by_text('Switch →', exact=True).click()
+            page.wait_for_timeout(500)
+            assert project_card.get_by_text('Active', exact=True).is_visible()
+            preview_response = page.evaluate("async () => (await fetch('/preview/index.html')).status")
+            assert preview_response == 200
+            page.locator(f'button[data-workspace-id="{original_workspace["id"]}"]').filter(has_text='Switch →').click()
+            page.wait_for_timeout(500)
             project_card.locator('button[onclick^="deleteWorkspace"]').click()
             page.locator('#gm-btns').get_by_text('Delete', exact=True).click()
             page.wait_for_timeout(400)

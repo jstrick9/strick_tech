@@ -82,9 +82,22 @@ def _current_ws_id() -> str:
     return row['id'] if row else ''
 
 
+def _ensure_preview_index(directory: Path) -> None:
+    """Every workspace needs a valid preview target, even before its first edit."""
+    index = directory / 'index.html'
+    if not index.exists():
+        index.write_text(
+            '<!DOCTYPE html><html><head><meta charset="utf-8"><title>New Project</title></head>'
+            '<body style="font-family:system-ui,sans-serif;padding:32px;color:#334155">'
+            '<h2>Your new project is ready</h2><p>Open Studio to start creating.</p></body></html>',
+            encoding='utf-8',
+        )
+
+
 def _ws_preview_dir(ws_id: str) -> Path:
     d = WS_DIR / ws_id / 'preview'
     d.mkdir(parents=True, exist_ok=True)
+    _ensure_preview_index(d)
     return d
 
 
