@@ -29,3 +29,10 @@ def test_license_status_reports_active_trial_truthfully(monkeypatch):
     assert data['is_trial'] is True
     assert data['trial_expired'] is False
     assert data['all_features'] is True
+
+
+def test_csp_allows_monaco_editor_workers_without_opening_script_origins():
+    from backend.app import SECURITY_HEADERS
+    csp = SECURITY_HEADERS['Content-Security-Policy']
+    assert "worker-src 'self' blob:" in csp
+    assert "script-src 'self'" in csp

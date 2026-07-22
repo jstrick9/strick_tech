@@ -87,6 +87,12 @@ def run_product_experience_smoke() -> None:
             page.evaluate("window.applyTheme('auto')")
             assert page.evaluate("document.documentElement.getAttribute('data-theme-preference')") == 'auto'
             assert page.evaluate("document.documentElement.getAttribute('data-theme')") == 'dark'
+
+            # Studio is a primary creator workflow: its editor must initialize
+            # without CSP worker failures or a blank editor.
+            page.evaluate("window.nav('studio')")
+            page.wait_for_selector('#pane-studio.active .monaco-editor', timeout=7000)
+            assert page.locator('#pane-studio.active .monaco-editor').count() == 1
             assert not errors, f'Console errors during product interactions: {errors}'
             browser.close()
             print('✅ Product experience smoke passed cleanly.')

@@ -288,6 +288,7 @@ SECURITY_HEADERS = {
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; "
         "img-src 'self' data: blob: https:; "
         "connect-src 'self' ws: wss: http: https:; "
+        "worker-src 'self' blob:; "
         "frame-src 'self' blob: data:; "
     ),
 }
