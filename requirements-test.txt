@@ -1,0 +1,4 @@
+# Reproducible local and CI validation environment for Strick Tech Agentic OS.
+-r requirements.txt
+pytest>=8.0,<10.0
+playwright==1.49.0
