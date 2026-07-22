@@ -16,3 +16,9 @@ def test_galaxy_libraries_are_loaded_as_browser_globals_after_monaco():
 def test_primary_workspace_sweep_remains_in_live_product_smoke():
     for pane in ('templates', 'swarm', 'galaxy', 'hierarchy', 'kanban', 'settings', 'builder'):
         assert f"'{pane}'" in E2E
+
+
+def test_product_smoke_covers_kanban_create_move_and_cleanup_lifecycle():
+    assert "Functional browser task" in E2E
+    assert "page.locator('#kbcol-doing')" in E2E
+    assert "method: 'DELETE'" in E2E
