@@ -139,6 +139,22 @@ def run_product_experience_smoke() -> None:
             page.locator('#gm-btns').get_by_text('Delete', exact=True).click()
             page.wait_for_timeout(400)
             assert page.get_by_text(workspace_name, exact=True).count() == 0
+
+            # Memory lifecycle: create from the simple inline form, search the
+            # saved item, then delete it through the rendered result action.
+            memory_text = f'Functional memory {int(time.time())}'
+            page.evaluate("window.nav('galaxy')")
+            page.locator('#gx-ingest-text').fill(memory_text)
+            page.locator('#gx-ingest-tags').fill('functional,smoke')
+            page.locator('#galaxy-panel button').filter(has_text='+ Add').click()
+            page.locator('#gx-search').fill(memory_text)
+            page.locator('.galaxy-search-row button').click()
+            memory_result = page.get_by_text(memory_text, exact=True)
+            memory_result.wait_for(state='visible', timeout=5000)
+            memory_card = memory_result.locator('xpath=ancestor::div[contains(@class, "gx-hit")]')
+            memory_card.locator('.gx-delete-memory').click()
+            page.locator('#gm-btns').get_by_text('Delete', exact=True).click()
+            page.wait_for_timeout(400)
             assert not errors, f'Console errors during product interactions: {errors}'
             browser.close()
             print('✅ Product experience smoke passed cleanly.')
