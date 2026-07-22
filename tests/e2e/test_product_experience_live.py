@@ -238,6 +238,16 @@ def run_product_experience_smoke() -> None:
             page.locator('#am-delete-btn').click()
             page.locator('#gm-btns').get_by_text('Delete', exact=True).click()
             page.wait_for_function("!document.querySelector('#agent-modal') || document.querySelector('#agent-modal').style.display === 'none'", timeout=5000)
+            # Browser Agent must leave a usable result or recovery state and
+            # always restore its Run control after execution completes.
+            page.evaluate("window.nav('browser')")
+            page.wait_for_selector('#ba-run-btn', timeout=5000)
+            page.locator('#ba-task').fill('Find the page title.')
+            page.locator('#ba-url').fill('https://example.com')
+            page.locator('#ba-steps').fill('1')
+            page.locator('#ba-run-btn').click()
+            page.wait_for_function("document.querySelector('#ba-run-btn')?.disabled === false", timeout=15000)
+            assert page.locator('#ba-result').inner_text().strip()
             assert not errors, f'Console errors during product interactions: {errors}'
             browser.close()
             print('✅ Product experience smoke passed cleanly.')
