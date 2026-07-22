@@ -271,17 +271,19 @@ def license_status():
     return {
         'ok': True,
         'tier': eff_tier,
-        'stored_tier': 'enterprise',
-        'is_trial': False,
-        'trial_expired': False,
-        'trial_days_left': 36500,
-        'trial_end_date': None,
+        # Report the actual persisted state. A hard-coded enterprise response
+        # made the interface contradict the access map for real licenses.
+        'stored_tier': data.get('tier', 'trial'),
+        'is_trial': is_trial,
+        'trial_expired': trial_expired,
+        'trial_days_left': days_left,
+        'trial_end_date': data.get('trial_end') if is_trial else None,
         'user_name': data.get('user_name', 'Joshua Strickland'),
         'user_email': data.get('user_email', 'joshua@stricktech.com'),
         'org': data.get('org', 'Strick Tech'),
         'pane_access': pane_access,
         'features': TIER_FEATURES.get(eff_tier, ['*']),
-        'all_features': True,
+        'all_features': '*' in TIER_FEATURES.get(eff_tier, []),
     }
 
 
