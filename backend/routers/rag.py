@@ -88,13 +88,24 @@ def _ensure_schema():
 _ensure_schema()
 
 
+def _safe_rag_int(value, default: int, minimum: int, maximum: int) -> int:
+    """Parse and clamp user-controlled RAG configuration values."""
+    try:
+        return min(maximum, max(minimum, int(value)))
+    except (TypeError, ValueError):
+        return default
+
+
 def _retrieve_chunks(pipeline_id: str, query: str, k: int) -> list[dict]:
     """Internal retrieve — no fake Request needed."""
     from ..services.memory_db import get_conn
 
     con = get_conn()
     try:
-        fts_query = ' OR '.join(f'"{w}"' for w in query.split()[:10] if len(w) > 2)
+        # Only pass normalized terms into SQLite FTS syntax. This prevents
+        # punctuation/operator injection while preserving useful keywords.
+        terms = re.findall(r'[A-Za-z0-9_]{3,}', query or '')[:10]
+        fts_query = ' OR '.join(f'"{term}"' for term in terms)
         try:
             if not fts_query:
                 raise ValueError('empty fts_query')
@@ -105,12 +116,12 @@ def _retrieve_chunks(pipeline_id: str, query: str, k: int) -> list[dict]:
                 WHERE rag_chunks_fts MATCH ? AND c.pipeline_id=?
                 ORDER BY rank LIMIT ?
             """,
-                (fts_query, pipeline_id, min(k, 20)),
+                (fts_query, pipeline_id, _safe_rag_int(k, 5, 1, 20)),
             ).fetchall()
         except (sqlite3.Error, KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
             rows = con.execute(
                 'SELECT * FROM rag_chunks WHERE pipeline_id=? AND content LIKE ? LIMIT ?',
-                (pipeline_id, f'%{query[:100]}%', min(k, 20)),
+                (pipeline_id, f'%{query[:100]}%', _safe_rag_int(k, 5, 1, 20)),
             ).fetchall()
     finally:
         con.close()
@@ -180,21 +191,21 @@ async def create_pipeline(req: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
     pid = f'rag_{uuid.uuid4().hex[:8]}'
+    strategy = str(body.get('chunk_strategy', 'paragraph')).lower()
+    if strategy not in {'fixed', 'paragraph', 'sentence', 'semantic'}:
+        strategy = 'paragraph'
+    chunk_size = _safe_rag_int(body.get('chunk_size', 500), 500, 50, 10000)
+    chunk_overlap = _safe_rag_int(body.get('chunk_overlap', 50), 50, 0, chunk_size - 1)
+    retrieval_k = _safe_rag_int(body.get('retrieval_k', 5), 5, 1, 20)
+    name = str(body.get('name', 'RAG Pipeline'))[:200]
+    description = str(body.get('description', ''))[:2000]
     from ..services.memory_db import get_conn
 
     con = get_conn()
     try:
         con.execute(
             'INSERT INTO rag_pipelines(id,name,description,chunk_strategy,chunk_size,chunk_overlap,retrieval_k) VALUES (?,?,?,?,?,?,?)',
-            (
-                pid,
-                body.get('name', 'RAG Pipeline'),
-                body.get('description', ''),
-                body.get('chunk_strategy', 'paragraph'),
-                int(body.get('chunk_size', 500)),
-                int(body.get('chunk_overlap', 50)),
-                int(body.get('retrieval_k', 5)),
-            ),
+            (pid, name, description, strategy, chunk_size, chunk_overlap, retrieval_k),
         )
         con.commit()
     finally:
@@ -257,9 +268,9 @@ async def add_document(pipeline_id: str, req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    filename = body.get('filename', 'document.txt')
-    content = body.get('content', '')
-    if not content:
+    filename = str(body.get('filename', 'document.txt'))[:255]
+    content = str(body.get('content', ''))[:1_000_000]
+    if not content.strip():
         return {'ok': False, 'error': 'content required'}
 
     from ..services.memory_db import get_conn
@@ -333,10 +344,10 @@ async def retrieve(pipeline_id: str, req: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
     query = (body.get('query') or '').strip()
-    k = int(body.get('k', 5))
+    k = _safe_rag_int(body.get('k', 5), 5, 1, 20)
     if not query:
         return {'ok': False, 'error': 'query required'}
-    chunks = _retrieve_chunks(pipeline_id, query, k)
+    chunks = _retrieve_chunks(pipeline_id, query[:4000], k)
     return {'ok': True, 'query': query, 'chunks': chunks, 'count': len(chunks)}
 
 
@@ -348,13 +359,13 @@ async def rag_query(pipeline_id: str, req: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
     query = (body.get('query') or '').strip()
-    k = int(body.get('k', 5))
-    agent_id = body.get('agent_id', 'builder')
+    k = _safe_rag_int(body.get('k', 5), 5, 1, 20)
+    agent_id = str(body.get('agent_id', 'builder'))[:64]
     if not query:
         return {'ok': False, 'error': 'query required'}
 
     # Retrieve — call helper directly (no fake Request needed)
-    chunks = _retrieve_chunks(pipeline_id, query, k)
+    chunks = _retrieve_chunks(pipeline_id, query[:4000], k)
 
     if not chunks:
         return {
@@ -455,8 +466,14 @@ Return JSON: {{"relevancy": 0.0-1.0, "reason": "brief"}}"""
         with contextlib.suppress(Exception):
             rel_d = json.loads(m.group(0))
 
-    faithfulness = float(faith_d.get('faithfulness', 0.7))
-    relevancy = float(rel_d.get('relevancy', 0.7))
+    try:
+        faithfulness = min(1.0, max(0.0, float(faith_d.get('faithfulness', 0.7))))
+    except (TypeError, ValueError):
+        faithfulness = 0.7
+    try:
+        relevancy = min(1.0, max(0.0, float(rel_d.get('relevancy', 0.7))))
+    except (TypeError, ValueError):
+        relevancy = 0.7
     overall = round((faithfulness + relevancy) / 2 * 100)
 
     return {
