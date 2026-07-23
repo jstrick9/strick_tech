@@ -17,6 +17,7 @@ from __future__ import annotations
 import contextlib
 
 import ast
+import json
 import logging
 import re
 from pathlib import Path
