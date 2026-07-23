@@ -19,6 +19,8 @@ import hashlib
 import io
 import json
 import logging
+import re
+import shutil
 import zipfile
 from pathlib import Path
 
@@ -37,6 +39,34 @@ ASSETS_DIR = MKT_DIR / 'assets'
 MKT_DIR.mkdir(parents=True, exist_ok=True)
 PACKS_DIR.mkdir(parents=True, exist_ok=True)
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+MAX_EXTRACTED_BYTES = 25 * 1024 * 1024
+
+
+def _safe_extract_zip(zf: zipfile.ZipFile, destination: Path) -> int:
+    """Extract a marketplace pack without traversal or decompression-bomb escapes."""
+    root = destination.resolve()
+    total = 0
+    for info in zf.infolist():
+        name = info.filename.replace('\\', '/')
+        if not name or name.endswith('/'):
+            continue
+        target = (root / name).resolve()
+        try:
+            target.relative_to(root)
+        except ValueError as exc:
+            raise ValueError('ZIP contains a path outside the pack directory') from exc
+        total += info.file_size
+        if total > MAX_EXTRACTED_BYTES:
+            raise ValueError('ZIP extracted content exceeds the 25 MB limit')
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with zf.open(info) as source, target.open('wb') as sink:
+            sink.write(source.read(MAX_EXTRACTED_BYTES + 1))
+            if target.stat().st_size != info.file_size:
+                raise ValueError('ZIP entry could not be safely extracted')
+    return total
+
 
 # ── DB schema ──────────────────────────────────────────────────────────────────
 _SCHEMA = """
@@ -1038,6 +1068,8 @@ async def publish_pack(req: Request):
 async def upload_pack(file: UploadFile = File(...)):
     """Upload a ZIP pack file to the marketplace."""
     data = await file.read()
+    if len(data) > MAX_UPLOAD_BYTES:
+        return {'ok': False, 'error': 'ZIP exceeds the 10 MB upload limit'}
     buf = io.BytesIO(data)
 
     try:
@@ -1045,14 +1077,15 @@ async def upload_pack(file: UploadFile = File(...)):
             if 'manifest.json' not in zf.namelist():
                 return {'ok': False, 'error': 'ZIP must contain manifest.json'}
             manifest = json.loads(zf.read('manifest.json'))
-            pack_id = manifest.get('id', '')
+            pack_id = re.sub(r'[^a-zA-Z0-9_-]', '-', str(manifest.get('id', '')).lower()).strip('-')
             if not pack_id:
-                return {'ok': False, 'error': 'manifest.json must have id field'}
+                return {'ok': False, 'error': 'manifest.json must have a safe id field'}
+            manifest['id'] = pack_id
 
-            # Extract to pack dir
+            # Extract to pack dir with traversal and decompression-bomb limits.
             pack_dir = PACKS_DIR / pack_id
             pack_dir.mkdir(exist_ok=True)
-            zf.extractall(str(pack_dir))
+            _safe_extract_zip(zf, pack_dir)
     except Exception as ex:
         return {'ok': False, 'error': f'Invalid ZIP: {ex}'}
 
