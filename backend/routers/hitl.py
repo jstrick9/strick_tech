@@ -119,13 +119,18 @@ async def create_interrupt(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    action_type = body.get('action_type', 'unknown')
-    action_summary = (body.get('action_summary') or '')[:500]
-    action_data = body.get('action_data', {})
-    risk_level = body.get('risk_level', 'medium')
-    confidence = float(body.get('confidence', 0.5))
-    agent_id = body.get('agent_id', '')
-    undo_state = body.get('undo_state', '')
+    action_type = str(body.get('action_type', 'unknown'))[:100]
+    action_summary = str(body.get('action_summary') or '')[:500]
+    action_data = body.get('action_data', {}) if isinstance(body.get('action_data', {}), dict) else {}
+    risk_level = str(body.get('risk_level', 'medium')).lower()
+    if risk_level not in RISK_THRESHOLDS:
+        risk_level = 'medium'
+    try:
+        confidence = min(1.0, max(0.0, float(body.get('confidence', 0.5))))
+    except (TypeError, ValueError):
+        confidence = 0.5
+    agent_id = str(body.get('agent_id', ''))[:64]
+    undo_state = str(body.get('undo_state', ''))[:10000]
 
     interrupt_id = f'hitl_{uuid.uuid4().hex[:8]}'
 
@@ -197,10 +202,13 @@ async def create_interrupt(req: Request):
 
 
 @router.get('/interrupt/{interrupt_id}/wait')
-async def wait_for_decision(interrupt_id: str, timeout_seconds: int = 300):
+async def wait_for_decision(interrupt_id: str, timeout_seconds: str = '300'):
     """SSE stream that resolves when a human approves/rejects."""
     # FIX 6: cap timeout to prevent indefinite SSE connections
-    timeout_seconds = min(max(int(timeout_seconds), 10), 1800)
+    try:
+        timeout_seconds = min(max(int(timeout_seconds), 10), 1800)
+    except (TypeError, ValueError):
+        timeout_seconds = 300
 
     async def _stream():
         event = _waiters.get(interrupt_id)
@@ -346,7 +354,9 @@ async def execute_undo(snapshot_id: str, req: Request):
                 p = P(path_str).resolve()
                 # FIX 10: path traversal protection — only allow writes inside project root
                 allowed_root = P(__file__).resolve().parents[2]
-                if not str(p).startswith(str(allowed_root)):
+                try:
+                    p.relative_to(allowed_root)
+                except ValueError:
                     return {'ok': False, 'error': 'Path traversal denied — undo path must be inside project root'}
                 if p.parent.exists():
                     p.write_text(sdata, encoding='utf-8')

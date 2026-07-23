@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from typing import Any
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/rbac", tags=["rbac"])
 
@@ -81,7 +81,7 @@ class TokenCreateRequest(BaseModel):
     name: str = "Service Token"
     role: str = "developer"
     scopes: list[str] = ["chat:write", "swarm:execute"]
-    expires_in_days: int = 90
+    expires_in_days: int = Field(default=90, ge=1, le=3650)
 
 
 class TokenVerifyRequest(BaseModel):

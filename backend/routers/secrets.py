@@ -42,8 +42,9 @@ def _encrypt(value: str) -> tuple[str, bool]:
     f = _get_fernet()
     if f:
         return f.encrypt(value.encode()).decode(), True
-    # fallback: base64 (not secure, just obfuscation)
-    return base64.b64encode(value.encode()).decode(), False
+    # Never silently downgrade secrets to reversible base64. The cryptography
+    # dependency is required for a functioning vault.
+    return '', False
 
 
 def _decrypt(enc: str, is_fernet: bool = True) -> str:
@@ -145,6 +146,8 @@ async def set_secret(req: Request):
         return {'ok': False, 'error': 'value required'}
 
     enc, is_fernet = _encrypt(value)
+    if not is_fernet:
+        return {'ok': False, 'error': 'Encrypted vault unavailable: install cryptography before storing secrets'}
     fp = _fingerprint(value)
     length = len(value)
 
