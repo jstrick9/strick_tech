@@ -15,6 +15,8 @@ import time
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 
+from ..security_auth import require_websocket_auth
+
 router = APIRouter(tags=['websocket'])
 log = logging.getLogger('agentic.ws')
 
@@ -73,6 +75,8 @@ async def broadcast(event: dict):
 @router.websocket('/ws')
 async def websocket_endpoint(ws: WebSocket):
     """Execute or process websocket endpoint operation."""
+    if not await require_websocket_auth(ws):
+        return
     await manager.connect(ws)
     try:
         # Send initial state

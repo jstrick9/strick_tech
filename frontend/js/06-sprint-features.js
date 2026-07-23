@@ -7619,7 +7619,7 @@ async function evalAddCase(suiteId) {
 (function listenForHITL() {
   // FIX 12: reconnect on close/error so user never silently misses interrupts
   function _connectHITLWS() {
-    const ws = new WebSocket(`ws://${location.host}/api/ws`);
+    const ws = new WebSocket(AgenticAPI.websocketUrl(`ws://${location.host}/api/ws`));
     ws.onclose = () => setTimeout(_connectHITLWS, 3000);
     ws.onerror = () => {};
     ws.onmessage = ({data}) => {

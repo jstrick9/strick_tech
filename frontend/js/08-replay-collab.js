@@ -1342,7 +1342,7 @@ function ceConnectWS(docId) {
   const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = `${wsProto}//${location.host}/api/crdt/docs/${docId}/ws`;
 
-  _ceWS = new WebSocket(wsUrl);
+  _ceWS = new WebSocket(AgenticAPI.websocketUrl(wsUrl));
   const badge = document.getElementById('ce-status-badge');
 
   _ceWS.onopen = () => {

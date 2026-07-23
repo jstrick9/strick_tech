@@ -2989,7 +2989,7 @@ let ws = null, wsReconnectTimer = null;
 
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  ws = new WebSocket(`${proto}//${location.host}/ws`);
+  ws = new WebSocket(AgenticAPI.websocketUrl(`${proto}//${location.host}/ws`));
 
   ws.onopen = () => {
     const b = document.getElementById('ws-badge');
@@ -9098,7 +9098,7 @@ function joinCollabSession(sessionId) {
   collabSessionId = sessionId;
 
   const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  collabWS = new WebSocket(`${wsProto}//${location.host}/api/collab/sessions/${sessionId}/ws`);
+  collabWS = new WebSocket(AgenticAPI.websocketUrl(`${wsProto}//${location.host}/api/collab/sessions/${sessionId}/ws`));
 
   collabWS.onopen = () => {
     const name = S.preferences?.workspace_name || 'User';
