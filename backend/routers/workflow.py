@@ -12,6 +12,7 @@ import contextlib
 import asyncio
 import json
 import logging
+import re
 import time
 import uuid
 from pathlib import Path
@@ -167,7 +168,9 @@ STARTER_WORKFLOWS = [
 
 
 def _wf_path(wf_id: str) -> Path:
-    return WF_DIR / f'{wf_id}.json'
+    """Map an external workflow ID to a safe workspace filename."""
+    safe_id = re.sub(r'[^A-Za-z0-9_-]', '_', str(wf_id))[:128]
+    return WF_DIR / f'{safe_id}.json'
 
 
 def _load_all() -> list[dict]:
@@ -186,11 +189,16 @@ def _load_all() -> list[dict]:
     return wfs
 
 
-def _load_one(wf_id: str) ->Optional[ dict]:
+def _load_one(wf_id: str) -> Optional[dict]:
     p = _wf_path(wf_id)
-    if p.exists():
-        return json.loads(p.read_text())
-    return None
+    if not p.exists():
+        return None
+    try:
+        value = json.loads(p.read_text(encoding='utf-8'))
+        return value if isinstance(value, dict) else None
+    except (OSError, UnicodeError, TypeError, ValueError, json.JSONDecodeError):
+        log.warning('Ignoring corrupt workflow file: %s', p)
+        return None
 
 
 # ── REST CRUD ──────────────────────────────────────────────────────────────────

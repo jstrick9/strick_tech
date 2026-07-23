@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import contextlib
 
+import json
 import uuid
 
 from fastapi import APIRouter, Request
@@ -34,11 +35,14 @@ async def create_loop(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    prompt = (body.get('prompt') or '').strip()
-    interval = int(body.get('interval_minutes', 15))
-    agent_id = body.get('agent_id', 'builder')
-    target = body.get('target', 'web')
-    job_id = body.get('job_id') or f'loop_{uuid.uuid4().hex[:8]}'
+    prompt = str(body.get('prompt') or '').strip()[:4000]
+    try:
+        interval = int(body.get('interval_minutes', 15))
+    except (TypeError, ValueError):
+        interval = 15
+    agent_id = str(body.get('agent_id', 'builder'))[:64]
+    target = str(body.get('target', 'web'))[:64]
+    job_id = str(body.get('job_id') or f'loop_{uuid.uuid4().hex[:8]}')[:128]
 
     if not prompt:
         return {'ok': False, 'error': 'prompt required'}

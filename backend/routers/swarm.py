@@ -19,6 +19,13 @@ from ..services import llm, memory_db
 
 router = APIRouter(prefix='/api/swarm', tags=['swarm'])
 
+def _bounded_int(value, default: int, minimum: int, maximum: int) -> int:
+    try:
+        return min(maximum, max(minimum, int(value)))
+    except (TypeError, ValueError):
+        return default
+
+
 JUDGE_SYSTEM = """You are a neutral judge evaluating AI responses. 
 Score each response 0.0–1.0 on: accuracy, depth, clarity, and usefulness.
 Return ONLY valid JSON: {"winner": "<agent_id>", "scores": {"<agent_id>": <float>}, "reason": "<one sentence>"}
@@ -47,10 +54,14 @@ async def swarm_run(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    prompt = (body.get('prompt') or '').strip()
-    agent_ids = body.get('agents') or ['brain', 'builder', 'researcher', 'creative']
-    strategy = body.get('strategy') or 'judge'
-    max_tokens = int(body.get('max_tokens', 800))
+    prompt = str(body.get('prompt') or '').strip()[:16000]
+    raw_agents = body.get('agents') or ['brain', 'builder', 'researcher', 'creative']
+    agent_ids = raw_agents if isinstance(raw_agents, list) else [raw_agents]
+    agent_ids = [str(agent_id)[:64] for agent_id in agent_ids if str(agent_id).strip()]
+    strategy = str(body.get('strategy') or 'judge').lower()
+    if strategy not in {'judge', 'merge', 'fanout'}:
+        strategy = 'judge'
+    max_tokens = _bounded_int(body.get('max_tokens', 800), 800, 1, 4096)
 
     if not prompt:
         return {'ok': False, 'error': 'prompt required'}
