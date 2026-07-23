@@ -335,6 +335,30 @@ async def complete_onboarding(req: Request):
             pass
 
     save_prefs(prefs)
+
+    # Keep the first-run preferences store and the profile store coherent. The
+    # frontend reads `/api/profile` for its boot state, while the onboarding
+    # wizard persists to `preferences.json`; completing the wizard must update
+    # both representations atomically from the user's perspective.
+    try:
+        from .userprofile import ROLE_DEFAULTS, _load as load_profile, _save as save_profile
+
+        profile = load_profile()
+        profile['onboarding_done'] = True
+        if body.get('name'):
+            profile['name'] = str(body['name'])[:100]
+        if body.get('role') in ROLE_DEFAULTS:
+            profile['role'] = body['role']
+        if body.get('ui_mode') in {'simple', 'power'}:
+            profile['ui_mode'] = body['ui_mode']
+        save_profile(profile)
+    except (OSError, TypeError, ValueError, KeyError, RuntimeError) as exc:
+        # Do not fail a completed onboarding response because a secondary
+        # profile write failed; leave a diagnostic trail for local recovery.
+        import logging
+
+        logging.getLogger('agentic.onboarding').warning('Profile sync failed: %s', exc)
+
     audit_log('onboarding_complete', prefs.get('workspace_name', ''))
     memory_add(
         'system',
