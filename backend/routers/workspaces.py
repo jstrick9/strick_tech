@@ -130,7 +130,12 @@ async def create_workspace(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    name = (body.get('name') or 'New Project').strip()[:80]
+    name = str(body.get('name') or 'New Project').strip()[:80]
+    description = str(body.get('description') or '')[:200]
+    color = str(body.get('color') or '#5b8af8')[:20]
+    emoji = str(body.get('emoji') or '📁')[:8]
+    framework = str(body.get('framework') or 'web')[:50]
+    github_repo = str(body.get('github_repo') or '')[:200]
     wid = str(uuid.uuid4())[:8]
     con = get_conn()
     try:
@@ -139,11 +144,11 @@ async def create_workspace(req: Request):
             (
                 wid,
                 name,
-                body.get('description', '')[:200],
-                body.get('color', '#5b8af8'),
-                body.get('emoji', '📁'),
-                body.get('framework', 'web'),
-                body.get('github_repo', ''),
+                description,
+                color,
+                emoji,
+                framework,
+                github_repo,
             ),
         )
         con.commit()
@@ -244,7 +249,15 @@ def _save_preview_to_workspace(ws_id: str) -> bool:
 @router.post('/{ws_id}/save')
 def save_workspace(ws_id: str):
     """Manually save current preview/ to workspace storage."""
-    _save_preview_to_workspace(ws_id)
+    con = get_conn()
+    try:
+        exists = con.execute('SELECT 1 FROM workspaces WHERE id=?', (ws_id,)).fetchone()
+    finally:
+        con.close()
+    if not exists:
+        return {'ok': False, 'error': 'Workspace not found'}
+    if not _save_preview_to_workspace(ws_id):
+        return {'ok': False, 'error': 'Could not save workspace files'}
     con = get_conn()
     try:
         con.execute('UPDATE workspaces SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (ws_id,))
