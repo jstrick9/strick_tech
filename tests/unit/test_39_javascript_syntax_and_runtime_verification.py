@@ -61,9 +61,9 @@ class TestJavaScriptSyntaxAndRuntimeVerification:
 
     def test_all_68_master_pane_registry_functions_globally_bound(self, all_js_files):
         """Verify that every single function referenced in MASTER_PANE_REGISTRY is defined and attached across our scripts."""
-        app_core_js = (JS_DIR / "01-app-core.js").read_text(encoding="utf-8")
-        match = re.search(r"window\.MASTER_PANE_REGISTRY = \{(.*?)\};", app_core_js, re.DOTALL)
-        assert match is not None, "window.MASTER_PANE_REGISTRY must exist in 01-app-core.js"
+        registry_js = (JS_DIR / "00-pane-registry.js").read_text(encoding="utf-8")
+        match = re.search(r"window\.MASTER_PANE_REGISTRY = \{(.*?)\};", registry_js, re.DOTALL)
+        assert match is not None, "window.MASTER_PANE_REGISTRY must exist in 00-pane-registry.js"
 
         reg_content = match.group(1)
         entries = re.findall(r"\x27([a-zA-Z0-9_-]+)\x27\s*:\s*\(\)\s*=>\s*(?:typeof\s+window\.([a-zA-Z0-9_]+)\s*===\s*\x27function\x27|\{\})", reg_content)

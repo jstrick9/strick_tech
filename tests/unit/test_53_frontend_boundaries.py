@@ -13,6 +13,7 @@ def test_shared_modules_load_before_core():
     html = INDEX.read_text(encoding='utf-8')
     assert html.index('/static/js/00-api-client.js') < html.index('/static/js/01-app-core.js')
     assert html.index('/static/js/00-navigation-state.js') < html.index('/static/js/01-app-core.js')
+    assert html.index('/static/js/00-pane-registry.js') < html.index('/static/js/01-app-core.js')
 
 
 def test_api_client_exposes_safe_transport_boundary():
