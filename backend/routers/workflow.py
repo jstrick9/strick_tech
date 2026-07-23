@@ -446,17 +446,23 @@ async def run_workflow(wf_id: str, req: Request):
                 yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": "Transformed"})}\n\n'
 
             elif node['type'] == 'delay':
-                secs = min(int(cfg.get('seconds', 1)), 10)
+                try:
+                    secs = min(10, max(0, int(cfg.get('seconds', 1))))
+                except (TypeError, ValueError):
+                    secs = 1
                 await asyncio.sleep(secs)
                 yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": f"Waited {secs}s"})}\n\n'
 
             elif node['type'] == 'webhook':
-                url = cfg.get('url', '')
+                url = str(cfg.get('url', ''))[:2000]
                 if url:
                     try:
+                        from .websearch import _is_ssrf_blocked_url
+                        if not url.startswith(('http://', 'https://')) or _is_ssrf_blocked_url(url):
+                            raise ValueError('Webhook URL is not allowed')
                         import httpx
 
-                        async with httpx.AsyncClient(timeout=10) as client:
+                        async with httpx.AsyncClient(timeout=10, follow_redirects=False) as client:
                             r = await client.post(url, json=context)
                             context['prev_output'] = r.text[:500]
                     except Exception as ex:
