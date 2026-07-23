@@ -46,6 +46,7 @@ jobs:
         run: |
           python scripts/export_openapi.py
           git diff --exit-code -- contracts/openapi.json
+          python scripts/validate_frontend_api.py
 
       - name: Run unit tests
         run: python -m pytest tests/unit -q

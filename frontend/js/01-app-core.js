@@ -1982,7 +1982,7 @@ window.removeApiKey = async function() {
   const badge = document.getElementById('or-key-status-badge');
   const resEl = document.getElementById('settings-key-test-result');
   try {
-    await fetch('/api/secrets/delete?key=OPENROUTER_API_KEY', { method: 'DELETE' });
+    await fetch('/api/secrets/OPENROUTER_API_KEY', { method: 'DELETE' });
     document.getElementById('or-key-input').value = '';
     if (badge) { badge.textContent = 'NOT CONFIGURED'; badge.style.color = 'var(--text-2)'; }
     if (resEl) { resEl.style.display = 'block'; resEl.innerHTML = '<span style="color:var(--text-2)">API key removed from local vault.</span>'; }
@@ -2129,7 +2129,7 @@ window.clearAllSecrets = async function() {
   const ok = await gmConfirm('Clear All Local Credentials?', 'This will permanently wipe all encrypted API keys (OpenRouter, OpenAI, custom tokens) from your local hardware vault. You will need to re-enter them.');
   if (!ok) return;
   try {
-    await fetch('/api/secrets/delete?key=OPENROUTER_API_KEY', { method: 'DELETE' });
+    await fetch('/api/secrets/OPENROUTER_API_KEY', { method: 'DELETE' });
     localStorage.removeItem('agentic_os_custom_base_url');
     localStorage.removeItem('agentic_os_custom_api_key');
     document.getElementById('or-key-input').value = '';

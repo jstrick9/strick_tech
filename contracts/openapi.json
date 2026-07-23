@@ -25290,6 +25290,26 @@
         ]
       }
     },
+    "/api/studio/lint": {
+      "post": {
+        "description": "Run bounded local syntax checks for the Studio console.",
+        "operationId": "studio_lint_api_studio_lint_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Studio Lint",
+        "tags": [
+          "builder"
+        ]
+      }
+    },
     "/api/supervisor/run": {
       "post": {
         "description": "Start a new supervisor run for a goal.",

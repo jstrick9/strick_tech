@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import contextlib
 
+import ast
 import base64
 import io
 import json
 import os
+import shutil
 import socket
+import subprocess
 from pathlib import Path
 
 from fastapi import APIRouter, Request
@@ -30,6 +33,38 @@ PREVIEW_DIR.mkdir(exist_ok=True)
 MOBILE_DIR.mkdir(exist_ok=True)
 
 DB = memory_db.get_conn
+
+
+# ── Studio validation ─────────────────────────────────────────────────────────
+@router.post('/api/studio/lint')
+def studio_lint():
+    """Run bounded local syntax checks for the Studio console."""
+    errors: list[str] = []
+    python_root = ROOT / 'backend'
+    for source in python_root.rglob('*.py'):
+        try:
+            ast.parse(source.read_text(encoding='utf-8'), filename=str(source))
+        except (OSError, SyntaxError) as exc:
+            errors.append(f'{source.relative_to(ROOT)}: {exc}')
+
+    node = shutil.which('node')
+    if node:
+        for source in (ROOT / 'frontend' / 'js').glob('*.js'):
+            result = subprocess.run(
+                [node, '--check', str(source)],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+            if result.returncode:
+                errors.append(f'{source.relative_to(ROOT)}: {result.stderr.strip()[:500]}')
+
+    return {
+        'ok': not errors,
+        'message': 'Syntax validation passed.' if not errors else f'{len(errors)} syntax issue(s) found.',
+        'errors': errors[:100],
+    }
 
 
 # ── Preview files ──────────────────────────────────────────────────────────────
