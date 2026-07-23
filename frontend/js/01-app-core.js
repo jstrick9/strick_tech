@@ -11596,9 +11596,8 @@ window.runStudioConsoleLint = async function() {
   logStudioConsole('lint', 'Running comprehensive Python & JS syntax checks via backend...');
   switchStudioConsoleTab('lint');
   try {
-    const r = await fetch('/api/studio/lint', { method: 'POST' }).catch(() => null);
-    if (r && r.ok) {
-      const d = await r.json();
+    const d = await AgenticAPI.post('/api/studio/lint');
+    if (d) {
       logStudioConsole('lint', d.message || 'Linter completed. 0 fatal errors.');
     } else {
       logStudioConsole('lint', 'Local Python environment checks green (ruff & node --check passed).');
