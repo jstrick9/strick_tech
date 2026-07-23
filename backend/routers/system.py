@@ -21,6 +21,7 @@ router = APIRouter(prefix='/api/system', tags=['system'])
 log = logging.getLogger('agentic.system')
 
 from backend.config import get_data_dir
+from backend.version import VERSION
 ROOT = get_data_dir()
 
 
@@ -28,7 +29,7 @@ ROOT = get_data_dir()
 @router.get('/stats')
 def system_stats():
     """Lightweight stats endpoint for docker healthcheck and quick polling."""
-    return {'ok': True, 'version': '11.5.0', 'timestamp': time.time()}
+    return {'ok': True, 'version': VERSION, 'timestamp': time.time()}
 
 
 @router.get('/health')
@@ -45,7 +46,7 @@ def system_health():
         'disk': disk,
         'database': db,
         'processes': procs,
-        'version': '11.5.0',
+        'version': VERSION,
     }
 
 

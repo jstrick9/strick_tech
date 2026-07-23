@@ -24,6 +24,8 @@ def get_data_dir() -> Path:
 
 from pydantic import BaseModel, Field
 
+from .version import VERSION
+
 
 class ServerConfig(BaseModel):
     """Server configuration."""
@@ -71,7 +73,7 @@ class AppConfig(BaseModel):
     llm: LLMConfig = Field(default_factory=LLMConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     features: FeatureFlags = Field(default_factory=FeatureFlags)
-    version: str = Field(default='6.0.0', description='Application version')
+    version: str = Field(default=VERSION, description='Application version')
 
 
 def load_config() -> AppConfig:
