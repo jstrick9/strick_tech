@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """
-Agentic OS v6.0 — Launcher
+Agentic OS Launcher
 Run: python run.py
 """
 import os
 import sys
+import signal
+import shutil
 import sqlite3
+import subprocess
 import webbrowser
 import threading
 import time
@@ -13,6 +16,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
+
+from backend.version import VERSION
 
 # ── Load .env early ────────────────────────────────────────────────────────────
 try:
@@ -22,7 +27,7 @@ except ImportError:
     pass  # dotenv not yet installed — handled below
 
 PORT = int(os.getenv("AGENTIC_OS_PORT", "8787"))
-HOST = os.getenv("AGENTIC_OS_HOST", "0.0.0.0")
+HOST = os.getenv("AGENTIC_OS_HOST", "127.0.0.1")
 
 
 def check_requirements():
@@ -47,11 +52,14 @@ def seed_db():
     try:
         from backend.services.memory_db import ensure_schema
         ensure_schema()
-    except Exception:
-        pass
+    except Exception as exc:
+        raise RuntimeError(f"Unable to initialize Agentic OS database schema: {exc}") from exc
     db_path = memory_dir / "agentic.db"
-    con = sqlite3.connect(db_path)
-    cur = con.cursor()
+    try:
+        con = sqlite3.connect(db_path)
+        cur = con.cursor()
+    except sqlite3.Error as exc:
+        raise RuntimeError(f"Unable to open Agentic OS database at {db_path}: {exc}") from exc
 
     # Check if tasks table has data
     try:
@@ -90,7 +98,7 @@ def seed_db():
             cur.executemany(
                 "INSERT OR IGNORE INTO memory(source,content,tags) VALUES (?,?,?)",
                 [
-                    ("system", "Agentic OS v6.0 initialized. Shared memory active. Multi-agent swarm online.", "system,init"),
+                    ("system", f"Agentic OS {VERSION} initialized. Shared memory active. Multi-agent swarm online.", "system,init"),
                     ("self",   "Local-first agentic AI OS. Monaco editor, Git time-travel, Memory Galaxy, Swarm.", "self,core"),
                     ("brain",  "OpenRouter provides access to Claude, GPT-4o, Gemini, Grok, Llama via one API key.", "brain,llm"),
                 ]
@@ -115,7 +123,7 @@ def print_banner():
     print("\n")
     print("  ╔══════════════════════════════════════════════════════════╗")
     print("  ║                                                          ║")
-    print("  ║   🧠  AGENTIC OS v6.0 — MISSION CONTROL                 ║")
+    print(f"  ║   🧠  AGENTIC OS {VERSION} — MISSION CONTROL                 ║")
     print("  ║   Local-first · Multi-agent · Memory Galaxy              ║")
     print("  ║                                                          ║")
     print("  ╚══════════════════════════════════════════════════════════╝")
@@ -169,18 +177,44 @@ def seed_data_dir():
 
 
 def reclaim_port(port: int):
-    """If port is already occupied by an old background process, kill it cleanly so the new build can start."""
+    """Terminate a prior local listener without invoking a shell pipeline."""
     import socket
-    import subprocess
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        if s.connect_ex(('127.0.0.1', port)) == 0:
-            print(f"\n⚠️  [Agentic OS Engine] Port {port} is already occupied by an older background server. Reclaiming port...")
-            try:
-                subprocess.run(f"lsof -ti :{port} | xargs kill -9", shell=True, stderr=subprocess.DEVNULL)
-                time.sleep(1.0)
-                print(f"✅ Port {port} reclaimed cleanly for fresh build.")
-            except Exception as e:
-                print(f"⚠️  Could not auto-kill process on port {port}: {e}")
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        if sock.connect_ex(('127.0.0.1', port)) != 0:
+            return
+
+    lsof = shutil.which('lsof')
+    if not lsof:
+        raise RuntimeError(f'Port {port} is already occupied and lsof is unavailable')
+
+    try:
+        result = subprocess.run(
+            [lsof, '-ti', f':{port}'],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        pids = [int(value) for value in result.stdout.split() if value.isdigit()]
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        raise RuntimeError(f'Unable to inspect process on port {port}: {exc}') from exc
+
+    if not pids:
+        raise RuntimeError(f'Port {port} is occupied but no owning process could be identified')
+
+    print(f"\n⚠️  [Agentic OS Engine] Port {port} is occupied. Reclaiming local process...")
+    for pid in pids:
+        if pid == os.getpid():
+            continue
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            continue
+        except PermissionError as exc:
+            raise RuntimeError(f'Permission denied terminating process {pid} on port {port}') from exc
+
+    time.sleep(1.0)
 
 
 if __name__ == "__main__":

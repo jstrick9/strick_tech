@@ -55,8 +55,9 @@ class TestNavigationAndSettingsIntegrity:
         nav_els = html_soup.find_all(lambda e: e.has_attr("data-nav"))
         nav_ids = set(el["data-nav"] for el in nav_els)
 
-        match = re.search(r"window\.MASTER_PANE_REGISTRY = \{(.*?)\};", app_core_js, re.DOTALL)
-        assert match is not None, "window.MASTER_PANE_REGISTRY object definition must exist in 01-app-core.js"
+        registry_js = (FRONTEND_DIR / "js" / "00-pane-registry.js").read_text(encoding="utf-8")
+        match = re.search(r"window\.MASTER_PANE_REGISTRY = \{(.*?)\};", registry_js, re.DOTALL)
+        assert match is not None, "window.MASTER_PANE_REGISTRY object definition must exist in 00-pane-registry.js"
         
         reg_content = match.group(1)
         registered_keys = set(re.findall(r"\x27([a-zA-Z0-9_-]+)\x27\s*:", reg_content))
