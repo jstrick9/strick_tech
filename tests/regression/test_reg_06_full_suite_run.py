@@ -26,11 +26,15 @@ class TestRegressionPlatformHealth:
 
     def test_server_is_running(self, client):
         """Regression: Server must be running and healthy."""
+        from backend.version import VERSION
+
         r = client.get("/api/system/health")
         assert r.status_code == 200
         d = r.json()
         assert d["ok"] is True
-        assert d["version"] == "6.0.0"
+        # Compare against the canonical VERSION file rather than a hardcoded
+        # string, so this assertion doesn't go stale on every version bump.
+        assert d["version"] == VERSION
 
     def test_database_has_all_tables(self, client):
         """Regression: Database must have all 116+ tables."""
@@ -142,7 +146,10 @@ class TestRegressionTestSuiteIntegrity:
         )
         assert result.returncode == 0, \
             f"REGRESSION: Unit tests have collection errors:\n{result.stdout[-500:]}"
-        assert "error" not in result.stdout.lower() or "0 errors" in result.stdout.lower()
+        # Note: pytest's own exit code (checked above) is the reliable signal
+        # for collection failures. A naive substring search for "error" in
+        # stdout is not used here because it false-positives on legitimate
+        # test names such as `test_..._is_not_a_server_error`.
 
     def test_integration_tests_collect_correctly(self):
         """Regression: Integration tests collect without errors."""
@@ -171,7 +178,7 @@ class TestRegressionDocumentation:
 
     def test_openapi_spec_accessible(self, client):
         """Regression: OpenAPI spec is always accessible."""
-        r = client.get("/openapi.json")
+        r = client.get("/api/openapi.json")
         assert r.status_code == 200
         d = r.json()
         assert "paths" in d

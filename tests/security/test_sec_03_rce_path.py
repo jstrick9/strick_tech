@@ -9,6 +9,7 @@ A successful RCE or path traversal could give an attacker full system access.
 """
 import os
 import pytest, asyncio
+from pathlib import Path
 from tests.security.conftest import *
 
 # Path traversal payloads
@@ -141,9 +142,18 @@ class TestSecPathTraversal:
                 start_ev = next((e for e in events if e.get("type") == "start"), None)
                 if start_ev:
                     actual_cwd = start_ev.get("cwd", "")
-                    # CWD must be constrained to preview dir
+                    # CWD must be constrained to preview dir. Resolve the
+                    # expected preview dir dynamically from AGENTIC_OS_DATA_DIR
+                    # or the actual repo checkout root — never hardcode a
+                    # specific clone folder name (e.g. "agentic-os"), since
+                    # the repository may be checked out under any directory
+                    # name (this suite itself runs from "strick_tech").
                     data_dir = os.environ.get("AGENTIC_OS_DATA_DIR")
-                    preview_dir = os.path.join(data_dir, "preview") if data_dir else "/home/user/agentic-os/preview"
+                    if data_dir:
+                        preview_dir = os.path.join(data_dir, "preview")
+                    else:
+                        repo_root = Path(__file__).resolve().parents[2]
+                        preview_dir = str(repo_root / "preview")
                     if actual_cwd and actual_cwd != preview_dir:
                         assert actual_cwd.startswith(preview_dir), \
                             f"Terminal cwd escaped to: {actual_cwd}"

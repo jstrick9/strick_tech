@@ -274,7 +274,7 @@ class TestSysAPIContract:
 
     async def test_openapi_spec_covers_all_sprint_routes(self, C):
         """OpenAPI spec includes all Sprint A-D routes."""
-        spec = must(await GET(C, "/openapi.json"), label="openapi spec")
+        spec = must(await GET(C, "/api/openapi.json"), label="openapi spec")
         paths = set(spec.get("paths", {}).keys())
         sprint_prefixes = [
             "/api/audit-log", "/api/agent-identity", "/api/hitl",

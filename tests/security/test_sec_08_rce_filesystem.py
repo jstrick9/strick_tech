@@ -406,7 +406,21 @@ class TestSecSystemGitRCE:
                 "push": False
             })
             sec_ok(r, f"System git commit injection: {p[:20]}")
-            no_rce(r, f"System git commit: {p[:15]}")
+            # Note: /api/system/git/commit passes the message straight to
+            # GitPython's `repo.index.commit(message)`, which never invokes a
+            # shell — the payload is stored as a literal commit message, not
+            # executed. The endpoint's JSON response legitimately echoes that
+            # literal string back (e.g. {"message": "' && cat /etc/passwd"}),
+            # so a bare substring check for "/etc/passwd" false-positives on
+            # the safely-reflected input. Instead assert the shell command
+            # was never actually run by checking for real command output
+            # signatures (e.g. the structural start of /etc/passwd's actual
+            # contents, or a bare `uid=` from a real `id` invocation).
+            body = r.text.lower()
+            rce_evidence = ["root:x:0:0:", "uid=0(", "uid=1000("]
+            for marker in rce_evidence:
+                assert marker not in body, \
+                    f"SEC RCE: System git commit: {p[:15]} — Found real command output '{marker}': {r.text[:300]}"
 
     async def test_workspace_save_path_traversal(self, C):
         """Workspace save with path traversal in filename."""

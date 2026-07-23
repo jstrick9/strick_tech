@@ -309,7 +309,7 @@ class TestSysPlatformAdminWorkflow:
 
     async def test_platform_api_surface_complete(self, C):
         """All platform API endpoints are registered in OpenAPI spec."""
-        spec = must(await GET(C, "/openapi.json"), label="openapi")
+        spec = must(await GET(C, "/api/openapi.json"), label="openapi")
         total_paths = len(spec.get("paths", {}))
         check("platform has 500+ API endpoints", total_paths >= 500, total_paths)
 

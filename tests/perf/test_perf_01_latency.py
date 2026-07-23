@@ -41,7 +41,7 @@ class TestLatencyHealth:
         print(f"\n    /api/health success rate: {r.success_rate}%  ✅")
 
     async def test_openapi_spec_under_100ms(self):
-        r = await measure_latency("/openapi.json", n=10)
+        r = await measure_latency("/api/openapi.json", n=10)
         print(f"\n    /openapi.json: p99={r.p99:.1f}ms")
         assert r.p99 <= 200, f"OpenAPI spec p99={r.p99:.1f}ms > 200ms"
 

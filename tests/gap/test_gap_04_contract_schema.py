@@ -158,7 +158,7 @@ class TestGapResponseContracts:
 
     async def test_openapi_spec_contract(self, C):
         """GET /openapi.json → valid OpenAPI 3.x spec structure."""
-        d = ok(await GET(C, "/openapi.json"), "openapi spec contract")
+        d = ok(await GET(C, "/api/openapi.json"), "openapi spec contract")
         chk("openapi version", "openapi" in d, got=list(d.keys()))
         chk("info block",      "info" in d)
         chk("paths block",     "paths" in d)

@@ -44,7 +44,7 @@ class TestRegressionAPIContract_Core:
 
     def test_openapi_has_expected_routes(self, client):
         """Regression: OpenAPI spec still has all major route groups."""
-        paths = set(client.get("/openapi.json").json()["paths"].keys())
+        paths = set(client.get("/api/openapi.json").json()["paths"].keys())
         route_groups = [
             "/api/audit-log", "/api/agent-identity", "/api/hitl",
             "/api/supervisor", "/api/goals", "/api/loops",

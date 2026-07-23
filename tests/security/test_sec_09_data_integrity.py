@@ -123,7 +123,7 @@ class TestSecInformationDisclosure:
 
     async def test_openapi_spec_no_internal_endpoints(self, C):
         """OpenAPI spec must not expose undocumented internal endpoints."""
-        r = await GET(C, "/openapi.json")
+        r = await GET(C, "/api/openapi.json")
         sec_ok(r, "OpenAPI spec check")
         spec = r.json()
         paths = spec.get("paths", {})
