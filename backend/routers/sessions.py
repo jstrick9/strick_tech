@@ -194,7 +194,13 @@ async def create_session(req: Request):
     con = get_conn()
     try:
         con.execute(
-            'INSERT OR REPLACE INTO chat_sessions(id, name, agent_id, description) VALUES (?,?,?,?)',
+            """INSERT INTO chat_sessions(id, name, agent_id, description)
+               VALUES (?,?,?,?)
+               ON CONFLICT(id) DO UPDATE SET
+                 name=excluded.name,
+                 agent_id=excluded.agent_id,
+                 description=excluded.description,
+                 updated_at=CURRENT_TIMESTAMP""",
             (sid, name, agent_id, description),
         )
         con.commit()
