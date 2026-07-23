@@ -57,11 +57,45 @@ SAFE_PREFIXES = {
     'curl',
     'wget',
     'which',
-    'env',
     'export',
     'cd',
     'clear',
 }
+
+# SECURITY: 'env' / 'printenv' are intentionally excluded from SAFE_PREFIXES.
+# The terminal subprocess previously inherited the full server process
+# environment (os.environ), which can hold decrypted API keys and other
+# secrets injected by the Vault at startup. Dumping env vars must never be
+# a permitted terminal action. See _sandboxed_env() below for the
+# defense-in-depth fix applied to the subprocess environment itself.
+
+# Minimal environment variable names that terminal subprocesses are allowed
+# to inherit. Deliberately excludes anything that could carry secrets
+# (API keys, tokens, vault material) — those are injected into os.environ
+# by backend/routers/secrets.py at startup and must never reach a
+# user-invoked shell command.
+_SAFE_ENV_PASSTHROUGH = {
+    'PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL',
+    'LANG', 'LC_ALL', 'LC_CTYPE', 'TMPDIR', 'TEMP', 'TMP',
+    'PYTHONIOENCODING', 'PYTHONUNBUFFERED',
+    'NODE_PATH', 'NPM_CONFIG_PREFIX',
+}
+
+
+def _sandboxed_env() -> dict:
+    """Build a minimal, secret-free environment for terminal subprocesses.
+
+    Only a curated allowlist of variables needed for common dev tools
+    (node/npm/pip/git/python) is passed through. Everything else —
+    including OPENROUTER_API_KEY, ANTHROPIC_API_KEY, GITHUB_TOKEN,
+    SECRET_KEY, and any other vault-injected secret — is stripped, so
+    it can never be exfiltrated via `env`, `python3 -c "...os.environ..."`,
+    `node -e "...process.env..."`, or similar indirect leaks.
+    """
+    safe = {k: v for k, v in os.environ.items() if k in _SAFE_ENV_PASSTHROUGH}
+    safe['TERM'] = 'xterm-256color'
+    safe['FORCE_COLOR'] = '1'
+    return safe
 
 # Dangerous commands that are always blocked
 BLOCKED_COMMANDS = {
@@ -221,7 +255,7 @@ async def run_command(req: Request):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
                 cwd=work_dir,
-                env={**os.environ, 'TERM': 'xterm-256color', 'FORCE_COLOR': '1'},
+                env=_sandboxed_env(),
             )
             _active_processes[run_id] = proc
 

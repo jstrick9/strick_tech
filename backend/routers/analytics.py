@@ -11,6 +11,7 @@ import contextlib
 import csv
 import datetime
 import io
+import json
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
