@@ -42,6 +42,11 @@ jobs:
       - name: Compile Python modules
         run: python -m compileall -q backend run.py
 
+      - name: Verify committed OpenAPI contract
+        run: |
+          python scripts/export_openapi.py
+          git diff --exit-code -- contracts/openapi.json
+
       - name: Run unit tests
         run: python -m pytest tests/unit -q
 
