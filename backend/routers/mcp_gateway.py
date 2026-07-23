@@ -623,6 +623,14 @@ async def register_server(req: Request):
 
     server_id = f'srv_{uuid.uuid4().hex[:8]}'
     now = _now()
+    try:
+        rate_rpm = min(600, max(1, int(body.get('rate_limit_rpm') or 60)))
+    except (TypeError, ValueError):
+        rate_rpm = 60
+    try:
+        rate_day = min(100000, max(1, int(body.get('rate_limit_day') or 1000)))
+    except (TypeError, ValueError):
+        rate_day = 1000
     con = _get_conn()
     try:
         con.execute(
@@ -637,8 +645,8 @@ async def register_server(req: Request):
                 json.dumps(body.get('auth_config') or {}),
                 json.dumps(body.get('tools_schema') or []),
                 'active',
-                min(int(body.get('rate_limit_rpm') or 60), 600),
-                min(int(body.get('rate_limit_day') or 1000), 100000),
+                rate_rpm,
+                rate_day,
                 (body.get('tags') or '')[:200],
                 now,
                 now,

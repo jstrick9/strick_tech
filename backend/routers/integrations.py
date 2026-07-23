@@ -121,9 +121,11 @@ def _safe_preview_path(filename: str) ->Optional[ Path]:
     # Strip any leading slashes / dotdot components from filename
     safe_name = Path(filename).name if '/' not in filename else Path(filename).as_posix().lstrip('/')
     dest = (PREVIEW_DIR / safe_name).resolve()
-    if str(dest).startswith(str(PREVIEW_DIR.resolve())):
+    try:
+        dest.relative_to(PREVIEW_DIR.resolve())
         return dest
-    return None
+    except ValueError:
+        return None
 
 
 # ── REST endpoints ─────────────────────────────────────────────────────────────
