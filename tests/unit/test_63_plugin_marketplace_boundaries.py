@@ -36,3 +36,22 @@ def test_pluginsdk_manifest_validation_rejects_missing_fields(client):
     data = response.json()
     assert data.get('ok') is False
     assert data.get('errors')
+
+
+def test_pluginsdk_rejects_unknown_capabilities(client):
+    response = client.post('/api/pluginsdk/validate', json={
+        'id': 'capability-test', 'name': 'Capability Test', 'version': '1.0.0',
+        'description': 'test', 'skills': [], 'permissions': ['chat', 'root_shell'],
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get('ok') is False
+    assert any('Unknown permission' in error for error in data.get('errors', []))
+
+
+def test_pluginsdk_pack_records_unsigned_provenance(client):
+    response = client.post('/api/pluginsdk/packs', json={'name': 'Provenance Test', 'id': 'provenance-test'})
+    assert response.status_code == 200
+    pack = response.json()['pack']
+    assert pack['provenance']['status'] == 'unsigned'
+    assert len(pack['provenance']['manifest_sha256']) == 64
