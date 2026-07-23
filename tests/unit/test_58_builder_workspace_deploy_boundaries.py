@@ -15,6 +15,17 @@ def test_preview_malformed_json_is_not_a_server_error(client):
     assert response.status_code < 500
 
 
+def test_preview_versions_are_workspace_scoped(client):
+    response = client.post('/api/preview/save', json={'path': 'component-scope-test.txt', 'content': 'v1'})
+    assert response.status_code == 200
+    history = client.get('/api/preview/history', params={'path': 'component-scope-test.txt'})
+    assert history.status_code == 200
+    assert history.json()
+    version = client.get('/api/preview/version', params={'id': history.json()[0]['id']})
+    assert version.status_code == 200
+    assert version.json().get('workspace_id') is not None
+
+
 def test_workspace_create_normalizes_non_string_fields(client):
     response = client.post(
         '/api/workspaces',
