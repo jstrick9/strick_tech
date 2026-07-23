@@ -81,7 +81,7 @@ class TestSysBootstrap:
 
     async def test_openapi_spec_valid(self, C):
         """OpenAPI spec is reachable and lists ≥ 600 routes."""
-        r = await GET(C, "/openapi.json")
+        r = await GET(C, "/api/openapi.json")
         must(r, 200)
         spec = r.json()
         total = sum(len(v) for v in spec["paths"].values())

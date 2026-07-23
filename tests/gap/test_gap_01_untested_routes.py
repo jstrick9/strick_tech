@@ -810,8 +810,22 @@ class TestGapSystem:
         chk("hmr status returned", isinstance(d, dict))
 
     async def test_system_hmr_get(self, C):
-        d = ok(await GET(C, "/api/system/hmr"), "hmr get")
-        chk("hmr info returned", isinstance(d, dict))
+        """GET /api/system/hmr is an infinite Server-Sent-Events stream (used
+        for live-reloading the preview iframe) — it intentionally never
+        closes the response body on its own. Read just the initial
+        "connected" event via streaming instead of a plain GET, which would
+        block forever waiting for a body that never completes."""
+        import asyncio
+        async with C.stream("GET", "/api/system/hmr") as r:
+            chk("hmr stream status 200", r.status_code == 200, got=r.status_code)
+            chk("hmr stream is SSE", "text/event-stream" in r.headers.get("content-type", ""))
+            first_line = None
+            try:
+                lines_iter = r.aiter_lines()
+                first_line = await asyncio.wait_for(lines_iter.__anext__(), timeout=5.0)
+            except (asyncio.TimeoutError, StopAsyncIteration):
+                pass
+            chk("hmr stream sent initial event", first_line is not None, got=first_line)
 
     async def test_system_hmr_trigger(self, C):
         """HMR trigger broadcasts to connected WS clients (may block if clients wait)."""

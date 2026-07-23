@@ -206,18 +206,24 @@ class TestUATMemoryGalaxy:
 
     async def test_user_can_delete_a_specific_memory(self, U):
         """AC: User can remove a memory they no longer want the AI to know."""
+        unique_marker = uid("delete_this_memory")
         r = await POST(U, "/api/memory/add", {
-            "content": uid("delete_this_memory"), "source": "user"
+            "content": unique_marker, "source": "user"
         })
         mid = accept(r, "add memory", 200)["id"]
-        
+
         r2 = await DELETE(U, f"/api/memory/{mid}")
         accept(r2, "delete memory", 200, 204, 404)
-        
-        # Should no longer appear in search
-        results = accept(await GET(U, "/api/memory/search", q=str(mid)), "search", 200)
-        uat("deleted memory not in search", 
-            not any(str(mid) in str(m) for m in results))
+
+        # Should no longer appear in search. Search by the unique content
+        # marker (not the bare numeric memory id) and check the deleted
+        # row's id precisely — a substring match against str(mid) (e.g. "24")
+        # is unreliable in a shared, growing test DB since that digit
+        # sequence can coincidentally appear inside other results'
+        # timestamps, tags, or unrelated ids.
+        results = accept(await GET(U, "/api/memory/search", q=unique_marker), "search", 200)
+        uat("deleted memory not in search",
+            not any(m.get("id") == mid for m in results if isinstance(m, dict)))
 
     async def test_galaxy_graph_provides_visual_data(self, U):
         """AC: Galaxy view shows memory nodes for visualization."""

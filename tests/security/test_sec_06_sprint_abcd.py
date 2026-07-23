@@ -91,7 +91,19 @@ class TestSecAuditLog:
         """CSV/JSON export must not read arbitrary files."""
         r = await GET(C, "/api/audit-log/export/csv")
         sec_ok(r, "Audit CSV export")
-        no_path_escape(r, "Audit CSV export")
+        # Note: the audit log intentionally stores adversarial test payloads
+        # (e.g. prompt-injection strings containing the literal word "passwd"
+        # or "/etc/passwd") as ordinary business data from other test suites
+        # exercising injection resistance. A bare substring match on
+        # "passwd" therefore false-positives on that legitimately-echoed
+        # data. A real path-traversal/file-disclosure bug would leak the
+        # actual contents of /etc/passwd, which has a distinctive structural
+        # signature (colon-delimited fields starting with "root:x:0:0:") —
+        # check for that instead of the word alone.
+        body = r.text.lower()
+        real_passwd_signature = "root:x:0:0:"
+        assert real_passwd_signature not in body, \
+            f"SEC PATH: Audit CSV export — real /etc/passwd contents leaked: {r.text[:200]}"
 
     async def test_audit_receipt_id_idor(self, C):
         """Receipt lookup with fake/traversal IDs must not crash."""
