@@ -53,6 +53,16 @@ async def _request_json(req: Request) -> dict:
         return {}
 
 
+def _current_workspace_id() -> str:
+    """Resolve the active workspace without making workspace imports mandatory."""
+    try:
+        from .workspaces import _current_ws_id
+
+        return _current_ws_id() or ''
+    except Exception:
+        return ''
+
+
 # ── Studio validation ─────────────────────────────────────────────────────────
 @router.post('/api/studio/lint')
 def studio_lint():
@@ -131,19 +141,21 @@ async def preview_save(req: Request):
     old = f.read_text(encoding='utf-8', errors='ignore') if f.exists() else ''
     f.write_text(content, encoding='utf-8')
     con = DB()
+    workspace_id = _current_workspace_id()
     if old != content:
         con.execute(
-            'INSERT INTO file_versions(path,content,author,message) VALUES (?,?,?,?)',
+            'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
             (
                 path,
                 old,
                 d.get('author', 'builder'),
                 d.get('message', 'save')[:240],
+                workspace_id,
             ),  # FIX 2: store pre-save state (even if ""), not new content
         )
         con.execute("INSERT INTO audit(action,detail) VALUES ('preview_save',?)", (path,))
         con.commit()
-    v = con.execute('SELECT COUNT(*) FROM file_versions WHERE path=?', (path,)).fetchone()[0]
+    v = con.execute("SELECT COUNT(*) FROM file_versions WHERE path=? AND (workspace_id=? OR workspace_id='')", (path, workspace_id)).fetchone()[0]
     con.close()
     # Trigger HMR broadcast
     try:
@@ -197,8 +209,8 @@ def preview_history(path: str = 'index.html'):
     con = DB()
     rows = con.execute(
         """SELECT id, author, message, datetime(created_at,'localtime') as ts, length(content) as bytes
-           FROM file_versions WHERE path=? ORDER BY id DESC LIMIT 150""",
-        (path,),
+           FROM file_versions WHERE path=? AND (workspace_id=? OR workspace_id='') ORDER BY id DESC LIMIT 150""",
+        (path, _current_workspace_id()),
     ).fetchall()
     con.close()
     return [dict(r) for r in rows]
@@ -208,7 +220,7 @@ def preview_history(path: str = 'index.html'):
 def preview_version(id: int):
     """Execute or process preview version operation."""
     con = DB()
-    r = con.execute('SELECT * FROM file_versions WHERE id=?', (id,)).fetchone()
+    r = con.execute("SELECT * FROM file_versions WHERE id=? AND (workspace_id=? OR workspace_id='')", (id, _current_workspace_id())).fetchone()
     con.close()
     return dict(r) if r else {'ok': False}
 
@@ -218,7 +230,7 @@ async def preview_restore(req: Request):
     """Execute or process preview restore operation."""
     d = await _request_json(req)
     con = DB()
-    row = con.execute('SELECT path,content FROM file_versions WHERE id=?', (d.get('version_id'),)).fetchone()
+    row = con.execute("SELECT path,content FROM file_versions WHERE id=? AND (workspace_id=? OR workspace_id='')", (d.get('version_id'), _current_workspace_id())).fetchone()
     con.close()
     if not row:
         return {'ok': False}
@@ -230,8 +242,8 @@ async def preview_restore(req: Request):
     p.write_text(row['content'], encoding='utf-8')
     con = DB()
     con.execute(
-        'INSERT INTO file_versions(path,content,author,message) VALUES (?,?,?,?)',
-        (row['path'], row['content'], 'builder', f'restore v{d.get("version_id")}'),
+        'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
+        (row['path'], row['content'], 'builder', f'restore v{d.get("version_id")}', _current_workspace_id()),
     )
     con.commit()
     con.close()
@@ -257,8 +269,8 @@ async def preview_commit(req: Request):
     content = f.read_text(encoding='utf-8', errors='ignore')
     con = DB()
     con.execute(
-        'INSERT INTO file_versions(path,content,author,message) VALUES (?,?,?,?)',
-        (path, content, d.get('author', 'builder'), d.get('message', 'checkpoint')),
+        'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
+        (path, content, d.get('author', 'builder'), d.get('message', 'checkpoint'), _current_workspace_id()),
     )
     vid = con.execute('SELECT last_insert_rowid()').fetchone()[0]
     con.commit()
@@ -390,8 +402,8 @@ async def preview_scaffold(req: Request):
         created_files.append(rel_path)
         try:
             con.execute(
-                'INSERT INTO file_versions(path,content,author,message) VALUES (?,?,?,?)',
-                (rel_path, content, 'scaffolder', f'{framework} scaffold: {prompt_raw[:80]}'),
+                'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
+                (rel_path, content, 'scaffolder', f'{framework} scaffold: {prompt_raw[:80]}', _current_workspace_id()),
             )
         except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
             pass

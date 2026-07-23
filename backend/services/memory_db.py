@@ -91,6 +91,7 @@ def ensure_schema():
         path TEXT, content TEXT,
         author TEXT DEFAULT 'builder',
         message TEXT,
+        workspace_id TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS e2e_traces (
@@ -141,6 +142,10 @@ def ensure_schema():
     """)
         try:
             con.execute('ALTER TABLE chat_log ADD COLUMN model TEXT DEFAULT ""')
+        except Exception:
+            pass
+        try:
+            con.execute('ALTER TABLE file_versions ADD COLUMN workspace_id TEXT DEFAULT ""')
         except Exception:
             pass
         con.commit()
