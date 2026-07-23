@@ -77,6 +77,12 @@ def _validate_url(url: str) -> str:
         # Must have a non-empty netloc
         if not parsed.netloc:
             return ''
+        # Reuse the platform SSRF policy so browser navigation cannot reach
+        # private, loopback, or cloud metadata addresses.
+        from .websearch import _is_ssrf_blocked_url
+
+        if _is_ssrf_blocked_url(url):
+            return ''
         return url
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         return ''
@@ -161,10 +167,19 @@ async def browser_status():
 async def auto_install_browser():
     """Trigger background installation of Playwright and Chromium."""
     import subprocess
-    cmd = 'pip install playwright && python -m playwright install chromium'
+    import sys
+    commands = [
+        [sys.executable, '-m', 'pip', 'install', 'playwright'],
+        [sys.executable, '-m', 'playwright', 'install', 'chromium'],
+    ]
+    install_script = (
+        'import subprocess,sys; '
+        'subprocess.check_call([sys.executable, "-m", "pip", "install", "playwright"]); '
+        'subprocess.check_call([sys.executable, "-m", "playwright", "install", "chromium"])'
+    )
     try:
-        subprocess.Popen(cmd, shell=True)
-        return {'ok': True, 'command': cmd, 'message': 'Installation spawned in background'}
+        subprocess.Popen([sys.executable, '-c', install_script], start_new_session=True)
+        return {'ok': True, 'commands': commands, 'message': 'Playwright installation spawned in background'}
     except Exception as e:
         return {'ok': False, 'command': cmd, 'error': str(e)}
 
@@ -205,9 +220,12 @@ async def run_browser_task(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    task = (body.get('task') or '').strip()
-    raw_url = body.get('start_url', 'https://duckduckgo.com') or 'https://duckduckgo.com'
-    max_steps = max(1, min(int(body.get('max_steps', 15)), 30))
+    task = str(body.get('task') or '').strip()[:8000]
+    raw_url = str(body.get('start_url', 'https://duckduckgo.com') or 'https://duckduckgo.com')[:2000]
+    try:
+        max_steps = max(1, min(int(body.get('max_steps', 15)), 30))
+    except (TypeError, ValueError):
+        max_steps = 15
     headless = bool(body.get('headless', True))
 
     if not task:
