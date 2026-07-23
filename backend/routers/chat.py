@@ -33,6 +33,22 @@ SLASH_COMMANDS = {
 }
 
 
+def _bounded_temperature(value) -> float:
+    """Keep provider temperature within the portable 0..2 API range."""
+    try:
+        return min(2.0, max(0.0, float(value)))
+    except (TypeError, ValueError):
+        return 0.7
+
+
+def _bounded_max_tokens(value, default: int = 2048) -> int:
+    """Bound user-controlled generation size to protect providers and cost."""
+    try:
+        return min(16384, max(1, int(value)))
+    except (TypeError, ValueError):
+        return default
+
+
 def _parse_slash(message: str) -> tuple[str, str]:
     """Returns (command_or_empty, rest_of_message)"""
     stripped = message.strip()
@@ -80,13 +96,13 @@ async def chat_stream(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    message = (body.get('message') or '').strip()
-    agent_id = (body.get('agent_id') or 'default').lower()
-    req_model = (body.get('model') or '').strip()
-    session_id = body.get('session_id') or str(uuid.uuid4())
+    message = (body.get('message') or '').strip()[:16000]
+    agent_id = (body.get('agent_id') or 'default').lower()[:64]
+    req_model = (body.get('model') or '').strip()[:200]
+    session_id = str(body.get('session_id') or str(uuid.uuid4()))[:128]
     history = body.get('history') or []  # [{role, content}, ...]
-    temperature = float(body.get('temperature', 0.7))
-    max_tokens = int(body.get('max_tokens', 2048))
+    temperature = _bounded_temperature(body.get('temperature', 0.7))
+    max_tokens = _bounded_max_tokens(body.get('max_tokens', 2048))
 
     if not message:
 
@@ -181,8 +197,9 @@ async def chat_stream(req: Request):
     # include history (last 20 turns)
     for h in history[-20:]:
         if h.get('role') in ('user', 'assistant') and h.get('content'):
-            if not messages or messages[-1].get('role') != h['role'] or messages[-1].get('content') != h['content']:
-                messages.append({'role': h['role'], 'content': h['content']})
+            content = str(h['content'])[:16000]
+            if not messages or messages[-1].get('role') != h['role'] or messages[-1].get('content') != content:
+                messages.append({'role': h['role'], 'content': content})
     if not messages or messages[-1].get('role') != 'user' or messages[-1].get('content') != message:
         messages.append({'role': 'user', 'content': message})
 
@@ -237,13 +254,13 @@ async def chat_complete(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    message = (body.get('message') or '').strip()
-    agent_id = body.get('agent_id') or 'default'
-    model = body.get('model', '')
-    system = body.get('system', '')
+    message = (body.get('message') or '').strip()[:16000]
+    agent_id = str(body.get('agent_id') or 'default')[:64]
+    model = str(body.get('model') or '')[:200]
+    system = str(body.get('system') or '')[:16000]
     history = body.get('history') or []
-    temperature = float(body.get('temperature', 0.7))
-    max_tokens = int(body.get('max_tokens', 1024))
+    temperature = _bounded_temperature(body.get('temperature', 0.7))
+    max_tokens = _bounded_max_tokens(body.get('max_tokens', 1024), default=1024)
 
     messages = []
     if system:
