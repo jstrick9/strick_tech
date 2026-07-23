@@ -150,6 +150,7 @@ from .routers.websocket import router as ws_router
 from .routers.workflow import router as workflow_router
 from .routers.workspaces import router as workspaces_router
 from .services import scheduler as sched_svc
+from .version import VERSION
 from .services.memory_db import (
     agents_seed_defaults,
     audit_list,
@@ -163,7 +164,7 @@ from .services.memory_db import (
 async def lifespan(app: FastAPI):
     # ── Startup ──
     """Execute or process lifespan operation."""
-    log.info('Agentic OS v6.0 starting…')
+    log.info('Agentic OS %s starting…', VERSION)
     ensure_schema()
     agents_seed_defaults()
     # Inject vault secrets into env
@@ -189,7 +190,7 @@ async def lifespan(app: FastAPI):
 
 # ── FastAPI App ────────────────────────────────────────────────────────────────
 app = FastAPI(
-    title='Agentic OS v6.0',
+    title=f'Agentic OS v{VERSION}',
     description=(
         'Local-first Agentic AI Operating System.\n\n'
         '## Features\n'
@@ -206,7 +207,7 @@ app = FastAPI(
         '## Rate Limiting\n'
         '300 requests per minute per IP (5/second average).'
     ),
-    version='6.0.0',
+    version=VERSION,
     lifespan=lifespan,
     docs_url='/docs',
     redoc_url='/redoc',
