@@ -99,13 +99,15 @@ def _sha256(text: str) -> str:
     return hashlib.sha256(text.encode('utf-8')).hexdigest()
 
 
-def _get_chain_tip() -> tuple[int, str]:
-    """Return (last_seq, last_hash). Returns (0, genesis_hash) if chain is empty."""
-    con = _get_conn()
+def _get_chain_tip(con=None) -> tuple[int, str]:
+    """Return (last_seq, last_hash), optionally using an existing transaction."""
+    owns_connection = con is None
+    con = con or _get_conn()
     try:
         row = con.execute('SELECT seq, entry_hash FROM audit_log_chain ORDER BY seq DESC LIMIT 1').fetchone()
     finally:
-        con.close()
+        if owns_connection:
+            con.close()
     if row:
         return row['seq'], row['entry_hash']
     # Genesis block: hash of a fixed string
@@ -143,7 +145,18 @@ def _compute_entry_hash(
     return _sha256(payload)
 
 
-def append_entry(
+import threading
+
+_append_lock = threading.Lock()
+
+
+def append_entry(*args, **kwargs) -> dict:
+    """Serialize local writers before entering the SQLite chain transaction."""
+    with _append_lock:
+        return _append_entry(*args, **kwargs)
+
+
+def _append_entry(
     agent_id: str,
     agent_name: str,
     action_type: str,
@@ -164,14 +177,15 @@ def append_entry(
     created_at = datetime.now(timezone.utc).isoformat()
     meta_str = json.dumps(metadata or {}, default=str)
 
-    _, prev_hash = _get_chain_tip()
-
-    entry_hash = _compute_entry_hash(
-        entry_id, agent_id, action_type, action_detail, reasoning, authority, risk_level, outcome, prev_hash, epoch_ms
-    )
-
     con = _get_conn()
     try:
+        # Serialize writers across processes at the database level so two
+        # simultaneous appenders cannot observe the same chain tip.
+        con.execute('BEGIN IMMEDIATE')
+        _, prev_hash = _get_chain_tip(con)
+        entry_hash = _compute_entry_hash(
+            entry_id, agent_id, action_type, action_detail, reasoning, authority, risk_level, outcome, prev_hash, epoch_ms
+        )
         con.execute(
             """
             INSERT INTO audit_log_chain
