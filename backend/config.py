@@ -49,6 +49,8 @@ class SecurityConfig(BaseModel):
     """Security configuration."""
 
     secret_key: Optional[str] = Field(default=None, description='Secret key for signing')
+    secure_mode: bool = Field(default=False, description='Require bearer auth for API routes')
+    auth_token: Optional[str] = Field(default=None, description='Bearer token for secure mode')
     rate_limit_max: int = Field(default=300, ge=10, description='Max requests per minute')
     rate_limit_window: int = Field(default=60, ge=10, description='Rate limit window (seconds)')
 
@@ -93,6 +95,8 @@ def load_config() -> AppConfig:
         ),
         security=SecurityConfig(
             secret_key=os.getenv('SECRET_KEY'),
+            secure_mode=os.getenv('AGENTIC_OS_SECURE_MODE', 'false').lower() in ('1', 'true', 'yes', 'on'),
+            auth_token=os.getenv('AGENTIC_OS_AUTH_TOKEN'),
             rate_limit_max=int(os.getenv('RATE_LIMIT_MAX', '300')),
             rate_limit_window=int(os.getenv('RATE_LIMIT_WINDOW', '60')),
         ),
