@@ -20,6 +20,7 @@ import contextlib
 import hashlib
 import json
 import logging
+import sqlite3
 import re
 import uuid
 from pathlib import Path
@@ -106,7 +107,7 @@ def _retrieve_chunks(pipeline_id: str, query: str, k: int) -> list[dict]:
             """,
                 (fts_query, pipeline_id, min(k, 20)),
             ).fetchall()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+        except (sqlite3.Error, KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
             rows = con.execute(
                 'SELECT * FROM rag_chunks WHERE pipeline_id=? AND content LIKE ? LIMIT ?',
                 (pipeline_id, f'%{query[:100]}%', min(k, 20)),
