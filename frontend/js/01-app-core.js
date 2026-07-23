@@ -274,8 +274,7 @@ window.nav = function(pane) {
 // ── Agents ───────────────────────────────────────────────────────
 async function loadAgents() {
   try {
-    const r = await fetch('/api/agents');
-    const data = await r.json();
+    const data = await AgenticAPI.get('/api/agents');
     S.agents = Array.isArray(data) ? data : (data.agents || []);
     renderAgentList();
     if (!S.currentAgent) setActiveAgent({ id: 'default', name: 'Direct AI Chat', avatar: '💬', model: '' });
@@ -419,8 +418,13 @@ async function saveAgent() {
   const url    = S.agentModalMode === 'edit' ? `/api/agents/${S.agentModalId}` : '/api/agents';
   const method = S.agentModalMode === 'edit' ? 'PATCH' : 'POST';
 
-  const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-  const j = await r.json();
+  let j;
+  try {
+    j = await AgenticAPI.request(url, { method, body: JSON.stringify(data) });
+  } catch (e) {
+    toast('Error: ' + (e.message || 'request failed'), 'err');
+    return;
+  }
 
   if (j.ok) {
     toast(S.agentModalMode === 'edit' ? `✅ ${name} updated` : `✅ ${name} created`, 'ok');
@@ -435,8 +439,13 @@ async function deleteCurrentAgent() {
   if (!S.agentModalId) return;
   const a = S.agents.find(x => x.id === S.agentModalId);
   if (!(await gmDanger(`Delete Agent`, `Delete "${a?.name}"? This cannot be undone.`))) return;
-  const r = await fetch(`/api/agents/${encodeURIComponent(S.agentModalId)}`, { method: 'DELETE' });
-  const j = await r.json();
+  let j;
+  try {
+    j = await AgenticAPI.delete(`/api/agents/${encodeURIComponent(S.agentModalId)}`);
+  } catch (e) {
+    toast('Error: ' + (e.message || 'request failed'), 'err');
+    return;
+  }
   if (j.ok) {
     toast(`🗑 Agent deleted`, 'ok');
     closeAgentModal();
