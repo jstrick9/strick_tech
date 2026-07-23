@@ -10,6 +10,7 @@ from typing import Optional, Union, Any, Dict, List
 import contextlib
 import json
 import logging
+import re
 import sqlite3
 from pathlib import Path
 
@@ -804,7 +805,10 @@ def hybrid_search(query: str, limit: int = 20) -> list[dict]:
     # 2. SQLite FTS5 search (always available)
     con = get_conn()
     try:
-        fts_query = ' OR '.join(f'"{w}"' for w in query.split()[:8])
+        terms = re.findall(r'[A-Za-z0-9_]{3,}', query)[:8]
+        if not terms:
+            return sorted(results.values(), key=lambda x: x['score'], reverse=True)[:limit]
+        fts_query = ' OR '.join(f'"{term}"' for term in terms)
         rows = con.execute(
             'SELECT m.id, m.source, m.content, m.tags FROM memory m '
             'JOIN memory_fts ON memory_fts.rowid = m.id '
