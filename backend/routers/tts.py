@@ -169,8 +169,11 @@ async def speak(req: Request):
             },
         )
     except Exception as e:
-        log.error('TTS error: %s', e)
-        return JSONResponse({'ok': False, 'error': str(e)}, status_code=500)
+        # edge-tts depends on Microsoft's remote service. Treat an unavailable or
+        # failed provider as a service dependency failure rather than an internal
+        # application error so clients can retry or fall back cleanly.
+        log.error('TTS provider error: %s', e)
+        return JSONResponse({'ok': False, 'error': 'TTS provider unavailable'}, status_code=503)
 
 
 @router.get('/speak')
@@ -218,7 +221,8 @@ async def speak_get(
             iter([audio_bytes]), media_type='audio/mpeg', headers={'X-Cache': 'MISS', 'X-Voice': edge_voice}
         )
     except Exception as e:
-        return JSONResponse({'ok': False, 'error': str(e)}, status_code=500)
+        log.error('TTS provider error: %s', e)
+        return JSONResponse({'ok': False, 'error': 'TTS provider unavailable'}, status_code=503)
 
 
 @router.get('/voices')
