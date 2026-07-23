@@ -1,9 +1,9 @@
-# 🧠 Agentic OS v6.0 — Mission Control
+# 🧠 Agentic OS v11.5.0 — Mission Control
 **Created by Joshua Strickland and Strick Tech**
 
 > **Local-first Agentic AI Operating System** — Multi-agent swarm, Monaco editor, Memory Galaxy, live preview, voice commands, browser automation, and compounding 2-Tier Information Hierarchy (`IVREN`). Available in **Free, Pro, and Enterprise** versions.
 
-![Version](https://img.shields.io/badge/version-6.0-blue)
+![Version](https://img.shields.io/badge/version-11.5.0-blue)
 ![Creator](https://img.shields.io/badge/creator-Joshua%20Strickland%20%7C%20Strick%20Tech-purple)
 ![Editions](https://img.shields.io/badge/editions-Free%20%7C%20Pro%20%7C%20Enterprise-blueviolet)
 ![Tests](https://img.shields.io/badge/tests-876%20passing-green)
@@ -15,7 +15,7 @@
 ```bash
 # 1. Clone the repo
 git clone https://github.com/jstrick9/strick_tech.git
-cd agentic-os
+cd strick_tech
 
 # 2. Add your API key
 cp .env.example .env

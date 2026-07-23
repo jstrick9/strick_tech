@@ -6,6 +6,7 @@ Local-first Agentic AI Operating System
 from __future__ import annotations
 
 import contextlib
+import hmac
 
 import logging
 import os
@@ -248,18 +249,24 @@ app = FastAPI(
 )
 
 _PORT = int(os.getenv('AGENTIC_OS_PORT', '8787'))
+_DEFAULT_ALLOWED_ORIGINS = [
+    f'http://localhost:{_PORT}',
+    f'http://127.0.0.1:{_PORT}',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:1420',  # Tauri dev
+    'tauri://localhost',  # Tauri production
+]
+_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv('AGENTIC_OS_ALLOWED_ORIGINS', ','.join(_DEFAULT_ALLOWED_ORIGINS)).split(',')
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
     # SECURITY FIX: Never combine allow_credentials=True with wildcard origin ("*").
-    # Explicit local-only origins; credentials are safe only with these known origins.
-    allow_origins=[
-        f'http://localhost:{_PORT}',
-        f'http://127.0.0.1:{_PORT}',
-        'http://localhost:3000',
-        'http://localhost:5173',
-        'http://localhost:1420',  # Tauri dev
-        'tauri://localhost',  # Tauri production
-    ],
+    # Explicit origins are configurable for secure reverse-proxy deployments.
+    allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
@@ -283,6 +290,14 @@ try:
     _RATE_LIMIT_MAX = max(10, int(os.getenv('RATE_LIMIT_MAX', '300')))
 except (TypeError, ValueError):
     _RATE_LIMIT_MAX = 300
+# Secure deployment mode is opt-in so existing local-first usage remains
+# frictionless. When enabled, every API route except health checks requires
+# Authorization: Bearer $AGENTIC_OS_AUTH_TOKEN.
+_SECURE_MODE = os.getenv('AGENTIC_OS_SECURE_MODE', 'false').lower() in ('1', 'true', 'yes', 'on')
+_AUTH_TOKEN = os.getenv('AGENTIC_OS_AUTH_TOKEN', '')
+if _SECURE_MODE and not _AUTH_TOKEN:
+    raise RuntimeError('AGENTIC_OS_AUTH_TOKEN is required when AGENTIC_OS_SECURE_MODE is enabled')
+_PUBLIC_SECURE_PATHS = {'/api/system/health', '/api/system/stats'}
 # max requests per configured window (5/sec average by default)
 
 # Security headers for all responses
@@ -318,6 +333,21 @@ async def _security_middleware(request: Request, call_next):
     client_ip = request.client.host if request.client else 'unknown'
     path = request.url.path
     now = _time.time()
+
+    # Secure deployment mode: keep health probes public, require a bearer
+    # token for every other API route. Static frontend delivery remains public
+    # so the application shell can load and then authenticate its API calls.
+    if _SECURE_MODE and path.startswith('/api/') and path not in _PUBLIC_SECURE_PATHS:
+        authorization = request.headers.get('Authorization', '')
+        expected = f'Bearer {_AUTH_TOKEN}'
+        if not hmac.compare_digest(authorization, expected):
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse(
+                {'ok': False, 'error': 'Authentication required'},
+                status_code=401,
+                headers={'WWW-Authenticate': 'Bearer', 'X-Request-ID': request_id},
+            )
 
     # Rate limiting (skip exempt paths and static files during normal traffic, bypass in automated tests)
     if not path.startswith('/static/') and not path.startswith('/preview/') and path not in _RATE_LIMIT_EXEMPT and not os.environ.get('PYTEST_CURRENT_TEST'):
