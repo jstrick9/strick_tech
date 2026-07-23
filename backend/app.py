@@ -271,8 +271,18 @@ app.add_middleware(
 
 # Rate limiting: track requests per IP
 _rate_limit_store: dict[str, list[float]] = defaultdict(list)
-_RATE_LIMIT_WINDOW = 60  # seconds
-_RATE_LIMIT_MAX = 300  # max requests per window (5/sec average)
+# Keep middleware behavior aligned with the validated configuration surface so
+# local deployments and test environments can tune the limit without changing
+# application code. Invalid values fall back to the documented defaults.
+try:
+    _RATE_LIMIT_WINDOW = max(10, int(os.getenv('RATE_LIMIT_WINDOW', '60')))
+except (TypeError, ValueError):
+    _RATE_LIMIT_WINDOW = 60
+try:
+    _RATE_LIMIT_MAX = max(10, int(os.getenv('RATE_LIMIT_MAX', '300')))
+except (TypeError, ValueError):
+    _RATE_LIMIT_MAX = 300
+# max requests per configured window (5/sec average by default)
 
 # Security headers for all responses
 SECURITY_HEADERS = {
