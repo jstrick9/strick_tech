@@ -141,6 +141,39 @@ def _ensure_table():
                     'readme,documentation',
                 ),
             ]
+            # Keep a useful starter library available on a fresh install. These
+            # compact prompts cover the common build, product, and operations
+            # workflows without requiring an external marketplace connection.
+            defaults.extend([
+                ('Plan a product launch', 'Create a product launch plan with milestones, owners, risks, channels, and success metrics.', 'general', 'product,launch,planning'),
+                ('Write user stories', 'Convert this product idea into prioritized user stories with acceptance criteria and edge cases.', 'general', 'product,user-stories,requirements'),
+                ('Design an API contract', 'Design a versioned REST API contract with endpoints, schemas, authentication, pagination, and errors.', 'docs', 'api,rest,contract'),
+                ('Review database indexes', 'Review these queries and recommend indexes, query changes, and migration-safe rollout steps.', 'database', 'sql,indexes,performance'),
+                ('Create a migration plan', 'Create a safe migration plan including backups, compatibility, rollout, validation, and rollback.', 'database', 'migration,rollback,operations'),
+                ('Threat-model a feature', 'Threat-model this feature using assets, actors, trust boundaries, abuse cases, mitigations, and residual risk.', 'auth', 'threat-model,security'),
+                ('Review dependencies', 'Review project dependencies for vulnerabilities, licensing concerns, freshness, and upgrade strategy.', 'quality', 'dependencies,supply-chain'),
+                ('Improve accessibility', 'Audit this interface for WCAG issues and provide prioritized fixes with keyboard and screen-reader behavior.', 'ux', 'accessibility,wcag,ui'),
+                ('Create a UX research plan', 'Create a UX research plan with hypotheses, participant criteria, tasks, questions, and analysis method.', 'ux', 'research,ux,interviews'),
+                ('Analyze user feedback', 'Cluster this user feedback into themes, identify severity and frequency, and recommend product actions.', 'general', 'feedback,analysis,product'),
+                ('Write release notes', 'Write concise release notes grouped by new features, improvements, fixes, breaking changes, and known issues.', 'docs', 'release,notes,changelog'),
+                ('Prepare an incident report', 'Write a blameless incident report with timeline, impact, root cause, contributing factors, and corrective actions.', 'quality', 'incident,postmortem,reliability'),
+                ('Create an observability plan', 'Define logs, metrics, traces, dashboards, alerts, SLOs, and runbooks for this service.', 'quality', 'observability,slo,monitoring'),
+                ('Optimize cloud costs', 'Analyze this architecture for cost drivers and recommend savings while preserving reliability and performance.', 'general', 'cloud,cost,finops'),
+                ('Plan a CI pipeline', 'Design a CI pipeline covering formatting, linting, tests, security scans, artifacts, and deployment gates.', 'build', 'ci,automation,devops'),
+                ('Write a Dockerfile', 'Create a secure production Dockerfile with minimal layers, non-root execution, health checks, and caching.', 'build', 'docker,containers,devops'),
+                ('Review a pull request', 'Review this pull request for correctness, regressions, security, performance, tests, and maintainability.', 'review', 'pull-request,code-review'),
+                ('Explain an architecture', 'Explain this architecture by component, data flow, dependencies, failure modes, and operational responsibilities.', 'docs', 'architecture,documentation'),
+                ('Generate test cases', 'Generate a test matrix for this feature including positive, negative, boundary, concurrency, and recovery cases.', 'testing', 'qa,test-cases'),
+                ('Debug a production issue', 'Triage this production issue from symptoms and logs, propose hypotheses, experiments, mitigation, and permanent fixes.', 'debug', 'production,debugging,incident'),
+                ('Create a performance test', 'Design a performance test with workload model, data volume, concurrency, metrics, thresholds, and analysis.', 'testing', 'performance,load-testing'),
+                ('Plan a refactor', 'Create an incremental refactor plan with seams, compatibility steps, tests, risk controls, and measurable outcomes.', 'refactor', 'refactoring,plan,legacy'),
+                ('Draft a privacy review', 'Review this feature for personal data collection, retention, access, deletion, consent, and disclosure risks.', 'auth', 'privacy,data-protection'),
+                ('Design an event schema', 'Design an event schema with versioning, idempotency, ordering, retention, replay, and compatibility rules.', 'build', 'events,messaging,schema'),
+                ('Create a rollout plan', 'Create a progressive rollout plan with feature flags, cohorts, monitoring, rollback triggers, and communication.', 'quality', 'rollout,feature-flags'),
+                ('Compare implementation options', 'Compare these implementation options using a decision matrix for cost, risk, complexity, performance, and maintainability.', 'general', 'decision,tradeoffs'),
+                ('Turn notes into a spec', 'Turn these notes into a clear technical specification with goals, non-goals, requirements, interfaces, and open questions.', 'docs', 'spec,requirements'),
+                ('Prepare a demo script', 'Create a concise product demo script with setup, narrative, key interactions, expected outcomes, and fallback steps.', 'general', 'demo,presentation'),
+            ])
             for title, content, category, tags in defaults:
                 pid = str(uuid.uuid4())[:8]
                 con.execute(

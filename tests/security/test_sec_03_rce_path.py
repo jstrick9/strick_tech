@@ -7,6 +7,7 @@ OWASP A03:2021 — Injection (Code Injection)
 Critical: these are the most dangerous attack vectors for a local-first platform.
 A successful RCE or path traversal could give an attacker full system access.
 """
+import os
 import pytest, asyncio
 from tests.security.conftest import *
 
@@ -141,7 +142,8 @@ class TestSecPathTraversal:
                 if start_ev:
                     actual_cwd = start_ev.get("cwd", "")
                     # CWD must be constrained to preview dir
-                    preview_dir = "/home/user/agentic-os/preview"
+                    data_dir = os.environ.get("AGENTIC_OS_DATA_DIR")
+                    preview_dir = os.path.join(data_dir, "preview") if data_dir else "/home/user/agentic-os/preview"
                     if actual_cwd and actual_cwd != preview_dir:
                         assert actual_cwd.startswith(preview_dir), \
                             f"Terminal cwd escaped to: {actual_cwd}"

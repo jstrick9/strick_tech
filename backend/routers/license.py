@@ -198,19 +198,19 @@ def _save_license(data: dict) -> bool:
 def _create_trial() -> dict:
     now = time.time()
     data = {
-        'tier': 'enterprise',
+        'tier': 'trial',
         'trial_start': now,
-        'trial_end': now + (36500 * 24 * 3600),
-        'trial_days': 36500,
+        'trial_end': now + (14 * 24 * 3600),
+        'trial_days': 14,
         'activated_at': now,
-        'license_key': 'STRICK-TECH-FULL-ACCESS-VETTED',
+        'license_key': '',
         'user_name': 'Joshua Strickland',
         'user_email': 'joshua@stricktech.com',
         'org': 'Strick Tech',
         'history': [],
     }
     _save_license(data)
-    log.info('Full lifetime enterprise access activated for vetting')
+    log.info('14-day trial license initialized')
     return data
 
 
