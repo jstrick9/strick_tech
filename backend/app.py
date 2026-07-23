@@ -152,6 +152,7 @@ from .routers.workflow import router as workflow_router
 from .routers.workspaces import router as workspaces_router
 from .services import scheduler as sched_svc
 from .version import VERSION
+from .security_auth import require_websocket_auth
 from .services.memory_db import (
     agents_seed_defaults,
     audit_list,
@@ -556,6 +557,8 @@ from .routers.websocket import manager as _ws_manager
 @app.websocket('/ws')
 async def websocket_endpoint_direct(ws: WebSocket):
     """Primary WebSocket endpoint for real-time updates."""
+    if not await require_websocket_auth(ws):
+        return
     await _ws_manager.connect(ws)
     tasks = []
     try:
@@ -612,6 +615,8 @@ async def websocket_endpoint_direct(ws: WebSocket):
 @app.websocket('/api/ws')
 async def hitl_ws_endpoint(ws: WebSocket):
     """Secondary WebSocket for HITL interrupts (frontend at /api/ws)."""
+    if not await require_websocket_auth(ws):
+        return
     await _ws_manager.connect(ws)
     try:
         await _ws_send_init(ws)

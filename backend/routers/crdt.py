@@ -29,6 +29,8 @@ from pathlib import Path
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 
+from ..security_auth import require_websocket_auth
+
 router = APIRouter(prefix='/api/crdt', tags=['crdt'])
 log = logging.getLogger('agentic.crdt')
 
@@ -677,6 +679,8 @@ async def collab_ws(ws: WebSocket, doc_id: str):
       {type:"ack",    revision:N}
       {type:"ping"}
     """
+    if not await require_websocket_auth(ws):
+        return
     await ws.accept()
 
     peer_id = uuid.uuid4().hex[:8]

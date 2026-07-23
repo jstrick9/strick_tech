@@ -15,6 +15,8 @@ import uuid
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 
+from ..security_auth import require_websocket_auth
+
 router = APIRouter(prefix='/api/collab', tags=['collab'])
 
 
@@ -185,6 +187,8 @@ async def collab_ws(ws: WebSocket, session_id: str):
     Client sends: {type, payload}
     Server broadcasts: {type, peer_id, payload, peers}
     """
+    if not await require_websocket_auth(ws):
+        return
     await ws.accept()
 
     # Assign peer ID and color
