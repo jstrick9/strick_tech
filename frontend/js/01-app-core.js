@@ -233,6 +233,7 @@ window.MASTER_PANE_REGISTRY = {
 
 window.nav = function(pane) {
   if (!pane) return;
+  if (window.NavigationState) window.NavigationState.set(pane);
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   
