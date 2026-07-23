@@ -24,6 +24,7 @@ import contextlib
 import json
 import logging
 import re
+import sqlite3
 import uuid
 
 from fastapi import APIRouter, Request
@@ -470,8 +471,8 @@ async def natural_language_query(req: Request):
                 'SELECT e.* FROM kg_entities e JOIN kg_entities_fts fts ON fts.rowid=e.rowid WHERE kg_entities_fts MATCH ? LIMIT 10',
                 (query,),
             ).fetchall()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            # Fallback to LIKE
+        except (sqlite3.Error, KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+            # Fallback to LIKE when SQLite FTS syntax rejects user input.
             ent_rows = con.execute(
                 'SELECT * FROM kg_entities WHERE name LIKE ? OR description LIKE ? LIMIT 10',
                 (f'%{query}%', f'%{query}%'),

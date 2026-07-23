@@ -227,7 +227,9 @@ def _is_ssrf_blocked_url(url: str) -> bool:
 
     try:
         parsed = urllib.parse.urlparse(url)
-        host = parsed.hostname or ''
+        if parsed.scheme not in {'http', 'https'} or not parsed.hostname:
+            return True
+        host = parsed.hostname
         # Block cloud metadata endpoints by hostname
         blocked_hosts = {
             '169.254.169.254',
@@ -243,7 +245,16 @@ def _is_ssrf_blocked_url(url: str) -> bool:
             if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
                 return True
         except ValueError:
-            pass  # not an IP — hostname check above already covers known ones
+            # Python's ipaddress does not parse alternate integer/hex forms
+            # such as 2130706433 or 0x7f000001, both of which represent
+            # 127.0.0.1 and are common SSRF bypasses.
+            try:
+                if host.isdigit() or host.lower().startswith('0x'):
+                    ip = ipaddress.ip_address(int(host, 0))
+                    if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                        return True
+            except (ValueError, OverflowError):
+                pass  # ordinary hostname; continue with hostname checks
         # Block localhost variants
         if host in ('localhost', '0.0.0.0', '::1', '[::1]'):
             return True
