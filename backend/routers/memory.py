@@ -8,6 +8,7 @@ Route ordering: all static paths BEFORE /{memory_id} to avoid wildcard capture.
 from __future__ import annotations
 
 import contextlib
+import json
 
 from fastapi import APIRouter, Request
 
@@ -34,13 +35,20 @@ def stats():
 @router.get('/galaxy')
 def galaxy(limit: int = 200):
     """Execute or process galaxy operation."""
-    return memory_galaxy_graph(min(limit, 500))
+    try:
+        safe_limit = min(500, max(1, int(limit)))
+    except (TypeError, ValueError):
+        safe_limit = 200
+    return memory_galaxy_graph(safe_limit)
 
 
 @router.get('/search')
 def search(q: str = '', mode: str = 'hybrid', limit: int = 20, source: str = ''):
     """Execute or process search operation."""
-    limit = min(int(limit), 100)
+    try:
+        limit = min(100, max(1, int(limit)))
+    except (TypeError, ValueError):
+        limit = 20
     if not q and not source:
         return memory_list(limit=limit)
     if mode == 'keyword' or not q:
@@ -58,13 +66,22 @@ def search(q: str = '', mode: str = 'hybrid', limit: int = 20, source: str = '')
 @router.get('/list')
 def list_memories(limit: int = 100, offset: int = 0, source: str = ''):
     """Retrieve and return list memories."""
-    return memory_list(limit=min(limit, 500), offset=offset, source=source)
+    try:
+        safe_limit = min(500, max(1, int(limit)))
+        safe_offset = max(0, int(offset))
+    except (TypeError, ValueError):
+        safe_limit, safe_offset = 100, 0
+    return memory_list(limit=safe_limit, offset=safe_offset, source=source)
 
 
 @router.get('/export')
 def export_memories(limit: int = 5000, source: str = ''):
     """Export all memories as JSON."""
-    memories = memory_list(limit=min(limit, 10000), offset=0, source=source)
+    try:
+        safe_limit = min(10000, max(1, int(limit)))
+    except (TypeError, ValueError):
+        safe_limit = 5000
+    memories = memory_list(limit=safe_limit, offset=0, source=source)
     return {
         'ok': True,
         'memories': memories,

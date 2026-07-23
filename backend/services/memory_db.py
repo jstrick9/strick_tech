@@ -787,6 +787,13 @@ def hybrid_search(query: str, limit: int = 20) -> list[dict]:
     Merges and re-ranks results by score.
     If Qdrant unavailable, falls back to FTS5 only.
     """
+    query = (query or '').strip()
+    try:
+        limit = min(100, max(1, int(limit)))
+    except (TypeError, ValueError):
+        limit = 20
+    if not query:
+        return []
     results: dict[int, dict] = {}
 
     # 1. Try Qdrant semantic search
