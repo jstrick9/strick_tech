@@ -7,7 +7,7 @@ FROM python:3.12-slim
 # Metadata
 LABEL maintainer="jstrick9"
 LABEL description="Agentic OS — Local-first Agentic AI Operating System"
-LABEL version="6.0.0"
+LABEL version="11.5.0"
 
 # Environment
 ENV PYTHONUNBUFFERED=1 \
