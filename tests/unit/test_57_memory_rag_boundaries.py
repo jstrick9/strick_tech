@@ -17,8 +17,18 @@ def test_empty_hybrid_query_is_safe():
     assert hybrid_search('', limit=9999) == []
 
 
-def test_rag_fts_injection_is_not_a_server_error(client):
-    pipeline = client.post('/api/rag/pipelines', json={'name': 'Boundary RAG'}).json()['pipeline_id']
+def test_rag_pipeline_config_and_retrieval_are_bounded(client):
+    pipeline_response = client.post(
+        '/api/rag/pipelines',
+        json={'name': 'Boundary RAG', 'chunk_strategy': 'not-real', 'chunk_size': 999999, 'chunk_overlap': 999999, 'retrieval_k': 999999},
+    )
+    assert pipeline_response.status_code == 200
+    pipeline = pipeline_response.json()['pipeline_id']
+    details = client.get(f'/api/rag/pipelines/{pipeline}').json()
+    assert details['chunk_strategy'] == 'paragraph'
+    assert details['chunk_size'] == 10000
+    assert details['chunk_overlap'] == 9999
+    assert details['retrieval_k'] == 20
     response = client.post(
         f'/api/rag/pipelines/{pipeline}/retrieve',
         json={'query': "' OR 1=1 -- MATCH (n) DELETE n", 'k': 9999},
