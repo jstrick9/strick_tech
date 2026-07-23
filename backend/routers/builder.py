@@ -35,6 +35,24 @@ MOBILE_DIR.mkdir(exist_ok=True)
 DB = memory_db.get_conn
 
 
+def _is_within(path: Path, root: Path) -> bool:
+    """Return true only when path is root itself or a descendant of root."""
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except ValueError:
+        return False
+
+
+async def _request_json(req: Request) -> dict:
+    """Read a JSON request body without turning malformed input into HTTP 500."""
+    try:
+        body = await req.json()
+        return body if isinstance(body, dict) else {}
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return {}
+
+
 # ── Studio validation ─────────────────────────────────────────────────────────
 @router.post('/api/studio/lint')
 def studio_lint():
@@ -93,7 +111,7 @@ def preview_files():
 def preview_read(path: str = 'index.html'):
     """Execute or process preview read operation."""
     f = (PREVIEW_DIR / path).resolve()
-    if not str(f).startswith(str(PREVIEW_DIR.resolve())):
+    if not _is_within(f, PREVIEW_DIR):
         return PlainTextResponse('forbidden', 403)
     if not f.exists():
         return PlainTextResponse('', 404)
@@ -103,11 +121,11 @@ def preview_read(path: str = 'index.html'):
 @router.post('/api/preview/save')
 async def preview_save(req: Request):
     """Execute or process preview save operation."""
-    d = await req.json()
+    d = await _request_json(req)
     path = d.get('path', 'index.html').lstrip('/')
     content = d.get('content', '')
     f = (PREVIEW_DIR / path).resolve()
-    if not str(f).startswith(str(PREVIEW_DIR.resolve())):
+    if not _is_within(f, PREVIEW_DIR):
         return {'ok': False, 'error': 'path traversal'}
     f.parent.mkdir(parents=True, exist_ok=True)
     old = f.read_text(encoding='utf-8', errors='ignore') if f.exists() else ''
@@ -142,10 +160,10 @@ async def preview_save(req: Request):
 @router.post('/api/preview/new')
 async def preview_new(req: Request):
     """Execute or process preview new operation."""
-    d = await req.json()
+    d = await _request_json(req)
     path = d.get('path', 'untitled.html').lstrip('/')
     f = (PREVIEW_DIR / path).resolve()
-    if not str(f).startswith(str(PREVIEW_DIR.resolve())):
+    if not _is_within(f, PREVIEW_DIR):
         return {'ok': False, 'error': 'path traversal'}
     if f.exists():
         return {'ok': False, 'error': 'file already exists'}
@@ -159,12 +177,12 @@ async def preview_new(req: Request):
 async def preview_delete(req: Request):
     """Execute or process preview delete operation."""
     try:
-        d = await req.json()
+        d = await _request_json(req)
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         d = {}
     path = d.get('path', '').lstrip('/')
     f = (PREVIEW_DIR / path).resolve()
-    if not str(f).startswith(str(PREVIEW_DIR.resolve())):
+    if not _is_within(f, PREVIEW_DIR):
         return {'ok': False, 'error': 'path traversal'}
     if not f.exists():
         return {'ok': False, 'error': 'not found'}
@@ -198,7 +216,7 @@ def preview_version(id: int):
 @router.post('/api/preview/restore')
 async def preview_restore(req: Request):
     """Execute or process preview restore operation."""
-    d = await req.json()
+    d = await _request_json(req)
     con = DB()
     row = con.execute('SELECT path,content FROM file_versions WHERE id=?', (d.get('version_id'),)).fetchone()
     con.close()
@@ -206,7 +224,7 @@ async def preview_restore(req: Request):
         return {'ok': False}
     # FIX 3: re-validate path from DB to prevent traversal (defence in depth)
     p = (PREVIEW_DIR / row['path']).resolve()
-    if not str(p).startswith(str(PREVIEW_DIR.resolve())):
+    if not _is_within(p, PREVIEW_DIR):
         return {'ok': False, 'error': 'path traversal denied'}
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(row['content'], encoding='utf-8')
@@ -223,16 +241,16 @@ async def preview_restore(req: Request):
 @router.post('/api/preview/commit')
 async def preview_commit(req: Request):
     """Execute or process preview commit operation."""
-    d = await req.json()
+    d = await _request_json(req)
     path = d.get('path', 'index.html')
     f = (PREVIEW_DIR / path).resolve()
     # FIX 4: traversal guard on commit path
-    if not str(f).startswith(str(PREVIEW_DIR.resolve())):
+    if not _is_within(f, PREVIEW_DIR):
         return {'ok': False, 'error': 'path traversal denied'}
     if not f.exists():
         f = (MOBILE_DIR / path.replace('mobile/', '')).resolve()
         # FIX B: validate MOBILE fallback path too
-        if not str(f).startswith(str(MOBILE_DIR.resolve())):
+        if not _is_within(f, MOBILE_DIR):
             return {'ok': False, 'error': 'path traversal denied'}
     if not f.exists():
         return {'ok': False}
@@ -252,7 +270,7 @@ async def preview_commit(req: Request):
 @router.post('/api/agent/edit')
 async def agent_edit(req: Request):
     """Streaming inline code edit (⌘K). Diff-friendly output."""
-    d = await req.json()
+    d = await _request_json(req)
     instruction = (d.get('instruction') or '').strip()
     code = d.get('code') or ''
     language = d.get('language') or 'javascript'
@@ -283,7 +301,7 @@ async def agent_edit(req: Request):
 @router.post('/api/agent/fix')
 async def agent_fix(req: Request):
     """Auto-fix an error in a file."""
-    d = await req.json()
+    d = await _request_json(req)
     error = (d.get('error') or '').strip()
     code = d.get('code') or ''
     language = d.get('language') or 'javascript'
@@ -303,7 +321,7 @@ async def agent_fix(req: Request):
 async def complete_code(req: Request):
     """Ghost-text autocomplete. Fast, low-token."""
     try:
-        d = await req.json()
+        d = await _request_json(req)
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         d = {}
     prefix = d.get('prefix', '')[-1800:]
@@ -346,7 +364,7 @@ async def complete_code(req: Request):
 @router.post('/api/preview/scaffold')
 async def preview_scaffold(req: Request):
     """Execute or process preview scaffold operation."""
-    d = await req.json()
+    d = await _request_json(req)
     prompt_raw = d.get('prompt', 'app')
     prompt = prompt_raw.lower()
     framework = d.get('framework', 'auto')
@@ -690,7 +708,7 @@ def pm_list():
 @router.post('/api/pm/add')
 async def pm_add(req: Request):
     """Execute or process pm add operation."""
-    d = await req.json()
+    d = await _request_json(req)
     name = (d.get('name') or '').strip()
     ver = (d.get('version') or 'latest').strip()
     dev = bool(d.get('dev', False))
@@ -720,7 +738,7 @@ async def pm_add(req: Request):
 @router.post('/api/pm/remove')
 async def pm_remove(req: Request):
     """Execute or process pm remove operation."""
-    d = await req.json()
+    d = await _request_json(req)
     name = (d.get('name') or '').strip()
     if not name:
         return {'ok': False, 'error': 'name required'}
