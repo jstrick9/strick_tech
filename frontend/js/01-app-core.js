@@ -829,8 +829,7 @@ function setupMonaco() {
 
 async function loadFileTree() {
   try {
-    const r = await fetch('/api/preview/files');
-    const files = await r.json();
+    const files = await AgenticAPI.get('/api/preview/files');
     const el = document.getElementById('file-tree');
     if (!el) return;
     if (!files.length) {
@@ -1018,8 +1017,7 @@ async function renderKanban() {
   <div id="kb-board" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;flex:1;overflow:hidden"></div>`;
 
   try {
-    const r    = await fetch('/api/kanban');
-    const data = await r.json();
+    const data = await AgenticAPI.get('/api/kanban');
     const COLS = [
       {id:'todo',    label:'📋 To Do',   color:'#5b8af8'},
       {id:'doing',   label:'⚡ Doing',   color:'#f0c060'},
@@ -1365,9 +1363,7 @@ function acceptWinnerToMonaco() {
 
 async function loadSwarmHistory() {
   try {
-    const r = await fetch('/api/swarm/history?limit=10');
-    if (!r.ok) { toast('Failed to load history: server error ' + r.status, 'err'); return; }
-    const j = await r.json();
+    const j = await AgenticAPI.get('/api/swarm/history?limit=10');
     if (!j.length) { toast('No swarm history yet','warn'); return; }
     const items = j.map(h => `${h.ts} — ${h.winner||'?'} won — ${h.strategy} — agents: ${(h.agents||[]).join(', ')}\n  ${h.prompt?.slice(0,80)||''}`).join('\n\n');
     await gmAlert('🌀 Swarm History (last 10)', `<pre style="font-size:12px;white-space:pre-wrap;max-height:340px;overflow-y:auto">${escHtml(items)}</pre>`);
@@ -1569,9 +1565,7 @@ async function ingestMemory() {
 
 async function gxLoadStats() {
   try {
-    const r = await fetch('/api/memory/stats');
-    if (!r.ok) return;
-    const d = await r.json();
+    const d = await AgenticAPI.get('/api/memory/stats');
     const el = document.getElementById('gx-mem-stats');
     if (!el) return;
     el.innerHTML = `
@@ -1584,9 +1578,7 @@ async function gxLoadStats() {
 async function gxReindex() {
   showToast('🔄 Reindexing FTS…');
   try {
-    const r = await fetch('/api/memory/reindex', {method:'POST'});
-    if (!r.ok) { gmAlert('Reindex failed: HTTP '+r.status); return; }
-    const d = await r.json();
+    const d = await AgenticAPI.post('/api/memory/reindex');
     if (d.ok) showToast(`✅ Reindexed ${d.total} memories`);
     else gmAlert('Reindex error: '+(d.error||'Unknown'));
   } catch(ex) {
@@ -3891,8 +3883,7 @@ async function stopTunnel() {
 
 async function loadDeployHistory() {
   try {
-    const r = await fetch('/api/deploy/history');
-    const j = await r.json();
+    const j = await AgenticAPI.get('/api/deploy/history');
     const el = document.getElementById('deploy-history');
     if (!el) return;
     if (!j.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:13px">No deploys yet.</div>'; return; }
@@ -3989,9 +3980,7 @@ async function checkTTSStatus() {
 // Load voice settings for agent voice picker
 async function loadTTSVoices() {
   try {
-    const r = await fetch('/api/tts/voices');
-    if (!r.ok) return null;
-    return await r.json();
+    return await AgenticAPI.get('/api/tts/voices');
   } catch(e) { return null; }
 }
 
