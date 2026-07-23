@@ -21,6 +21,7 @@ import json
 import logging
 import re
 import shutil
+import uuid
 import zipfile
 from pathlib import Path
 
@@ -1082,10 +1083,20 @@ async def upload_pack(file: UploadFile = File(...)):
                 return {'ok': False, 'error': 'manifest.json must have a safe id field'}
             manifest['id'] = pack_id
 
-            # Extract to pack dir with traversal and decompression-bomb limits.
+            # Extract into a temporary sibling and promote only after every entry
+            # passes validation, preventing partial failed uploads from becoming
+            # visible as installed packs.
             pack_dir = PACKS_DIR / pack_id
-            pack_dir.mkdir(exist_ok=True)
-            _safe_extract_zip(zf, pack_dir)
+            temp_dir = PACKS_DIR / f'.{pack_id}.upload_{uuid.uuid4().hex[:8]}'
+            temp_dir.mkdir(parents=True, exist_ok=False)
+            try:
+                _safe_extract_zip(zf, temp_dir)
+                if pack_dir.exists():
+                    shutil.rmtree(pack_dir)
+                temp_dir.rename(pack_dir)
+            finally:
+                if temp_dir.exists():
+                    shutil.rmtree(temp_dir, ignore_errors=True)
     except Exception as ex:
         return {'ok': False, 'error': f'Invalid ZIP: {ex}'}
 

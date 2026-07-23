@@ -19,6 +19,8 @@ def test_marketplace_zip_rejects_path_traversal(client):
     response = client.post('/api/marketplace/upload', files={'file': ('pack.zip', data, 'application/zip')})
     assert response.status_code == 200
     assert response.json().get('ok') is False
+    from backend.routers.marketplace import PACKS_DIR
+    assert not (PACKS_DIR / 'boundary-pack').exists()
 
 
 def test_marketplace_zip_requires_manifest(client):
