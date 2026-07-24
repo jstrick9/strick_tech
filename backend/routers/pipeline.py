@@ -7,8 +7,6 @@ Results stream back with live progress events.
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import logging
 import time
@@ -62,7 +60,7 @@ async def pipeline_run(req: Request):
         body = {}
     goal = (body.get('goal') or body.get('prompt') or '').strip()
     stages = body.get('stages') or STAGE_ORDER
-    target = body.get('target', 'web')
+    body.get('target', 'web')
     stream_out = body.get('stream', True)
     run_id = f'pipe_{uuid.uuid4().hex[:8]}'
     t_total = time.time()

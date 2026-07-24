@@ -5,10 +5,7 @@ and auto-documentation generation (README, API docs, changelog).
 """
 
 from __future__ import annotations
-from typing import Optional, Union, Any, Dict, List
 
-import contextlib
-import httpx
 import json
 import logging
 import os
@@ -23,6 +20,7 @@ router = APIRouter(prefix='/api/integrations', tags=['integrations'])
 log = logging.getLogger('agentic.integrations')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
@@ -116,7 +114,7 @@ _INT_BY_ID = {i['id']: i for i in INTEGRATIONS}
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-def _safe_preview_path(filename: str) ->Optional[ Path]:
+def _safe_preview_path(filename: str) ->Path | None:
     """Resolve a filename inside PREVIEW_DIR, blocking path traversal."""
     # Strip any leading slashes / dotdot components from filename
     safe_name = Path(filename).name if '/' not in filename else Path(filename).as_posix().lstrip('/')

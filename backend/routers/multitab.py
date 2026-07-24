@@ -6,13 +6,10 @@ Each tab has its own URL, file, title, and refresh state.
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import logging
 import time
 import uuid
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -20,6 +17,7 @@ router = APIRouter(prefix='/api/multitab', tags=['multitab'])
 log = logging.getLogger('agentic.multitab')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 

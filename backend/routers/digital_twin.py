@@ -4,17 +4,19 @@ Synchronizes live spatial computing (`Apple Vision Pro` / `OpenXR`) with 3D Memo
 Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 """
 from __future__ import annotations
+
 import json
 import time
 import uuid
-from pathlib import Path
-from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
-from fastapi import APIRouter, HTTPException
+from typing import Any
+
+from fastapi import APIRouter
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/digital-twin", tags=["digital-twin"])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 TWIN_DIR = MEMORY_DIR / "digital_twin"
@@ -36,7 +38,7 @@ if not (ANCHORS_DIR / "anchor_desk_main.json").exists():
 
 class SpatialAnchorRequest(BaseModel):
     """Pydantic data model for SpatialAnchorRequest."""
-    anchor_id: Optional[str] = None
+    anchor_id: str | None = None
     name: str = "Warehouse Shelf B Spatial Overlay"
     pose: dict[str, Any] = {"position": [4.5, 1.8, 12.0], "orientation_quaternion": [0.0, 0.0, 0.0, 1.0]}
     bound_agent_id: str = "robotics_orchestrator"

@@ -14,9 +14,8 @@ Features:
 
 from __future__ import annotations
 
-import contextlib
-
 import ast
+import contextlib
 import json
 import logging
 import re
@@ -28,6 +27,7 @@ router = APIRouter(prefix='/api/codeindex', tags=['codeindex'])
 log = logging.getLogger('agentic.codeindex')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 

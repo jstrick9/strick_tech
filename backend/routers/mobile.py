@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import json
 import time
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -16,6 +15,7 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/api/mobile", tags=["mobile"])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 MOBILE_DEVICES_FILE = MEMORY_DIR / "mobile_devices.json"

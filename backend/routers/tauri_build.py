@@ -4,17 +4,15 @@ Check build status, trigger builds, download artifacts.
 """
 
 from __future__ import annotations
-from typing import Optional, Union, Any, Dict, List
-
-import contextlib
 
 import asyncio
+import contextlib
+import importlib
 import json
 import logging
 import os
 import shutil
 import subprocess
-from pathlib import Path
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
@@ -23,11 +21,12 @@ router = APIRouter(prefix='/api/tauri', tags=['tauri'])
 log = logging.getLogger('agentic.tauri')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 TAURI_DIR = ROOT / 'src-tauri'
 SCRIPTS = ROOT / 'scripts'
 
-_build_process: Optional[asyncio.subprocess.Process] = None
+_build_process: asyncio.subprocess.Process | None = None
 _build_log: list[str] = []
 _build_status = 'idle'  # idle | building | success | failed
 
@@ -99,12 +98,7 @@ def tauri_status():
             tauri_version = r.stdout.strip()
 
     # Check Python ready
-    py_ok = True
-    try:
-        import fastapi
-        import uvicorn
-    except ImportError:
-        py_ok = False
+    py_ok = importlib.util.find_spec('fastapi') is not None and importlib.util.find_spec('uvicorn') is not None
 
     return {
         'rust': {'available': rust_ok, 'version': rust_version},
@@ -148,6 +142,7 @@ async def stream_tauri_setup():
     """Stream SSE live progress for Rust and Tauri CLI installation."""
     import asyncio
     import json
+
     from fastapi.responses import StreamingResponse
 
     async def event_generator():

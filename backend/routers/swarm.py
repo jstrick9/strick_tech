@@ -6,8 +6,6 @@ judges best response, optionally merges top-2.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import json
 import time
@@ -26,12 +24,12 @@ def _bounded_int(value, default: int, minimum: int, maximum: int) -> int:
         return default
 
 
-JUDGE_SYSTEM = """You are a neutral judge evaluating AI responses. 
+JUDGE_SYSTEM = """You are a neutral judge evaluating AI responses.
 Score each response 0.0–1.0 on: accuracy, depth, clarity, and usefulness.
 Return ONLY valid JSON: {"winner": "<agent_id>", "scores": {"<agent_id>": <float>}, "reason": "<one sentence>"}
 No markdown fences, no explanation outside the JSON."""
 
-MERGE_SYSTEM = """You are a synthesis expert. 
+MERGE_SYSTEM = """You are a synthesis expert.
 Merge the best ideas from the provided agent responses into one superior, coherent response.
 Preserve the strongest points from each. Output clean Markdown."""
 

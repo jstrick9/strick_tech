@@ -12,9 +12,6 @@ Also includes:
 """
 
 from __future__ import annotations
-from typing import Optional, Union, Any, Dict, List
-
-import contextlib
 
 import asyncio
 import json
@@ -166,7 +163,7 @@ Synthesize into one optimal answer:"""
     return result.get('text', '')
 
 
-def _validate_prompt_or_messages(prompt: str, messages:Optional[ list]) ->Optional[ str]:
+def _validate_prompt_or_messages(prompt: str, messages:list | None) ->str | None:
     """Return error string if neither prompt nor messages are usable."""
     if prompt:
         return None
@@ -561,7 +558,7 @@ Return ONLY the JSON, no explanation."""
         worker_results = await asyncio.gather(*worker_tasks)
 
         subtask_results = []
-        for i, (st, wr) in enumerate(zip(subtasks, worker_results)):
+        for i, (st, wr) in enumerate(zip(subtasks, worker_results, strict=False)):
             subtask_results.append({'subtask': st, 'result': wr.get('text', ''), 'tokens': wr.get('tokens', 0)})
             yield f'data: {json.dumps({"type": "subtask_done", "index": i, "subtask": st[:80], "result_len": len(wr.get("text", "")), "error": wr.get("error", False)})}\n\n'
 

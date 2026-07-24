@@ -12,13 +12,10 @@ Structured goal lifecycle management:
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -27,6 +24,7 @@ router = APIRouter(prefix='/api/goals', tags=['goal-manager'])
 log = logging.getLogger('agentic.goals')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -372,11 +370,11 @@ async def launch_goal(goal_id: str, req: Request):
     """Launch a supervisor run to autonomously execute this goal."""
     try:
         try:
-            body = await req.json()
+            await req.json()
         except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
+            pass
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        body = {}
+        pass
 
     con = _get_conn()
     try:
@@ -860,9 +858,9 @@ async def score_goal_outcome(goal_id: str, req: Request):
     - Returns full scoring breakdown
     """
     try:
-        body = await req.json()
+        await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+        pass
 
     con = _get_conn()
     try:

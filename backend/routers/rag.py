@@ -16,14 +16,12 @@ Features:
 from __future__ import annotations
 
 import contextlib
-
 import hashlib
 import json
 import logging
-import sqlite3
 import re
+import sqlite3
 import uuid
-from pathlib import Path
 
 from fastapi import APIRouter, File, Request, UploadFile
 
@@ -31,6 +29,7 @@ router = APIRouter(prefix='/api/rag', tags=['rag'])
 log = logging.getLogger('agentic.rag')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 DOCS_DIR = ROOT / 'workspaces' / 'rag_documents'
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
@@ -417,7 +416,7 @@ async def eval_rag(pipeline_id: str, req: Request):
     query = body.get('query', '')
     answer = body.get('answer', '')
     contexts = body.get('contexts', [])  # retrieved chunks
-    ground_truth = body.get('ground_truth', '')  # optional expected answer
+    body.get('ground_truth', '')  # optional expected answer
 
     if not query or not answer:
         return {'ok': False, 'error': 'query and answer required'}

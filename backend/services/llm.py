@@ -6,8 +6,6 @@ All calls are async. Streaming via async generators.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import json
 import logging

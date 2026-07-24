@@ -4,18 +4,20 @@ Enables deep-space high-latency agent collaboration using Delay-Tolerant Network
 Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 """
 from __future__ import annotations
+
 import hashlib
 import json
 import time
 import uuid
-from pathlib import Path
 from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/satellite", tags=["satellite"])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 SATELLITE_DIR = MEMORY_DIR / "satellite"
@@ -104,7 +106,7 @@ def transmit_dtn_bundle(bundle_id: str) -> dict[str, Any]:
     if not bundle_file.exists():
         raise HTTPException(status_code=404, detail="DTN bundle not found in transmission queue")
     meta = json.loads(bundle_file.read_text(encoding="utf-8"))
-    
+
     meta["status"] = "transmitted_custody_accepted"
     meta["transmitted_at"] = time.time()
     bundle_file.write_text(json.dumps(meta, indent=2), encoding="utf-8")

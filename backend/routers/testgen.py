@@ -6,8 +6,6 @@ Supports Jest, pytest, Vitest, Mocha, and Playwright.
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import logging
 from pathlib import Path
@@ -21,6 +19,7 @@ router = APIRouter(prefix='/api/testgen', tags=['testgen'])
 log = logging.getLogger('agentic.testgen')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
@@ -162,9 +161,9 @@ async def generate_project_tests(req: Request):
         try:
 
             class _Req:
-                async def json(self_inner):
+                async def json(self_inner, _fp=filepath, _fw=framework):
                     """Execute or process json operation."""
-                    return {'filepath': filepath, 'framework': framework, 'stream': False}
+                    return {'filepath': _fp, 'framework': _fw, 'stream': False}
 
             r = await generate_tests(_Req())
             results.append({'file': filepath, 'test': r.get('test_file', ''), 'ok': r.get('ok', False)})
@@ -232,7 +231,6 @@ async def run_tests(req: Request):
 @router.get('/generate-for-project')
 def generate_project_tests_get(framework: str = 'pytest', max_files: int = 10):
     """GET version of generate-for-project — returns existing test files list."""
-    from pathlib import Path
 
     preview = Path(__file__).resolve().parents[2] / 'preview'
     test_files = []

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
+from typing import Any
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -43,7 +43,7 @@ class NotificationCreate(BaseModel):
     title: str
     message: str
     type: str = 'info'  # info, success, warning, error
-    link:Optional[ str] = None
+    link:str | None = None
 
 
 @router.get('/list')

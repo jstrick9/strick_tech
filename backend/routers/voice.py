@@ -6,8 +6,6 @@ Uses browser WebSpeech API on frontend; backend handles command routing.
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import logging
 import re

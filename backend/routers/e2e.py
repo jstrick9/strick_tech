@@ -13,11 +13,11 @@ from __future__ import annotations
 import asyncio
 import base64
 import datetime
+import importlib
 import json
 import logging
 import time
 import uuid
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -32,6 +32,7 @@ router = APIRouter(prefix='/api/e2e', tags=['e2e'])
 log = logging.getLogger('agentic.e2e')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
@@ -192,13 +193,7 @@ def e2e_status():
     """Quick status: playwright installed? last run score?"""
     from ..services.memory_db import get_conn
 
-    pw = False
-    try:
-        import playwright
-
-        pw = True
-    except ImportError:
-        pass
+    pw = importlib.util.find_spec('playwright') is not None
     con = get_conn()
     try:
         last = con.execute(
@@ -215,12 +210,7 @@ def e2e_status():
 
 # ── Playwright trace ───────────────────────────────────────────────────────────
 async def _check_playwright() -> bool:
-    try:
-        from playwright.async_api import async_playwright
-
-        return True
-    except ImportError:
-        return False
+    return importlib.util.find_spec('playwright.async_api') is not None
 
 
 async def _playwright_trace(url: str, target: str, run_id: str) -> list[dict]:
@@ -479,9 +469,7 @@ async def playwright_status():
     try:
         from playwright.async_api import async_playwright
 
-        installed = True
     except ImportError:
-        installed = False
         return {
             'installed': False,
             'browser_ready': False,
@@ -490,14 +478,12 @@ async def playwright_status():
         }
 
     # Check if browser binary is available
-    browser_ready = False
     try:
         from playwright.async_api import async_playwright
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             await browser.close()
-            browser_ready = True
     except Exception as ex:
         return {
             'installed': True,

@@ -26,15 +26,13 @@ Specialist agents:
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
+import contextlib
 import json
 import logging
 import time
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -43,6 +41,7 @@ router = APIRouter(prefix='/api/supervisor', tags=['supervisor'])
 log = logging.getLogger('agentic.supervisor')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -260,7 +259,7 @@ async def _execute_task(task: dict, run_id: str, goal_text: str, context_so_far:
     from ..services.llm import complete
 
     agent_id = task.get('agent_id', 'brain')
-    task_id = task['task_id']
+    task['task_id']
     title = task['title']
     desc = task['description']
 
@@ -363,7 +362,7 @@ async def _synthesize(goal_text: str, completed_tasks: list[dict]) -> str:
 # ── Topological sort (respect depends_on) ────────────────────────────────────
 def _topo_sort(tasks: list[dict]) -> list[list[dict]]:
     """Return tasks grouped into waves that can execute in parallel."""
-    seq_map = {t['seq']: t for t in tasks}
+    {t['seq']: t for t in tasks}
     waves: list[list[dict]] = []
     remaining = list(tasks)
     completed_seqs: set = set()
@@ -531,7 +530,7 @@ async def _run_supervisor(run_id: str, goal_id: str, goal_text: str):
                 if task.get('hitl_required') and task.get('risk_level') in ('high', 'critical'):
                     _update_task(task['task_id'], status='awaiting_hitl')
                     try:
-                        hitl_resp = await asyncio.get_event_loop().run_in_executor(
+                        await asyncio.get_event_loop().run_in_executor(
                             None,
                             __import__('requests').post,
                             f'http://127.0.0.1:{int(__import__("os").getenv("AGENTIC_OS_PORT", "8787"))}/api/hitl/interrupt',
@@ -933,10 +932,9 @@ def get_dag(run_id: str):
         changed = False
         for t in tasks_d:
             deps = t['depends_on']
-            if deps and t['seq'] not in wave_of:
-                if all(d in wave_of for d in deps):
-                    wave_of[t['seq']] = max(wave_of[d] for d in deps) + 1
-                    changed = True
+            if deps and t['seq'] not in wave_of and all(d in wave_of for d in deps):
+                wave_of[t['seq']] = max(wave_of[d] for d in deps) + 1
+                changed = True
 
     # Group by wave
     waves: dict[int, list] = {}
@@ -1011,7 +1009,6 @@ async def stream_run_updates(run_id: str):
     async def _gen():
         import asyncio
 
-        last_status = ''
         for _ in range(180):  # max 15 min at 5s poll
             con = _get_conn()
             try:

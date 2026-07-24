@@ -24,15 +24,12 @@ Tables used:
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import logging
 import math
 import statistics
 import uuid
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -41,6 +38,7 @@ router = APIRouter(prefix='/api/drift', tags=['drift'])
 log = logging.getLogger('agentic.drift')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 # ── Schema (tables created in seeding; ensure they exist) ─────────────────────
@@ -324,7 +322,7 @@ def compute_drift_score(agent_id: str, window_label: str = '1h') -> dict:
         ).fetchall()
 
         # Previous same-window data (for trend)
-        prev = con.execute(
+        con.execute(
             """
             SELECT latency_ms, cost_usd, tokens, success
             FROM agent_performance

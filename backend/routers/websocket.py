@@ -6,9 +6,8 @@ Clients connect to /ws and receive JSON events.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
+import contextlib
 import json
 import logging
 import time

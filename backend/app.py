@@ -5,9 +5,7 @@ Local-first Agentic AI Operating System
 
 from __future__ import annotations
 
-import contextlib
 import hmac
-
 import logging
 import os
 import time as _time
@@ -69,42 +67,36 @@ from .routers.arena import router as arena_router
 
 # ── Sprint A: Governance Foundation ───────────────────────────────────────────
 from .routers.audit_log import router as audit_log_router
+from .routers.bci import router as bci_router
+from .routers.bounty_hunter import router as bounty_hunter_router
 from .routers.browser_agent import router as browser_router
 from .routers.bugbot import router as bugbot_router
 from .routers.builder import router as builder_router
 
 # ── Routers ────────────────────────────────────────────────────────────────────
 from .routers.chat import router as chat_router
+from .routers.cluster import router as cluster_router
 from .routers.codeindex import router as codeindex_router
 from .routers.codesearch import router as codesearch_router
 from .routers.collab import router as collab_router
+from .routers.compiler import router as compiler_router
 from .routers.compliance import router as compliance_router
 from .routers.control_tower import router as control_tower_router
 from .routers.crdt import router as crdt_router
 from .routers.database import router as database_router
 from .routers.deploy import router as deploy_router
+from .routers.digital_twin import router as digital_twin_router
 from .routers.docs_center import router as docs_router
 from .routers.documents import router as documents_router
 from .routers.drift import router as drift_router
 from .routers.e2e import router as e2e_router
 from .routers.evals import router as evals_router
+from .routers.finetune import router as finetune_router
 from .routers.fusion import router as fusion_router
 from .routers.gitai import router as gitai_router
 from .routers.github import router as github_router
 from .routers.hierarchy import router as hierarchy_router
 from .routers.hitl import router as hitl_router
-from .routers.rbac import router as rbac_router
-from .routers.telephony import router as telephony_router
-from .routers.cluster import router as cluster_router
-from .routers.finetune import router as finetune_router
-from .routers.bounty_hunter import router as bounty_hunter_router
-from .routers.p2p_sharding import router as p2p_sharding_router
-from .routers.pqc import router as pqc_router
-from .routers.robotics import router as robotics_router
-from .routers.bci import router as bci_router
-from .routers.compiler import router as compiler_router
-from .routers.digital_twin import router as digital_twin_router
-from .routers.satellite import router as satellite_router
 from .routers.hooks import router as hooks_router
 from .routers.imagegen import router as imagegen_router
 from .routers.integrations import router as integrations_router
@@ -121,13 +113,18 @@ from .routers.notifications import router as notifications_router
 from .routers.observability import router as observability_router
 from .routers.obsidian import router as obsidian_router
 from .routers.onboarding import router as onboarding_router
+from .routers.p2p_sharding import router as p2p_sharding_router
 from .routers.pipeline import router as pipeline_router
 from .routers.plugins import router as plugins_router
 from .routers.pluginsdk import router as pluginsdk_router
+from .routers.pqc import router as pqc_router
 from .routers.profiler import router as profiler_router
 from .routers.prompts import router as prompts_router
 from .routers.rag import router as rag_router
+from .routers.rbac import router as rbac_router
 from .routers.replay import router as replay_router
+from .routers.robotics import router as robotics_router
+from .routers.satellite import router as satellite_router
 from .routers.search import router as search_router
 from .routers.secrets import router as secrets_router
 from .routers.security import router as security_router
@@ -139,6 +136,7 @@ from .routers.swarm import router as swarm_router
 from .routers.sync import router as sync_router
 from .routers.system import router as system_router
 from .routers.tauri_build import router as tauri_router
+from .routers.telephony import router as telephony_router
 from .routers.templates import router as templates_router
 from .routers.terminal import router as terminal_router
 from .routers.testgen import router as testgen_router
@@ -150,15 +148,15 @@ from .routers.websearch import router as websearch_router
 from .routers.websocket import router as ws_router
 from .routers.workflow import router as workflow_router
 from .routers.workspaces import router as workspaces_router
-from .services import scheduler as sched_svc
-from .version import VERSION
 from .security_auth import require_websocket_auth
+from .services import scheduler as sched_svc
 from .services.memory_db import (
     agents_seed_defaults,
     audit_list,
     ensure_schema,
     get_conn,
 )
+from .version import VERSION
 
 
 # ── Lifespan (startup / shutdown) ──────────────────────────────────────────────
@@ -414,6 +412,7 @@ for _candidate in _possible_frontends:
         break
 
 from backend.config import get_data_dir
+
 _data_root = get_data_dir()
 PREVIEW_DIR = _data_root / 'preview'
 PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
@@ -918,7 +917,7 @@ async def tasks_update_post(task_id: int, req: Request):
 def tasks_delete(task_id: int):
     """Execute or process tasks delete operation."""
     con = get_conn()
-    cur = con.execute('DELETE FROM tasks WHERE id=?', (task_id,))
+    con.execute('DELETE FROM tasks WHERE id=?', (task_id,))
     con.execute("INSERT INTO audit(action,detail) VALUES ('task_delete',?)", (str(task_id),))
     con.commit()
     con.close()

@@ -6,8 +6,6 @@ build personal + global leaderboard from real-task performance.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import json
 import logging

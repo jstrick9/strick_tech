@@ -8,7 +8,6 @@ Streams audio directly to the browser or saves to file.
 from __future__ import annotations
 
 import contextlib
-
 import hashlib
 import io
 import json
@@ -23,6 +22,7 @@ router = APIRouter(prefix='/api/tts', tags=['tts'])
 log = logging.getLogger('agentic.tts')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 CACHE_DIR = ROOT / 'memory' / 'tts_cache'
 CACHE_DIR.mkdir(parents=True, exist_ok=True)

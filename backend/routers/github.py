@@ -7,14 +7,12 @@ Matches or exceeds Lovable's GitHub integration.
 
 from __future__ import annotations
 
-import contextlib
-
 import base64
+import contextlib
 import json
 import logging
 import os
 import time
-from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, Request
@@ -22,6 +20,7 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/github', tags=['github'])
 log = logging.getLogger('agentic.github')
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 GITHUB_API = 'https://api.github.com'

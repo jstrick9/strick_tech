@@ -4,17 +4,19 @@ Manages training datasets, local LoRA adapter training loops, and model weight e
 Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 """
 from __future__ import annotations
+
 import json
 import time
 import uuid
-from pathlib import Path
-from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/finetune", tags=["finetune"])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 FINETUNE_DIR = MEMORY_DIR / "finetune"
@@ -30,7 +32,7 @@ ADAPTERS_DIR.mkdir(parents=True, exist_ok=True)
 
 class DatasetCreateRequest(BaseModel):
     """Pydantic data model for DatasetCreateRequest."""
-    dataset_id:Optional[ str] = None
+    dataset_id:str | None = None
     name: str = "Chat History Fine-Tune Set"
     source_type: str = "chat_history"  # chat_history, eval_suites, custom_rows
     custom_rows: list[dict[str, str]] = []
@@ -38,7 +40,7 @@ class DatasetCreateRequest(BaseModel):
 
 class JobStartRequest(BaseModel):
     """Pydantic data model for JobStartRequest."""
-    job_id:Optional[ str] = None
+    job_id:str | None = None
     dataset_id: str
     base_model: str = "llama3.1:8b"
     lora_rank: int = 16

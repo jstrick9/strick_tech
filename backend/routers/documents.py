@@ -1,11 +1,10 @@
 """Safe local document-to-text extraction for Chat attachments."""
 from __future__ import annotations
 
+import xml.etree.ElementTree as ET
 from io import BytesIO
 from pathlib import Path
 from zipfile import BadZipFile, ZipFile
-import re
-import xml.etree.ElementTree as ET
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 

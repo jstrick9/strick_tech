@@ -4,18 +4,20 @@ Provides Role-Based Access Control, user assignments, and fine-grained API token
 Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 """
 from __future__ import annotations
+
 import hashlib
 import json
 import secrets
 import time
-from pathlib import Path
 from typing import Any
-from fastapi import APIRouter, HTTPException, Request
+
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/rbac", tags=["rbac"])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 RBAC_DIR = MEMORY_DIR / "rbac"

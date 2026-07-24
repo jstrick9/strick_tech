@@ -11,12 +11,13 @@ import asyncio
 import json
 import time
 from pathlib import Path
-from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
+from typing import Any
 
 from fastapi import APIRouter, Request
 
 router = APIRouter(prefix='/api/mcp', tags=['mcp'])
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 
@@ -368,9 +369,9 @@ async def _shell_run(command: str, cwd: str = '') -> dict:
             'command': command,
         }
     except asyncio.TimeoutError:
-        raise ToolError('Command timed out (15s)')
+        raise ToolError('Command timed out (15s)') from None
     except Exception as e:
-        raise ToolError(str(e))
+        raise ToolError(str(e)) from e
 
 
 async def _git_status() -> dict:
@@ -535,7 +536,7 @@ async def _http_get(url: str, headers: dict = None) -> dict:
             body = resp.text[:8000] if 'text' in ct or 'json' in ct else f'[binary {len(resp.content)} bytes]'
             return {'url': url, 'status': resp.status_code, 'content_type': ct, 'body': body}
     except Exception as e:
-        raise ToolError(str(e))
+        raise ToolError(str(e)) from e
 
 
 async def _http_post(url: str, body: Any = None, headers: dict = None) -> dict:
@@ -548,7 +549,7 @@ async def _http_post(url: str, body: Any = None, headers: dict = None) -> dict:
             resp = await client.post(url, json=body, headers=headers or {})
             return {'url': url, 'status': resp.status_code, 'body': resp.text[:4000]}
     except Exception as e:
-        raise ToolError(str(e))
+        raise ToolError(str(e)) from e
 
 
 async def _web_search(query: str, limit: int = 5) -> dict:
@@ -592,13 +593,12 @@ async def _run_python(code: str) -> dict:
                 if name in ('exec', 'eval', 'open', 'compile', '__import__', 'breakpoint'):
                     raise ToolError(f"Function '{name}' not allowed in code.run.")
             # Block attribute access to os/sys/subprocess via dunder
-            if isinstance(node, _ast.Attribute):
-                if node.attr.startswith('__') and node.attr.endswith('__'):
-                    raise ToolError('Dunder attribute access not allowed.')
+            if isinstance(node, _ast.Attribute) and node.attr.startswith('__') and node.attr.endswith('__'):
+                raise ToolError('Dunder attribute access not allowed.')
     except ToolError:
         raise
     except Exception as parse_err:
-        raise ToolError(f'Code parse error: {parse_err}')
+        raise ToolError(f'Code parse error: {parse_err}') from parse_err
     try:
         proc = await asyncio.create_subprocess_exec(
             'python3',
@@ -614,12 +614,12 @@ async def _run_python(code: str) -> dict:
             'returncode': proc.returncode,
         }
     except asyncio.TimeoutError:
-        raise ToolError('Code execution timed out (5s)')
+        raise ToolError('Code execution timed out (5s)') from None
     except Exception as e:
-        raise ToolError(str(e))
+        raise ToolError(str(e)) from e
 
 
-def _extract_json(text: str) ->Optional[ dict]:
+def _extract_json(text: str) ->dict | None:
     """Extract first JSON object from text (handles nested objects)."""
     # Find JSON objects using bracket counting (not regex) to handle nesting
     for i, ch in enumerate(text):

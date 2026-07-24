@@ -19,14 +19,11 @@ Hooks are stored in .agentic/hooks.yaml and in SQLite.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import json
 import logging
 import time
 import uuid
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -34,6 +31,7 @@ router = APIRouter(prefix='/api/hooks', tags=['hooks'])
 log = logging.getLogger('agentic.hooks')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 HOOKS_DIR = ROOT / '.agentic'
 HOOKS_DIR.mkdir(exist_ok=True)

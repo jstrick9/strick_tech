@@ -11,9 +11,6 @@ All artifacts stored in workspaces/<workspace>/specs/<spec_id>/
 """
 
 from __future__ import annotations
-from typing import Optional, Union, Any, Dict, List
-
-import contextlib
 
 import asyncio
 import json
@@ -40,6 +37,7 @@ def _parse_delta(chunk: str) -> str:
 
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 SPECS_DIR = ROOT / 'workspaces' / 'specs'
 SPECS_DIR.mkdir(parents=True, exist_ok=True)
@@ -107,7 +105,7 @@ def _load_artifact(spec_id: str, filename: str) -> str:
     return p.read_text(encoding='utf-8') if p.exists() else ''
 
 
-def _get_spec(spec_id: str) ->Optional[ dict]:
+def _get_spec(spec_id: str) ->dict | None:
     from ..services.memory_db import get_conn
 
     con = get_conn()
@@ -271,7 +269,7 @@ Use EARS (Easy Approach to Requirements Syntax) notation for each requirement:
 Output a complete requirements.md with:
 ## Overview
 ## User Stories (as [role], I want [goal] so that [benefit])
-## Functional Requirements (numbered, EARS notation)  
+## Functional Requirements (numbered, EARS notation)
 ## Non-Functional Requirements (performance, security, UX)
 ## Acceptance Criteria (Given/When/Then for each major requirement)
 ## Out of Scope (explicit exclusions)

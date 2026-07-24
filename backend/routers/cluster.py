@@ -4,9 +4,11 @@ Manages node registration, heartbeats, and workload dispatching across local lap
 Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 """
 from __future__ import annotations
+
 import time
 import uuid
-from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -29,7 +31,7 @@ _CLUSTER_NODES: dict[str, dict[str, Any]] = {
 
 class NodeJoinRequest(BaseModel):
     """Pydantic data model for NodeJoinRequest."""
-    node_id: Optional[str] = None
+    node_id: str | None = None
     name: str = "Edge Worker Node"
     host_url: str = "http://192.168.1.100:8787"
     capabilities: dict[str, Any] = {"gpu": "Apple M3 Max / CUDA", "vram_gb": 16, "models_loaded": ["llama3.1:8b"]}
@@ -47,7 +49,7 @@ class HeartbeatRequest(BaseModel):
 class ClusterDispatchRequest(BaseModel):
     """Pydantic data model for ClusterDispatchRequest."""
     task_prompt: str
-    target_node_id: Optional[str] = None
+    target_node_id: str | None = None
     required_vram_gb: int = 8
     priority: str = "normal"
 

@@ -9,14 +9,11 @@ Both accessible from the same UI.
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import logging
 import os
 import re
 import sqlite3
-from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, Request
@@ -24,6 +21,7 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/db', tags=['database'])
 log = logging.getLogger('agentic.db')
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 DB = ROOT / 'memory' / 'agentic.db'
 
@@ -353,7 +351,7 @@ async def supabase_tables():
             )
             if r.status_code == 404:
                 # Fallback: try direct query
-                r2 = await client.get(f'{url}/rest/v1/', headers=_supabase_headers())
+                await client.get(f'{url}/rest/v1/', headers=_supabase_headers())
                 return {'ok': True, 'tables': [], 'note': 'List tables via Supabase Studio'}
             return {'ok': True, 'tables': r.json()}
     except Exception as e:

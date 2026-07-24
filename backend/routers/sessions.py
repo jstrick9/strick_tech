@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import PlainTextResponse
@@ -19,6 +18,7 @@ from ..services.memory_db import audit_log, get_conn
 router = APIRouter(prefix='/api/sessions', tags=['sessions'])
 log = logging.getLogger('agentic.sessions')
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 
@@ -70,7 +70,7 @@ def _reconcile_orphan_sessions(con):
             if not matched_sid and created_at:
                 day_str = str(created_at)[:10]
                 row_ts = con.execute("""
-                    SELECT DISTINCT session_id FROM chat_log 
+                    SELECT DISTINCT session_id FROM chat_log
                     WHERE (abs(unixepoch(created_at) - unixepoch(?)) <= 3600 OR SUBSTR(created_at, 1, 10) = ?)
                     AND session_id NOT IN (SELECT id FROM chat_sessions WHERE message_count > 0)
                     LIMIT 1

@@ -4,21 +4,22 @@ Manages native binary self-compilation and zero-downtime AST hot-swap kernel mod
 Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 """
 from __future__ import annotations
+
 import ast
 import hashlib
 import json
 import os
-import sys
 import time
 import uuid
-from pathlib import Path
 from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/compiler", tags=["compiler"])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 COMPILER_DIR = MEMORY_DIR / "compiler"
@@ -72,7 +73,7 @@ def compile_self_host_binary(payload: SelfHostCompileRequest) -> dict[str, Any]:
     # Simulate compilation output
     header = f"# Strick Tech Self-Compiled Binary: {payload.binary_name}\n# Target: {payload.target_platform} | Opt: {payload.optimization_level}\n"
     artifact_path.write_text(header + "01010100011100100111010101100101010000100110100101101110\n", encoding="utf-8")
-    
+
     sha256_hash = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
     return {
         "ok": True,
@@ -92,12 +93,12 @@ def execute_kernel_hot_swap(payload: HotSwapRequest) -> dict[str, Any]:
     """Execute zero-downtime hot-swap kernel patching without restarting the active Python process."""
     if not payload.patched_source.strip():
         raise HTTPException(status_code=400, detail="Patched source code cannot be empty")
-    
+
     # 1. AST syntax validation inside sandboxed compilation check
     try:
         ast.parse(payload.patched_source)
     except SyntaxError as se:
-        raise HTTPException(status_code=422, detail=f"Hot-swap AST syntax validation failed: {se}")
+        raise HTTPException(status_code=422, detail=f"Hot-swap AST syntax validation failed: {se}") from se
 
     if payload.verify_syntax_only:
         return {"ok": True, "syntax_valid": True, "module_name": payload.module_name, "message": "AST syntax validation successful"}

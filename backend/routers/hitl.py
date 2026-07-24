@@ -361,7 +361,7 @@ async def execute_undo(snapshot_id: str, req: Request):
                 if p.parent.exists():
                     p.write_text(sdata, encoding='utf-8')
                     return {'ok': True, 'restored': 'file', 'path': str(p)}
-        except (OSError, IOError) as ex:
+        except OSError as ex:
             return {'ok': False, 'error': str(ex)}
     elif stype == 'db':
         # Restore DB state — run SQL

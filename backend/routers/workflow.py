@@ -5,9 +5,6 @@ Nodes: trigger, agent, condition, transform, output, loop, delay, webhook
 """
 
 from __future__ import annotations
-from typing import Optional, Union, Any, Dict, List
-
-import contextlib
 
 import asyncio
 import json
@@ -24,6 +21,7 @@ router = APIRouter(prefix='/api/workflow', tags=['workflow'])
 log = logging.getLogger('agentic.workflow')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 WF_DIR = ROOT / 'workspaces' / 'workflows'
 WF_DIR.mkdir(parents=True, exist_ok=True)
@@ -189,7 +187,7 @@ def _load_all() -> list[dict]:
     return wfs
 
 
-def _load_one(wf_id: str) -> Optional[dict]:
+def _load_one(wf_id: str) -> dict | None:
     p = _wf_path(wf_id)
     if not p.exists():
         return None
@@ -433,7 +431,7 @@ async def run_workflow(wf_id: str, req: Request):
                     yield f'data: {json.dumps({"type": "node_error", "node_id": nid, "error": str(ex)})}\n\n'
 
             elif node['type'] == 'condition':
-                expr = cfg.get('expression', '').replace('{{prev_output}}', context['prev_output'])
+                cfg.get('expression', '').replace('{{prev_output}}', context['prev_output'])
                 passed = any(kw in context['prev_output'].lower() for kw in ['yes', 'pass', 'true', 'success', 'ok'])
                 context['_condition'] = passed
                 cond_str = 'true' if passed else 'false'

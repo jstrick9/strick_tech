@@ -6,8 +6,6 @@ Plugin pack format: JSON manifest + optional JS/Python code.
 
 from __future__ import annotations
 
-import contextlib
-
 import hashlib
 import io
 import json
@@ -15,7 +13,6 @@ import logging
 import time
 import uuid
 import zipfile
-from pathlib import Path
 
 from fastapi import APIRouter, File, Request, UploadFile
 from fastapi.responses import JSONResponse
@@ -24,6 +21,7 @@ router = APIRouter(prefix='/api/pluginsdk', tags=['pluginsdk'])
 log = logging.getLogger('agentic.pluginsdk')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 SDK_DIR = ROOT / 'workspaces' / 'plugin_sdk'
 PACKS_DIR = SDK_DIR / 'packs'

@@ -23,7 +23,6 @@ Based on:
 """
 
 from __future__ import annotations
-from typing import Optional, Union, Any, Dict, List
 
 import asyncio
 import email.mime.multipart
@@ -31,7 +30,6 @@ import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -40,6 +38,7 @@ router = APIRouter(prefix='/api/connectors', tags=['connectors'])
 log = logging.getLogger('agentic.connectors')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -297,7 +296,7 @@ async def _exec_slack(action: str, payload: dict, creds: dict) -> dict:
 
     headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
 
-    async def _get(path: str, params:Optional[ dict] = None) -> dict:
+    async def _get(path: str, params:dict | None = None) -> dict:
         async with httpx.AsyncClient(timeout=15) as cl:
             r = await cl.get(f'https://slack.com/api/{path}', headers=headers, params=params or {})
             return r.json()
@@ -307,7 +306,7 @@ async def _exec_slack(action: str, payload: dict, creds: dict) -> dict:
             r = await cl.post(f'https://slack.com/api/{path}', headers=headers, json=body)
             return r.json()
 
-    def _slack_ok(d: dict, extra:Optional[ dict] = None) -> dict:
+    def _slack_ok(d: dict, extra:dict | None = None) -> dict:
         """Normalize a Slack API response into our standard format."""
         if d.get('ok'):
             result = {'ok': True}
@@ -529,7 +528,7 @@ async def _exec_slack(action: str, payload: dict, creds: dict) -> dict:
         content = payload.get('content', '')
         filename = payload.get('filename', 'file.txt')
         title = payload.get('title', filename)
-        filetype = payload.get('filetype', 'text')
+        payload.get('filetype', 'text')
 
         # Resolve channel name → channel ID (Slack requires C-prefixed ID for uploads)
         chan_id = channel
@@ -732,7 +731,7 @@ async def _exec_jira(action: str, payload: dict, creds: dict) -> dict:
     API3 = f'{base_url}/rest/api/3'
     AGILE = f'{base_url}/rest/agile/1.0'
 
-    async def _get(path: str, params:Optional[ dict] = None) -> tuple:
+    async def _get(path: str, params:dict | None = None) -> tuple:
         async with httpx.AsyncClient(timeout=15) as cl:
             r = await cl.get(path, headers=HDR, params=params or {})
             try:
@@ -769,7 +768,7 @@ async def _exec_jira(action: str, payload: dict, creds: dict) -> dict:
             'content': [{'type': 'paragraph', 'content': [{'type': 'text', 'text': text}]}],
         }
 
-    def _ok(status: int, d: dict, extra:Optional[ dict] = None) -> dict:
+    def _ok(status: int, d: dict, extra:dict | None = None) -> dict:
         success = 200 <= status < 300
         if not success:
             msgs = d.get('errorMessages', [])
@@ -1358,7 +1357,7 @@ def _build_mime_message(
     bcc: str = '',
     reply_to: str = '',
     is_html: bool = False,
-    attachments:Optional[ list] = None,
+    attachments:list | None = None,
 ) -> email.mime.multipart.MIMEMultipart:
     """Build a complete MIME message with optional HTML, CC/BCC, reply-to, attachments."""
     import base64
@@ -1791,7 +1790,7 @@ async def _exec_github(action: str, payload: dict, creds: dict) -> dict:
         'X-GitHub-Api-Version': '2022-11-28',
     }
 
-    async def _get(path: str, params:Optional[ dict] = None) -> tuple:
+    async def _get(path: str, params:dict | None = None) -> tuple:
         async with httpx.AsyncClient(timeout=15) as cl:
             r = await cl.get(f'{BASE}{path}', headers=HDR, params=params or {})
             return r.status_code, r.json()
@@ -1811,7 +1810,7 @@ async def _exec_github(action: str, payload: dict, creds: dict) -> dict:
             r = await cl.put(f'{BASE}{path}', headers=HDR, json=body)
             return r.status_code, r.json()
 
-    def _ok(status: int, d: dict, extra:Optional[ dict] = None) -> dict:
+    def _ok(status: int, d: dict, extra:dict | None = None) -> dict:
         success = 200 <= status < 300
         if not success:
             return {'ok': False, 'error': d.get('message', f'HTTP {status}'), 'status': status, 'detail': d}
@@ -2507,7 +2506,7 @@ async def _exec_gdrive(action: str, payload: dict, creds: dict) -> dict:
 
     HDR = {'Authorization': f'Bearer {access_token}', 'Accept': 'application/json', 'Content-Type': 'application/json'}
 
-    async def _get(url: str, params:Optional[ dict] = None) -> tuple:
+    async def _get(url: str, params:dict | None = None) -> tuple:
         async with httpx.AsyncClient(timeout=15) as cl:
             r = await cl.get(url, headers=HDR, params=params or {})
             try:
@@ -2515,7 +2514,7 @@ async def _exec_gdrive(action: str, payload: dict, creds: dict) -> dict:
             except (json.JSONDecodeError, ValueError):
                 return r.status_code, {}
 
-    async def _post(url: str, body:Optional[ dict] = None, **kw) -> tuple:
+    async def _post(url: str, body:dict | None = None, **kw) -> tuple:
         async with httpx.AsyncClient(timeout=15) as cl:
             r = await cl.post(url, headers=HDR, json=body, **kw)
             try:
@@ -2536,7 +2535,7 @@ async def _exec_gdrive(action: str, payload: dict, creds: dict) -> dict:
             r = await cl.delete(url, headers=HDR)
             return r.status_code, {}
 
-    def _ok(status: int, d: dict, extra:Optional[ dict] = None) -> dict:
+    def _ok(status: int, d: dict, extra:dict | None = None) -> dict:
         ok = 200 <= status < 300
         if not ok:
             err = d.get('error', {})
@@ -3451,7 +3450,7 @@ async def _exec_notion(action: str, payload: dict, creds: dict) -> dict:
             props = pg.get('properties', {})
             # Try to find the title property
             title_val = ''
-            for pname, pval in props.items():
+            for _pname, pval in props.items():
                 if pval.get('type') == 'title':
                     title_val = _extract_plain_text(pval.get('title', []))
                     break
@@ -3502,7 +3501,7 @@ async def _exec_notion(action: str, payload: dict, creds: dict) -> dict:
         data = r.json()
         props = data.get('properties', {})
         title_val = ''
-        for pname, pval in props.items():
+        for _pname, pval in props.items():
             if pval.get('type') == 'title':
                 title_val = _extract_plain_text(pval.get('title', []))
                 break
@@ -3554,7 +3553,7 @@ async def _exec_notion(action: str, payload: dict, creds: dict) -> dict:
         # Extract page title back
         page_title = title
         resp_props = data.get('properties', {})
-        for pname, pval in resp_props.items():
+        for _pname, pval in resp_props.items():
             if pval.get('type') == 'title':
                 page_title = _extract_plain_text(pval.get('title', [])) or title
                 break
@@ -3771,7 +3770,7 @@ _DISPATCHERS = {
 
 # ── Core execute function ──────────────────────────────────────────────────────
 async def execute_connector(
-    connector_id: str, action: str, payload: dict, agent_id: str = 'system', inline_creds:Optional[ dict] = None
+    connector_id: str, action: str, payload: dict, agent_id: str = 'system', inline_creds:dict | None = None
 ) -> dict:
     """Execute a connector action. Records to audit log."""
     import hashlib

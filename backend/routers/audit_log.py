@@ -16,9 +16,7 @@ Tables:
 """
 
 from __future__ import annotations
-from typing import Optional, Union, Any, Dict, List
 
-import contextlib
 import csv
 import hashlib
 import hmac
@@ -29,7 +27,6 @@ import sqlite3
 import time
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -38,6 +35,7 @@ router = APIRouter(prefix='/api/audit-log', tags=['audit-log'])
 log = logging.getLogger('agentic.audit_log')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -165,7 +163,7 @@ def _append_entry(
     authority: str = 'user',
     risk_level: str = 'low',
     outcome: str = 'success',
-    metadata:Optional[ dict] = None,
+    metadata:dict | None = None,
 ) -> dict:
     """
     Append a new entry to the immutable audit chain.

@@ -11,14 +11,11 @@ PASS-1 AUDIT FIXES:
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import json
 import logging
 import time
 import uuid
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -29,6 +26,7 @@ router = APIRouter(prefix='/api/control', tags=['control-tower'])
 log = logging.getLogger('agentic.control')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 # ── In-memory run registry ─────────────────────────────────────────────────────

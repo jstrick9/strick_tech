@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import logging
 import time
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -17,6 +16,7 @@ router = APIRouter(prefix='/api/skills', tags=['skills'])
 log = logging.getLogger('agentic.skills')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 SKILLS_FILE = ROOT / 'skills' / 'skills.json'
 

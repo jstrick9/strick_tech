@@ -20,15 +20,13 @@ Based on:
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
+import contextlib
 import json
 import logging
 import time
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -37,6 +35,7 @@ router = APIRouter(prefix='/api/agent-monitor', tags=['agent-monitor'])
 log = logging.getLogger('agentic.monitor')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────

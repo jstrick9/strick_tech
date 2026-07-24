@@ -5,14 +5,11 @@ Real-time CPU, RAM, disk, process health, HMR file watcher.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import json
 import logging
 import os
 import time
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -22,6 +19,7 @@ log = logging.getLogger('agentic.system')
 
 from backend.config import get_data_dir
 from backend.version import VERSION
+
 ROOT = get_data_dir()
 
 

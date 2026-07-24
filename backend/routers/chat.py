@@ -5,8 +5,6 @@ Real LLM chat with streaming SSE, session history, slash command routing.
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import time
 import uuid
@@ -212,7 +210,7 @@ async def chat_stream(req: Request):
     async def generate():
         """Execute or process generate operation."""
         full_text = ''
-        t0 = time.time()
+        time.time()
         try:
             async for chunk in llm.stream(
                 messages,

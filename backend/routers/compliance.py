@@ -23,15 +23,12 @@ Tables read:
 
 from __future__ import annotations
 
-import contextlib
-
 import csv
 import io
 import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -40,6 +37,7 @@ router = APIRouter(prefix='/api/compliance', tags=['compliance'])
 log = logging.getLogger('agentic.compliance')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 # -- Report history schema ------------------------------------------------------
@@ -408,7 +406,7 @@ def _generate_pdf(report_data: dict, title: str, framework: str) -> bytes:
     def kv(label, value, label_color=None, val_color=None):
         # Save X before label, so we can compute remaining width for value
         """Execute or process kv operation."""
-        x_start = pdf.get_x()
+        pdf.get_x()
         pdf.set_font('Helvetica', 'B', 8)
         pdf.set_text_color(*(label_color or (100, 110, 150)))
         pdf.cell(55, 5, escHtml_py(label + ':'), new_x=XPos.RIGHT, new_y=YPos.TOP)
