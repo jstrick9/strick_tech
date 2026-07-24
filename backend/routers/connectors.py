@@ -241,7 +241,7 @@ def _connector_dict(row) -> dict:
     for f in ('capabilities', 'config', 'credentials'):
         try:
             d[f] = json.loads(d.get(f, '[]' if f == 'capabilities' else '{}'))
-        except:
+        except (json.JSONDecodeError, TypeError):
             pass
     # Mask credentials
     if 'credentials' in d and isinstance(d['credentials'], dict):
@@ -1400,7 +1400,7 @@ def _build_mime_message(
             part.add_header('Content-Disposition', 'attachment', filename=att.get('filename', 'attachment'))
             msg.attach(part)
         except Exception:
-            pass
+            log.debug("Skipping attachment: %s", att.get('filename', 'unknown'))
     return msg
 
 
