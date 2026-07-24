@@ -1344,10 +1344,10 @@ async function renderProfiler() {
 
   try {
     const [sum, ep, db, at] = await Promise.all([
-      fetch('/api/profiler/summary').then(r=>r.ok?r.json():{}).catch(()=>({})),
-      fetch('/api/profiler/endpoints?limit=30').then(r=>r.ok?r.json():{endpoints:[]}).catch(()=>({endpoints:[]})),
-      fetch('/api/profiler/db/stats').then(r=>r.ok?r.json():{}).catch(()=>({})),
-      fetch('/api/profiler/agent/timings').then(r=>r.ok?r.json():{}).catch(()=>({})),
+      fetch('/api/profiler/summary').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({})),
+      fetch('/api/profiler/endpoints?limit=30').then(r=>r.ok?r.json().catch(()=>{}):{endpoints:[]}).catch(()=>({endpoints:[]})),
+      fetch('/api/profiler/db/stats').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({})),
+      fetch('/api/profiler/agent/timings').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({})),
     ]);
 
     pane.innerHTML = `
@@ -1493,7 +1493,7 @@ async function renderFlamegraph() {
   if (!container) return;
   
   try {
-    const d = await fetch('/api/profiler/flamegraph').then(r=>r.ok?r.json():{}).catch(()=>({}));
+    const d = await fetch('/api/profiler/flamegraph').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({}));
     const root = (d.flamegraph||[])[0];
     if (!root) { container.innerHTML = '<div style="color:var(--text-3)">No flamegraph data</div>'; return; }
     
@@ -1528,7 +1528,7 @@ async function refreshProfiler() {
 
 async function takeMemSnapshot() {
   try {
-    const snap = await fetch('/api/profiler/memory/snapshot').then(r=>r.ok?r.json():{}).catch(()=>({}));
+    const snap = await fetch('/api/profiler/memory/snapshot').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({}));
     const area = document.getElementById('mem-snapshots-area');
     if (!area) return;
     const div = document.createElement('div');
@@ -2607,8 +2607,8 @@ window.renderFinetuneWorkstation = async function() {
   let ds = {datasets: []};
   try {
     const [hRes, dRes] = await Promise.all([
-      fetch('/api/finetune/hardware').then(r => r.ok ? r.json() : hw).catch(() => hw),
-      fetch('/api/finetune/datasets').then(r => r.ok ? r.json() : ds).catch(() => ds)
+      fetch('/api/finetune/hardware').then(r => r.ok ? r.json().catch(()=>{}) : hw).catch(() => hw),
+      fetch('/api/finetune/datasets').then(r => r.ok ? r.json().catch(()=>{}) : ds).catch(() => ds)
     ]);
     hw = hRes;
     ds = dRes;

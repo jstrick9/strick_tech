@@ -402,7 +402,7 @@ function ensurePaneRendered(pane) {
 (function checkApiKeyHealth() {
   const keyDot  = document.getElementById('key-dot');
   const keyLabel = document.getElementById('key-label');
-  fetch('/api/secrets/get?key=OPENROUTER_API_KEY').then(r=>r.ok?r.json():{}).then(j=>{
+  fetch('/api/secrets/get?key=OPENROUTER_API_KEY').then(r=>r.ok?r.json().catch(()=>{}):{}).then(j=>{
     const hasKey = j.ok && j.fingerprint;
     if (keyDot) keyDot.className = hasKey ? 'key-dot ok' : 'key-dot';
     if (keyLabel) keyLabel.textContent = hasKey ? 'API key set ✓' : 'No API key';

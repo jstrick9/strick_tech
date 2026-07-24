@@ -12,9 +12,9 @@ async function renderSteering() {
   if (!pane) return;
 
   const [files, compiled, patterns] = await Promise.all([
-    fetch('/api/steering').then(r=>r.ok?r.json():null).catch(()=>({files:[]})),
-    fetch('/api/steering/compiled').then(r=>r.ok?r.json():null).catch(()=>({context:'',length:0})),
-    fetch('/api/steering/learned/patterns').then(r=>r.ok?r.json():null).catch(()=>({patterns:[]})),
+    fetch('/api/steering').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({files:[]})),
+    fetch('/api/steering/compiled').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({context:'',length:0})),
+    fetch('/api/steering/learned/patterns').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({patterns:[]})),
   ]);
 
   pane.innerHTML = `
@@ -128,7 +128,7 @@ async function steerToggle(fileId, btn) {
     btn.classList.toggle('on', d.enabled);
     btn.title = d.enabled ? 'Enabled' : 'Disabled';
     // Re-render compiled context bar to reflect new char count
-    fetch('/api/steering/compiled').then(r=>r.ok?r.json():null).then(compiled => { if (!compiled) return;
+    fetch('/api/steering/compiled').then(r=>r.ok?r.json().catch(()=>{}):null).then(compiled => { if (!compiled) return;
       const bar = document.querySelector('#pane-steering [style*="Compiled Context"]');
       if (!bar) return;
       const charsEl = bar.querySelector('[style*="chars"]') || bar.parentElement?.querySelector('span[style*="color"]');
@@ -231,8 +231,8 @@ async function renderBugBot() {
   if (!pane) return;
 
   const [reviews, stats] = await Promise.all([
-    fetch('/api/bugbot/reviews?limit=10').then(r=>r.ok?r.json():null).catch(()=>({reviews:[]})),
-    fetch('/api/bugbot/stats').then(r=>r.ok?r.json():null).catch(()=>({})),
+    fetch('/api/bugbot/reviews?limit=10').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({reviews:[]})),
+    fetch('/api/bugbot/stats').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({})),
   ]);
 
   pane.innerHTML = `
@@ -485,7 +485,7 @@ async function renderHealth() {
   pane.innerHTML = '<div style="padding:20px;color:var(--text-2)">Computing project health…</div>';
 
   try {
-    const h = await fetch('/api/ambient/health').then(r=>r.ok?r.json():null);
+    const h = await fetch('/api/ambient/health').then(r=>r.ok?r.json().catch(()=>{}):null);
     const grade_color = h.grade==='A'?'var(--success)':h.grade==='B'?'var(--info)':h.grade==='C'?'var(--warning)':'var(--danger)';
     const dim_icons = {complexity:'🔥',security:'🔒',debt:'💳',docs:'📚',deps:'📦'};
     const dim_labels = {complexity:'Complexity',security:'Security',debt:'Tech Debt',docs:'Documentation',deps:'Dependencies'};
@@ -586,7 +586,7 @@ async function renderGitAI() {
   if (!pane) return;
 
   let gitStatus = {};
-  try { gitStatus = await fetch('/api/gitai/status').then(r=>r.ok?r.json():null); } catch(e) {}
+  try { gitStatus = await fetch('/api/gitai/status').then(r=>r.ok?r.json().catch(()=>{}):null); } catch(e) {}
 
   pane.innerHTML = `
   
@@ -715,7 +715,7 @@ async function gitaiNLExecute(query) {
 async function gitaiRefreshStatus() {
   // FIX 8: only update status bar — don't call renderGitAI() which wipes tab state
   try {
-    const s = await fetch('/api/gitai/status').then(r=>r.ok?r.json():null);
+    const s = await fetch('/api/gitai/status').then(r=>r.ok?r.json().catch(()=>{}):null);
     showToast('🌿 ' + (s.branch||'no branch') + ' · ' + (s.changed_count||0) + ' changes', 'ok', 2000);
     // Update status bar elements if they exist without full re-render
     const branchEl = document.querySelector('#pane-gitai [data-field="branch"]');
@@ -818,8 +818,8 @@ async function renderAmbient() {
   if (!pane) return;
 
   const [suggs, tasks] = await Promise.all([
-    fetch('/api/ambient/suggestions?limit=30').then(r=>r.ok?r.json():null).catch(()=>({suggestions:[]})),
-    fetch('/api/ambient/tasks?limit=10').then(r=>r.ok?r.json():null).catch(()=>({tasks:[]})),
+    fetch('/api/ambient/suggestions?limit=30').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({suggestions:[]})),
+    fetch('/api/ambient/tasks?limit=10').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({tasks:[]})),
   ]);
 
   const sev_icons = {high:'⚠️',medium:'⚡',info:'💡',critical:'🚨'};
