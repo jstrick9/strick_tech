@@ -181,7 +181,7 @@ async def auto_install_browser():
         subprocess.Popen([sys.executable, '-c', install_script], start_new_session=True)
         return {'ok': True, 'commands': commands, 'message': 'Playwright installation spawned in background'}
     except Exception as e:
-        return {'ok': False, 'command': cmd, 'error': str(e)}
+        return {'ok': False, 'command': commands, 'error': str(e)}
 
 
 @router.get('/setup/stream')

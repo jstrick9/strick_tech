@@ -39,6 +39,24 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements-test.txt
 
+      - name: Lint for undefined names (ruff F821)
+        # Blocking gate scoped to F821 (undefined-name) only. This rule also
+        # fires as a parse-time error for syntax ruff can't compile at all —
+        # which is how this check would have caught a real incident: two
+        # files used a backslash escape inside an f-string expression
+        # (valid only on Python 3.12+), silently breaking `import
+        # backend.app` on the project's own documented minimum of Python
+        # 3.10. F821 also caught unrelated NameError-class bugs (references
+        # to names that were never imported/defined) that only surfaced at
+        # runtime, on an error path, well after code review. The full
+        # style/lint rule set configured in pyproject.toml ([tool.ruff])
+        # remains available for local `ruff check .` and is intentionally
+        # not blocking here yet, to avoid a large first-time cleanup PR
+        # gating unrelated work — undefined-name and syntax-validity are
+        # the two classes of finding that are never a false positive and
+        # always indicate real broken code.
+        run: ruff check . --select F821
+
       - name: Compile Python modules
         run: python -m compileall -q backend run.py
 
@@ -50,6 +68,57 @@ jobs:
 
       - name: Run unit tests
         run: python -m pytest tests/unit -q
+
+  python-compatibility:
+    name: Python ${{ matrix.python-version }} import & boot check
+    runs-on: ubuntu-latest
+    needs: python-quality
+    strategy:
+      fail-fast: false
+      matrix:
+        # The project documents "Python 3.10+" as its minimum supported
+        # version (README.md, CONTRIBUTING.md, pyproject.toml's
+        # target-version, and start.sh's own version check all agree on
+        # 3.10). The main jobs in this workflow run on 3.12 for speed, so
+        # this job exists specifically to catch version-specific breakage
+        # (e.g. syntax only valid on newer Pythons) that would otherwise go
+        # completely undetected — as happened with backslash-in-f-string
+        # usage that only fails to parse on 3.10/3.11.
+        python-version: ['3.10', '3.11', '3.12', '3.13']
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install runtime dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Verify the application imports and boots cleanly
+        run: |
+          python -c "
+          import sys
+          from backend.app import app
+          assert len(app.routes) > 0, 'app registered zero routes'
+          print(f'OK: {len(app.routes)} routes registered on Python {sys.version.split()[0]}')
+          "
+          AGENTIC_OS_DATA_DIR="${{ runner.temp }}/agentic-os-data-${{ matrix.python-version }}" \
+            AGENTIC_OS_HOST=127.0.0.1 AGENTIC_OS_PORT=8787 \
+            nohup python -m uvicorn backend.app:app --host 127.0.0.1 --port 8787 >server.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent "http://127.0.0.1:8787/api/health" >/dev/null; then
+              echo "Server booted and responded to a health check successfully."
+              exit 0
+            fi
+            sleep 1
+          done
+          cat server.log
+          exit 1
 
   live-api:
     name: Live security and integration suites
