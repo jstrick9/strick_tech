@@ -4489,7 +4489,7 @@ async function saveQuickNote() {
   const title   = titleEl?.value?.trim();
   const body    = bodyEl?.value?.trim() || '';
   if (!title) { showToast('⚠️ Enter a note title'); return; }
-  const content  = `# ${title}\n\n${body}`;
+  const content  = `# ${escHtml(_title)}\n\n${body}`;
   const filename = title.replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'_') + '.md';
   try {
     const r = await fetch('/api/obsidian/note', {
@@ -4778,7 +4778,7 @@ function skeletonStats(n = 4) {
     Array.from({length:n}, () =>
       `<div class="skeleton" style="height:90px;border-radius:var(--radius-lg)"></div>`).join('') + '</div>';
 }
-function skeletonPage(title = 'Loading…') {
+function skeletonPage(_title = 'Loading…') {
   return `
     <div style="padding:0">
       <div class="page-header">
@@ -4839,11 +4839,11 @@ function pageHeader({ title, subtitle = '', actions = [], badge = '' }) {
     <div class="page-header">
       <div class="page-header__top">
         <div>
-          <h1 class="page-heading">${title} ${badge ? `<span class="badge badge-accent" style="font-size:11px;vertical-align:middle">${badge}</span>` : ''}</h1>
-          ${subtitle ? `<p class="page-subheading">${subtitle}</p>` : ''}
+          <h1 class="page-heading">${escHtml(title)} ${badge ? `<span class="badge badge-accent" style="font-size:11px;vertical-align:middle">${escHtml(badge)}</span>` : ''}</h1>
+          ${subtitle ? `<p class="page-subheading">${escHtml(subtitle)}</p>` : ''}
         </div>
         <div class="page-header__actions">
-          ${actions.map(a => `<button onclick="${a.action}" class="btn ${a.primary?'btn-primary':'btn-ghost'} btn-sm">${a.label}</button>`).join('')}
+          ${actions.map(a => `<button onclick="${a.action}" class="btn ${a.primary?'btn-primary':'btn-ghost'} btn-sm">${escHtml(a.label)}</button>`).join('')}
         </div>
       </div>
     </div>`;
