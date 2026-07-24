@@ -2435,7 +2435,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <span class="badge" style="background:rgba(139,92,246,.15);color:#a78bfa;border:1px solid rgba(139,92,246,.3);padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">Strick Tech Architecture</span>
             </div>
             <div style="font-size:12.5px;color:var(--text-2);margin-top:4px">
-              Build your AI operating manual once. Tier 1 (Universal Context) + Tier 2 (IVREN Project Deltas) auto-compound into every chat & agent!
+              Build your AI operating manual once. Your universal context and project-specific instructions automatically apply to every conversation.
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
@@ -2516,7 +2516,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 Project: <span id="t2-project-title" style="color:var(--accent)">Select a project</span>
               </div>
               <div style="display:flex;gap:6px">
-                <button onclick="saveCurrentIvrenSection()" class="btn btn-primary btn-sm">💾 Save IVREN Section</button>
+                <button onclick="saveCurrentIvrenSection()" class="btn btn-primary btn-sm">💾 Save Section</button>
               </div>
             </div>
             <!-- IVREN 5 Tabs -->
@@ -2833,7 +2833,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                       <option value="mistral:7b">Mistral 7B v0.3 (Reasoning / 4.1 GB RAM)</option>
                       <option value="deepseek-r1:8b">DeepSeek R1 8B (Math & Code / 4.9 GB RAM)</option>
                       <option value="qwen2.5:7b">Qwen 2.5 7B (Code & Logic / 4.5 GB RAM)</option>
-                      <option value="nomic-embed-text">Nomic Embed Text (RAG Embeddings / 274 MB)</option>
+                      <option value="nomic-embed-text">Nomic Embed Text (Knowledge Search / 274 MB)</option>
                       <option value="custom">Custom Model Name...</option>
                     </select>
                     <input id="ollama-custom-pull-inp" type="text" placeholder="e.g. phi3:3.8b" style="display:none;width:150px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-family:monospace">
@@ -2875,7 +2875,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                     <span style="font-size:20px">🔐</span>
                     <label style="font-size:14px;font-weight:900;color:var(--text-0)">4. Enterprise Cryptographic Secret Vault & Storage Audit</label>
                   </div>
-                  <span class="badge badge-success">ZERO-TRUST LOCAL STORAGE</span>
+                  <span class="badge badge-success">LOCAL ENCRYPTED STORAGE</span>
                 </div>
                 <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">All API keys, tokens, and custom headers are encrypted using local AES-256-GCM cryptography tied to your hardware master key (<code style="color:var(--accent);font-family:monospace">~/.vault_key</code> & <code style="color:var(--accent);font-family:monospace">~/Library/Application Support/com.stricktech.agenticos/secrets/vault.json</code>). No credentials ever leave your machine or transmit to third-party telemetry servers.</p>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
@@ -2938,12 +2938,12 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   <button id="settings-simple-btn" onclick="switchUIMode('simple');updateSettingsModeButtons();toast('✨ Core Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
                     <div style="font-size:22px;margin-bottom:6px">⚡</div>
                     <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:var(--accent)">Core Workstation</div>
-                    <div style="font-size:12px;color:var(--text-2);line-height:1.4">Streamlined focused view. Essential Chat, Swarm, Studio Editor, & IVREN Manual.</div>
+                    <div style="font-size:12px;color:var(--text-2);line-height:1.4">Streamlined focused view. Essential Chat, Multi-Agent Swarm, Code Studio, and AI Operating Manual.</div>
                   </button>
                   <button id="settings-power-btn" onclick="switchUIMode('power');updateSettingsModeButtons();toast('🌌 Power Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
                     <div style="font-size:22px;margin-bottom:6px">🌌</div>
                     <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:#d8b4fe">Power Workstation</div>
-                    <div style="font-size:12px;color:var(--text-2);line-height:1.4">All 65+ panes active across categorized groups. Full telemetry, BugBot, Evals, & PQC Vault.</div>
+                    <div style="font-size:12px;color:var(--text-2);line-height:1.4">All 65+ features active across categorized groups. Full monitoring, bug detection, evaluations, and encryption.</div>
                   </button>
                 </div>
               </div>
@@ -2982,7 +2982,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               </div>
 
               <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
-                <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">🧭 2-Tier IVREN Hierarchy Isolation</h3>
+                <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">🧭 AI Operating Manual Isolation</h3>
                 <p style="font-size:13px;color:var(--text-2);line-height:1.6">When navigating away from the `2 Tier Hierarchy` panel (`#pane-hierarchy`), all split view panes and bottom sticky bars immediately vanish so your active studio or chat workspace gets 100% of the screen height.</p>
               </div>
             </div>
