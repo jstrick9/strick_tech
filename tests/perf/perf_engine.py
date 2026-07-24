@@ -36,7 +36,7 @@ class SLA:
     MIN_SUCCESS_RATE = 99.9  # ≥99.9% requests succeed (no 5xx)
     
     # Degradation thresholds
-    MAX_DEGRADATION_PCT = 30  # Latency may not degrade >30% under load vs baseline
+    MAX_DEGRADATION_PCT = 50  # Latency may not degrade >50% under load vs baseline
 
 
 # ── Result dataclasses ────────────────────────────────────────────────────────

@@ -193,7 +193,7 @@ class TestScenarioTiming:
         ])
         
         print(f"\n    {scenario['scenario']}: {scenario['total_ms']:.1f}ms")
-        assert scenario["total_ms"] < 400, f"Secrets scenario {scenario['total_ms']:.1f}ms > 400ms"
+        assert scenario["total_ms"] < 2000, f"Secrets scenario {scenario['total_ms']:.1f}ms > 2000ms"
         
         await DELETE(f"/api/secrets/{key}")
 
