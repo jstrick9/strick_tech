@@ -4051,3 +4051,147 @@ body.theme-high-contrast a {
 @media (max-width: 1200px) {
   .btn-text { display: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   UI/UX REDESIGN — Wave 2: Mobile, Accessibility, Help
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Mobile responsive: tablet (768-1024px) ─────────────────── */
+@media (max-width: 1024px) {
+  .msg-body { max-width: 85%; }
+  .chat-header { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
+  .chat-input-area { padding: 10px 14px 14px; }
+  .mission-launchpad { padding: 20px 24px; }
+  .mission-outcome-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Mobile responsive: phone (<640px) ──────────────────────── */
+@media (max-width: 640px) {
+  #sidebar { display: none !important; }
+  #main { flex-direction: column; }
+  .msg-body { max-width: 92%; }
+  .msg { gap: 8px; padding: 6px 0; }
+  .msg-avatar { width: 28px; height: 28px; font-size: 13px; }
+  .msg-bubble { padding: 10px 14px; font-size: 14px; border-radius: 12px; }
+  .chat-header { padding: 8px 10px; gap: 6px; }
+  .chat-input-area { padding: 8px 10px 12px; }
+  #chat-input { font-size: 16px; /* prevents iOS zoom */ }
+  .chat-send-btn { width: 36px; height: 36px; font-size: 16px; }
+  .mission-launchpad { padding: 16px; border-radius: 14px; }
+  .mission-launchpad h3 { font-size: 18px; }
+  .mission-outcome-grid { grid-template-columns: 1fr; }
+  .mission-outcome { min-height: auto; padding: 14px; }
+  #topbar { padding: 0 8px; gap: 4px; }
+  #topbar .logo { font-size: 13px; }
+  #topbar .logo #custom-app-subtitle { display: none; }
+  #palette-btn { display: none; }
+  .btn-text { display: none; }
+  #topbar-quick-actions { display: none !important; }
+  #key-status { padding: 4px 8px; font-size: 11px; }
+  #key-status #key-label { display: none; }
+  #user-identity-hub #topbar-user-name { display: none; }
+  #chat-persona-details { display: none; }
+  .chat-tools { gap: 4px; }
+  .chat-tool { padding: 3px 8px; font-size: 11px; }
+  .settings-workstation { flex-direction: column !important; }
+  .settings-sidebar { width: 100% !important; flex-direction: row !important; overflow-x: auto !important; padding: 8px !important; border-right: none !important; border-bottom: 1px solid var(--border) !important; }
+  .settings-content-area { padding: 16px !important; }
+}
+
+/* ── Contextual help tooltips ───────────────────────────────── */
+.help-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text-3);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+.help-tip:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.help-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-4);
+  color: var(--text-0);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: normal;
+  width: max-content;
+  max-width: 260px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 1000;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-hi);
+}
+.help-tip:hover::after {
+  opacity: 1;
+}
+
+/* ── Skip to main content (accessibility) ───────────────────── */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 16px;
+  z-index: 10000;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 0 0 8px 0;
+  transition: top 0.2s ease;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+/* ── Focus visible (keyboard navigation) ────────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.nav-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--accent-glow);
+}
+
+/* ── Reduced motion preference ──────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── High contrast mode ─────────────────────────────────────── */
+@media (prefers-contrast: high) {
+  :root {
+    --border: rgba(255,255,255,.25);
+    --border-hi: rgba(255,255,255,.4);
+    --text-2: #b0b8d8;
+    --text-3: #7080a0;
+  }
+}

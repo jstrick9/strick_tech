@@ -1399,6 +1399,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
 </head>
 <body>
+<a href="#chat-input" class="skip-link">Skip to main content</a>
 <div id="shell">
 
   <!-- ── Topbar ─────────────────────────────────────────── -->
@@ -1475,7 +1476,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <!-- Navigation -->
       <div class="sidebar-scroll">
         <!-- ═══ ESSENTIALS: Always visible, novice-friendly ═══ -->
-        <div class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> GETTING STARTED <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
+        <div class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> GETTING STARTED <span class="help-tip" data-tip="Essential tools to get started. Click any item to open it.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
         <div class="sidebar-group-content" id="group-core">
           <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI — start here" role="menuitem" aria-label="Chat">
             <span class="icon">💬</span><span class="label">Chat</span>
@@ -1499,7 +1500,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ AI TOOLS: Core AI capabilities ═══ -->
-        <div class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS <span class="group-count" style="float:right;font-size:10px;opacity:0.7">10</span></div>
+        <div class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS <span class="help-tip" data-tip="AI-powered tools for research, coding, and creativity.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">10</span></div>
         <div class="sidebar-group-content" id="group-build" data-tier="advanced" style="display:none">
           <div class="nav-item" data-nav="swarm" data-tier="advanced" onclick="nav('swarm')"><span class="icon">🌀</span><span class="label">Multi-Agent Swarm</span></div>
           <div class="nav-item" data-nav="hierarchy" data-tier="advanced" onclick="nav('hierarchy')"><span class="icon">🧭</span><span class="label">AI Operating Manual</span></div>
@@ -1514,7 +1515,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ BUILD & DEPLOY: Ship your work ═══ -->
-        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD & DEPLOY <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD & DEPLOY <span class="help-tip" data-tip="Tools to build, test, and ship your projects.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
         <div class="sidebar-group-content" id="group-ship" data-tier="advanced" style="display:none">
           <div class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')"><span class="icon">✍</span><span class="label">Composer</span></div>
           <div class="nav-item" data-nav="pipeline" data-tier="advanced" onclick="nav('pipeline')"><span class="icon">⎈</span><span class="label">Pipelines</span></div>
@@ -1528,7 +1529,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ AGENTS & ORCHESTRATION ═══ -->
-        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTS & ORCHESTRATION <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTS & ORCHESTRATION <span class="help-tip" data-tip="Manage AI agents, connect tools, and automate workflows.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
         <div class="sidebar-group-content" id="group-tools" data-tier="advanced" style="display:none">
           <div class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')"><span class="icon">🎯</span><span class="label">Supervisor</span></div>
           <div class="nav-item" data-nav="goals" data-tier="advanced" onclick="nav('goals')"><span class="icon">🎯</span><span class="label">Goals</span></div>
@@ -1547,7 +1548,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ MONITORING & SECURITY ═══ -->
-        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> MONITORING & SECURITY <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> MONITORING & SECURITY <span class="help-tip" data-tip="Track performance, costs, and security.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
         <div class="sidebar-group-content" id="group-enterprise" data-tier="advanced" style="display:none">
           <div style="font-size:9.5px;color:var(--text-3);padding:8px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85">📊 Analytics</div>
           <div class="nav-item" data-nav="dashboard" data-tier="advanced" onclick="nav('dashboard')"><span class="icon">📊</span><span class="label">Dashboard</span></div>
@@ -1666,7 +1667,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <button class="btn-3d btn-primary btn-sm" onclick="startNewChatSession()" style="padding:6px 10px;display:flex;align-items:center;gap:6px;font-weight:700">＋ New</button>
 
               <div id="chat-model-control" style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:4px 10px">
-                <button id="chat-connection-status" class="connection-status checking" onclick="nav('settings');switchSettingsTab('api')" title="Check or change your AI connection" style="font-size:11px">Checking…</button>
+                <span class="help-tip" data-tip="Choose which AI model to chat with. Click Settings to add more models.</span><button id="chat-connection-status" class="connection-status checking" onclick="nav('settings');switchSettingsTab('api')" title="Check or change your AI connection" style="font-size:11px">Checking…</button>
                 <select id="chat-model-select" onchange="if(typeof selectChatModel === 'function') selectChatModel(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
                   <optgroup label="Cloud AI">
                     <option value="claude">Claude 3.5 Sonnet</option>
