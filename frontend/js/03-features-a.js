@@ -1323,7 +1323,7 @@ async function wfRun() {
       }
     }
   } catch(ex) {
-    wfLog(`❌ Run failed: ${ex.message}`, 'error');
+    wfLog(`❌ Run failed: ${escHtml(ex.message)}`, 'error');
   } finally {
     _wfRunning = false;
     const runBtn2 = document.getElementById('wf-run-btn');
@@ -1484,7 +1484,7 @@ async function renderProfiler() {
     renderFlamegraph();
 
   } catch(e) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Failed to load profiler: ${e.message}</div>`;
+    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Failed to load profiler: ${escHtml(e.message)}</div>`;
   }
 }
 
@@ -1517,7 +1517,7 @@ async function renderFlamegraph() {
     container.innerHTML = `<div style="width:100%;font-size:10px">${renderNode(root)}</div>`;
   } catch(e) {
     // FIX 5: show error in flamegraph container instead of silently failing
-    if (container) container.innerHTML = `<div style="color:var(--warning);font-size:12px;padding:8px">⚠️ Flamegraph unavailable: ${e.message}</div>`;
+    if (container) container.innerHTML = `<div style="color:var(--warning);font-size:12px;padding:8px">⚠️ Flamegraph unavailable: ${escHtml(e.message)}</div>`;
   }
 }
 
@@ -1697,7 +1697,7 @@ async function renderPluginSDK() {
       </div>
     </div>`;
   } catch(e) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">SDK load failed: ${e.message}</div>`;
+    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">SDK load failed: ${escHtml(e.message)}</div>`;
   }
 }
 

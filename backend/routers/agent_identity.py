@@ -141,6 +141,7 @@ def _generate_keypair() -> tuple[str, str]:
         return pub_pem, priv_pem
     except Exception:
         # Fallback: HMAC-SHA256 shared secret
+        pass
         signing_key = secrets.token_hex(32)
         public_key = hashlib.sha256(signing_key.encode()).hexdigest()
         return public_key, signing_key
@@ -157,6 +158,7 @@ def _sign_payload(signing_key: str, payload: str) -> str:
         return sig.hex()
     except Exception:
         # HMAC fallback
+        pass
         return hmac.new(signing_key.encode('utf-8'), payload.encode('utf-8'), hashlib.sha256).hexdigest()
 
 

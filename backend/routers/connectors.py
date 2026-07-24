@@ -737,7 +737,7 @@ async def _exec_jira(action: str, payload: dict, creds: dict) -> dict:
             r = await cl.get(path, headers=HDR, params=params or {})
             try:
                 return r.status_code, r.json()
-            except:
+            except (json.JSONDecodeError, ValueError):
                 return r.status_code, {}
 
     async def _post(path: str, body: dict) -> tuple:
@@ -745,7 +745,7 @@ async def _exec_jira(action: str, payload: dict, creds: dict) -> dict:
             r = await cl.post(path, headers=HDR, json=body)
             try:
                 return r.status_code, r.json()
-            except:
+            except (json.JSONDecodeError, ValueError):
                 return r.status_code, {}
 
     async def _put(path: str, body: dict) -> tuple:
@@ -753,7 +753,7 @@ async def _exec_jira(action: str, payload: dict, creds: dict) -> dict:
             r = await cl.put(path, headers=HDR, json=body)
             try:
                 return r.status_code, r.json()
-            except:
+            except (json.JSONDecodeError, ValueError):
                 return r.status_code, {}
 
     async def _delete(path: str) -> tuple:
@@ -2512,7 +2512,7 @@ async def _exec_gdrive(action: str, payload: dict, creds: dict) -> dict:
             r = await cl.get(url, headers=HDR, params=params or {})
             try:
                 return r.status_code, r.json()
-            except:
+            except (json.JSONDecodeError, ValueError):
                 return r.status_code, {}
 
     async def _post(url: str, body:Optional[ dict] = None, **kw) -> tuple:
@@ -2520,7 +2520,7 @@ async def _exec_gdrive(action: str, payload: dict, creds: dict) -> dict:
             r = await cl.post(url, headers=HDR, json=body, **kw)
             try:
                 return r.status_code, r.json()
-            except:
+            except (json.JSONDecodeError, ValueError):
                 return r.status_code, {}
 
     async def _patch(url: str, body: dict) -> tuple:
@@ -2528,7 +2528,7 @@ async def _exec_gdrive(action: str, payload: dict, creds: dict) -> dict:
             r = await cl.patch(url, headers=HDR, json=body)
             try:
                 return r.status_code, r.json()
-            except:
+            except (json.JSONDecodeError, ValueError):
                 return r.status_code, {}
 
     async def _delete(url: str) -> tuple:
@@ -2896,7 +2896,7 @@ async def _exec_gdrive(action: str, payload: dict, creds: dict) -> dict:
             )
             try:
                 d = r.json()
-            except:
+            except (json.JSONDecodeError, ValueError):
                 d = {}
         return _ok(
             r.status_code,
@@ -3091,7 +3091,7 @@ async def _exec_gdrive(action: str, payload: dict, creds: dict) -> dict:
             )
             try:
                 d = r.json()
-            except:
+            except (json.JSONDecodeError, ValueError):
                 d = {}
         status = r.status_code
         return _ok(
@@ -3121,7 +3121,7 @@ async def _exec_gdrive(action: str, payload: dict, creds: dict) -> dict:
             )
             try:
                 d = r.json()
-            except:
+            except (json.JSONDecodeError, ValueError):
                 d = {}
         upd = d.get('updates', {})
         return _ok(
@@ -3852,6 +3852,7 @@ async def execute_connector(
             metadata={'exec_id': exec_id, 'connector_id': connector_id, 'action': action, 'duration_ms': duration_ms},
         )
     except Exception:
+        # Intentionally ignored — non-critical operation
         pass
 
     log.info('Connector %s.%s → %s (%dms)', connector_id, action, status, duration_ms)
@@ -3887,7 +3888,7 @@ async def register_connector(req: Request):
     """Register a custom connector (Connector SDK)."""
     try:
         body = await req.json()
-    except:
+    except (json.JSONDecodeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
     name = (body.get('name') or '').strip()
     if not name:
@@ -3937,7 +3938,7 @@ async def configure_connector(connector_id: str, req: Request):
     """Save credentials and configuration for a connector."""
     try:
         body = await req.json()
-    except:
+    except (json.JSONDecodeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
     creds = body.get('credentials') or {}
     config = body.get('config') or {}
@@ -3961,7 +3962,7 @@ async def run_connector(connector_id: str, req: Request):
     """
     try:
         body = await req.json()
-    except:
+    except (json.JSONDecodeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
     action = (body.get('action') or '').strip()
     payload = body.get('payload') or {}

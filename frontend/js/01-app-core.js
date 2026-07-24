@@ -50,7 +50,7 @@ function toast(msg, type = 'ok', duration = 3000) {
   if (!c) return;
   const t = document.createElement('div');
   t.className = 'toast ' + type;
-  t.innerHTML = `<span>${msg}</span><span class="toast-close" onclick="this.parentElement.remove()">×</span>`;
+  t.innerHTML = `<span>${escHtml(msg)}</span><span class="toast-close" onclick="this.parentElement.remove()">×</span>`;
   c.appendChild(t);
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => t.classList.add('show'));
   else setTimeout(() => t.classList.add('show'), 16);
@@ -75,7 +75,7 @@ window.toggleSidebar = function() {
     sb.style.width = restoreW + 'px';
     if (btn) btn.innerHTML = '◀';
   }
-  try { localStorage.setItem('agentic_os_sidebar_collapsed', isCollapsed ? 'true' : 'false'); } catch(e) {}
+  try { try { localStorage.setItem('agentic_os_sidebar_collapsed', isCollapsed ? 'true' : 'false'); } catch {} } catch(e) {}
 };
 
 window.toggleSidebarGroup = function(groupId, forceOpen) {
@@ -93,12 +93,12 @@ window.toggleSidebarGroup = function(groupId, forceOpen) {
   content.style.display = isOpen ? '' : 'none';
   if (arrow) arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
   
-  try { localStorage.setItem('agentic_os_group_' + groupId + '_open', isOpen ? 'true' : 'false'); } catch(e) {}
+  try { try { localStorage.setItem('agentic_os_group_' + groupId + '_open', isOpen ? 'true' : 'false'); } catch {} } catch(e) {}
 };
 
 window.initSidebarGroups = function() {
   ['core', 'build', 'ship', 'tools', 'enterprise'].forEach(gid => {
-    const saved = localStorage.getItem('agentic_os_group_' + gid + '_open');
+    let saved = null; try { saved = localStorage.getItem('agentic_os_group_' + gid + '_open'); } catch {}
     const isOpen = saved === 'true';
     const content = document.getElementById('group-' + gid);
     const arrow = document.getElementById('arrow-' + gid);
@@ -144,11 +144,11 @@ function setupSidebarResizer() {
     sb.classList.remove('resizing');
     resizer.classList.remove('resizing');
     if (document.body) document.body.style.cursor = '';
-    try { localStorage.setItem('agentic_os_sidebar_w', sb.style.width); } catch(e) {}
+    try { try { localStorage.setItem('agentic_os_sidebar_w', sb.style.width); } catch {} } catch(e) {}
   });
 
   try {
-    const savedW = localStorage.getItem('agentic_os_sidebar_w');
+    let savedW = null; try { savedW = localStorage.getItem('agentic_os_sidebar_w'); } catch {}
     const savedCol = localStorage.getItem('agentic_os_sidebar_collapsed') === 'true';
     if (savedCol) {
       sb.classList.add('collapsed');
@@ -1252,7 +1252,7 @@ async function runSwarm() {
         j.merged ? '🔀 Merged Output' : `🏆 ${j.winner} — winner`;
       document.getElementById('sw-winner-reason').textContent = j.judge_reason || '';
       document.getElementById('sw-winner-body').innerHTML = renderMarkdown(swarmLastWinner);
-      statusEl.innerHTML = `✓ Done in ${j.total_latency_ms}ms · ${j.total_tokens} tokens · winner: <strong>${j.winner}</strong>`;
+      statusEl.innerHTML = `✓ Done in ${j.total_latency_ms}ms · ${j.total_tokens} tokens · winner: <strong>${escHtml(j.winner)}</strong>`;
     } else {
       // A clean API response without a winner normally means no usable model
       // was connected. Never present that as a successful completed swarm.
@@ -1465,7 +1465,7 @@ async function doGxSearch() {
       deleteGxNode(button.dataset.memoryId);
     }));
   } catch(e) {
-    el.innerHTML = `<div style="color:var(--danger);font-size:12px;padding:12px">Error: ${e?.message||String(e)}</div>`;
+    el.innerHTML = `<div style="color:var(--danger);font-size:12px;padding:12px">Error: ${escHtml(e?.message||String(e))}</div>`;
   }
 }
 
@@ -1589,7 +1589,7 @@ window.switchSettingsTab = function(tabId) {
   if (!pane && tabId === 'appearance') pane = document.getElementById('settings-tab-theme');
   if (navBtn) navBtn.classList.add('active');
   if (pane) pane.classList.add('active');
-  try { localStorage.setItem('agentic_os_settings_tab', tabId); } catch(e) {}
+  try { try { localStorage.setItem('agentic_os_settings_tab', tabId); } catch {} } catch(e) {}
   try { history.replaceState(null, '', '#/settings/' + tabId); } catch(e) {}
   if (tabId === 'ollama' && typeof window.checkHardwareRecommendations === 'function') {
     window.checkHardwareRecommendations();
@@ -1599,7 +1599,7 @@ window.switchSettingsTab = function(tabId) {
 window.setupSettingsWorkstation = function() {
   const ws = document.querySelector('#pane-settings .settings-workstation');
   if (!ws) return;
-  const savedTab = localStorage.getItem('agentic_os_settings_tab') || 'api';
+  let savedTab = 'api'; try { let _v = null; try { _v = localStorage.getItem('agentic_os_settings_tab'); } catch {} if (_v !== null) savedTab = _v; } catch {}
   switchSettingsTab(savedTab);
 };
 
@@ -1995,8 +1995,8 @@ window.saveCustomConnection = async function() {
   if (!baseUrl) { toast('Enter a custom Base URL', 'warn'); return; }
   if (msgEl) { msgEl.style.display = 'block'; msgEl.innerHTML = '<span style="color:var(--accent)">⏳ Testing connection...</span>'; }
   try {
-    localStorage.setItem('agentic_os_custom_base_url', baseUrl);
-    if (apiKey) localStorage.setItem('agentic_os_custom_api_key', apiKey);
+    try { localStorage.setItem('agentic_os_custom_base_url', baseUrl); } catch {}
+    if (apiKey) try { localStorage.setItem('agentic_os_custom_api_key', apiKey); } catch {}
     const r = await fetch(baseUrl + '/models', {
       headers: apiKey ? {'Authorization': 'Bearer ' + apiKey} : {}
     }).catch(() => null);
@@ -2063,8 +2063,8 @@ window.clearAllSecrets = async function() {
   if (!ok) return;
   try {
     await fetch('/api/secrets/OPENROUTER_API_KEY', { method: 'DELETE' });
-    localStorage.removeItem('agentic_os_custom_base_url');
-    localStorage.removeItem('agentic_os_custom_api_key');
+    try { localStorage.removeItem('agentic_os_custom_base_url'); } catch {}
+    try { localStorage.removeItem('agentic_os_custom_api_key'); } catch {}
     document.getElementById('or-key-input').value = '';
     const badge = document.getElementById('or-key-status-badge');
     if (badge) { badge.textContent = 'NOT CONFIGURED'; badge.style.color = 'var(--text-2)'; }
@@ -2124,7 +2124,7 @@ window.hardRebootBackendEngine = async function() {
 window.selectChatModel = function(val) {
   if (!val) return;
   S.currentModel = val;
-  try { localStorage.setItem('agentic_os_chat_model', val); } catch(e) {}
+  try { try { localStorage.setItem('agentic_os_chat_model', val); } catch {} } catch(e) {}
   const pill = document.getElementById('chat-model-select');
   if (pill && pill.value !== val) pill.value = val;
   toast(`🤖 Active Chat Model: ${val.replace('ollama:', 'Local Ollama: ').replace('custom_url:', 'Custom: ')}`, 'ok', 1500);
@@ -2134,14 +2134,14 @@ window.selectChatPersona = function(val) {
   if (!val || val === 'default') {
     S.currentAgent = { id: 'default', name: 'Direct AI Chat', avatar: '💬', model: '' };
     S.currentAgentId = 'default';
-    try { localStorage.setItem('agentic_os_chat_persona', 'default'); } catch(e) {}
+    try { try { localStorage.setItem('agentic_os_chat_persona', 'default'); } catch {} } catch(e) {}
     toast('💬 Direct AI Chat active (No Agent persona applied)', 'ok', 1500);
     return;
   }
   const found = S.agents?.find(a => a.id === val) || { id: val, name: formatAgentName(val), avatar: '🧠', model: '' };
   S.currentAgent = found;
   S.currentAgentId = val;
-  try { localStorage.setItem('agentic_os_chat_persona', val); } catch(e) {}
+  try { try { localStorage.setItem('agentic_os_chat_persona', val); } catch {} } catch(e) {}
   const avatarEl = document.getElementById('active-agent-avatar');
   if (avatarEl) avatarEl.textContent = found.avatar || '🤖';
   const nameEl = document.getElementById('active-agent-name');
@@ -2528,7 +2528,7 @@ window.syncOpenWebUIConnections = async function() {
   const select = document.getElementById('chat-model-select');
   if (!select) return;
   
-  const customUrl = localStorage.getItem('agentic_os_custom_base_url');
+  let customUrl = null; try { customUrl = localStorage.getItem('agentic_os_custom_base_url'); } catch {}
   const customGroup = document.getElementById('custom-model-optgroup');
   if (customGroup && customUrl) {
     customGroup.innerHTML = `<option value="custom_url:${escHtml(customUrl)}">Custom Endpoint: ${escHtml(customUrl)}</option>`;
@@ -3031,7 +3031,7 @@ async function loadMCPTools() {
     // Update header with live count
     const hdr = document.getElementById('mcp-tools-header');
     if (hdr) hdr.textContent = `Available Tools (${j.count || j.tools?.length || 0})`;
-    if (sel) sel.innerHTML = j.tools.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+    if (sel) sel.innerHTML = j.tools.map(t => `<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('');
     if (list) list.innerHTML = j.tools.map(t => `
       <div style="display:flex;gap:10px;padding:7px 10px;background:var(--bg-3);border-radius:var(--radius-sm);cursor:pointer"
            onclick="document.getElementById('mcp-tool-sel').value='${t.name}'">
@@ -3393,7 +3393,7 @@ async function renderDashboard() {
     renderDashBody(dashData);
   } catch(ex) {
     const el = document.getElementById('dash-body');
-    if (el) el.innerHTML = `<div style="color:var(--danger)">Failed to load: ${ex?.message||String(ex)}<br><button class="btn-sm" onclick="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
+    if (el) el.innerHTML = `<div style="color:var(--danger)">Failed to load: ${escHtml(ex?.message||String(ex))}<br><button class="btn-sm" onclick="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
   }
   // Auto-refresh every 30s
   clearTimeout(_dashRefreshTimer);
@@ -3623,7 +3623,7 @@ async function execSkill() {
   btn.disabled = true; btn.textContent = '⏳ Running…';
   const resEl = document.getElementById('srm-result');
   resEl.style.display = 'block';
-  resEl.innerHTML = `<div style="color:var(--text-2)">Running ${activeSkill.name}…</div>`;
+  resEl.innerHTML = `<div style="color:var(--text-2)">Running ${escHtml(activeSkill.name)}…</div>`;
 
   try {
     const r = await fetch('/api/skills/run', {
@@ -3642,7 +3642,7 @@ async function execSkill() {
     if (j.ok) toast(`✅ ${activeSkill.name} complete · ${j.latency_ms}ms`, 'ok', 3000);
     else toast('Skill error: ' + (j.error||'check output'), 'err');
   } catch(e) {
-    resEl.innerHTML = `<div style="color:var(--red)">Error: ${e.message}</div>`;
+    resEl.innerHTML = `<div style="color:var(--red)">Error: ${escHtml(e.message)}</div>`;
     toast('Skill failed', 'err');
   } finally {
     btn.disabled = false; btn.textContent = '▶ Run Skill';
@@ -8796,7 +8796,7 @@ window.closeOnboardingModal = function() {
     overlay.style.display = 'none';
     if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
   }
-  try { localStorage.setItem('agentic_os_onboarded', 'true'); } catch(e) {}
+  try { try { localStorage.setItem('agentic_os_onboarded', 'true'); } catch {} } catch(e) {}
   try { if (window.nav) nav('chat'); } catch(e) {}
 };
 
@@ -8868,7 +8868,7 @@ function applyTheme(themeId, accentOverride, options = {}) {
   if (themeMeta) themeMeta.content = tid === 'light' ? '#f8fafc' : '#060814';
 
   if (options.persist === false) return;
-  try { localStorage.setItem('agentic_os_theme', preference); } catch(e) {}
+  try { try { localStorage.setItem('agentic_os_theme', preference); } catch {} } catch(e) {}
   fetch('/api/onboarding/preferences', {
     method: 'PATCH', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({theme: preference, accent_color: accent})
@@ -8896,7 +8896,7 @@ window.applyTheme = applyTheme;
 
 window.switchUIMode = async function(mode) {
   if (mode !== 'simple' && mode !== 'power') return;
-  try { localStorage.setItem('agentic_os_mode', mode); } catch(e) {}
+  try { try { localStorage.setItem('agentic_os_mode', mode); } catch {} } catch(e) {}
   if (typeof _UI !== 'undefined') _UI.uiMode = mode;
   if (window._UI) window._UI.uiMode = mode;
   document.documentElement.setAttribute('data-ui-mode', mode);
@@ -8929,7 +8929,7 @@ window.switchUIMode = async function(mode) {
 
 // ── Settings Appearance helpers ────────────────────────────────────
 window.updateSettingsModeButtons = function() {
-  const mode = localStorage.getItem('agentic_os_mode') || (typeof _UI !== 'undefined' ? _UI.uiMode : 'simple') || 'simple';
+  let mode = (typeof _UI !== 'undefined' ? _UI.uiMode : 'simple') || 'simple'; try { let _v = null; try { _v = localStorage.getItem('agentic_os_mode'); } catch {} if (_v !== null) mode = _v; } catch {}
   const simBtn = document.getElementById('settings-simple-btn');
   const pwrBtn = document.getElementById('settings-power-btn');
   if (simBtn) {
@@ -8940,7 +8940,7 @@ window.updateSettingsModeButtons = function() {
     pwrBtn.style.borderColor = mode === 'power' ? 'var(--accent)' : 'var(--border)';
     pwrBtn.style.background  = mode === 'power' ? 'rgba(91,138,248,.12)' : 'var(--bg-3)';
   }
-  const fs = localStorage.getItem('agentic_os_font_size') || (typeof _UI !== 'undefined' ? _UI.profile?.font_size : 'base') || 'base';
+  let fs = (typeof _UI !== 'undefined' ? _UI.profile?.font_size : 'base') || 'base'; try { let _v = null; try { _v = localStorage.getItem('agentic_os_font_size'); } catch {} if (_v !== null) fs = _v; } catch {}
   ['sm','base','lg'].forEach(s => {
     const b = document.getElementById(`fs-${s}`);
     if (b) {
@@ -8957,7 +8957,7 @@ window.saveFontSize = async function(size) {
   document.documentElement.style.fontSize = sizeMap[size] || '14px';
   document.documentElement.style.setProperty('--text-base', sizeMap[size] || '14px');
   if (document.body) document.body.style.zoom = zoomMap[size] || '1.0';
-  try { localStorage.setItem('agentic_os_font_size', size); } catch(e) {}
+  try { try { localStorage.setItem('agentic_os_font_size', size); } catch {} } catch(e) {}
   if (typeof _UI !== 'undefined') {
     if (!_UI.profile) _UI.profile = {};
     _UI.profile.font_size = size;
@@ -11281,7 +11281,7 @@ function updateSuggestionChips(suggestions){
   chips.innerHTML=`<span class="suggestion-label">💡 Next:</span>`+
     suggestions.map(s=>`<button class="suggestion-chip btn-3d" onclick="${s.action||''}" title="${escHtml(s.reason||'')}">${s.icon||'⚡'} ${escHtml(s.label)}</button>`).join('')+
     `<div style="margin-left:auto;display:flex;align-items:center;gap:6px">
-       <button onclick="localStorage.setItem('agentic_os_disable_hints','true');document.getElementById('smart-suggestions').style.display='none';toast('✕ Next hints turned off.')" class="btn-sm btn-ghost" style="padding:2px 8px;font-size:10px">🔕 Turn off hints</button>
+       <button onclick="try { localStorage.setItem('agentic_os_disable_hints', 'true'); } catch {}document.getElementById('smart-suggestions').style.display='none';toast('✕ Next hints turned off.')" class="btn-sm btn-ghost" style="padding:2px 8px;font-size:10px">🔕 Turn off hints</button>
        <button onclick="document.getElementById('smart-suggestions').style.display='none'" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;padding:0 4px">×</button>
      </div>`;
 }
@@ -11409,7 +11409,7 @@ window.toggleSplitWorkspace = function(forceOpen, initialPane) {
     }
     const paneToRender = initialPane || document.getElementById('split-pane-select')?.value || 'studio';
     renderSplitPane(paneToRender);
-    try { localStorage.setItem('agentic_os_split_active', 'true'); } catch(e) {}
+    try { try { localStorage.setItem('agentic_os_split_active', 'true'); } catch {} } catch(e) {}
     toast('🗂️ Dual-pane split view active', 'ok', 2000);
   } else {
     rightSlot.style.display = 'none';
@@ -11420,7 +11420,7 @@ window.toggleSplitWorkspace = function(forceOpen, initialPane) {
       btn.style.borderColor = 'var(--border-hi)';
       btn.style.background = 'var(--bg-2)';
     }
-    try { localStorage.setItem('agentic_os_split_active', 'false'); } catch(e) {}
+    try { try { localStorage.setItem('agentic_os_split_active', 'false'); } catch {} } catch(e) {}
     toast('✕ Split view closed', 'ok', 1500);
   }
 };
@@ -11649,13 +11649,13 @@ setInterval(updateCostBar, 30000);
 
 setTimeout(() => {
   if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
-  const savedModel = localStorage.getItem('agentic_os_chat_model');
+  let savedModel = null; try { savedModel = localStorage.getItem('agentic_os_chat_model'); } catch {}
   if (savedModel) {
     S.currentModel = savedModel;
     const sel = document.getElementById('chat-model-select');
     if (sel) sel.value = savedModel;
   }
-  const savedPersona = localStorage.getItem('agentic_os_chat_persona');
+  let savedPersona = null; try { savedPersona = localStorage.getItem('agentic_os_chat_persona'); } catch {}
   if (savedPersona && typeof window.selectChatPersona === 'function') {
     window.selectChatPersona(savedPersona);
   }

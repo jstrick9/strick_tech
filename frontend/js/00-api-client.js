@@ -37,7 +37,7 @@
     setToken: (token) => token ? localStorage.setItem(TOKEN_KEY, token) : localStorage.removeItem(TOKEN_KEY),
     clearToken: () => localStorage.removeItem(TOKEN_KEY),
     websocketUrl: (path) => {
-      const token = localStorage.getItem(TOKEN_KEY);
+      let token = null; try { token = localStorage.getItem(TOKEN_KEY); } catch {}
       if (!token) return path;
       const joiner = path.includes('?') ? '&' : '?';
       return `${path}${joiner}token=${encodeURIComponent(token)}`;

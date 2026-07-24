@@ -174,7 +174,7 @@ async function evalSubmit() {
       body:JSON.stringify({prompt,response,expected,agent_id:agentId})});
     const d=await r.json();
     if(el) el.innerHTML=evalScoreHTML(d);
-  } catch(ex){ if(el) el.innerHTML=`<div style="color:var(--danger)">${ex.message}</div>`; }
+  } catch(ex){ if(el) el.innerHTML=`<div style="color:var(--danger)">${escHtml(ex.message)}</div>`; }
   if(btn){btn.disabled=false;btn.textContent='🧮 Evaluate';}
 }
 
@@ -322,7 +322,7 @@ async function evalRunAB() {
         }catch(e){}
       }
     }
-  }catch(ex){if(el) el.innerHTML=`<div style="color:var(--danger)">${ex.message}</div>`;}
+  }catch(ex){if(el) el.innerHTML=`<div style="color:var(--danger)">${escHtml(ex.message)}</div>`;}
 }
 
 async function evalRunRedTeam() {
@@ -362,7 +362,7 @@ async function evalRunRedTeam() {
         }catch(e){}
       }
     }
-  }catch(ex){if(el) el.innerHTML=`<div style="color:var(--danger)">${ex.message}</div>`;}
+  }catch(ex){if(el) el.innerHTML=`<div style="color:var(--danger)">${escHtml(ex.message)}</div>`;}
 }
 
 async function evalRedTeam() {
@@ -723,7 +723,7 @@ async function kgQuery() {
             ${(d.entities_found||[]).map((e) =>`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer;color:var(--accent)" onclick="kgShowEntity(${JSON.stringify(e.id)})">${escHtml(e.name||'')} <span style="color:var(--text-3)">(${e.type})</span></span>`).join('')}
           </div>`:''}
       </div>`;
-  }catch(ex){if(el) el.innerHTML=`<div style="color:var(--danger)">${ex.message}</div>`;}
+  }catch(ex){if(el) el.innerHTML=`<div style="color:var(--danger)">${escHtml(ex.message)}</div>`;}
 }
 
 async function kgExtract() {
@@ -919,7 +919,7 @@ async function ragQuery(pipelineId) {
           ${(d.citations||[]).map((c) =>`<div style="font-size:11px;color:var(--text-3);padding:2px 0">[${c.num}] chunk_${c.chunk_id?.slice(-4)} from doc_${c.doc_id?.slice(-4)}</div>`).join('')}
         </div>`:''}
       </div>`;
-  }catch(ex){if(el) el.innerHTML=`<div style="color:var(--danger)">${ex.message}</div>`;}
+  }catch(ex){if(el) el.innerHTML=`<div style="color:var(--danger)">${escHtml(ex.message)}</div>`;}
 }
 
 async function ragDeletePipeline(pipelineId) {

@@ -548,7 +548,7 @@ async function renderHealth() {
 
     bbLoadHealthHistory();
   } catch(ex) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Health check failed: ${ex.message}</div>`;
+    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Health check failed: ${escHtml(ex.message)}</div>`;
   }
 }
 
@@ -698,7 +698,7 @@ async function gitaiNLRun() {
           <button class="btn-sm" onclick="gitaiNLExecute(_gitaiLastQuery)" ${d.is_destructive?'style="color:var(--danger)"':''}>▶ Execute ${d.is_destructive?'(DESTRUCTIVE!)':''}</button>
         </div>
       </div>`;
-  } catch(ex) { if(el)el.innerHTML=`<div style="color:var(--danger)">Error: ${ex.message}</div>`; }
+  } catch(ex) { if(el)el.innerHTML=`<div style="color:var(--danger)">Error: ${escHtml(ex.message)}</div>`; }
 }
 
 async function gitaiNLExecute(query) {
@@ -739,7 +739,7 @@ async function gitaiGenerateCommit(autoCommit) {
         ${d.committed?'<div style="color:var(--success)">✅ Committed!</div>':''}
         <button class="btn-sm" onclick="navigator.clipboard.writeText(window._gitaiLastCommitMsg||'').then(()=>showToast('📋 Copied','ok',1200))">📋 Copy</button>  <!-- FIX 7 -->
       </div>`;
-  } catch(ex) { if(el)el.innerHTML=`<div style="color:var(--danger)">Error: ${ex.message}</div>`; }
+  } catch(ex) { if(el)el.innerHTML=`<div style="color:var(--danger)">Error: ${escHtml(ex.message)}</div>`; }
 }
 
 async function gitaiChangelog() {
@@ -755,7 +755,7 @@ async function gitaiChangelog() {
         <div style="font-size:12px;color:var(--success);margin-bottom:8px">✅ ${d.commits_used} commits → ${escHtml(d.changelog_path||'')}</div>
         <div style="font-size:11px;font-family:monospace;white-space:pre-wrap;color:var(--text-1);max-height:300px;overflow-y:auto">${escHtml(d.entry||'')}</div>
       </div>`;
-  } catch(ex) { if(el)el.innerHTML=`<div style="color:var(--danger)">Error: ${ex.message}</div>`; }
+  } catch(ex) { if(el)el.innerHTML=`<div style="color:var(--danger)">Error: ${escHtml(ex.message)}</div>`; }
 }
 
 async function gitaiRunDepAudit() {
@@ -776,7 +776,7 @@ async function gitaiRunDepAudit() {
           </div>`).join('')||'<div style="color:var(--success)">✅ No issues found</div>'}
         ${d.upgrade_commands?.python?`<div style="margin-top:10px;font-family:monospace;font-size:10px;color:var(--text-3)">${escHtml(d.upgrade_commands.python)}</div>`:''}
       </div>`;
-  } catch(ex) { if(el)el.innerHTML=`<div style="color:var(--danger)">Error: ${ex.message}</div>`; }
+  } catch(ex) { if(el)el.innerHTML=`<div style="color:var(--danger)">Error: ${escHtml(ex.message)}</div>`; }
 }
 
 async function gitaiRunSecurity() {
@@ -806,7 +806,7 @@ async function gitaiRunSecurity() {
             <div style="font-size:11px;color:var(--text-2)">${escHtml(v.description||'')}</div>
           </div>`).join('')||'<div style="color:var(--success)">✅ No security issues found</div>'}
       </div>`;
-  } catch(ex) { if(el)el.innerHTML=`<div style="color:var(--danger)">Error: ${ex.message}</div>`; }
+  } catch(ex) { if(el)el.innerHTML=`<div style="color:var(--danger)">Error: ${escHtml(ex.message)}</div>`; }
 }
 
 

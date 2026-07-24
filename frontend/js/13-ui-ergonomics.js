@@ -84,8 +84,8 @@
 
   window.resetCoreOrder = function(evt) {
     if (evt) { evt.stopPropagation(); evt.preventDefault(); }
-    localStorage.removeItem(ORDER_STORAGE_KEY);
-    localStorage.removeItem(PINNED_STORAGE_KEY);
+    try { localStorage.removeItem(ORDER_STORAGE_KEY); } catch {}
+    try { localStorage.removeItem(PINNED_STORAGE_KEY); } catch {}
     if (window.toast) toast('🔄 Restored default Core navigation layout and unpinned custom items', 'ok', 3000);
     location.reload();
   };
@@ -261,7 +261,7 @@
 
   window.toggleHighContrastTheme = function() {
     const isHighContrast = document.body.classList.toggle('theme-high-contrast');
-    try { localStorage.setItem('agentic_os_high_contrast', isHighContrast ? 'true' : 'false'); } catch(e) {}
+    try { try { localStorage.setItem('agentic_os_high_contrast', isHighContrast ? 'true' : 'false'); } catch {} } catch(e) {}
     const btn = document.getElementById('high-contrast-toggle-btn');
     if (btn) {
       btn.textContent = isHighContrast ? 'Disable High Contrast' : 'Enable High Contrast';
