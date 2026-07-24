@@ -121,7 +121,7 @@ jobs:
           exit 1
 
   live-api:
-    name: Live security and integration suites
+    name: Live full test battery (security, integration, system, uat, usability, regression, sprints, gap)
     runs-on: ubuntu-latest
     needs: python-quality
     steps:
@@ -157,6 +157,27 @@ jobs:
 
       - name: Run integration suite
         run: python -m pytest tests/integration -q
+
+      - name: Run system suite
+        # Treats the platform as a black box end-to-end; self-provisions
+        # agent identities in its own conftest, so it runs correctly
+        # standalone regardless of step order.
+        run: python -m pytest tests/system -q
+
+      - name: Run UAT suite
+        run: python -m pytest tests/uat -q
+
+      - name: Run usability suite
+        run: python -m pytest tests/usability -q
+
+      - name: Run regression suite
+        run: python -m pytest tests/regression -q
+
+      - name: Run sprint A-D suites
+        run: python -m pytest tests/sprint_a tests/sprint_b tests/sprint_c tests/sprint_d -q
+
+      - name: Run gap-coverage suite
+        run: python -m pytest tests/gap -q
 
       - name: Upload server log on failure
         if: failure()

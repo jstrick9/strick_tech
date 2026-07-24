@@ -90,3 +90,25 @@ def _restore_agents_system():
             try: c.patch(f"/api/agents/{aid}", json=d)
             except: pass
     yield
+
+
+@_pytest.fixture(autouse=True, scope="session")
+def _ensure_agent_identities_provisioned():
+    """This suite is documented as treating the platform as a black box that
+    tests real end-to-end journeys without depending on other suites having
+    run first. Agent-identity provisioning is a deliberate, explicit
+    Zero-Trust action (POST /api/agent-identity/provision-all) rather than
+    something the app does automatically at startup, so tests that exercise
+    identity/token endpoints for existing agents (e.g. rotating "reviewer"'s
+    keys) would otherwise only pass when tests/integration or tests/uat
+    happened to provision those identities first in the same test run.
+    Provisioning here makes this suite self-sufficient, matching its own
+    "black box" / order-independence design intent, regardless of which
+    other suites ran before it.
+    """
+    with _httpx.Client(base_url="http://127.0.0.1:8787", timeout=10) as c:
+        try:
+            c.post("/api/agent-identity/provision-all")
+        except Exception:
+            pass
+    yield
