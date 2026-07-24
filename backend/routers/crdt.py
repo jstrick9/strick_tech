@@ -16,16 +16,12 @@ OT operation types:
 """
 
 from __future__ import annotations
-from typing import Optional, Union, Any, Dict, List
-
-import contextlib
 
 import asyncio
 import json
 import logging
 import time
 import uuid
-from pathlib import Path
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 
@@ -35,6 +31,7 @@ router = APIRouter(prefix='/api/crdt', tags=['crdt'])
 log = logging.getLogger('agentic.crdt')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 DOCS_DIR = ROOT / 'workspaces' / 'collab_docs'
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
@@ -123,7 +120,6 @@ def _transform(op_a: list, op_b: list, side: str = 'left') -> tuple[list, list]:
     b_prime: list = []
 
     i = j = 0
-    a_idx = b_idx = 0  # position within current component
     ai = list(op_a)
     bi = list(op_b)
 
@@ -380,7 +376,7 @@ class CRDTDoc:
                 pos += abs(c)
         return _compact(inv)
 
-    async def undo(self, peer_id: str) ->Optional[ dict]:
+    async def undo(self, peer_id: str) ->dict | None:
         """Execute or process undo operation."""
         stack = self.undo_stacks.get(peer_id, [])
         if not stack:
@@ -388,7 +384,7 @@ class CRDTDoc:
         entry = stack.pop()
         return await self.apply_and_broadcast(peer_id, f'{peer_id}(undo)', self.revision, entry['op'])
 
-    async def redo(self, peer_id: str) ->Optional[ dict]:
+    async def redo(self, peer_id: str) ->dict | None:
         """Execute or process redo operation."""
         stack = self.redo_stacks.get(peer_id, [])
         if not stack:
@@ -627,7 +623,6 @@ async def restore_revision(doc_id: str, revision: int):
         content = _apply_op(content, op)
 
     doc = _get_doc(doc_id)
-    old = doc.content
     doc.content = content
     doc._persist_doc()
     return {'ok': True, 'restored_revision': revision, 'content': content[:500]}

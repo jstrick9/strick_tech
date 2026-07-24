@@ -8,12 +8,9 @@ Stored in .agentic/profile.json (local-first, no server).
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import logging
 import time
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -22,6 +19,7 @@ router = APIRouter(prefix='/api/profile', tags=['profile'])
 log = logging.getLogger('agentic.profile')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PROFILE_FILE = ROOT / '.agentic' / 'profile.json'
 PROFILE_FILE.parent.mkdir(parents=True, exist_ok=True)

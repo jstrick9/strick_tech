@@ -6,8 +6,6 @@ Output streams via SSE. History persisted. Kill support.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import json
 import logging
@@ -15,7 +13,6 @@ import os
 import shutil
 import time
 import uuid
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -26,6 +23,7 @@ router = APIRouter(prefix='/api/terminal', tags=['terminal'])
 log = logging.getLogger('agentic.terminal')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 WORK_DIR = PREVIEW_DIR  # default working directory

@@ -9,9 +9,6 @@ Bi-directional sync with a local Obsidian vault:
 """
 
 from __future__ import annotations
-from typing import Optional, Union, Any, Dict, List
-
-import contextlib
 
 import json
 import logging
@@ -26,11 +23,12 @@ router = APIRouter(prefix='/api/obsidian', tags=['obsidian'])
 log = logging.getLogger('agentic.obsidian')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-def _vault_path() ->Optional[ Path]:
+def _vault_path() ->Path | None:
     """Get configured vault path from config or env."""
     vault = os.getenv('OBSIDIAN_VAULT_PATH', '')
     if vault and Path(vault).exists():

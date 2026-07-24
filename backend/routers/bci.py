@@ -4,11 +4,10 @@ Bridges real-time 8-channel EEG telemetry and cognitive intent decoding directly
 Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 """
 from __future__ import annotations
-import math
+
 import time
-import uuid
-from pathlib import Path
 from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -76,11 +75,11 @@ def decode_neural_intent(payload: IntentDecodeRequest) -> dict[str, Any]:
     """Perform real-time spectral FFT band decomposition and classify cognitive intent into actionable agent commands."""
     if not payload.raw_microvolts_8ch or not payload.raw_microvolts_8ch[0]:
         raise HTTPException(status_code=400, detail="Microvolt sample packet cannot be empty")
-    
+
     # Calculate simulated spectral band power across samples
     samples = payload.raw_microvolts_8ch[0]
     avg_mv = sum(samples) / len(samples)
-    
+
     # Map cognitive state bands
     bands = {
         "delta_0_4hz_power_pct": 14.2,

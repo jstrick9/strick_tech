@@ -6,9 +6,8 @@ agent run timings, DB query stats.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
+import contextlib
 import cProfile
 import io
 import json
@@ -17,7 +16,6 @@ import os
 import pstats
 import time
 import tracemalloc
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -25,6 +23,7 @@ router = APIRouter(prefix='/api/profiler', tags=['profiler'])
 log = logging.getLogger('agentic.profiler')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 # ── In-memory profiling sessions ───────────────────────────────────────────────

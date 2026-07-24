@@ -8,14 +8,11 @@ Tables used: workflow_runs, workflow_run_frames (created here)
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import json
 import logging
 import time
 import uuid
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -24,6 +21,7 @@ router = APIRouter(prefix='/api/replay', tags=['replay'])
 log = logging.getLogger('agentic.replay')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 WF_DIR = ROOT / 'workspaces' / 'workflows'
 

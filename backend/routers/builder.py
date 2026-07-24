@@ -6,10 +6,9 @@ deploy hooks, and LLM-powered code assistance.
 
 from __future__ import annotations
 
-import contextlib
-
 import ast
 import base64
+import contextlib
 import io
 import json
 import os
@@ -26,6 +25,7 @@ from ..services import llm, memory_db
 router = APIRouter(tags=['builder'])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 MOBILE_DIR = PREVIEW_DIR / 'mobile'

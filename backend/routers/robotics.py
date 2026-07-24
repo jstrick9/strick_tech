@@ -4,17 +4,19 @@ Bridges autonomous agents directly to physical actuators, robotic arms, and tele
 Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 """
 from __future__ import annotations
+
 import json
 import time
 import uuid
-from pathlib import Path
-from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/robotics", tags=["robotics"])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 ROBOTICS_DIR = MEMORY_DIR / "robotics"
@@ -33,7 +35,7 @@ _DEFAULT_SENSORS = [
 
 class ActuatorRegisterRequest(BaseModel):
     """Pydantic data model for ActuatorRegisterRequest."""
-    actuator_id:Optional[ str] = None
+    actuator_id:str | None = None
     name: str = "6-Axis Robotic Arm Joint 1"
     protocol: str = "ros2_topic"  # ros2_topic, mqtt, modbus
     topic_or_address: str = "/robot/arm/joint_1/cmd_vel"
@@ -114,7 +116,7 @@ def execute_actuator_command(actuator_id: str, payload: ActuatorCommandRequest) 
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Actuator ID not registered")
     meta = json.loads(file_path.read_text(encoding="utf-8"))
-    
+
     # Check safety limits
     limits = meta.get("safety_limits", {})
     val = payload.target_value

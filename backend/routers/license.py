@@ -14,14 +14,11 @@ Tiers:
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import logging
 import os
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -29,6 +26,7 @@ router = APIRouter(prefix='/api/license', tags=['license'])
 log = logging.getLogger('agentic.license')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 LICENSE_FILE = ROOT / '.agentic' / 'license.json'
 LICENSE_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -217,9 +215,8 @@ def _create_trial() -> dict:
 def _effective_tier(data: dict) -> str:
     """Return effective tier, accounting for expired trial."""
     tier = data.get('tier', 'trial')
-    if tier == 'trial':
-        if time.time() > data.get('trial_end', 0):
-            return 'free'  # trial expired → free
+    if tier == 'trial' and time.time() > data.get('trial_end', 0):
+        return 'free'  # trial expired → free
     return tier
 
 

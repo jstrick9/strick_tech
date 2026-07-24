@@ -11,12 +11,9 @@ Each template is a fully working HTML/CSS/JS app that scaffolds instantly.
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import logging
 import re
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -25,6 +22,7 @@ from ..services.memory_db import audit_log, get_conn
 router = APIRouter(prefix='/api/templates', tags=['templates'])
 log = logging.getLogger('agentic.templates')
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREV = ROOT / 'preview'
 PREV.mkdir(parents=True, exist_ok=True)
@@ -793,7 +791,7 @@ async def scaffold_template(template_id: str, req: Request):
     # Sanitised project name for substitution
     raw_name = body.get('project_name', '')
     custom_name = _safe_name(raw_name) if raw_name else ''
-    custom_desc = (body.get('description') or '').strip()[:200]
+    (body.get('description') or '').strip()[:200]
 
     PREV.mkdir(parents=True, exist_ok=True)
     created: list = []

@@ -6,8 +6,6 @@ recolor, change model, write system prompts, and delete agents.
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import re
 import uuid

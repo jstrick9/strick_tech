@@ -8,9 +8,6 @@ Like Cursor Composer or Windsurf Cascade:
 """
 
 from __future__ import annotations
-from typing import Optional, Union, Any, Dict, List
-
-import contextlib
 
 import asyncio
 import json
@@ -28,6 +25,7 @@ from ..services import llm, memory_db
 router = APIRouter(prefix='/api/composer', tags=['composer'])
 log = logging.getLogger('agentic.composer')
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREV = ROOT / 'preview'
 
@@ -225,7 +223,7 @@ async def screenshot_to_code(req: Request):
     elif image_url:
         image_content = [{'type': 'image_url', 'image_url': {'url': image_url}}]
 
-    system = f"""You are an expert UI developer. 
+    system = f"""You are an expert UI developer.
 Analyze the screenshot and recreate it as a pixel-perfect {framework} implementation.
 Use Tailwind CSS (via CDN), modern semantic HTML5.
 {'Dark theme: background #08090e, text white' if style == 'dark' else 'Match the screenshot colors exactly'}.
@@ -439,7 +437,7 @@ def _get_project_files() -> list[str]:
     return sorted(files)[:50]
 
 
-def _extract_plan(text: str) ->Optional[ dict]:
+def _extract_plan(text: str) ->dict | None:
     m = re.search(r'<PLAN>(.*?)</PLAN>', text, re.DOTALL)
     if not m:
         return None

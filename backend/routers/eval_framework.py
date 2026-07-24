@@ -22,16 +22,14 @@ Based on:
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
+import contextlib
 import json
 import logging
 import re
 import time
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -40,6 +38,7 @@ router = APIRouter(prefix='/api/eval-framework', tags=['eval-framework'])
 log = logging.getLogger('agentic.eval_fw')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────

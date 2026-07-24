@@ -6,8 +6,6 @@ Also: Cloudflare Tunnel for public HTTPS preview URL.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import io
 import json
@@ -24,6 +22,7 @@ router = APIRouter(prefix='/api/deploy', tags=['deploy'])
 log = logging.getLogger('agentic.deploy')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 

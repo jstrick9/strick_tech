@@ -9,18 +9,16 @@ APScheduler-based autonomous agent loops:
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import datetime
 import json
 import logging
-from pathlib import Path
 from typing import Any
 
 log = logging.getLogger('agentic.scheduler')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 _scheduler = None

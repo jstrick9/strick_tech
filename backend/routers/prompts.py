@@ -6,8 +6,6 @@ Like Claude's prompt library but integrated into the full OS.
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import time
 import uuid

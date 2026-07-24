@@ -14,13 +14,11 @@ Security Scanner: OWASP Top 10, secret detection, SQL injection, XSS, path trave
 from __future__ import annotations
 
 import contextlib
-
 import json
 import logging
 import re
 import subprocess
 import time
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -28,6 +26,7 @@ router = APIRouter(prefix='/api/gitai', tags=['gitai'])
 log = logging.getLogger('agentic.gitai')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'  # FIX 2: define PREVIEW_DIR for security scanner
 

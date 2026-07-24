@@ -5,12 +5,9 @@ First-run wizard, user preferences, workspace settings, keyboard shortcuts.
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import os
 import time
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -19,6 +16,7 @@ from ..services.memory_db import audit_log, get_conn, memory_add
 router = APIRouter(prefix='/api/onboarding', tags=['onboarding'])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREFS_FILE = ROOT / 'memory' / 'preferences.json'
 
@@ -341,7 +339,9 @@ async def complete_onboarding(req: Request):
     # wizard persists to `preferences.json`; completing the wizard must update
     # both representations atomically from the user's perspective.
     try:
-        from .userprofile import ROLE_DEFAULTS, _load as load_profile, _save as save_profile
+        from .userprofile import ROLE_DEFAULTS
+        from .userprofile import _load as load_profile
+        from .userprofile import _save as save_profile
 
         profile = load_profile()
         profile['onboarding_done'] = True

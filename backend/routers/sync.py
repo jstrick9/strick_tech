@@ -9,7 +9,6 @@ import base64
 import hashlib
 import json
 import time
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -18,6 +17,7 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/api/sync", tags=["sync"])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 SYNC_STATUS_FILE = MEMORY_DIR / "sync_status.json"
@@ -34,7 +34,7 @@ class _FallbackCipher:
         """Execute or process encrypt operation."""
         import hashlib
         mask = hashlib.sha256(self.key).digest() * (len(data) // 32 + 1)
-        masked = bytes(a ^ b for a, b in zip(data, mask[:len(data)]))
+        masked = bytes(a ^ b for a, b in zip(data, mask[:len(data)], strict=False))
         return base64.b64encode(masked)
 
     def decrypt(self, data: bytes) -> bytes:
@@ -42,7 +42,7 @@ class _FallbackCipher:
         import hashlib
         raw = base64.b64decode(data)
         mask = hashlib.sha256(self.key).digest() * (len(raw) // 32 + 1)
-        return bytes(a ^ b for a, b in zip(raw, mask[:len(raw)]))
+        return bytes(a ^ b for a, b in zip(raw, mask[:len(raw)], strict=False))
 
 
 def _get_fernet_for_passphrase(passphrase: str = ""):
@@ -167,7 +167,7 @@ def import_encrypted_bundle(payload: SyncImportRequest) -> dict[str, Any]:
         decrypted_bytes = f.decrypt(payload.encrypted_bundle.encode("utf-8"))
         bundle_data = json.loads(decrypted_bytes.decode("utf-8"))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Decryption failed: invalid passphrase or corrupt bundle ({e})")
+        raise HTTPException(status_code=400, detail=f"Decryption failed: invalid passphrase or corrupt bundle ({e})") from e
 
     restored_db = False
     if "agentic_db_b64" in bundle_data:

@@ -8,15 +8,12 @@ Auto code review on save.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import hashlib
 import json
 import logging
 import re
 import time
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -26,6 +23,7 @@ router = APIRouter(prefix='/api/project', tags=['project'])
 log = logging.getLogger('agentic.project')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
@@ -528,7 +526,7 @@ async def share_project(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    target = body.get('target', 'web')
+    body.get('target', 'web')
     message = body.get('message', '')
 
     # Get tunnel info

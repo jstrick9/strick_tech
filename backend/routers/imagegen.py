@@ -5,9 +5,6 @@ Import Figma designs and reconstruct as working code.
 """
 
 from __future__ import annotations
-from typing import Optional, Union, Any, Dict, List
-
-import contextlib
 
 import base64
 import json
@@ -23,6 +20,7 @@ router = APIRouter(prefix='/api/imagegen', tags=['imagegen'])
 log = logging.getLogger('agentic.imagegen')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 ASSETS_DIR = PREVIEW_DIR / 'assets' / 'images'
@@ -42,7 +40,7 @@ def _or_headers() -> dict:
     }
 
 
-def _safe_preview_path(relative: str) ->Optional[ Path]:
+def _safe_preview_path(relative: str) ->Path | None:
     """Resolve a relative path within PREVIEW_DIR, blocking traversal."""
     target = (PREVIEW_DIR / relative.lstrip('/')).resolve()
     if str(target).startswith(str(PREVIEW_DIR.resolve())):

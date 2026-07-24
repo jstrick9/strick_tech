@@ -14,7 +14,6 @@ Architecture:
 from __future__ import annotations
 
 import contextlib
-
 import hashlib
 import io
 import json
@@ -32,6 +31,7 @@ router = APIRouter(prefix='/api/marketplace', tags=['marketplace'])
 log = logging.getLogger('agentic.marketplace')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 MKT_DIR = ROOT / 'workspaces' / 'marketplace'
 PACKS_DIR = MKT_DIR / 'packs'

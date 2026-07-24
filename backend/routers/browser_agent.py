@@ -9,10 +9,9 @@ No competitor in our target list has this built-in.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import base64
+import contextlib
 import json
 import logging
 import re
@@ -27,6 +26,7 @@ router = APIRouter(prefix='/api/browser', tags=['browser'])
 log = logging.getLogger('agentic.browser')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 SCREENSHOTS = ROOT / 'preview' / 'browser_screenshots'
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)
@@ -189,6 +189,7 @@ async def stream_browser_setup():
     """Stream SSE live progress for Playwright and Chromium installation."""
     import asyncio
     import json
+
     from fastapi.responses import StreamingResponse
 
     async def event_generator():

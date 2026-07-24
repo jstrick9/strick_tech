@@ -18,7 +18,6 @@ Based on:
 """
 
 from __future__ import annotations
-from typing import Optional, Union, Any, Dict, List
 
 import hashlib
 import hmac
@@ -27,7 +26,6 @@ import logging
 import secrets
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -36,6 +34,7 @@ router = APIRouter(prefix='/api/agent-identity', tags=['agent-identity'])
 log = logging.getLogger('agentic.identity')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -243,7 +242,7 @@ def _seed_default_permissions(con, agent_id: str, authority_level: str):
         )
 
 
-def get_agent_identity(agent_id: str) ->Optional[ dict]:
+def get_agent_identity(agent_id: str) ->dict | None:
     """Fetch identity record (without signing_key for security)."""
     con = _get_conn()
     try:
@@ -271,7 +270,7 @@ def get_agent_identity(agent_id: str) ->Optional[ dict]:
 def issue_jit_token(
     agent_id: str,
     task_id: str = '',
-    scope:Optional[ list[str]] = None,
+    scope:list[str] | None = None,
     ttl_seconds: int = DEFAULT_TOKEN_TTL_SECONDS,
     max_uses: int = DEFAULT_MAX_USES,
 ) -> dict:

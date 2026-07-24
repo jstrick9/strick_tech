@@ -6,8 +6,6 @@ memory growth, swarm wins, skill usage, E2E pass rate.
 
 from __future__ import annotations
 
-import contextlib
-
 import csv
 import datetime
 import io

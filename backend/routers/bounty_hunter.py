@@ -4,17 +4,19 @@ Manages autonomous security scanning, zero-day detection, and self-patching veri
 Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 """
 from __future__ import annotations
+
 import json
 import time
 import uuid
-from pathlib import Path
 from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/security/bounty-hunter", tags=["bounty-hunter"])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 BOUNTY_DIR = MEMORY_DIR / "bounty_hunter"
@@ -67,7 +69,7 @@ def get_bounty_hunter_config() -> dict[str, Any]:
 def launch_bounty_scan(payload: BountyScanRequest) -> dict[str, Any]:
     """Launch an autonomous zero-day security audit across target endpoints and codebase files."""
     scan_id = f"bh_scan_{uuid.uuid4().hex[:8]}"
-    
+
     # Simulate autonomous discovery of security findings
     findings = [
         {
@@ -126,7 +128,7 @@ def execute_autopatch(scan_id: str, payload: AutoPatchRequest) -> dict[str, Any]
     if not scan_file.exists():
         raise HTTPException(status_code=404, detail="Bounty scan not found")
     scan_info = json.loads(scan_file.read_text(encoding="utf-8"))
-    
+
     target_vuln = None
     for f in scan_info.get("findings", []):
         if f["vulnerability_id"] == payload.vulnerability_id:
@@ -134,7 +136,7 @@ def execute_autopatch(scan_id: str, payload: AutoPatchRequest) -> dict[str, Any]
             f["patched"] = True
             f["patched_at"] = time.time()
             break
-            
+
     if not target_vuln:
         raise HTTPException(status_code=404, detail="Vulnerability ID not found in scan findings")
 

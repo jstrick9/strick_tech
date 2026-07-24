@@ -6,8 +6,6 @@ Uses in-memory state + WebSocket broadcast.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import json
 import time

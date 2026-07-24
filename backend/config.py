@@ -4,10 +4,8 @@
 # ═══════════════════════════════════════════════════════════════
 from __future__ import annotations
 
-import contextlib
 import os
 from pathlib import Path
-from typing import Optional, Union, Any, Dict, List, Tuple, Set, Callable, AsyncGenerator
 
 _STATIC_ROOT = Path(__file__).resolve().parent.parent
 
@@ -39,7 +37,7 @@ class ServerConfig(BaseModel):
 class LLMConfig(BaseModel):
     """LLM provider configuration."""
 
-    openrouter_api_key: Optional[str] = Field(default=None, description='OpenRouter API key')
+    openrouter_api_key: str | None = Field(default=None, description='OpenRouter API key')
     ollama_base_url: str = Field(default='http://localhost:11434', description='Ollama base URL')
     default_model: str = Field(default='claude', description='Default model ID')
     primary_provider: str = Field(default='openrouter', description='Primary LLM provider')
@@ -48,9 +46,9 @@ class LLMConfig(BaseModel):
 class SecurityConfig(BaseModel):
     """Security configuration."""
 
-    secret_key: Optional[str] = Field(default=None, description='Secret key for signing')
+    secret_key: str | None = Field(default=None, description='Secret key for signing')
     secure_mode: bool = Field(default=False, description='Require bearer auth for API routes')
-    auth_token: Optional[str] = Field(default=None, description='Bearer token for secure mode')
+    auth_token: str | None = Field(default=None, description='Bearer token for secure mode')
     rate_limit_max: int = Field(default=300, ge=10, description='Max requests per minute')
     rate_limit_window: int = Field(default=60, ge=10, description='Rate limit window (seconds)')
 

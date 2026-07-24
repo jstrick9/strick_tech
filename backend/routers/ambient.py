@@ -13,13 +13,10 @@ results delivered via notifications when complete.
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import json
 import logging
 import re
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -27,6 +24,7 @@ router = APIRouter(prefix='/api/ambient', tags=['ambient'])
 log = logging.getLogger('agentic.ambient')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
@@ -476,7 +474,7 @@ async def project_health():
     # Grade
     grade = 'A' if overall >= 90 else 'B' if overall >= 80 else 'C' if overall >= 70 else 'D' if overall >= 60 else 'F'
 
-    snapshot = {
+    {
         'overall_score': overall,
         'complexity_score': scores['complexity'],
         'security_score': scores['security'],

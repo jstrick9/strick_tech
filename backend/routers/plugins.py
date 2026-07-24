@@ -14,7 +14,6 @@ import json
 import logging
 import re
 import time
-from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, Request
@@ -23,6 +22,7 @@ router = APIRouter(prefix='/api/plugins', tags=['plugins'])
 log = logging.getLogger('agentic.plugins')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 PLUGIN_DIR = ROOT / 'plugins'
 PLUGIN_DIR.mkdir(exist_ok=True)

@@ -18,11 +18,9 @@ All are concatenated and prepended to every LLM call.
 from __future__ import annotations
 
 import contextlib
-
 import json
 import logging
 import time
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -30,6 +28,7 @@ router = APIRouter(prefix='/api/steering', tags=['steering'])
 log = logging.getLogger('agentic.steering')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 STEERING_DIR = ROOT / '.agentic' / 'steering'
 STEERING_DIR.mkdir(parents=True, exist_ok=True)

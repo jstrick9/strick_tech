@@ -15,14 +15,11 @@ Features:
 
 from __future__ import annotations
 
-import contextlib
-
 import asyncio
 import json
 import logging
 import re
 import sqlite3
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -31,6 +28,7 @@ router = APIRouter(prefix='/api/websearch', tags=['websearch'])
 log = logging.getLogger('agentic.websearch')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 DB = ROOT / 'memory' / 'agentic.db'
 
@@ -203,7 +201,7 @@ async def web_search(req: Request):
     if fetch:
         tasks = [_fetch_page_text(res['url']) for res in results[:3]]
         contents = await asyncio.gather(*tasks)
-        for res, content in zip(results, contents):
+        for res, content in zip(results, contents, strict=False):
             res['content'] = content
 
     _record_search(query, 'search', len(results))
@@ -314,7 +312,7 @@ async def grounded_completion(req: Request):
     if fetch_full and results:
         tasks = [_fetch_page_text(res['url'], 1500) for res in results[:3]]
         contents = await asyncio.gather(*tasks)
-        for res, c in zip(results, contents):
+        for res, c in zip(results, contents, strict=False):
             res['content'] = c
 
     citations = []

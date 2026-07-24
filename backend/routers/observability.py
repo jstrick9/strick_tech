@@ -21,8 +21,6 @@ Features:
 
 from __future__ import annotations
 
-import contextlib
-
 import json
 import logging
 import uuid
@@ -391,7 +389,6 @@ def eu_ai_act_compliance():
 
         # Art 14: HITL — are there approval gates?
         hitl_count = con.execute('SELECT COUNT(*) FROM hitl_queue').fetchone()[0]
-        hitl_ok = hitl_count >= 0  # always True if system exists
 
         # Art 15: Logging — do we have audit logs?
         audit_count = con.execute('SELECT COUNT(*) FROM audit').fetchone()[0]
@@ -407,7 +404,6 @@ def eu_ai_act_compliance():
 
         # Observability
         trace_count = con.execute('SELECT COUNT(*) FROM obs_traces').fetchone()[0]
-        obs_ok = True  # endpoint exists
     finally:
         con.close()
 

@@ -4,18 +4,20 @@ Enables peer-to-peer distribution and Merkle-verified sharding of massive LLM/Lo
 Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 """
 from __future__ import annotations
+
 import hashlib
 import json
 import time
 import uuid
-from pathlib import Path
 from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/p2p-sharding", tags=["p2p-sharding"])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 SHARDING_DIR = MEMORY_DIR / "p2p_sharding"
@@ -68,12 +70,12 @@ def get_sharding_config() -> dict[str, Any]:
 def shard_checkpoint(payload: CheckpointShardRequest) -> dict[str, Any]:
     """Split a massive model checkpoint into 64MB encrypted shards with verifiable SHA-256 Merkle proofs."""
     manifest_id = f"mft_{uuid.uuid4().hex[:8]}"
-    
+
     # Simulate Merkle root generation across 8 chunks
     shard_count = 8
     shards = []
     for i in range(shard_count):
-        shard_hash = hashlib.sha256(f"{payload.model_name}_shard_{i}_{payload.passphrase}".encode("utf-8")).hexdigest()
+        shard_hash = hashlib.sha256(f"{payload.model_name}_shard_{i}_{payload.passphrase}".encode()).hexdigest()
         shards.append({
             "shard_index": i,
             "shard_cid": f"QmStrickTechShard{shard_hash[:16]}",
@@ -82,7 +84,7 @@ def shard_checkpoint(payload: CheckpointShardRequest) -> dict[str, Any]:
             "encrypted": True,
         })
 
-    merkle_root = hashlib.sha256(f"merkle_root_{payload.model_name}".encode("utf-8")).hexdigest()
+    merkle_root = hashlib.sha256(f"merkle_root_{payload.model_name}".encode()).hexdigest()
     manifest_info = {
         "manifest_id": manifest_id,
         "model_name": payload.model_name,
@@ -115,7 +117,7 @@ def list_sharded_checkpoints() -> dict[str, Any]:
     for f in sorted(MANIFESTS_DIR.glob("*.json")):
         try:
             manifests.append(json.loads(f.read_text(encoding="utf-8")))
-        except (json.JSONDecodeError, OSError) as exc:
+        except (json.JSONDecodeError, OSError):
             # Skip unreadable/invalid manifest files
             pass
     return {"ok": True, "count": len(manifests), "checkpoints": manifests}
@@ -128,7 +130,7 @@ def fetch_and_reconstruct_checkpoint(manifest_id: str, payload: ShardFetchReques
     if not manifest_file.exists():
         raise HTTPException(status_code=404, detail="Sharded checkpoint manifest not found")
     mft = json.loads(manifest_file.read_text(encoding="utf-8"))
-    
+
     reconstructed_path = MEMORY_DIR / f"reconstructed_{mft['model_name']}.safetensors"
     reconstructed_path.write_text(f"# Reconstructed Model Checkpoint: {mft['model_name']}\nMerkle Root Verified: {mft['merkle_root']}\n", encoding="utf-8")
     return {

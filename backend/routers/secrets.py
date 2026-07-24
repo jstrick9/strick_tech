@@ -5,14 +5,12 @@ Fernet AES-256 encrypted secrets. Never in git. Auto-injected to os.environ.
 
 from __future__ import annotations
 
-import contextlib
-
 import base64
+import contextlib
 import hashlib
 import json
 import os
 import sqlite3
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -20,6 +18,7 @@ from ..services.memory_db import audit_log, ensure_schema, get_conn
 
 router = APIRouter(prefix='/api/secrets', tags=['secrets'])
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 KEY_PATH = ROOT / 'memory' / '.vault_key'
 

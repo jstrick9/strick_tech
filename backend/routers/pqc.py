@@ -4,20 +4,22 @@ Enables lattice-based quantum-resistant hybrid key exchange (`Kyber-1024` + `X25
 Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 """
 from __future__ import annotations
+
 import base64
 import hashlib
 import json
 import secrets
 import time
 import uuid
-from pathlib import Path
 from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/pqc", tags=["pqc"])
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 MEMORY_DIR = ROOT / "memory"
 PQC_DIR = MEMORY_DIR / "pqc"
@@ -77,9 +79,9 @@ def list_pqc_algorithms() -> dict[str, Any]:
 def generate_pqc_keypair(payload: KeypairGenRequest) -> dict[str, Any]:
     """Generate a quantum-resistant hybrid lattice public/private keypair."""
     kid = f"pqc_kp_{uuid.uuid4().hex[:8]}"
-    raw_pub = hashlib.sha3_512(f"pqc_pub_{kid}_{time.time()}".encode("utf-8")).digest() * 4  # 256-byte simulated lattice pk
+    raw_pub = hashlib.sha3_512(f"pqc_pub_{kid}_{time.time()}".encode()).digest() * 4  # 256-byte simulated lattice pk
     raw_priv = secrets.token_bytes(64)
-    
+
     pub_b64 = base64.b64encode(raw_pub).decode("utf-8")
     priv_b64 = base64.b64encode(raw_priv).decode("utf-8")
 
@@ -127,7 +129,7 @@ def kem_decapsulate(payload: KemDecapsulateRequest) -> dict[str, Any]:
     if not key_file.exists():
         raise HTTPException(status_code=404, detail="Keypair ID not found in vault")
     meta = json.loads(key_file.read_text(encoding="utf-8"))
-    
+
     pk_bytes = base64.b64decode(meta["public_key_b64"].encode("utf-8"))
     ct_bytes = base64.b64decode(payload.ciphertext_b64.encode("utf-8")) if payload.ciphertext_b64 else b"default_ct"
     shared_secret = hashlib.sha256(pk_bytes + ct_bytes[:64]).digest()
@@ -147,12 +149,12 @@ def encrypt_pqc_vault_item(payload: VaultPqcEncryptRequest) -> dict[str, Any]:
     key_file = KEYS_DIR / f"{payload.keypair_id}.json"
     if not key_file.exists():
         raise HTTPException(status_code=404, detail="Keypair ID not found in vault")
-    
+
     # Encapsulate shared key and mask payload
     raw_payload = payload.secret_payload.encode("utf-8")
     mask = hashlib.sha256(payload.keypair_id.encode("utf-8")).digest() * (len(raw_payload) // 32 + 1)
-    masked = bytes(a ^ b for a, b in zip(raw_payload, mask[:len(raw_payload)]))
-    
+    masked = bytes(a ^ b for a, b in zip(raw_payload, mask[:len(raw_payload)], strict=False))
+
     return {
         "ok": True,
         "secret_name": payload.secret_name,

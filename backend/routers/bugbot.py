@@ -12,14 +12,12 @@ Works with:
 from __future__ import annotations
 
 import contextlib
-
 import json
 import logging
 import os
 import re
 import subprocess
 import time
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -28,6 +26,7 @@ router = APIRouter(prefix='/api/bugbot', tags=['bugbot'])
 log = logging.getLogger('agentic.bugbot')
 
 from backend.config import get_data_dir
+
 ROOT = get_data_dir()
 
 _SCHEMA = """
@@ -433,7 +432,7 @@ async def review_github_pr(req: Request):
     comment_url = ''
     if auto_post and token and issues:
         try:
-            critical = [i for i in issues if i.get('severity') in ('critical', 'high')]
+            [i for i in issues if i.get('severity') in ('critical', 'high')]
             comment = _format_pr_comment(review, issues, review_id)
             async with httpx.AsyncClient(timeout=10) as client:
                 r = await client.post(
