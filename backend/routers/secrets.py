@@ -67,6 +67,7 @@ def _inject_to_env():
     try:
         ensure_schema()
     except Exception:
+        # Intentionally ignored — non-critical operation
         pass
     con = get_conn()
     try:
@@ -122,6 +123,7 @@ async def set_secret(req: Request):
     try:
         ensure_schema()
     except Exception:
+        # Intentionally ignored — non-critical operation
         pass
     try:
         body = await req.json()
@@ -170,6 +172,7 @@ async def set_secret(req: Request):
     try:
         audit_log('vault_set', f'{key} scope={scope} agent={agent}')
     except Exception:
+        # Intentionally ignored — non-critical operation
         pass
 
     return {'ok': True, 'key': key, 'fingerprint': fp, 'scope': scope, 'agent': agent, 'encrypted': is_fernet}

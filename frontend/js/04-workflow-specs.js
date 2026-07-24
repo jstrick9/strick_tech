@@ -783,7 +783,7 @@ async function obNext() {
     else if (step.id === 'done') {
       const showTour = document.getElementById('ob-tour-check')?.checked;
       window._onboardingDismissed = true;
-      try { localStorage.setItem('agentic_os_onboarded', 'true'); } catch(e) {}
+      try { try { localStorage.setItem('agentic_os_onboarded', 'true'); } catch {} } catch(e) {}
       if (typeof window.closeOnboardingModal === 'function') window.closeOnboardingModal();
       else document.getElementById('onboarding-overlay')?.remove();
       
@@ -1543,9 +1543,9 @@ window.saveCustomIdentity = async function() {
   if (document.title) document.title = `${appName} Agentic OS — Mission Control`;
 
   try {
-    localStorage.setItem('agentic_os_app_name', appName);
-    localStorage.setItem('agentic_os_username', name);
-    localStorage.setItem('agentic_os_userrole', role);
+    try { localStorage.setItem('agentic_os_app_name', appName); } catch {}
+    try { localStorage.setItem('agentic_os_username', name); } catch {}
+    try { localStorage.setItem('agentic_os_userrole', role); } catch {}
   } catch(e) {}
 
   showToast('✅ Identity & App Name Saved!', 2000);
@@ -1566,7 +1566,7 @@ window.uploadProfileAvatar = function(input) {
     if (!dataUri) return;
     const avEl = document.getElementById('topbar-user-avatar');
     if (avEl) avEl.innerHTML = `<img src="${dataUri}" style="width:20px;height:20px;border-radius:50%;object-fit:cover">`;
-    try { localStorage.setItem('agentic_os_avatar_picture', dataUri); } catch(err) {}
+    try { try { localStorage.setItem('agentic_os_avatar_picture', dataUri); } catch {} } catch(err) {}
     showToast('📸 Profile picture uploaded & saved!', 2500);
     try {
       await fetch('/api/profile', {

@@ -31,14 +31,14 @@ class CheckpointShardRequest(BaseModel):
     """Pydantic data model for CheckpointShardRequest."""
     checkpoint_path: str = "models/qwen2.5-72b-lora.safetensors"
     model_name: str = "qwen2.5-72b-lora"
-    passphrase: str = "stricktech-model-shard-key"
+    passphrase: str = ""
     chunk_size_mb: int = 64
 
 
 class ShardFetchRequest(BaseModel):
     """Pydantic data model for ShardFetchRequest."""
     manifest_id: str
-    passphrase: str = "stricktech-model-shard-key"
+    passphrase: str = ""
     verify_merkle_root: bool = True
 
 
@@ -115,7 +115,8 @@ def list_sharded_checkpoints() -> dict[str, Any]:
     for f in sorted(MANIFESTS_DIR.glob("*.json")):
         try:
             manifests.append(json.loads(f.read_text(encoding="utf-8")))
-        except Exception:
+        except (json.JSONDecodeError, OSError) as exc:
+            # Skip unreadable/invalid manifest files
             pass
     return {"ok": True, "count": len(manifests), "checkpoints": manifests}
 

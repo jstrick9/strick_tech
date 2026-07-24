@@ -239,6 +239,8 @@ if not SKILLS_FILE.exists():
     try:
         save_skills(DEFAULT_SKILLS)
     except Exception:
+        # Intentionally ignored — non-critical operation
+        pass
         pass
 
 

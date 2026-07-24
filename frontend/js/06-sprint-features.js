@@ -273,7 +273,7 @@ async function fusionRun() {
       }
     }
   } catch(ex) {
-    if (results) results.innerHTML += `<div style="color:var(--danger);padding:8px">Error: ${ex?.message||String(ex)}</div>`;
+    if (results) results.innerHTML += `<div style="color:var(--danger);padding:8px">Error: ${escHtml(ex?.message||String(ex))}</div>`;
   }
 
   if (btn) { btn.disabled=false; btn.textContent='⚡ Run Fusion'; }
@@ -299,7 +299,7 @@ async function fusionRunSimple() {
         </div>
       </div>`;
   } catch(ex) {
-    if (results) results.innerHTML = `<div style="color:var(--danger)">Error: ${ex?.message||String(ex)}</div>`;
+    if (results) results.innerHTML = `<div style="color:var(--danger)">Error: ${escHtml(ex?.message||String(ex))}</div>`;
   }
 }
 
@@ -324,7 +324,7 @@ async function fusionRoute() {
         <div style="font-size:13px;color:var(--text-1);line-height:1.6;white-space:pre-wrap">${escHtml((d.text||'').slice(0,800))}</div>
       </div>`;
   } catch(ex) {
-    if (el) el.innerHTML = `<div style="color:var(--danger)">Error: ${ex?.message||String(ex)}</div>`;
+    if (el) el.innerHTML = `<div style="color:var(--danger)">Error: ${escHtml(ex?.message||String(ex))}</div>`;
   }
 }
 
@@ -348,7 +348,7 @@ async function fusionClassify() {
         <div style="color:var(--text-3);margin-top:4px">Est. tokens: ${d.est_tokens||0} · Est. cost: $${(d.est_cost_usd||0).toFixed(6)}</div>
       </div>`;
   } catch(ex) {
-    if (el) el.innerHTML = `<div style="color:var(--danger)">Error: ${ex?.message||String(ex)}</div>`;
+    if (el) el.innerHTML = `<div style="color:var(--danger)">Error: ${escHtml(ex?.message||String(ex))}</div>`;
   }
 }
 
@@ -375,7 +375,7 @@ async function fusionOptimizeCost() {
         ${d.downgraded?`<div style="color:var(--text-3);margin-top:2px">Original: ${escHtml((d.original_model||'').split('/').pop())}</div>`:''}
       </div>`;
   } catch(ex) {
-    if (el) el.innerHTML = `<div style="color:var(--danger)">Error: ${ex?.message||String(ex)}</div>`;
+    if (el) el.innerHTML = `<div style="color:var(--danger)">Error: ${escHtml(ex?.message||String(ex))}</div>`;
   }
 }
 
@@ -399,7 +399,7 @@ async function fusionLoadHistory() {
         <div style="color:var(--text-3);font-size:11px">${h.total_ms||0}ms · ${h.total_tokens||0}t</div>
       </div>`).join('');
   } catch(ex) {
-    el.innerHTML = `<div style="color:var(--danger)">Error: ${ex?.message||String(ex)}</div>`;
+    el.innerHTML = `<div style="color:var(--danger)">Error: ${escHtml(ex?.message||String(ex))}</div>`;
   }
 }
 
@@ -459,7 +459,7 @@ async function fusionSubagent() {
         </div>`;
     }
   } catch(ex) {
-    if (el) el.innerHTML = `<div style="color:var(--danger)">Error: ${ex?.message||String(ex)}</div>`;
+    if (el) el.innerHTML = `<div style="color:var(--danger)">Error: ${escHtml(ex?.message||String(ex))}</div>`;
   }
 }
 
@@ -708,8 +708,8 @@ function hitlSaveDelegation() {
   localStorage.setItem('hitl_delegation_profile', JSON.stringify(profile));
   const timeout = document.getElementById('hitl-timeout')?.value || '300';
   const timeoutAction = document.getElementById('hitl-timeout-action')?.value || 'pause';
-  localStorage.setItem('hitl_timeout', timeout);
-  localStorage.setItem('hitl_timeout_action', timeoutAction);
+  try { localStorage.setItem('hitl_timeout', timeout); } catch {}
+  try { localStorage.setItem('hitl_timeout_action', timeoutAction); } catch {}
   showToast('🎛️ Delegation profile saved');
   // Log to audit chain
   fetch('/api/audit-log/append',{
@@ -956,7 +956,7 @@ async function baRun() {
       }
     }
   } catch(ex) {
-    if (result) result.innerHTML = `<span style="color:var(--danger)">❌ ${ex?.message||String(ex)}</span>`;
+    if (result) result.innerHTML = `<span style="color:var(--danger)">❌ ${escHtml(ex?.message||String(ex))}</span>`;
   }
 
   if (btn) { btn.disabled=false; btn.textContent='▶ Run'; }
@@ -1611,7 +1611,7 @@ async function lbLoadPolicies() {
     _lbAllPolicies = d.policies || [];
     lbRenderPolicies(_lbAllPolicies);
   } catch(ex) {
-    el.innerHTML = `<div style="color:var(--danger);padding:12px">Error: ${ex?.message||String(ex)}</div>`;
+    el.innerHTML = `<div style="color:var(--danger);padding:12px">Error: ${escHtml(ex?.message||String(ex))}</div>`;
   }
 }
 
@@ -1731,7 +1731,7 @@ async function lbChangeDays(days) {
         }).join('')}
       </div>`;
   } catch(ex) {
-    if(container) container.innerHTML = `<div style="color:var(--danger)">Error: ${ex?.message||String(ex)}</div>`;
+    if(container) container.innerHTML = `<div style="color:var(--danger)">Error: ${escHtml(ex?.message||String(ex))}</div>`;
   }
 }
 

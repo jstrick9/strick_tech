@@ -219,7 +219,7 @@ async function specGenDesign() {
       if (d.type==='phase_done') setTimeout(async()=>{const r=await fetch(`/api/specs/${encodeURIComponent(_specCurrent.id)}`);_specCurrent=await r.json();specShowPhase('design');},500);
       if (d.type==='phase_error') specLog(`Error: ${d.error}`);
     });
-  } catch(ex) { specLog(`Error: ${ex.message}`); }
+  } catch(ex) { specLog(`Error: ${escHtml(ex.message)}`); }
 }
 
 async function specLoadTasks() {
@@ -283,7 +283,7 @@ async function specGenTasks() {
       if (d.type==='phase_done') setTimeout(()=>specLoadTasks(),300);
       if (d.type==='phase_error') specLog(`Error: ${d.error}`);
     });
-  } catch(ex) { specLog(`Error: ${ex.message}`); }
+  } catch(ex) { specLog(`Error: ${escHtml(ex.message)}`); }
 }
 
 async function specExecuteAll(dryRun=false) {
@@ -303,7 +303,7 @@ async function specExecuteAll(dryRun=false) {
       if (d.type==='wave_done')  specLog(`✓ Wave ${d.wave} complete`);
       if (d.type==='exec_done')  { specLog(`\n🎉 Execution complete! ${d.total_completed} tasks done.`); specLoadTasks(); }
     });
-  } catch(ex) { specLog(`Error: ${ex.message}`); }
+  } catch(ex) { specLog(`Error: ${escHtml(ex.message)}`); }
 }
 
 async function specRunAll() {
@@ -327,7 +327,7 @@ async function specRunAll() {
       }
     });
   } catch(ex) {
-    specLog(`Error: ${ex.message}`);
+    specLog(`Error: ${escHtml(ex.message)}`);
   } finally {
     if (btn) { btn.disabled=false; btn.textContent='🚀 Run Full Pipeline'; }
   }
@@ -422,7 +422,7 @@ async function renderHooks() {
 
     hookLoadRuns();
   } catch(e) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Failed to load hooks: ${e?.message||e}</div>`;
+    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Failed to load hooks: ${escHtml(e?.message||e)}</div>`;
   }
 }
 

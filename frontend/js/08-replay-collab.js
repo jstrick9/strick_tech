@@ -1337,7 +1337,7 @@ async function ceSelectDoc(docId) {
 }
 
 function ceConnectWS(docId) {
-  const name = localStorage.getItem('collab_name') || `User_${Math.random().toString(36).slice(2,6)}`;
+  let name = `User_${Math.random().toString(36).slice(2,6)}`; try { let _v = null; try { _v = localStorage.getItem('collab_name'); } catch {} if (_v !== null) name = _v; } catch {}
   // FIX 4: use wss:// on HTTPS to avoid mixed-content errors
   const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = `${wsProto}//${location.host}/api/crdt/docs/${docId}/ws`;

@@ -225,6 +225,8 @@ def compile_steering_context(max_chars: int = 8000) -> str:
             rules_text = rules_path.read_text(encoding='utf-8')[:3000]
             parts.append(f'\n## Runtime Behavioral Enforcement (.agenticrules)\n{rules_text}\n')
     except Exception:
+        # Intentionally ignored — non-critical operation
+        pass
         pass
     total = len(parts[0]) + (len(parts[1]) if len(parts) > 1 else 0)
     skipped = []

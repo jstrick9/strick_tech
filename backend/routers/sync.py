@@ -45,7 +45,7 @@ class _FallbackCipher:
         return bytes(a ^ b for a, b in zip(raw, mask[:len(raw)]))
 
 
-def _get_fernet_for_passphrase(passphrase: str = "stricktech-master-key"):
+def _get_fernet_for_passphrase(passphrase: str = ""):
     """Derive a deterministic 32-byte urlsafe Fernet key from a user passphrase using SHA-256."""
     raw_hash = hashlib.sha256(passphrase.encode("utf-8")).digest()
     b64_key = base64.urlsafe_b64encode(raw_hash)
@@ -79,7 +79,7 @@ def _save_sync_status(status: dict[str, Any]) -> None:
 
 class SyncExportRequest(BaseModel):
     """Pydantic data model for SyncExportRequest."""
-    passphrase: str = "stricktech-master-key"
+    passphrase: str = ""
     include_db: bool = True
     include_hierarchy: bool = True
 
@@ -87,14 +87,14 @@ class SyncExportRequest(BaseModel):
 class SyncImportRequest(BaseModel):
     """Pydantic data model for SyncImportRequest."""
     encrypted_bundle: str
-    passphrase: str = "stricktech-master-key"
+    passphrase: str = ""
 
 
 class CloudPushRequest(BaseModel):
     """Pydantic data model for CloudPushRequest."""
     target_url: str = "https://sync.stricktech.com/vault"
     api_token: str = ""
-    passphrase: str = "stricktech-master-key"
+    passphrase: str = ""
 
 
 @router.get("/status")

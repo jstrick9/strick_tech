@@ -47,8 +47,8 @@ class KemDecapsulateRequest(BaseModel):
 class VaultPqcEncryptRequest(BaseModel):
     """Pydantic data model for VaultPqcEncryptRequest."""
     keypair_id: str
-    secret_name: str = "STRICKTECH_QUANTUM_SECRET"
-    secret_payload: str = "sk_ent_post_quantum_protected_value"
+    secret_name: str = ""
+    secret_payload: str = ""
 
 
 @router.get("/algorithms")
