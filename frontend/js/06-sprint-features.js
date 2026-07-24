@@ -5445,7 +5445,7 @@ function prbRenderConflictsTab(container) {
     container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-3)">Loading conflict analysis…</div>`;
     fetch('/api/mcp-gateway/policies/conflicts').then(r=>r.ok?r.json():null).then(d=>{
       if (d) { _prbConflicts=d; prbRenderConflictsTab(container); }
-    });
+    }).catch(()=>{});
     return;
   }
 

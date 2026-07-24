@@ -873,7 +873,7 @@ function startTour() {
   _tourStep = 0;
   showTourStep();
   // Persist show_tour:false so tour doesn't re-show on next load (fire-and-forget)
-  fetch('/api/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({show_tour:false})});
+  fetch('/api/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({show_tour:false})}).catch(()=>{});
 }
 
 function showTourStep() {

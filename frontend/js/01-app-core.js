@@ -2536,8 +2536,8 @@ window.syncOpenWebUIConnections = async function() {
 
   try {
     const [modR, secR] = await Promise.all([
-      fetch('/api/agents/models').then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch('/api/secrets/get?key=OPENROUTER_API_KEY').then(r => r.ok ? r.json() : null).catch(() => null)
+      fetch('/api/agents/models').then(r => r.ok ? r.json().catch(()=>{}) : null).catch(() => null),
+      fetch('/api/secrets/get?key=OPENROUTER_API_KEY').then(r => r.ok ? r.json().catch(()=>{}) : null).catch(() => null)
     ]);
 
     const orBadge = document.getElementById('or-key-status-badge');
@@ -2690,7 +2690,7 @@ function handleGlobalItemClick(actionStr) {
   if (actionStr.startsWith('pane:')) { nav(actionStr.slice(5)); }
   else if (actionStr.startsWith('loop-run:')) {
     const jid = actionStr.slice(9);
-    fetch('/api/loops/' + encodeURIComponent(jid) + '/run-now', {method:'POST'});
+    fetch('/api/loops/' + encodeURIComponent(jid) + '/run-now', {method:'POST'}).catch(()=>{});
     if (window.toast) toast('⚡ Triggered autonomous loop ' + jid + ' right now!', 'ok', 3000);
   }
   else if (actionStr.startsWith('memory-insert:')) {
@@ -2885,7 +2885,7 @@ setInterval(() => {
 // Agent status polling
 setInterval(() => {
   if (S.agents.length) {
-    fetch('/api/agents').then(r=>r.ok?r.json():null).then(agents => {
+    fetch('/api/agents').then(r=>r.ok?r.json().catch(()=>{}):null).then(agents => {
       if (!agents) return;
       S.agents = agents;
       renderAgentList();
@@ -3536,8 +3536,8 @@ async function renderSkills() {
 async function loadSkills() {
   try {
     const [sData, cData] = await Promise.all([
-      fetch('/api/skills').then(r=>r.ok?r.json():{skills:[]}).catch(()=>({skills:[]})),
-      fetch('/api/skills/categories').then(r=>r.ok?r.json():{categories:[]}).catch(()=>({categories:[]}))
+      fetch('/api/skills').then(r=>r.ok?r.json().catch(()=>{}):{skills:[]}).catch(()=>({skills:[]})),
+      fetch('/api/skills/categories').then(r=>r.ok?r.json().catch(()=>{}):{categories:[]}).catch(()=>({categories:[]}))
     ]);
     allSkills = Array.isArray(sData) ? sData : (Array.isArray(sData?.skills) ? sData.skills : []);
     const cats = Array.isArray(cData) ? cData : (Array.isArray(cData?.categories) ? cData.categories : []);
@@ -8563,7 +8563,7 @@ async function installPlugin(pluginId) {
     toast(`🧩 ${j.plugin} installed — ${j.skills_added} skills added to Skills Hub`, 'ok', 5000);
     loadPluginRegistry();
     // refresh skills in background
-    fetch('/api/skills').then(r=>r.ok?r.json():[]).then(s => { allSkills = s||[]; }).catch(()=>{});
+    fetch('/api/skills').then(r=>r.ok?r.json().catch(()=>{}):[]).then(s => { allSkills = s||[]; }).catch(()=>{});
   } else {
     toast(j.error || 'Install failed', j.installed ? 'warn' : 'err');
     if (btn) { btn.disabled = false; btn.textContent = 'Install'; }
@@ -9129,7 +9129,7 @@ PALETTE_CMDS.push(
 
 // Store preferences reference
 S.preferences = {};
-fetch('/api/onboarding/preferences').then(r=>r.ok?r.json():{}).then(p=>{
+fetch('/api/onboarding/preferences').then(r=>r.ok?r.json().catch(()=>{}):{}).then(p=>{
   if (!p) return;
   S.preferences = p;
   applyPreferences(p);

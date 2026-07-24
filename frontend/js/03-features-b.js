@@ -379,8 +379,8 @@ async function renderHooks() {
 
   try {
     const [hooks, events] = await Promise.all([
-      fetch('/api/hooks').then(r=>r.ok?r.json():null),
-      fetch('/api/hooks/events/types').then(r=>r.ok?r.json():null),
+      fetch('/api/hooks').then(r=>r.ok?r.json().catch(()=>{}):null),
+      fetch('/api/hooks/events/types').then(r=>r.ok?r.json().catch(()=>{}):null),
     ]);
 
     const hookList = hooks.hooks || [];
@@ -656,7 +656,7 @@ async function ciIndexNow() {
 
 async function ciLoadStats() {
   try {
-    const d = await fetch('/api/codeindex/stats').then(r=>r.ok?r.json():null);
+    const d = await fetch('/api/codeindex/stats').then(r=>r.ok?r.json().catch(()=>{}):null);
     const status = document.getElementById('ci-index-status');
     if (status && d.total_symbols>0) {
       status.textContent = `${d.total_files} files · ${d.total_symbols} symbols`;
@@ -670,7 +670,7 @@ async function ciLoadStats() {
 
 async function ciLoadGraph() {
   try {
-    const d = await fetch('/api/codeindex/graph?limit=150').then(r=>r.ok?r.json():null);
+    const d = await fetch('/api/codeindex/graph?limit=150').then(r=>r.ok?r.json().catch(()=>{}):null);
     _codeGraphData = {nodes:d.nodes||[],edges:d.edges||[]};
     ciDrawGraph();
   } catch(e) {}
@@ -822,7 +822,7 @@ function ciShowTab(tab, el) {
 }
 
 async function ciShowComplexity(el) {
-  const d = await fetch('/api/codeindex/complexity?min_complexity=3').then(r=>r.ok?r.json():null);
+  const d = await fetch('/api/codeindex/complexity?min_complexity=3').then(r=>r.ok?r.json().catch(()=>{}):null);
   const max = Math.max(...(d.hotspots||[]).map((h) =>h.complexity), 10);
   el.innerHTML = `
     <div style="font-size:13px;font-weight:700;margin-bottom:12px">🔥 High Complexity Functions (cyclomatic complexity ≥ 3)</div>
@@ -842,7 +842,7 @@ async function ciShowComplexity(el) {
 }
 
 async function ciShowDeadCode(el) {
-  const d = await fetch('/api/codeindex/dead-code').then(r=>r.ok?r.json():null);
+  const d = await fetch('/api/codeindex/dead-code').then(r=>r.ok?r.json().catch(()=>{}):null);
   el.innerHTML = `
     <div style="font-size:13px;font-weight:700;margin-bottom:12px">💀 Potentially Dead Code (${d.count} symbols unreferenced)</div>
     ${(d.dead_symbols||[]).slice(0,30).map((s) => `
@@ -855,7 +855,7 @@ async function ciShowDeadCode(el) {
 }
 
 async function ciShowStats(el) {
-  const d = await fetch('/api/codeindex/stats').then(r=>r.ok?r.json():null);
+  const d = await fetch('/api/codeindex/stats').then(r=>r.ok?r.json().catch(()=>{}):null);
   el.innerHTML = `
     <div class="ci-stats-grid">
       ${[
@@ -945,9 +945,9 @@ async function renderArena() {
   if (!pane) return;
 
   const [models, lb, stats] = await Promise.all([
-    fetch('/api/arena/models').then(r=>r.ok?r.json():null).catch(()=>({models:[]})),
-    fetch('/api/arena/leaderboard').then(r=>r.ok?r.json():null).catch(()=>({leaderboard:[]})),
-    fetch('/api/arena/stats').then(r=>r.ok?r.json():null).catch(()=>({})),
+    fetch('/api/arena/models').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({models:[]})),
+    fetch('/api/arena/leaderboard').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({leaderboard:[]})),
+    fetch('/api/arena/stats').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({})),
   ]);
 
   _arenaModels = models.models || [];
@@ -1128,7 +1128,7 @@ async function arenaVote(winner) {
 
     // Refresh leaderboard
     setTimeout(async () => {
-      const lb = await fetch('/api/arena/leaderboard').then(r=>r.ok?r.json():null);
+      const lb = await fetch('/api/arena/leaderboard').then(r=>r.ok?r.json().catch(()=>{}):null);
       const el = document.getElementById('arena-lb');
       if (el && lb.leaderboard?.length) {
         el.innerHTML = lb.leaderboard.map((m, i) => {
@@ -1487,7 +1487,7 @@ async function showVoiceHistory() {
           <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         ${items}
-        <button class="btn-sm" style="margin-top:10px;color:var(--danger)" onclick="fetch('/api/voice/history',{method:'DELETE'}).then(()=>this.closest('[style*=fixed]').remove()).then(()=>showToast('🗑 History cleared'))">🗑 Clear History</button>
+        <button class="btn-sm" style="margin-top:10px;color:var(--danger)" onclick="fetch('/api/voice/history',{method:'DELETE'}).then(().catch(()=>{})=>this.closest('[style*=fixed]').remove()).then(()=>showToast('🗑 History cleared'))">🗑 Clear History</button>
       </div>`;
     overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);
