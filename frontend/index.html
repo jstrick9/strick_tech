@@ -1742,31 +1742,42 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 </section>
                 
                 <!-- Quick Actions -->
-                <div style="margin-top:16px;max-width:500px">
-                  <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Quick Actions</div>
+                <div style="margin-top:16px;max-width:520px">
+                  <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Try asking</div>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                    <div class="cmd-chip" onclick="insertCmd('/help')" style="text-align:left;padding:10px 14px;border-radius:10px">
-                      <div style="font-weight:600;margin-bottom:2px">💬 /help</div>
-                      <div style="font-size:11px;opacity:.7">See all commands</div>
+                    <div class="cmd-chip" onclick="insertCmd('/help')" style="text-align:left;padding:12px 14px;border-radius:12px">
+                      <div style="font-weight:600;margin-bottom:3px">💬 What can you do?</div>
+                      <div style="font-size:11.5px;opacity:.7;line-height:1.4">See all available commands</div>
                     </div>
-                    <div class="cmd-chip" onclick="insertCmd('/swarm compare approaches to RAG')" style="text-align:left;padding:10px 14px;border-radius:10px">
-                      <div style="font-weight:600;margin-bottom:2px">🌀 /swarm</div>
-                      <div style="font-size:11px;opacity:.7">Multi-agent fan-out</div>
+                    <div class="cmd-chip" onclick="insertCmd('Help me build a landing page with dark mode')" style="text-align:left;padding:12px 14px;border-radius:12px">
+                      <div style="font-weight:600;margin-bottom:3px">⚡ Build something</div>
+                      <div style="font-size:11.5px;opacity:.7;line-height:1.4">Create an app, page, or workflow</div>
                     </div>
-                    <div class="cmd-chip" onclick="insertCmd('/code build a landing page with dark mode')" style="text-align:left;padding:10px 14px;border-radius:10px">
-                      <div style="font-weight:600;margin-bottom:2px">⚡ /code</div>
-                      <div style="font-size:11px;opacity:.7">Build something</div>
+                    <div class="cmd-chip" onclick="insertCmd('Research the latest AI agent frameworks and summarize the key differences')" style="text-align:left;padding:12px 14px;border-radius:12px">
+                      <div style="font-weight:600;margin-bottom:3px">🔍 Research a topic</div>
+                      <div style="font-size:11.5px;opacity:.7;line-height:1.4">Deep dive into any subject</div>
                     </div>
-                    <div class="cmd-chip" onclick="insertCmd('/research latest AI agent frameworks')" style="text-align:left;padding:10px 14px;border-radius:10px">
-                      <div style="font-weight:600;margin-bottom:2px">🔭 /research</div>
-                      <div style="font-size:11px;opacity:.7">Deep research</div>
+                    <div class="cmd-chip" onclick="insertCmd('Analyze my codebase and suggest improvements')" style="text-align:left;padding:12px 14px;border-radius:12px">
+                      <div style="font-weight:600;margin-bottom:3px">🛠 Improve my code</div>
+                      <div style="font-size:11.5px;opacity:.7;line-height:1.4">Review, refactor, or debug</div>
                     </div>
                   </div>
                 </div>
                 
                 <!-- Tips -->
-                <div style="margin-top:16px;font-size:11px;color:var(--text-3)">
-                  💡 Press <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px">⌘K</kbd> to open the command palette
+                <div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center">
+                  <div style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px">
+                    <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">⌘K</kbd> Search everything
+                  </div>
+                  <div style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px">
+                    <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">⌘/</kbd> Focus chat
+                  </div>
+                  <div style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px">
+                    <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">⌘1-6</kbd> Quick nav
+                  </div>
+                  <div style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px">
+                    <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">⌘,</kbd> Settings
+                  </div>
                 </div>
               </div>
             </div>
