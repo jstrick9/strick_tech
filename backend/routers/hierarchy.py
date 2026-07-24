@@ -198,8 +198,13 @@ def save_tier1_files(payload: Tier1SaveRequest) -> dict[str, Any]:
 @router.post("/tier1/interview")
 def interview_generate_tier1(payload: InterviewAnswerRequest) -> dict[str, Any]:
     """Auto-generate structured Tier 1 context files from user interview answers."""
+    # Compute the first line outside the f-string: Python 3.10/3.11 do not
+    # allow a backslash escape sequence (e.g. '\n') inside an f-string
+    # expression part (only 3.12+ supports that) — this must stay
+    # compatible with the project's documented Python 3.10+ requirement.
+    name_and_role_first_line = payload.name_and_role.split('\n')[0] if '\n' in payload.name_and_role else payload.name_and_role
     about_me = f"""# About Me
-- **Name / Role:** {payload.name_and_role.split('\n')[0] if '\n' in payload.name_and_role else payload.name_and_role}
+- **Name / Role:** {name_and_role_first_line}
 - **Background & Mission:**
 {payload.name_and_role}
 """

@@ -277,7 +277,14 @@ async def stream(
         log.error('LLM stream error: %s', e)
         try:
             fallback_model = os.getenv('OLLAMA_FALLBACK_MODEL', 'llama3.1:8b')
-            yield f'data: {json.dumps({"delta": f" [OpenRouter disconnected ({e}). Auto-falling back to local {fallback_model}...]\n\n", "done": False})}\n\n'
+            # Build the fallback notice text outside the f-string expression:
+            # Python 3.10/3.11 disallow a backslash escape (e.g. '\n') inside
+            # an f-string expression part, even when it comes from a nested
+            # string literal — only Python 3.12+ relaxed that rule. This
+            # project targets 3.10+, so the message is composed as a plain
+            # string first and just interpolated as a value.
+            fallback_notice = f' [OpenRouter disconnected ({e}). Auto-falling back to local {fallback_model}...]\n\n'
+            yield f'data: {json.dumps({"delta": fallback_notice, "done": False})}\n\n'
             async for chunk in _ollama_stream(messages, fallback_model, temperature, max_tokens, timeout):
                 yield chunk
             return
@@ -649,7 +656,13 @@ async def _ollama_stream(messages, model, temperature, max_tokens, timeout) -> A
         except Exception:
             pass
 
-    yield f'data: {json.dumps({"delta": f"[Ollama stream error]: Could not stream or connect on `{base_clean}` ({last_error}).\n\nMake sure Ollama (`ollama serve`) is running and model `{clean_model}` is installed via `ollama list`.", "done": True})}\n\n'
+    # Same 3.10/3.11 f-string constraint as above: compose the message text
+    # as a plain string first, then interpolate it as a value.
+    ollama_stream_error_msg = (
+        f'[Ollama stream error]: Could not stream or connect on `{base_clean}` ({last_error}).\n\n'
+        f'Make sure Ollama (`ollama serve`) is running and model `{clean_model}` is installed via `ollama list`.'
+    )
+    yield f'data: {json.dumps({"delta": ollama_stream_error_msg, "done": True})}\n\n'
 
 
 # ── Ollama health check ─────────────────────────────────────────────────────────
