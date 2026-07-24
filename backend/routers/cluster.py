@@ -33,7 +33,7 @@ class NodeJoinRequest(BaseModel):
     name: str = "Edge Worker Node"
     host_url: str = "http://192.168.1.100:8787"
     capabilities: dict[str, Any] = {"gpu": "Apple M3 Max / CUDA", "vram_gb": 16, "models_loaded": ["llama3.1:8b"]}
-    auth_token: str = "stricktech_cluster_secret"
+    auth_token: str = ""
 
 
 class HeartbeatRequest(BaseModel):
