@@ -174,7 +174,13 @@ class TestRegressionAPIContract_DataSchemas:
         """Regression: Connector execute response schema stable."""
         r = client.post("/api/connectors/conn_webhook/execute", json={
             "action": "post_webhook",
-            "payload": {"url": "https://httpbin.org/post", "data": {}}
+            # Use a local, always-reachable endpoint instead of an external
+            # third-party service (httpbin.org). The webhook connector only
+            # cares that it gets *some* HTTP response back; it doesn't need
+            # to be a purpose-built echo service. This avoids flaky test
+            # failures caused by httpbin.org's own uptime/rate-limiting,
+            # independent of anything this platform does.
+            "payload": {"url": "http://127.0.0.1:8787/api/docs/feedback", "data": {}}
         })
         assert r.status_code == 200
         d = r.json()
