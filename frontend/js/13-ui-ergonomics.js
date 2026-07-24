@@ -4,6 +4,13 @@
  */
 (function() {
   'use strict';
+// Safe localStorage wrapper (private browsing / quota exceeded)
+const _safeLS = {
+  get: (k) => { try { return _safeLS.get(k); } catch { return null; } },
+  set: (k, v) => { try { _safeLS.set(k, v); } catch {} },
+  rm: (k) => { try { _safeLS.rm(k); } catch {} },
+};
+
 
   const PINNED_STORAGE_KEY = 'agentic_os_pinned_panes';
   const ORDER_STORAGE_KEY = 'agentic_os_core_order';
@@ -46,25 +53,25 @@
 
   function getPinnedPanes() {
     try {
-      return JSON.parse(localStorage.getItem(PINNED_STORAGE_KEY) || '[]');
+      return JSON.parse(_safeLS.get(PINNED_STORAGE_KEY) || '[]');
     } catch(e) { return []; }
   }
 
   function savePinnedPanes(list) {
     try {
-      localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(list));
+      _safeLS.set(PINNED_STORAGE_KEY, JSON.stringify(list));
     } catch(e) {}
   }
 
   function getCoreOrder() {
     try {
-      return JSON.parse(localStorage.getItem(ORDER_STORAGE_KEY) || '[]');
+      return JSON.parse(_safeLS.get(ORDER_STORAGE_KEY) || '[]');
     } catch(e) { return []; }
   }
 
   function saveCoreOrder(list) {
     try {
-      localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(list));
+      _safeLS.set(ORDER_STORAGE_KEY, JSON.stringify(list));
     } catch(e) {}
   }
 
@@ -84,8 +91,8 @@
 
   window.resetCoreOrder = function(evt) {
     if (evt) { evt.stopPropagation(); evt.preventDefault(); }
-    try { localStorage.removeItem(ORDER_STORAGE_KEY); } catch {}
-    try { localStorage.removeItem(PINNED_STORAGE_KEY); } catch {}
+    try { _safeLS.rm(ORDER_STORAGE_KEY); } catch {}
+    try { _safeLS.rm(PINNED_STORAGE_KEY); } catch {}
     if (window.toast) toast('🔄 Restored default Core navigation layout and unpinned custom items', 'ok', 3000);
     location.reload();
   };
@@ -261,7 +268,7 @@
 
   window.toggleHighContrastTheme = function() {
     const isHighContrast = document.body.classList.toggle('theme-high-contrast');
-    try { try { localStorage.setItem('agentic_os_high_contrast', isHighContrast ? 'true' : 'false'); } catch {} } catch(e) {}
+    try { try { _safeLS.set('agentic_os_high_contrast', isHighContrast ? 'true' : 'false'); } catch {} } catch(e) {}
     const btn = document.getElementById('high-contrast-toggle-btn');
     if (btn) {
       btn.textContent = isHighContrast ? 'Disable High Contrast' : 'Enable High Contrast';
@@ -272,7 +279,7 @@
 
   // Restore on load
   try {
-    if (localStorage.getItem('agentic_os_high_contrast') === 'true') {
+    if (_safeLS.get('agentic_os_high_contrast') === 'true') {
       document.body.classList.add('theme-high-contrast');
       setTimeout(() => {
         const btn = document.getElementById('high-contrast-toggle-btn');

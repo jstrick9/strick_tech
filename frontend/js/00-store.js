@@ -3,6 +3,13 @@
 //  Lightweight reactive state with subscribers
 // ═══════════════════════════════════════════════════════════════
 'use strict';
+// Safe localStorage wrapper (private browsing / quota exceeded)
+const _safeLS = {
+  get: (k) => { try { return _safeLS.get(k); } catch { return null; } },
+  set: (k, v) => { try { _safeLS.set(k, v); } catch {} },
+  rm: (k) => { try { _safeLS.rm(k); } catch {} },
+};
+
 
 (function() {
   // ── Simple reactive store ──────────────────────────────────
@@ -91,7 +98,7 @@
     // UI State
     currentPane: 'chat',
     sidebarCollapsed: false,
-    uiMode: localStorage.getItem('agentic_os_mode') || 'simple',
+    uiMode: _safeLS.get('agentic_os_mode') || 'simple',
     
     // Agent State
     currentAgent: null,
