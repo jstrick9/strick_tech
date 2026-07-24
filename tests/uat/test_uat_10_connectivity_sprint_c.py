@@ -137,18 +137,20 @@ class TestUATConnectors:
         uat("Slack shows connection status", "status" in d)
 
     async def test_webhook_connector_works_immediately(self, U):
-        """AC: Webhook connector accepts task and records execution (network-resilient)."""
+        """AC: Webhook connector accepts task and records execution."""
+        # Local, always-reachable target instead of an external third-party
+        # service (httpbin.org) so this test doesn't depend on that
+        # service's own uptime/rate-limiting.
         r = await POST(U, "/api/connectors/conn_webhook/execute", {
             "action": "post_webhook",
             "payload": {
-                "url": "https://httpbin.org/post",
+                "url": "http://127.0.0.1:8787/api/docs/feedback",
                 "data": {"source": "agentic_os_uat_test", "user": "test_user"}
             },
             "agent_id": "orchestrator"
         })
         no_error(r, "webhook execute")
         d = j(r)
-        # ok may be False if httpbin.org is unreachable — but exec_id must always be issued
         uat("connector attempted execution", "exec_id" in d or "ok" in d)
         uat("execution record issued", d.get("exec_id", "").startswith("cex_") or "exec_id" in d)
         uat("execution time is tracked", d.get("duration_ms", 0) >= 0)
@@ -197,7 +199,7 @@ class TestUATConnectors:
         # Make an execution
         await POST(U, "/api/connectors/conn_webhook/execute", {
             "action": "post_webhook",
-            "payload": {"url": "https://httpbin.org/post", "data": {"uat": True}},
+            "payload": {"url": "http://127.0.0.1:8787/api/docs/feedback", "data": {"uat": True}},
         })
 
         r = await GET(U, "/api/connectors/conn_webhook/executions", limit=10)

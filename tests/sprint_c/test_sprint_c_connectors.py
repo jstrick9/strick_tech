@@ -94,10 +94,16 @@ class TestConnectorConfigure:
         assert r.json()["status"] == "unconfigured"
 
 class TestConnectorExecute:
+    # These tests point the webhook connector at a local, always-reachable
+    # endpoint (/api/docs/feedback) rather than an external third-party
+    # service like httpbin.org. The connector only needs *some* HTTP
+    # response to exercise its execute/audit/history code paths; using a
+    # local target avoids flaky failures tied to a third party's own
+    # uptime or rate-limiting, independent of anything this platform does.
     def test_execute_webhook_action(self, client):
         r = client.post("/api/connectors/conn_webhook/execute", json={
             "action":"post_webhook",
-            "payload":{"url":"https://httpbin.org/post","data":{"sprint":"C","test":True}},
+            "payload":{"url":"http://127.0.0.1:8787/api/docs/feedback","data":{"sprint":"C","test":True}},
             "agent_id":"supervisor"})
         d = r.json()
         assert "exec_id" in d
@@ -123,7 +129,7 @@ class TestConnectorExecute:
     def test_execute_recorded_in_history(self, client):
         client.post("/api/connectors/conn_webhook/execute", json={
             "action":"post_webhook",
-            "payload":{"url":"https://httpbin.org/post","data":{"history":"test"}},
+            "payload":{"url":"http://127.0.0.1:8787/api/docs/feedback","data":{"history":"test"}},
             "agent_id":"history_test"})
         r = client.get("/api/connectors/conn_webhook/executions?limit=5")
         assert r.status_code == 200
@@ -133,7 +139,7 @@ class TestConnectorExecute:
     def test_execute_updates_call_count(self, client):
         before = client.get("/api/connectors/conn_webhook").json()["connector"]["call_count"]
         client.post("/api/connectors/conn_webhook/execute", json={
-            "action":"post_webhook","payload":{"url":"https://httpbin.org/post","data":{}},"agent_id":"test"})
+            "action":"post_webhook","payload":{"url":"http://127.0.0.1:8787/api/docs/feedback","data":{}},"agent_id":"test"})
         after = client.get("/api/connectors/conn_webhook").json()["connector"]["call_count"]
         assert after >= before
 
@@ -161,7 +167,7 @@ class TestConnectorAuditIntegration:
         before = client.get("/api/audit-log/verify").json()["verified"]
         client.post("/api/connectors/conn_webhook/execute", json={
             "action":"post_webhook",
-            "payload":{"url":"https://httpbin.org/post","data":{"audit":"test"}},
+            "payload":{"url":"http://127.0.0.1:8787/api/docs/feedback","data":{"audit":"test"}},
             "agent_id":"audit_connector_test"})
         after = client.get("/api/audit-log/verify").json()["verified"]
         assert after >= before

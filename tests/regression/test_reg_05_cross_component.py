@@ -35,9 +35,11 @@ class TestRegressionCrossComponent_AuditChain:
         """Regression: Audit chain valid after connector calls."""
         before = client.get("/api/audit-log/verify").json()["verified"]
 
+        # Local, always-reachable target instead of the external httpbin.org
+        # (see test_reg_04_api_contract.py::test_connector_execute_schema).
         client.post("/api/connectors/conn_webhook/execute", json={
             "action": "post_webhook",
-            "payload": {"url": "https://httpbin.org/post", "data": {"chain": "test"}}
+            "payload": {"url": "http://127.0.0.1:8787/api/docs/feedback", "data": {"chain": "test"}}
         })
 
         time.sleep(0.3)
