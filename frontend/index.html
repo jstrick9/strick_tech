@@ -3616,5 +3616,9 @@ document.addEventListener('keydown', function(e) {
 
 
 
+  <!-- Theme toggle shortcut -->
+  <div class="theme-toggle-hint" onclick="if(typeof applyTheme==='function'){const t=_safeLS.get('agentic_os_theme')||'light';applyTheme(t==='light'?'dark':'light')}" title="Switch light/dark theme (or use Settings)">
+    <span>🌗</span> <span id="theme-hint-label">Theme</span>
+  </div>
 </body>
 </html>

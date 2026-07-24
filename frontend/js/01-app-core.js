@@ -653,8 +653,10 @@ function addThinking(id, agent) {
     <div class="msg-avatar">${agent.avatar || '🤖'}</div>
     <div class="msg-body">
       <div class="msg-meta">${escHtml(agent.name)} · thinking…</div>
-      <div class="typing-indicator">
-        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+      <div style="display:flex;gap:4px;padding:8px 0;align-items:center">
+        <div class="skeleton" style="width:8px;height:8px;border-radius:50%;animation-delay:0s"></div>
+        <div class="skeleton" style="width:8px;height:8px;border-radius:50%;animation-delay:0.2s"></div>
+        <div class="skeleton" style="width:8px;height:8px;border-radius:50%;animation-delay:0.4s"></div>
       </div>
     </div>`;
   msgs.appendChild(div);
@@ -5302,6 +5304,34 @@ toast = function(msg, type = 'ok', duration = 3000) {
   return _origToast(displayMsg, type, duration);
 };
 window.toast = toast;
+
+// ── Loading skeleton helpers ──────────────────────────────────────
+function showLoadingSkeleton(containerId, count = 3) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    html += `<div style="display:flex;gap:12px;padding:12px 0;align-items:flex-start">
+      <div class="skeleton skeleton-avatar"></div>
+      <div style="flex:1">
+        <div class="skeleton skeleton-text" style="width:${60 + Math.random()*30}%"></div>
+        <div class="skeleton skeleton-text" style="width:${40 + Math.random()*40}%"></div>
+        <div class="skeleton skeleton-text" style="width:${20 + Math.random()*30}%"></div>
+      </div>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function showInlineLoading(el, message = 'Loading…') {
+  if (!el) return;
+  el.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:16px;color:var(--text-2);font-size:13px">
+    <div class="skeleton" style="width:20px;height:20px;border-radius:50%;flex-shrink:0"></div>
+    <span>${escHtml(message)}</span>
+  </div>`;
+}
+
+
 
 // ── Add missing CSS vars for backward compat ──────────────────────
 // Some code uses --bg-base, --success etc — ensure they're set
