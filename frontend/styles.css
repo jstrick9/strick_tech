@@ -687,7 +687,7 @@
 
 /* ── Stats bar ───────────────────────────────────────────── */
 #statusbar{
-  height:26px;flex-shrink:0;
+  height:28px;flex-shrink:0;
   display:flex;align-items:center;gap:0;
   background:var(--bg-1);border-top:1px solid var(--border);
   font-size:11px;color:var(--text-3);padding:0 12px;
@@ -696,9 +696,15 @@
 .sb-item{
   display:flex;align-items:center;gap:5px;padding:0 10px;
   border-right:1px solid var(--border);height:100%;
+  transition: color 0.15s ease;
+  cursor: default;
+  white-space: nowrap;
 }
 .sb-item:last-child{border-right:none}
-.sb-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+.sb-item:hover{color:var(--text-1)}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.sb-dot.warn{background:var(--warning)}
+.sb-dot.err{background:var(--danger)}
 
 /* ── Swarm cards ─────────────────────────────────────────── */
 .swarm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin:16px 0}
@@ -4255,4 +4261,157 @@ body.theme-high-contrast a {
   opacity: 1;
   border-color: var(--accent);
   color: var(--text-1);
+}
+
+/* ── Code block line numbers ─────────────────────────────────── */
+.code-line-numbers {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  padding: 14px 8px 14px 0;
+  text-align: right;
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--text-3);
+  opacity: 0.5;
+  border-right: 1px solid var(--border);
+  user-select: none;
+  pointer-events: none;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ── Message actions (copy, regenerate, etc.) ────────────────── */
+.msg-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.msg:hover .msg-actions {
+  opacity: 1;
+}
+.msg-action-btn {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  cursor: pointer;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.msg-action-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--border-hi);
+  color: var(--text-0);
+}
+
+/* ── Notification panel improvements ─────────────────────────── */
+#notif-panel {
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+}
+.notif-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s ease;
+  cursor: pointer;
+}
+.notif-item:hover {
+  background: var(--bg-3);
+}
+.notif-item:last-child {
+  border-bottom: none;
+}
+
+/* ── Empty state component ───────────────────────────────────── */
+.pane-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 48px 24px;
+  gap: 12px;
+}
+.pane-empty-state .empty-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  opacity: 0.6;
+}
+.pane-empty-state h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-0);
+  letter-spacing: -0.02em;
+}
+.pane-empty-state p {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.6;
+  max-width: 360px;
+}
+.pane-empty-state .empty-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ── Code block with line numbers ────────────────────────────── */
+.code-with-lines {
+  position: relative;
+}
+.code-with-lines pre {
+  padding-left: 50px !important;
+}
+
+/* ── Improved scrollbar for code blocks ──────────────────────── */
+.msg-bubble pre::-webkit-scrollbar {
+  height: 6px;
+}
+.msg-bubble pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+.msg-bubble pre::-webkit-scrollbar-thumb {
+  background: var(--bg-4);
+  border-radius: 3px;
+}
+.msg-bubble pre::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hi);
+}
+
+/* ── Hover card for sidebar items (collapsed mode) ───────────── */
+#sidebar.collapsed .nav-item {
+  position: relative;
+}
+#sidebar.collapsed .nav-item::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-4);
+  color: var(--text-0);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 1000;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-hi);
+}
+#sidebar.collapsed .nav-item:hover::after {
+  opacity: 1;
 }

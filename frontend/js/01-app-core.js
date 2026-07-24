@@ -5417,7 +5417,9 @@ function renderMarkdownEnhanced(text) {
       ? window.hljs.highlight(code, { language: lang }).value
       : escaped;
     const id = 'cb_' + Math.random().toString(36).slice(2,8);
-    return `<div class="card-elevated surface-z2" style="position:relative;margin:12px 0;border-radius:10px;overflow:hidden;padding:0;border:1px solid var(--border-hi)">
+    const lineCount = code.split('\n').length;
+    const lineNumHtml = lineCount > 1 ? `<div class="code-line-numbers">${Array.from({length: lineCount}, (_, i) => i+1).join('\n')}</div>` : '';
+    return `<div class="card-elevated surface-z2 code-with-lines" style="position:relative;margin:12px 0;border-radius:10px;overflow:hidden;padding:0;border:1px solid var(--border-hi)">
       <div style="display:flex;align-items:center;justify-content:space-between;background:#04060f;padding:6px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px">
         <span style="font-size:11px;font-weight:800;color:var(--accent);font-family:monospace">${escHtml(langLabel)}</span>
         <div style="display:flex;gap:6px;align-items:center">
@@ -5426,7 +5428,7 @@ function renderMarkdownEnhanced(text) {
           <button onclick="runCodeInTerminal(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:10.5px" title="Send snippet to System Terminal input">＞_ Terminal</button>
         </div>
       </div>
-      <pre id="${id}" style="margin:0;padding:14px;background:#060814;overflow-x:auto;font-size:12.5px;line-height:1.65;font-family:'JetBrains Mono','Fira Code',monospace"><code class="hljs language-${langLabel}" data-raw="${encodeURIComponent(code)}">${highlightedCode}</code></pre>
+      ${lineNumHtml}<pre id="${id}" style="margin:0;padding:14px${lineCount > 1 ? ' 14px 14px 50px' : ''};background:#060814;overflow-x:auto;font-size:12.5px;line-height:1.65;font-family:'JetBrains Mono','Fira Code',monospace"><code class="hljs language-${langLabel}" data-raw="${encodeURIComponent(code)}">${highlightedCode}</code></pre>
     </div>`;
   });
 
