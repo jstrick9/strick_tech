@@ -6691,7 +6691,7 @@ function bddRenderAgents(container) {
 }
 
 async function bddRenderAgentDetail(container, agentId) {
-  container.innerHTML = `<div style="color:var(--text-3);padding:20px">Loading ${agentId}…</div>`;
+  container.innerHTML = `<div style="color:var(--text-3);padding:20px">Loading ${escHtml(agentId)}…</div>`;
 
   const d = await fetch(`/api/drift/agent/${encodeURIComponent(agentId)}`)
     .then(r=>r.ok?r.json():null).catch(()=>null);

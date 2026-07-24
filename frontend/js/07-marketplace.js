@@ -708,7 +708,7 @@ async function gitaiNLExecute(query) {
     const r = await fetch('/api/gitai/nl-git',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,dry_run:false,allow_unsafe:false})});
     const d = await r.json();
     const el = document.getElementById('gitai-nl-result');
-    if (el) el.innerHTML+=`<div class="gitai-result">${(d.results||[]).map(r=>`${r.cmd}\n${r.stdout||r.error||''}`).join('\n\n')}</div>`;
+    if (el) el.innerHTML+=`<div class="gitai-result">${(d.results||[]).map(r=>`${escHtml(r.cmd)}\n${escHtml(r.stdout||r.error||'')}`).join('\n\n')}</div>`;
   } catch(ex) { gmAlert('Execute failed: '+ex.message); }
 }
 
