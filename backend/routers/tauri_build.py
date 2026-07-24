@@ -27,7 +27,7 @@ ROOT = get_data_dir()
 TAURI_DIR = ROOT / 'src-tauri'
 SCRIPTS = ROOT / 'scripts'
 
-_build_process: asyncio.subprocess.Optional[Process] = None
+_build_process: Optional[asyncio.subprocess.Process] = None
 _build_log: list[str] = []
 _build_status = 'idle'  # idle | building | success | failed
 

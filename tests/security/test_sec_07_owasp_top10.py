@@ -204,10 +204,19 @@ class TestSecA03InjectionExtended:
         for p in self.TEMPLATE_INJECTIONS:
             r = await POST(C, "/api/tasks", {"title": p, "status": "todo"})
             sec_ok(r, f"Template injection task: {p[:30]}")
-            body = r.text
-            # Must not see result of 7*7=49 as evidence of SSTI
-            assert "49" not in body or p not in body, \
-                f"Possible SSTI: {p} → response contains '49'"
+            # Check the parsed `title` field specifically, not a substring
+            # scan of the whole response body. A bare "'49' not in body"
+            # check false-positives whenever the row's own auto-increment
+            # `id` happens to be (or contain) 49 -- unrelated to whether the
+            # template payload was executed. If SSTI succeeded, the stored
+            # title itself would become the evaluated result (e.g. "49")
+            # instead of remaining the literal, unexecuted payload string.
+            try:
+                stored_title = r.json().get("title")
+            except ValueError:
+                stored_title = None
+            assert stored_title != "49", \
+                f"Possible SSTI: {p} → stored title was evaluated to '49'"
 
     async def test_template_injection_in_memory_content(self, C):
         """Template injection in memory content."""
