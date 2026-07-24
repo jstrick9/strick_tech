@@ -6,6 +6,7 @@ Sessions survive page reloads, can be renamed, pinned, searched, and exported.
 
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from pathlib import Path
@@ -16,6 +17,7 @@ from fastapi.responses import PlainTextResponse
 from ..services.memory_db import audit_log, get_conn
 
 router = APIRouter(prefix='/api/sessions', tags=['sessions'])
+log = logging.getLogger('agentic.sessions')
 from backend.config import get_data_dir
 ROOT = get_data_dir()
 

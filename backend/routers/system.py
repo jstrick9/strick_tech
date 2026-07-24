@@ -284,13 +284,19 @@ async def reload_backend_engine(req: Request):
 @router.post('/reboot-engine')
 def reboot_engine():
     """Execute a clean process restart so run.py (or Tauri) reboots with fresh RAM."""
+    import os
+    import threading
+
     def _do_reboot():
+        # NOTE: sys.exit() only terminates the calling thread, not the whole
+        # process, when invoked from a background thread — the interpreter's
+        # threading excepthook just silently swallows the resulting
+        # SystemExit and the main event loop (and the rest of the process)
+        # keeps running completely unaffected. os._exit() is the only
+        # primitive that reliably force-terminates the entire process from
+        # any thread, which is what a "hard reboot" actually requires.
         time.sleep(0.4)
-        import os
-        try:
-            sys.exit(101)
-        except Exception:
-            os._exit(101)
+        os._exit(101)
     threading.Thread(target=_do_reboot, daemon=True).start()
     return {'ok': True, 'message': '🛑 Hard reboot initiated. Application engine restarting cleanly in 3 seconds...'}
 
