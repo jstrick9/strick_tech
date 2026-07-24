@@ -3907,3 +3907,146 @@ body.theme-high-contrast a {
 .settings-content-area { flex:1 1 auto !important; min-width:0; width:calc(100% - 260px) !important; }
 .settings-tab-pane { width:100%; }
 @media (max-width:760px) { .settings-content-area { width:100% !important; } }
+
+/* ═══════════════════════════════════════════════════════════
+   UI/UX REDESIGN — Novice-friendly improvements
+   Inspired by ChatGPT, Claude, Cursor
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Sidebar: Better spacing and visual hierarchy ──────────── */
+.sidebar-scroll {
+  padding-bottom: 16px;
+}
+.sidebar-group-label {
+  transition: background 0.15s ease;
+  border-radius: 6px;
+  margin: 2px 8px;
+}
+.sidebar-group-label:hover {
+  background: var(--bg-3);
+}
+.nav-item {
+  margin: 1px 8px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  padding: 9px 12px;
+}
+.nav-item .icon {
+  font-size: 16px;
+  width: 22px;
+}
+.nav-item .label {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.nav-item.active {
+  background: var(--accent-glow);
+  font-weight: 600;
+}
+
+/* ── Chat: Cleaner, more spacious ──────────────────────────── */
+.chat-input-area {
+  padding: 12px 20px 16px;
+}
+.chat-input-row {
+  border-radius: 14px;
+  padding: 6px 6px 6px 14px;
+}
+#chat-input {
+  font-size: 15px;
+  padding: 10px 0;
+  line-height: 1.5;
+}
+.chat-send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 18px;
+}
+.chat-tools {
+  padding: 0 4px 8px;
+}
+.chat-tool {
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* ── Chat messages: Better readability ─────────────────────── */
+#chat-messages {
+  padding: 16px 0;
+}
+
+/* ── Details/summary for persona selector ──────────────────── */
+#chat-persona-details summary::-webkit-details-marker {
+  display: none;
+}
+#chat-persona-details[open] summary {
+  border-color: var(--accent);
+  color: var(--text-0);
+}
+
+/* ── Topbar: Cleaner ───────────────────────────────────────── */
+#topbar {
+  gap: 8px;
+  padding: 0 12px;
+}
+#topbar .logo {
+  gap: 6px;
+}
+#palette-btn {
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+#palette-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  color: var(--text-0);
+}
+
+/* ── Mission launchpad: Softer, more welcoming ─────────────── */
+.mission-launchpad {
+  border-radius: 18px;
+  padding: 28px 32px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+}
+.mission-launchpad h3 {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+.mission-outcome {
+  border-radius: 14px;
+  padding: 18px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+.mission-outcome:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px var(--accent-glow);
+}
+.mission-outcome strong {
+  font-size: 14.5px;
+}
+.mission-outcome small {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* ── Connection status badge ───────────────────────────────── */
+.connection-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.connection-status:hover {
+  border-color: var(--accent);
+}
+
+/* ── Responsive: hide btn-text on narrow screens ───────────── */
+@media (max-width: 1200px) {
+  .btn-text { display: none; }
+}

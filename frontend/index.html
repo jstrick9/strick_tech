@@ -1410,16 +1410,16 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         <span id="custom-app-subtitle" style="font-size:9.5px;color:var(--accent-hi);font-weight:700;letter-spacing:0.6px">MISSION CONTROL v10.0</span>
       </div>
     </a>
-    <span class="tech-badge" style="background:linear-gradient(135deg,rgba(56,189,248,0.2),rgba(168,85,247,0.2));border:1px solid rgba(56,189,248,0.4);color:#fff">PRO / ENTERPRISE</span>
-    <span class="tech-badge" id="runtime-badge" style="border-color:rgba(16,185,129,0.5);color:#34d399">● LOCAL PORT 8787</span>
 
-    <!-- Quick Component Navigation Hub -->
-    <div id="topbar-quick-actions" style="display:flex;align-items:center;gap:6px;margin-left:12px;flex-wrap:wrap">
+    <!-- Command Palette — primary search entry point -->
+    <button id="palette-btn" onclick="openPalette()" class="btn-3d btn-sm" style="background:var(--bg-2);border:1px solid var(--border-hi);color:var(--text-2);border-radius:8px;cursor:pointer;font-weight:500;padding:6px 14px;margin-left:12px;font-size:13px">
+      <span style="opacity:0.6">⌘K</span> <span class="btn-text">Search anything…</span>
+    </button>
+
+    <!-- Advanced quick actions — hidden in simple mode -->
+    <div id="topbar-quick-actions" style="display:flex;align-items:center;gap:6px;margin-left:8px;flex-wrap:wrap" data-tier="advanced">
       <button onclick="nav('hierarchy')" class="btn-3d btn-sm" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--text-0);font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer">🧭 <span class="btn-text">AI OPs Manual</span></button>
       <button onclick="if(typeof openHierarchyInterview === 'function') openHierarchyInterview()" class="btn-3d btn-sm" style="background:linear-gradient(135deg,#38bdf8,#a855f7);border:none;color:#fff;font-weight:700;padding:6px 14px;border-radius:8px;cursor:pointer;box-shadow:0 0 14px rgba(56,189,248,0.4)">✨ <span class="btn-text">AI Interview Wizard</span></button>
-      <button id="palette-btn" onclick="openPalette()" class="btn-3d btn-sm" style="background:var(--bg-2);border:1px solid var(--border-hi);color:var(--text-1);border-radius:8px;cursor:pointer;font-weight:600;padding:6px 12px">
-        <span>⌘K</span> <span class="btn-text">Search Commands...</span>
-      </button>
       <button id="split-toggle-btn" onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace()" class="btn-3d btn-sm" style="background:var(--bg-2);border:1px solid var(--border-hi);color:var(--text-1);border-radius:8px;cursor:pointer;font-weight:600;padding:6px 12px" title="Split Workspace Dual-Pane (⌘\)">
         <span>🗂️</span> <span class="btn-text">Split View</span>
       </button>
@@ -1427,7 +1427,15 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
     <div class="spacer"></div>
 
-    <div id="topbar-actions" style="display:flex;align-items:center;gap:6px">
+    <div id="topbar-actions" style="display:flex;align-items:center;gap:8px">
+      <!-- Connection status indicator -->
+      <div id="key-status" onclick="nav('settings')" title="AI Connection — click to configure"
+        class="btn-3d" style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+        background:var(--bg-2);border:1px solid var(--border);border-radius:8px;
+        padding:5px 12px;cursor:pointer;transition:var(--transition)">
+        <span class="key-dot" id="key-dot" style="width:8px;height:8px;border-radius:50%;background:#f59e0b"></span>
+        <span id="key-label">Setting up…</span>
+      </div>
       <!-- Notification bell -->
       <div style="position:relative;display:inline-flex">
         <button class="icon-btn btn-3d" id="notif-bell-btn" onclick="toggleNotifPanel()"
@@ -1437,23 +1445,14 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;
           border:1.5px solid var(--bg-1);pointer-events:none"></span>
       </div>
-      <!-- API key status -->
-      <div id="key-status" onclick="nav('settings')" title="API Key Status — click to configure inside Settings"
-        class="btn-3d" style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
-        background:rgba(17,22,51,0.8);border:1px solid var(--border-hi);border-radius:8px;
-        padding:5px 12px;cursor:pointer;transition:var(--transition)">
-        <span class="key-dot" id="key-dot" style="width:8px;height:8px;border-radius:50%;background:#f59e0b"></span>
-        <span id="key-label">Configuring API...</span>
-      </div>
       <!-- Settings -->
-      <button class="icon-btn btn-3d" onclick="nav('settings')" title="Settings & API Keys Hub (⌘,)" style="width:32px;height:32px;padding:0;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc;font-size:16px">⚙</button>
-      <!-- Hard Restart Engine -->
-      <button id="restart-engine-btn" onclick="if(typeof hardRebootBackendEngine === 'function') hardRebootBackendEngine()" class="btn-3d btn-sm" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;padding:4px 10px;border-radius:8px;font-weight:700" title="Clean Hard Restart AI Backend Engine (Code 101)"><span>🛑</span> <span class="btn-text">Restart Engine</span></button>
-      <!-- Backup -->
-      <button class="icon-btn btn-3d" onclick="doBackup()" title="Backup agentic.db database" style="width:32px;height:32px;padding:0">💾</button>
-      <!-- User Profile Avatar / Identity Hub -->
-      <div id="user-identity-hub" onclick="if(typeof openUserProfileModal === 'function') openUserProfileModal(); else nav('settings')" class="btn-3d" title="User Profile Hub — click to customize identity"
-        style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:8px;cursor:pointer">
+      <button class="icon-btn btn-3d" onclick="nav('settings')" title="Settings (⌘,)" style="width:32px;height:32px;padding:0;font-size:16px">⚙</button>
+      <!-- Advanced-only: Restart + Backup -->
+      <button id="restart-engine-btn" onclick="if(typeof hardRebootBackendEngine === 'function') hardRebootBackendEngine()" class="btn-3d btn-sm" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;padding:4px 10px;border-radius:8px;font-weight:700" data-tier="advanced" title="Restart AI Backend Engine"><span>🛑</span> <span class="btn-text">Restart</span></button>
+      <button class="icon-btn btn-3d" onclick="doBackup()" title="Backup database" data-tier="advanced" style="width:32px;height:32px;padding:0">💾</button>
+      <!-- User Profile -->
+      <div id="user-identity-hub" onclick="if(typeof openUserProfileModal === 'function') openUserProfileModal(); else nav('settings')" class="btn-3d" title="Your Profile"
+        style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;cursor:pointer">
         <span id="topbar-user-avatar" style="font-size:16px">👤</span>
         <span id="topbar-user-name" class="btn-text" style="font-size:12px;font-weight:700;color:var(--text-0)">Joshua</span>
       </div>
@@ -1475,123 +1474,114 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
       <!-- Navigation -->
       <div class="sidebar-scroll">
-        <!-- ═══ CORE: Always visible in all modes ═══ -->
-        <div class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> CORE AI WORKSTATION <span class="group-count" style="float:right;font-size:10px;opacity:0.7">8</span></div>
-        <div class="sidebar-group-content" id="group-core" style="display:none">
-          <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI agents" role="menuitem" aria-label="Chat">
-            <span class="icon">✨</span><span class="label">Chat</span>
+        <!-- ═══ ESSENTIALS: Always visible, novice-friendly ═══ -->
+        <div class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> GETTING STARTED <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
+        <div class="sidebar-group-content" id="group-core">
+          <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI — start here" role="menuitem" aria-label="Chat">
+            <span class="icon">💬</span><span class="label">Chat</span>
           </div>
-          <div class="nav-item" data-nav="studio" data-tier="core" onclick="nav('studio')" data-tooltip="Live editor + preview" role="menuitem" aria-label="Studio">
-            <span class="icon">⚡</span><span class="label">Studio</span>
+          <div class="nav-item" data-nav="studio" data-tier="core" onclick="nav('studio')" data-tooltip="Write code with live preview" role="menuitem" aria-label="Studio">
+            <span class="icon">⚡</span><span class="label">Code Studio</span>
             <span class="badge badge-live" style="font-size:9px;padding:1px 6px">LIVE</span>
           </div>
-          <div class="nav-item" data-nav="templates" data-tier="core" onclick="nav('templates')" data-tooltip="Starter templates" role="menuitem" aria-label="Templates">
-            <span class="icon">❖</span><span class="label">Templates</span>
+          <div class="nav-item" data-nav="templates" data-tier="core" onclick="nav('templates')" data-tooltip="Start from a template" role="menuitem" aria-label="Templates">
+            <span class="icon">📋</span><span class="label">Templates</span>
           </div>
-          <div class="nav-item" data-nav="swarm" data-tier="core" onclick="nav('swarm')" data-tooltip="Multi-agent fan-out" role="menuitem" aria-label="Swarm">
-            <span class="icon">◈</span><span class="label">Swarm</span>
+          <div class="nav-item" data-nav="galaxy" data-tier="core" onclick="nav('galaxy')" data-tooltip="Your saved knowledge & memories" role="menuitem" aria-label="Memory">
+            <span class="icon">🧠</span><span class="label">Memory</span>
           </div>
-          <div class="nav-item" data-nav="galaxy" data-tier="core" onclick="nav('galaxy')" data-tooltip="3D memory graph" role="menuitem" aria-label="Memory">
-            <span class="icon">🕸</span><span class="label">Memory</span>
+          <div class="nav-item" data-nav="kanban" data-tier="core" onclick="nav('kanban')" data-tooltip="Track tasks and to-dos" role="menuitem" aria-label="Tasks">
+            <span class="icon">✅</span><span class="label">Tasks</span>
           </div>
-          <div class="nav-item" data-nav="hierarchy" data-tier="core" onclick="nav('hierarchy')" data-tooltip="2-Tier AI Operating Manual (IVREN)" role="menuitem" aria-label="Hierarchy">
-            <span class="icon">✦</span><span class="label">AI OPs Manual</span>
-          </div>
-          <div class="nav-item" data-nav="kanban" data-tier="core" onclick="nav('kanban')" data-tooltip="Task board" role="menuitem" aria-label="Kanban">
-            <span class="icon">☷</span><span class="label">Kanban</span>
-          </div>
-          <div class="nav-item" data-nav="settings" data-tier="core" onclick="nav('settings')" data-tooltip="Settings & API keys" role="menuitem" aria-label="Settings">
+          <div class="nav-item" data-nav="settings" data-tier="core" onclick="nav('settings')" data-tooltip="Connect AI & customize" role="menuitem" aria-label="Settings">
             <span class="icon">⚙</span><span class="label">Settings</span>
           </div>
         </div>
 
-        <!-- BUILD & AI ENGINE -->
-        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD & AI ENGINE <span class="group-count" style="float:right;font-size:10px;opacity:0.7">12</span></div>
+        <!-- ═══ AI TOOLS: Core AI capabilities ═══ -->
+        <div class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS <span class="group-count" style="float:right;font-size:10px;opacity:0.7">10</span></div>
         <div class="sidebar-group-content" id="group-build" data-tier="advanced" style="display:none">
-          <div class="nav-item" data-nav="builder" data-tier="advanced" onclick="nav('builder')"><span class="icon">⌨</span><span class="label">Editor</span></div>
-          <div class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')"><span class="icon">✦</span><span class="label">Composer</span></div>
-          <div class="nav-item" data-nav="pipeline" data-tier="advanced" onclick="nav('pipeline')"><span class="icon">⎈</span><span class="label">Pipeline</span></div>
+          <div class="nav-item" data-nav="swarm" data-tier="advanced" onclick="nav('swarm')"><span class="icon">🌀</span><span class="label">Multi-Agent Swarm</span></div>
+          <div class="nav-item" data-nav="hierarchy" data-tier="advanced" onclick="nav('hierarchy')"><span class="icon">🧭</span><span class="label">AI Operating Manual</span></div>
+          <div class="nav-item" data-nav="builder" data-tier="advanced" onclick="nav('builder')"><span class="icon">⌨</span><span class="label">Code Editor</span></div>
+          <div class="nav-item" data-nav="websearch" data-tier="advanced" onclick="nav('websearch')"><span class="icon">🔍</span><span class="label">Web Search</span></div>
+          <div class="nav-item" data-nav="browser" data-tier="advanced" onclick="nav('browser')"><span class="icon">🌐</span><span class="label">Browser Agent</span></div>
+          <div class="nav-item" data-nav="imagegen" data-tier="advanced" onclick="nav('imagegen')"><span class="icon">🎨</span><span class="label">Image Generator</span></div>
+          <div class="nav-item" data-nav="prompts" data-tier="advanced" onclick="nav('prompts')"><span class="icon">💡</span><span class="label">Prompt Library</span></div>
+          <div class="nav-item" data-nav="docs" data-tier="advanced" onclick="nav('docs')"><span class="icon">📖</span><span class="label">Docs & Help</span></div>
+          <div class="nav-item" data-nav="terminal" data-tier="advanced" onclick="nav('terminal')"><span class="icon">💻</span><span class="label">Terminal</span></div>
           <div class="nav-item" data-nav="skills" data-tier="advanced" onclick="nav('skills')"><span class="icon">⚡</span><span class="label">Skills</span></div>
-          <div class="nav-item" data-nav="loops" data-tier="advanced" onclick="nav('loops')"><span class="icon">♾</span><span class="label">Loops</span><span class="count" id="loop-count">0</span></div>
-          <div class="nav-item" data-nav="mcp" data-tier="advanced" onclick="nav('mcp')"><span class="icon">⌥</span><span class="label">MCP Tools</span></div>
-          <div class="nav-item" data-nav="fusion" data-tier="advanced" onclick="nav('fusion')"><span class="icon">⇋</span><span class="label">Fusion</span></div>
-          <div class="nav-item" data-nav="arena" data-tier="advanced" onclick="nav('arena')"><span class="icon">⚔</span><span class="label">Arena</span></div>
-          <div class="nav-item" data-nav="plugins" data-tier="advanced" onclick="nav('plugins')"><span class="icon">❖</span><span class="label">Plugins</span></div>
-          <div class="nav-item" data-nav="terminal" data-tier="advanced" onclick="nav('terminal')"><span class="icon">＞_</span><span class="label">Terminal</span></div>
-          <div class="nav-item" data-nav="secrets" data-tier="advanced" onclick="nav('secrets')"><span class="icon">🔐</span><span class="label">Vault</span></div>
-          <div class="nav-item" data-nav="finetune" data-tier="advanced" onclick="nav('finetune')"><span class="icon">⚗</span><span class="label">Fine-Tuning (LoRA)</span></div>
         </div>
 
-        <!-- SHIP & GOVERNANCE -->
-        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> SHIP & GOVERNANCE <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
+        <!-- ═══ BUILD & DEPLOY: Ship your work ═══ -->
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD & DEPLOY <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
         <div class="sidebar-group-content" id="group-ship" data-tier="advanced" style="display:none">
-          <div class="nav-item" data-nav="github" data-tier="advanced" onclick="nav('github')"><span class="icon">⌥</span><span class="label">GitHub</span></div>
-          <div class="nav-item" data-nav="deploy" data-tier="advanced" onclick="nav('deploy')"><span class="icon">⚡</span><span class="label">Deploy</span></div>
-          <div class="nav-item" data-nav="dbstudio" data-tier="advanced" onclick="nav('dbstudio')"><span class="icon">⛁</span><span class="label">Database Studio</span></div>
-          <div class="nav-item" data-nav="dashboard" data-tier="advanced" onclick="nav('dashboard')"><span class="icon">▤</span><span class="label">Dashboard</span></div>
-          <div class="nav-item" data-nav="system" data-tier="advanced" onclick="nav('system')"><span class="icon">⛭</span><span class="label">System</span></div>
-          <div class="nav-item" data-nav="workspaces" data-tier="advanced" onclick="nav('workspaces')"><span class="icon">◫</span><span class="label">Workspaces</span></div>
-          <div class="nav-item" data-nav="control" data-tier="advanced" onclick="nav('control')"><span class="icon">🎛</span><span class="label">Control Tower</span></div>
-          <div class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')"><span class="icon">◈</span><span class="label">Supervisor</span></div>
-          <div class="nav-item" data-nav="goals" data-tier="advanced" onclick="nav('goals')"><span class="icon">◎</span><span class="label">Goals</span></div>
-        </div>
-
-        <!-- AGENTIC ORCHESTRATION & TOOLS -->
-        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTIC ORCHESTRATION & TOOLS <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
-        <div class="sidebar-group-content" id="group-tools" data-tier="advanced" style="display:none">
+          <div class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')"><span class="icon">✍</span><span class="label">Composer</span></div>
+          <div class="nav-item" data-nav="pipeline" data-tier="advanced" onclick="nav('pipeline')"><span class="icon">⎈</span><span class="label">Pipelines</span></div>
           <div class="nav-item" data-nav="workflow" data-tier="advanced" onclick="nav('workflow')"><span class="icon">⎈</span><span class="label">Workflows</span></div>
-          <div class="nav-item" data-nav="specs" data-tier="advanced" onclick="nav('specs')"><span class="icon">☷</span><span class="label">Spec Builder</span></div>
-          <div class="nav-item" data-nav="steering" data-tier="advanced" onclick="nav('steering')"><span class="icon">✦</span><span class="label">Steering</span></div>
-          <div class="nav-item" data-nav="bugbot" data-tier="advanced" onclick="nav('bugbot')"><span class="icon">🛡</span><span class="label">BugBot</span></div>
-          <div class="nav-item" data-nav="gitai" data-tier="advanced" onclick="nav('gitai')"><span class="icon">⎇</span><span class="label">Git AI</span></div>
-          <div class="nav-item" data-nav="marketplace" data-tier="advanced" onclick="nav('marketplace')"><span class="icon">🏬</span><span class="label">Marketplace</span></div>
-          <div class="nav-item" data-nav="replay" data-tier="advanced" onclick="nav('replay')"><span class="icon">⟲</span><span class="label">Replay</span></div>
-          <div class="nav-item" data-nav="collabedit" data-tier="advanced" onclick="nav('collabedit')"><span class="icon">✍</span><span class="label">Collab Edit</span></div>
-          <div class="nav-item" data-nav="ambient" data-tier="advanced" onclick="nav('ambient')"><span class="icon">≈</span><span class="label">Ambient</span></div>
-          <div class="nav-item" data-nav="hitl" data-tier="advanced" onclick="nav('hitl')"><span class="icon">🛡</span><span class="label">HITL</span></div>
-          <div class="nav-item" data-nav="connectors" data-tier="advanced" onclick="nav('connectors')"><span class="icon">⇋</span><span class="label">Connectors</span></div>
-          <div class="nav-item" data-nav="mcp-gateway" data-tier="advanced" onclick="nav('mcp-gateway')"><span class="icon">⇶</span><span class="label">MCP Gateway</span></div>
-          <div class="nav-item" data-nav="a2a" data-tier="advanced" onclick="nav('a2a')"><span class="icon">∿</span><span class="label">A2A Network</span></div>
-          <div class="nav-item" data-nav="agent-identity" data-tier="advanced" onclick="nav('agent-identity')"><span class="icon">🪪</span><span class="label">Identity</span></div>
+          <div class="nav-item" data-nav="github" data-tier="advanced" onclick="nav('github')"><span class="icon">🐙</span><span class="label">GitHub</span></div>
+          <div class="nav-item" data-nav="deploy" data-tier="advanced" onclick="nav('deploy')"><span class="icon">🚀</span><span class="label">Deploy</span></div>
+          <div class="nav-item" data-nav="specs" data-tier="advanced" onclick="nav('specs')"><span class="icon">📐</span><span class="label">Spec Builder</span></div>
+          <div class="nav-item" data-nav="dbstudio" data-tier="advanced" onclick="nav('dbstudio')"><span class="icon">🗄</span><span class="label">Database</span></div>
+          <div class="nav-item" data-nav="workspaces" data-tier="advanced" onclick="nav('workspaces')"><span class="icon">📂</span><span class="label">Workspaces</span></div>
+          <div class="nav-item" data-nav="plugins" data-tier="advanced" onclick="nav('plugins')"><span class="icon">🧩</span><span class="label">Plugins</span></div>
         </div>
 
-        <!-- ENTERPRISE GOVERNANCE & TELEMETRY -->
-        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> ENTERPRISE GOVERNANCE & TELEMETRY <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
+        <!-- ═══ AGENTS & ORCHESTRATION ═══ -->
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTS & ORCHESTRATION <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
+        <div class="sidebar-group-content" id="group-tools" data-tier="advanced" style="display:none">
+          <div class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')"><span class="icon">🎯</span><span class="label">Supervisor</span></div>
+          <div class="nav-item" data-nav="goals" data-tier="advanced" onclick="nav('goals')"><span class="icon">🎯</span><span class="label">Goals</span></div>
+          <div class="nav-item" data-nav="connectors" data-tier="advanced" onclick="nav('connectors')"><span class="icon">🔗</span><span class="label">Integrations</span></div>
+          <div class="nav-item" data-nav="mcp" data-tier="advanced" onclick="nav('mcp')"><span class="icon">🔧</span><span class="label">Tool Connections</span></div>
+          <div class="nav-item" data-nav="mcp-gateway" data-tier="advanced" onclick="nav('mcp-gateway')"><span class="icon">🚪</span><span class="label">Gateway</span></div>
+          <div class="nav-item" data-nav="a2a" data-tier="advanced" onclick="nav('a2a')"><span class="icon">🌐</span><span class="label">Agent Network</span></div>
+          <div class="nav-item" data-nav="agent-identity" data-tier="advanced" onclick="nav('agent-identity')"><span class="icon">🪪</span><span class="label">Agent Identity</span></div>
+          <div class="nav-item" data-nav="hitl" data-tier="advanced" onclick="nav('hitl')"><span class="icon">👁</span><span class="label">Review Queue</span></div>
+          <div class="nav-item" data-nav="steering" data-tier="advanced" onclick="nav('steering')"><span class="icon">🧭</span><span class="label">AI Guidelines</span></div>
+          <div class="nav-item" data-nav="fusion" data-tier="advanced" onclick="nav('fusion')"><span class="icon">🔀</span><span class="label">Model Fusion</span></div>
+          <div class="nav-item" data-nav="arena" data-tier="advanced" onclick="nav('arena')"><span class="icon">⚔</span><span class="label">Model Arena</span></div>
+          <div class="nav-item" data-nav="loops" data-tier="advanced" onclick="nav('loops')"><span class="icon">♾</span><span class="label">Autonomous Loops</span><span class="count" id="loop-count">0</span></div>
+          <div class="nav-item" data-nav="replay" data-tier="advanced" onclick="nav('replay')"><span class="icon">⟲</span><span class="label">Execution Replay</span></div>
+          <div class="nav-item" data-nav="collabedit" data-tier="advanced" onclick="nav('collabedit')"><span class="icon">👥</span><span class="label">Collaborative Edit</span></div>
+        </div>
+
+        <!-- ═══ MONITORING & SECURITY ═══ -->
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> MONITORING & SECURITY <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
         <div class="sidebar-group-content" id="group-enterprise" data-tier="advanced" style="display:none">
-          <!-- Subgroup 1: SLA & Telemetry Tower -->
-          <div style="font-size:9.5px;color:var(--text-3);padding:8px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85">📊 SLA & Telemetry Tower</div>
-          <div class="nav-item" data-nav="audit-log" data-tier="advanced" onclick="nav('audit-log')"><span class="icon">🔏</span><span class="label">Audit Log</span></div>
-          <div class="nav-item" data-nav="leaderboard" data-tier="advanced" onclick="nav('leaderboard')"><span class="icon">★</span><span class="label">Leaderboard</span></div>
-          <div class="nav-item" data-nav="agent-monitor" data-tier="advanced" onclick="nav('agent-monitor')"><span class="icon">◈</span><span class="label">Live Monitor</span></div>
-          <div class="nav-item" data-nav="finops" data-tier="advanced" onclick="nav('finops')"><span class="icon">◇</span><span class="label">FinOps</span></div>
-          <div class="nav-item" data-nav="eval-framework" data-tier="advanced" onclick="nav('eval-framework')"><span class="icon">⚗</span><span class="label">Eval Framework</span></div>
-          <div class="nav-item" data-nav="observability" data-tier="advanced" onclick="nav('observability')"><span class="icon">◎</span><span class="label">Observability</span></div>
-          <div class="nav-item" data-nav="evals" data-tier="advanced" onclick="nav('evals')"><span class="icon">⚗️</span><span class="label">Evals</span></div>
-          <div class="nav-item" data-nav="health" data-tier="advanced" onclick="nav('health')"><span class="icon">✚</span><span class="label">Health</span></div>
+          <div style="font-size:9.5px;color:var(--text-3);padding:8px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85">📊 Analytics</div>
+          <div class="nav-item" data-nav="dashboard" data-tier="advanced" onclick="nav('dashboard')"><span class="icon">📊</span><span class="label">Dashboard</span></div>
+          <div class="nav-item" data-nav="audit-log" data-tier="advanced" onclick="nav('audit-log')"><span class="icon">📝</span><span class="label">Audit Log</span></div>
+          <div class="nav-item" data-nav="leaderboard" data-tier="advanced" onclick="nav('leaderboard')"><span class="icon">🏆</span><span class="label">Leaderboard</span></div>
+          <div class="nav-item" data-nav="agent-monitor" data-tier="advanced" onclick="nav('agent-monitor')"><span class="icon">📡</span><span class="label">Live Monitor</span></div>
+          <div class="nav-item" data-nav="finops" data-tier="advanced" onclick="nav('finops')"><span class="icon">💰</span><span class="label">Cost Tracking</span></div>
+          <div class="nav-item" data-nav="eval-framework" data-tier="advanced" onclick="nav('eval-framework')"><span class="icon">🧪</span><span class="label">Evaluation</span></div>
+          <div class="nav-item" data-nav="observability" data-tier="advanced" onclick="nav('observability')"><span class="icon">🔭</span><span class="label">Observability</span></div>
+          <div class="nav-item" data-nav="evals" data-tier="advanced" onclick="nav('evals')"><span class="icon">🧪</span><span class="label">Evals</span></div>
+          <div class="nav-item" data-nav="health" data-tier="advanced" onclick="nav('health')"><span class="icon">💚</span><span class="label">Health</span></div>
           <div class="nav-item" data-nav="profiler" data-tier="advanced" onclick="nav('profiler')"><span class="icon">📈</span><span class="label">Profiler</span></div>
-
-          <!-- Subgroup 2: Security & PQC Vaults -->
-          <div style="font-size:9.5px;color:var(--text-3);padding:10px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85;border-top:1px solid var(--border)">🛡️ Security & PQC Vaults</div>
-          <div class="nav-item" data-nav="pqc" data-tier="advanced" onclick="nav('pqc')"><span class="icon">🛡️</span><span class="label">PQC Vault</span></div>
-          <div class="nav-item" data-nav="obsidian" data-tier="advanced" onclick="nav('obsidian')"><span class="icon">◈</span><span class="label">Obsidian</span></div>
-          <div class="nav-item" data-nav="webhooks" data-tier="advanced" onclick="nav('webhooks')"><span class="icon">⇶</span><span class="label">Webhooks</span></div>
-          <div class="nav-item" data-nav="integrations" data-tier="advanced" onclick="nav('integrations')"><span class="icon">⇋</span><span class="label">Integrations</span></div>
-
-          <!-- Subgroup 3: Advanced Engineering Index -->
-          <div style="font-size:9.5px;color:var(--text-3);padding:10px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85;border-top:1px solid var(--border)">🕸️ Advanced Engineering Index</div>
-          <div class="nav-item" data-nav="docs" data-tier="advanced" onclick="nav('docs')"><span class="icon">☷</span><span class="label">Docs</span></div>
-          <div class="nav-item" data-nav="websearch" data-tier="advanced" onclick="nav('websearch')"><span class="icon">◎</span><span class="label">Web Search</span></div>
-          <div class="nav-item" data-nav="browser" data-tier="advanced" onclick="nav('browser')"><span class="icon">❖</span><span class="label">Browser Agent</span></div>
+          <div style="font-size:9.5px;color:var(--text-3);padding:10px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85;border-top:1px solid var(--border)">🔒 Security & Secrets</div>
+          <div class="nav-item" data-nav="secrets" data-tier="advanced" onclick="nav('secrets')"><span class="icon">🔐</span><span class="label">Secrets Vault</span></div>
+          <div class="nav-item" data-nav="pqc" data-tier="advanced" onclick="nav('pqc')"><span class="icon">🛡</span><span class="label">Encryption</span></div>
+          <div class="nav-item" data-nav="obsidian" data-tier="advanced" onclick="nav('obsidian')"><span class="icon">📝</span><span class="label">Obsidian Sync</span></div>
+          <div class="nav-item" data-nav="webhooks" data-tier="advanced" onclick="nav('webhooks')"><span class="icon">🔔</span><span class="label">Webhooks</span></div>
+          <div class="nav-item" data-nav="integrations" data-tier="advanced" onclick="nav('integrations')"><span class="icon">🔗</span><span class="label">Docs & Integrations</span></div>
+          <div style="font-size:9.5px;color:var(--text-3);padding:10px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85;border-top:1px solid var(--border)">📚 Knowledge & Code</div>
           <div class="nav-item" data-nav="knowledge-graph" data-tier="advanced" onclick="nav('knowledge-graph')"><span class="icon">🕸</span><span class="label">Knowledge Graph</span></div>
-          <div class="nav-item" data-nav="rag" data-tier="advanced" onclick="nav('rag')"><span class="icon">▤</span><span class="label">RAG</span></div>
-          <div class="nav-item" data-nav="hooks" data-tier="advanced" onclick="nav('hooks')"><span class="icon">⚡</span><span class="label">Hooks</span></div>
-          <div class="nav-item" data-nav="codeindex" data-tier="advanced" onclick="nav('codeindex')"><span class="icon">🕸️</span><span class="label">Code Graph</span></div>
-          <div class="nav-item" data-nav="imagegen" data-tier="advanced" onclick="nav('imagegen')"><span class="icon">❖</span><span class="label">Image Gen</span></div>
-          <div class="nav-item" data-nav="prompts" data-tier="advanced" onclick="nav('prompts')"><span class="icon">✦</span><span class="label">Prompts</span></div>
+          <div class="nav-item" data-nav="rag" data-tier="advanced" onclick="nav('rag')"><span class="icon">📚</span><span class="label">RAG Pipelines</span></div>
+          <div class="nav-item" data-nav="hooks" data-tier="advanced" onclick="nav('hooks')"><span class="icon">⚡</span><span class="label">Event Hooks</span></div>
+          <div class="nav-item" data-nav="codeindex" data-tier="advanced" onclick="nav('codeindex')"><span class="icon">🔍</span><span class="label">Code Index</span></div>
           <div class="nav-item" data-nav="codesearch" data-tier="advanced" onclick="nav('codesearch')"><span class="icon">⌕</span><span class="label">Code Search</span></div>
-          <div class="nav-item" data-nav="pluginsdk" data-tier="advanced" onclick="nav('pluginsdk')"><span class="icon">⌥</span><span class="label">Plugin SDK</span></div>
+          <div class="nav-item" data-nav="gitai" data-tier="advanced" onclick="nav('gitai')"><span class="icon">⎇</span><span class="label">Git Assistant</span></div>
+          <div class="nav-item" data-nav="bugbot" data-tier="advanced" onclick="nav('bugbot')"><span class="icon">🐛</span><span class="label">Bug Finder</span></div>
+          <div class="nav-item" data-nav="testgen" data-tier="advanced" onclick="nav('testgen')"><span class="icon">🧪</span><span class="label">Test Generator</span></div>
+          <div class="nav-item" data-nav="marketplace" data-tier="advanced" onclick="nav('marketplace')"><span class="icon">🛒</span><span class="label">Marketplace</span></div>
+          <div class="nav-item" data-nav="pluginsdk" data-tier="advanced" onclick="nav('pluginsdk')"><span class="icon">🔧</span><span class="label">Plugin SDK</span></div>
           <div class="nav-item" data-nav="multitab" data-tier="advanced" onclick="nav('multitab')"><span class="icon">◫</span><span class="label">Multi-Preview</span></div>
-          <div class="nav-item" data-nav="testgen" data-tier="advanced" onclick="nav('testgen')"><span class="icon">⚗</span><span class="label">Test Gen</span></div>
+          <div class="nav-item" data-nav="control" data-tier="advanced" onclick="nav('control')"><span class="icon">🎛</span><span class="label">Control Tower</span></div>
+          <div class="nav-item" data-nav="system" data-tier="advanced" onclick="nav('system')"><span class="icon">⚙</span><span class="label">System</span></div>
+          <div class="nav-item" data-nav="ambient" data-tier="advanced" onclick="nav('ambient')"><span class="icon">🌙</span><span class="label">Ambient Mode</span></div>
+          <div class="nav-item" data-nav="finetune" data-tier="advanced" onclick="nav('finetune')"><span class="icon">🧪</span><span class="label">Fine-Tuning</span></div>
         </div>
       </div>
 
@@ -1675,42 +1665,43 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <button class="btn-3d btn-ghost btn-sm" onclick="toggleChatHistoryDrawer()" style="padding:6px 10px;display:flex;align-items:center;gap:6px" title="Toggle Chat History & Folder Sidebar">📁 History</button>
               <button class="btn-3d btn-primary btn-sm" onclick="startNewChatSession()" style="padding:6px 10px;display:flex;align-items:center;gap:6px;font-weight:700">＋ New</button>
 
-              <div id="chat-model-control" style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:4px 10px;box-shadow:0 2px 6px rgba(0,0,0,0.2)">
-                <span style="font-size:14px" title="AI Inference Model">⚡</span>
-                <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-right:2px">Model:</span>
-                <button id="chat-connection-status" class="connection-status checking" onclick="nav('settings');switchSettingsTab('api')" title="Check or change your AI connection">Checking AI…</button>
+              <div id="chat-model-control" style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:4px 10px">
+                <button id="chat-connection-status" class="connection-status checking" onclick="nav('settings');switchSettingsTab('api')" title="Check or change your AI connection" style="font-size:11px">Checking…</button>
                 <select id="chat-model-select" onchange="if(typeof selectChatModel === 'function') selectChatModel(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
-                  <optgroup label="Primary Cloud Gateways (OpenRouter)">
-                    <option value="claude">Claude 3.5 Sonnet (Primary)</option>
-                    <option value="claude-opus">Claude Opus 4 (Deep Reasoning)</option>
-                    <option value="gpt4o">OpenAI GPT-4o (Universal)</option>
-                    <option value="gemini">Google Gemini 2.5 Pro (1M Context)</option>
-                    <option value="grok">xAI Grok 3 (Real-time)</option>
-                    <option value="llama">Meta Llama 3.3 70B (Free)</option>
-                    <option value="qwen">Alibaba Qwen3 235B (Free)</option>
+                  <optgroup label="Cloud AI">
+                    <option value="claude">Claude 3.5 Sonnet</option>
+                    <option value="claude-opus">Claude Opus 4</option>
+                    <option value="gpt4o">GPT-4o</option>
+                    <option value="gemini">Gemini 2.5 Pro</option>
+                    <option value="grok">Grok 3</option>
+                    <option value="llama">Llama 3.3 70B (Free)</option>
+                    <option value="qwen">Qwen3 235B (Free)</option>
                   </optgroup>
-                  <optgroup id="ollama-model-optgroup" label="Local Inference Engine (Ollama / Offline)">
-                    <option value="local">Ollama Auto-Detect (http://localhost:11434)</option>
+                  <optgroup id="ollama-model-optgroup" label="Local (Ollama)">
+                    <option value="local">Ollama Auto-Detect</option>
                   </optgroup>
-                  <optgroup id="custom-model-optgroup" label="Custom OpenAI-Compatible Connections">
-                    <option value="custom">Custom Endpoint Model</option>
+                  <optgroup id="custom-model-optgroup" label="Custom">
+                    <option value="custom">Custom Endpoint</option>
                   </optgroup>
                 </select>
               </div>
 
-              <div style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:4px 10px;box-shadow:0 2px 6px rgba(0,0,0,0.2)">
-                <span style="font-size:14px" title="Optional Agent Persona">👤</span>
-                <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-right:2px">Persona:</span>
-                <select id="chat-persona-select" onchange="if(typeof selectChatPersona === 'function') selectChatPersona(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
-                  <option value="default">💬 Direct AI Chat (No Agent Required)</option>
-                  <optgroup id="chat-persona-optgroup" label="Specialized Agent Personas">
-                    <option value="brain">🧠 Brain (Deep Reasoning & Planning)</option>
-                    <option value="orchestrator">🌀 Orchestrator (Task Fan-Out)</option>
-                    <option value="builder">⚡ Builder (Full-Stack Code Generation)</option>
-                    <option value="specs">📋 Specs & Architecture</option>
-                  </optgroup>
-                </select>
-              </div>
+              <details id="chat-persona-details" style="position:relative">
+                <summary style="display:flex;align-items:center;gap:4px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--text-2);list-style:none;font-weight:600">
+                  <span id="active-persona-icon">💬</span> <span id="active-persona-label">Direct Chat</span> <span style="font-size:10px;opacity:0.5">▾</span>
+                </summary>
+                <div style="position:absolute;top:100%;left:0;margin-top:4px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:6px;min-width:220px;z-index:100;box-shadow:var(--shadow-lg)">
+                  <select id="chat-persona-select" onchange="if(typeof selectChatPersona === 'function') selectChatPersona(this.value);this.parentElement.parentElement.removeAttribute('open')" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;font-weight:600;outline:none;cursor:pointer;padding:8px 10px">
+                    <option value="default">💬 Direct AI Chat</option>
+                    <optgroup id="chat-persona-optgroup" label="Agent Personas">
+                      <option value="brain">🧠 Brain — Deep Reasoning</option>
+                      <option value="orchestrator">🌀 Orchestrator — Fan-Out</option>
+                      <option value="builder">⚡ Builder — Code Generation</option>
+                      <option value="specs">📋 Specs — Architecture</option>
+                    </optgroup>
+                  </select>
+                </div>
+              </details>
 
               <!-- Hidden legacy elements to preserve existing DOM function bindings cleanly -->
               <span id="active-agent-avatar" style="display:none">💬</span>
@@ -1724,9 +1715,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
             <div id="chat-messages">
               <div id="chat-empty">
-                <div class="neural-orb-3d" style="width:48px;height:48px;margin-bottom:12px"></div>
-                <h3 style="font-size:22px;font-weight:900;letter-spacing:-0.4px">Agentic OS — Mission Control</h3>
-                <p style="color:var(--text-1);font-size:13.5px">Your local-first AI operating system. Chat with any agent, run the swarm, build apps, search memory.</p>
+                <div class="neural-orb-3d" style="width:48px;height:48px;margin-bottom:16px"></div>
+                <h3 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">How can I help you today?</h3>
+                <p style="color:var(--text-2);font-size:14px;max-width:440px;margin:8px auto 0;line-height:1.6">Ask a question, write code, research a topic, or create something. I'm here to help.</p>
                 
                 <!-- Outcome-first launchpad: people can begin useful work before learning AI terminology. -->
                 <section id="mission-launchpad-deck" class="mission-launchpad" aria-label="Get started">
@@ -1781,9 +1772,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
             <div class="chat-input-area">
               <div class="chat-tools">
-                <button class="chat-tool" onclick="toggleRag()" id="rag-btn" title="Ground response in Memory Galaxy">🌌 RAG</button>
-                <button class="chat-tool" onclick="toggleStream()" id="stream-btn" title="Streaming responses">⚡ Stream</button>
-                <button class="chat-tool" onclick="nav('swarm')" title="Run multi-agent swarm">🌀 Swarm</button>
+                <button class="chat-tool" onclick="toggleRag()" id="rag-btn" title="Use your saved memories to improve answers">🧠 Memory</button>
+                <button class="chat-tool" onclick="toggleStream()" id="stream-btn" title="See responses as they're generated">⚡ Stream</button>
               </div>
               <div id="chat-attachment-tray" class="chat-attachment-tray" aria-live="polite"></div>
               <div class="chat-input-row">
