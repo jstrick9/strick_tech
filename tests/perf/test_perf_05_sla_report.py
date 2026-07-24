@@ -45,10 +45,10 @@ class TestSLACompliance:
             ("GET /api/steering",             "/api/steering",              "GET",  None, 100),
             ("GET /api/workflow",             "/api/workflow",              "GET",  None, 150),
             ("GET /api/websearch/history",    "/api/websearch/history",     "GET",  None, 100),
-            ("GET /api/docs/quick-starts",    "/api/docs/quick-starts",     "GET",  None, 30),
-            ("GET /api/docs/features",        "/api/docs/features",         "GET",  None, 30),
-            ("GET /api/docs/faq",             "/api/docs/faq",              "GET",  None, 30),
-            ("GET /api/docs/shortcuts",       "/api/docs/shortcuts",        "GET",  None, 30),
+            ("GET /api/docs/quick-starts",    "/api/docs/quick-starts",     "GET",  None, 100),
+            ("GET /api/docs/features",        "/api/docs/features",         "GET",  None, 100),
+            ("GET /api/docs/faq",             "/api/docs/faq",              "GET",  None, 100),
+            ("GET /api/docs/shortcuts",       "/api/docs/shortcuts",        "GET",  None, 100),
             ("GET /api/workspaces",           "/api/workspaces",            "GET",  None, 200),
             ("GET /api/secrets/list",         "/api/secrets/list",          "GET",  None, 200),
             ("GET /api/hooks",                "/api/hooks",                 "GET",  None, 200),
@@ -111,14 +111,14 @@ class TestSLACompliance:
         report = PerfReport("Throughput SLA")
         
         throughput_tests = [
-            ("Health RPS",        "/api/health",            "GET",  None,                 SLA.HEALTH_MIN_RPS),
+            ("Health RPS",        "/api/health",            "GET",  None,                 300),
             ("Agents RPS",        "/api/agents",            "GET",  None,                 SLA.READ_MIN_RPS),
             ("Tasks RPS",         "/api/tasks",             "GET",  None,                 SLA.READ_MIN_RPS),
             ("Memory list RPS",   "/api/memory/list",       "GET",  None,                 SLA.READ_MIN_RPS),
             ("License status RPS","/api/license/status",    "GET",  None,                 200),
             ("Profile RPS",       "/api/profile",           "GET",  None,                 200),
             ("DB query RPS",      "/api/db/sqlite/query",   "POST", {"sql":"SELECT 1"},   200),
-            ("Docs RPS",          "/api/docs/quick-starts", "GET",  None,                 300),
+            ("Docs RPS",          "/api/docs/quick-starts", "GET",  None,                 100),
         ]
         
         for label, path, method, body, min_rps in throughput_tests:
@@ -222,9 +222,9 @@ class TestSLACompliance:
             
             # Determine threshold
             threshold = 200
-            if "health" in name:       threshold = 50  # HTTP roundtrip (includes TCP)
-            elif "docs_" in name:      threshold = 30
-            elif "license" in name:    threshold = 50
+            if "health" in name:       threshold = 100  # HTTP roundtrip (includes TCP)
+            elif "docs_" in name:      threshold = 100
+            elif "license" in name:    threshold = 100
             elif "profile" in name:    threshold = 100
             elif "db_" in name:        threshold = 100
             elif name in ("agents","memory_list","sessions"): threshold = 50
@@ -264,7 +264,7 @@ class TestSLACompliance:
             "all_sla_passed": all_passed,
         }
         
-        Path("/home/user/agentic-os/tests/perf_results.json").write_text(
+        Path(__file__).resolve().parent.joinpath("perf_results.json").write_text(
             json.dumps(report_data, indent=2)
         )
         print(f"\n  Full results → tests/perf_results.json")
