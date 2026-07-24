@@ -3120,11 +3120,12 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
   <!-- Status bar -->
   <div id="statusbar">
-    <div class="sb-item"><span class="sb-dot"></span><span id="sb-version">Agentic OS v11.5.0</span></div>
-    <div class="sb-item" id="sb-key">🔑 No key</div>
-    <div class="sb-item" id="sb-cost">$0.0000</div>
-    <div class="sb-item" id="sb-mem">0 memories</div>
-    <div class="sb-item" id="sb-agents">0 agents</div>
+    <div class="sb-item"><span class="sb-dot" id="sb-status-dot"></span><span id="sb-version">Agentic OS v11.5.0</span></div>
+    <div class="sb-item" id="sb-model" style="cursor:pointer" onclick="nav('settings');switchSettingsTab('api')" title="Click to change AI model">⚡ <span id="sb-model-name">No model</span></div>
+    <div class="sb-item" id="sb-key" style="cursor:pointer" onclick="nav('settings');switchSettingsTab('api')" title="AI connection status">🔑 <span id="sb-key-label">No key</span></div>
+    <div class="sb-item" id="sb-cost" title="Session cost">💰 $0.00</div>
+    <div class="sb-item" id="sb-mem" style="cursor:pointer" onclick="nav('galaxy')" title="Click to open Memory">🧠 <span id="sb-mem-count">0</span></div>
+    <div class="sb-item" id="sb-agents" style="cursor:pointer" onclick="nav('chat')" title="Active agents">🤖 <span id="sb-agent-count">0</span></div>
     <div class="spacer"></div>
     <div class="sb-item" id="sb-time"></div>
   </div>
