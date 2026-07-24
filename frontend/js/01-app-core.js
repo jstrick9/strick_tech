@@ -354,7 +354,7 @@ async function saveAgent() {
   try {
     j = await AgenticAPI.request(url, { method, body: JSON.stringify(data) });
   } catch (e) {
-    toast('Error: ' + (e.message || 'request failed'), 'err');
+    toast('Something went wrong: ' + (e.message || 'Please try again or check Settings'), 'err');
     return;
   }
 
@@ -363,7 +363,7 @@ async function saveAgent() {
     closeAgentModal();
     loadAgents();
   } else {
-    toast('Error: ' + (j.error || 'unknown'), 'err');
+    toast('Request failed: ' + (j.error || 'Please try again'), 'err');
   }
 }
 
@@ -614,7 +614,7 @@ async function sendChat() {
   } catch(err) {
     document.getElementById(thinkingId)?.remove();
     if (bubbleEl) {
-      updateMessageBubble(bubbleEl, `❌ Error: ${err.message}\n\nMake sure Agentic OS backend is running.`);
+      updateMessageBubble(bubbleEl, `❌ I couldn't complete that request.\n\n**What to try:**\n• Check that the server is running (port 8787)\n• Go to **Settings** → **Connect AI** to verify your connection\n• Try again in a few moments\n\nTechnical details: ${escHtml(err.message)}`);
     } else {
       addMessage(`❌ Error: ${err.message}`, 'agent', '⚠️', 'System');
     }
@@ -828,7 +828,7 @@ async function saveFile() {
     toast(`💾 Saved — ${j.versions} versions`, 'ok', 1500);
     document.getElementById('ed-versions').textContent = `${j.versions} versions`;
   } else {
-    toast('Save failed', 'err');
+    toast('Could not save — please try again or check your connection', 'err');
   }
 }
 
@@ -908,7 +908,7 @@ async function restoreVersion() {
   });
   const j = await r.json();
   if (j.ok) { toast('↶ Restored!', 'ok'); openFile(S.currentFile); switchBuilderTab('editor'); }
-  else toast('Restore failed', 'err');
+  else toast('Could not restore — please try again', 'err');
 }
 
 async function openNewFileModal() {
