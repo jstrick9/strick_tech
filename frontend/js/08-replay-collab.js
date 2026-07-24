@@ -1763,7 +1763,7 @@ async function renderMarketplace() {
 
     await mktLoadPacks();
   } catch(e) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Marketplace load failed: ${e?.message||String(e)}</div>`;
+    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Marketplace load failed: ${escHtml(e?.message||String(e))}</div>`;
   }
 }
 
@@ -1830,7 +1830,7 @@ async function mktLoadPacks(q='', category='', sort='featured') {
     grid.innerHTML = (d.packs||[]).map((p) =>mktCardHTML(p)).join('') ||
       '<div style="color:var(--text-3);padding:20px;text-align:center">No packs found matching your criteria</div>';
   } catch(e) {
-    grid.innerHTML = `<div style="color:var(--danger);padding:12px">Failed to load: ${e?.message||String(e)}</div>`;
+    grid.innerHTML = `<div style="color:var(--danger);padding:12px">Failed to load: ${escHtml(e?.message||String(e))}</div>`;
   }
 }
 

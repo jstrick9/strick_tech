@@ -4796,8 +4796,8 @@ function skeletonPage(title = 'Loading…') {
 function emptyState({ icon, title, body, actions = [] }) {
   return `<div class="empty-state">
     <div class="empty-state__icon">${icon}</div>
-    <div class="empty-state__title">${title}</div>
-    <div class="empty-state__body">${body}</div>
+    <div class="empty-state__title">${escHtml(title)}</div>
+    <div class="empty-state__body">${escHtml(body)}</div>
     <div class="empty-state__actions">${actions.map(a =>
       `<button onclick="${a.action}" class="btn ${a.primary ? 'btn-primary' : 'btn-ghost'}">${a.label}</button>`
     ).join('')}</div>
@@ -4807,8 +4807,8 @@ function emptyState({ icon, title, body, actions = [] }) {
 // ── Help panel factory (novice guidance) ───────────────────────────
 function helpPanel({ title, body, steps = [] }) {
   return `<div class="help-panel">
-    <div class="help-panel__title">💡 ${title}</div>
-    <div class="help-panel__body">${body}</div>
+    <div class="help-panel__title">💡 ${escHtml(title)}</div>
+    <div class="help-panel__body">${escHtml(body)}</div>
     ${steps.length ? `<div class="help-panel__steps">${steps.map((s,i) =>
       `<div class="help-panel__step"><div class="help-panel__step-num">${i+1}</div><span>${s}</span></div>`
     ).join('')}</div>` : ''}
@@ -6807,7 +6807,7 @@ async function showGHPush() {
   const msg = await gmPrompt('Commit message', 'What changed?', `Agentic OS push ${new Date().toISOString().slice(0,10)}`);
   if (msg === null) return;
   const res = document.getElementById('gh-action-result');
-  if (res) res.innerHTML = `<div style="color:var(--text-2)">Pushing ${repo}…</div>`;
+  if (res) res.innerHTML = `<div style="color:var(--text-2)">Pushing ${escHtml(repo)}…</div>`;
   try {
     const r = await fetch('/api/github/push', {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -6986,7 +6986,7 @@ async function dbLoadTable(name) {
   dbActiveTable = name;
   const el = document.getElementById('db-table-data');
   if (!el) return;
-  el.innerHTML = `<div style="color:var(--text-2);padding:12px">Loading ${name}…</div>`;
+  el.innerHTML = `<div style="color:var(--text-2);padding:12px">Loading ${escHtml(name)}…</div>`;
   try {
     const r    = await fetch(`/api/db/sqlite/table/${encodeURIComponent(name)}?limit=100`);
     if (!r.ok) { el.innerHTML = `<div style="color:var(--red);padding:12px">Server error ${r.status}</div>`; return; }
@@ -7022,7 +7022,7 @@ async function dbLoadTable(name) {
       </div>
       ${rows.length === 0 ? '<div style="text-align:center;padding:20px;color:var(--text-3)">No rows</div>' : ''}`;
   } catch(e) {
-    el.innerHTML = `<div style="color:var(--red);padding:12px">${e.message}</div>`;
+    el.innerHTML = `<div style="color:var(--red);padding:12px">${escHtml(e.message)}</div>`;
   }
 }
 
@@ -9229,7 +9229,7 @@ async function refreshControlTower() {
       </div>
       </div>`;
   } catch(e) {
-    pane.innerHTML = `<div class="page-content">${emptyState({icon:'⚠️',title:'Error',body:e.message})}</div>`;
+    pane.innerHTML = `<div class="page-content">${emptyState({icon:'⚠️',title:'Error',body:escHtml(e.message)})}</div>`;
   }
 }
 async function showRunTrace(runId) {
@@ -9645,7 +9645,7 @@ async function refreshNotifications() {
         </div>
       </div>`;
     }).join('');
-  } catch(e) { el.innerHTML=`<div style="color:var(--danger);padding:12px;font-size:12px">Error: ${e.message}</div>`; }
+  } catch(e) { el.innerHTML=`<div style="color:var(--danger);padding:12px;font-size:12px">Error: ${escHtml(e.message)}</div>`; }
 }
 function updateNotifBadge(count) {
   const b=document.getElementById('notif-badge'); if(b) { b.style.display=count>0?'block':'none'; b.textContent=count>99?'99+':count; }
@@ -11242,7 +11242,7 @@ async function runCodeSearch(){
           </div>`;
         }).join('')}
       </div>`).join('')}`;
-  }catch(e){res.innerHTML=`<div style="color:var(--danger);padding:12px">Error: ${e.message}</div>`;}
+  }catch(e){res.innerHTML=`<div style="color:var(--danger);padding:12px">Error: ${escHtml(e.message)}</div>`;}
   finally{btn.disabled=false;btn.textContent='🔍 Search';}
 }
 window.renderCodeSearch = renderCodeSearch;
@@ -11344,7 +11344,7 @@ async function reviewCurrentFile(){
         </div>
       </div>`).join('');
     toast(`✅ Review: ${sc}/100 — ${issues.length} issue${issues.length!==1?'s':''}`,'ok',3000);
-  }catch(e){if(sumEl)sumEl.innerHTML=`<div style="color:var(--danger)">Error: ${e.message}</div>`;}
+  }catch(e){if(sumEl)sumEl.innerHTML=`<div style="color:var(--danger)">Error: ${escHtml(e.message)}</div>`;}
 }
 
 function toggleReviewOverlay(){
