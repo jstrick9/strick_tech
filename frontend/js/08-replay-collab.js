@@ -3,6 +3,13 @@
 
 
 'use strict';
+// Safe localStorage wrapper (private browsing / quota exceeded)
+const _safeLS = {
+  get: (k) => { try { return _safeLS.get(k); } catch { return null; } },
+  set: (k, v) => { try { _safeLS.set(k, v); } catch {} },
+  rm: (k) => { try { _safeLS.rm(k); } catch {} },
+};
+
 
 // ══════════════════════════════════════════════════════════════════
 //  EXECUTION REPLAY — frame-by-frame workflow scrubber
@@ -1337,7 +1344,7 @@ async function ceSelectDoc(docId) {
 }
 
 function ceConnectWS(docId) {
-  let name = `User_${Math.random().toString(36).slice(2,6)}`; try { let _v = null; try { _v = localStorage.getItem('collab_name'); } catch {} if (_v !== null) name = _v; } catch {}
+  let name = `User_${Math.random().toString(36).slice(2,6)}`; try { let _v = null; try { _v = _safeLS.get('collab_name'); } catch {} if (_v !== null) name = _v; } catch {}
   // FIX 4: use wss:// on HTTPS to avoid mixed-content errors
   const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = `${wsProto}//${location.host}/api/crdt/docs/${docId}/ws`;

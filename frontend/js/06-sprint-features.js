@@ -3,6 +3,13 @@
 
 
 'use strict';
+// Safe localStorage wrapper (private browsing / quota exceeded)
+const _safeLS = {
+  get: (k) => { try { return _safeLS.get(k); } catch { return null; } },
+  set: (k, v) => { try { _safeLS.set(k, v); } catch {} },
+  rm: (k) => { try { _safeLS.rm(k); } catch {} },
+};
+
 
 // ══════════════════════════════════════════════════════════════════
 //  PWA REGISTRATION
@@ -705,11 +712,11 @@ function hitlSaveDelegation() {
   const sels = document.querySelectorAll('.hitl-deleg-sel');
   const profile = {};
   sels.forEach(s=>{ profile[s.dataset.actions] = s.value; });
-  localStorage.setItem('hitl_delegation_profile', JSON.stringify(profile));
+  _safeLS.set('hitl_delegation_profile', JSON.stringify(profile));
   const timeout = document.getElementById('hitl-timeout')?.value || '300';
   const timeoutAction = document.getElementById('hitl-timeout-action')?.value || 'pause';
-  try { localStorage.setItem('hitl_timeout', timeout); } catch {}
-  try { localStorage.setItem('hitl_timeout_action', timeoutAction); } catch {}
+  try { _safeLS.set('hitl_timeout', timeout); } catch {}
+  try { _safeLS.set('hitl_timeout_action', timeoutAction); } catch {}
   showToast('🎛️ Delegation profile saved');
   // Log to audit chain
   fetch('/api/audit-log/append',{

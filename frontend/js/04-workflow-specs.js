@@ -3,6 +3,13 @@
 
 
 'use strict';
+// Safe localStorage wrapper (private browsing / quota exceeded)
+const _safeLS = {
+  get: (k) => { try { return _safeLS.get(k); } catch { return null; } },
+  set: (k, v) => { try { _safeLS.set(k, v); } catch {} },
+  rm: (k) => { try { _safeLS.rm(k); } catch {} },
+};
+
 
 // ══════════════════════════════════════════════════════════════════
 //  GLOBAL STATE — loaded once on boot
@@ -688,7 +695,7 @@ function obSkipApiKey() {
 }
 
 function showOnboarding() {
-  try { if (localStorage.getItem('agentic_os_onboarded') === 'true' || window._onboardingDismissed) return; } catch(e) {}
+  try { if (_safeLS.get('agentic_os_onboarded') === 'true' || window._onboardingDismissed) return; } catch(e) {}
   if (document.getElementById('onboarding-overlay')) return;
   _onboardingStep = 0;
 
@@ -783,7 +790,7 @@ async function obNext() {
     else if (step.id === 'done') {
       const showTour = document.getElementById('ob-tour-check')?.checked;
       window._onboardingDismissed = true;
-      try { try { localStorage.setItem('agentic_os_onboarded', 'true'); } catch {} } catch(e) {}
+      try { try { _safeLS.set('agentic_os_onboarded', 'true'); } catch {} } catch(e) {}
       if (typeof window.closeOnboardingModal === 'function') window.closeOnboardingModal();
       else document.getElementById('onboarding-overlay')?.remove();
       
@@ -1543,9 +1550,9 @@ window.saveCustomIdentity = async function() {
   if (document.title) document.title = `${appName} Agentic OS — Mission Control`;
 
   try {
-    try { localStorage.setItem('agentic_os_app_name', appName); } catch {}
-    try { localStorage.setItem('agentic_os_username', name); } catch {}
-    try { localStorage.setItem('agentic_os_userrole', role); } catch {}
+    try { _safeLS.set('agentic_os_app_name', appName); } catch {}
+    try { _safeLS.set('agentic_os_username', name); } catch {}
+    try { _safeLS.set('agentic_os_userrole', role); } catch {}
   } catch(e) {}
 
   showToast('✅ Identity & App Name Saved!', 2000);
@@ -1566,7 +1573,7 @@ window.uploadProfileAvatar = function(input) {
     if (!dataUri) return;
     const avEl = document.getElementById('topbar-user-avatar');
     if (avEl) avEl.innerHTML = `<img src="${dataUri}" style="width:20px;height:20px;border-radius:50%;object-fit:cover">`;
-    try { try { localStorage.setItem('agentic_os_avatar_picture', dataUri); } catch {} } catch(err) {}
+    try { try { _safeLS.set('agentic_os_avatar_picture', dataUri); } catch {} } catch(err) {}
     showToast('📸 Profile picture uploaded & saved!', 2500);
     try {
       await fetch('/api/profile', {

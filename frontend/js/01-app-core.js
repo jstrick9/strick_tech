@@ -75,7 +75,7 @@ window.toggleSidebar = function() {
     sb.style.width = restoreW + 'px';
     if (btn) btn.innerHTML = '◀';
   }
-  try { try { localStorage.setItem('agentic_os_sidebar_collapsed', isCollapsed ? 'true' : 'false'); } catch {} } catch(e) {}
+  try { try { _safeLS.set('agentic_os_sidebar_collapsed', isCollapsed ? 'true' : 'false'); } catch {} } catch(e) {}
 };
 
 window.toggleSidebarGroup = function(groupId, forceOpen) {
@@ -93,12 +93,12 @@ window.toggleSidebarGroup = function(groupId, forceOpen) {
   content.style.display = isOpen ? '' : 'none';
   if (arrow) arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
   
-  try { try { localStorage.setItem('agentic_os_group_' + groupId + '_open', isOpen ? 'true' : 'false'); } catch {} } catch(e) {}
+  try { try { _safeLS.set('agentic_os_group_' + groupId + '_open', isOpen ? 'true' : 'false'); } catch {} } catch(e) {}
 };
 
 window.initSidebarGroups = function() {
   ['core', 'build', 'ship', 'tools', 'enterprise'].forEach(gid => {
-    let saved = null; try { saved = localStorage.getItem('agentic_os_group_' + gid + '_open'); } catch {}
+    let saved = null; try { saved = _safeLS.get('agentic_os_group_' + gid + '_open'); } catch {}
     const isOpen = saved === 'true';
     const content = document.getElementById('group-' + gid);
     const arrow = document.getElementById('arrow-' + gid);
@@ -144,12 +144,12 @@ function setupSidebarResizer() {
     sb.classList.remove('resizing');
     resizer.classList.remove('resizing');
     if (document.body) document.body.style.cursor = '';
-    try { try { localStorage.setItem('agentic_os_sidebar_w', sb.style.width); } catch {} } catch(e) {}
+    try { try { _safeLS.set('agentic_os_sidebar_w', sb.style.width); } catch {} } catch(e) {}
   });
 
   try {
-    let savedW = null; try { savedW = localStorage.getItem('agentic_os_sidebar_w'); } catch {}
-    const savedCol = localStorage.getItem('agentic_os_sidebar_collapsed') === 'true';
+    let savedW = null; try { savedW = _safeLS.get('agentic_os_sidebar_w'); } catch {}
+    const savedCol = _safeLS.get('agentic_os_sidebar_collapsed') === 'true';
     if (savedCol) {
       sb.classList.add('collapsed');
       sb.style.width = '56px';
@@ -1589,7 +1589,7 @@ window.switchSettingsTab = function(tabId) {
   if (!pane && tabId === 'appearance') pane = document.getElementById('settings-tab-theme');
   if (navBtn) navBtn.classList.add('active');
   if (pane) pane.classList.add('active');
-  try { try { localStorage.setItem('agentic_os_settings_tab', tabId); } catch {} } catch(e) {}
+  try { try { _safeLS.set('agentic_os_settings_tab', tabId); } catch {} } catch(e) {}
   try { history.replaceState(null, '', '#/settings/' + tabId); } catch(e) {}
   if (tabId === 'ollama' && typeof window.checkHardwareRecommendations === 'function') {
     window.checkHardwareRecommendations();
@@ -1599,7 +1599,7 @@ window.switchSettingsTab = function(tabId) {
 window.setupSettingsWorkstation = function() {
   const ws = document.querySelector('#pane-settings .settings-workstation');
   if (!ws) return;
-  let savedTab = 'api'; try { let _v = null; try { _v = localStorage.getItem('agentic_os_settings_tab'); } catch {} if (_v !== null) savedTab = _v; } catch {}
+  let savedTab = 'api'; try { let _v = null; try { _v = _safeLS.get('agentic_os_settings_tab'); } catch {} if (_v !== null) savedTab = _v; } catch {}
   switchSettingsTab(savedTab);
 };
 
@@ -1995,8 +1995,8 @@ window.saveCustomConnection = async function() {
   if (!baseUrl) { toast('Enter a custom Base URL', 'warn'); return; }
   if (msgEl) { msgEl.style.display = 'block'; msgEl.innerHTML = '<span style="color:var(--accent)">⏳ Testing connection...</span>'; }
   try {
-    try { localStorage.setItem('agentic_os_custom_base_url', baseUrl); } catch {}
-    if (apiKey) try { localStorage.setItem('agentic_os_custom_api_key', apiKey); } catch {}
+    try { _safeLS.set('agentic_os_custom_base_url', baseUrl); } catch {}
+    if (apiKey) try { _safeLS.set('agentic_os_custom_api_key', apiKey); } catch {}
     const r = await fetch(baseUrl + '/models', {
       headers: apiKey ? {'Authorization': 'Bearer ' + apiKey} : {}
     }).catch(() => null);
@@ -2045,7 +2045,7 @@ window.exportEncryptedVaultBackup = function() {
     platform: 'Strick Tech Agentic OS Platform v11.5.0',
     timestamp: new Date().toISOString(),
     vault_version: 'AES-256-GCM-v2',
-    custom_base_url: localStorage.getItem('agentic_os_custom_base_url') || '',
+    custom_base_url: _safeLS.get('agentic_os_custom_base_url') || '',
     note: 'Encrypted secret payload. To restore on another Mac, place inside ~/Library/Application Support/com.stricktech.agenticos/secrets/'
   };
   const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backup, null, 2));
@@ -2063,8 +2063,8 @@ window.clearAllSecrets = async function() {
   if (!ok) return;
   try {
     await fetch('/api/secrets/OPENROUTER_API_KEY', { method: 'DELETE' });
-    try { localStorage.removeItem('agentic_os_custom_base_url'); } catch {}
-    try { localStorage.removeItem('agentic_os_custom_api_key'); } catch {}
+    try { _safeLS.rm('agentic_os_custom_base_url'); } catch {}
+    try { _safeLS.rm('agentic_os_custom_api_key'); } catch {}
     document.getElementById('or-key-input').value = '';
     const badge = document.getElementById('or-key-status-badge');
     if (badge) { badge.textContent = 'NOT CONFIGURED'; badge.style.color = 'var(--text-2)'; }
@@ -2124,7 +2124,7 @@ window.hardRebootBackendEngine = async function() {
 window.selectChatModel = function(val) {
   if (!val) return;
   S.currentModel = val;
-  try { try { localStorage.setItem('agentic_os_chat_model', val); } catch {} } catch(e) {}
+  try { try { _safeLS.set('agentic_os_chat_model', val); } catch {} } catch(e) {}
   const pill = document.getElementById('chat-model-select');
   if (pill && pill.value !== val) pill.value = val;
   toast(`🤖 Active Chat Model: ${val.replace('ollama:', 'Local Ollama: ').replace('custom_url:', 'Custom: ')}`, 'ok', 1500);
@@ -2134,14 +2134,14 @@ window.selectChatPersona = function(val) {
   if (!val || val === 'default') {
     S.currentAgent = { id: 'default', name: 'Direct AI Chat', avatar: '💬', model: '' };
     S.currentAgentId = 'default';
-    try { try { localStorage.setItem('agentic_os_chat_persona', 'default'); } catch {} } catch(e) {}
+    try { try { _safeLS.set('agentic_os_chat_persona', 'default'); } catch {} } catch(e) {}
     toast('💬 Direct AI Chat active (No Agent persona applied)', 'ok', 1500);
     return;
   }
   const found = S.agents?.find(a => a.id === val) || { id: val, name: formatAgentName(val), avatar: '🧠', model: '' };
   S.currentAgent = found;
   S.currentAgentId = val;
-  try { try { localStorage.setItem('agentic_os_chat_persona', val); } catch {} } catch(e) {}
+  try { try { _safeLS.set('agentic_os_chat_persona', val); } catch {} } catch(e) {}
   const avatarEl = document.getElementById('active-agent-avatar');
   if (avatarEl) avatarEl.textContent = found.avatar || '🤖';
   const nameEl = document.getElementById('active-agent-name');
@@ -2528,7 +2528,7 @@ window.syncOpenWebUIConnections = async function() {
   const select = document.getElementById('chat-model-select');
   if (!select) return;
   
-  let customUrl = null; try { customUrl = localStorage.getItem('agentic_os_custom_base_url'); } catch {}
+  let customUrl = null; try { customUrl = _safeLS.get('agentic_os_custom_base_url'); } catch {}
   const customGroup = document.getElementById('custom-model-optgroup');
   if (customGroup && customUrl) {
     customGroup.innerHTML = `<option value="custom_url:${escHtml(customUrl)}">Custom Endpoint: ${escHtml(customUrl)}</option>`;
@@ -5475,7 +5475,7 @@ window.renderMarkdown = renderMarkdownEnhanced;
 // ── Message actions (copy, regenerate, listen, fork) ─────────────────────
 function addMessageActions(bubbleEl, role, content, msgId) {
   if (!bubbleEl) return;
-  const hideOnHoverOnly = (localStorage.getItem('agentic_os_hide_actions_hover') === 'true');
+  const hideOnHoverOnly = (_safeLS.get('agentic_os_hide_actions_hover') === 'true');
   const actEl = document.createElement('div');
   actEl.className = 'msg-actions';
   actEl.style.cssText = `display:flex;gap:6px;margin-top:8px;opacity:${hideOnHoverOnly ? '0' : '1'};transition:opacity .15s;flex-wrap:wrap`;
@@ -8645,7 +8645,7 @@ let obStep = 0, obSteps = [], obPrefs = {};
 
 async function checkOnboarding() {
   try {
-    if (localStorage.getItem('agentic_os_onboarded') === 'true' || window._onboardingDismissed) return;
+    if (_safeLS.get('agentic_os_onboarded') === 'true' || window._onboardingDismissed) return;
     const r = await fetch('/api/onboarding/status');
     if (!r.ok) return;
     const s = await r.json();
@@ -8796,7 +8796,7 @@ window.closeOnboardingModal = function() {
     overlay.style.display = 'none';
     if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
   }
-  try { try { localStorage.setItem('agentic_os_onboarded', 'true'); } catch {} } catch(e) {}
+  try { try { _safeLS.set('agentic_os_onboarded', 'true'); } catch {} } catch(e) {}
   try { if (window.nav) nav('chat'); } catch(e) {}
 };
 
@@ -8835,7 +8835,7 @@ const THEME_VARS = {
 function applyTheme(themeId, accentOverride, options = {}) {
   // `auto` is a preference, not a palette. Resolve it to a concrete palette for
   // CSS while retaining the preference so it follows OS changes in real time.
-  const preference = themeId || localStorage.getItem('agentic_os_theme') || 'light';
+  const preference = themeId || _safeLS.get('agentic_os_theme') || 'light';
   const followsSystem = preference === 'auto';
   const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const tid = followsSystem ? (systemPrefersDark ? 'dark' : 'light') : preference;
@@ -8868,7 +8868,7 @@ function applyTheme(themeId, accentOverride, options = {}) {
   if (themeMeta) themeMeta.content = tid === 'light' ? '#f8fafc' : '#060814';
 
   if (options.persist === false) return;
-  try { try { localStorage.setItem('agentic_os_theme', preference); } catch {} } catch(e) {}
+  try { try { _safeLS.set('agentic_os_theme', preference); } catch {} } catch(e) {}
   fetch('/api/onboarding/preferences', {
     method: 'PATCH', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({theme: preference, accent_color: accent})
@@ -8882,7 +8882,7 @@ if (window.matchMedia) {
   const systemAppearance = window.matchMedia('(prefers-color-scheme: dark)');
   const refreshAutoAppearance = () => {
     try {
-      if ((localStorage.getItem('agentic_os_theme') || 'light') === 'auto') {
+      if ((_safeLS.get('agentic_os_theme') || 'light') === 'auto') {
         applyTheme('auto', undefined, {persist: false});
       }
     } catch (e) {}
@@ -8896,7 +8896,7 @@ window.applyTheme = applyTheme;
 
 window.switchUIMode = async function(mode) {
   if (mode !== 'simple' && mode !== 'power') return;
-  try { try { localStorage.setItem('agentic_os_mode', mode); } catch {} } catch(e) {}
+  try { try { _safeLS.set('agentic_os_mode', mode); } catch {} } catch(e) {}
   if (typeof _UI !== 'undefined') _UI.uiMode = mode;
   if (window._UI) window._UI.uiMode = mode;
   document.documentElement.setAttribute('data-ui-mode', mode);
@@ -8929,7 +8929,7 @@ window.switchUIMode = async function(mode) {
 
 // ── Settings Appearance helpers ────────────────────────────────────
 window.updateSettingsModeButtons = function() {
-  let mode = (typeof _UI !== 'undefined' ? _UI.uiMode : 'simple') || 'simple'; try { let _v = null; try { _v = localStorage.getItem('agentic_os_mode'); } catch {} if (_v !== null) mode = _v; } catch {}
+  let mode = (typeof _UI !== 'undefined' ? _UI.uiMode : 'simple') || 'simple'; try { let _v = null; try { _v = _safeLS.get('agentic_os_mode'); } catch {} if (_v !== null) mode = _v; } catch {}
   const simBtn = document.getElementById('settings-simple-btn');
   const pwrBtn = document.getElementById('settings-power-btn');
   if (simBtn) {
@@ -8940,7 +8940,7 @@ window.updateSettingsModeButtons = function() {
     pwrBtn.style.borderColor = mode === 'power' ? 'var(--accent)' : 'var(--border)';
     pwrBtn.style.background  = mode === 'power' ? 'rgba(91,138,248,.12)' : 'var(--bg-3)';
   }
-  let fs = (typeof _UI !== 'undefined' ? _UI.profile?.font_size : 'base') || 'base'; try { let _v = null; try { _v = localStorage.getItem('agentic_os_font_size'); } catch {} if (_v !== null) fs = _v; } catch {}
+  let fs = (typeof _UI !== 'undefined' ? _UI.profile?.font_size : 'base') || 'base'; try { let _v = null; try { _v = _safeLS.get('agentic_os_font_size'); } catch {} if (_v !== null) fs = _v; } catch {}
   ['sm','base','lg'].forEach(s => {
     const b = document.getElementById(`fs-${s}`);
     if (b) {
@@ -8957,7 +8957,7 @@ window.saveFontSize = async function(size) {
   document.documentElement.style.fontSize = sizeMap[size] || '14px';
   document.documentElement.style.setProperty('--text-base', sizeMap[size] || '14px');
   if (document.body) document.body.style.zoom = zoomMap[size] || '1.0';
-  try { try { localStorage.setItem('agentic_os_font_size', size); } catch {} } catch(e) {}
+  try { try { _safeLS.set('agentic_os_font_size', size); } catch {} } catch(e) {}
   if (typeof _UI !== 'undefined') {
     if (!_UI.profile) _UI.profile = {};
     _UI.profile.font_size = size;
@@ -11269,7 +11269,7 @@ function ensureSuggestionsBar(){
 }
 
 function showSmartSuggestionsForPane(pane){
-  try { if (localStorage.getItem('agentic_os_disable_hints') === 'true') return; } catch(e) {}
+  try { if (_safeLS.get('agentic_os_disable_hints') === 'true') return; } catch(e) {}
   ensureSuggestionsBar();
   const bar=document.getElementById('smart-suggestions');if(!bar)return;
   bar.style.display='flex';
@@ -11281,7 +11281,7 @@ function updateSuggestionChips(suggestions){
   chips.innerHTML=`<span class="suggestion-label">💡 Next:</span>`+
     suggestions.map(s=>`<button class="suggestion-chip btn-3d" onclick="${s.action||''}" title="${escHtml(s.reason||'')}">${s.icon||'⚡'} ${escHtml(s.label)}</button>`).join('')+
     `<div style="margin-left:auto;display:flex;align-items:center;gap:6px">
-       <button onclick="try { localStorage.setItem('agentic_os_disable_hints', 'true'); } catch {}document.getElementById('smart-suggestions').style.display='none';toast('✕ Next hints turned off.')" class="btn-sm btn-ghost" style="padding:2px 8px;font-size:10px">🔕 Turn off hints</button>
+       <button onclick="try { _safeLS.set('agentic_os_disable_hints', 'true'); } catch {}document.getElementById('smart-suggestions').style.display='none';toast('✕ Next hints turned off.')" class="btn-sm btn-ghost" style="padding:2px 8px;font-size:10px">🔕 Turn off hints</button>
        <button onclick="document.getElementById('smart-suggestions').style.display='none'" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;padding:0 4px">×</button>
      </div>`;
 }
@@ -11409,7 +11409,7 @@ window.toggleSplitWorkspace = function(forceOpen, initialPane) {
     }
     const paneToRender = initialPane || document.getElementById('split-pane-select')?.value || 'studio';
     renderSplitPane(paneToRender);
-    try { try { localStorage.setItem('agentic_os_split_active', 'true'); } catch {} } catch(e) {}
+    try { try { _safeLS.set('agentic_os_split_active', 'true'); } catch {} } catch(e) {}
     toast('🗂️ Dual-pane split view active', 'ok', 2000);
   } else {
     rightSlot.style.display = 'none';
@@ -11420,7 +11420,7 @@ window.toggleSplitWorkspace = function(forceOpen, initialPane) {
       btn.style.borderColor = 'var(--border-hi)';
       btn.style.background = 'var(--bg-2)';
     }
-    try { try { localStorage.setItem('agentic_os_split_active', 'false'); } catch {} } catch(e) {}
+    try { try { _safeLS.set('agentic_os_split_active', 'false'); } catch {} } catch(e) {}
     toast('✕ Split view closed', 'ok', 1500);
   }
 };
@@ -11525,7 +11525,7 @@ window.setupSplitterResizer = function() {
   });
   
   try {
-    if (localStorage.getItem('agentic_os_split_active') === 'true') {
+    if (_safeLS.get('agentic_os_split_active') === 'true') {
       setTimeout(() => toggleSplitWorkspace(true), 600);
     }
   } catch(e) {}
@@ -11649,13 +11649,13 @@ setInterval(updateCostBar, 30000);
 
 setTimeout(() => {
   if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
-  let savedModel = null; try { savedModel = localStorage.getItem('agentic_os_chat_model'); } catch {}
+  let savedModel = null; try { savedModel = _safeLS.get('agentic_os_chat_model'); } catch {}
   if (savedModel) {
     S.currentModel = savedModel;
     const sel = document.getElementById('chat-model-select');
     if (sel) sel.value = savedModel;
   }
-  let savedPersona = null; try { savedPersona = localStorage.getItem('agentic_os_chat_persona'); } catch {}
+  let savedPersona = null; try { savedPersona = _safeLS.get('agentic_os_chat_persona'); } catch {}
   if (savedPersona && typeof window.selectChatPersona === 'function') {
     window.selectChatPersona(savedPersona);
   }
