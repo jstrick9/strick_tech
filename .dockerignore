@@ -1,0 +1,23 @@
+# Agentic OS — Docker ignore
+.git
+.github
+.gitignore
+.env
+node_modules
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+tests/
+docs/
+*.md
+!README.md
+.DS_Store
+*.log
+workspaces/
+preview/
+brain/
+memory/
+CHANGELOG.md
