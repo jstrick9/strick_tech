@@ -656,7 +656,7 @@ window.renderSplitPane = async function(paneId) {
 // Synchronized with primary workspace AST Code Graph
 
 function initSecondaryBuffer() {
-  console.log("Secondary editor buffer loaded and ready.");
+  console.debug("Secondary editor buffer loaded and ready.");
   return { status: "ready", mode: "live-sync", port: 8787 };
 }
 

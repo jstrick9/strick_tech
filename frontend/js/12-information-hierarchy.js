@@ -497,5 +497,5 @@
     }
   }, 300);
 
-  console.log('%c✅ Information Hierarchy Engine (Universal Context + IVREN) loaded', 'color:#a78bfa;font-weight:bold');
+  console.debug('%c✅ Information Hierarchy Engine (Universal Context + IVREN) loaded', 'color:#a78bfa;font-weight:bold');
 })();

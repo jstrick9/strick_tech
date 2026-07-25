@@ -950,7 +950,7 @@ async function ragDeleteDoc(pipelineId, docId) {
     if (pane==='knowledge-graph')renderKnowledgeGraph?.();
     if (pane==='rag')            renderRAG?.();
   };
-  console.log('%c✅ Sprint 19: Evals, Observability, Knowledge Graph, RAG', 'color:#38c5d8;font-weight:bold');
+  console.debug('%c✅ Sprint 19: Evals, Observability, Knowledge Graph, RAG', 'color:#38c5d8;font-weight:bold');
 })();
 
 // Keyboard shortcuts Sprint 19

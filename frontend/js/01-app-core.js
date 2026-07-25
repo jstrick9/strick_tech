@@ -3537,11 +3537,11 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Report console (for Sprint 9 QA) ─────────────────────────────
-console.log(
+console.debug(
   '%c🧠 Agentic OS v9 — Sprint 9 Bold Editorial Design System loaded',
   'color:#7aa4ff;font-weight:bold;font-size:13px'
 );
-console.log(
+console.debug(
   '%c  Design system: type scale, spacing scale, skeleton loaders, empty states, ARIA ✅',
   'color:#3dba7a;font-size:11px'
 );

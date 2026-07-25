@@ -949,7 +949,7 @@ async function ambientShowTask(taskId) {
     if (pane==='gitai')    renderGitAI?.();
     if (pane==='ambient')  renderAmbient?.();
   };
-  console.log('%c✅ Sprint 17: Steering, BugBot, Health, Git AI, Ambient loaded', 'color:#9d74f5;font-weight:bold');
+  console.debug('%c✅ Sprint 17: Steering, BugBot, Health, Git AI, Ambient loaded', 'color:#9d74f5;font-weight:bold');
 
   // Auto-run ambient scan every 30 min if pane is open
   setInterval(async () => {

@@ -2068,7 +2068,7 @@ function showToast(msg, dur=3000) {
     if (pane==='collabedit')  renderCollabEdit?.();
     if (pane==='marketplace') renderMarketplace?.();
   };
-  console.log('%c✅ Sprint 15 loaded: Replay, Collab OT Editor, Marketplace', 'color:#f0c060;font-weight:bold');
+  console.debug('%c✅ Sprint 15 loaded: Replay, Collab OT Editor, Marketplace', 'color:#f0c060;font-weight:bold');
 })();
 
 // ── Keyboard shortcuts Sprint 15 ──────────────────────────────────

@@ -370,7 +370,7 @@ function ensurePaneRendered(pane) {
     original(pane);
     ensurePaneRendered(pane);
   };
-  console.log('%c✅ Sprint 11 UX polish loaded', 'color:#9d74f5;font-weight:bold');
+  console.debug('%c✅ Sprint 11 UX polish loaded', 'color:#9d74f5;font-weight:bold');
 })();
 
 
