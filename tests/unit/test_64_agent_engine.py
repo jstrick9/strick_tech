@@ -212,3 +212,161 @@ class TestHarnessEngine:
         report = engine.get_regression_report("nonexistent")
         assert report["ok"] is True
         assert "Not enough" in report["message"]
+
+
+class TestGuardEngine:
+    def test_validate_safe_output(self):
+        from backend.services.agent_engine import GuardEngine
+        engine = GuardEngine()
+        result = engine.validate("Hello, how can I help you today?")
+        assert result["ok"] is True
+        assert result["blocked"] == 0
+
+    def test_validate_blocks_api_key(self):
+        from backend.services.agent_engine import GuardEngine
+        engine = GuardEngine()
+        result = engine.validate("Use this key: sk-or-v1-abc123")
+        assert result["ok"] is False
+        assert result["blocked"] >= 1
+
+    def test_validate_blocks_system_prompt_leak(self):
+        from backend.services.agent_engine import GuardEngine
+        engine = GuardEngine()
+        result = engine.validate("My system prompt says to be helpful")
+        assert result["ok"] is False
+
+    def test_validate_max_length_warns(self):
+        from backend.services.agent_engine import GuardEngine, GuardRule
+        engine = GuardEngine()
+        engine.add_rule("test", GuardRule("short", "max_length", "10", "warn"))
+        result = engine.validate("This is a very long string that exceeds ten characters", "test")
+        assert result["ok"] is True  # warn, not block
+        assert result["warnings"] >= 1
+
+    def test_validate_json_valid(self):
+        from backend.services.agent_engine import GuardEngine, GuardRule
+        engine = GuardEngine()
+        engine.add_rule("test", GuardRule("json", "json_valid", "", "block"))
+        result = engine.validate('{"ok": true}', "test")
+        assert result["ok"] is True
+
+    def test_validate_json_invalid(self):
+        from backend.services.agent_engine import GuardEngine, GuardRule
+        engine = GuardEngine()
+        engine.add_rule("test", GuardRule("json", "json_valid", "", "block"))
+        result = engine.validate("not json", "test")
+        assert result["ok"] is False
+
+
+class TestCostEngine:
+    def test_set_budget_and_record(self):
+        from backend.services.agent_engine import CostEngine, ResourceBudget
+        engine = CostEngine()
+        engine.set_budget("agent1", ResourceBudget(max_tokens=1000, max_cost_usd=0.1))
+        result = engine.record_usage("agent1", 100, 0.01)
+        assert result["ok"] is True
+        assert result["within_budget"] is True
+
+    def test_budget_exceeded_warning(self):
+        from backend.services.agent_engine import CostEngine, ResourceBudget
+        engine = CostEngine()
+        engine.set_budget("agent1", ResourceBudget(max_tokens=100, max_cost_usd=0.01))
+        result = engine.record_usage("agent1", 95, 0.009)
+        assert len(result["warnings"]) >= 1  # Near limit warning
+
+    def test_get_usage(self):
+        from backend.services.agent_engine import CostEngine
+        engine = CostEngine()
+        engine.record_usage("agent1", 50, 0.05)
+        engine.record_usage("agent1", 30, 0.03)
+        usage = engine.get_usage("agent1")
+        assert usage["tokens"] == 80
+        assert usage["calls"] == 2
+
+    def test_reset_usage(self):
+        from backend.services.agent_engine import CostEngine
+        engine = CostEngine()
+        engine.record_usage("agent1", 100, 0.1)
+        engine.reset_usage("agent1")
+        usage = engine.get_usage("agent1")
+        assert usage["tokens"] == 0
+
+    def test_recommend_model(self):
+        from backend.services.agent_engine import CostEngine
+        engine = CostEngine()
+        assert "llama" in engine.recommend_model("simple")
+        assert engine.recommend_model("complex") == "claude-opus"
+
+
+class TestCheckpointEngine:
+    def test_save_and_resume(self):
+        from backend.services.agent_engine import CheckpointEngine
+        engine = CheckpointEngine()
+        result = engine.save_checkpoint("task1", "step1", {"data": "hello"})
+        assert result["ok"] is True
+        resumed = engine.resume_from_checkpoint("task1")
+        assert resumed["ok"] is True
+        assert resumed["state"]["data"] == "hello"
+        assert resumed["step_name"] == "step1"
+
+    def test_multiple_checkpoints(self):
+        from backend.services.agent_engine import CheckpointEngine
+        engine = CheckpointEngine()
+        engine.save_checkpoint("task1", "step1", {"v": 1})
+        engine.save_checkpoint("task1", "step2", {"v": 2})
+        engine.save_checkpoint("task1", "step3", {"v": 3})
+        resumed = engine.resume_from_checkpoint("task1")
+        assert resumed["state"]["v"] == 3
+        assert resumed["step_name"] == "step3"
+        history = engine.get_checkpoint_history("task1")
+        assert len(history) == 3
+
+    def test_no_checkpoint(self):
+        from backend.services.agent_engine import CheckpointEngine
+        engine = CheckpointEngine()
+        result = engine.resume_from_checkpoint("nonexistent")
+        assert result["ok"] is False
+
+    def test_clear_checkpoints(self):
+        from backend.services.agent_engine import CheckpointEngine
+        engine = CheckpointEngine()
+        engine.save_checkpoint("task1", "step1", {"v": 1})
+        engine.clear_checkpoints("task1")
+        result = engine.resume_from_checkpoint("task1")
+        assert result["ok"] is False
+
+
+class TestPromptEngine:
+    def test_register_and_render(self):
+        from backend.services.agent_engine import PromptEngine
+        engine = PromptEngine()
+        engine.register_template("greet", "Hello {{name}}, welcome to {{platform}}!", "Greeting template", ["name", "platform"])
+        result = engine.render("greet", {"name": "Joshua", "platform": "Agentic OS"})
+        assert "Joshua" in result
+        assert "Agentic OS" in result
+
+    def test_chain_of_thought(self):
+        from backend.services.agent_engine import PromptEngine
+        engine = PromptEngine()
+        result = engine.add_chain_of_thought("Solve this problem:")
+        assert "step by step" in result.lower() or "Step" in result
+
+    def test_list_templates(self):
+        from backend.services.agent_engine import PromptEngine
+        engine = PromptEngine()
+        engine.register_template("t1", "Template 1", "First template")
+        engine.register_template("t2", "Template 2", "Second template")
+        templates = engine.list_templates()
+        assert len(templates) == 2
+
+    def test_few_shot_injection(self):
+        from backend.services.agent_engine import PromptEngine
+        engine = PromptEngine()
+        engine.register_template("classify", "Classify: {{text}}", "Text classifier")
+        engine.register_few_shots("classify", [
+            {"input": "I love this!", "output": "positive"},
+            {"input": "Terrible service", "output": "negative"},
+        ])
+        result = engine.render("classify", {"text": "Great product!"})
+        assert "Example 1" in result
+        assert "positive" in result

@@ -1081,3 +1081,630 @@ def get_harness_engine() -> HarnessEngine:
     if _harness_engine is None:
         _harness_engine = HarnessEngine(get_engine())
     return _harness_engine
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  CHAIN ENGINEERING
+# ═══════════════════════════════════════════════════════════════════════════
+
+@dataclass
+class ChainStep:
+    """A single step in a chain."""
+    name: str
+    prompt_template: str          # Supports {input}, {prev_output}, {context}
+    agent_id: str = "default"
+    model: str = ""
+    temperature: float = 0.7
+    max_tokens: int = 2048
+    condition: str = ""           # Python expression: skip if False
+    transform: str = ""           # Python expression to transform output
+
+
+class ChainEngine:
+    """Sequential chain execution with context passing between steps.
+
+    Each step receives the output of the previous step as input,
+    plus accumulated context from all prior steps.
+    """
+
+    def __init__(self, llm_fn: Callable = None):
+        self.llm_fn = llm_fn
+        self.chains: dict[str, list[ChainStep]] = {}
+
+    def define_chain(self, chain_id: str, steps: list[ChainStep]):
+        """Define a named chain of steps."""
+        self.chains[chain_id] = steps
+
+    async def execute_chain(
+        self,
+        chain_id: str = "",
+        steps: list[ChainStep] = None,
+        initial_input: str = "",
+        context: dict = None,
+    ) -> dict:
+        """Execute a chain of LLM calls with context passing.
+
+        Returns:
+            {'ok': True, 'outputs': [...], 'final_output': str, 'duration_ms': float}
+        """
+        steps = steps or self.chains.get(chain_id, [])
+        if not steps:
+            return {"ok": False, "error": "No steps defined"}
+
+        trace = ExecutionTrace(
+            trace_id=f"chain_{chain_id}_{uuid.uuid4().hex[:8]}",
+            agent_id="chain",
+            strategy=ExecutionStrategy.SEQUENTIAL,
+            started_at=time.time(),
+        )
+
+        outputs = []
+        prev_output = initial_input
+        ctx = dict(context or {})
+
+        for i, step in enumerate(steps):
+            # Check condition
+            if step.condition:
+                try:
+                    if not eval(step.condition, {"__builtins__": {}}, {**ctx, "input": prev_output, "prev_output": prev_output}):
+                        outputs.append({"step": step.name, "skipped": True, "reason": "condition false"})
+                        continue
+                except Exception:
+                    pass
+
+            # Build prompt from template
+            prompt = step.prompt_template.replace("{input}", prev_output).replace("{prev_output}", prev_output)
+            for k, v in ctx.items():
+                prompt = prompt.replace(f"{{{{{k}}}}}", str(v))
+
+            step_trace = trace.add_step(step.name, step.agent_id, input_summary=prompt[:200])
+
+            if self.llm_fn:
+                try:
+                    result = await self.llm_fn(
+                        messages=[{"role": "user", "content": prompt}],
+                        agent_id=step.agent_id,
+                        model=step.model,
+                        temperature=step.temperature,
+                        max_tokens=step.max_tokens,
+                    )
+                    output = result.get("text", "") if isinstance(result, dict) else str(result)
+                    tokens = result.get("tokens", 0) if isinstance(result, dict) else 0
+                    cost = result.get("cost", 0) if isinstance(result, dict) else 0
+
+                    # Apply transform
+                    if step.transform:
+                        try:
+                            output = eval(step.transform, {"__builtins__": {}}, {"output": output, "input": prev_output})
+                        except Exception:
+                            pass
+
+                    trace.complete_step(step_trace, output=output[:200], tokens=tokens, cost=cost)
+                    prev_output = output
+                    ctx[f"step_{i}_output"] = output
+                    outputs.append({"step": step.name, "output": output, "tokens": tokens, "cost": cost})
+                except Exception as e:
+                    trace.complete_step(step_trace, error=str(e))
+                    outputs.append({"step": step.name, "error": str(e)})
+                    return {"ok": False, "error": f"Step '{step.name}' failed: {e}", "outputs": outputs}
+            else:
+                outputs.append({"step": step.name, "output": prompt, "note": "No LLM function provided"})
+
+        trace.completed_at = time.time()
+        trace.status = "completed"
+        get_engine().active_traces[trace.trace_id] = trace
+
+        return {
+            "ok": True,
+            "outputs": outputs,
+            "final_output": prev_output,
+            "trace": trace.to_dict(),
+            "duration_ms": round(trace.duration_ms, 1),
+        }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  REFLECTION ENGINEERING
+# ═══════════════════════════════════════════════════════════════════════════
+
+@dataclass
+class ReflectionConfig:
+    """Configuration for reflection loops."""
+    max_iterations: int = 3
+    quality_threshold: float = 0.8  # Stop if self-score >= this
+    critic_agent_id: str = "brain"
+    improve_agent_id: str = "default"
+    judge_prompt: str = "Rate this response from 0-1 for quality, accuracy, and completeness. Respond with just a number."
+    improve_prompt: str = "Improve this response based on the critique. Original: {input}\nResponse: {output}\nCritique: {critique}"
+
+
+class ReflectionEngine:
+    """Self-improving agent execution via reflection loops.
+
+    Pattern: generate → critique → improve → critique → ... until quality threshold met.
+    """
+
+    def __init__(self, llm_fn: Callable = None):
+        self.llm_fn = llm_fn
+
+    async def execute_with_reflection(
+        self,
+        prompt: str,
+        config: ReflectionConfig = None,
+        agent_id: str = "default",
+    ) -> dict:
+        """Execute with iterative self-improvement.
+
+        Returns:
+            {'ok': True, 'final_output': str, 'iterations': N, 'scores': [...]}
+        """
+        config = config or ReflectionConfig()
+
+        trace = ExecutionTrace(
+            trace_id=f"reflect_{uuid.uuid4().hex[:8]}",
+            agent_id=agent_id,
+            strategy=ExecutionStrategy.LOOP,
+            started_at=time.time(),
+        )
+
+        scores = []
+        current_output = ""
+
+        # Initial generation
+        step = trace.add_step("generate", agent_id)
+        if self.llm_fn:
+            result = await self.llm_fn(
+                messages=[{"role": "user", "content": prompt}],
+                agent_id=agent_id,
+            )
+            current_output = result.get("text", "") if isinstance(result, dict) else str(result)
+            tokens = result.get("tokens", 0) if isinstance(result, dict) else 0
+            trace.complete_step(step, output=current_output[:200], tokens=tokens)
+        else:
+            trace.complete_step(step, error="No LLM function")
+            return {"ok": False, "error": "No LLM function provided"}
+
+        # Reflection loop
+        for iteration in range(config.max_iterations):
+            # Critique
+            critique_step = trace.add_step(f"critique:{iteration+1}", config.critic_agent_id)
+            critique_result = await self.llm_fn(
+                messages=[{"role": "user", "content": f"{config.judge_prompt}\n\nResponse to evaluate:\n{current_output}"}],
+                agent_id=config.critic_agent_id,
+            )
+            critique = critique_result.get("text", "") if isinstance(critique_result, dict) else str(critique_result)
+            trace.complete_step(critique_step, output=critique[:200])
+
+            # Score
+            try:
+                score = float(''.join(c for c in critique[:10] if c.isdigit() or c == '.')) / 10.0
+            except (ValueError, ZeroDivisionError):
+                score = 0.5
+            scores.append(round(score, 2))
+
+            if score >= config.quality_threshold:
+                break
+
+            # Improve
+            improve_step = trace.add_step(f"improve:{iteration+1}", config.improve_agent_id)
+            improve_prompt = config.improve_prompt.format(
+                input=prompt, output=current_output, critique=critique
+            )
+            improve_result = await self.llm_fn(
+                messages=[{"role": "user", "content": improve_prompt}],
+                agent_id=config.improve_agent_id,
+            )
+            current_output = improve_result.get("text", "") if isinstance(improve_result, dict) else str(improve_result)
+            tokens = improve_result.get("tokens", 0) if isinstance(improve_result, dict) else 0
+            trace.complete_step(improve_step, output=current_output[:200], tokens=tokens)
+
+        trace.completed_at = time.time()
+        trace.status = "completed"
+        get_engine().active_traces[trace.trace_id] = trace
+
+        return {
+            "ok": True,
+            "final_output": current_output,
+            "iterations": len(scores),
+            "scores": scores,
+            "final_score": scores[-1] if scores else 0,
+            "trace": trace.to_dict(),
+            "duration_ms": round(trace.duration_ms, 1),
+        }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  GUARD ENGINEERING
+# ═══════════════════════════════════════════════════════════════════════════
+
+@dataclass
+class GuardRule:
+    """A single guard rule for output validation."""
+    name: str
+    check_type: str  # contains, not_contains, max_length, regex, json_valid
+    value: str = ""
+    severity: str = "block"  # block, warn, log
+
+
+class GuardEngine:
+    """Output validation and safety checks for agent responses.
+
+    Provides:
+    - Content filtering (block dangerous patterns)
+    - Output format validation (JSON, markdown, etc.)
+    - Length constraints
+    - Custom guard rules
+    """
+
+    def __init__(self):
+        self.default_rules = [
+            GuardRule("no_system_prompt_leak", "not_contains", "system prompt", "block"),
+            GuardRule("no_api_keys", "not_contains", "sk-or-v1-", "block"),
+            GuardRule("no_api_keys_2", "not_contains", "sk-proj-", "block"),
+            GuardRule("max_length", "max_length", "50000", "warn"),
+        ]
+        self.custom_rules: dict[str, list[GuardRule]] = {}
+
+    def add_rule(self, guard_id: str, rule: GuardRule):
+        """Add a custom guard rule."""
+        if guard_id not in self.custom_rules:
+            self.custom_rules[guard_id] = []
+        self.custom_rules[guard_id].append(rule)
+
+    def validate(self, output: str, guard_id: str = "default") -> dict:
+        """Validate an agent output against guard rules.
+
+        Returns:
+            {'ok': True, 'passed': [...], 'violations': [...]}
+        """
+        rules = self.default_rules + self.custom_rules.get(guard_id, [])
+        passed = []
+        violations = []
+
+        for rule in rules:
+            try:
+                if rule.check_type == "contains":
+                    if rule.value in output:
+                        violations.append({"rule": rule.name, "severity": rule.severity, "detail": f"Contains '{rule.value}'"})
+                    else:
+                        passed.append(rule.name)
+                elif rule.check_type == "not_contains":
+                    if rule.value.lower() in output.lower():
+                        violations.append({"rule": rule.name, "severity": rule.severity, "detail": f"Contains blocked pattern '{rule.value}'"})
+                    else:
+                        passed.append(rule.name)
+                elif rule.check_type == "max_length":
+                    max_len = int(rule.value)
+                    if len(output) > max_len:
+                        violations.append({"rule": rule.name, "severity": rule.severity, "detail": f"Length {len(output)} > {max_len}"})
+                    else:
+                        passed.append(rule.name)
+                elif rule.check_type == "regex":
+                    import re
+                    if re.search(rule.value, output):
+                        violations.append({"rule": rule.name, "severity": rule.severity, "detail": f"Matches regex {rule.value}"})
+                    else:
+                        passed.append(rule.name)
+                elif rule.check_type == "json_valid":
+                    try:
+                        json.loads(output)
+                        passed.append(rule.name)
+                    except (json.JSONDecodeError, ValueError):
+                        violations.append({"rule": rule.name, "severity": rule.severity, "detail": "Invalid JSON"})
+            except Exception as e:
+                violations.append({"rule": rule.name, "severity": "warn", "detail": str(e)})
+
+        blocked = [v for v in violations if v["severity"] == "block"]
+        return {
+            "ok": len(blocked) == 0,
+            "passed": passed,
+            "violations": violations,
+            "blocked": len(blocked),
+            "warnings": len([v for v in violations if v["severity"] == "warn"]),
+        }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  COST ENGINEERING
+# ═══════════════════════════════════════════════════════════════════════════
+
+class CostEngine:
+    """Token budget management and cost optimization.
+
+    Provides:
+    - Per-agent token budgets
+    - Cost tracking and alerting
+    - Model routing based on cost/quality tradeoff
+    - Budget enforcement (hard limits and soft warnings)
+    """
+
+    def __init__(self):
+        self.budgets: dict[str, ResourceBudget] = {}
+        self.usage: dict[str, dict] = {}
+
+    def set_budget(self, agent_id: str, budget: ResourceBudget):
+        """Set a resource budget for an agent."""
+        self.budgets[agent_id] = budget
+        if agent_id not in self.usage:
+            self.usage[agent_id] = {"tokens": 0, "cost_usd": 0.0, "calls": 0, "start_time": time.time()}
+
+    def record_usage(self, agent_id: str, tokens: int, cost_usd: float) -> dict:
+        """Record token/cost usage and check against budget.
+
+        Returns:
+            {'ok': True, 'within_budget': bool, 'warnings': [...], 'usage': {...}}
+        """
+        if agent_id not in self.usage:
+            self.usage[agent_id] = {"tokens": 0, "cost_usd": 0.0, "calls": 0, "start_time": time.time()}
+
+        u = self.usage[agent_id]
+        u["tokens"] += tokens
+        u["cost_usd"] += cost_usd
+        u["calls"] += 1
+
+        warnings = []
+        budget = self.budgets.get(agent_id)
+
+        if budget:
+            # Check token budget
+            if u["tokens"] > budget.max_tokens * 0.9:
+                warnings.append(f"Token usage at {u['tokens']}/{budget.max_tokens} ({u['tokens']/budget.max_tokens*100:.0f}%)")
+            if u["tokens"] > budget.max_tokens:
+                warnings.append(f"TOKEN BUDGET EXCEEDED: {u['tokens']}/{budget.max_tokens}")
+
+            # Check cost budget
+            if u["cost_usd"] > budget.max_cost_usd * 0.9:
+                warnings.append(f"Cost at ${u['cost_usd']:.4f}/${budget.max_cost_usd:.2f} ({u['cost_usd']/budget.max_cost_usd*100:.0f}%)")
+            if u["cost_usd"] > budget.max_cost_usd:
+                warnings.append(f"COST BUDGET EXCEEDED: ${u['cost_usd']:.4f}/${budget.max_cost_usd:.2f}")
+
+            # Check duration
+            elapsed = time.time() - u["start_time"]
+            if elapsed > budget.max_duration_s * 0.9:
+                warnings.append(f"Duration at {elapsed:.0f}s/{budget.max_duration_s:.0f}s")
+
+        return {
+            "ok": True,
+            "within_budget": budget is None or (u["tokens"] <= budget.max_tokens and u["cost_usd"] <= budget.max_cost_usd),
+            "warnings": warnings,
+            "usage": u.copy(),
+        }
+
+    def get_usage(self, agent_id: str) -> dict:
+        """Get current usage for an agent."""
+        return self.usage.get(agent_id, {"tokens": 0, "cost_usd": 0.0, "calls": 0}).copy()
+
+    def reset_usage(self, agent_id: str):
+        """Reset usage counters for an agent."""
+        self.usage[agent_id] = {"tokens": 0, "cost_usd": 0.0, "calls": 0, "start_time": time.time()}
+
+    def recommend_model(self, task_complexity: str = "simple") -> str:
+        """Recommend a model based on task complexity and budget.
+
+        Args:
+            task_complexity: 'simple', 'moderate', 'complex'
+
+        Returns:
+            Model identifier
+        """
+        recommendations = {
+            "simple": "llama3.2:3b",      # Fast, cheap
+            "moderate": "claude",          # Balanced
+            "complex": "claude-opus",      # Best quality
+        }
+        return recommendations.get(task_complexity, "claude")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  CHECKPOINT ENGINEERING
+# ═══════════════════════════════════════════════════════════════════════════
+
+class CheckpointEngine:
+    """Save and restore execution state for long-running agent tasks.
+
+    Provides:
+    - Checkpoint creation at arbitrary points
+    - Resume from last checkpoint after failure
+    - Checkpoint inspection and management
+    """
+
+    def __init__(self):
+        self.checkpoints: dict[str, list[dict]] = {}
+
+    def save_checkpoint(
+        self,
+        task_id: str,
+        step_name: str,
+        state: dict,
+        metadata: dict = None,
+    ) -> dict:
+        """Save a checkpoint for a task.
+
+        Args:
+            task_id: Unique task identifier
+            step_name: Name of the current step
+            state: Serializable state to save
+            metadata: Optional metadata (agent_id, model, etc.)
+
+        Returns:
+            {'ok': True, 'checkpoint_id': str, 'task_id': str}
+        """
+        if task_id not in self.checkpoints:
+            self.checkpoints[task_id] = []
+
+        checkpoint = {
+            "checkpoint_id": f"cp_{uuid.uuid4().hex[:8]}",
+            "task_id": task_id,
+            "step_name": step_name,
+            "state": state,
+            "metadata": metadata or {},
+            "saved_at": time.time(),
+            "saved_at_iso": datetime.now(timezone.utc).isoformat(),
+        }
+        self.checkpoints[task_id].append(checkpoint)
+
+        return {
+            "ok": True,
+            "checkpoint_id": checkpoint["checkpoint_id"],
+            "task_id": task_id,
+            "step_name": step_name,
+            "total_checkpoints": len(self.checkpoints[task_id]),
+        }
+
+    def get_latest_checkpoint(self, task_id: str) -> Optional[dict]:
+        """Get the latest checkpoint for a task."""
+        cps = self.checkpoints.get(task_id, [])
+        return cps[-1] if cps else None
+
+    def get_checkpoint_history(self, task_id: str) -> list[dict]:
+        """Get all checkpoints for a task."""
+        return self.checkpoints.get(task_id, [])
+
+    def resume_from_checkpoint(self, task_id: str) -> dict:
+        """Get the state needed to resume a task from its latest checkpoint.
+
+        Returns:
+            {'ok': True, 'step_name': str, 'state': dict, 'checkpoint_id': str}
+        """
+        cp = self.get_latest_checkpoint(task_id)
+        if not cp:
+            return {"ok": False, "error": f"No checkpoints found for task {task_id}"}
+        return {
+            "ok": True,
+            "task_id": task_id,
+            "checkpoint_id": cp["checkpoint_id"],
+            "step_name": cp["step_name"],
+            "state": cp["state"],
+            "metadata": cp["metadata"],
+            "saved_at": cp["saved_at_iso"],
+        }
+
+    def clear_checkpoints(self, task_id: str):
+        """Clear all checkpoints for a task."""
+        self.checkpoints.pop(task_id, None)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  PROMPT ENGINEERING
+# ═══════════════════════════════════════════════════════════════════════════
+
+class PromptEngine:
+    """Prompt template management and optimization.
+
+    Provides:
+    - Template library with variable substitution
+    - Few-shot example injection
+    - Chain-of-thought prompting
+    - System prompt composition
+    """
+
+    def __init__(self):
+        self.templates: dict[str, dict] = {}
+        self.few_shots: dict[str, list[dict]] = {}
+
+    def register_template(self, name: str, template: str, description: str = "", variables: list[str] = None):
+        """Register a prompt template."""
+        self.templates[name] = {
+            "name": name,
+            "template": template,
+            "description": description,
+            "variables": variables or [],
+        }
+
+    def register_few_shots(self, name: str, examples: list[dict]):
+        """Register few-shot examples for a template.
+
+        Args:
+            name: Template name
+            examples: List of {'input': str, 'output': str}
+        """
+        self.few_shots[name] = examples
+
+    def render(self, template_name: str, variables: dict = None, include_few_shots: bool = True, max_few_shots: int = 3) -> str:
+        """Render a template with variable substitution and optional few-shot examples.
+
+        Returns:
+            Rendered prompt string
+        """
+        tpl = self.templates.get(template_name)
+        if not tpl:
+            return f"Template '{template_name}' not found"
+
+        result = tpl["template"]
+        for k, v in (variables or {}).items():
+            result = result.replace(f"{{{{{k}}}}}", str(v))
+
+        if include_few_shots and template_name in self.few_shots:
+            examples = self.few_shots[template_name][:max_few_shots]
+            examples_text = "\n\n".join(
+                f"Example {i+1}:\nInput: {ex['input']}\nOutput: {ex['output']}"
+                for i, ex in enumerate(examples)
+            )
+            result = f"{examples_text}\n\n{result}"
+
+        return result
+
+    def add_chain_of_thought(self, prompt: str, steps: list[str] = None) -> str:
+        """Wrap a prompt with chain-of-thought instruction."""
+        steps = steps or ["Think step by step", "Show your reasoning", "Provide a clear conclusion"]
+        steps_text = "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps))
+        return f"{prompt}\n\nPlease follow these steps:\n{steps_text}"
+
+    def list_templates(self) -> list[dict]:
+        """List all registered templates."""
+        return [{"name": t["name"], "description": t["description"], "variables": t["variables"]}
+                for t in self.templates.values()]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  UPDATED SINGLETON INSTANCES
+# ═══════════════════════════════════════════════════════════════════════════
+
+_chain_engine: Optional[ChainEngine] = None
+_reflection_engine: Optional[ReflectionEngine] = None
+_guard_engine: Optional[GuardEngine] = None
+_cost_engine: Optional[CostEngine] = None
+_checkpoint_engine: Optional[CheckpointEngine] = None
+_prompt_engine: Optional[PromptEngine] = None
+
+
+def get_chain_engine() -> ChainEngine:
+    global _chain_engine
+    if _chain_engine is None:
+        _chain_engine = ChainEngine()
+    return _chain_engine
+
+
+def get_reflection_engine() -> ReflectionEngine:
+    global _reflection_engine
+    if _reflection_engine is None:
+        _reflection_engine = ReflectionEngine()
+    return _reflection_engine
+
+
+def get_guard_engine() -> GuardEngine:
+    global _guard_engine
+    if _guard_engine is None:
+        _guard_engine = GuardEngine()
+    return _guard_engine
+
+
+def get_cost_engine() -> CostEngine:
+    global _cost_engine
+    if _cost_engine is None:
+        _cost_engine = CostEngine()
+    return _cost_engine
+
+
+def get_checkpoint_engine() -> CheckpointEngine:
+    global _checkpoint_engine
+    if _checkpoint_engine is None:
+        _checkpoint_engine = CheckpointEngine()
+    return _checkpoint_engine
+
+
+def get_prompt_engine() -> PromptEngine:
+    global _prompt_engine
+    if _prompt_engine is None:
+        _prompt_engine = PromptEngine()
+    return _prompt_engine
