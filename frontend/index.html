@@ -16,6 +16,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AgenticOS">
 
+<!-- Load Inter font from Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
 <style>
 /* ═══════════════════════════════════════════════════════════
    AGENTIC OS v9 — DESIGN SYSTEM
@@ -1718,22 +1723,14 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <!-- Outcome-first launchpad: people can begin useful work before learning AI terminology. -->
                 <section id="mission-launchpad-deck" class="mission-launchpad" aria-label="Get started">
                   <button onclick="document.getElementById('mission-launchpad-deck').style.display='none';try{localStorage.setItem('agentic_os_launchpad_hidden','true')}catch(e){}" title="Dismiss getting started" class="btn-3d btn-ghost btn-sm mission-launchpad-dismiss">✕</button>
-                  <p class="mission-launchpad-kicker">STRICK TECH MISSION CONTROL</p>
-                  <h3>What would you like to do?</h3>
-                  <p class="mission-launchpad-copy">Start with an outcome. You can refine the details as you go.</p>
-                  <div class="mission-outcome-grid">
-                    <button class="mission-outcome btn-3d" onclick="startGuidedChat('')"><span>💬</span><strong>Ask a question</strong><small>Get a clear answer or brainstorm ideas.</small></button>
-                    <button class="mission-outcome btn-3d" onclick="startGuidedChat('Help me research this topic: ')"><span>🔎</span><strong>Research a topic</strong><small>Explore options and get a useful summary.</small></button>
-                    <button class="mission-outcome btn-3d" onclick="startGuidedChat('Help me create a practical plan for: ')"><span>🗺️</span><strong>Make a plan</strong><small>Turn a goal into clear next steps.</small></button>
-                    <button class="mission-outcome btn-3d" onclick="nav('studio')"><span>✨</span><strong>Create something</strong><small>Open Studio to build an app or workflow.</small></button>
+                  <p class="mission-launchpad-kicker">GETTING STARTED</p>
+                  <h3>Ready to use AI?</h3>
+                  <p class="mission-launchpad-copy">Connect once, then chat with 140+ models instantly.</p>
+                  <div class="mission-connect-actions" style="display:flex;gap:8px;margin:12px 0">
+                    <button onclick="if(typeof testOllamaConnection==='function')testOllamaConnection()" class="btn-3d btn-ghost btn-sm" style="padding:8px 16px">🖥️ Use Local AI (Ollama)</button>
+                    <button onclick="nav('settings');switchSettingsTab('api')" class="btn-3d btn-primary btn-sm" style="padding:8px 16px">☁️ Connect Cloud AI</button>
                   </div>
-                  <div class="mission-connect-row">
-                    <div><strong>Ready to use AI?</strong><span id="mission-connection-status" class="connection-status checking">Checking your connection…</span></div>
-                    <div class="mission-connect-actions">
-                      <button onclick="if(typeof testOllamaConnection==='function')testOllamaConnection()" class="btn-3d btn-ghost btn-sm">Use Local AI</button>
-                      <button onclick="nav('settings');switchSettingsTab('api')" class="btn-3d btn-primary btn-sm">Connect AI</button>
-                    </div>
-                  </div>
+                  <span id="mission-connection-status" class="connection-status checking" style="font-size:12px">Checking your connection…</span>
                 </section>
                 
                 <!-- Quick Actions -->
