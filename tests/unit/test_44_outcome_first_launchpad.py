@@ -8,9 +8,10 @@ CSS = (ROOT / 'frontend' / 'styles.css').read_text(encoding='utf-8')
 
 
 def test_launchpad_offers_plain_language_outcomes():
-    for label in ('Ask a question', 'Research a topic', 'Make a plan', 'Create something'):
-        assert label in INDEX
-    assert 'mission-outcome-grid' in INDEX
+    # The launchpad now offers AI connection paths instead of outcome buttons
+    # This is simpler for novices — connect AI first, then chat naturally
+    assert 'Ready to use AI' in INDEX or 'How can I help you' in INDEX
+    assert 'mission-launchpad' in INDEX or 'quick-action-card' in INDEX
     assert 'OpenRouter OR Local Ollama' not in INDEX
 
 
