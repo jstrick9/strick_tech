@@ -41,7 +41,7 @@ QUICK_STARTS = [
                 'step': 3,
                 'title': 'Pick a model',
                 'desc': 'Click the model badge (top of chat) and choose from 10+ free and paid models',
-                'tip': "Start with 'Gemini Flash' — it's free and fast",
+                'tip': "Start with 'Llama 3.3 70B' (free) or 'Claude 3.5 Sonnet' (best quality)",
             },
             {
                 'step': 4,
@@ -50,7 +50,7 @@ QUICK_STARTS = [
                 'tip': "Try: 'Explain what FastAPI is in simple terms'",
             },
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
         'related': ['qs_agents', 'qs_workflow'],
     },
     {
@@ -91,7 +91,7 @@ QUICK_STARTS = [
                 'tip': 'Switch agents mid-conversation anytime',
             },
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
         'related': ['qs_chat', 'qs_workflow'],
     },
     {
@@ -132,7 +132,7 @@ QUICK_STARTS = [
                 'tip': "Visit 'Replay' pane to scrub through the execution step-by-step afterward",
             },
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
         'related': ['qs_agents', 'qs_specs'],
     },
     {
@@ -173,7 +173,7 @@ QUICK_STARTS = [
                 'tip': 'Tasks run in parallel waves — independent tasks execute simultaneously',
             },
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
         'related': ['qs_workflow', 'qs_chat'],
     },
     {
@@ -208,8 +208,67 @@ QUICK_STARTS = [
                 'tip': 'Answers reference which chunk they came from — no hallucination',
             },
         ],
+        'video_url': '',  # TODO: Add walkthrough video
+        'related': ['qs_chat', 'qs_agents'],
+    },
+    {
+        'id': 'qs_studio',
+        'title': 'Build an App with Studio',
+        'icon': '⚡',
+        'time': '3 min',
+        'level': 'beginner',
+        'steps': [
+            {'step': 1, 'title': 'Open Studio', 'desc': "Click 'Code Studio' in the sidebar.", 'tip': 'Keyboard: ⌘2'},
+            {'step': 2, 'title': 'Pick a template', 'desc': 'Choose from Templates pane or start blank.', 'tip': 'Try the SaaS Landing Page template'},
+            {'step': 3, 'title': 'Edit with AI', 'desc': 'Type changes in the editor or ask AI to modify code.', 'tip': 'Use the AI chat panel inside Studio'},
+            {'step': 4, 'title': 'Preview live', 'desc': 'See changes in the live preview panel instantly.', 'tip': 'Click the preview toggle button'},
+        ],
+        'video_url': '',
+        'related': ['qs_chat', 'qs_workflow'],
+    },
+    {
+        'id': 'qs_swarm',
+        'title': 'Multi-Agent Swarm',
+        'icon': '🌀',
+        'time': '2 min',
+        'level': 'intermediate',
+        'steps': [
+            {'step': 1, 'title': 'Open Swarm', 'desc': "Click 'Multi-Agent Swarm' in the sidebar.", 'tip': 'Or use /swarm command in chat'},
+            {'step': 2, 'title': 'Enter your prompt', 'desc': 'Describe what you want multiple agents to work on.', 'tip': 'Try: Compare approaches to building a REST API'},
+            {'step': 3, 'title': 'Select agents', 'desc': 'Choose which agents participate (or use defaults).', 'tip': 'Brain + Builder + Specs is a good combination'},
+            {'step': 4, 'title': 'Review results', 'desc': 'Compare outputs side by side. The judge picks the best.', 'tip': 'Click any card to expand the full response'},
+        ],
         'video_url': '',
         'related': ['qs_chat', 'qs_agents'],
+    },
+    {
+        'id': 'qs_memory',
+        'title': 'Knowledge & Memory',
+        'icon': '🧠',
+        'time': '2 min',
+        'level': 'beginner',
+        'steps': [
+            {'step': 1, 'title': 'Open Memory', 'desc': "Click 'Memory' in the sidebar to see your knowledge base.", 'tip': 'All conversations are automatically indexed'},
+            {'step': 2, 'title': 'Add knowledge', 'desc': 'Paste text, upload files, or let conversations auto-index.', 'tip': 'Use the Memory search in chat with the 🧠 button'},
+            {'step': 3, 'title': 'Search your knowledge', 'desc': 'Type queries to find relevant memories across all conversations.', 'tip': 'Enable RAG in chat to ground AI responses in your knowledge'},
+        ],
+        'video_url': '',
+        'related': ['qs_chat', 'qs_rag'],
+    },
+    {
+        'id': 'qs_agents',
+        'title': 'Create Custom Agents',
+        'icon': '🤖',
+        'time': '3 min',
+        'level': 'intermediate',
+        'steps': [
+            {'step': 1, 'title': 'Open Agent panel', 'desc': 'Click the agent selector in the chat header.', 'tip': 'Or go to Settings → AI Agents'},
+            {'step': 2, 'title': 'Create an agent', 'desc': 'Click + Add Agent and define its role, model, and system prompt.', 'tip': 'Start with a clear role description'},
+            {'step': 3, 'title': 'Switch agents', 'desc': 'Select your agent from the dropdown in any chat.', 'tip': 'Different agents can use different models'},
+            {'step': 4, 'title': 'Test and refine', 'desc': 'Chat with your agent and adjust its prompt as needed.', 'tip': 'Use Steering rules for persistent behavior changes'},
+        ],
+        'video_url': '',
+        'related': ['qs_chat', 'qs_swarm'],
     },
     {
         'id': 'qs_eval',
@@ -243,7 +302,7 @@ QUICK_STARTS = [
                 'tip': "8 OWASP LLM Top 10 attacks — know your agent's security posture",
             },
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
         'related': ['qs_agents', 'qs_specs'],
     },
 ]
@@ -260,7 +319,7 @@ FEATURE_DOCS: dict[str, dict] = {
             'Click the model badge to switch models without losing context',
             'Use /command shortcuts: /clear, /save, /export',
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
     },
     'workflow': {
         'title': 'Workflow Builder',
@@ -273,7 +332,7 @@ FEATURE_DOCS: dict[str, dict] = {
             'Use the ⊡ button to fit the canvas to screen',
             'Workflow history in the Replay pane',
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
     },
     'specs': {
         'title': 'Spec Builder',
@@ -285,7 +344,7 @@ FEATURE_DOCS: dict[str, dict] = {
             'The more detail in your description, the better the requirements',
             'Wave execution runs independent tasks simultaneously',
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
     },
     'evals': {
         'title': 'Agent Evals',
@@ -298,7 +357,7 @@ FEATURE_DOCS: dict[str, dict] = {
             'Red Team before going to production',
             'Compare scores across agents in the Leaderboard',
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
     },
     'bugbot': {
         'title': 'BugBot',
@@ -311,7 +370,7 @@ FEATURE_DOCS: dict[str, dict] = {
             'GitHub PR review automatically posts a comment',
             'Feedback on reviews helps BugBot learn your standards',
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
     },
     'rag': {
         'title': 'RAG Pipeline',
@@ -324,7 +383,7 @@ FEATURE_DOCS: dict[str, dict] = {
             'Add multiple pipelines for different knowledge bases',
             'Combine with steering files for project-aware AI',
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
     },
     'steering': {
         'title': 'Steering Files',
@@ -337,7 +396,7 @@ FEATURE_DOCS: dict[str, dict] = {
             'Auto-Learn analyzes your last 100 chats to extract your patterns',
             'Enable/disable individual files per project',
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
     },
     'arena': {
         'title': 'Arena Mode',
@@ -350,7 +409,7 @@ FEATURE_DOCS: dict[str, dict] = {
             'Quality preset uses frontier models',
             'Let Auto-Judge score battles automatically to build the leaderboard faster',
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
     },
     'memory': {
         'title': 'Memory / Galaxy',
@@ -363,7 +422,7 @@ FEATURE_DOCS: dict[str, dict] = {
             'Search your memory bank with semantic search',
             'Export memories as markdown for backup',
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
     },
     'websearch': {
         'title': 'Web Search',
@@ -376,7 +435,7 @@ FEATURE_DOCS: dict[str, dict] = {
             'Deep Research generates 4+ queries and synthesizes a report',
             'Search history is saved for quick replay',
         ],
-        'video_url': '',
+        'video_url': '',  # TODO: Add walkthrough video
     },
 }
 
@@ -407,8 +466,8 @@ FAQ = [
         'tags': ['offline', 'privacy'],
     },
     {
-        'q': 'What happens when my trial expires?',
-        'a': "After 14 days, advanced features are locked behind Pro/Enterprise. Your data is safe — conversations, agents, and projects stay. You just can't access Pro features until upgrading.",
+        'q': 'What features are available?',
+        'a': 'All features are available in the full platform. Your data stays on your machine — conversations, agents, and projects are always accessible.',
         'tags': ['trial', 'pricing'],
     },
     {
@@ -418,12 +477,12 @@ FAQ = [
     },
     {
         'q': 'Can multiple people use this?',
-        'a': 'Single-user for Free and Pro. Enterprise adds multi-user admin with role-based access, team workspaces, and shared steering files.',
+        'a': 'The platform supports single-user operation. For team use, deploy with Docker and configure shared workspaces and role-based access in Settings.',
         'tags': ['team', 'enterprise'],
     },
     {
-        'q': 'How do I reset my 14-day trial?',
-        'a': "For development and testing, you can reset via Settings → License → 'Reset Trial (Dev)'. In production this option is removed.",
+        'q': 'How do I check my license status?',
+        'a': "Go to Settings → License to see your current tier and available features. All core features are available in the standard license.",
         'tags': ['trial', 'dev'],
     },
     {
@@ -509,7 +568,7 @@ def get_feature_doc(pane_id: str):
             'summary': f'The {pane_id} feature. Documentation coming soon.',
             'details': 'This feature is part of the Agentic OS platform. Check back for detailed documentation.',
             'tips': ['Explore the feature by clicking around', 'Hover over elements for tooltips'],
-            'video_url': '',
+            'video_url': '',  # TODO: Add walkthrough video
         }
     return {'id': pane_id, **doc}
 

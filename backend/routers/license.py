@@ -1,13 +1,13 @@
 """
 Agentic OS — License / Tier System
-Free / Pro / Enterprise tiers with 14-day free trial.
+License management: tier access control, feature gating, and status tracking.
 
 Trial is tracked locally in .agentic/license.json (no server needed).
 Feature flags control which panes and features are accessible per tier.
 
 Tiers:
-  free       — limited features, after 14-day trial expires
-  trial      — all Pro features, 14 days from first launch
+  free       — basic features (chat, kanban, docs)
+  trial      — evaluation access with all features
   pro        — full platform, individual
   enterprise — full platform + governance + admin + multi-user
 """
@@ -199,7 +199,7 @@ def _create_trial() -> dict:
         'tier': 'trial',
         'trial_start': now,
         'trial_end': now + (14 * 24 * 3600),
-        'trial_days': 14,
+        'trial_days': 30,
         'activated_at': now,
         'license_key': '',
         'user_name': 'Joshua Strickland',
@@ -208,7 +208,7 @@ def _create_trial() -> dict:
         'history': [],
     }
     _save_license(data)
-    log.info('14-day trial license initialized')
+    log.info('30-day trial license initialized')
     return data
 
 
