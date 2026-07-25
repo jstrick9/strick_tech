@@ -172,3 +172,116 @@ function obBack() {
   if (obStep > 0) { obStep--; showOnboarding(); }
 }
 
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  ONE-CLICK SETUP — Auto-detect and configure AI in seconds
+// ═══════════════════════════════════════════════════════════════════════════
+
+window.showQuickSetup = async function() {
+  const modal = document.createElement('div');
+  modal.id = 'quick-setup-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(8px)';
+  modal.innerHTML = `
+    <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:20px;padding:32px;max-width:480px;width:90%;box-shadow:0 24px 80px rgba(0,0,0,.5)">
+      <div style="text-align:center;margin-bottom:24px">
+        <div class="neural-orb-3d" style="width:56px;height:56px;margin:0 auto 16px"></div>
+        <h2 style="font-size:22px;font-weight:900;margin-bottom:4px">⚡ Quick Setup</h2>
+        <p style="color:var(--text-2);font-size:14px">One click to connect AI. We'll detect what's available.</p>
+      </div>
+
+      <div id="qs-status" style="text-align:center;padding:20px;color:var(--text-2);font-size:13px">
+        <div class="skeleton skeleton-bubble" style="height:40px;margin-bottom:12px"></div>
+        <div class="skeleton skeleton-text" style="width:80%;margin:0 auto"></div>
+      </div>
+
+      <div id="qs-results" style="display:none">
+        <div id="qs-backends" style="margin-bottom:16px"></div>
+        <div id="qs-recommended" style="padding:14px;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="document.getElementById('quick-setup-modal').remove()" class="btn-3d btn-ghost btn-sm" style="padding:8px 16px">Skip</button>
+          <button id="qs-continue" onclick="document.getElementById('quick-setup-modal').remove(); nav('chat')" class="btn-3d btn-primary btn-sm" style="padding:8px 20px">Start Chatting →</button>
+        </div>
+      </div>
+
+      <div id="qs-api-key" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+        <p style="font-size:12px;color:var(--text-2);margin-bottom:8px">Or paste an OpenRouter API key for 140+ models:</p>
+        <div style="display:flex;gap:8px">
+          <input id="qs-key-input" type="password" placeholder="sk-or-v1-..." style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none">
+          <button onclick="quickSetupWithKey()" class="btn-3d btn-primary btn-sm" style="padding:8px 16px">Connect</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Auto-detect backends
+  try {
+    const r = await fetch('/api/onboarding/quick-setup', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'});
+    const d = await r.json();
+
+    document.getElementById('qs-status').style.display = 'none';
+    document.getElementById('qs-results').style.display = 'block';
+    document.getElementById('qs-api-key').style.display = 'block';
+
+    // Show backend status
+    const backends = d.backends || [];
+    let html = '';
+    for (const b of backends) {
+      const icon = b.status === 'available' ? '✅' : (b.status === 'not_running' ? '⚪' : '❌');
+      const color = b.status === 'available' ? 'var(--success)' : 'var(--text-3)';
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;color:${color}">
+        <span>${icon}</span>
+        <span style="font-weight:600">${escHtml(b.backend)}</span>
+        <span style="flex:1;color:var(--text-3)">${escHtml(b.status)}${b.models ? ' (' + b.models + ' models)' : ''}</span>
+      </div>`;
+    }
+    document.getElementById('qs-backends').innerHTML = html;
+
+    // Show recommendation
+    const rec = d.recommended || {};
+    const recEl = document.getElementById('qs-recommended');
+    if (rec.backend === 'ollama') {
+      recEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:24px">🖥️</span>
+        <div><strong style="color:var(--success)">Ready!</strong> <span style="font-size:13px;color:var(--text-1)">${escHtml(rec.message)}</span></div>
+      </div>`;
+    } else if (rec.backend === 'openrouter') {
+      recEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:24px">☁️</span>
+        <div><strong style="color:var(--accent)">Connected!</strong> <span style="font-size:13px;color:var(--text-1)">${escHtml(rec.message)}</span></div>
+      </div>`;
+    } else {
+      recEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:24px">💡</span>
+        <div><strong>Setup needed:</strong> <span style="font-size:13px;color:var(--text-1)">${escHtml(rec.message)}</span></div>
+      </div>`;
+      document.getElementById('qs-continue').textContent = 'Open Settings →';
+      document.getElementById('qs-continue').onclick = () => { document.getElementById('quick-setup-modal').remove(); nav('settings'); };
+    }
+  } catch(e) {
+    document.getElementById('qs-status').innerHTML = `<div style="color:var(--danger)">Detection failed: ${escHtml(e.message)}</div>`;
+  }
+};
+
+window.quickSetupWithKey = async function() {
+  const key = document.getElementById('qs-key-input')?.value?.trim();
+  if (!key) { toast('Please paste your API key', 'warn'); return; }
+  try {
+    const r = await fetch('/api/onboarding/quick-setup', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({api_key: key}),
+    });
+    const d = await r.json();
+    if (d.recommended?.backend === 'openrouter') {
+      toast('✅ Connected! 140+ models available.', 'ok');
+      document.getElementById('quick-setup-modal')?.remove();
+      nav('chat');
+    } else {
+      toast('Key saved but verification failed. Check Settings.', 'warn');
+    }
+  } catch(e) {
+    toast('Connection failed: ' + e.message, 'err');
+  }
+};

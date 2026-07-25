@@ -377,3 +377,133 @@ def reset_onboarding():
     save_prefs(prefs)
     audit_log('onboarding_reset', '')
     return {'ok': True}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  ONE-CLICK SETUP — Auto-detect and configure the best available AI
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.post('/quick-setup')
+async def quick_setup(req: Request):
+    """One-click setup: auto-detect available AI backends and configure the best one.
+
+    Checks (in order):
+    1. Ollama running locally — zero config needed
+    2. OpenRouter API key in env — immediate access to 140+ models
+    3. Custom endpoint configured — use whatever's available
+
+    Returns the configured model and connection status.
+    """
+    import os
+    body = {}
+    try:
+        body = await req.json()
+    except Exception:
+        pass
+
+    api_key = body.get('api_key', '').strip()
+
+    results = []
+
+    # Check 1: Ollama local
+    ollama_ok = False
+    ollama_models = []
+    try:
+        import httpx as _httpx
+        async with _httpx.AsyncClient(timeout=3) as c:
+            r = await c.get('http://127.0.0.1:11434/api/tags')
+            if r.status_code == 200:
+                ollama_ok = True
+                ollama_models = [m.get('name', '') for m in r.json().get('models', [])]
+                results.append({'backend': 'ollama', 'status': 'available', 'models': len(ollama_models)})
+    except Exception:
+        results.append({'backend': 'ollama', 'status': 'not_running'})
+
+    # Check 2: OpenRouter (from env or provided key)
+    or_key = api_key or os.getenv('OPENROUTER_API_KEY', '')
+    or_ok = False
+    if or_key:
+        try:
+            import httpx as _httpx
+            async with _httpx.AsyncClient(timeout=5) as c:
+                r = await c.get('https://openrouter.ai/api/v1/models', headers={'Authorization': f'Bearer {or_key}'})
+                if r.status_code == 200:
+                    or_ok = True
+                    results.append({'backend': 'openrouter', 'status': 'available', 'models': len(r.json().get('data', []))})
+                else:
+                    results.append({'backend': 'openrouter', 'status': 'invalid_key'})
+        except Exception:
+            results.append({'backend': 'openrouter', 'status': 'unreachable'})
+    else:
+        results.append({'backend': 'openrouter', 'status': 'no_key'})
+
+    # Determine best config
+    recommended = {}
+    if ollama_ok and ollama_models:
+        recommended = {
+            'backend': 'ollama',
+            'model': ollama_models[0],
+            'message': f'Ollama detected with {len(ollama_models)} model(s). Ready to use — no API key needed.',
+        }
+    elif or_ok:
+        recommended = {
+            'backend': 'openrouter',
+            'model': 'claude',
+            'message': 'OpenRouter connected. 140+ models available including Claude, GPT-4o, Gemini, Llama.',
+        }
+    else:
+        recommended = {
+            'backend': 'none',
+            'model': '',
+            'message': 'No AI backend detected. Install Ollama (ollama.com) for free local AI, or add an OpenRouter API key in Settings.',
+        }
+
+    # Save API key if provided
+    if api_key:
+        from ..services.memory_db import get_conn
+        con = get_conn()
+        try:
+            con.execute(
+                "INSERT OR REPLACE INTO secrets (key, value_enc, scope) VALUES (?, ?, 'global')",
+                ('OPENROUTER_API_KEY', api_key),
+            )
+            con.commit()
+        finally:
+            con.close()
+
+    # Update preferences
+    prefs = load_prefs()
+    prefs['setup_complete'] = True
+    if recommended.get('model'):
+        prefs['default_model'] = recommended['model']
+    save_prefs(prefs)
+
+    return {
+        'ok': True,
+        'backends': results,
+        'recommended': recommended,
+        'ollama_models': ollama_models[:10] if ollama_models else [],
+        'setup_time_ms': 0,
+    }
+
+
+@router.get('/quick-setup/status')
+async def quick_setup_status():
+    """Check current AI connection status without re-configuring."""
+    import os
+    status = {'ollama': False, 'openrouter': False, 'models': []}
+
+    try:
+        import httpx as _httpx
+        async with _httpx.AsyncClient(timeout=2) as c:
+            r = await c.get('http://127.0.0.1:11434/api/tags')
+            if r.status_code == 200:
+                status['ollama'] = True
+                status['models'] = [m.get('name', '') for m in r.json().get('models', [])]
+    except Exception:
+        pass
+
+    if os.getenv('OPENROUTER_API_KEY'):
+        status['openrouter'] = True
+
+    return {'ok': True, 'status': status}

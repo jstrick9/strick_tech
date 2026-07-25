@@ -4415,3 +4415,131 @@ body.theme-high-contrast a {
 #sidebar.collapsed .nav-item:hover::after {
   opacity: 1;
 }
+
+/* ── One-Click Setup Modal ──────────────────────────────────── */
+#quick-setup-modal {
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Drag-and-Drop Improvements ─────────────────────────────── */
+.dropzone-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(91, 138, 248, 0.08);
+  border: 2px dashed var(--accent);
+  border-radius: 16px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  pointer-events: none;
+}
+.dropzone-overlay.active {
+  display: flex;
+}
+.is-dragging {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow) !important;
+}
+
+/* ── Drag handle for reorderable items ──────────────────────── */
+.drag-handle {
+  cursor: grab;
+  opacity: 0.3;
+  transition: opacity 0.15s ease;
+  user-select: none;
+}
+.drag-handle:hover {
+  opacity: 0.8;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+/* ── One-click button with loading state ────────────────────── */
+.one-click-btn {
+  position: relative;
+  overflow: hidden;
+}
+.one-click-btn.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+.one-click-btn.loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ── Quick action cards (template/feature) ──────────────────── */
+.quick-action-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quick-action-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px var(--accent-glow);
+  transform: translateY(-2px);
+}
+.quick-action-card .icon {
+  font-size: 28px;
+}
+.quick-action-card .title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-0);
+}
+.quick-action-card .desc {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+/* ── Floating action button ─────────────────────────────────── */
+.fab {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(91,138,248,0.4);
+  transition: all 0.2s ease;
+  z-index: 9998;
+  border: none;
+}
+.fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 32px rgba(91,138,248,0.6);
+}
