@@ -67,6 +67,7 @@ from .routers.arena import router as arena_router
 
 # ── Sprint A: Governance Foundation ───────────────────────────────────────────
 from .routers.audit_log import router as audit_log_router
+from .routers.auth import router as auth_router
 from .routers.bci import router as bci_router
 from .routers.bounty_hunter import router as bounty_hunter_router
 from .routers.browser_agent import router as browser_router
@@ -147,9 +148,8 @@ from .routers.webhooks import router as webhooks_router
 from .routers.websearch import router as websearch_router
 from .routers.websocket import router as ws_router
 from .routers.workflow import router as workflow_router
-from .routers.workspaces import router as workspaces_router
 from .routers.workspace_export import router as workspace_export_router
-from .routers.auth import router as auth_router
+from .routers.workspaces import router as workspaces_router
 from .security_auth import require_websocket_auth
 from .services import scheduler as sched_svc
 from .services.memory_db import (
@@ -314,7 +314,7 @@ SECURITY_HEADERS = {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; "
         "img-src 'self' data: blob: https:; "
-        "connect-src 'self' ws: wss: http: https:; "
+        "connect-src 'self' ws: wss: http://127.0.0.1:* http://localhost:* https://api.github.com https://openrouter.ai https://slack.com https://gmail.googleapis.com https://graph.microsoft.com https://oauth2.googleapis.com https://www.googleapis.com https://jira.*.atlassian.net https://api.notion.com; "
         "worker-src 'self' blob:; "
         "frame-src 'self' blob: data:; "
     ),
@@ -712,15 +712,22 @@ def audit(limit: int = 100):
 
 @app.post('/api/backup')
 def backup():
-    """Execute or process backup operation."""
+    """Create a database backup with automatic rotation (keeps last 10)."""
     import datetime
     import shutil
 
     ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    dest = _ROOT / 'memory' / f'backup_{ts}.db'
+    backup_dir = _ROOT / 'memory'
+    dest = backup_dir / f'backup_{ts}.db'
     try:
-        shutil.copy2(_ROOT / 'memory' / 'agentic.db', dest)
-        return {'ok': True, 'path': str(dest), 'filename': dest.name}
+        shutil.copy2(backup_dir / 'agentic.db', dest)
+
+        # Rotate: keep only the 10 most recent backups
+        backups = sorted(backup_dir.glob('backup_*.db'), key=lambda p: p.stat().st_mtime, reverse=True)
+        for old in backups[10:]:
+            old.unlink(missing_ok=True)
+
+        return {'ok': True, 'path': str(dest), 'filename': dest.name, 'total_backups': min(len(backups), 10)}
     except Exception as e:
         return {'ok': False, 'error': str(e)}
 
