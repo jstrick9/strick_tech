@@ -43,7 +43,17 @@ def ensure_schema():
     """Execute or process ensure schema operation."""
     con = get_conn()
     try:
-        con.executescript("""
+        # Migration tracking table
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS _schema_migrations (
+                version INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Base schema (version 0)
+        _run_migration(con, 0, 'base_schema', """
     CREATE TABLE IF NOT EXISTS memory (
         id INTEGER PRIMARY KEY,
         source TEXT,
@@ -140,18 +150,59 @@ def ensure_schema():
         length INTEGER,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-    """)
-        try:
-            con.execute('ALTER TABLE chat_log ADD COLUMN model TEXT DEFAULT ""')
-        except Exception:
-            pass
-        try:
-            con.execute('ALTER TABLE file_versions ADD COLUMN workspace_id TEXT DEFAULT ""')
-        except Exception:
-            pass
+        """)
+
+        # Migration 1: Add model column to chat_log
+        _run_migration(con, 1, 'chat_log_add_model',
+            'ALTER TABLE chat_log ADD COLUMN model TEXT DEFAULT ""')
+
+        # Migration 2: Add workspace_id to file_versions
+        _run_migration(con, 2, 'file_versions_add_workspace_id',
+            'ALTER TABLE file_versions ADD COLUMN workspace_id TEXT DEFAULT ""')
+
+        # Migration 3: Add chat_sessions table
+        _run_migration(con, 3, 'chat_sessions_table', """
+            CREATE TABLE IF NOT EXISTS chat_sessions (
+                id TEXT PRIMARY KEY,
+                name TEXT DEFAULT '',
+                agent_id TEXT DEFAULT 'default',
+                description TEXT DEFAULT '',
+                message_count INTEGER DEFAULT 0,
+                folder TEXT DEFAULT 'General',
+                pinned INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Migration 4: Add FTS index on chat_log for search
+        _run_migration(con, 4, 'chat_log_search_index',
+            'CREATE INDEX IF NOT EXISTS idx_chat_log_message ON chat_log(message)')
+
         con.commit()
     finally:
         con.close()
+
+
+def _run_migration(con, version: int, name: str, sql: str):
+    """Run a migration if it hasn't been applied yet."""
+    existing = con.execute(
+        'SELECT version FROM _schema_migrations WHERE version=?', (version,)
+    ).fetchone()
+    if existing:
+        return
+    try:
+        con.executescript(sql)
+        con.execute(
+            'INSERT INTO _schema_migrations (version, name) VALUES (?, ?)',
+            (version, name)
+        )
+    except Exception:
+        # Column/table already exists — record as applied
+        con.execute(
+            'INSERT OR IGNORE INTO _schema_migrations (version, name) VALUES (?, ?)',
+            (version, name)
+        )
 
 
 # ── Memory CRUD ────────────────────────────────────────────────────────────────
