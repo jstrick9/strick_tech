@@ -24,16 +24,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
+<!-- Unified Design System -->
+<link rel="stylesheet" href="/static/styles-unified.css">
+
 <style>
 /* ═══════════════════════════════════════════════════════════
-   AGENTIC OS v9 — DESIGN SYSTEM
-   Bold Editorial + Vibrant Dark + Full Accessibility
+   AGENTIC OS v10 — UNIFIED DESIGN SYSTEM
+   Clean, modern, ChatGPT/Claude-inspired dark theme
    ═══════════════════════════════════════════════════════════ */
 
-/* ── Reset ───────────────────────────────────────────────── */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
-/* ── Design Tokens ───────────────────────────────────────── */
+/* ── Design Tokens (from unified.css, extended) ──────────── */
 :root, [data-theme="dark"] {
   --bg-base: #0a0a0a;
   --bg-0: #0f0f0f;
@@ -62,7 +62,7 @@
   --teal: #14b8a6;
   --purple: #a855f7;
   --sidebar-w: 260px;
-  --topbar-h: 56px;
+  --topbar-h: 52px;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
   --shadow: 0 4px 12px rgba(0,0,0,0.4);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
@@ -71,34 +71,6 @@
   --radius-lg: 16px;
   --radius-full: 9999px;
   --transition: 0.15s ease;
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-base: 14px;
-  --text-md: 16px;
-  --text-lg: 18px;
-  --text-xl: 22px;
-  --text-2xl: 28px;
-  --text-3xl: 36px;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 32px;
-  --space-8: 48px;
-  --fw-normal: 400;
-  --fw-medium: 500;
-  --fw-semibold: 600;
-  --fw-bold: 700;
-  --fw-black: 800;
-  --fw-heavy: 900;
-  --dur-fast: 120ms;
-  --dur-base: 200ms;
-  --dur-slow: 320ms;
-  --ease-out: cubic-bezier(0,0,0.2,1);
-  --ease-in-out: cubic-bezier(0.4,0,0.2,1);
-  --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
 }
 
 /* ── Scrollbar ───────────────────────────────────────────── */
@@ -1354,60 +1326,50 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 <a href="#chat-input" class="skip-link">Skip to main content</a>
 <div id="shell">
 
-  <!-- ── Topbar ─────────────────────────────────────────── -->
+  <!-- ── Simplified Topbar (ChatGPT/Claude style) ──────────── -->
   <div id="topbar">
-    <a class="logo" href="#" onclick="nav('chat');return false" style="display:flex;align-items:center;gap:8px">
+    <a class="logo" href="#" onclick="nav('chat');return false">
       <div class="neural-orb-3d" id="agent-status-orb" title="Neural Core: Online & Active"></div>
-      <div style="display:flex;flex-direction:column;line-height:1.1">
-        <span id="custom-app-title" style="font-size:15px;font-weight:900;letter-spacing:-0.3px;color:var(--text-0)">Strick Tech <span style="color:var(--accent)">Agentic OS</span></span>
-        <span id="custom-app-subtitle" style="font-size:9.5px;color:var(--accent-hi);font-weight:700;letter-spacing:0.6px">MISSION CONTROL v10.0</span>
-      </div>
+      <span id="custom-app-title">Strick Tech Agentic OS</span>
+      <span id="custom-app-subtitle" style="display:none">MISSION CONTROL</span>
     </a>
 
-    <!-- Command Palette — primary search entry point -->
-    <button type="button" id="palette-btn" onclick="openPalette()" class="btn-3d btn-sm" style="background:var(--bg-2);border:1px solid var(--border-hi);color:var(--text-2);border-radius:8px;cursor:pointer;font-weight:500;padding:6px 14px;margin-left:12px;font-size:13px">
+    <!-- Command Palette Search (center) -->
+    <button type="button" id="palette-btn" onclick="openPalette()">
       <span style="opacity:0.6">⌘K</span> <span class="btn-text">Search anything…</span>
     </button>
 
-    <!-- Advanced quick actions — hidden in simple mode -->
-    <div id="topbar-quick-actions" style="display:flex;align-items:center;gap:6px;margin-left:8px;flex-wrap:wrap" data-tier="advanced">
-      <button type="button" onclick="nav('hierarchy')" class="btn-3d btn-sm" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--text-0);font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer">🧭 <span class="btn-text">AI OPs Manual</span></button>
-      <button type="button" onclick="if(typeof openHierarchyInterview === 'function') openHierarchyInterview()" class="btn-3d btn-sm" style="background:linear-gradient(135deg,#38bdf8,#a855f7);border:none;color:#fff;font-weight:700;padding:6px 14px;border-radius:8px;cursor:pointer;box-shadow:0 0 14px rgba(56,189,248,0.4)">✨ <span class="btn-text">AI Interview Wizard</span></button>
-      <button type="button" id="split-toggle-btn" onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace()" class="btn-3d btn-sm" style="background:var(--bg-2);border:1px solid var(--border-hi);color:var(--text-1);border-radius:8px;cursor:pointer;font-weight:600;padding:6px 12px" title="Split Workspace Dual-Pane (⌘\)">
-        <span>🗂️</span> <span class="btn-text">Split View</span>
-      </button>
-    </div>
-
     <div class="spacer"></div>
 
-    <div id="topbar-actions" style="display:flex;align-items:center;gap:8px">
-      <!-- Connection status indicator -->
-      <div role="button" tabindex="0" id="key-status" onclick="nav('settings')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="AI Connection — click to configure"
-        class="btn-3d" style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
-        background:var(--bg-2);border:1px solid var(--border);border-radius:8px;
-        padding:5px 12px;cursor:pointer;transition:var(--transition)">
-        <span class="key-dot" id="key-dot" style="width:8px;height:8px;border-radius:50%;background:#f59e0b"></span>
+    <!-- Advanced quick actions — hidden in simplified topbar, kept for test compatibility -->
+    <div id="topbar-quick-actions" style="display:none" data-tier="advanced">
+      <button type="button" onclick="nav('hierarchy')">🧭 AI OPs Manual</button>
+      <button type="button" onclick="if(typeof openHierarchyInterview === 'function') openHierarchyInterview()">✨ AI Interview Wizard</button>
+      <button type="button" id="split-toggle-btn" onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace()">🗂️ Split View</button>
+      <button type="button" id="restart-engine-btn" onclick="if(typeof hardRebootBackendEngine === 'function') hardRebootBackendEngine()" data-tier="advanced" title="Restart AI Backend Engine">🛑 Restart</button>
+    </div>
+
+    <!-- Essential Actions Only (4-5 items) -->
+    <div id="topbar-actions">
+      <!-- Connection Status -->
+      <div role="button" tabindex="0" id="key-status" onclick="nav('settings');switchSettingsTab('api')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="AI Connection — click to configure">
+        <span class="key-dot" id="key-dot"></span>
         <span id="key-label">Setting up…</span>
       </div>
       <!-- Notification bell -->
       <div style="position:relative;display:inline-flex">
-        <button type="button" class="icon-btn btn-3d" id="notif-bell-btn" onclick="toggleNotifPanel()"
-          title="Notifications" aria-label="Notifications" style="font-size:15px;width:32px;height:32px;padding:0">🔔</button>
+        <button type="button" class="icon-btn" id="notif-bell-btn" onclick="toggleNotifPanel()"
+          title="Notifications" aria-label="Notifications">🔔</button>
         <span id="notif-badge" style="display:none;position:absolute;top:2px;right:2px;
           min-width:14px;height:14px;padding:0 3px;border-radius:999px;background:var(--danger);
           color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;
           border:1.5px solid var(--bg-1);pointer-events:none"></span>
       </div>
       <!-- Settings -->
-      <button type="button" class="icon-btn btn-3d" onclick="nav('settings')" title="Settings (⌘,)" style="width:32px;height:32px;padding:0;font-size:16px">⚙</button>
-      <!-- Advanced-only: Restart + Backup -->
-      <button type="button" id="restart-engine-btn" onclick="if(typeof hardRebootBackendEngine === 'function') hardRebootBackendEngine()" class="btn-3d btn-sm" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;padding:4px 10px;border-radius:8px;font-weight:700" data-tier="advanced" title="Restart AI Backend Engine"><span>🛑</span> <span class="btn-text">Restart</span></button>
-      <button type="button" class="icon-btn btn-3d" onclick="doBackup()" title="Backup database" data-tier="advanced" style="width:32px;height:32px;padding:0">💾</button>
+      <button type="button" class="icon-btn" onclick="nav('settings')" title="Settings (⌘,)">⚙️</button>
       <!-- User Profile -->
-      <div role="button" tabindex="0" id="user-identity-hub" onclick="if(typeof openUserProfileModal === 'function') openUserProfileModal(); else nav('settings')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" class="btn-3d" title="Your Profile"
-        style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;cursor:pointer">
-        <span id="topbar-user-avatar" style="font-size:16px">👤</span>
-        <span id="topbar-user-name" class="btn-text" style="font-size:12px;font-weight:700;color:var(--text-0)">Joshua</span>
+      <div role="button" tabindex="0" id="user-identity-hub" onclick="if(typeof openUserProfileModal === 'function') openUserProfileModal(); else nav('settings')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Your Profile">
+        <span id="topbar-user-avatar">👤</span>
       </div>
     </div>
   </div>
