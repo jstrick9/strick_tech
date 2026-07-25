@@ -2499,7 +2499,13 @@ function updateVoiceBtn(listening) {
 }
 
 // Add voice button to chat tools dynamically
-document.addEventListener('DOMContentLoaded', () => {});
+document.addEventListener('DOMContentLoaded', () => {
+  // Restore saved theme on page load
+  try {
+    const savedTheme = _safeLS.get('agentic_os_theme') || 'dark';
+    if (typeof applyTheme === 'function') applyTheme(savedTheme);
+  } catch(e) {}
+});
 (function addVoiceBtn() {
   const tools = document.querySelector('.chat-tools');
   if (!tools) { setTimeout(addVoiceBtn, 500); return; }
