@@ -486,7 +486,13 @@ async function sendChat() {
   const typedMessage = input.value.trim();
   const attachments = [...(window._chatAttachments || [])];
   if (!typedMessage && !attachments.length) return;
-  const attachmentContext = attachments.map((item) => `\n\n[Attached ${attachmentKind(item.file).label}: ${item.file.name}]\n\`\`\`\n${item.text}\n\`\`\``).join('');
+  const attachmentContext = attachments.map((item) => {
+    const kind = attachmentKind(item.file);
+    if (kind.label === 'image') {
+      return `\n\n[Attached image: ${item.file.name}]\n[image data: ${item.text.slice(0, 80)}...]`;
+    }
+    return `\n\n[Attached ${kind.label}: ${item.file.name}]\n\`\`\`\n${item.text}\n\`\`\``;
+  }).join('');
   const msg = typedMessage || 'Please review the attached file(s) and tell me what is most important.';
   const messageForModel = msg + attachmentContext;
   const displayMessage = attachments.length ? `${msg}\n\n📎 ${attachments.map((item) => item.file.name).join(', ')}` : msg;
@@ -1023,6 +1029,7 @@ function attachmentKind(file) {
   if (['csv', 'tsv'].includes(ext)) return {icon: '📊', label: 'data file'};
   if (['json', 'yaml', 'yml', 'xml'].includes(ext)) return {icon: '🧩', label: 'structured data'};
   if (['js', 'jsx', 'ts', 'tsx', 'py', 'html', 'css', 'sql', 'java', 'go', 'rs', 'rb', 'php', 'c', 'cpp', 'h', 'sh'].includes(ext)) return {icon: '💻', label: 'code file'};
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) return {icon: '🖼', label: 'image'};
   return {icon: '📄', label: 'document'};
 }
 
@@ -1069,10 +1076,19 @@ window.addChatFiles = async function(fileList) {
     const byteLimit = serverDocument ? maxDocumentBytes : maxTextFileBytes;
     if (file.size > byteLimit) { skipped.push(`${file.name} (larger than ${serverDocument ? '4 MB' : '250 KB'})`); continue; }
     const looksTextual = serverDocument || file.type.startsWith('text/') || /\.(txt|md|markdown|csv|tsv|json|js|jsx|ts|tsx|py|html|css|xml|yaml|yml|log|sql|sh|java|go|rs|rb|php|c|cpp|h)$/i.test(file.name);
-    if (!looksTextual) { skipped.push(`${file.name} (use text, code, CSV, JSON, PDF, or Word)`); continue; }
+    const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
+    if (!looksTextual && !isImage) { skipped.push(`${file.name} (use text, code, images, CSV, JSON, PDF, or Word)`); continue; }
     try {
       let extractedText;
-      if (serverDocument) {
+      if (isImage) {
+        // Convert image to base64 data URL for multi-modal models
+        const reader = new FileReader();
+        extractedText = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error('could not read image'));
+          reader.readAsDataURL(file);
+        });
+      } else if (serverDocument) {
         toast(`Reading ${file.name}…`, 'ok', 1800);
         const form = new FormData(); form.append('file', file);
         const response = await fetch('/api/documents/extract', {method: 'POST', body: form});

@@ -1789,9 +1789,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               </div>
               <div id="chat-attachment-tray" class="chat-attachment-tray" aria-live="polite"></div>
               <div class="chat-input-row">
-                <input id="chat-file-input" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.js,.jsx,.ts,.tsx,.py,.html,.css,.xml,.yaml,.yml,.log,.sql,.sh,.java,.go,.rs,.rb,.php,.c,.cpp,.h,.pdf,.docx">
+                <input id="chat-file-input" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.js,.jsx,.ts,.tsx,.py,.html,.css,.xml,.yaml,.yml,.log,.sql,.sh,.java,.go,.rs,.rb,.php,.c,.cpp,.h,.pdf,.docx,.jpg,.jpeg,.png,.gif,.webp,.svg">
                 <button class="chat-attach-btn btn-3d" onclick="document.getElementById('chat-file-input').click()" title="Attach text, code, CSV, or JSON files" aria-label="Attach files">📎</button>
-                <textarea id="chat-input" aria-label="Chat message input" placeholder="Message AI… or drop a file here" rows="1"></textarea>
+                <textarea id="chat-input" aria-label="Chat message input" placeholder="Message AI… or drop a file or image here" rows="1"></textarea>
                 <button class="chat-send-btn" id="chat-send" onclick="sendChat()" aria-label="Send message">➤</button>
               </div>
             </div>
@@ -3305,45 +3305,45 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
 <!-- Application modules (loaded in dependency order) -->
 <script src="/static/js/01-app-core.js"></script>
-<script src="/static/js/02-studio.js"></script>
-<script src="/static/js/03-features-a.js"></script>
-<script src="/static/js/03-features-b.js"></script>
-<script src="/static/js/04-workflow-specs.js"></script>
-<script src="/static/js/05-evals-observability.js"></script>
-<script src="/static/js/06-sprint-features.js"></script>
-<script src="/static/js/07-marketplace.js"></script>
-<script src="/static/js/08-replay-collab.js"></script>
-<script src="/static/js/09-voice-tts.js"></script>
-<script src="/static/js/11-ux-accessibility.js"></script>
-<script src="/static/js/12-information-hierarchy.js"></script>
-<script src="/static/js/13-ui-ergonomics.js"></script>
-<script src="/static/js/14-prompt-library.js"></script>
-<script src="/static/js/15-image-generation.js"></script>
-<script src="/static/js/16-terminal.js"></script>
-<script src="/static/js/17-database-studio.js"></script>
-<script src="/static/js/18-github.js"></script>
-<script src="/static/js/19-composer.js"></script>
-<script src="/static/js/20-obsidian.js"></script>
-<script src="/static/js/21-template-gallery.js"></script>
-<script src="/static/js/22-integrations.js"></script>
-<script src="/static/js/23-plugin-marketplace.js"></script>
-<script src="/static/js/24-onboarding.js"></script>
-<script src="/static/js/25-skills.js"></script>
-<script src="/static/js/26-swarm.js"></script>
-<script src="/static/js/27-galaxy.js"></script>
-<script src="/static/js/28-kanban.js"></script>
-<script src="/static/js/29-notifications.js"></script>
-<script src="/static/js/30-workspaces.js"></script>
-<script src="/static/js/31-control-tower.js"></script>
-<script src="/static/js/32-collaboration.js"></script>
-<script src="/static/js/33-webhooks.js"></script>
-<script src="/static/js/34-test-generator.js"></script>
-<script src="/static/js/35-deploy.js"></script>
-<script src="/static/js/36-dashboard.js"></script>
-<script src="/static/js/37-pipeline.js"></script>
-<script src="/static/js/38-system-monitor.js"></script>
-<script src="/static/js/39-mcp-panel.js"></script>
-<script src="/static/js/40-loops.js"></script>
+<script src="/static/js/02-studio.js" defer></script>
+<script src="/static/js/03-features-a.js" defer></script>
+<script src="/static/js/03-features-b.js" defer></script>
+<script src="/static/js/04-workflow-specs.js" defer></script>
+<script src="/static/js/05-evals-observability.js" defer></script>
+<script src="/static/js/06-sprint-features.js" defer></script>
+<script src="/static/js/07-marketplace.js" defer></script>
+<script src="/static/js/08-replay-collab.js" defer></script>
+<script src="/static/js/09-voice-tts.js" defer></script>
+<script src="/static/js/11-ux-accessibility.js" defer></script>
+<script src="/static/js/12-information-hierarchy.js" defer></script>
+<script src="/static/js/13-ui-ergonomics.js" defer></script>
+<script src="/static/js/14-prompt-library.js" defer></script>
+<script src="/static/js/15-image-generation.js" defer></script>
+<script src="/static/js/16-terminal.js" defer></script>
+<script src="/static/js/17-database-studio.js" defer></script>
+<script src="/static/js/18-github.js" defer></script>
+<script src="/static/js/19-composer.js" defer></script>
+<script src="/static/js/20-obsidian.js" defer></script>
+<script src="/static/js/21-template-gallery.js" defer></script>
+<script src="/static/js/22-integrations.js" defer></script>
+<script src="/static/js/23-plugin-marketplace.js" defer></script>
+<script src="/static/js/24-onboarding.js" defer></script>
+<script src="/static/js/25-skills.js" defer></script>
+<script src="/static/js/26-swarm.js" defer></script>
+<script src="/static/js/27-galaxy.js" defer></script>
+<script src="/static/js/28-kanban.js" defer></script>
+<script src="/static/js/29-notifications.js" defer></script>
+<script src="/static/js/30-workspaces.js" defer></script>
+<script src="/static/js/31-control-tower.js" defer></script>
+<script src="/static/js/32-collaboration.js" defer></script>
+<script src="/static/js/33-webhooks.js" defer></script>
+<script src="/static/js/34-test-generator.js" defer></script>
+<script src="/static/js/35-deploy.js" defer></script>
+<script src="/static/js/36-dashboard.js" defer></script>
+<script src="/static/js/37-pipeline.js" defer></script>
+<script src="/static/js/38-system-monitor.js" defer></script>
+<script src="/static/js/39-mcp-panel.js" defer></script>
+<script src="/static/js/40-loops.js" defer></script>
 
 <script>
 // ── Sidebar collapse toggle (⌘\) ───────────────────────────────
