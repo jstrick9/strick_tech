@@ -1,13 +1,16 @@
 /* ═══════════════════════════════════════════════════════════
-   AGENTIC OS — UNIFIED DESIGN SYSTEM v3
-   ChatGPT/Claude-inspired with all Phase 3 improvements
+   AGENTIC OS — UNIFIED DESIGN SYSTEM v4
+   Complete CSS Consolidation & Component Library
    ═══════════════════════════════════════════════════════════ */
 
 /* ── Reset ───────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-/* ── Design Tokens (Indigo Accent) ──────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   DESIGN TOKENS — Single source of truth
+   ═══════════════════════════════════════════════════════════ */
 :root, [data-theme="dark"] {
+  /* Backgrounds — 8-step gray scale */
   --bg-base: #0a0a0a;
   --bg-0: #0f0f0f;
   --bg-1: #171717;
@@ -15,24 +18,36 @@
   --bg-3: #2a2a2a;
   --bg-4: #363636;
   --bg-5: #444444;
+  --bg-6: #525252;
 
+  /* Borders */
   --border: rgba(255,255,255,0.08);
   --border-hi: rgba(255,255,255,0.15);
+  --border-focus: rgba(99,102,241,0.5);
 
+  /* Text — 4-step scale */
   --text-0: #f5f5f5;
   --text-1: #d4d4d4;
   --text-2: #a0a0a0;
   --text-3: #666666;
 
+  /* Accent — Indigo */
   --accent: #6366f1;
   --accent-hi: #818cf8;
+  --accent-lo: #4f46e5;
   --accent-glow: rgba(99,102,241,0.15);
 
+  /* Semantic colors */
   --success: #22c55e;
+  --success-bg: rgba(34,197,94,0.15);
   --warning: #eab308;
+  --warning-bg: rgba(234,179,8,0.15);
   --danger: #ef4444;
+  --danger-bg: rgba(239,68,68,0.15);
   --info: #3b82f6;
+  --info-bg: rgba(59,130,246,0.15);
 
+  /* Semantic aliases */
   --green: var(--success);
   --red: var(--danger);
   --yellow: var(--warning);
@@ -40,18 +55,22 @@
   --teal: #14b8a6;
   --purple: #a855f7;
 
+  /* Layout */
   --sidebar-w: 260px;
   --topbar-h: 52px;
 
+  /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
   --shadow: 0 4px 12px rgba(0,0,0,0.4);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
 
+  /* Border radius */
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 16px;
   --radius-full: 9999px;
 
+  /* Transitions */
   --transition: 0.15s ease;
 }
 
@@ -63,6 +82,7 @@
   --bg-3: #e5e7eb;
   --bg-4: #d1d5db;
   --bg-5: #9ca3af;
+  --bg-6: #6b7280;
 
   --border: rgba(0,0,0,0.08);
   --border-hi: rgba(0,0,0,0.15);
@@ -81,7 +101,9 @@
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.15);
 }
 
-/* ── Typography ──────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   TYPOGRAPHY
+   ═══════════════════════════════════════════════════════════ */
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 14px;
@@ -92,7 +114,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Layout Shell ────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   LAYOUT SHELL
+   ═══════════════════════════════════════════════════════════ */
 #shell {
   display: flex;
   flex-direction: column;
@@ -200,27 +224,6 @@ body {
 
 .key-dot.ok {
   background: var(--green);
-}
-
-.icon-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  border: 1px solid transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--text-2);
-  font-size: 16px;
-  transition: all var(--transition);
-}
-
-.icon-btn:hover {
-  background: var(--bg-3);
-  border-color: var(--border);
-  color: var(--text-0);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -549,7 +552,7 @@ body {
   30% { opacity: 1; transform: scale(1); }
 }
 
-/* ── Chat Input (Large, prominent) ───────────────────────── */
+/* Chat Input */
 .chat-input-area {
   padding: 16px 24px 24px;
   background: transparent;
@@ -646,7 +649,7 @@ body {
   cursor: not-allowed;
 }
 
-/* ── Chat Empty State ────────────────────────────────────── */
+/* Chat Empty State */
 #chat-empty {
   display: flex;
   flex-direction: column;
@@ -708,7 +711,7 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   BUTTONS — Unified button system
+   BUTTON SYSTEM — Unified components
    ═══════════════════════════════════════════════════════════ */
 .btn {
   display: inline-flex;
@@ -753,7 +756,7 @@ body {
 }
 
 .btn-danger {
-  background: rgba(239,68,68,0.15);
+  background: var(--danger-bg);
   color: var(--danger);
   border-color: rgba(239,68,68,0.4);
 }
@@ -769,8 +772,29 @@ body {
   font-size: 12px;
 }
 
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: 16px;
+  transition: all var(--transition);
+}
+
+.icon-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--border);
+  color: var(--text-0);
+}
+
 /* ═══════════════════════════════════════════════════════════
-   SETTINGS WORKSTATION — Simplified 3-tab layout
+   SETTINGS WORKSTATION
    ═══════════════════════════════════════════════════════════ */
 .settings-workstation {
   display: flex;
@@ -918,76 +942,10 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   STATUS BAR
+   COMPONENT LIBRARY — Modals, Toasts, Tooltips
    ═══════════════════════════════════════════════════════════ */
-#statusbar {
-  height: 28px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 0;
-  background: var(--bg-1);
-  border-top: 1px solid var(--border);
-  font-size: 11px;
-  color: var(--text-3);
-  padding: 0 12px;
-}
 
-.sb-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0 10px;
-  border-right: 1px solid var(--border);
-  height: 100%;
-  white-space: nowrap;
-}
-
-.sb-item:last-child { border-right: none; }
-.sb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
-
-/* ═══════════════════════════════════════════════════════════
-   TOAST NOTIFICATIONS
-   ═══════════════════════════════════════════════════════════ */
-#toast-container {
-  position: fixed;
-  bottom: 40px;
-  right: 24px;
-  z-index: 10000;
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 8px;
-  max-width: 400px;
-  pointer-events: none;
-}
-
-.toast {
-  background: var(--bg-3);
-  border: 1px solid var(--border-hi);
-  color: var(--text-0);
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  font-size: 13px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  box-shadow: var(--shadow-lg);
-  opacity: 0;
-  transform: translateY(12px);
-  transition: all 0.25s ease;
-  pointer-events: auto;
-  backdrop-filter: blur(12px);
-}
-
-.toast.show { opacity: 1; transform: translateY(0); }
-.toast.ok { border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.1); }
-.toast.err { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.1); }
-.toast.warn { border-color: rgba(234,179,8,0.4); background: rgba(234,179,8,0.1); }
-
-/* ═══════════════════════════════════════════════════════════
-   MODALS
-   ═══════════════════════════════════════════════════════════ */
+/* Modal */
 .modal-back {
   position: fixed;
   inset: 0;
@@ -1024,6 +982,73 @@ body {
   line-height: 1.6;
 }
 
+/* Toast */
+#toast-container {
+  position: fixed;
+  bottom: 40px;
+  right: 24px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  max-width: 400px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--bg-3);
+  border: 1px solid var(--border-hi);
+  color: var(--text-0);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: all 0.25s ease;
+  pointer-events: auto;
+  backdrop-filter: blur(12px);
+}
+
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.ok { border-color: rgba(34,197,94,0.4); background: var(--success-bg); }
+.toast.err { border-color: rgba(239,68,68,0.4); background: var(--danger-bg); }
+.toast.warn { border-color: rgba(234,179,8,0.4); background: var(--warning-bg); }
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  background: var(--bg-4);
+  color: var(--text-0);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.15s ease;
+  z-index: 1000;
+  box-shadow: var(--shadow);
+}
+
+.tooltip:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
 /* ═══════════════════════════════════════════════════════════
    PANE TRANSITIONS
    ═══════════════════════════════════════════════════════════ */
@@ -1045,6 +1070,35 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   STATUS BAR
+   ═══════════════════════════════════════════════════════════ */
+#statusbar {
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--bg-1);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-3);
+  padding: 0 12px;
+}
+
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  border-right: 1px solid var(--border);
+  height: 100%;
+  white-space: nowrap;
+}
+
+.sb-item:last-child { border-right: none; }
+.sb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════════
    UTILITY CLASSES
    ═══════════════════════════════════════════════════════════ */
 .spacer { flex: 1; }
@@ -1060,7 +1114,7 @@ body {
 }
 
 .badge.live {
-  background: rgba(34,197,94,0.2);
+  background: var(--success-bg);
   border-color: rgba(34,197,94,0.4);
   color: var(--success);
 }
