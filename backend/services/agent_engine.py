@@ -14,15 +14,15 @@ The core execution runtime for all AI agent operations. Provides:
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import logging
 import time
 import uuid
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Awaitable, Optional
+from typing import Any
 
 log = logging.getLogger('agentic.engine')
 
@@ -647,7 +647,7 @@ class ExecutionEngine:
         """Get status of all circuit breakers."""
         return {k: v.status for k, v in self.circuit_breakers.items()}
 
-    def get_trace(self, trace_id: str) -> Optional[dict]:
+    def get_trace(self, trace_id: str) -> dict | None:
         """Get a trace by ID."""
         trace = self.active_traces.get(trace_id)
         return trace.to_dict() if trace else None
@@ -716,7 +716,7 @@ class LoopEngine:
         t0 = time.time()
 
         try:
-            result = await loop["fn"]()
+            await loop["fn"]()
             duration_ms = (time.time() - t0) * 1000
 
             loop["state"] = AgentState.IDLE
@@ -793,7 +793,7 @@ class LoopEngine:
                 "consecutive_errors": loop["consecutive_errors"],
             }
 
-    def get_loop_status(self, loop_id: str) -> Optional[dict]:
+    def get_loop_status(self, loop_id: str) -> dict | None:
         """Get detailed loop status including health metrics."""
         loop = self.loops.get(loop_id)
         if not loop:
@@ -994,17 +994,18 @@ class HarnessEngine:
         import statistics
 
         latencies = []
-        errors = 0
+        error_count = 0
         semaphore = asyncio.Semaphore(concurrency)
 
         async def run_one(i: int):
+            nonlocal error_count
             async with semaphore:
                 t0 = time.time()
                 try:
                     await agent_fn()
                     latencies.append((time.time() - t0) * 1000)
                 except Exception:
-                    errors += 1
+                    error_count += 1
 
         t_start = time.time()
         await asyncio.gather(*[run_one(i) for i in range(iterations)])
@@ -1019,7 +1020,7 @@ class HarnessEngine:
             "harness_id": harness_id,
             "iterations": iterations,
             "concurrency": concurrency,
-            "errors": errors,
+            "errors": error_count,
             "total_time_s": round(total_time, 2),
             "rps": round(iterations / total_time, 1) if total_time > 0 else 0,
             "latency": {
@@ -1057,9 +1058,9 @@ class HarnessEngine:
 #  SINGLETON INSTANCES
 # ═══════════════════════════════════════════════════════════════════════════
 
-_engine: Optional[ExecutionEngine] = None
-_loop_engine: Optional[LoopEngine] = None
-_harness_engine: Optional[HarnessEngine] = None
+_engine: ExecutionEngine | None = None
+_loop_engine: LoopEngine | None = None
+_harness_engine: HarnessEngine | None = None
 
 
 def get_engine() -> ExecutionEngine:
@@ -1551,7 +1552,7 @@ class CheckpointEngine:
             "total_checkpoints": len(self.checkpoints[task_id]),
         }
 
-    def get_latest_checkpoint(self, task_id: str) -> Optional[dict]:
+    def get_latest_checkpoint(self, task_id: str) -> dict | None:
         """Get the latest checkpoint for a task."""
         cps = self.checkpoints.get(task_id, [])
         return cps[-1] if cps else None
@@ -1660,12 +1661,12 @@ class PromptEngine:
 #  UPDATED SINGLETON INSTANCES
 # ═══════════════════════════════════════════════════════════════════════════
 
-_chain_engine: Optional[ChainEngine] = None
-_reflection_engine: Optional[ReflectionEngine] = None
-_guard_engine: Optional[GuardEngine] = None
-_cost_engine: Optional[CostEngine] = None
-_checkpoint_engine: Optional[CheckpointEngine] = None
-_prompt_engine: Optional[PromptEngine] = None
+_chain_engine: ChainEngine | None = None
+_reflection_engine: ReflectionEngine | None = None
+_guard_engine: GuardEngine | None = None
+_cost_engine: CostEngine | None = None
+_checkpoint_engine: CheckpointEngine | None = None
+_prompt_engine: PromptEngine | None = None
 
 
 def get_chain_engine() -> ChainEngine:

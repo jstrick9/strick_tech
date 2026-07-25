@@ -5,7 +5,6 @@ via REST endpoints for the frontend and other services.
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import uuid
@@ -13,8 +12,8 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from ..services import llm
 from ..services.agent_engine import (
-    CircuitBreakerConfig,
     HarnessConfig,
     LoopConfig,
     RetryConfig,
@@ -23,7 +22,6 @@ from ..services.agent_engine import (
     get_harness_engine,
     get_loop_engine,
 )
-from ..services import llm
 
 router = APIRouter(prefix='/api/engine', tags=['engine'])
 log = logging.getLogger('agentic.engine.api')
@@ -88,7 +86,7 @@ async def execute_with_retry(req: Request):
         max_delay_ms=15000,
     )
 
-    from ..services.agent_engine import ExecutionTrace, ExecutionStrategy
+    from ..services.agent_engine import ExecutionStrategy, ExecutionTrace
     trace = ExecutionTrace(
         trace_id=f"exec_{uuid.uuid4().hex[:8]}",
         agent_id=agent_id,

@@ -68,7 +68,6 @@ from .routers.arena import router as arena_router
 # ── Sprint A: Governance Foundation ───────────────────────────────────────────
 from .routers.audit_log import router as audit_log_router
 from .routers.auth import router as auth_router
-from .routers.engine import router as engine_router
 from .routers.bci import router as bci_router
 from .routers.bounty_hunter import router as bounty_hunter_router
 from .routers.browser_agent import router as browser_router
@@ -92,6 +91,7 @@ from .routers.docs_center import router as docs_router
 from .routers.documents import router as documents_router
 from .routers.drift import router as drift_router
 from .routers.e2e import router as e2e_router
+from .routers.engine import router as engine_router
 from .routers.evals import router as evals_router
 from .routers.finetune import router as finetune_router
 from .routers.fusion import router as fusion_router
