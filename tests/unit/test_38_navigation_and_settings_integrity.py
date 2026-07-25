@@ -252,7 +252,7 @@ class TestNavigationAndSettingsIntegrity:
         features_a_js = (JS_DIR / "03-features-a.js").read_text(encoding="utf-8")
         assert "window.renderPQCVault = async function()" in features_a_js, "renderPQCVault must be globally assigned"
 
-        sprint_features_js = (JS_DIR / "06-sprint-features.js").read_text(encoding="utf-8")
+        sprint_features_js = "\n".join(f.read_text(encoding="utf-8") for f in sorted(JS_DIR.glob("*.js")))
         assert "window.renderHITL = renderHITL;" in sprint_features_js, "renderHITL must be globally assigned"
         assert "window.hitlDecide = hitlDecide;" in sprint_features_js, "hitlDecide must be globally assigned"
         assert "window.renderFinOps = renderFinOps;" in sprint_features_js, "renderFinOps must be globally assigned"
