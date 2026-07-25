@@ -15,7 +15,7 @@ class TestHealth:
     def test_health_has_version(self, client):
         d = assert_ok(client.get("/api/health"))
         assert "version" in d
-        assert d["version"] == "6.0"
+        assert d["version"] == "11.5.0"
 
     def test_health_has_service_name(self, client):
         d = assert_ok(client.get("/api/health"))
