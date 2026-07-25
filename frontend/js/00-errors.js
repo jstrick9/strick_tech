@@ -77,5 +77,5 @@
   // ── Reset error counts periodically ────────────────────────
   setInterval(function() { errorCounts = {}; }, 60000);
 
-  console.log('%c✅ Error Boundaries loaded', 'color:#e8a237;font-weight:bold');
+  console.debug('%c✅ Error Boundaries loaded', 'color:#e8a237;font-weight:bold');
 })();

@@ -1542,7 +1542,7 @@ document.addEventListener('keydown', (e) => {
     if (pane==='codeindex') renderCodeIndex?.();
     if (pane==='arena')     renderArena?.();
   };
-  console.log('%c✅ Sprint 16 loaded: Spec Builder, Hooks, Code Graph, Arena, Voice', 'color:#f06080;font-weight:bold');
+  console.debug('%c✅ Sprint 16 loaded: Spec Builder, Hooks, Code Graph, Arena, Voice', 'color:#f06080;font-weight:bold');
 })();
 
 // Keyboard shortcuts Sprint 16

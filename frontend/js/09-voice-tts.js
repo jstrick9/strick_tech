@@ -270,5 +270,5 @@
     }
   }, 2000);
 
-  console.log('%c✅ Voice & TTS integration loaded', 'color:#c084fc;font-weight:bold');
+  console.debug('%c✅ Voice & TTS integration loaded', 'color:#c084fc;font-weight:bold');
 })();

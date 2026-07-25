@@ -301,5 +301,5 @@ const _safeLS = {
     }, 100);
   }
 
-  console.log('%c✅ UI Ergonomics Engine loaded (Phase A: Drag-and-Drop Pinning + Sticky Breadcrumb Bar)', 'color:#3b82f6;font-weight:bold');
+  console.debug('%c✅ UI Ergonomics Engine loaded (Phase A: Drag-and-Drop Pinning + Sticky Breadcrumb Bar)', 'color:#3b82f6;font-weight:bold');
 })();

@@ -10,7 +10,7 @@
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/static/sw.js')
         .then(reg => {
-          console.log('%c✅ PWA Service Worker registered', 'color:#4cc98a');
+          console.debug('%c✅ PWA Service Worker registered', 'color:#4cc98a');
           reg.addEventListener('updatefound', () => {
             const worker = reg.installing;
             if (worker) {
@@ -69,7 +69,7 @@
     if (pane==='eval-framework')renderEvalFramework?.();
     if (pane==='a2a')           renderA2A?.();
   };
-  console.log('%c✅ Sprint A+B+C+D features loaded', 'color:#3dba7a');
+  console.debug('%c✅ Sprint A+B+C+D features loaded', 'color:#3dba7a');
 })();
 
 // HITL WebSocket listener

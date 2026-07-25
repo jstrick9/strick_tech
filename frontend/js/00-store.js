@@ -150,5 +150,5 @@ const _safeLS = {
     }
   });
 
-  console.log('%c✅ State Store initialized', 'color:#3dba7a;font-weight:bold');
+  console.debug('%c✅ State Store initialized', 'color:#3dba7a;font-weight:bold');
 })();

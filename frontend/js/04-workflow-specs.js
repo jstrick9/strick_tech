@@ -1687,7 +1687,7 @@ function applyProfileTheme(profile) {
     // Small delay so the pane's innerHTML is rendered before we try to find containers
     setTimeout(() => _attachContextualHelpToPane(pane), 150);
   };
-  console.log('%c✅ Sprint 20: UX — Onboarding, Docs, Tiers, Simple Mode, Profile, Tour', 'color:#4cc98a;font-weight:bold');
+  console.debug('%c✅ Sprint 20: UX — Onboarding, Docs, Tiers, Simple Mode, Profile, Tour', 'color:#4cc98a;font-weight:bold');
 })();
 
 // Update profile button name when profile loads (FIX F: wrapped in try/catch)

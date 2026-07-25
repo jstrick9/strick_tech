@@ -261,5 +261,5 @@
   });
   domObserver.observe(document.documentElement, { childList: true, subtree: true });
 
-  console.log('%c✅ Accessibility & UX Module loaded (SR Announcer, Panes Navigation, Focus Trapping)', 'color:#8b5cf6;font-weight:bold');
+  console.debug('%c✅ Accessibility & UX Module loaded (SR Announcer, Panes Navigation, Focus Trapping)', 'color:#8b5cf6;font-weight:bold');
 })();

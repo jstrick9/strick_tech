@@ -2346,7 +2346,7 @@ async function tauriDevStart() {
   };
   
   // Register in RENDERERS if master nav has it
-  console.log('%c✅ Sprint 14 loaded: Workflow Builder, Live Cursors, Profiler, Plugin SDK, Multi-tab Preview', 'color:#38c5d8;font-weight:bold');
+  console.debug('%c✅ Sprint 14 loaded: Workflow Builder, Live Cursors, Profiler, Plugin SDK, Multi-tab Preview', 'color:#38c5d8;font-weight:bold');
 })();
 
 
