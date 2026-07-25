@@ -1195,21 +1195,16 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 }
 
 /* Collapsed sidebar — icon only mode */
-#sidebar.collapsed{width:52px}
+#sidebar.collapsed{width:56px}
+#sidebar.collapsed #sidebar-top-nav-header{padding:8px 6px;justify-content:center}
+#sidebar.collapsed #sidebar-top-nav-header > span:first-child{display:none}
 #sidebar.collapsed .label,
 #sidebar.collapsed .sidebar-group-label,
 #sidebar.collapsed .count,
-#sidebar.collapsed .badge{
-  display:none;
-}
-#sidebar.collapsed .nav-item{
-  justify-content:center;
-  padding:8px 6px;
-}
-#sidebar.collapsed .icon{
-  width:auto;
-  font-size:18px;
-}
+#sidebar.collapsed .badge,
+#sidebar.collapsed .help-tip{display:none !important}
+#sidebar.collapsed .nav-item{justify-content:center;padding:9px 8px;margin:1px 4px}
+#sidebar.collapsed .icon{width:auto;font-size:18px}
 #sidebar.collapsed .sidebar-add-agent span:last-child,
 #sidebar.collapsed .agent-info{
   display:none;
@@ -1667,7 +1662,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <button class="btn-3d btn-primary btn-sm" onclick="startNewChatSession()" style="padding:6px 10px;display:flex;align-items:center;gap:6px;font-weight:700">＋ New</button>
 
               <div id="chat-model-control" style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:4px 10px">
-                <span class="help-tip" data-tip="Choose which AI model to chat with. Click Settings to add more models.</span><button id="chat-connection-status" class="connection-status checking" onclick="nav('settings');switchSettingsTab('api')" title="Check or change your AI connection" style="font-size:11px">Checking…</button>
+                <button id="chat-connection-status" class="connection-status checking" onclick="nav('settings');switchSettingsTab('api')" title="Check or change your AI connection" style="font-size:11px">Checking…</button>
                 <select id="chat-model-select" onchange="if(typeof selectChatModel === 'function') selectChatModel(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
                   <optgroup label="Cloud AI">
                     <option value="claude">Claude 3.5 Sonnet</option>
@@ -3667,7 +3662,7 @@ document.addEventListener('keydown', function(e) {
   <button class="fab" onclick="nav('chat')" title="New Chat" aria-label="New Chat">💬</button>
 
   <!-- Theme toggle shortcut -->
-  <div class="theme-toggle-hint" onclick="if(typeof applyTheme==='function'){const t=_safeLS.get('agentic_os_theme')||'light';applyTheme(t==='light'?'dark':'light')}" title="Switch light/dark theme (or use Settings)">
+  <div class="theme-toggle-hint" onclick="if(typeof applyTheme==='function'){const t=_safeLS.get('agentic_os_theme')||'dark';applyTheme(t==='dark'?'light':'dark')}" title="Switch light/dark theme">
     <span>🌗</span> <span id="theme-hint-label">Theme</span>
   </div>
 </body>

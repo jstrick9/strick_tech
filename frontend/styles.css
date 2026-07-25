@@ -1513,16 +1513,23 @@ html, body, #shell {
 }
 
 /* Collapsed sidebar — icon only mode */
-#sidebar.collapsed{width:52px}
+#sidebar.collapsed{width:56px}
+#sidebar.collapsed #sidebar-top-nav-header{
+  padding:8px 6px;
+  justify-content:center;
+}
+#sidebar.collapsed #sidebar-top-nav-header > span:first-child{display:none}
 #sidebar.collapsed .label,
 #sidebar.collapsed .sidebar-group-label,
 #sidebar.collapsed .count,
-#sidebar.collapsed .badge{
-  display:none;
+#sidebar.collapsed .badge,
+#sidebar.collapsed .help-tip{
+  display:none !important;
 }
 #sidebar.collapsed .nav-item{
   justify-content:center;
-  padding:8px 6px;
+  padding:9px 8px;
+  margin:1px 4px;
 }
 #sidebar.collapsed .icon{
   width:auto;
