@@ -541,6 +541,31 @@ async function sendChat() {
 
   document.getElementById('chat-send').disabled = true;
 
+  // Show stop button during streaming
+  const sendBtn = document.getElementById('chat-send');
+  if (sendBtn) {
+    sendBtn.innerHTML = '⏹';
+    sendBtn.title = 'Stop generating';
+    sendBtn.disabled = false;
+  }
+
+  const abortController = new AbortController();
+  window._chatAbortController = abortController;
+  let aborted = false;
+
+  // Wire stop button to abort
+  const stopHandler = () => {
+    aborted = true;
+    abortController.abort();
+    if (sendBtn) {
+      sendBtn.innerHTML = '➤';
+      sendBtn.title = 'Send message';
+      sendBtn.disabled = false;
+      sendBtn.removeEventListener('click', stopHandler);
+    }
+  };
+  if (sendBtn) sendBtn.addEventListener('click', stopHandler);
+
   let fullText = '';
   let bubbleEl = null;
 
@@ -548,6 +573,7 @@ async function sendChat() {
     const resp = await fetch('/api/chat', {
       method:  'POST',
       headers: {'Content-Type':'application/json'},
+      signal:  abortController.signal,
       body:    JSON.stringify({
         message:    messageForModel,
         model:      selectedModel,
@@ -613,13 +639,23 @@ async function sendChat() {
 
   } catch(err) {
     document.getElementById(thinkingId)?.remove();
-    if (bubbleEl) {
+    if (aborted && fullText) {
+      // User stopped — show partial response gracefully
+      updateMessageBubble(bubbleEl, fullText + '\n\n⏹ *Stopped by user*');
+      if (sendBtn) sendBtn.removeEventListener('click', stopHandler);
+    } else if (bubbleEl && !aborted) {
       updateMessageBubble(bubbleEl, `❌ I couldn't complete that request.\n\n**What to try:**\n• Check that the server is running (port 8787)\n• Go to **Settings** → **Connect AI** to verify your connection\n• Try again in a few moments\n\nTechnical details: ${escHtml(err.message)}`);
-    } else {
+    } else if (!bubbleEl) {
       addMessage(`❌ Error: ${err.message}`, 'agent', '⚠️', 'System');
     }
   } finally {
-    document.getElementById('chat-send').disabled = false;
+    window._chatAbortController = null;
+    if (sendBtn) {
+      sendBtn.innerHTML = '➤';
+      sendBtn.title = 'Send message';
+      sendBtn.disabled = false;
+      sendBtn.removeEventListener('click', stopHandler);
+    }
     input.focus();
     updateCostBar();
   }
@@ -2030,6 +2066,36 @@ async function filterPalette() {
   });
 
   if (q.length > 0) {
+    // Chat history search
+    if (q.length >= 2) {
+      try {
+        const chatRes = await fetch('/api/chat/search?q=' + encodeURIComponent(q) + '&limit=10');
+        const chatData = await chatRes.json();
+        if (chatData.ok && chatData.results && chatData.results.length > 0) {
+          let chatStartIdx = items.length;
+          html += `<div class="palette-section" style="margin-top:12px;border-top:1px solid var(--border);padding-top:8px">💬 Chat History (${chatData.count})</div>`;
+          html += chatData.results.map((item, idx) => `
+          <div class="palette-item" data-idx="${chatStartIdx+idx}" style="display:flex;align-items:center;gap:8px">
+            <span class="p-icon">${item.role === 'user' ? '👤' : '🤖'}</span>
+            <span class="p-label">${escHtml(item.session_name || item.session_id)}</span>
+            <span class="p-desc" style="flex:1;overflow:hidden;text-overflow:ellipsis">${escHtml(item.snippet)}</span>
+            <span class="badge" style="background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);font-size:10px;padding:2px 6px">${escHtml(item.role)}</span>
+          </div>`).join('');
+          const chatActions = chatData.results.map(item => () => {
+            nav('chat');
+            if (typeof loadChatSession === 'function') loadChatSession(item.session_id);
+          });
+          results.innerHTML = html;
+          const prevItems = results.querySelectorAll('.palette-item');
+          prevItems.forEach((el, i) => {
+            if (i >= chatStartIdx) {
+              el.addEventListener('click', () => { chatActions[i - chatStartIdx](); closePalette(); });
+            }
+          });
+        }
+      } catch(e) { console.warn('Chat search failed:', e); }
+    }
+
     try {
       const res = await fetch('/api/search/global?q=' + encodeURIComponent(q));
       const data = await res.json();
