@@ -2,7 +2,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-CORE = (ROOT / 'frontend' / 'js' / '01-app-core.js').read_text(encoding='utf-8')
+CORE = '\n'.join(f.read_text(encoding='utf-8') for f in sorted((ROOT / 'frontend' / 'js').glob('*.js')))
 INDEX = (ROOT / 'frontend' / 'index.html').read_text(encoding='utf-8')
 ONBOARDING = (ROOT / 'backend' / 'routers' / 'onboarding.py').read_text(encoding='utf-8')
 

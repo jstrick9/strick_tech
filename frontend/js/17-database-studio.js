@@ -1,0 +1,345 @@
+// Agentic OS — Database Studio
+// Extracted from 01-app-core.js for modularity
+// ── Database Studio ────────────────────────────────────────────────
+var dbActiveTable = '', dbActiveTab = 'sqlite';
+
+async function renderDBStudio() {
+  const pane = document.getElementById('pane-dbstudio');
+  pane.innerHTML = `<div class="section-head">
+    <div><h2>🗄️ Database Studio</h2><p>Visual table browser, SQL editor, and Supabase connect</p></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="dbSetTab('sqlite')" class="btn ${dbActiveTab==='sqlite'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-sqlite">📦 SQLite (local)</button>
+      <button onclick="dbSetTab('supabase')" class="btn ${dbActiveTab==='supabase'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-supabase">☁️ Supabase</button>
+      <button onclick="dbSetTab('sql')" class="btn ${dbActiveTab==='sql'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-sql">💻 SQL Editor</button>
+      <button onclick="dbSetTab('designer')" class="btn ${dbActiveTab==='designer'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-designer">🏗️ Schema Designer</button>
+    </div>
+  </div>
+  <div id="db-body"></div>`;
+  dbSetTab(dbActiveTab);
+}
+
+async function dbSetTab(tab) {
+  dbActiveTab = tab;
+  ['sqlite','supabase','sql','designer'].forEach(t => {
+    const btn = document.getElementById('db-tab-' + t);
+    if (btn) { btn.className = btn.className.replace('btn-primary','btn-ghost'); }
+    if (t === tab && btn) { btn.className = btn.className.replace('btn-ghost','btn-primary'); }
+  });
+  const el = document.getElementById('db-body');
+  if (!el) return;
+
+  if (tab === 'sqlite') await renderSQLiteTab(el);
+  else if (tab === 'supabase') await renderSupabaseTab(el);
+  else if (tab === 'sql') renderSQLEditorTab(el);
+  else if (tab === 'designer') renderSchemaDesignerTab(el);
+}
+
+async function renderSQLiteTab(el) {
+  let tables = [];
+  try {
+    const r = await fetch('/api/db/sqlite/tables');
+    if (!r.ok) throw new Error('Tables API error ' + r.status);
+    const data = await r.json();
+    tables = Array.isArray(data) ? data : (Array.isArray(data?.tables) ? data.tables : []);
+  } catch(ex) {
+    el.innerHTML = `<div style="color:var(--red);padding:16px">Error loading tables: ${escHtml(ex.message)}</div>`;
+    return;
+  }
+  el.innerHTML = `<div style="display:grid;grid-template-columns:200px 1fr;gap:16px;height:calc(100vh - 200px)">
+    <!-- Table list -->
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px;overflow-y:auto">
+      <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Tables (${tables.length})</div>
+      ${tables.map(t => `
+        <div onclick="dbLoadTable(${JSON.stringify(t.name)})"
+             style="padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;margin-bottom:2px;${dbActiveTable===t.name?'background:var(--accent-glow);color:var(--accent-hi)':''}"
+             onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background='${dbActiveTable===t.name?'var(--accent-glow)':''}'"
+        >
+          <div style="font-weight:600">${escHtml(t.name)}</div>
+          <div style="font-size:10.5px;color:var(--text-3)">${t.row_count} rows</div>
+        </div>`).join('')}
+    </div>
+    <!-- Table data -->
+    <div id="db-table-data" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;display:flex;flex-direction:column">
+      <div style="color:var(--text-3);font-size:13px;padding:30px;text-align:center">
+        ${tables.length ? 'Select a table →' : 'No tables found'}
+      </div>
+    </div>
+  </div>`;
+  if (dbActiveTable) dbLoadTable(dbActiveTable);
+}
+
+async function dbLoadTable(name) {
+  dbActiveTable = name;
+  const el = document.getElementById('db-table-data');
+  if (!el) return;
+  el.innerHTML = `<div style="color:var(--text-2);padding:12px">Loading ${escHtml(name)}…</div>`;
+  try {
+    const r    = await fetch(`/api/db/sqlite/table/${encodeURIComponent(name)}?limit=100`);
+    if (!r.ok) { el.innerHTML = `<div style="color:var(--red);padding:12px">Server error ${r.status}</div>`; return; }
+    const data = await r.json();
+    if (!data.ok) { el.innerHTML = `<div style="color:var(--red);padding:12px">${escHtml(data.error||'error')}</div>`; return; }
+
+    const { columns, rows, total } = data;
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg-1);flex-shrink:0">
+        <span style="font-weight:700;font-size:13px">${escHtml(name)}</span>
+        <span style="font-size:11px;color:var(--text-2)">${total} rows · ${columns.length} columns</span>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <button onclick="dbInsertRow('${escHtml(name)}')" class="btn btn-primary btn-sm">+ Row</button>
+          <button onclick="dbSetTab('sql')" class="btn btn-ghost btn-sm">SQL</button>
+        </div>
+      </div>
+      <div style="overflow:auto;flex:1">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:var(--bg-1);position:sticky;top:0;z-index:1">
+              ${columns.map(c => `<th style="padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);color:var(--text-2);font-weight:700;white-space:nowrap">${escHtml(c)}</th>`).join('')}
+              <th style="padding:7px 10px;border-bottom:1px solid var(--border);width:40px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(row => `
+              <tr style="border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
+                ${columns.map(c => `<td style="padding:6px 10px;color:var(--text-1);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(String(row[c]??''))}">${escHtml(String(row[c]??''))}</td>`).join('')}
+                <td style="padding:6px 10px"><button onclick="dbDeleteRow(${JSON.stringify(name)},${JSON.stringify(String(row[columns[0]]??''))},${JSON.stringify(columns[0])})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${rows.length === 0 ? '<div style="text-align:center;padding:20px;color:var(--text-3)">No rows</div>' : ''}`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);padding:12px">${escHtml(e.message)}</div>`;
+  }
+}
+
+async function dbInsertRow(table) {
+  // Get columns first
+  try {
+    const r    = await fetch(`/api/db/sqlite/table/${encodeURIComponent(table)}?limit=0`);
+    if (!r.ok) { toast('Column fetch failed: server error ' + r.status, 'err'); return; }
+    const data = await r.json();
+    const cols = (data.columns||[]).filter(c => c !== 'id' && c !== 'created_at');
+    if (!cols.length) { toast('Cannot determine columns', 'warn'); return; }
+
+    const values = {};
+    for (const col of cols.slice(0,5)) {
+      const v = await gmPrompt(`Insert row`, `Value for "${col}"`, '');
+      if (v === null) return;
+      values[col] = v;
+    }
+
+    const r2 = await fetch(`/api/db/sqlite/table/${encodeURIComponent(table)}/insert`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({row: values})
+    });
+    if (!r2.ok) { toast('Insert failed: server error ' + r2.status, 'err'); return; }
+    const j = await r2.json();
+    if (j.ok) { toast('Row inserted ✅', 'ok', 1500); dbLoadTable(table); }
+    else toast('Insert failed: ' + (j.error||''), 'err');
+  } catch(ex) { toast('Insert error: ' + ex.message, 'err'); }
+}
+
+async function dbDeleteRow(table, value, pk) {
+  if (!(await gmDanger(`Delete row`, `Delete row where ${pk}="${value}"?`))) return;
+  try {
+    const r = await fetch(`/api/db/sqlite/table/${encodeURIComponent(table)}/row`, {
+      method:'DELETE', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({pk_column: pk, pk_value: value})
+    });
+    if (!r.ok) { toast('Delete failed: server error ' + r.status, 'err'); return; }
+    const j = await r.json();
+    if (j.ok) { toast('Row deleted', 'ok', 1500); dbLoadTable(table); }
+    else toast('Delete failed: ' + (j.error||''), 'err');
+  } catch(ex) { toast('Delete error: ' + ex.message, 'err'); }
+}
+
+async function renderSupabaseTab(el) {
+  let s = {connected: false, setup: {steps: [], url: ''}};
+  try {
+    const r = await fetch('/api/db/supabase/status');
+    if (!r.ok) throw new Error('Supabase status error ' + r.status);
+    s = await r.json();
+  } catch(ex) {
+    el.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${escHtml(ex.message)}</div>`;
+    return;
+  }
+  if (!s.connected) {
+    el.innerHTML = `<div class="settings-card">
+      <h3>☁️ Connect Supabase</h3>
+      <p>PostgreSQL + Auth + Storage — the same stack Lovable uses.</p>
+      <div style="background:var(--bg-1);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.8;margin-bottom:14px">
+        ${(s.setup?.steps||[]).map(s=>escHtml(s)).join('<br>')}
+        <a href="${s.setup?.url||'https://supabase.com'}" target="_blank" style="color:var(--accent);display:block;margin-top:8px">→ Create Supabase project ↗</a>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">SUPABASE_URL</label>
+          <input id="supa-url-input" placeholder="https://xxxx.supabase.co" class="key-input" style="width:100%">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">SUPABASE_ANON_KEY</label>
+          <input id="supa-key-input" type="password" placeholder="eyJhbGci…" class="key-input" style="width:100%">
+        </div>
+        <button onclick="saveSupabaseKeys()" class="btn btn-primary">Connect Supabase</button>
+      </div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="settings-card">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span style="font-size:24px">☁️</span>
+      <div><div style="font-weight:800">Supabase Connected</div>
+      <div style="font-size:12px;color:var(--accent)">${escHtml(s.url||'')}</div></div>
+      <span class="tag green" style="margin-left:auto">✅ Connected</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button onclick="supaGenerateSchema()" class="btn btn-primary">🤖 AI Schema Designer</button>
+      <button onclick="window.open('${s.url?.replace('.supabase.co','')}.supabase.co/project/default/editor','_blank')" class="btn btn-ghost">SQL Editor ↗</button>
+      <button onclick="window.open('${s.url?.replace('.supabase.co','')}.supabase.co/project/default/auth/users','_blank')" class="btn btn-ghost">Auth Users ↗</button>
+      <button onclick="window.open('${s.url?.replace('.supabase.co','')}.supabase.co/project/default/storage/buckets','_blank')" class="btn btn-ghost">Storage ↗</button>
+    </div>
+  </div>`;
+}
+
+async function saveSupabaseKeys() {
+  const url = document.getElementById('supa-url-input')?.value.trim();
+  const key  = document.getElementById('supa-key-input')?.value.trim();
+  if (!url || !key) { toast('Both URL and key required', 'warn'); return; }
+  try {
+    const r1 = await fetch('/api/secrets/set', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'SUPABASE_URL',value:url,scope:'global'})});
+    const r2 = await fetch('/api/secrets/set', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'SUPABASE_ANON_KEY',value:key,scope:'global'})});
+    if (!r1.ok || !r2.ok) { toast('Save failed: server error', 'err'); return; }
+    toast('☁️ Supabase connected! Reload to activate.', 'ok', 4000);
+  } catch(ex) { toast('Save failed: ' + ex.message, 'err'); }
+}
+
+async function supaGenerateSchema() {
+  const desc = await gmPrompt('AI Schema Designer', 'Describe your app data model\ne.g. "SaaS with users, projects, tasks, and comments"', '', true);
+  if (!desc) return;
+  toast('🤖 Generating schema…', 'ok', 2000);
+  try {
+    const r = await fetch('/api/db/supabase/ai-setup', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({description: desc})
+    });
+    if (!r.ok) { toast('Schema generation failed: server error ' + r.status, 'err'); return; }
+    const j = await r.json();
+    if (j.ok) {
+    await gmAlert('Generated Supabase Schema', `<div style="font-size:12px;font-family:monospace;white-space:pre-wrap;max-height:400px;overflow-y:auto;background:var(--bg-0);padding:10px;border-radius:6px">${escHtml(j.sql)}</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-2)">Copy this SQL and run it in your Supabase SQL Editor.</div>`);
+    } else toast('Schema generation failed', 'err');
+  } catch(ex) { toast('Schema error: ' + ex.message, 'err'); }
+}
+
+function renderSQLEditorTab(el) {
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-weight:700">💻 SQL Editor</div>
+        <div style="display:flex;gap:6px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+            <input type="checkbox" id="sql-allow-write" style="accent-color:var(--red)">
+            <span style="color:var(--red)">Allow writes</span>
+          </label>
+          <button onclick="runSQL()" class="btn btn-primary btn-sm">▶ Run SQL</button>
+        </div>
+      </div>
+      <textarea id="sql-editor" placeholder="SELECT * FROM agents LIMIT 10;" style="width:100%;min-height:120px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;font-family:'JetBrains Mono',monospace;resize:vertical;outline:none"></textarea>
+    </div>
+    <div id="sql-results" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;min-height:100px">
+      <div style="color:var(--text-3);font-size:13px">Run a query to see results</div>
+    </div>
+  </div>`;
+
+  // Keyboard shortcut
+  document.getElementById('sql-editor')?.addEventListener('keydown', e => {
+    if ((e.ctrlKey||e.metaKey) && e.key==='Enter') { e.preventDefault(); runSQL(); }
+  });
+}
+
+async function runSQL() {
+  const sql         = document.getElementById('sql-editor')?.value.trim();
+  const allowWrite  = document.getElementById('sql-allow-write')?.checked;
+  if (!sql) return;
+  const res = document.getElementById('sql-results');
+  if (res) res.innerHTML = '<div style="color:var(--text-2)">Running…</div>';
+
+  try {
+    const r = await fetch('/api/db/sqlite/query', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({sql, allow_write: allowWrite})
+    });
+    if (!r.ok) { if (res) res.innerHTML = `<div style="color:var(--red)">Server error ${r.status}</div>`; return; }
+    const j = await r.json();
+    if (!j.ok) {
+    res.innerHTML = `<div style="color:var(--red);font-size:13px">Error: ${escHtml(j.error||'')}</div>`;
+    return;
+  }
+  if (j.type === 'write') {
+    res.innerHTML = `<div style="color:var(--green)">✅ ${j.rows_affected} rows affected</div>`;
+    return;
+  }
+  const cols = j.columns || [];
+  const rows = j.rows || [];
+  res.innerHTML = `<div style="font-size:12px;color:var(--text-2);margin-bottom:8px">${rows.length} rows returned</div>
+    <div style="overflow:auto;max-height:300px">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr>${cols.map(c=>`<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border);color:var(--text-2);font-weight:700">${escHtml(c)}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(row=>`<tr style="border-bottom:1px solid var(--border)">${cols.map(c=>`<td style="padding:5px 8px;color:var(--text-1)">${escHtml(String(row[c]??''))}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  } catch(ex) { if (res) res.innerHTML = `<div style="color:var(--red)">Error: ${escHtml(ex.message)}</div>`; }
+}
+
+async function renderSchemaDesignerTab(el) {
+  el.innerHTML = `<div class="settings-card">
+    <h3>🏗️ AI Schema Designer</h3>
+    <p>Describe your data model in plain English → AI generates the SQL CREATE TABLE statement.</p>
+    <textarea id="schema-desc" placeholder="A blog platform with users, posts, categories, tags, and comments. Users can like posts. Posts have a publish status." style="width:100%;min-height:80px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;resize:none;outline:none;font-family:inherit;margin-bottom:10px"></textarea>
+    <div style="display:flex;gap:8px">
+      <button onclick="generateSchema('sqlite')" class="btn btn-primary">Generate SQLite</button>
+      <button onclick="generateSchema('supabase')" class="btn btn-ghost">Generate Supabase SQL</button>
+    </div>
+    <div id="schema-result" style="margin-top:14px"></div>
+  </div>`;
+}
+
+async function generateSchema(type) {
+  const desc = document.getElementById('schema-desc')?.value.trim();
+  if (!desc) { toast('Describe your data model first', 'warn'); return; }
+  const el = document.getElementById('schema-result');
+  if (el) el.innerHTML = '<div style="color:var(--text-2)">Generating schema…</div>';
+  const endpoint = type==='supabase' ? '/api/db/supabase/ai-setup' : '/api/db/sqlite/ai-schema';
+  try {
+    const r = await fetch(endpoint, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({description: desc})
+    });
+    if (!r.ok) { if (el) el.innerHTML = `<div style="color:var(--red)">Server error ${r.status}</div>`; return; }
+    const j = await r.json();
+    if (el && j.sql) {
+    el.innerHTML = `<div style="position:relative">
+      <pre style="background:var(--bg-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto">${escHtml(j.sql)}</pre>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button onclick="navigator.clipboard.writeText(${JSON.stringify(j.sql)}).then(()=>toast('📋 Copied','ok',1500))" class="btn btn-ghost btn-sm">📋 Copy</button>
+        ${type==='sqlite'?`<button onclick="runGeneratedSchema(${JSON.stringify(j.sql)})" class="btn btn-primary btn-sm">▶ Create Table</button>`:''}
+      </div>
+    </div>`;
+    }
+  } catch(ex) { if (el) el.innerHTML = `<div style="color:var(--red)">Error: ${escHtml(ex.message)}</div>`; }
+}
+
+async function runGeneratedSchema(sql) {
+  try {
+    const r = await fetch('/api/db/sqlite/table/create', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({sql})
+    });
+    if (!r.ok) { toast('Create failed: server error ' + r.status, 'err'); return; }
+    const j = await r.json();
+    if (j.ok) { toast('✅ Table created!', 'ok'); dbSetTab('sqlite'); }
+    else toast('Error: ' + (j.error||''), 'err');
+  } catch(ex) { toast('Error: ' + ex.message, 'err'); }
+}
+

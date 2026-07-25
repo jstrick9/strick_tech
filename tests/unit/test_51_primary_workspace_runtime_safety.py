@@ -2,7 +2,8 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-CORE = (ROOT / 'frontend' / 'js' / '01-app-core.js').read_text(encoding='utf-8')
+JS_DIR = ROOT / 'frontend' / 'js'
+CORE = '\n'.join(f.read_text(encoding='utf-8') for f in sorted(JS_DIR.glob('*.js')))
 E2E = (ROOT / 'tests' / 'e2e' / 'test_product_experience_live.py').read_text(encoding='utf-8')
 
 
