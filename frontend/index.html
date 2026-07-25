@@ -34,122 +34,71 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 /* ── Design Tokens ───────────────────────────────────────── */
-:root{
-  /* Backgrounds — 6-step scale */
-  --bg-base:#070810;
-  --bg-0:#07080f;
-  --bg-1:#0c0e1a;
-  --bg-2:#111328;
-  --bg-3:#161932;
-  --bg-4:#1d2040;
-  --bg-5:#252850;
-
-  /* Borders */
-  --border:rgba(255,255,255,.08);
-  --border-hi:rgba(255,255,255,.15);
-  --border-focus:rgba(91,138,248,.6);
-
-  /* Text — 4-step scale */
-  --text-0:#f4f6ff;
-  --text-1:#c2ceec;
-  --text-2:#7a8aaa;
-  --text-3:#3a4468;
-
-  /* Brand accent */
-  --accent:#5b8af8;
-  --accent-hi:#7aa4ff;
-  --accent-lo:#3d6ee0;
-  --accent-glow:rgba(91,138,248,.16);
-  --accent-glow-hi:rgba(91,138,248,.28);
-
-  /* Semantic colors */
-  --success:#3dba7a;
-  --success-bg:rgba(61,186,122,.1);
-  --success-border:rgba(61,186,122,.25);
-  --warning:#e8a237;
-  --warning-bg:rgba(232,162,55,.1);
-  --warning-border:rgba(232,162,55,.25);
-  --danger:#e85252;
-  --danger-bg:rgba(232,82,82,.1);
-  --danger-border:rgba(232,82,82,.25);
-  --info:#38c5d8;
-  --info-bg:rgba(56,197,216,.1);
-  --info-border:rgba(56,197,216,.25);
-
-  /* Semantic aliases for backward compat */
-  --green:var(--success);
-  --yellow:var(--warning);
-  --red:var(--danger);
-  --orange:#f08850;
-  --teal:var(--info);
-  --purple:#9d74f5;
-
-  /* Typography scale — 9 steps (Typescale: 1.250 Major Third) */
-  --text-xs:11px;
-  --text-sm:12px;
-  --text-base:14px;
-  --text-md:16px;
-  --text-lg:18px;
-  --text-xl:22px;
-  --text-2xl:28px;
-  --text-3xl:36px;
-  --text-4xl:48px;
-
-  /* Font weights */
-  --fw-normal:400;
-  --fw-medium:500;
-  --fw-semibold:600;
-  --fw-bold:700;
-  --fw-black:800;
-  --fw-heavy:900;
-
-  /* Spacing scale — 8-step (×4 base) */
-  --space-1:4px;
-  --space-2:8px;
-  --space-3:12px;
-  --space-4:16px;
-  --space-5:20px;
-  --space-6:24px;
-  --space-7:32px;
-  --space-8:48px;
-
-  /* Border radius */
-  --radius-xs:4px;
-  --radius-sm:8px;
-  --radius:12px;
-  --radius-lg:16px;
-  --radius-xl:24px;
-  --radius-full:9999px;
-
-  /* Shadows */
-  --shadow-sm:0 1px 3px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.2);
-  --shadow:0 4px 16px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.3);
-  --shadow-lg:0 16px 48px rgba(0,0,0,.6),0 8px 24px rgba(0,0,0,.4);
-  --shadow-glow:0 0 0 1px var(--accent-glow),0 4px 24px rgba(91,138,248,.2);
-
-  /* Layout */
-  --sidebar-w:224px;
-  --topbar-h:52px;
-
-  /* Animation */
-  --dur-fast:120ms;
-  --dur-base:200ms;
-  --dur-slow:320ms;
-  --ease-out:cubic-bezier(0.0,0.0,0.2,1);
-  --ease-in-out:cubic-bezier(0.4,0.0,0.2,1);
-  --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
-  --transition:var(--dur-base) var(--ease-out);
-
-  /* Base */
-  font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
-  font-size:var(--text-base);
-  font-weight:var(--fw-normal);
-  line-height:1.6;
-  color:var(--text-0);
-  background:var(--bg-0);
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  text-rendering:optimizeLegibility;
+:root, [data-theme="dark"] {
+  --bg-base: #0a0a0a;
+  --bg-0: #0f0f0f;
+  --bg-1: #171717;
+  --bg-2: #1e1e1e;
+  --bg-3: #2a2a2a;
+  --bg-4: #363636;
+  --bg-5: #444444;
+  --border: rgba(255,255,255,0.08);
+  --border-hi: rgba(255,255,255,0.15);
+  --text-0: #f5f5f5;
+  --text-1: #d4d4d4;
+  --text-2: #a0a0a0;
+  --text-3: #666666;
+  --accent: #6366f1;
+  --accent-hi: #818cf8;
+  --accent-glow: rgba(99,102,241,0.15);
+  --success: #22c55e;
+  --warning: #eab308;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --green: var(--success);
+  --red: var(--danger);
+  --yellow: var(--warning);
+  --orange: #f97316;
+  --teal: #14b8a6;
+  --purple: #a855f7;
+  --sidebar-w: 260px;
+  --topbar-h: 56px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --transition: 0.15s ease;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --text-3xl: 36px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-black: 800;
+  --fw-heavy: 900;
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --ease-out: cubic-bezier(0,0,0.2,1);
+  --ease-in-out: cubic-bezier(0.4,0,0.2,1);
+  --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
 }
 
 /* ── Scrollbar ───────────────────────────────────────────── */
@@ -1313,7 +1262,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
   } catch (e) {}
 }());
 </script>
-<link rel="stylesheet" href="/static/styles.css">
+<link rel="stylesheet" href="/static/styles-redesign.css">
 
 
 <style media="print">

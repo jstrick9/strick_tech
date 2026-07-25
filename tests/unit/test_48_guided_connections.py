@@ -8,7 +8,7 @@ CSS = (ROOT / 'frontend' / 'styles.css').read_text(encoding='utf-8')
 
 
 def test_connections_start_with_three_plain_language_paths():
-    for label in ('Use AI on this Mac', 'Connect cloud AI', 'Use another connection'):
+    for label in ('Use AI on this computer', 'Connect to cloud AI', 'Use another server'):
         assert label in INDEX
     assert 'id="connection-local-card"' in INDEX
     assert 'id="connection-cloud-card"' in INDEX
