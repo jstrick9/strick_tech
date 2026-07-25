@@ -251,13 +251,19 @@ class CircuitBreaker:
         return False
 
     def record_success(self):
+        # If OPEN and recovery timeout has passed, transition to HALF_OPEN first
+        if self.state == CircuitState.OPEN:
+            if time.time() - self.last_failure_time > self.config.recovery_timeout_s:
+                self.state = CircuitState.HALF_OPEN
+                self.success_count = 0
+                self.half_open_calls = 0
         if self.state == CircuitState.HALF_OPEN:
             self.success_count += 1
             if self.success_count >= self.config.success_threshold:
                 self.state = CircuitState.CLOSED
                 self.failure_count = 0
                 self.success_count = 0
-        else:
+        elif self.state == CircuitState.CLOSED:
             self.failure_count = 0
 
     def record_failure(self):
@@ -628,17 +634,24 @@ class ExecutionEngine:
 
     def _classify_error(self, error: Exception) -> str:
         """Classify an error for retry decision making."""
+        err_type = type(error).__name__.lower()
         err_str = str(error).lower()
-        if "timeout" in err_str or "timed out" in err_str:
+
+        # Check exception type first (more reliable than message)
+        if "timeout" in err_type or "timeout" in err_str or "timed out" in err_str:
             return "timeout"
+        if "connection" in err_type or "connection" in err_str:
+            return "connection_error"
+        if "auth" in err_type:
+            return "auth_error"
+
+        # Then check message content
         if "rate" in err_str and "limit" in err_str:
             return "rate_limit"
         if "429" in err_str:
             return "rate_limit"
         if "500" in err_str or "502" in err_str or "503" in err_str:
             return "server_error"
-        if "connection" in err_str:
-            return "connection_error"
         if "auth" in err_str or "401" in err_str or "403" in err_str:
             return "auth_error"
         return "unknown"
