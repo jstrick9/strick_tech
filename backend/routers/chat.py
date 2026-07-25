@@ -298,6 +298,50 @@ def chat_history(session_id: str = '', agent: str = '', limit: int = 100):
     return [dict(r) for r in rows]
 
 
+@router.get('/api/chat/search')
+def chat_search(q: str = '', limit: int = 20):
+    """Search across all chat messages. Returns matching messages with session context."""
+    if not q or len(q.strip()) < 2:
+        return {'ok': True, 'results': [], 'count': 0}
+    con = memory_db.get_conn()
+    try:
+        pattern = f'%{q.strip()}%'
+        rows = con.execute(
+            """SELECT cl.id, cl.session_id, cl.role, cl.message, cl.agent, cl.model,
+                      cl.created_at, cs.name as session_name
+               FROM chat_log cl
+               LEFT JOIN chat_sessions cs ON cs.id = cl.session_id
+               WHERE cl.message LIKE ?
+               ORDER BY cl.created_at DESC
+               LIMIT ?""",
+            (pattern, min(limit, 50))
+        ).fetchall()
+    finally:
+        con.close()
+    results = []
+    for r in rows:
+        d = dict(r)
+        msg = d.get('message', '')
+        # Highlight match context (80 chars around match)
+        idx = msg.lower().find(q.strip().lower())
+        if idx >= 0:
+            start = max(0, idx - 40)
+            end = min(len(msg), idx + len(q.strip()) + 40)
+            snippet = ('…' if start > 0 else '') + msg[start:end] + ('…' if end < len(msg) else '')
+        else:
+            snippet = msg[:120]
+        results.append({
+            'id': d['id'],
+            'session_id': d['session_id'],
+            'session_name': d.get('session_name', ''),
+            'role': d['role'],
+            'agent': d.get('agent', ''),
+            'snippet': snippet,
+            'created_at': d.get('created_at', ''),
+        })
+    return {'ok': True, 'results': results, 'count': len(results)}
+
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def _log_chat(session_id: str, agent: str, role: str, message: str, tokens: int = 0, cost: float = 0.0, model: str = ''):
     try:
