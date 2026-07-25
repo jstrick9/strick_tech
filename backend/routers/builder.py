@@ -817,7 +817,6 @@ async def pm_search(q: str = '', size: int = 12):
 @router.get('/api/health')
 def health():
     """Health check — validates API is running and database is accessible."""
-    import sqlite3
     db_ok = False
     try:
         from backend.services.memory_db import get_conn
