@@ -235,7 +235,7 @@ jobs:
         run: python -m pytest tests/e2e_browser -q
 
   frontend-install:
-    name: Frontend dependency reproducibility
+    name: Frontend dependency reproducibility + tests + lint
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -245,7 +245,12 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - name: Install from lockfile
-        run: npm ci
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
+        run: cd frontend && npm audit --omit=dev --audit-level=high
+      - name: Run frontend tests (Vitest)
+        run: cd frontend && npm test
+      - name: Run ESLint
+        run: cd frontend && npx eslint js/ --max-warnings=100

@@ -816,5 +816,16 @@ async def pm_search(q: str = '', size: int = 12):
 # ── Health ─────────────────────────────────────────────────────────────────────
 @router.get('/api/health')
 def health():
-    """Execute or process health operation."""
-    return {'ok': True, 'version': '6.0', 'service': 'Agentic OS'}
+    """Health check — validates API is running and database is accessible."""
+    import sqlite3
+    db_ok = False
+    try:
+        from backend.services.memory_db import get_conn
+        con = get_conn()
+        con.execute('SELECT 1')
+        con.close()
+        db_ok = True
+    except Exception:
+        pass
+    from backend.version import VERSION
+    return {'ok': True, 'version': VERSION, 'service': 'Agentic OS', 'db': 'ok' if db_ok else 'error'}

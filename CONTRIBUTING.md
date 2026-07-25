@@ -1,140 +1,103 @@
 # Contributing to Agentic OS
 
-Thank you for your interest in contributing to Agentic OS! This document provides guidelines and instructions for contributing.
-
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-# 1. Fork and clone
+# 1. Clone and install
 git clone https://github.com/jstrick9/strick_tech.git
 cd strick_tech
-
-# 2. Create a virtual environment
-python -m venv .venv
-source .venv/bin/activate  # macOS/Linux
-# .venv\Scripts\activate   # Windows
-
-# 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Create a .env file
-cp .env.example .env
-# Add your OPENROUTER_API_KEY
-
-# 5. Run the application
+# 2. Start the server
 python run.py
+
+# 3. Open http://localhost:8787
 ```
 
-## 🧪 Running Tests
+## Development Setup
+
+### Backend (Python)
 
 ```bash
-# All unit tests
-python -m pytest tests/unit/ -v
-
-# With coverage
-python -m pytest tests/unit/ --cov=backend --cov-report=html
-
-# Specific test file
-python -m pytest tests/unit/test_07_agents.py -v
-
-# Security tests
-python -m pytest tests/security/ -v
-
-# Integration tests
-python -m pytest tests/integration/ -v
+pip install -r requirements.txt     # Runtime dependencies
+pip install -r requirements-test.txt # Test dependencies (ruff, pytest)
 ```
 
-## 📝 Code Style
-
-We use **Ruff** for linting and formatting:
+### Frontend (JavaScript)
 
 ```bash
-# Install ruff
-pip install ruff
-
-# Check for issues
-ruff check backend/
-
-# Auto-fix issues
-ruff check backend/ --fix
-
-# Format code
-ruff format backend/
+cd frontend
+npm install    # Vitest + ESLint + jsdom
+npm test       # Run frontend tests
+npm run lint   # Run ESLint
 ```
 
-### Python Guidelines
-- Use type hints for all function parameters and return values
-- Add docstrings to all public functions
-- Keep functions focused and small
-- Use async/await for I/O operations
-- Handle errors gracefully with proper error messages
+## Running Tests
 
-### JavaScript Guidelines
-- Use strict mode (`'use strict'`)
-- Prefer `const` and `let` over `var`
-- Use camelCase for variables and functions
-- Add JSDoc comments for complex functions
+```bash
+# Unit tests (fast, no server needed)
+python -m pytest tests/unit/ -q
 
-## 🏗️ Project Structure
+# Full test battery (requires running server on :8787)
+python -m pytest tests/unit/ tests/regression/ tests/system/ tests/sprint_a tests/sprint_b tests/sprint_c tests/sprint_d tests/uat/ tests/gap/ -q
 
-```
-agentic-os/
-├── backend/
-│   ├── app.py           ← FastAPI entry point
-│   ├── config.py        ← Configuration validation
-│   ├── routers/         ← API endpoints (76 routers)
-│   └── services/        ← Business logic
-├── frontend/
-│   ├── index.html       ← Main UI
-│   ├── styles.css       ← Design system
-│   └── js/              ← Modular JavaScript
-├── tests/               ← Test suites
-├── agents/              ← Agent definitions
-├── skills/              ← Skill definitions
-└── workspaces/          ← User workspaces
+# Performance benchmarks
+python -m pytest tests/perf/ -q
+
+# Frontend tests
+cd frontend && npm test
 ```
 
-## 🐛 Reporting Bugs
+## Code Quality
 
-1. Check existing issues first
-2. Create a new issue with:
-   - Clear title and description
-   - Steps to reproduce
-   - Expected vs actual behavior
-   - Environment details (OS, Python version, browser)
+- **Python**: Ruff F821 gate enforced in CI. Run `python -m ruff check backend/` locally.
+- **JavaScript**: ESLint configured in `frontend/eslint.config.js`. Run `cd frontend && npm run lint`.
+- **Imports**: Sorted automatically by ruff `--fix`.
+- **No bare `except:`**: Use specific exception types.
+- **No hardcoded secrets**: Use environment variables or the secrets vault.
 
-## 💡 Suggesting Features
+## Architecture
 
-1. Check the roadmap in README.md
-2. Create a new issue with:
-   - Feature description
-   - Use case
-   - Proposed implementation (if any)
+```
+backend/
+  app.py          # FastAPI application, middleware, startup
+  config.py       # Configuration management
+  routers/        # 96 API routers (one per feature)
+  services/       # Shared services (LLM, DB, scheduler, sandbox)
 
-## 📤 Pull Requests
+frontend/
+  index.html      # Single-page application shell + CSS
+  js/             # 45 JavaScript modules
+  styles.css      # Global styles + design tokens
+  tests/          # Vitest frontend tests
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
+tests/
+  unit/           # Python unit tests
+  regression/     # Regression tests
+  system/         # System integration tests
+  sprint_a-d/     # Sprint-specific feature tests
+  uat/            # User acceptance tests
+  gap/            # Gap analysis tests
+  security/       # Security tests
+  perf/           # Performance benchmarks
+```
 
-### PR Guidelines
-- Keep PRs focused on a single feature/fix
-- Include tests for new functionality
-- Update documentation if needed
-- Follow the existing code style
-- Write clear commit messages
+## Adding a New Feature
 
-## 📚 Documentation
+1. Create a router: `backend/routers/my_feature.py`
+2. Register it in `backend/app.py`: `from .routers.my_feature import router as my_feature_router`
+3. Add the pane to `frontend/js/00-pane-registry.js`
+4. Create the renderer in a new JS module (e.g., `frontend/js/41-my-feature.js`)
+5. Add the `<script>` tag to `frontend/index.html`
+6. Add the nav item to the sidebar in `frontend/index.html`
+7. Write tests in `tests/unit/` or `tests/regression/`
 
-- Update README.md for user-facing changes
-- Add docstrings to new functions
-- Update API documentation if adding new endpoints
+## Commit Messages
 
-## 🙏 Thank You!
+Format: `Type: brief description`
 
-Your contributions make Agentic OS better for everyone!
+Types: `Fix`, `Add`, `Update`, `Remove`, `Refactor`, `Test`, `Docs`
+
+## License
+
+See LICENSE file.
