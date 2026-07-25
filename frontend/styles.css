@@ -3882,13 +3882,10 @@ body.theme-high-contrast a {
 #chat-connection-status:hover { border-color:var(--accent); color:var(--accent); }
 
 
-/* Minimal persistent header: brand, selected model, and the one critical recovery action. */
-#topbar-quick-actions, #topbar > .tech-badge { display:none !important; }
-#topbar-actions > * { display:none !important; }
-#topbar-actions > #restart-engine-btn { align-items:center; display:inline-flex !important; }
+/* Topbar layout */
+#topbar-quick-actions { display:flex; align-items:center; gap:6px; margin-left:8px; }
 #topbar #chat-model-control { box-shadow:none; margin-left:20px; max-width:min(360px, 42vw); }
 #topbar #chat-model-control select { max-width:250px; overflow:hidden; text-overflow:ellipsis; }
-#topbar #chat-model-control + * { }
 @media (max-width:760px) {
   #topbar #chat-model-control { margin-left:8px; max-width:52vw; }
   #topbar #chat-model-control > span:nth-child(2) { display:none; }
