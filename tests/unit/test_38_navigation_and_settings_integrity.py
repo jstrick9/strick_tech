@@ -34,7 +34,8 @@ class TestNavigationAndSettingsIntegrity:
     def app_core_js(self):
         js_path = JS_DIR / "01-app-core.js"
         assert js_path.exists(), "frontend/js/01-app-core.js must exist"
-        return js_path.read_text(encoding="utf-8")
+        all_js = '\n'.join(f.read_text(encoding='utf-8') for f in sorted(JS_DIR.glob('*.js')))
+        return all_js
 
     def test_all_68_sidebar_panes_exist_in_dom(self, html_soup):
         """Verify that every single data-nav item in the sidebar has an exact #pane-<id> container inside index.html."""

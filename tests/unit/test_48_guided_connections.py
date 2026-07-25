@@ -3,7 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 INDEX = (ROOT / 'frontend' / 'index.html').read_text(encoding='utf-8')
-CORE = (ROOT / 'frontend' / 'js' / '01-app-core.js').read_text(encoding='utf-8')
+CORE = '\n'.join(f.read_text(encoding='utf-8') for f in sorted((ROOT / 'frontend' / 'js').glob('*.js')))
 CSS = (ROOT / 'frontend' / 'styles.css').read_text(encoding='utf-8')
 
 

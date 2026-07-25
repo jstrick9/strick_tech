@@ -15,7 +15,7 @@ from backend.services.llm import _normalize_messages
 from backend.routers.chat import _system_prompt_for_agent
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-CORE_JS = (ROOT / 'frontend' / 'js' / '01-app-core.js').read_text(encoding='utf-8')
+CORE_JS = '\n'.join(f.read_text(encoding='utf-8') for f in sorted((ROOT / 'frontend' / 'js').glob('*.js')))
 INDEX_HTML = (ROOT / 'frontend' / 'index.html').read_text(encoding='utf-8')
 
 
