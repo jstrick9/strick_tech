@@ -1,0 +1,83 @@
+<div class="doc-shell">
+  <nav class="doc-sidebar">
+    <div class="logo">Agentic <span>OS</span> Docs</div>
+    <h2>Getting Started</h2>
+    <a href="index.html">Overview</a>
+    <a href="guide-chat.html">💬 Chat with AI</a>
+    <a href="guide-setup.html" class="active">⚡ One-Click Setup</a>
+    <a href="guide-studio.html">⚡ Code Studio</a>
+    <a href="guide-templates.html">📋 Templates</a>
+    <h2>AI Tools</h2>
+    <a href="guide-agents.html">🤖 Custom Agents</a>
+    <a href="guide-swarm.html">🌀 Multi-Agent Swarm</a>
+    <a href="guide-memory.html">🧠 Memory & Knowledge</a>
+    <a href="guide-rag.html">📚 Document Q&A (RAG)</a>
+    <a href="guide-workflow.html">⎈ Workflows</a>
+    <a href="guide-specs.html">📐 Spec Builder</a>
+    <a href="guide-evals.html">🧪 Evaluations</a>
+    <h2>Reference</h2>
+    <a href="guide-sidebar.html">📑 Navigation Guide</a>
+    <a href="guide-shortcuts.html">⌨ Keyboard Shortcuts</a>
+    <a href="guide-settings.html">⚙ Settings</a>
+    <a href="guide-faq.html">❓ FAQ</a>
+  </nav>
+
+  <main class="doc-main">
+    <h1>⚡ One-Click Setup</h1>
+    <p class="subtitle">Connect AI in 30 seconds. Auto-detects Ollama or configure OpenRouter.</p>
+    <span class="badge badge-free">FREE</span>
+
+    <h2>How It Works</h2>
+    <p>When you first open Agentic OS, a setup modal automatically detects available AI backends:</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>Ollama Detected (Recommended for Privacy)</h3>
+        <p>If you have <a href="https://ollama.com">Ollama</a> running, it's detected automatically. No API key needed. All data stays on your machine.</p>
+        <div class="tip">Install Ollama: <code>curl -fsSL https://ollama.com/install.sh | sh</code> then <code>ollama pull llama3.2</code></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>OpenRouter Connected (140+ Models)</h3>
+        <p>Paste your OpenRouter API key to access 140+ models including Claude, GPT-4o, Gemini, Llama, and more.</p>
+        <div class="tip">Get a free key at <a href="https://openrouter.ai/keys">openrouter.ai/keys</a> — many models are free with no credit card.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>Neither Available</h3>
+        <p>If no backend is detected, the modal guides you to install Ollama or add an API key.</p>
+      </div>
+    </div>
+
+    <h2>Quick Setup API</h2>
+    <p>Developers can trigger setup programmatically:</p>
+    <div class="screenshot">
+      <div class="screenshot-header"><span class="dot"></span> API Endpoint</div>
+      <div class="screenshot-body" style="padding:16px;background:#0a0c14">
+        <pre style="color:#7aa4ff;font-size:13px;font-family:'JetBrains Mono',monospace;line-height:1.6"><span style="color:#3dba7a">POST</span> /api/onboarding/quick-setup
+
+<span style="color:#7a8aaa">// Response:</span>
+{
+  <span style="color:#e8a237">"ok"</span>: <span style="color:#3dba7a">true</span>,
+  <span style="color:#e8a237">"backends"</span>: [
+    {<span style="color:#e8a237">"backend"</span>: <span style="color:#3dba7a">"ollama"</span>, <span style="color:#e8a237">"status"</span>: <span style="color:#3dba7a">"available"</span>, <span style="color:#e8a237">"models"</span>: <span style="color:#5b8af8">3</span>},
+    {<span style="color:#e8a237">"backend"</span>: <span style="color:#3dba7a">"openrouter"</span>, <span style="color:#e8a237">"status"</span>: <span style="color:#3dba7a">"no_key"</span>}
+  ],
+  <span style="color:#e8a237">"recommended"</span>: {
+    <span style="color:#e8a237">"backend"</span>: <span style="color:#3dba7a">"ollama"</span>,
+    <span style="color:#e8a237">"message"</span>: <span style="color:#3dba7a">"Ollama detected with 3 model(s). Ready to use."</span>
+  }
+}</pre>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>
