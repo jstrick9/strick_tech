@@ -4,11 +4,9 @@ Full workspace portability: export all data as a single JSON archive,
 import it on another instance.
 """
 from __future__ import annotations
-import json
+
 import logging
-import time
 from datetime import datetime, timezone
-from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -152,6 +150,7 @@ def workspace_stats():
 
         # Get DB size
         import os
+
         from backend.config import get_data_dir
         db_path = get_data_dir() / 'memory' / 'agentic.db'
         stats['db_size_mb'] = round(os.path.getsize(db_path) / (1024 * 1024), 2) if db_path.exists() else 0
