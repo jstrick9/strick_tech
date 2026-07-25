@@ -1476,7 +1476,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <!-- Navigation -->
       <div class="sidebar-scroll">
         <!-- ═══ ESSENTIALS: Always visible, novice-friendly ═══ -->
-        <div class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> GETTING STARTED <span class="help-tip" data-tip="Essential tools to get started. Click any item to open it.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
+        <div class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> ESSENTIALS <span class="help-tip" data-tip="Essential tools to get started. Click any item to open it.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
         <div class="sidebar-group-content" id="group-core">
           <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI — start here" role="menuitem" aria-label="Chat">
             <span class="icon">💬</span><span class="label">Chat</span>
@@ -1514,8 +1514,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div class="nav-item" data-nav="skills" data-tier="advanced" onclick="nav('skills')"><span class="icon">⚡</span><span class="label">Skills</span></div>
         </div>
 
-        <!-- ═══ BUILD & DEPLOY: Ship your work ═══ -->
-        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD & DEPLOY <span class="help-tip" data-tip="Tools to build, test, and ship your projects.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
+        <!-- ═══ BUILD: Ship your work ═══ -->
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD <span class="help-tip" data-tip="Tools to build, test, and ship your projects.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
         <div class="sidebar-group-content" id="group-ship" data-tier="advanced" style="display:none">
           <div class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')"><span class="icon">✍</span><span class="label">Composer</span></div>
           <div class="nav-item" data-nav="pipeline" data-tier="advanced" onclick="nav('pipeline')"><span class="icon">⎈</span><span class="label">Pipelines</span></div>
@@ -1528,8 +1528,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div class="nav-item" data-nav="plugins" data-tier="advanced" onclick="nav('plugins')"><span class="icon">🧩</span><span class="label">Plugins</span></div>
         </div>
 
-        <!-- ═══ AGENTS & ORCHESTRATION ═══ -->
-        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTS & ORCHESTRATION <span class="help-tip" data-tip="Manage AI agents, connect tools, and automate workflows.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
+        <!-- ═══ AGENTS ═══ -->
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTS <span class="help-tip" data-tip="Manage AI agents, connect tools, and automate workflows.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
         <div class="sidebar-group-content" id="group-tools" data-tier="advanced" style="display:none">
           <div class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')"><span class="icon">🎯</span><span class="label">Supervisor</span></div>
           <div class="nav-item" data-nav="goals" data-tier="advanced" onclick="nav('goals')"><span class="icon">🎯</span><span class="label">Goals</span></div>
@@ -1547,8 +1547,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div class="nav-item" data-nav="collabedit" data-tier="advanced" onclick="nav('collabedit')"><span class="icon">👥</span><span class="label">Collaborative Edit</span></div>
         </div>
 
-        <!-- ═══ MONITORING & SECURITY ═══ -->
-        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> MONITORING & SECURITY <span class="help-tip" data-tip="Track performance, costs, and security.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
+        <!-- ═══ MONITORING ═══ -->
+        <div class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> MONITORING <span class="help-tip" data-tip="Track performance, costs, and security.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
         <div class="sidebar-group-content" id="group-enterprise" data-tier="advanced" style="display:none">
           <div style="font-size:9.5px;color:var(--text-3);padding:8px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85">📊 Analytics</div>
           <div class="nav-item" data-nav="dashboard" data-tier="advanced" onclick="nav('dashboard')"><span class="icon">📊</span><span class="label">Dashboard</span></div>
@@ -1723,7 +1723,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <!-- Outcome-first launchpad: people can begin useful work before learning AI terminology. -->
                 <section id="mission-launchpad-deck" class="mission-launchpad" aria-label="Get started">
                   <button onclick="document.getElementById('mission-launchpad-deck').style.display='none';try{localStorage.setItem('agentic_os_launchpad_hidden','true')}catch(e){}" title="Dismiss getting started" class="btn-3d btn-ghost btn-sm mission-launchpad-dismiss">✕</button>
-                  <p class="mission-launchpad-kicker">GETTING STARTED</p>
+                  <p class="mission-launchpad-kicker">ESSENTIALS</p>
                   <h3>Ready to use AI?</h3>
                   <p class="mission-launchpad-copy">Connect once, then chat with 140+ models instantly.</p>
                   <div class="mission-connect-actions" style="display:flex;gap:8px;margin:12px 0">
@@ -2769,11 +2769,11 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               </div>
 
               <section class="connection-quickstart" aria-label="Choose how to connect AI">
-                <div><p class="connection-quickstart-kicker">START HERE</p><h3>Choose one way to get started</h3><p>Most people only need one connection. You can add more later.</p></div>
+                <div><p class="connection-quickstart-kicker">START HERE</p><h3>How would you like to connect?</h3><p>Pick one to get started. You can always add more later.</p></div>
                 <div class="connection-paths">
-                  <button class="connection-path btn-3d" onclick="startConnectionPath('local')"><span>🖥️</span><strong>Use AI on this Mac</strong><small>Private local models. No account required.</small></button>
-                  <button class="connection-path btn-3d" onclick="startConnectionPath('cloud')"><span>☁️</span><strong>Connect cloud AI</strong><small>Add one secure key for more model choices.</small></button>
-                  <button class="connection-path btn-3d" onclick="startConnectionPath('custom')"><span>🔌</span><strong>Use another connection</strong><small>For a compatible server you already use.</small></button>
+                  <button class="connection-path btn-3d" onclick="startConnectionPath('local')"><span>🖥️</span><strong>Use AI on this computer</strong><small>Free, private, no account needed. Install Ollama to get started.</small></button>
+                  <button class="connection-path btn-3d" onclick="startConnectionPath('cloud')"><span>☁️</span><strong>Connect to cloud AI</strong><small>Add an API key for 140+ models including Claude, GPT-4o, Gemini.</small></button>
+                  <button class="connection-path btn-3d" onclick="startConnectionPath('custom')"><span>🔌</span><strong>Use another server</strong><small>Connect to a compatible AI server you already have.</small></button>
                 </div>
               </section>
 
