@@ -4551,3 +4551,104 @@ body.theme-high-contrast a {
   transform: scale(1.1);
   box-shadow: 0 8px 32px rgba(91,138,248,0.6);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   UI/UX REDESIGN — Progressive Disclosure & Visual Hierarchy
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Sidebar visual hierarchy ──────────────────────────────── */
+.sidebar-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 12px 14px 6px;
+  margin-top: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+.sidebar-group-label:hover {
+  color: var(--text-1);
+}
+
+/* ── Chat input improvements ───────────────────────────────── */
+.chat-input-area {
+  padding: 12px 20px 16px;
+  background: transparent;
+}
+.chat-input-row {
+  border-radius: 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.chat-input-row:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(91,138,248,0.15);
+}
+#chat-input {
+  font-size: 14px;
+  padding: 8px 0;
+  line-height: 1.6;
+  resize: none;
+}
+.chat-send-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+/* ── Chat tools bar ────────────────────────────────────────── */
+.chat-tools {
+  display: flex;
+  gap: 6px;
+  padding: 0 4px 8px;
+}
+.chat-tool {
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+/* ── Message improvements ──────────────────────────────────── */
+.msg {
+  padding: 8px 0;
+}
+.msg-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 15px;
+}
+.msg-bubble {
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.msg-bubble pre {
+  border-radius: 8px;
+}
+
+/* ── Status bar improvements ───────────────────────────────── */
+#statusbar {
+  height: 24px;
+  font-size: 11px;
+}
+.sb-item {
+  padding: 0 8px;
+  gap: 4px;
+}
+
+/* ── Toast improvements ────────────────────────────────────── */
+.toast {
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
