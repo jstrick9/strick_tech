@@ -1,9 +1,9 @@
 # ═══════════════════════════════════════════════════════════════
 #  Agentic OS — Docker Compose
 #  Run: docker compose up
+#  With Ollama: docker compose --profile ollama up
 #  With Qdrant: docker compose --profile qdrant up
 # ═══════════════════════════════════════════════════════════════
-version: "3.9"
 
 services:
   agentic-os:
@@ -13,22 +13,33 @@ services:
     environment:
       - AGENTIC_OS_PORT=8787
       - AGENTIC_OS_HOST=0.0.0.0
-      # Set your API key here or use the Vault UI
+      - AGENTIC_OS_DATA_DIR=/app/data
+      # Set your API key here or use the Settings UI
       # - OPENROUTER_API_KEY=sk-or-v1-...
+      # Connect to Ollama if running alongside
+      - OLLAMA_HOST=http://ollama:11434
     volumes:
-      # Persist memory database and vault key
-      - agentic-memory:/app/memory
-      # Persist preview files
-      - agentic-preview:/app/preview
+      - agentic-data:/app/data
       # Mount .env file if it exists
       - ./.env:/app/.env:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8787/api/system/stats"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8787/api/health"]
       interval: 30s
       timeout: 5s
-      start_period: 10s
+      start_period: 15s
       retries: 3
+
+  # Optional: Ollama local AI engine
+  # Run with: docker compose --profile ollama up
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
 
   # Optional: Qdrant vector database for semantic memory
   # Run with: docker compose --profile qdrant up
@@ -42,6 +53,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  agentic-memory:
-  agentic-preview:
+  agentic-data:
+  ollama-data:
   qdrant-storage:
