@@ -148,6 +148,8 @@ from .routers.websearch import router as websearch_router
 from .routers.websocket import router as ws_router
 from .routers.workflow import router as workflow_router
 from .routers.workspaces import router as workspaces_router
+from .routers.workspace_export import router as workspace_export_router
+from .routers.auth import router as auth_router
 from .security_auth import require_websocket_auth
 from .services import scheduler as sched_svc
 from .services.memory_db import (
@@ -540,6 +542,8 @@ app.include_router(finetune_router)
 app.include_router(bounty_hunter_router)
 app.include_router(p2p_sharding_router)
 app.include_router(pqc_router)
+app.include_router(workspace_export_router)
+app.include_router(auth_router)
 app.include_router(robotics_router)
 app.include_router(bci_router)
 app.include_router(compiler_router)
