@@ -4,6 +4,7 @@ Provides isolated execution environment for third-party plugins.
 Plugins run in a restricted namespace with access only to approved APIs.
 """
 from __future__ import annotations
+
 import ast
 import logging
 import re
@@ -29,7 +30,7 @@ BLOCKED_MODULES = {
     'codeop', 'compile', 'compileall', 'py_compile',
     'multiprocessing', 'threading', 'signal',
     'shelve', 'sqlite3', 'dbm',
-    'pickle', 'shelve', 'marshal',
+    'pickle', 'marshal',
     'pty', 'fcntl', 'termios', 'tty',
 }
 
@@ -53,7 +54,7 @@ BLOCKED_PATTERNS = [
 ]
 
 
-class SandboxViolation(Exception):
+class SandboxViolationError(Exception):
     """Raised when plugin code violates sandbox restrictions."""
     pass
 
@@ -158,7 +159,7 @@ def execute_plugin_sandboxed(code: str, context: dict = None, timeout_ms: int = 
             'output': str(output) if output else '',
             'elapsed_ms': round(elapsed_ms, 1),
         }
-    except SandboxViolation as e:
+    except SandboxViolationError as e:
         return {'ok': False, 'error': f'Sandbox violation: {e}'}
     except Exception as e:
         return {'ok': False, 'error': f'{type(e).__name__}: {e}'}

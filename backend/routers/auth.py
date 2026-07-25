@@ -4,15 +4,12 @@ Provides API key authentication middleware and user session management.
 Designed for progressive hardening: starts simple, can grow to full OAuth2.
 """
 from __future__ import annotations
+
 import hashlib
 import hmac
-import json
 import logging
-import os
 import secrets
-import time
 from datetime import datetime, timezone
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -83,7 +80,7 @@ def _generate_session_token() -> str:
 
 
 # ── API Key authentication dependency ──────────────────────────────────────
-async def require_api_key(request: Request) -> Optional[str]:
+async def require_api_key(request: Request) -> str | None:
     """FastAPI dependency: validates API key from header or query param.
     Returns user_id if valid, None if no auth configured.
     Raises 401 if auth is required but invalid.
