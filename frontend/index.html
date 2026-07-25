@@ -1742,24 +1742,28 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 </section>
                 
                 <!-- Quick Actions -->
-                <div style="margin-top:16px;max-width:520px">
-                  <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Try asking</div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                    <div class="cmd-chip" onclick="insertCmd('/help')" style="text-align:left;padding:12px 14px;border-radius:12px">
-                      <div style="font-weight:600;margin-bottom:3px">💬 What can you do?</div>
-                      <div style="font-size:11.5px;opacity:.7;line-height:1.4">See all available commands</div>
+                <div style="margin-top:20px;max-width:560px">
+                  <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Quick Start</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                    <div class="quick-action-card" onclick="insertCmd('Help me build a landing page with dark mode')">
+                      <span class="icon">⚡</span>
+                      <span class="title">Build something</span>
+                      <span class="desc">Create an app, page, or workflow with AI assistance</span>
                     </div>
-                    <div class="cmd-chip" onclick="insertCmd('Help me build a landing page with dark mode')" style="text-align:left;padding:12px 14px;border-radius:12px">
-                      <div style="font-weight:600;margin-bottom:3px">⚡ Build something</div>
-                      <div style="font-size:11.5px;opacity:.7;line-height:1.4">Create an app, page, or workflow</div>
+                    <div class="quick-action-card" onclick="insertCmd('Research the latest AI agent frameworks and summarize the key differences')">
+                      <span class="icon">🔍</span>
+                      <span class="title">Research a topic</span>
+                      <span class="desc">Deep dive into any subject with sourced analysis</span>
                     </div>
-                    <div class="cmd-chip" onclick="insertCmd('Research the latest AI agent frameworks and summarize the key differences')" style="text-align:left;padding:12px 14px;border-radius:12px">
-                      <div style="font-weight:600;margin-bottom:3px">🔍 Research a topic</div>
-                      <div style="font-size:11.5px;opacity:.7;line-height:1.4">Deep dive into any subject</div>
+                    <div class="quick-action-card" onclick="insertCmd('Analyze my codebase and suggest improvements')">
+                      <span class="icon">🛠</span>
+                      <span class="title">Improve my code</span>
+                      <span class="desc">Review, refactor, debug, or add features</span>
                     </div>
-                    <div class="cmd-chip" onclick="insertCmd('Analyze my codebase and suggest improvements')" style="text-align:left;padding:12px 14px;border-radius:12px">
-                      <div style="font-weight:600;margin-bottom:3px">🛠 Improve my code</div>
-                      <div style="font-size:11.5px;opacity:.7;line-height:1.4">Review, refactor, or debug</div>
+                    <div class="quick-action-card" onclick="nav('templates')">
+                      <span class="icon">📋</span>
+                      <span class="title">Start from template</span>
+                      <span class="desc">One-click deploy a production-ready project</span>
                     </div>
                   </div>
                 </div>
@@ -3658,6 +3662,9 @@ document.addEventListener('keydown', function(e) {
 
 
 
+
+  <!-- Floating Action Button -->
+  <button class="fab" onclick="nav('chat')" title="New Chat" aria-label="New Chat">💬</button>
 
   <!-- Theme toggle shortcut -->
   <div class="theme-toggle-hint" onclick="if(typeof applyTheme==='function'){const t=_safeLS.get('agentic_os_theme')||'light';applyTheme(t==='light'?'dark':'light')}" title="Switch light/dark theme (or use Settings)">
