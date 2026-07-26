@@ -13,7 +13,8 @@ const KanbanState = {
   ],
   tasks: [],
   draggedTask: null,
-  dragOverColumn: null
+  dragOverColumn: null,
+  initialized: false
 };
 
 // ── Initialize Kanban ─────────────────────────────────────────────
@@ -21,12 +22,20 @@ async function renderKanban() {
   const pane = document.getElementById('pane-kanban');
   if (!pane) return;
 
-  // Load tasks from API
-  try {
-    const data = await AgenticAPI.get('/api/kanban');
-    KanbanState.tasks = flattenKanbanData(data);
-  } catch (e) {
-    KanbanState.tasks = getSampleTasks();
+  // Load tasks from API or use samples
+  if (!KanbanState.initialized) {
+    try {
+      if (typeof AgenticAPI !== 'undefined' && AgenticAPI.get) {
+        const data = await AgenticAPI.get('/api/kanban');
+        KanbanState.tasks = flattenKanbanData(data);
+      } else {
+        KanbanState.tasks = getSampleTasks();
+      }
+    } catch (e) {
+      console.debug('Kanban: Using sample tasks');
+      KanbanState.tasks = getSampleTasks();
+    }
+    KanbanState.initialized = true;
   }
 
   pane.innerHTML = `
@@ -35,7 +44,7 @@ async function renderKanban() {
       <div class="kanban-header">
         <div class="kanban-header-left">
           <h1 class="kanban-title">📋 Tasks</h1>
-          <span class="kanban-subtitle">${KanbanState.tasks.length} tasks across ${KanbanState.columns.length} columns</span>
+          <span class="kanban-subtitle">${KanbanState.tasks.length} tasks</span>
         </div>
         <div class="kanban-header-right">
           <button type="button" class="btn btn-ghost btn-sm" onclick="kanbanFilterToggle()" title="Filter tasks">
@@ -83,10 +92,10 @@ async function renderKanban() {
               <label>Assignee</label>
               <select id="kanban-task-assignee" class="kanban-select">
                 <option value="">Unassigned</option>
-                <option value="builder">Builder</option>
-                <option value="brain">Brain</option>
-                <option value="researcher">Researcher</option>
-                <option value="orchestrator">Orchestrator</option>
+                <option value="builder">⚡ Builder</option>
+                <option value="brain">🧠 Brain</option>
+                <option value="researcher">🔬 Researcher</option>
+                <option value="orchestrator">🌀 Orchestrator</option>
               </select>
             </div>
           </div>
@@ -251,25 +260,23 @@ async function kanbanDrop(event, columnId) {
     
     // Save to API
     try {
-      await fetch(`/api/tasks/${encodeURIComponent(taskId)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: columnId })
-      });
+      if (typeof AgenticAPI !== 'undefined' && AgenticAPI.patch) {
+        await AgenticAPI.patch(`/api/tasks/${encodeURIComponent(taskId)}`, { status: columnId });
+      }
     } catch (e) {
       console.debug('Kanban: API save failed, using local state');
     }
     
     // Re-render
     renderKanban();
-    toast('✅ Task moved', 'ok', 1500);
+    showToast('✅ Task moved', 'ok');
   }
   
   KanbanState.draggedTask = null;
 }
 
 // ── Touch Support for Mobile ──────────────────────────────────────
-let kanbanTouchData = { startX: 0, startY: 0, taskId: null, clone: null };
+let kanbanTouchData = { startX: 0, startY: 0, taskId: null, clone: null, timeout: null };
 
 function kanbanTouchStart(event) {
   const card = event.target.closest('.kanban-card');
@@ -337,7 +344,7 @@ function kanbanTouchEnd(event) {
     if (task) {
       task.status = KanbanState.dragOverColumn;
       renderKanban();
-      toast('✅ Task moved', 'ok', 1500);
+      showToast('✅ Task moved', 'ok');
     }
   }
   
@@ -347,51 +354,65 @@ function kanbanTouchEnd(event) {
 
 // ── Task Actions ──────────────────────────────────────────────────
 function kanbanAddTask() {
-  document.getElementById('kanban-add-modal').style.display = 'flex';
-  document.getElementById('kanban-task-title').focus();
+  const modal = document.getElementById('kanban-add-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    const titleInput = document.getElementById('kanban-task-title');
+    if (titleInput) titleInput.focus();
+  }
 }
 
 function kanbanAddTaskToColumn(columnId) {
   kanbanAddTask();
-  document.getElementById('kanban-task-column').value = columnId;
+  const select = document.getElementById('kanban-task-column');
+  if (select) select.value = columnId;
 }
 
 function kanbanCloseModal() {
-  document.getElementById('kanban-add-modal').style.display = 'none';
+  const modal = document.getElementById('kanban-add-modal');
+  if (modal) modal.style.display = 'none';
+  
   // Clear form
-  document.getElementById('kanban-task-title').value = '';
-  document.getElementById('kanban-task-desc').value = '';
-  document.getElementById('kanban-task-priority').value = 'medium';
-  document.getElementById('kanban-task-assignee').value = '';
+  const fields = ['kanban-task-title', 'kanban-task-desc'];
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  
+  const priority = document.getElementById('kanban-task-priority');
+  if (priority) priority.value = 'medium';
+  
+  const assignee = document.getElementById('kanban-task-assignee');
+  if (assignee) assignee.value = '';
 }
 
 async function kanbanSaveTask() {
-  const title = document.getElementById('kanban-task-title').value.trim();
+  const titleEl = document.getElementById('kanban-task-title');
+  const title = titleEl ? titleEl.value.trim() : '';
+  
   if (!title) {
-    toast('⚠️ Title is required', 'warn');
+    showToast('⚠️ Title is required', 'warn');
+    if (titleEl) titleEl.focus();
     return;
   }
   
   const task = {
     id: Date.now().toString(),
     title: title,
-    description: document.getElementById('kanban-task-desc').value.trim(),
-    status: document.getElementById('kanban-task-column').value,
-    priority: document.getElementById('kanban-task-priority').value,
-    assignee: document.getElementById('kanban-task-assignee').value,
+    description: (document.getElementById('kanban-task-desc') || {}).value?.trim() || '',
+    status: (document.getElementById('kanban-task-column') || {}).value || 'todo',
+    priority: (document.getElementById('kanban-task-priority') || {}).value || 'medium',
+    assignee: (document.getElementById('kanban-task-assignee') || {}).value || '',
     created_at: new Date().toISOString()
   };
   
   // Save to API
   try {
-    const response = await fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(task)
-    });
-    const result = await response.json();
-    if (result?.id) {
-      task.id = result.id;
+    if (typeof AgenticAPI !== 'undefined' && AgenticAPI.post) {
+      const response = await AgenticAPI.post('/api/tasks', task);
+      if (response?.id) {
+        task.id = response.id;
+      }
     }
   } catch (e) {
     console.debug('Kanban: API save failed, using local state');
@@ -400,7 +421,7 @@ async function kanbanSaveTask() {
   KanbanState.tasks.push(task);
   kanbanCloseModal();
   renderKanban();
-  toast('✅ Task created', 'ok');
+  showToast('✅ Task created', 'ok');
 }
 
 function kanbanEditTask(taskId) {
@@ -408,20 +429,21 @@ function kanbanEditTask(taskId) {
   if (!task) return;
   
   // For now, just show a simple edit via prompt
-  // In a full implementation, this would open a detailed edit modal
   const newTitle = prompt('Edit task title:', task.title);
   if (newTitle && newTitle !== task.title) {
     task.title = newTitle;
     
     // Save to API
-    fetch(`/api/tasks/${encodeURIComponent(taskId)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTitle })
-    }).catch(() => {});
+    try {
+      if (typeof AgenticAPI !== 'undefined' && AgenticAPI.patch) {
+        AgenticAPI.patch(`/api/tasks/${encodeURIComponent(taskId)}`, { title: newTitle });
+      }
+    } catch (e) {
+      console.debug('Kanban: API update failed');
+    }
     
     renderKanban();
-    toast('✅ Task updated', 'ok');
+    showToast('✅ Task updated', 'ok');
   }
 }
 
@@ -432,17 +454,18 @@ async function kanbanDeleteTask(taskId) {
   
   // Delete from API
   try {
-    await fetch(`/api/tasks/${encodeURIComponent(taskId)}`, { method: 'DELETE' });
+    if (typeof AgenticAPI !== 'undefined' && AgenticAPI.delete) {
+      await AgenticAPI.delete(`/api/tasks/${encodeURIComponent(taskId)}`);
+    }
   } catch (e) {
     console.debug('Kanban: API delete failed');
   }
   
   renderKanban();
-  toast('🗑 Task deleted', 'ok');
+  showToast('🗑 Task deleted', 'ok');
 }
 
 function kanbanFilterToggle() {
-  // Simple filter implementation
   const filter = prompt('Filter by priority (low/medium/high/urgent) or leave empty for all:');
   if (filter === null) return;
   
@@ -450,7 +473,6 @@ function kanbanFilterToggle() {
     renderKanban();
   } else {
     const filtered = KanbanState.tasks.filter(t => t.priority === filter.toLowerCase());
-    // Re-render with filtered tasks
     const board = document.getElementById('kanban-board');
     if (board) {
       KanbanState.columns.forEach(col => {
@@ -503,12 +525,14 @@ function getAssigneeAvatar(assignee) {
 }
 
 function escapeHtml(text) {
+  if (!text) return '';
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
 
 function formatDate(dateStr) {
+  if (!dateStr) return '';
   const date = new Date(dateStr);
   const now = new Date();
   const diff = date - now;
@@ -523,7 +547,16 @@ function formatDate(dateStr) {
 }
 
 function isOverdue(dateStr) {
+  if (!dateStr) return false;
   return new Date(dateStr) < new Date();
+}
+
+function showToast(message, type) {
+  if (typeof toast === 'function') {
+    toast(message, type);
+  } else {
+    console.log(message);
+  }
 }
 
 // ── Global Functions (for onclick handlers) ───────────────────────
