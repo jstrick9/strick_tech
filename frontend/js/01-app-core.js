@@ -3384,25 +3384,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
 })();
 
 // ── Section head upgrade (replace hardcoded patterns) ─────────────
-// Override the old section-head div pattern with the new page-header
-const _origRenderKanban = typeof renderKanban === 'function' ? renderKanban : null;
-if (_origRenderKanban) {
-  renderKanban = async function() {
-    const pane = document.getElementById('pane-kanban');
-    if (pane) {
-      pane.innerHTML = `
-        ${pageHeader({
-          title: '📋 Kanban',
-          subtitle: 'Drag tasks between columns to update status',
-          actions: [{label: '＋ Task', action: "openNewTaskModal()", primary: true}]
-        })}
-        <div class="page-content" style="padding:0">
-          <div style="padding:16px">${skeletonStats(4)}</div>
-        </div>`;
-    }
-    await _origRenderKanban();
-  };
-}
+// Kanban rendering is now handled by 28-kanban.js
 
 // ── Upgrade topbar elements ────────────────────────────────────────
 (function upgradeTopbar() {
