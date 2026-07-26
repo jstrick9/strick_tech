@@ -1323,7 +1323,6 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
 </head>
 <body>
-<a href="#chat-input" class="skip-link">Skip to main content</a>
 <div id="shell">
 
   <!-- ── Simplified Topbar (ChatGPT/Claude style) ──────────── -->
@@ -3293,7 +3292,7 @@ document.addEventListener('keydown', function(e) {
 'use strict';
 (function() {
   var STORAGE_KEY = 'agentic_os_mode';
-  var currentMode = localStorage.getItem(STORAGE_KEY) || 'simple';
+  var currentMode = localStorage.getItem(STORAGE_KEY) || 'power';
   var advancedOpen = false;
 
   function applyMode(mode) {
