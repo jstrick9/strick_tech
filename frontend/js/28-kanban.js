@@ -3,12 +3,12 @@
 'use strict';
 
 // ── Kanban State ─────────────────────────────────────────────────
+// Status values MUST match backend: todo, doing, blocked, done
 const KanbanState = {
   columns: [
-    { id: 'backlog', label: 'Backlog', color: '#6b7280', icon: '📋' },
     { id: 'todo', label: 'To Do', color: '#3b82f6', icon: '📝' },
-    { id: 'in-progress', label: 'In Progress', color: '#f59e0b', icon: '⚡' },
-    { id: 'review', label: 'In Review', color: '#8b5cf6', icon: '👀' },
+    { id: 'doing', label: 'In Progress', color: '#f59e0b', icon: '⚡' },
+    { id: 'blocked', label: 'Blocked', color: '#ef4444', icon: '⛔' },
     { id: 'done', label: 'Done', color: '#22c55e', icon: '✅' }
   ],
   tasks: [],
@@ -102,7 +102,7 @@ async function renderKanban() {
           <div class="kanban-form-group">
             <label>Column</label>
             <select id="kanban-task-column" class="kanban-select">
-              ${KanbanState.columns.map(col => `<option value="${col.id}">${col.icon} ${col.label}</option>`).join('')}
+              ${KanbanState.columns.map(col => `<option value="${col.id}" ${col.id === 'todo' ? 'selected' : ''}>${col.icon} ${col.label}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -402,7 +402,7 @@ async function kanbanSaveTask() {
     description: (document.getElementById('kanban-task-desc') || {}).value?.trim() || '',
     status: (document.getElementById('kanban-task-column') || {}).value || 'todo',
     priority: (document.getElementById('kanban-task-priority') || {}).value || 'medium',
-    assignee: (document.getElementById('kanban-task-assignee') || {}).value || '',
+    agent: (document.getElementById('kanban-task-assignee') || {}).value || 'builder',
     created_at: new Date().toISOString()
   };
   
@@ -504,13 +504,13 @@ function flattenKanbanData(data) {
 function getSampleTasks() {
   return [
     { id: '1', title: 'Design new landing page', description: 'Create a modern landing page with hero section', status: 'todo', priority: 'high', assignee: 'builder' },
-    { id: '2', title: 'Fix authentication bug', description: 'Users getting logged out unexpectedly', status: 'in-progress', priority: 'urgent', assignee: 'brain' },
-    { id: '3', title: 'Write API documentation', description: 'Document all REST endpoints', status: 'backlog', priority: 'medium', assignee: 'researcher' },
-    { id: '4', title: 'Implement dark mode', description: 'Add theme switching capability', status: 'review', priority: 'low', assignee: 'builder' },
+    { id: '2', title: 'Fix authentication bug', description: 'Users getting logged out unexpectedly', status: 'doing', priority: 'urgent', assignee: 'brain' },
+    { id: '3', title: 'Write API documentation', description: 'Document all REST endpoints', status: 'todo', priority: 'medium', assignee: 'researcher' },
+    { id: '4', title: 'Implement dark mode', description: 'Add theme switching capability', status: 'blocked', priority: 'low', assignee: 'builder' },
     { id: '5', title: 'Optimize database queries', description: 'Slow queries on user dashboard', status: 'done', priority: 'high', assignee: 'brain' },
     { id: '6', title: 'Add unit tests for auth module', description: 'Increase test coverage to 80%', status: 'todo', priority: 'medium', assignee: '' },
-    { id: '7', title: 'Research competitor features', description: 'Analyze top 5 competitors', status: 'backlog', priority: 'low', assignee: 'researcher' },
-    { id: '8', title: 'Setup CI/CD pipeline', description: 'GitHub Actions for auto deployment', status: 'in-progress', priority: 'high', assignee: 'builder' }
+    { id: '7', title: 'Research competitor features', description: 'Analyze top 5 competitors', status: 'todo', priority: 'low', assignee: 'researcher' },
+    { id: '8', title: 'Setup CI/CD pipeline', description: 'GitHub Actions for auto deployment', status: 'doing', priority: 'high', assignee: 'builder' }
   ];
 }
 
