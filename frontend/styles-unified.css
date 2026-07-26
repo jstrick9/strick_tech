@@ -825,6 +825,16 @@ body {
   color: var(--text-0);
 }
 
+/* Settings tab panes - proper show/hide */
+.settings-tab-pane {
+  display: none;
+}
+
+.settings-tab-pane.active {
+  display: block;
+  animation: paneIn 0.15s ease;
+}
+
 .settings-content-area {
   flex: 1;
   overflow-y: auto;
