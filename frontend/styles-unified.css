@@ -1050,23 +1050,37 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PANE TRANSITIONS
+   PANE TRANSITIONS — Critical for proper navigation
    ═══════════════════════════════════════════════════════════ */
 .pane {
-  display: none;
+  display: none !important;
   flex: 1;
   flex-direction: column;
   overflow: hidden;
 }
 
 .pane.active {
-  display: flex;
+  display: flex !important;
   animation: paneIn 0.2s ease;
 }
 
 @keyframes paneIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
+}
+
+/* Ensure only one pane is visible at a time */
+[id^="pane-"]:not(.active) {
+  display: none !important;
+}
+
+/* Make sure content area fills remaining space */
+#content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════
