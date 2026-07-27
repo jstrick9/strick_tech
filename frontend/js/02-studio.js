@@ -197,53 +197,8 @@ function addTokenCounter() {
 setTimeout(addTokenCounter, 1000);
 
 // ── 5. Model switcher in topbar ───────────────────────────────
-function addModelSwitcher() {
-  const topbarActions = document.getElementById('topbar-actions');
-  if (!topbarActions || document.getElementById('model-switcher')) return;
-  
-  const switcher = document.createElement('select');
-  switcher.id = 'model-switcher';
-  switcher.title = 'Switch AI model for current agent';
-  switcher.style.cssText = `
-    background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);
-    color:var(--text-1);font-size:11px;padding:4px 7px;cursor:pointer;
-    outline:none;transition:var(--transition);
-  `;
-  
-  const models = [
-    ['claude',       'Claude 3.5 Sonnet'],
-    ['claude-opus',  'Claude Opus 4'],
-    ['gpt4o',        'GPT-4o'],
-    ['gemini',       'Gemini 2.5 Pro'],
-    ['grok',         'Grok 3'],
-    ['llama',        'Llama 3.3 (free)'],
-    ['gemini-flash', 'Gemini Flash (free)'],
-  ];
-  
-  switcher.innerHTML = models.map(([id, name]) => 
-    `<option value="${id}">${name}</option>`
-  ).join('');
-  
-  switcher.addEventListener('change', () => {
-    const modelId = switcher.value;
-    if (window.S?.currentAgent) {
-      S.currentAgent.model = modelId;
-      const badge = document.getElementById('active-model-badge');
-      if (badge) badge.textContent = modelId;
-      toast(`🤖 Model: ${models.find(m=>m[0]===modelId)?.[1]||modelId}`, 'ok', 1500);
-    }
-  });
-  
-  // Insert before settings button
-  const settingsBtn = topbarActions.querySelector('[title="Settings (⌘,)"]') ||
-                     topbarActions.querySelector('[onclick*="settings"]');
-  if (settingsBtn) {
-    topbarActions.insertBefore(switcher, settingsBtn);
-  } else {
-    topbarActions.prepend(switcher);
-  }
-}
-setTimeout(addModelSwitcher, 1500);
+// Model switcher removed - model selection stays in Chat component
+// setTimeout(addModelSwitcher, 1500);
 
 // ── 6. Pane-specific quick action bar in topbar area ──────────
 function addQuickActionBar() {
