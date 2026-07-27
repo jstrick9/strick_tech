@@ -506,20 +506,7 @@
 .tag.red{background:#2a0e16;border-color:#4a1a28;color:var(--red)}
 .tag.blue{background:#0d1a3a;border-color:#1a2e60;color:var(--accent-hi)}
 
-/* ── Stats bar ───────────────────────────────────────────── */
-#statusbar{
-  height:26px;flex-shrink:0;
-  display:flex;align-items:center;gap:0;
-  background:var(--bg-1);border-top:1px solid var(--border);
-  font-size:11px;color:var(--text-3);padding:0 12px;
-  overflow:hidden;
-}
-.sb-item{
-  display:flex;align-items:center;gap:5px;padding:0 10px;
-  border-right:1px solid var(--border);height:100%;
-}
-.sb-item:last-child{border-right:none}
-.sb-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+/* Status bar - consolidated in unified.css */
 
 /* ── Swarm cards ─────────────────────────────────────────── */
 .swarm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin:16px 0}
@@ -1204,20 +1191,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
   .topbar-btn span:not(:first-child){display:none}
 }
 
-/* Status bar */
-#statusbar{
-  height:24px;
-  flex-shrink:0;
-  display:flex;
-  align-items:center;
-  background:var(--bg-1);
-  border-top:1px solid var(--border);
-  font-size:var(--text-xs);
-  color:var(--text-3);
-  padding:0 var(--space-3);
-  overflow:hidden;
-  white-space:nowrap;
-}
+/* Status bar - consolidated in unified.css */
 
 </style>
 <script>

@@ -1033,10 +1033,10 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   STATUS BAR — Minimal
+   STATUS BAR — Always visible at bottom
    ═══════════════════════════════════════════════════════════ */
 #statusbar {
-  height: 24px;
+  height: 28px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -1046,6 +1046,7 @@ body {
   font-size: 11px;
   color: var(--text-3);
   padding: 0 12px;
+  z-index: 50;
 }
 
 .sb-item {
@@ -1059,7 +1060,38 @@ body {
 }
 
 .sb-item:last-child { border-right: none; }
-.sb-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+.sb-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+
+/* Ensure shell fills viewport and statusbar is always visible */
+#shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+#main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+#content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 
 /* ═══════════════════════════════════════════════════════════
    UTILITY CLASSES
