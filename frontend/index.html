@@ -1304,13 +1304,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <button type="button" id="restart-engine-btn" onclick="if(typeof hardRebootBackendEngine === 'function') hardRebootBackendEngine()" data-tier="advanced" title="Restart AI Backend Engine">🛑 Restart</button>
     </div>
 
-    <!-- Essential Actions Only (4-5 items) -->
+    <!-- Clean Topbar: Search, Notifications, Settings, Profile -->
     <div id="topbar-actions">
-      <!-- Connection Status -->
-      <div role="button" tabindex="0" id="key-status" onclick="nav('settings');switchSettingsTab('api')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="AI Connection — click to configure">
-        <span class="key-dot" id="key-dot"></span>
-        <span id="key-label">Setting up…</span>
-      </div>
       <!-- Notification bell -->
       <div style="position:relative;display:inline-flex">
         <button type="button" class="icon-btn" id="notif-bell-btn" onclick="toggleNotifPanel()"
@@ -1321,7 +1316,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           border:1.5px solid var(--bg-1);pointer-events:none"></span>
       </div>
       <!-- Settings -->
-      <button type="button" class="icon-btn" onclick="nav('settings')" title="Settings (⌘,)">⚙️</button>
+      <button type="button" class="icon-btn" onclick="nav('settings')" title="Settings">⚙️</button>
       <!-- User Profile -->
       <div role="button" tabindex="0" id="user-identity-hub" onclick="nav('settings');switchSettingsTab('appearance')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Your Profile">
         <span id="topbar-user-avatar">👤</span>

@@ -1496,24 +1496,8 @@ async function showVoiceHistory() {
   }
 }
 
-// Add voice button to topbar
-(function addVoiceBtn() {
-  const topbar = document.getElementById('topbar');
-  if (!topbar || document.getElementById('voice-btn')) return;
-  const btn = document.createElement('button');
-  btn.id       = 'voice-btn';
-  btn.innerHTML = '🎤';
-  btn.title    = 'Voice coding (Ctrl+Shift+V)';
-  btn.style.cssText = [
-    'background:transparent;border:1px solid var(--border);border-radius:8px',
-    'color:var(--text-2);padding:4px 8px;cursor:pointer;font-size:14px',
-    'transition:all .12s',
-  ].join(';');
-  btn.onclick = toggleVoice;
-  // Insert before the last child (works even without .spacer)
-  topbar.appendChild(btn);
-  _voiceBtn = btn;
-})();
+// Voice button moved to chat input area
+// Voice functionality remains available via Ctrl+Shift+V keyboard shortcut
 
 // Keyboard shortcut for voice coding
 document.addEventListener('keydown', (e) => {
