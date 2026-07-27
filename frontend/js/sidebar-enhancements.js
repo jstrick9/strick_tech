@@ -1,5 +1,5 @@
-// Agentic OS — Sidebar Enhancements v3
-// Fixed: favorites can be removed, proper event handling
+// Agentic OS — Sidebar Enhancements v4
+// Fixed: stars only on ESSENTIALS, arrow directions correct
 'use strict';
 
 // ── Sidebar State ────────────────────────────────────────────────
@@ -37,30 +37,29 @@ function initSidebar() {
   setupGroupTooltips();
   ensureDefaultState();
   
-  console.log('✅ Sidebar enhancements v3 loaded');
+  console.log('✅ Sidebar v4 loaded');
 }
 
 // ── Ensure Default State ─────────────────────────────────────────
 function ensureDefaultState() {
-  const groups = ['build', 'ship', 'tools', 'enterprise'];
-  groups.forEach(gid => {
+  // ESSENTIALS expanded, all others collapsed
+  const coreContent = document.getElementById('group-core');
+  const coreArrow = document.getElementById('arrow-core');
+  if (coreContent) coreContent.style.display = 'block';
+  if (coreArrow) coreArrow.textContent = '▼';
+
+  ['build', 'ship', 'tools', 'enterprise'].forEach(gid => {
     const content = document.getElementById('group-' + gid);
     const arrow = document.getElementById('arrow-' + gid);
     if (content) content.style.display = 'none';
     if (arrow) arrow.textContent = '▶';
   });
-  
-  const coreContent = document.getElementById('group-core');
-  const coreArrow = document.getElementById('arrow-core');
-  if (coreContent) coreContent.style.display = 'block';
-  if (coreArrow) coreArrow.textContent = '▼';
 }
 
 // ── Drag-to-Resize ───────────────────────────────────────────────
 function setupSidebarResizer() {
   const resizer = document.getElementById('sidebar-resizer');
   const sidebar = document.getElementById('sidebar');
-  
   if (!resizer || !sidebar) return;
 
   resizer.addEventListener('mousedown', startResize);
@@ -69,7 +68,7 @@ function setupSidebarResizer() {
   resizer.addEventListener('touchstart', startResize, { passive: false });
   document.addEventListener('touchmove', doResize, { passive: false });
   document.addEventListener('touchend', stopResize);
-  resizer.addEventListener('dblclick', function() {
+  resizer.addEventListener('dblclick', () => {
     setSidebarWidth(SidebarState.defaultWidth);
     if (typeof toast === 'function') toast('Sidebar width reset', 'ok');
   });
@@ -80,13 +79,12 @@ function startResize(e) {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
   SidebarState.isResizing = true;
-  SidebarState.startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+  SidebarState.startX = e.clientX || (e.touches?.[0]?.clientX) || 0;
   SidebarState.startWidth = sidebar.offsetWidth;
   document.body.style.cursor = 'col-resize';
   document.body.style.userSelect = 'none';
   sidebar.style.transition = 'none';
-  const resizer = document.getElementById('sidebar-resizer');
-  if (resizer) resizer.classList.add('resizing');
+  document.getElementById('sidebar-resizer')?.classList.add('resizing');
 }
 
 function doResize(e) {
@@ -94,7 +92,7 @@ function doResize(e) {
   e.preventDefault();
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
-  const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+  const clientX = e.clientX || (e.touches?.[0]?.clientX) || 0;
   const diff = clientX - SidebarState.startX;
   const newWidth = Math.min(SidebarState.maxWidth, Math.max(SidebarState.minWidth, SidebarState.startWidth + diff));
   setSidebarWidth(newWidth);
@@ -103,10 +101,10 @@ function doResize(e) {
 function stopResize() {
   if (!SidebarState.isResizing) return;
   SidebarState.isResizing = false;
-  const sidebar = document.getElementById('sidebar');
-  const resizer = document.getElementById('sidebar-resizer');
   document.body.style.cursor = '';
   document.body.style.userSelect = '';
+  const sidebar = document.getElementById('sidebar');
+  const resizer = document.getElementById('sidebar-resizer');
   if (sidebar) sidebar.style.transition = '';
   if (resizer) resizer.classList.remove('resizing');
   const width = sidebar ? sidebar.offsetWidth : SidebarState.defaultWidth;
@@ -127,17 +125,16 @@ function setSidebarWidth(width) {
   localStorage.setItem('agentic_os_sidebar_collapsed', isCollapsed ? 'true' : 'false');
 }
 
-// ── Favorites System ─────────────────────────────────────────────
+// ── Favorites System (ONLY for ESSENTIALS items) ─────────────────
 function setupFavorites() {
   const favorites = getFavorites();
   
-  // Create favorites section if there are favorites
   if (favorites.length > 0) {
     createFavoritesSection(favorites);
   }
   
-  // Add star buttons to all nav items
-  document.querySelectorAll('.nav-item[data-nav]').forEach(item => {
+  // ONLY add star buttons to ESSENTIALS items (data-tier="core")
+  document.querySelectorAll('.nav-item[data-nav][data-tier="core"]').forEach(item => {
     addStarButton(item);
   });
 }
@@ -168,8 +165,7 @@ function addStarButton(navItem) {
   starBtn.innerHTML = isFav ? '⭐' : '☆';
   starBtn.title = isFav ? 'Click to remove from favorites' : 'Click to add to favorites';
   starBtn.setAttribute('data-nav-id', navId);
-  
-  // Style the button
+
   starBtn.style.cssText = `
     background: none;
     border: none;
@@ -185,7 +181,6 @@ function addStarButton(navItem) {
     position: relative;
   `;
 
-  // Show on hover
   navItem.addEventListener('mouseenter', () => starBtn.style.opacity = '1');
   navItem.addEventListener('mouseleave', () => {
     if (!getFavorites().includes(navId)) {
@@ -193,7 +188,6 @@ function addStarButton(navItem) {
     }
   });
 
-  // Click handler - CRITICAL: stop propagation
   starBtn.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -203,7 +197,6 @@ function addStarButton(navItem) {
     const isCurrentlyFav = currentFavs.includes(navId);
     
     if (isCurrentlyFav) {
-      // REMOVE from favorites
       const newFavs = currentFavs.filter(id => id !== navId);
       saveFavorites(newFavs);
       this.innerHTML = '☆';
@@ -211,7 +204,6 @@ function addStarButton(navItem) {
       this.style.opacity = '0';
       if (typeof toast === 'function') toast('Removed from favorites', 'ok');
     } else {
-      // ADD to favorites
       currentFavs.push(navId);
       saveFavorites(currentFavs);
       this.innerHTML = '⭐';
@@ -220,9 +212,7 @@ function addStarButton(navItem) {
       if (typeof toast === 'function') toast('Added to favorites', 'ok');
     }
     
-    // Update favorites section
     createFavoritesSection(getFavorites());
-    
     return false;
   });
 
@@ -230,10 +220,8 @@ function addStarButton(navItem) {
 }
 
 function createFavoritesSection(favorites) {
-  // Remove existing
   const existing = document.getElementById('sidebar-favorites-section');
   if (existing) existing.remove();
-  
   if (favorites.length === 0) return;
   
   const sidebarScroll = document.querySelector('.sidebar-scroll');
@@ -273,7 +261,6 @@ function removeFromFavorites(navId) {
   favorites = favorites.filter(id => id !== navId);
   saveFavorites(favorites);
   
-  // Update the star button on the original nav item
   const originalItem = document.querySelector(`.nav-item[data-nav="${navId}"]`);
   if (originalItem) {
     const starBtn = originalItem.querySelector('.nav-star-btn');
@@ -284,9 +271,7 @@ function removeFromFavorites(navId) {
     }
   }
   
-  // Update favorites section
   createFavoritesSection(favorites);
-  
   if (typeof toast === 'function') toast('Removed from favorites', 'ok');
 }
 
@@ -526,4 +511,4 @@ window.setSidebarWidth = setSidebarWidth;
 window.removeFromFavorites = removeFromFavorites;
 window.ensureDefaultState = ensureDefaultState;
 
-console.log('%c✅ Sidebar v3 loaded', 'color:#22c55e;font-weight:bold');
+console.log('%c✅ Sidebar v4 loaded', 'color:#22c55e;font-weight:bold');
