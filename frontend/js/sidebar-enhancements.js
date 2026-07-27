@@ -315,7 +315,7 @@ sidebarStyles.textContent = `
     border: none;
     border-radius: 6px;
     background: transparent;
-    color: var(--text-3, #666);
+    color: var(--text-3, #808080);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -326,7 +326,7 @@ sidebarStyles.textContent = `
   }
   #sidebar-toggle-btn:hover {
     background: var(--bg-3, #222);
-    color: var(--text-0, #fff);
+    color: var(--text-0, #ffffff);
   }
 
   /* Help tip */
@@ -338,8 +338,8 @@ sidebarStyles.textContent = `
     height: 16px;
     border-radius: 50%;
     background: var(--bg-3, #222);
-    border: 1px solid var(--border, rgba(255,255,255,0.06));
-    color: var(--text-3, #666);
+    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    color: var(--text-3, #808080);
     font-size: 10px;
     font-weight: 700;
     cursor: help;
@@ -359,7 +359,7 @@ sidebarStyles.textContent = `
     left: calc(100% + 4px);
     top: 0;
     background: var(--bg-4, #2a2a2a);
-    color: var(--text-0, #fff);
+    color: var(--text-0, #ffffff);
     padding: 10px 14px;
     border-radius: 8px;
     font-size: 12px;
@@ -372,7 +372,7 @@ sidebarStyles.textContent = `
     transition: opacity 0.15s, visibility 0.15s;
     z-index: 1000;
     box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-    border: 1px solid var(--border-hi, rgba(255,255,255,0.12));
+    border: 1px solid var(--border-hi, rgba(255,255,255,0.2));
   }
 
   /* Favorite button ☆/★ */
@@ -389,7 +389,7 @@ sidebarStyles.textContent = `
     transition: opacity 0.15s, color 0.15s;
     z-index: 10;
     position: relative;
-    color: var(--text-3, #666);
+    color: var(--text-3, #808080);
   }
   .nav-fav-btn:hover {
     color: var(--accent, #6366f1);
@@ -408,7 +408,7 @@ sidebarStyles.textContent = `
   /* Favorites section */
   #sidebar-favorites-section {
     padding: 4px 0;
-    border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
+    border-bottom: 1px solid var(--border, rgba(255,255,255,0.1));
     margin-bottom: 4px;
   }
   #sidebar-favorites-section .fav-item {
@@ -418,7 +418,7 @@ sidebarStyles.textContent = `
   .fav-remove-btn {
     background: none;
     border: none;
-    color: var(--text-3, #666);
+    color: var(--text-3, #808080);
     cursor: pointer;
     font-size: 12px;
     padding: 2px 4px;
@@ -460,7 +460,7 @@ sidebarStyles.textContent = `
 
   /* Agents section */
   #sidebar-agents-section {
-    border-top: 1px solid var(--border, rgba(255,255,255,0.06));
+    border-top: 1px solid var(--border, rgba(255,255,255,0.1));
     padding: 8px;
     flex-shrink: 0;
     max-height: 200px;
