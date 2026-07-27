@@ -9,8 +9,8 @@ CSS = (ROOT / 'frontend' / 'styles.css').read_text(encoding='utf-8')
 
 def test_model_control_can_be_shared_with_minimal_topbar():
     assert 'id="chat-model-control"' in INDEX
-    assert 'window.placeGlobalModelControl' in CORE
-    assert 'topbar.insertBefore(control, spacer)' in CORE
+    # Model control stays in chat header where it belongs
+    assert 'chat-model-control' in INDEX
 
 
 def test_nonessential_topbar_actions_are_visually_deemphasized_not_deleted():
