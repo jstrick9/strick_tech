@@ -1,5 +1,5 @@
 // Agentic OS — Sidebar Enhancements
-// Drag-to-resize, collapse toggle, favorites, and more
+// Drag-to-resize, collapse toggle, favorites, tooltips
 'use strict';
 
 // ── Sidebar State ────────────────────────────────────────────────
@@ -24,14 +24,24 @@ function initSidebar() {
     }
   }
 
+  // Check if sidebar should be collapsed
+  const isCollapsed = localStorage.getItem('agentic_os_sidebar_collapsed') === 'true';
+  if (isCollapsed) {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      sidebar.classList.add('collapsed');
+      sidebar.style.width = SidebarState.collapsedWidth + 'px';
+    }
+  }
+
   // Setup drag-to-resize
   setupSidebarResizer();
   
-  // Setup collapse toggle
-  setupCollapseToggle();
-  
   // Setup favorites/pins
   setupFavorites();
+  
+  // Setup tooltips for group labels
+  setupGroupTooltips();
   
   console.log('✅ Sidebar enhancements loaded');
 }
@@ -56,7 +66,7 @@ function setupSidebarResizer() {
   // Double-click to reset width
   resizer.addEventListener('dblclick', function() {
     setSidebarWidth(SidebarState.defaultWidth);
-    toast('Sidebar width reset', 'ok');
+    if (typeof toast === 'function') toast('Sidebar width reset', 'ok');
   });
 }
 
@@ -75,8 +85,8 @@ function startResize(e) {
   document.body.style.userSelect = 'none';
   sidebar.style.transition = 'none';
   
-  // Add resize class for CSS feedback
-  resizer.classList.add('resizing');
+  const resizer = document.getElementById('sidebar-resizer');
+  if (resizer) resizer.classList.add('resizing');
 }
 
 function doResize(e) {
@@ -131,33 +141,14 @@ function setSidebarWidth(width) {
   sidebar.classList.toggle('collapsed', isCollapsed);
   
   // Update collapse button icon
-  const collapseBtn = document.getElementById('sidebar-collapse-btn');
+  const collapseBtn = document.getElementById('sidebar-toggle-btn');
   if (collapseBtn) {
     collapseBtn.textContent = isCollapsed ? '▶' : '◀';
-    collapseBtn.title = isCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+    collapseBtn.title = isCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)';
   }
-}
-
-// ── Collapse Toggle ──────────────────────────────────────────────
-function setupCollapseToggle() {
-  const collapseBtn = document.getElementById('sidebar-collapse-btn');
-  if (!collapseBtn) return;
-
-  collapseBtn.addEventListener('click', function() {
-    const sidebar = document.getElementById('sidebar');
-    if (!sidebar) return;
-
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    
-    if (isCollapsed) {
-      // Expand to saved width or default
-      const savedWidth = parseInt(localStorage.getItem('agentic_os_sidebar_width')) || SidebarState.defaultWidth;
-      setSidebarWidth(savedWidth);
-    } else {
-      // Collapse
-      setSidebarWidth(SidebarState.collapsedWidth);
-    }
-  });
+  
+  // Save collapsed state
+  localStorage.setItem('agentic_os_sidebar_collapsed', isCollapsed ? 'true' : 'false');
 }
 
 // ── Favorites / Pins ─────────────────────────────────────────────
@@ -166,34 +157,47 @@ function setupFavorites() {
   const favorites = JSON.parse(localStorage.getItem('agentic_os_favorites') || '[]');
   
   // Add favorite buttons to nav items
-  document.querySelectorAll('.nav-item').forEach(item => {
+  document.querySelectorAll('.nav-item[data-nav]').forEach(item => {
     const navId = item.dataset.nav;
     if (!navId) return;
 
     // Check if already has favorite button
     if (item.querySelector('.nav-favorite')) return;
 
+    const isFav = favorites.includes(navId);
+    
     const favBtn = document.createElement('button');
     favBtn.className = 'nav-favorite';
-    favBtn.innerHTML = favorites.includes(navId) ? '⭐' : '☆';
-    favBtn.title = favorites.includes(navId) ? 'Remove from favorites' : 'Add to favorites';
+    favBtn.type = 'button';
+    favBtn.innerHTML = isFav ? '⭐' : '☆';
+    favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+    favBtn.setAttribute('data-nav-id', navId);
     favBtn.style.cssText = `
       background: none;
       border: none;
       cursor: pointer;
       font-size: 12px;
-      padding: 2px;
-      opacity: 0;
+      padding: 2px 4px;
+      opacity: ${isFav ? '1' : '0'};
       transition: opacity 0.15s;
       margin-left: auto;
+      flex-shrink: 0;
+      line-height: 1;
     `;
 
     // Show on hover
-    item.addEventListener('mouseenter', () => favBtn.style.opacity = '1');
-    item.addEventListener('mouseleave', () => favBtn.style.opacity = '0');
+    item.addEventListener('mouseenter', function() {
+      favBtn.style.opacity = '1';
+    });
+    item.addEventListener('mouseleave', function() {
+      if (!favorites.includes(navId)) {
+        favBtn.style.opacity = '0';
+      }
+    });
 
-    // Toggle favorite
+    // Toggle favorite on click
     favBtn.addEventListener('click', function(e) {
+      e.preventDefault();
       e.stopPropagation();
       toggleFavorite(navId, favBtn);
     });
@@ -206,51 +210,65 @@ function toggleFavorite(navId, btn) {
   let favorites = JSON.parse(localStorage.getItem('agentic_os_favorites') || '[]');
   
   if (favorites.includes(navId)) {
+    // Remove from favorites
     favorites = favorites.filter(id => id !== navId);
     btn.innerHTML = '☆';
     btn.title = 'Add to favorites';
-    toast('Removed from favorites', 'ok');
+    btn.style.opacity = '0';
+    if (typeof toast === 'function') toast('Removed from favorites', 'ok');
   } else {
+    // Add to favorites
     favorites.push(navId);
     btn.innerHTML = '⭐';
     btn.title = 'Remove from favorites';
-    toast('Added to favorites', 'ok');
+    btn.style.opacity = '1';
+    if (typeof toast === 'function') toast('Added to favorites', 'ok');
   }
   
   localStorage.setItem('agentic_os_favorites', JSON.stringify(favorites));
-  
-  // Reorganize sidebar to show favorites at top
-  reorganizeSidebar();
 }
 
-function reorganizeSidebar() {
-  const favorites = JSON.parse(localStorage.getItem('agentic_os_favorites') || '[]');
-  const sidebar = document.querySelector('.sidebar-scroll');
-  if (!sidebar || favorites.length === 0) return;
-
-  // Find or create favorites section
-  let favSection = document.getElementById('sidebar-favorites');
-  if (!favSection) {
-    favSection = document.createElement('div');
-    favSection.id = 'sidebar-favorites';
-    favSection.innerHTML = `
-      <div class="sidebar-group-label" style="color: #f59e0b;">
-        <span>⭐</span> FAVORITES
-      </div>
-      <div id="favorites-list"></div>
+// ── Group Tooltips ───────────────────────────────────────────────
+function setupGroupTooltips() {
+  document.querySelectorAll('.sidebar-help-tip').forEach(tip => {
+    // Create tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.className = 'sidebar-tooltip';
+    tooltip.textContent = tip.getAttribute('data-tip');
+    tooltip.style.cssText = `
+      position: absolute;
+      left: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--bg-4, #2a2a2a);
+      color: var(--text-0, #fff);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.4;
+      white-space: nowrap;
+      max-width: 280px;
+      white-space: normal;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      border: 1px solid var(--border-hi, rgba(255,255,255,0.12));
     `;
-    sidebar.insertBefore(favSection, sidebar.firstChild.nextSibling);
-  }
 
-  const favList = document.getElementById('favorites-list');
-  if (!favList) return;
+    // Position the tip container
+    tip.style.position = 'relative';
+    tip.appendChild(tooltip);
 
-  // Move favorite items to top
-  favorites.forEach(navId => {
-    const item = document.querySelector(`.nav-item[data-nav="${navId}"]`);
-    if (item && !favList.contains(item)) {
-      favList.appendChild(item.cloneNode(true));
-    }
+    // Show/hide on hover
+    tip.addEventListener('mouseenter', function() {
+      tooltip.style.opacity = '1';
+    });
+    tip.addEventListener('mouseleave', function() {
+      tooltip.style.opacity = '0';
+    });
   });
 }
 
@@ -259,14 +277,15 @@ document.addEventListener('keydown', function(e) {
   // Ctrl+B or Cmd+B to toggle sidebar
   if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
     e.preventDefault();
-    const collapseBtn = document.getElementById('sidebar-collapse-btn');
-    if (collapseBtn) collapseBtn.click();
+    const toggleBtn = document.getElementById('sidebar-toggle-btn');
+    if (toggleBtn) toggleBtn.click();
   }
 });
 
-// ── CSS for Resizer ──────────────────────────────────────────────
-const resizerStyles = document.createElement('style');
-resizerStyles.textContent = `
+// ── CSS for Sidebar Enhancements ─────────────────────────────────
+const sidebarStyles = document.createElement('style');
+sidebarStyles.textContent = `
+  /* Resizer */
   #sidebar-resizer {
     width: 4px;
     cursor: col-resize;
@@ -287,8 +306,8 @@ resizerStyles.textContent = `
     margin-left: -1px;
   }
 
-  /* Collapse button styling */
-  #sidebar-collapse-btn {
+  /* Collapse button */
+  #sidebar-toggle-btn {
     width: 24px;
     height: 24px;
     border: none;
@@ -304,22 +323,59 @@ resizerStyles.textContent = `
     flex-shrink: 0;
   }
 
-  #sidebar-collapse-btn:hover {
+  #sidebar-toggle-btn:hover {
     background: var(--bg-3, #222);
     color: var(--text-0, #fff);
+  }
+
+  /* Help tip icon */
+  .sidebar-help-tip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--bg-3, #222);
+    border: 1px solid var(--border, rgba(255,255,255,0.06));
+    color: var(--text-3, #666);
+    font-size: 10px;
+    font-weight: 700;
+    cursor: help;
+    margin-left: 4px;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .sidebar-help-tip:hover {
+    background: var(--accent-glow, rgba(99,102,241,0.15));
+    border-color: var(--accent, #6366f1);
+    color: var(--accent, #6366f1);
   }
 
   /* Favorite button */
   .nav-favorite {
     opacity: 0;
     transition: opacity 0.15s;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+    line-height: 1;
   }
 
   .nav-item:hover .nav-favorite {
     opacity: 1;
   }
 
-  /* Collapsed sidebar styles */
+  .nav-favorite[data-favorited="true"] {
+    opacity: 1;
+  }
+
+  /* Collapsed sidebar */
   #sidebar.collapsed {
     width: 56px !important;
   }
@@ -328,10 +384,11 @@ resizerStyles.textContent = `
   #sidebar.collapsed .sidebar-group-label,
   #sidebar.collapsed .count,
   #sidebar.collapsed .badge,
-  #sidebar.collapsed .help-tip,
+  #sidebar.collapsed .sidebar-help-tip,
   #sidebar.collapsed .nav-favorite,
   #sidebar.collapsed .agent-info,
-  #sidebar.collapsed #sidebar-top-nav-header > span:first-child {
+  #sidebar.collapsed #sidebar-nav-label,
+  #sidebar.collapsed #sidebar-agents-section span:first-child {
     display: none !important;
   }
 
@@ -348,7 +405,7 @@ resizerStyles.textContent = `
     display: none;
   }
 
-  /* Agents section - compact */
+  /* Agents section compact */
   #sidebar-agents-section {
     border-top: 1px solid var(--border, rgba(255,255,255,0.06));
     padding: 8px;
@@ -356,24 +413,16 @@ resizerStyles.textContent = `
     max-height: 200px;
     overflow-y: auto;
   }
-
-  #sidebar-agents-section .sidebar-label {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--text-3, #666);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 4px 8px 8px;
-  }
 `;
 
-document.head.appendChild(resizerStyles);
+document.head.appendChild(sidebarStyles);
 
 // ── Initialize on DOM Ready ──────────────────────────────────────
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initSidebar);
 } else {
-  initSidebar();
+  // DOM already loaded, init after a short delay to ensure other scripts are ready
+  setTimeout(initSidebar, 100);
 }
 
 // ── Global Exports ────────────────────────────────────────────────
