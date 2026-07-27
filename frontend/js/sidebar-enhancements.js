@@ -1,5 +1,5 @@
-// Agentic OS — Sidebar Enhancements v2
-// Fixed: favorites section, tooltip positioning, proper descriptions
+// Agentic OS — Sidebar Enhancements v3
+// Fixed: favorites can be removed, proper event handling
 'use strict';
 
 // ── Sidebar State ────────────────────────────────────────────────
@@ -15,7 +15,6 @@ const SidebarState = {
 
 // ── Initialize Sidebar ───────────────────────────────────────────
 function initSidebar() {
-  // Restore saved width
   const savedWidth = localStorage.getItem('agentic_os_sidebar_width');
   if (savedWidth) {
     const width = parseInt(savedWidth);
@@ -24,7 +23,6 @@ function initSidebar() {
     }
   }
 
-  // Check if sidebar should be collapsed
   const isCollapsed = localStorage.getItem('agentic_os_sidebar_collapsed') === 'true';
   if (isCollapsed) {
     const sidebar = document.getElementById('sidebar');
@@ -34,24 +32,16 @@ function initSidebar() {
     }
   }
 
-  // Setup drag-to-resize
   setupSidebarResizer();
-  
-  // Setup favorites/pins
   setupFavorites();
-  
-  // Setup tooltips for group labels
   setupGroupTooltips();
-  
-  // Ensure only ESSENTIALS is expanded by default
   ensureDefaultState();
   
-  console.log('✅ Sidebar enhancements loaded');
+  console.log('✅ Sidebar enhancements v3 loaded');
 }
 
 // ── Ensure Default State ─────────────────────────────────────────
 function ensureDefaultState() {
-  // Only expand ESSENTIALS, collapse all others
   const groups = ['build', 'ship', 'tools', 'enterprise'];
   groups.forEach(gid => {
     const content = document.getElementById('group-' + gid);
@@ -60,7 +50,6 @@ function ensureDefaultState() {
     if (arrow) arrow.textContent = '▶';
   });
   
-  // Ensure ESSENTIALS is expanded
   const coreContent = document.getElementById('group-core');
   const coreArrow = document.getElementById('arrow-core');
   if (coreContent) coreContent.style.display = 'block';
@@ -74,17 +63,12 @@ function setupSidebarResizer() {
   
   if (!resizer || !sidebar) return;
 
-  // Mouse events
   resizer.addEventListener('mousedown', startResize);
   document.addEventListener('mousemove', doResize);
   document.addEventListener('mouseup', stopResize);
-
-  // Touch events for mobile
   resizer.addEventListener('touchstart', startResize, { passive: false });
   document.addEventListener('touchmove', doResize, { passive: false });
   document.addEventListener('touchend', stopResize);
-
-  // Double-click to reset width
   resizer.addEventListener('dblclick', function() {
     setSidebarWidth(SidebarState.defaultWidth);
     if (typeof toast === 'function') toast('Sidebar width reset', 'ok');
@@ -93,18 +77,14 @@ function setupSidebarResizer() {
 
 function startResize(e) {
   e.preventDefault();
-  
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
-
   SidebarState.isResizing = true;
   SidebarState.startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
   SidebarState.startWidth = sidebar.offsetWidth;
-
   document.body.style.cursor = 'col-resize';
   document.body.style.userSelect = 'none';
   sidebar.style.transition = 'none';
-  
   const resizer = document.getElementById('sidebar-resizer');
   if (resizer) resizer.classList.add('resizing');
 }
@@ -112,33 +92,23 @@ function startResize(e) {
 function doResize(e) {
   if (!SidebarState.isResizing) return;
   e.preventDefault();
-
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
-
   const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
   const diff = clientX - SidebarState.startX;
-  const newWidth = Math.min(SidebarState.maxWidth, 
-                   Math.max(SidebarState.minWidth, 
-                           SidebarState.startWidth + diff));
-
+  const newWidth = Math.min(SidebarState.maxWidth, Math.max(SidebarState.minWidth, SidebarState.startWidth + diff));
   setSidebarWidth(newWidth);
 }
 
 function stopResize() {
   if (!SidebarState.isResizing) return;
-
   SidebarState.isResizing = false;
-
   const sidebar = document.getElementById('sidebar');
   const resizer = document.getElementById('sidebar-resizer');
-
   document.body.style.cursor = '';
   document.body.style.userSelect = '';
-  
   if (sidebar) sidebar.style.transition = '';
   if (resizer) resizer.classList.remove('resizing');
-
   const width = sidebar ? sidebar.offsetWidth : SidebarState.defaultWidth;
   localStorage.setItem('agentic_os_sidebar_width', width.toString());
 }
@@ -146,100 +116,121 @@ function stopResize() {
 function setSidebarWidth(width) {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
-
   sidebar.style.width = width + 'px';
-  
   const isCollapsed = width <= SidebarState.collapsedWidth;
   sidebar.classList.toggle('collapsed', isCollapsed);
-  
   const collapseBtn = document.getElementById('sidebar-toggle-btn');
   if (collapseBtn) {
     collapseBtn.textContent = isCollapsed ? '▶' : '◀';
     collapseBtn.title = isCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)';
   }
-  
   localStorage.setItem('agentic_os_sidebar_collapsed', isCollapsed ? 'true' : 'false');
 }
 
-// ── Favorites / Pins ─────────────────────────────────────────────
+// ── Favorites System ─────────────────────────────────────────────
 function setupFavorites() {
-  const favorites = JSON.parse(localStorage.getItem('agentic_os_favorites') || '[]');
+  const favorites = getFavorites();
   
-  // Create favorites section if it doesn't exist and there are favorites
+  // Create favorites section if there are favorites
   if (favorites.length > 0) {
     createFavoritesSection(favorites);
   }
   
-  // Add favorite buttons to nav items
+  // Add star buttons to all nav items
   document.querySelectorAll('.nav-item[data-nav]').forEach(item => {
-    const navId = item.dataset.nav;
-    if (!navId) return;
-
-    // Check if already has favorite button
-    if (item.querySelector('.nav-favorite')) return;
-
-    const isFav = favorites.includes(navId);
-    
-    const favBtn = document.createElement('button');
-    favBtn.className = 'nav-favorite';
-    favBtn.type = 'button';
-    favBtn.innerHTML = isFav ? '⭐' : '☆';
-    favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
-    favBtn.setAttribute('data-nav-id', navId);
-    favBtn.setAttribute('data-favorited', isFav ? 'true' : 'false');
-
-    // Show on hover (always show if favorited)
-    if (!isFav) {
-      item.addEventListener('mouseenter', function() {
-        favBtn.style.opacity = '1';
-      });
-      item.addEventListener('mouseleave', function() {
-        favBtn.style.opacity = '0';
-      });
-    }
-
-    // Toggle favorite on click - STOP PROPAGATION is critical!
-    favBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      toggleFavorite(navId, favBtn, item);
-      return false;
-    });
-
-    item.appendChild(favBtn);
+    addStarButton(item);
   });
 }
 
-function toggleFavorite(navId, btn, navItem) {
-  let favorites = JSON.parse(localStorage.getItem('agentic_os_favorites') || '[]');
-  
-  if (favorites.includes(navId)) {
-    // Remove from favorites
-    favorites = favorites.filter(id => id !== navId);
-    btn.innerHTML = '☆';
-    btn.title = 'Add to favorites';
-    btn.setAttribute('data-favorited', 'false');
-    btn.style.opacity = '0';
-    if (typeof toast === 'function') toast('Removed from favorites', 'ok');
-  } else {
-    // Add to favorites
-    favorites.push(navId);
-    btn.innerHTML = '⭐';
-    btn.title = 'Remove from favorites';
-    btn.setAttribute('data-favorited', 'true');
-    btn.style.opacity = '1';
-    if (typeof toast === 'function') toast('Added to favorites', 'ok');
+function getFavorites() {
+  try {
+    return JSON.parse(localStorage.getItem('agentic_os_favorites') || '[]');
+  } catch {
+    return [];
   }
-  
+}
+
+function saveFavorites(favorites) {
   localStorage.setItem('agentic_os_favorites', JSON.stringify(favorites));
+}
+
+function addStarButton(navItem) {
+  const navId = navItem.dataset.nav;
+  if (!navId) return;
+  if (navItem.querySelector('.nav-star-btn')) return;
+
+  const favorites = getFavorites();
+  const isFav = favorites.includes(navId);
   
-  // Update favorites section
-  createFavoritesSection(favorites);
+  const starBtn = document.createElement('button');
+  starBtn.className = 'nav-star-btn';
+  starBtn.type = 'button';
+  starBtn.innerHTML = isFav ? '⭐' : '☆';
+  starBtn.title = isFav ? 'Click to remove from favorites' : 'Click to add to favorites';
+  starBtn.setAttribute('data-nav-id', navId);
+  
+  // Style the button
+  starBtn.style.cssText = `
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    margin-left: auto;
+    flex-shrink: 0;
+    line-height: 1;
+    opacity: ${isFav ? '1' : '0'};
+    transition: opacity 0.15s;
+    z-index: 10;
+    position: relative;
+  `;
+
+  // Show on hover
+  navItem.addEventListener('mouseenter', () => starBtn.style.opacity = '1');
+  navItem.addEventListener('mouseleave', () => {
+    if (!getFavorites().includes(navId)) {
+      starBtn.style.opacity = '0';
+    }
+  });
+
+  // Click handler - CRITICAL: stop propagation
+  starBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    
+    const currentFavs = getFavorites();
+    const isCurrentlyFav = currentFavs.includes(navId);
+    
+    if (isCurrentlyFav) {
+      // REMOVE from favorites
+      const newFavs = currentFavs.filter(id => id !== navId);
+      saveFavorites(newFavs);
+      this.innerHTML = '☆';
+      this.title = 'Click to add to favorites';
+      this.style.opacity = '0';
+      if (typeof toast === 'function') toast('Removed from favorites', 'ok');
+    } else {
+      // ADD to favorites
+      currentFavs.push(navId);
+      saveFavorites(currentFavs);
+      this.innerHTML = '⭐';
+      this.title = 'Click to remove from favorites';
+      this.style.opacity = '1';
+      if (typeof toast === 'function') toast('Added to favorites', 'ok');
+    }
+    
+    // Update favorites section
+    createFavoritesSection(getFavorites());
+    
+    return false;
+  });
+
+  navItem.appendChild(starBtn);
 }
 
 function createFavoritesSection(favorites) {
-  // Remove existing favorites section
+  // Remove existing
   const existing = document.getElementById('sidebar-favorites-section');
   if (existing) existing.remove();
   
@@ -248,68 +239,90 @@ function createFavoritesSection(favorites) {
   const sidebarScroll = document.querySelector('.sidebar-scroll');
   if (!sidebarScroll) return;
   
-  // Create favorites section
-  const favSection = document.createElement('div');
-  favSection.id = 'sidebar-favorites-section';
-  favSection.style.cssText = 'padding: 4px 0; border-bottom: 1px solid var(--border); margin-bottom: 4px;';
+  const section = document.createElement('div');
+  section.id = 'sidebar-favorites-section';
   
-  let html = '<div class="sidebar-group-label" style="color: #f59e0b; font-size: 10px; padding: 8px 12px 4px;">⭐ FAVORITES</div>';
+  let html = `
+    <div style="padding: 8px 12px 4px; display: flex; align-items: center; justify-content: space-between;">
+      <span style="font-size: 10px; font-weight: 600; color: var(--text-3, #666); text-transform: uppercase; letter-spacing: 0.5px;">⭐ Favorites</span>
+    </div>
+  `;
   
   favorites.forEach(navId => {
-    const originalItem = document.querySelector(`.nav-item[data-nav="${navId}"]`);
-    if (originalItem) {
-      const icon = originalItem.querySelector('.icon')?.textContent || '📌';
-      const label = originalItem.querySelector('.label')?.textContent || navId;
-      html += `<div class="nav-item" data-nav="${navId}" onclick="nav('${navId}')" style="padding: 6px 12px;">
-        <span class="icon">${icon}</span>
-        <span class="label">${label}</span>
-      </div>`;
+    const original = document.querySelector(`.nav-item[data-nav="${navId}"]`);
+    if (original) {
+      const icon = original.querySelector('.icon')?.textContent || '📌';
+      const label = original.querySelector('.label')?.textContent || navId;
+      html += `
+        <div class="nav-item fav-item" data-nav="${navId}" onclick="nav('${navId}')">
+          <span class="icon">${icon}</span>
+          <span class="label">${label}</span>
+          <button type="button" class="fav-remove-btn" data-nav-id="${navId}" title="Remove from favorites" 
+            onclick="event.stopPropagation(); removeFromFavorites('${navId}')">✕</button>
+        </div>
+      `;
     }
   });
   
-  favSection.innerHTML = html;
+  section.innerHTML = html;
+  sidebarScroll.insertBefore(section, sidebarScroll.firstChild);
+}
+
+function removeFromFavorites(navId) {
+  let favorites = getFavorites();
+  favorites = favorites.filter(id => id !== navId);
+  saveFavorites(favorites);
   
-  // Insert at the top of sidebar scroll
-  sidebarScroll.insertBefore(favSection, sidebarScroll.firstChild);
+  // Update the star button on the original nav item
+  const originalItem = document.querySelector(`.nav-item[data-nav="${navId}"]`);
+  if (originalItem) {
+    const starBtn = originalItem.querySelector('.nav-star-btn');
+    if (starBtn) {
+      starBtn.innerHTML = '☆';
+      starBtn.title = 'Click to add to favorites';
+      starBtn.style.opacity = '0';
+    }
+  }
+  
+  // Update favorites section
+  createFavoritesSection(favorites);
+  
+  if (typeof toast === 'function') toast('Removed from favorites', 'ok');
 }
 
 // ── Group Tooltips ───────────────────────────────────────────────
 function setupGroupTooltips() {
   const tooltipDescriptions = {
-    'ESSENTIALS': 'Core features for everyday use. Start here to chat with AI, write code, manage tasks, and customize your experience.',
-    'AI TOOLS': 'AI-powered capabilities for research, coding, and creativity. Includes multi-agent swarm, web search, image generation, and more.',
-    'BUILD': 'Tools to build, test, and ship your projects. Includes code editor, pipelines, GitHub integration, and deployment.',
-    'AGENTS': 'Manage AI agents and their workflows. Configure supervisors, goals, integrations, and autonomous loops.',
-    'MONITORING': 'Track performance, costs, and security. Includes dashboards, audit logs, health checks, and encryption.'
+    'ESSENTIALS': 'Core features for everyday use. Chat with AI, write code, manage tasks, and customize your experience.',
+    'AI TOOLS': 'AI-powered capabilities for research, coding, and creativity. Swarm, web search, image generation, and more.',
+    'BUILD': 'Tools to build, test, and ship your projects. Code editor, pipelines, GitHub, and deployment.',
+    'AGENTS': 'Manage AI agents and their workflows. Supervisors, goals, integrations, and autonomous loops.',
+    'MONITORING': 'Track performance, costs, and security. Dashboards, audit logs, health checks, and encryption.'
   };
   
   document.querySelectorAll('.sidebar-help-tip').forEach(tip => {
-    const parentLabel = tip.parentElement?.textContent?.trim() || '';
+    const parentText = tip.parentElement?.textContent || '';
     let description = tip.getAttribute('data-tip') || '';
     
-    // Use better description if available
     for (const [key, desc] of Object.entries(tooltipDescriptions)) {
-      if (parentLabel.includes(key)) {
+      if (parentText.includes(key)) {
         description = desc;
         break;
       }
     }
     
-    // Create tooltip element
     const tooltip = document.createElement('div');
     tooltip.className = 'sidebar-tooltip-popup';
     tooltip.textContent = description;
     
-    // Position the tip container
     tip.style.position = 'relative';
     tip.appendChild(tooltip);
 
-    // Show/hide on hover
-    tip.addEventListener('mouseenter', function() {
+    tip.addEventListener('mouseenter', () => {
       tooltip.style.opacity = '1';
       tooltip.style.visibility = 'visible';
     });
-    tip.addEventListener('mouseleave', function() {
+    tip.addEventListener('mouseleave', () => {
       tooltip.style.opacity = '0';
       tooltip.style.visibility = 'hidden';
     });
@@ -318,7 +331,6 @@ function setupGroupTooltips() {
 
 // ── Keyboard Shortcut ────────────────────────────────────────────
 document.addEventListener('keydown', function(e) {
-  // Ctrl+B or Cmd+B to toggle sidebar
   if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
     e.preventDefault();
     const toggleBtn = document.getElementById('sidebar-toggle-btn');
@@ -326,7 +338,7 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// ── CSS for Sidebar Enhancements ─────────────────────────────────
+// ── CSS ──────────────────────────────────────────────────────────
 const sidebarStyles = document.createElement('style');
 sidebarStyles.textContent = `
   /* Resizer */
@@ -339,12 +351,9 @@ sidebarStyles.textContent = `
     position: relative;
     z-index: 10;
   }
-
-  #sidebar-resizer:hover,
-  #sidebar-resizer.resizing {
+  #sidebar-resizer:hover, #sidebar-resizer.resizing {
     background: var(--accent, #6366f1);
   }
-
   #sidebar-resizer.resizing {
     width: 6px;
     margin-left: -1px;
@@ -366,13 +375,12 @@ sidebarStyles.textContent = `
     transition: all 0.15s;
     flex-shrink: 0;
   }
-
   #sidebar-toggle-btn:hover {
     background: var(--bg-3, #222);
     color: var(--text-0, #fff);
   }
 
-  /* Help tip icon */
+  /* Help tip */
   .sidebar-help-tip {
     display: inline-flex;
     align-items: center;
@@ -390,14 +398,13 @@ sidebarStyles.textContent = `
     flex-shrink: 0;
     position: relative;
   }
-
   .sidebar-help-tip:hover {
     background: var(--accent-glow, rgba(99,102,241,0.15));
     border-color: var(--accent, #6366f1);
     color: var(--accent, #6366f1);
   }
 
-  /* Tooltip popup - positioned to fit in sidebar */
+  /* Tooltip */
   .sidebar-tooltip-popup {
     position: absolute;
     left: calc(100% + 4px);
@@ -419,60 +426,82 @@ sidebarStyles.textContent = `
     border: 1px solid var(--border-hi, rgba(255,255,255,0.12));
   }
 
-  /* Favorite button */
-  .nav-favorite {
-    opacity: 0;
-    transition: opacity 0.15s;
+  /* Star button */
+  .nav-star-btn {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 12px;
-    padding: 2px 4px;
+    font-size: 14px;
+    padding: 2px 6px;
     margin-left: auto;
     flex-shrink: 0;
     line-height: 1;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 10;
+    position: relative;
   }
-
-  .nav-item:hover .nav-favorite {
+  .nav-item:hover .nav-star-btn {
+    opacity: 1;
+  }
+  .nav-star-btn[data-favorited="true"] {
     opacity: 1;
   }
 
-  .nav-favorite[data-favorited="true"] {
+  /* Favorites section */
+  #sidebar-favorites-section {
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
+    margin-bottom: 4px;
+  }
+  #sidebar-favorites-section .fav-item {
+    padding: 6px 12px;
+    position: relative;
+  }
+  .fav-remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-3, #666);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    margin-left: auto;
+  }
+  .fav-item:hover .fav-remove-btn {
     opacity: 1;
+  }
+  .fav-remove-btn:hover {
+    color: var(--danger, #ef4444);
   }
 
   /* Collapsed sidebar */
   #sidebar.collapsed {
     width: 56px !important;
   }
-
   #sidebar.collapsed .label,
   #sidebar.collapsed .sidebar-group-label,
   #sidebar.collapsed .count,
   #sidebar.collapsed .badge,
   #sidebar.collapsed .sidebar-help-tip,
-  #sidebar.collapsed .nav-favorite,
+  #sidebar.collapsed .nav-star-btn,
+  #sidebar.collapsed .fav-remove-btn,
   #sidebar.collapsed .agent-info,
   #sidebar.collapsed #sidebar-nav-label,
   #sidebar.collapsed #sidebar-favorites-section,
   #sidebar.collapsed #sidebar-agents-section > div:first-child {
     display: none !important;
   }
-
   #sidebar.collapsed .nav-item {
     justify-content: center;
     padding: 10px;
   }
-
   #sidebar.collapsed .nav-item .icon {
     font-size: 18px;
   }
 
-  #sidebar.collapsed .sidebar-add-agent span:last-child {
-    display: none;
-  }
-
-  /* Agents section compact */
+  /* Agents section */
   #sidebar-agents-section {
     border-top: 1px solid var(--border, rgba(255,255,255,0.06));
     padding: 8px;
@@ -480,22 +509,11 @@ sidebarStyles.textContent = `
     max-height: 200px;
     overflow-y: auto;
   }
-
-  /* Favorites section */
-  #sidebar-favorites-section {
-    padding: 4px 0;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 4px;
-  }
-
-  #sidebar-favorites-section .nav-item {
-    padding: 6px 12px;
-  }
 `;
 
 document.head.appendChild(sidebarStyles);
 
-// ── Initialize on DOM Ready ──────────────────────────────────────
+// ── Initialize ───────────────────────────────────────────────────
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initSidebar);
 } else {
@@ -505,7 +523,7 @@ if (document.readyState === 'loading') {
 // ── Global Exports ────────────────────────────────────────────────
 window.initSidebar = initSidebar;
 window.setSidebarWidth = setSidebarWidth;
-window.toggleFavorite = toggleFavorite;
+window.removeFromFavorites = removeFromFavorites;
 window.ensureDefaultState = ensureDefaultState;
 
-console.log('%c✅ Sidebar enhancements v2 loaded', 'color:#22c55e;font-weight:bold');
+console.log('%c✅ Sidebar v3 loaded', 'color:#22c55e;font-weight:bold');
