@@ -1,5 +1,5 @@
-// Agentic OS — Sidebar Enhancements v4
-// Fixed: stars only on ESSENTIALS, arrow directions correct
+// Agentic OS — Sidebar Enhancements v5
+// Favorites on ALL components, no star icons, consistent behavior
 'use strict';
 
 // ── Sidebar State ────────────────────────────────────────────────
@@ -37,12 +37,11 @@ function initSidebar() {
   setupGroupTooltips();
   ensureDefaultState();
   
-  console.log('✅ Sidebar v4 loaded');
+  console.log('✅ Sidebar v5 loaded');
 }
 
 // ── Ensure Default State ─────────────────────────────────────────
 function ensureDefaultState() {
-  // ESSENTIALS expanded, all others collapsed
   const coreContent = document.getElementById('group-core');
   const coreArrow = document.getElementById('arrow-core');
   if (coreContent) coreContent.style.display = 'block';
@@ -125,7 +124,7 @@ function setSidebarWidth(width) {
   localStorage.setItem('agentic_os_sidebar_collapsed', isCollapsed ? 'true' : 'false');
 }
 
-// ── Favorites System (ONLY for ESSENTIALS items) ─────────────────
+// ── Favorites System (ALL components) ────────────────────────────
 function setupFavorites() {
   const favorites = getFavorites();
   
@@ -133,9 +132,9 @@ function setupFavorites() {
     createFavoritesSection(favorites);
   }
   
-  // ONLY add star buttons to ESSENTIALS items (data-tier="core")
-  document.querySelectorAll('.nav-item[data-nav][data-tier="core"]').forEach(item => {
-    addStarButton(item);
+  // Add favorite buttons to ALL nav items (not just core)
+  document.querySelectorAll('.nav-item[data-nav]').forEach(item => {
+    addFavoriteButton(item);
   });
 }
 
@@ -151,44 +150,32 @@ function saveFavorites(favorites) {
   localStorage.setItem('agentic_os_favorites', JSON.stringify(favorites));
 }
 
-function addStarButton(navItem) {
+function addFavoriteButton(navItem) {
   const navId = navItem.dataset.nav;
   if (!navId) return;
-  if (navItem.querySelector('.nav-star-btn')) return;
+  if (navItem.querySelector('.nav-fav-btn')) return;
 
   const favorites = getFavorites();
   const isFav = favorites.includes(navId);
   
-  const starBtn = document.createElement('button');
-  starBtn.className = 'nav-star-btn';
-  starBtn.type = 'button';
-  starBtn.innerHTML = isFav ? '⭐' : '☆';
-  starBtn.title = isFav ? 'Click to remove from favorites' : 'Click to add to favorites';
-  starBtn.setAttribute('data-nav-id', navId);
+  const favBtn = document.createElement('button');
+  favBtn.className = 'nav-fav-btn';
+  favBtn.type = 'button';
+  favBtn.innerHTML = isFav ? '★' : '☆';
+  favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+  favBtn.setAttribute('data-nav-id', navId);
+  favBtn.setAttribute('data-favorited', isFav ? 'true' : 'false');
 
-  starBtn.style.cssText = `
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    padding: 2px 6px;
-    margin-left: auto;
-    flex-shrink: 0;
-    line-height: 1;
-    opacity: ${isFav ? '1' : '0'};
-    transition: opacity 0.15s;
-    z-index: 10;
-    position: relative;
-  `;
+  // Show on hover, always show if favorited
+  if (!isFav) {
+    navItem.addEventListener('mouseenter', () => favBtn.classList.add('visible'));
+    navItem.addEventListener('mouseleave', () => favBtn.classList.remove('visible'));
+  } else {
+    favBtn.classList.add('visible');
+  }
 
-  navItem.addEventListener('mouseenter', () => starBtn.style.opacity = '1');
-  navItem.addEventListener('mouseleave', () => {
-    if (!getFavorites().includes(navId)) {
-      starBtn.style.opacity = '0';
-    }
-  });
-
-  starBtn.addEventListener('click', function(e) {
+  // Click handler - stop propagation to prevent navigation
+  favBtn.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
@@ -197,26 +184,31 @@ function addStarButton(navItem) {
     const isCurrentlyFav = currentFavs.includes(navId);
     
     if (isCurrentlyFav) {
+      // Remove from favorites
       const newFavs = currentFavs.filter(id => id !== navId);
       saveFavorites(newFavs);
       this.innerHTML = '☆';
-      this.title = 'Click to add to favorites';
-      this.style.opacity = '0';
+      this.title = 'Add to favorites';
+      this.setAttribute('data-favorited', 'false');
+      this.classList.remove('visible');
       if (typeof toast === 'function') toast('Removed from favorites', 'ok');
     } else {
+      // Add to favorites
       currentFavs.push(navId);
       saveFavorites(currentFavs);
-      this.innerHTML = '⭐';
-      this.title = 'Click to remove from favorites';
-      this.style.opacity = '1';
+      this.innerHTML = '★';
+      this.title = 'Remove from favorites';
+      this.setAttribute('data-favorited', 'true');
+      this.classList.add('visible');
       if (typeof toast === 'function') toast('Added to favorites', 'ok');
     }
     
+    // Update favorites section
     createFavoritesSection(getFavorites());
     return false;
   });
 
-  navItem.appendChild(starBtn);
+  navItem.appendChild(favBtn);
 }
 
 function createFavoritesSection(favorites) {
@@ -231,8 +223,8 @@ function createFavoritesSection(favorites) {
   section.id = 'sidebar-favorites-section';
   
   let html = `
-    <div style="padding: 8px 12px 4px; display: flex; align-items: center; justify-content: space-between;">
-      <span style="font-size: 10px; font-weight: 600; color: var(--text-3, #666); text-transform: uppercase; letter-spacing: 0.5px;">⭐ Favorites</span>
+    <div style="padding: 8px 12px 4px;">
+      <span style="font-size: 10px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px;">⭐ Favorites</span>
     </div>
   `;
   
@@ -245,7 +237,7 @@ function createFavoritesSection(favorites) {
         <div class="nav-item fav-item" data-nav="${navId}" onclick="nav('${navId}')">
           <span class="icon">${icon}</span>
           <span class="label">${label}</span>
-          <button type="button" class="fav-remove-btn" data-nav-id="${navId}" title="Remove from favorites" 
+          <button type="button" class="fav-remove-btn" title="Remove from favorites" 
             onclick="event.stopPropagation(); removeFromFavorites('${navId}')">✕</button>
         </div>
       `;
@@ -261,13 +253,15 @@ function removeFromFavorites(navId) {
   favorites = favorites.filter(id => id !== navId);
   saveFavorites(favorites);
   
+  // Update the favorite button on the original nav item
   const originalItem = document.querySelector(`.nav-item[data-nav="${navId}"]`);
   if (originalItem) {
-    const starBtn = originalItem.querySelector('.nav-star-btn');
-    if (starBtn) {
-      starBtn.innerHTML = '☆';
-      starBtn.title = 'Click to add to favorites';
-      starBtn.style.opacity = '0';
+    const favBtn = originalItem.querySelector('.nav-fav-btn');
+    if (favBtn) {
+      favBtn.innerHTML = '☆';
+      favBtn.title = 'Add to favorites';
+      favBtn.setAttribute('data-favorited', 'false');
+      favBtn.classList.remove('visible');
     }
   }
   
@@ -411,8 +405,8 @@ sidebarStyles.textContent = `
     border: 1px solid var(--border-hi, rgba(255,255,255,0.12));
   }
 
-  /* Star button */
-  .nav-star-btn {
+  /* Favorite button - subtle, appears on hover */
+  .nav-fav-btn {
     background: none;
     border: none;
     cursor: pointer;
@@ -422,15 +416,23 @@ sidebarStyles.textContent = `
     flex-shrink: 0;
     line-height: 1;
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity 0.15s, color 0.15s;
     z-index: 10;
     position: relative;
+    color: var(--text-3, #666);
   }
-  .nav-item:hover .nav-star-btn {
+  .nav-fav-btn:hover {
+    color: var(--accent, #6366f1);
+  }
+  .nav-fav-btn.visible {
     opacity: 1;
   }
-  .nav-star-btn[data-favorited="true"] {
+  .nav-item:hover .nav-fav-btn {
     opacity: 1;
+  }
+  .nav-fav-btn[data-favorited="true"] {
+    opacity: 1;
+    color: var(--warning, #eab308);
   }
 
   /* Favorites section */
@@ -470,7 +472,7 @@ sidebarStyles.textContent = `
   #sidebar.collapsed .count,
   #sidebar.collapsed .badge,
   #sidebar.collapsed .sidebar-help-tip,
-  #sidebar.collapsed .nav-star-btn,
+  #sidebar.collapsed .nav-fav-btn,
   #sidebar.collapsed .fav-remove-btn,
   #sidebar.collapsed .agent-info,
   #sidebar.collapsed #sidebar-nav-label,
@@ -511,4 +513,4 @@ window.setSidebarWidth = setSidebarWidth;
 window.removeFromFavorites = removeFromFavorites;
 window.ensureDefaultState = ensureDefaultState;
 
-console.log('%c✅ Sidebar v4 loaded', 'color:#22c55e;font-weight:bold');
+console.log('%c✅ Sidebar v5 loaded', 'color:#22c55e;font-weight:bold');
