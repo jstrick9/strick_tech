@@ -273,42 +273,9 @@ function removeFromFavorites(navId) {
 }
 
 // ── Group Tooltips ───────────────────────────────────────────────
+// Help tips removed per user request
 function setupGroupTooltips() {
-  const tooltipDescriptions = {
-    'ESSENTIALS': 'Core features for everyday use. Chat with AI, write code, manage tasks, and customize your experience.',
-    'AI TOOLS': 'AI-powered capabilities for research, coding, and creativity. Swarm, web search, image generation, and more.',
-    'BUILD': 'Tools to build, test, and ship your projects. Code editor, pipelines, GitHub, and deployment.',
-    'AGENTS': 'Manage AI agents and their workflows. Supervisors, goals, integrations, and autonomous loops.',
-    'MONITORING': 'Track performance, costs, and security. Dashboards, audit logs, health checks, and encryption.'
-  };
-  
-  document.querySelectorAll('.sidebar-help-tip').forEach(tip => {
-    const parentText = tip.parentElement?.textContent || '';
-    let description = tip.getAttribute('data-tip') || '';
-    
-    for (const [key, desc] of Object.entries(tooltipDescriptions)) {
-      if (parentText.includes(key)) {
-        description = desc;
-        break;
-      }
-    }
-    
-    const tooltip = document.createElement('div');
-    tooltip.className = 'sidebar-tooltip-popup';
-    tooltip.textContent = description;
-    
-    tip.style.position = 'relative';
-    tip.appendChild(tooltip);
-
-    tip.addEventListener('mouseenter', () => {
-      tooltip.style.opacity = '1';
-      tooltip.style.visibility = 'visible';
-    });
-    tip.addEventListener('mouseleave', () => {
-      tooltip.style.opacity = '0';
-      tooltip.style.visibility = 'hidden';
-    });
-  });
+  // No-op - help tips removed
 }
 
 // ── Keyboard Shortcut ────────────────────────────────────────────
