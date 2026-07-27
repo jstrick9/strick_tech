@@ -22,7 +22,8 @@
         "resizable": true,
         "url": "splash.html",
         "decorations": true,
-        "transparent": false
+        "transparent": false,
+        "dragDropEnabled": false
       }
     ],
     "security": {
