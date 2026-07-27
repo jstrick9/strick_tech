@@ -1,97 +1,283 @@
-// Agentic OS — Full Kanban Board with Drag-and-Drop
-// Inspired by Jira, Linear, and Trello
+// Agentic OS — Production Kanban Board
+// Full drag-and-drop, CRUD, filtering, proper API integration
 'use strict';
 
-// ── Kanban State ─────────────────────────────────────────────────
-// Status values MUST match backend: todo, doing, blocked, done
-const KanbanState = {
-  columns: [
-    { id: 'todo', label: 'To Do', color: '#3b82f6', icon: '📝' },
-    { id: 'doing', label: 'In Progress', color: '#f59e0b', icon: '⚡' },
-    { id: 'blocked', label: 'Blocked', color: '#ef4444', icon: '⛔' },
-    { id: 'done', label: 'Done', color: '#22c55e', icon: '✅' }
-  ],
-  tasks: [],
-  draggedTask: null,
-  dragOverColumn: null,
-  initialized: false
+// ── Configuration ────────────────────────────────────────────────
+const KANBAN_COLUMNS = [
+  { id: 'todo', label: 'To Do', icon: '📝', color: '#3b82f6' },
+  { id: 'doing', label: 'In Progress', icon: '⚡', color: '#f59e0b' },
+  { id: 'blocked', label: 'Blocked', icon: '⛔', color: '#ef4444' },
+  { id: 'done', label: 'Done', icon: '✅', color: '#22c55e' }
+];
+
+const KANBAN_PRIORITIES = {
+  low: { label: 'Low', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
+  medium: { label: 'Medium', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+  high: { label: 'High', color: '#f97316', bg: 'rgba(249,115,22,0.15)' }
 };
 
-// ── Initialize Kanban ─────────────────────────────────────────────
+const KANBAN_AGENTS = {
+  builder: { label: 'Builder', icon: '⚡' },
+  brain: { label: 'Brain', icon: '🧠' },
+  researcher: { label: 'Researcher', icon: '🔬' },
+  orchestrator: { label: 'Orchestrator', icon: '🌀' }
+};
+
+// ── State ────────────────────────────────────────────────────────
+let kanbanTasks = [];
+let kanbanDragState = { taskId: null, sourceColumn: null };
+let kanbanActiveFilter = null;
+
+// ── Main Render Function ─────────────────────────────────────────
 async function renderKanban() {
   const pane = document.getElementById('pane-kanban');
   if (!pane) return;
 
-  // Load tasks from API or use samples
-  if (!KanbanState.initialized) {
-    try {
-      if (typeof AgenticAPI !== 'undefined' && AgenticAPI.get) {
-        const data = await AgenticAPI.get('/api/kanban');
-        KanbanState.tasks = flattenKanbanData(data);
-      } else {
-        KanbanState.tasks = getSampleTasks();
-      }
-    } catch (e) {
-      console.debug('Kanban: Using sample tasks');
-      KanbanState.tasks = getSampleTasks();
-    }
-    KanbanState.initialized = true;
-  }
-
+  // Show loading state
   pane.innerHTML = `
-    <div class="kanban-container">
-      <!-- Header -->
-      <div class="kanban-header">
-        <div class="kanban-header-left">
+    <div class="kanban-root">
+      <div class="kanban-topbar">
+        <div class="kanban-topbar-left">
           <h1 class="kanban-title">📋 Tasks</h1>
-          <span class="kanban-subtitle">${KanbanState.tasks.length} tasks</span>
+          <span class="kanban-count" id="kanban-task-count">Loading...</span>
         </div>
-        <div class="kanban-header-right">
-          <button type="button" class="btn btn-ghost btn-sm" onclick="kanbanFilterToggle()" title="Filter tasks">
-            🔍 Filter
-          </button>
-          <button type="button" class="btn btn-primary btn-sm" onclick="kanbanAddTask()">
+        <div class="kanban-topbar-right">
+          <div class="kanban-filter-group">
+            <button type="button" class="kanban-filter-btn ${!kanbanActiveFilter ? 'active' : ''}" onclick="kanbanSetFilter(null)">All</button>
+            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'high' ? 'active' : ''}" onclick="kanbanSetFilter('high')">🔴 High</button>
+            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'medium' ? 'active' : ''}" onclick="kanbanSetFilter('medium')">🟡 Medium</button>
+            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'low' ? 'active' : ''}" onclick="kanbanSetFilter('low')">🟢 Low</button>
+          </div>
+          <button type="button" class="kanban-add-btn" onclick="kanbanOpenCreateModal()">
             ＋ New Task
           </button>
         </div>
       </div>
-
-      <!-- Board -->
       <div class="kanban-board" id="kanban-board">
-        ${KanbanState.columns.map(col => renderKanbanColumn(col)).join('')}
+        <div class="kanban-loading">Loading tasks...</div>
       </div>
     </div>
+    <div id="kanban-modal-root"></div>
+  `;
 
-    <!-- Add Task Modal -->
-    <div id="kanban-add-modal" class="kanban-modal" style="display:none">
-      <div class="kanban-modal-content">
-        <div class="kanban-modal-header">
-          <h2>Create New Task</h2>
-          <button type="button" class="icon-btn" onclick="kanbanCloseModal()">✕</button>
+  // Fetch tasks from API
+  await kanbanFetchTasks();
+  
+  // Render the board
+  kanbanRenderBoard();
+}
+
+// ── Fetch Tasks ──────────────────────────────────────────────────
+async function kanbanFetchTasks() {
+  try {
+    const response = await fetch('/api/kanban');
+    if (response.ok) {
+      const data = await response.json();
+      kanbanTasks = [];
+      // API returns { todo: [...], doing: [...], blocked: [...], done: [...] }
+      for (const [status, tasks] of Object.entries(data)) {
+        if (Array.isArray(tasks)) {
+          tasks.forEach(task => {
+            kanbanTasks.push({ ...task, status: status });
+          });
+        }
+      }
+    } else {
+      console.warn('Kanban: API returned', response.status);
+      kanbanTasks = kanbanGetSampleTasks();
+    }
+  } catch (e) {
+    console.warn('Kanban: Using sample tasks:', e.message);
+    kanbanTasks = kanbanGetSampleTasks();
+  }
+}
+
+// ── Render Board ─────────────────────────────────────────────────
+function kanbanRenderBoard() {
+  const board = document.getElementById('kanban-board');
+  const countEl = document.getElementById('kanban-task-count');
+  if (!board) return;
+
+  // Apply filter
+  let filteredTasks = kanbanTasks;
+  if (kanbanActiveFilter) {
+    filteredTasks = kanbanTasks.filter(t => t.priority === kanbanActiveFilter);
+  }
+
+  // Update count
+  if (countEl) {
+    countEl.textContent = `${filteredTasks.length} task${filteredTasks.length !== 1 ? 's' : ''}`;
+  }
+
+  // Render columns
+  board.innerHTML = KANBAN_COLUMNS.map(col => {
+    const columnTasks = filteredTasks.filter(t => t.status === col.id);
+    return `
+      <div class="kanban-column" data-column="${col.id}">
+        <div class="kanban-column-header" style="border-top: 3px solid ${col.color}">
+          <div class="kanban-column-title">
+            <span>${col.icon}</span>
+            <span>${col.label}</span>
+            <span class="kanban-column-count">${columnTasks.length}</span>
+          </div>
+          <button type="button" class="kanban-column-add" onclick="kanbanOpenCreateModal('${col.id}')" title="Add task to ${col.label}">+</button>
         </div>
-        <div class="kanban-modal-body">
-          <div class="kanban-form-group">
-            <label>Title</label>
-            <input type="text" id="kanban-task-title" placeholder="What needs to be done?" class="kanban-input" autofocus>
+        <div class="kanban-column-body" 
+             id="kanban-col-${col.id}"
+             ondragover="kanbanHandleDragOver(event, '${col.id}')"
+             ondragleave="kanbanHandleDragLeave(event)"
+             ondrop="kanbanHandleDrop(event, '${col.id}')">
+          ${columnTasks.length > 0 
+            ? columnTasks.map(task => kanbanRenderCard(task)).join('')
+            : `<div class="kanban-empty-col">
+                 <span class="kanban-empty-icon">📋</span>
+                 <span>No tasks</span>
+               </div>`
+          }
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Render Card ───────────────────────────────────────────────────
+function kanbanRenderCard(task) {
+  const priority = KANBAN_PRIORITIES[task.priority] || KANBAN_PRIORITIES.medium;
+  const agent = KANBAN_AGENTS[task.agent] || { label: task.agent || 'Unassigned', icon: '👤' };
+  const taskId = task.id;
+
+  return `
+    <div class="kanban-card" 
+         draggable="true"
+         data-task-id="${taskId}"
+         ondragstart="kanbanHandleDragStart(event, ${taskId})"
+         ondragend="kanbanHandleDragEnd(event)">
+      <div class="kanban-card-top">
+        <span class="kanban-card-priority" style="background:${priority.bg};color:${priority.color}">
+          ${priority.label}
+        </span>
+        <div class="kanban-card-actions">
+          <button type="button" class="kanban-card-action" onclick="event.stopPropagation();kanbanOpenEditModal(${taskId})" title="Edit">✏️</button>
+          <button type="button" class="kanban-card-action" onclick="event.stopPropagation();kanbanDeleteTask(${taskId})" title="Delete">🗑️</button>
+        </div>
+      </div>
+      <div class="kanban-card-title">${kanbanEscapeHtml(task.title)}</div>
+      ${task.description ? `<div class="kanban-card-desc">${kanbanEscapeHtml(task.description)}</div>` : ''}
+      <div class="kanban-card-bottom">
+        <span class="kanban-card-id">#${taskId}</span>
+        <span class="kanban-card-agent" title="${agent.label}">${agent.icon} ${agent.label}</span>
+      </div>
+    </div>
+  `;
+}
+
+// ── Drag & Drop Handlers ─────────────────────────────────────────
+function kanbanHandleDragStart(event, taskId) {
+  kanbanDragState.taskId = taskId;
+  kanbanDragState.sourceColumn = event.target.closest('.kanban-column')?.dataset.column;
+  
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', String(taskId));
+  
+  // Visual feedback
+  setTimeout(() => {
+    event.target.classList.add('kanban-card-dragging');
+  }, 0);
+}
+
+function kanbanHandleDragEnd(event) {
+  event.target.classList.remove('kanban-card-dragging');
+  
+  // Remove all drag-over highlights
+  document.querySelectorAll('.kanban-column-body').forEach(col => {
+    col.classList.remove('kanban-column-drag-over');
+  });
+  
+  kanbanDragState = { taskId: null, sourceColumn: null };
+}
+
+function kanbanHandleDragOver(event, columnId) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  
+  const colBody = event.currentTarget;
+  colBody.classList.add('kanban-column-drag-over');
+}
+
+function kanbanHandleDragLeave(event) {
+  // Only remove if we're leaving the column body
+  if (!event.currentTarget.contains(event.relatedTarget)) {
+    event.currentTarget.classList.remove('kanban-column-drag-over');
+  }
+}
+
+async function kanbanHandleDrop(event, targetColumn) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('kanban-column-drag-over');
+  
+  const taskId = parseInt(event.dataTransfer.getData('text/plain'));
+  if (!taskId) return;
+  
+  const task = kanbanTasks.find(t => t.id === taskId);
+  if (!task || task.status === targetColumn) return;
+  
+  // Update local state
+  task.status = targetColumn;
+  
+  // Re-render immediately for responsiveness
+  kanbanRenderBoard();
+  
+  // Save to API
+  try {
+    const response = await fetch(`/api/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: targetColumn })
+    });
+    
+    if (response.ok) {
+      kanbanShowToast('Task moved', 'success');
+    } else {
+      console.warn('Kanban: Failed to save move');
+    }
+  } catch (e) {
+    console.warn('Kanban: API error:', e.message);
+  }
+}
+
+// ── Create Task Modal ─────────────────────────────────────────────
+function kanbanOpenCreateModal(defaultColumn = 'todo') {
+  const root = document.getElementById('kanban-modal-root');
+  if (!root) return;
+
+  root.innerHTML = `
+    <div class="kanban-modal-overlay" onclick="kanbanCloseModal()">
+      <div class="kanban-modal" onclick="event.stopPropagation()">
+        <div class="kanban-modal-header">
+          <h2>Create Task</h2>
+          <button type="button" class="kanban-modal-close" onclick="kanbanCloseModal()">✕</button>
+        </div>
+        <form onsubmit="kanbanSubmitCreate(event)" class="kanban-modal-body">
+          <div class="kanban-field">
+            <label for="kb-title">Title *</label>
+            <input type="text" id="kb-title" placeholder="What needs to be done?" required autofocus>
           </div>
-          <div class="kanban-form-group">
-            <label>Description</label>
-            <textarea id="kanban-task-desc" placeholder="Add more details..." class="kanban-textarea" rows="3"></textarea>
+          <div class="kanban-field">
+            <label for="kb-desc">Description</label>
+            <textarea id="kb-desc" placeholder="Add details..." rows="3"></textarea>
           </div>
-          <div class="kanban-form-row">
-            <div class="kanban-form-group">
-              <label>Priority</label>
-              <select id="kanban-task-priority" class="kanban-select">
+          <div class="kanban-field-row">
+            <div class="kanban-field">
+              <label for="kb-priority">Priority</label>
+              <select id="kb-priority">
                 <option value="low">🟢 Low</option>
                 <option value="medium" selected>🟡 Medium</option>
                 <option value="high">🟠 High</option>
-                <option value="urgent">🔴 Urgent</option>
               </select>
             </div>
-            <div class="kanban-form-group">
-              <label>Assignee</label>
-              <select id="kanban-task-assignee" class="kanban-select">
-                <option value="">Unassigned</option>
+            <div class="kanban-field">
+              <label for="kb-agent">Assignee</label>
+              <select id="kb-agent">
                 <option value="builder">⚡ Builder</option>
                 <option value="brain">🧠 Brain</option>
                 <option value="researcher">🔬 Researcher</option>
@@ -99,479 +285,251 @@ async function renderKanban() {
               </select>
             </div>
           </div>
-          <div class="kanban-form-group">
-            <label>Column</label>
-            <select id="kanban-task-column" class="kanban-select">
-              ${KanbanState.columns.map(col => `<option value="${col.id}" ${col.id === 'todo' ? 'selected' : ''}>${col.icon} ${col.label}</option>`).join('')}
+          <div class="kanban-field">
+            <label for="kb-status">Column</label>
+            <select id="kb-status">
+              ${KANBAN_COLUMNS.map(col => 
+                `<option value="${col.id}" ${col.id === defaultColumn ? 'selected' : ''}>${col.icon} ${col.label}</option>`
+              ).join('')}
             </select>
           </div>
-        </div>
-        <div class="kanban-modal-footer">
-          <button type="button" class="btn btn-ghost" onclick="kanbanCloseModal()">Cancel</button>
-          <button type="button" class="btn btn-primary" onclick="kanbanSaveTask()">Create Task</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  // Add drag-and-drop event listeners
-  initKanbanDragDrop();
-}
-
-// ── Render Column ─────────────────────────────────────────────────
-function renderKanbanColumn(column) {
-  const tasks = KanbanState.tasks.filter(t => t.status === column.id);
-  return `
-    <div class="kanban-column" data-column="${column.id}"
-         ondragover="kanbanDragOver(event, '${column.id}')"
-         ondragleave="kanbanDragLeave(event, '${column.id}')"
-         ondrop="kanbanDrop(event, '${column.id}')">
-      <div class="kanban-column-header">
-        <div class="kanban-column-title">
-          <span class="kanban-column-icon">${column.icon}</span>
-          <span>${column.label}</span>
-          <span class="kanban-column-count">${tasks.length}</span>
-        </div>
-        <button type="button" class="icon-btn kanban-add-btn" onclick="kanbanAddTaskToColumn('${column.id}')" title="Add task">
-          ＋
-        </button>
-      </div>
-      <div class="kanban-column-body" id="kanban-col-${column.id}">
-        ${tasks.map(task => renderKanbanCard(task)).join('')}
-        ${tasks.length === 0 ? `
-          <div class="kanban-empty-column">
-            <span>No tasks</span>
+          <div class="kanban-modal-footer">
+            <button type="button" class="kanban-btn-cancel" onclick="kanbanCloseModal()">Cancel</button>
+            <button type="submit" class="kanban-btn-primary">Create Task</button>
           </div>
-        ` : ''}
+        </form>
       </div>
     </div>
   `;
-}
 
-// ── Render Card ───────────────────────────────────────────────────
-function renderKanbanCard(task) {
-  const priorityColors = {
-    low: '#22c55e',
-    medium: '#f59e0b',
-    high: '#f97316',
-    urgent: '#ef4444'
-  };
-  const priorityLabels = {
-    low: 'Low',
-    medium: 'Medium',
-    high: 'High',
-    urgent: 'Urgent'
-  };
-
-  return `
-    <div class="kanban-card" 
-         draggable="true"
-         data-task-id="${task.id}"
-         ondragstart="kanbanDragStart(event, '${task.id}')"
-         ondragend="kanbanDragEnd(event)"
-         onclick="kanbanEditTask('${task.id}')">
-      <div class="kanban-card-header">
-        <span class="kanban-card-priority" style="background: ${priorityColors[task.priority] || '#6b7280'}">
-          ${priorityLabels[task.priority] || 'Medium'}
-        </span>
-        ${task.assignee ? `
-          <span class="kanban-card-assignee" title="${task.assignee}">
-            ${getAssigneeAvatar(task.assignee)}
-          </span>
-        ` : ''}
-      </div>
-      <div class="kanban-card-title">${escapeHtml(task.title)}</div>
-      ${task.description ? `
-        <div class="kanban-card-desc">${escapeHtml(task.description)}</div>
-      ` : ''}
-      <div class="kanban-card-footer">
-        <span class="kanban-card-id">#${task.id}</span>
-        ${task.due_date ? `
-          <span class="kanban-card-due ${isOverdue(task.due_date) ? 'overdue' : ''}">
-            📅 ${formatDate(task.due_date)}
-          </span>
-        ` : ''}
-      </div>
-    </div>
-  `;
-}
-
-// ── Drag and Drop ─────────────────────────────────────────────────
-function initKanbanDragDrop() {
-  // Add touch support for mobile
-  document.querySelectorAll('.kanban-card').forEach(card => {
-    card.addEventListener('touchstart', kanbanTouchStart, { passive: false });
-    card.addEventListener('touchmove', kanbanTouchMove, { passive: false });
-    card.addEventListener('touchend', kanbanTouchEnd);
-  });
-}
-
-function kanbanDragStart(event, taskId) {
-  KanbanState.draggedTask = taskId;
-  event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('text/plain', taskId);
-  
-  // Add dragging class after a small delay
+  // Focus title input
   setTimeout(() => {
-    event.target.classList.add('kanban-dragging');
-  }, 0);
+    document.getElementById('kb-title')?.focus();
+  }, 100);
 }
 
-function kanbanDragEnd(event) {
-  event.target.classList.remove('kanban-dragging');
-  KanbanState.draggedTask = null;
-  
-  // Remove all drag-over styles
-  document.querySelectorAll('.kanban-column').forEach(col => {
-    col.classList.remove('kanban-drag-over');
-  });
-}
-
-function kanbanDragOver(event, columnId) {
-  event.preventDefault();
-  event.dataTransfer.dropEffect = 'move';
-  
-  const column = event.currentTarget;
-  column.classList.add('kanban-drag-over');
-  KanbanState.dragOverColumn = columnId;
-}
-
-function kanbanDragLeave(event, columnId) {
-  const column = event.currentTarget;
-  // Only remove if we're actually leaving the column
-  if (!column.contains(event.relatedTarget)) {
-    column.classList.remove('kanban-drag-over');
-  }
-}
-
-async function kanbanDrop(event, columnId) {
-  event.preventDefault();
-  const taskId = event.dataTransfer.getData('text/plain') || KanbanState.draggedTask;
-  
-  if (!taskId) return;
-  
-  // Remove drag-over style
-  event.currentTarget.classList.remove('kanban-drag-over');
-  
-  // Update task status
-  const task = KanbanState.tasks.find(t => String(t.id) === String(taskId));
-  if (task) {
-    task.status = columnId;
-    
-    // Save to API
-    try {
-      if (typeof AgenticAPI !== 'undefined' && AgenticAPI.patch) {
-        await AgenticAPI.patch(`/api/tasks/${encodeURIComponent(taskId)}`, { status: columnId });
-      }
-    } catch (e) {
-      console.debug('Kanban: API save failed, using local state');
-    }
-    
-    // Re-render
-    renderKanban();
-    showToast('✅ Task moved', 'ok');
-  }
-  
-  KanbanState.draggedTask = null;
-}
-
-// ── Touch Support for Mobile ──────────────────────────────────────
-let kanbanTouchData = { startX: 0, startY: 0, taskId: null, clone: null, timeout: null };
-
-function kanbanTouchStart(event) {
-  const card = event.target.closest('.kanban-card');
-  if (!card) return;
-  
-  const touch = event.touches[0];
-  kanbanTouchData.startX = touch.clientX;
-  kanbanTouchData.startY = touch.clientY;
-  kanbanTouchData.taskId = card.dataset.taskId;
-  
-  // Long press to start drag
-  kanbanTouchData.timeout = setTimeout(() => {
-    card.classList.add('kanban-dragging');
-    KanbanState.draggedTask = kanbanTouchData.taskId;
-    
-    // Create clone for visual feedback
-    kanbanTouchData.clone = card.cloneNode(true);
-    kanbanTouchData.clone.classList.add('kanban-touch-clone');
-    kanbanTouchData.clone.style.position = 'fixed';
-    kanbanTouchData.clone.style.pointerEvents = 'none';
-    kanbanTouchData.clone.style.zIndex = '10000';
-    kanbanTouchData.clone.style.width = card.offsetWidth + 'px';
-    document.body.appendChild(kanbanTouchData.clone);
-  }, 500);
-}
-
-function kanbanTouchMove(event) {
-  if (!KanbanState.draggedTask) return;
+async function kanbanSubmitCreate(event) {
   event.preventDefault();
   
-  const touch = event.touches[0];
-  if (kanbanTouchData.clone) {
-    kanbanTouchData.clone.style.left = (touch.clientX - 50) + 'px';
-    kanbanTouchData.clone.style.top = (touch.clientY - 20) + 'px';
-  }
-  
-  // Find column under touch
-  const element = document.elementFromPoint(touch.clientX, touch.clientY);
-  const column = element?.closest('.kanban-column');
-  
-  document.querySelectorAll('.kanban-column').forEach(col => {
-    col.classList.remove('kanban-drag-over');
-  });
-  
-  if (column) {
-    column.classList.add('kanban-drag-over');
-    KanbanState.dragOverColumn = column.dataset.column;
-  }
-}
+  const title = document.getElementById('kb-title')?.value?.trim();
+  if (!title) return;
 
-function kanbanTouchEnd(event) {
-  clearTimeout(kanbanTouchData.timeout);
-  
-  if (kanbanTouchData.clone) {
-    kanbanTouchData.clone.remove();
-    kanbanTouchData.clone = null;
-  }
-  
-  document.querySelectorAll('.kanban-card').forEach(card => {
-    card.classList.remove('kanban-dragging');
-  });
-  
-  if (KanbanState.draggedTask && KanbanState.dragOverColumn) {
-    const task = KanbanState.tasks.find(t => String(t.id) === String(KanbanState.draggedTask));
-    if (task) {
-      task.status = KanbanState.dragOverColumn;
-      renderKanban();
-      showToast('✅ Task moved', 'ok');
-    }
-  }
-  
-  KanbanState.draggedTask = null;
-  KanbanState.dragOverColumn = null;
-}
-
-// ── Task Actions ──────────────────────────────────────────────────
-function kanbanAddTask() {
-  const modal = document.getElementById('kanban-add-modal');
-  if (modal) {
-    modal.style.display = 'flex';
-    const titleInput = document.getElementById('kanban-task-title');
-    if (titleInput) titleInput.focus();
-  }
-}
-
-function kanbanAddTaskToColumn(columnId) {
-  kanbanAddTask();
-  const select = document.getElementById('kanban-task-column');
-  if (select) select.value = columnId;
-}
-
-function kanbanCloseModal() {
-  const modal = document.getElementById('kanban-add-modal');
-  if (modal) modal.style.display = 'none';
-  
-  // Clear form
-  const fields = ['kanban-task-title', 'kanban-task-desc'];
-  fields.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  
-  const priority = document.getElementById('kanban-task-priority');
-  if (priority) priority.value = 'medium';
-  
-  const assignee = document.getElementById('kanban-task-assignee');
-  if (assignee) assignee.value = '';
-}
-
-async function kanbanSaveTask() {
-  const titleEl = document.getElementById('kanban-task-title');
-  const title = titleEl ? titleEl.value.trim() : '';
-  
-  if (!title) {
-    showToast('⚠️ Title is required', 'warn');
-    if (titleEl) titleEl.focus();
-    return;
-  }
-  
-  const task = {
-    id: Date.now().toString(),
+  const taskData = {
     title: title,
-    description: (document.getElementById('kanban-task-desc') || {}).value?.trim() || '',
-    status: (document.getElementById('kanban-task-column') || {}).value || 'todo',
-    priority: (document.getElementById('kanban-task-priority') || {}).value || 'medium',
-    agent: (document.getElementById('kanban-task-assignee') || {}).value || 'builder',
-    created_at: new Date().toISOString()
+    description: document.getElementById('kb-desc')?.value?.trim() || '',
+    status: document.getElementById('kb-status')?.value || 'todo',
+    priority: document.getElementById('kb-priority')?.value || 'medium',
+    agent: document.getElementById('kb-agent')?.value || 'builder'
   };
-  
+
+  // Save to API first to get real ID
+  try {
+    const response = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(taskData)
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      // Use the ID from the API response
+      taskData.id = result.id;
+      kanbanTasks.push(taskData);
+      kanbanCloseModal();
+      kanbanRenderBoard();
+      kanbanShowToast('Task created', 'success');
+    } else {
+      kanbanShowToast('Failed to create task', 'error');
+    }
+  } catch (e) {
+    // Fallback: use local ID
+    taskData.id = Date.now();
+    kanbanTasks.push(taskData);
+    kanbanCloseModal();
+    kanbanRenderBoard();
+    kanbanShowToast('Task created (local)', 'success');
+  }
+}
+
+// ── Edit Task Modal ───────────────────────────────────────────────
+function kanbanOpenEditModal(taskId) {
+  const task = kanbanTasks.find(t => t.id === taskId);
+  if (!task) return;
+
+  const root = document.getElementById('kanban-modal-root');
+  if (!root) return;
+
+  root.innerHTML = `
+    <div class="kanban-modal-overlay" onclick="kanbanCloseModal()">
+      <div class="kanban-modal" onclick="event.stopPropagation()">
+        <div class="kanban-modal-header">
+          <h2>Edit Task #${taskId}</h2>
+          <button type="button" class="kanban-modal-close" onclick="kanbanCloseModal()">✕</button>
+        </div>
+        <form onsubmit="kanbanSubmitEdit(event, ${taskId})" class="kanban-modal-body">
+          <div class="kanban-field">
+            <label for="kb-edit-title">Title *</label>
+            <input type="text" id="kb-edit-title" value="${kanbanEscapeAttr(task.title)}" required>
+          </div>
+          <div class="kanban-field">
+            <label for="kb-edit-desc">Description</label>
+            <textarea id="kb-edit-desc" rows="3">${kanbanEscapeHtml(task.description || '')}</textarea>
+          </div>
+          <div class="kanban-field-row">
+            <div class="kanban-field">
+              <label for="kb-edit-priority">Priority</label>
+              <select id="kb-edit-priority">
+                <option value="low" ${task.priority === 'low' ? 'selected' : ''}>🟢 Low</option>
+                <option value="medium" ${task.priority === 'medium' ? 'selected' : ''}>🟡 Medium</option>
+                <option value="high" ${task.priority === 'high' ? 'selected' : ''}>🟠 High</option>
+              </select>
+            </div>
+            <div class="kanban-field">
+              <label for="kb-edit-agent">Assignee</label>
+              <select id="kb-edit-agent">
+                <option value="builder" ${task.agent === 'builder' ? 'selected' : ''}>⚡ Builder</option>
+                <option value="brain" ${task.agent === 'brain' ? 'selected' : ''}>🧠 Brain</option>
+                <option value="researcher" ${task.agent === 'researcher' ? 'selected' : ''}>🔬 Researcher</option>
+                <option value="orchestrator" ${task.agent === 'orchestrator' ? 'selected' : ''}>🌀 Orchestrator</option>
+              </select>
+            </div>
+          </div>
+          <div class="kanban-field">
+            <label for="kb-edit-status">Column</label>
+            <select id="kb-edit-status">
+              ${KANBAN_COLUMNS.map(col => 
+                `<option value="${col.id}" ${col.id === task.status ? 'selected' : ''}>${col.icon} ${col.label}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="kanban-modal-footer">
+            <button type="button" class="kanban-btn-delete" onclick="kanbanDeleteTask(${taskId});kanbanCloseModal()">Delete</button>
+            <div style="flex:1"></div>
+            <button type="button" class="kanban-btn-cancel" onclick="kanbanCloseModal()">Cancel</button>
+            <button type="submit" class="kanban-btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+async function kanbanSubmitEdit(event, taskId) {
+  event.preventDefault();
+
+  const task = kanbanTasks.find(t => t.id === taskId);
+  if (!task) return;
+
+  const updates = {
+    title: document.getElementById('kb-edit-title')?.value?.trim() || task.title,
+    description: document.getElementById('kb-edit-desc')?.value?.trim() || '',
+    priority: document.getElementById('kb-edit-priority')?.value || task.priority,
+    agent: document.getElementById('kb-edit-agent')?.value || task.agent,
+    status: document.getElementById('kb-edit-status')?.value || task.status
+  };
+
+  // Update local state
+  Object.assign(task, updates);
+
+  // Re-render immediately
+  kanbanCloseModal();
+  kanbanRenderBoard();
+
   // Save to API
   try {
-    if (typeof AgenticAPI !== 'undefined' && AgenticAPI.post) {
-      const response = await AgenticAPI.post('/api/tasks', task);
-      if (response?.id) {
-        task.id = response.id;
-      }
+    const response = await fetch(`/api/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+
+    if (response.ok) {
+      kanbanShowToast('Task updated', 'success');
+    } else {
+      kanbanShowToast('Failed to save changes', 'error');
     }
   } catch (e) {
-    console.debug('Kanban: API save failed, using local state');
-  }
-  
-  KanbanState.tasks.push(task);
-  kanbanCloseModal();
-  renderKanban();
-  showToast('✅ Task created', 'ok');
-}
-
-function kanbanEditTask(taskId) {
-  const task = KanbanState.tasks.find(t => String(t.id) === String(taskId));
-  if (!task) return;
-  
-  // For now, just show a simple edit via prompt
-  const newTitle = prompt('Edit task title:', task.title);
-  if (newTitle && newTitle !== task.title) {
-    task.title = newTitle;
-    
-    // Save to API
-    try {
-      if (typeof AgenticAPI !== 'undefined' && AgenticAPI.patch) {
-        AgenticAPI.patch(`/api/tasks/${encodeURIComponent(taskId)}`, { title: newTitle });
-      }
-    } catch (e) {
-      console.debug('Kanban: API update failed');
-    }
-    
-    renderKanban();
-    showToast('✅ Task updated', 'ok');
+    console.warn('Kanban: API error:', e.message);
   }
 }
 
+// ── Delete Task ───────────────────────────────────────────────────
 async function kanbanDeleteTask(taskId) {
-  if (!confirm('Delete this task?')) return;
-  
-  KanbanState.tasks = KanbanState.tasks.filter(t => String(t.id) !== String(taskId));
-  
+  if (!confirm('Delete this task? This cannot be undone.')) return;
+
+  // Remove from local state
+  kanbanTasks = kanbanTasks.filter(t => t.id !== taskId);
+
+  // Re-render immediately
+  kanbanRenderBoard();
+
   // Delete from API
   try {
-    if (typeof AgenticAPI !== 'undefined' && AgenticAPI.delete) {
-      await AgenticAPI.delete(`/api/tasks/${encodeURIComponent(taskId)}`);
-    }
+    await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+    kanbanShowToast('Task deleted', 'success');
   } catch (e) {
-    console.debug('Kanban: API delete failed');
-  }
-  
-  renderKanban();
-  showToast('🗑 Task deleted', 'ok');
-}
-
-function kanbanFilterToggle() {
-  const filter = prompt('Filter by priority (low/medium/high/urgent) or leave empty for all:');
-  if (filter === null) return;
-  
-  if (filter === '') {
-    renderKanban();
-  } else {
-    const filtered = KanbanState.tasks.filter(t => t.priority === filter.toLowerCase());
-    const board = document.getElementById('kanban-board');
-    if (board) {
-      KanbanState.columns.forEach(col => {
-        const colBody = document.getElementById(`kanban-col-${col.id}`);
-        if (colBody) {
-          const tasks = filtered.filter(t => t.status === col.id);
-          colBody.innerHTML = tasks.map(task => renderKanbanCard(task)).join('') || `
-            <div class="kanban-empty-column"><span>No tasks</span></div>
-          `;
-        }
-      });
-    }
+    console.warn('Kanban: API error:', e.message);
   }
 }
 
-// ── Helper Functions ──────────────────────────────────────────────
-function flattenKanbanData(data) {
-  const tasks = [];
-  for (const [status, columnTasks] of Object.entries(data)) {
-    if (Array.isArray(columnTasks)) {
-      columnTasks.forEach(task => {
-        tasks.push({ ...task, status });
-      });
-    }
-  }
-  return tasks;
+// ── Filter ────────────────────────────────────────────────────────
+function kanbanSetFilter(priority) {
+  kanbanActiveFilter = priority;
+  kanbanRenderBoard();
 }
 
-function getSampleTasks() {
+// ── Close Modal ───────────────────────────────────────────────────
+function kanbanCloseModal() {
+  const root = document.getElementById('kanban-modal-root');
+  if (root) root.innerHTML = '';
+}
+
+// ── Sample Tasks ──────────────────────────────────────────────────
+function kanbanGetSampleTasks() {
   return [
-    { id: '1', title: 'Design new landing page', description: 'Create a modern landing page with hero section', status: 'todo', priority: 'high', assignee: 'builder' },
-    { id: '2', title: 'Fix authentication bug', description: 'Users getting logged out unexpectedly', status: 'doing', priority: 'urgent', assignee: 'brain' },
-    { id: '3', title: 'Write API documentation', description: 'Document all REST endpoints', status: 'todo', priority: 'medium', assignee: 'researcher' },
-    { id: '4', title: 'Implement dark mode', description: 'Add theme switching capability', status: 'blocked', priority: 'low', assignee: 'builder' },
-    { id: '5', title: 'Optimize database queries', description: 'Slow queries on user dashboard', status: 'done', priority: 'high', assignee: 'brain' },
-    { id: '6', title: 'Add unit tests for auth module', description: 'Increase test coverage to 80%', status: 'todo', priority: 'medium', assignee: '' },
-    { id: '7', title: 'Research competitor features', description: 'Analyze top 5 competitors', status: 'todo', priority: 'low', assignee: 'researcher' },
-    { id: '8', title: 'Setup CI/CD pipeline', description: 'GitHub Actions for auto deployment', status: 'doing', priority: 'high', assignee: 'builder' }
+    { id: 1001, title: 'Design new landing page', description: 'Create a modern landing page with hero section', status: 'todo', priority: 'high', agent: 'builder' },
+    { id: 1002, title: 'Fix authentication bug', description: 'Users getting logged out unexpectedly', status: 'doing', priority: 'high', agent: 'brain' },
+    { id: 1003, title: 'Write API documentation', description: 'Document all REST endpoints', status: 'todo', priority: 'medium', agent: 'researcher' },
+    { id: 1004, title: 'Implement dark mode', description: 'Add theme switching capability', status: 'blocked', priority: 'low', agent: 'builder' },
+    { id: 1005, title: 'Optimize database queries', description: 'Slow queries on user dashboard', status: 'done', priority: 'high', agent: 'brain' },
+    { id: 1006, title: 'Add unit tests', description: 'Increase test coverage to 80%', status: 'todo', priority: 'medium', agent: 'builder' }
   ];
 }
 
-function getAssigneeAvatar(assignee) {
-  const avatars = {
-    builder: '⚡',
-    brain: '🧠',
-    researcher: '🔬',
-    orchestrator: '🌀'
-  };
-  return avatars[assignee] || '👤';
-}
-
-function escapeHtml(text) {
+// ── Utility Functions ─────────────────────────────────────────────
+function kanbanEscapeHtml(text) {
   if (!text) return '';
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diff = date - now;
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  
-  if (days < 0) return 'Overdue';
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Tomorrow';
-  if (days < 7) return `${days} days`;
-  
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+function kanbanEscapeAttr(text) {
+  if (!text) return '';
+  return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function isOverdue(dateStr) {
-  if (!dateStr) return false;
-  return new Date(dateStr) < new Date();
-}
-
-function showToast(message, type) {
+function kanbanShowToast(message, type) {
   if (typeof toast === 'function') {
-    toast(message, type);
+    toast(message, type === 'success' ? 'ok' : type === 'error' ? 'err' : 'warn');
   } else {
-    console.log(message);
+    console.log(`[${type}] ${message}`);
   }
 }
 
-// ── Global Functions (for onclick handlers) ───────────────────────
+// ── Global Exports ────────────────────────────────────────────────
 window.renderKanban = renderKanban;
-window.kanbanDragStart = kanbanDragStart;
-window.kanbanDragEnd = kanbanDragEnd;
-window.kanbanDragOver = kanbanDragOver;
-window.kanbanDragLeave = kanbanDragLeave;
-window.kanbanDrop = kanbanDrop;
-window.kanbanAddTask = kanbanAddTask;
-window.kanbanAddTaskToColumn = kanbanAddTaskToColumn;
-window.kanbanCloseModal = kanbanCloseModal;
-window.kanbanSaveTask = kanbanSaveTask;
-window.kanbanEditTask = kanbanEditTask;
+window.kanbanHandleDragStart = kanbanHandleDragStart;
+window.kanbanHandleDragEnd = kanbanHandleDragEnd;
+window.kanbanHandleDragOver = kanbanHandleDragOver;
+window.kanbanHandleDragLeave = kanbanHandleDragLeave;
+window.kanbanHandleDrop = kanbanHandleDrop;
+window.kanbanOpenCreateModal = kanbanOpenCreateModal;
+window.kanbanSubmitCreate = kanbanSubmitCreate;
+window.kanbanOpenEditModal = kanbanOpenEditModal;
+window.kanbanSubmitEdit = kanbanSubmitEdit;
 window.kanbanDeleteTask = kanbanDeleteTask;
-window.kanbanFilterToggle = kanbanFilterToggle;
+window.kanbanSetFilter = kanbanSetFilter;
+window.kanbanCloseModal = kanbanCloseModal;
 
-console.log('%c✅ Kanban Board loaded', 'color:#22c55e;font-weight:bold');
+console.log('%c✅ Kanban Board v2 loaded', 'color:#22c55e;font-weight:bold');
