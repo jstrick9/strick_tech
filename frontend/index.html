@@ -1273,25 +1273,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 .terminal-tab.active{background:var(--bg-1);color:var(--text-0)}
 .terminal-tab:hover:not(.active){background:var(--bg-2)}
 
-/* ── Smart Suggestions Bar ───────────────────────────────────── */
-#smart-suggestions{
-  position:fixed;bottom:0;left:var(--sidebar-w);right:0;
-  background:linear-gradient(0deg,var(--bg-1) 80%,transparent);
-  padding:8px 16px 12px;z-index:100;display:none;
-  flex-direction:column;gap:6px;
-  border-top:1px solid var(--border);
-  transition:var(--transition);
-}
-.suggestion-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.suggestion-chip{
-  display:flex;align-items:center;gap:6px;
-  background:rgba(91,138,248,.1);border:1px solid rgba(91,138,248,.25);
-  border-radius:var(--radius-full);padding:4px 12px;
-  font-size:var(--text-xs);color:var(--accent-hi);cursor:pointer;
-  transition:var(--transition);white-space:nowrap;
-}
-.suggestion-chip:hover{background:rgba(91,138,248,.2);border-color:var(--accent)}
-.suggestion-label{font-size:10px;color:var(--text-3);flex-shrink:0}
+/* Hints CSS removed */
 
 /* ── Code review annotation ──────────────────────────────────── */
 .review-overlay{
