@@ -1379,17 +1379,14 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <!-- ── Sidebar ─────────────────────────────────────── -->
     <div id="sidebar" role="navigation" aria-label="Main navigation">
       <div id="sidebar-top-nav-header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
-        <span style="font-size:12px;font-weight:700;color:var(--text-0)">Navigation</span>
-        <div id="sidebar-top-nav-buttons" style="display:flex;align-items:center;gap:4px">
-          <button type="button" onclick="if(typeof showSidebarCustomizer==='function') showSidebarCustomizer()" title="Customize Sidebar" class="btn-3d" style="width:28px;height:28px;padding:0;font-size:13px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer">🎛️</button>
-          <div role="button" tabindex="0" id="sidebar-toggle-btn" onclick="toggleSidebar()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Collapse sidebar (⌘\)" class="btn-3d" style="width:28px;height:28px;padding:0;font-size:12px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);display:inline-flex;align-items:center;justify-content:center;cursor:pointer">◀</div>
-        </div>
+        <span id="sidebar-nav-label" style="font-size:12px;font-weight:700;color:var(--text-0)">Navigation</span>
+        <button type="button" id="sidebar-collapse-btn" onclick="toggleSidebar()" title="Collapse sidebar (Ctrl+B)" style="width:24px;height:24px;padding:0;font-size:12px;background:transparent;border:none;color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all 0.15s">◀</button>
       </div>
 
       <!-- Navigation -->
       <div class="sidebar-scroll">
         <!-- ═══ ESSENTIALS: Always visible, novice-friendly ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> ESSENTIALS <span class="help-tip" data-tip="Essential tools to get started. Click any item to open it.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> ESSENTIALS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
         <div class="sidebar-group-content" id="group-core">
           <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI — start here" role="menuitem" aria-label="Chat">
             <span class="icon">💬</span><span class="label">Chat</span>
@@ -1413,7 +1410,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ AI TOOLS: Core AI capabilities ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS <span class="help-tip" data-tip="AI-powered tools for research, coding, and creativity.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">10</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">10</span></div>
         <div class="sidebar-group-content" id="group-build" data-tier="advanced" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="swarm" data-tier="advanced" onclick="nav('swarm')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🌀</span><span class="label">Multi-Agent Swarm</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="hierarchy" data-tier="advanced" onclick="nav('hierarchy')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧭</span><span class="label">AI Operating Manual</span></div>
@@ -1428,7 +1425,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ BUILD: Ship your work ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD <span class="help-tip" data-tip="Tools to build, test, and ship your projects.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
         <div class="sidebar-group-content" id="group-ship" data-tier="advanced" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">✍</span><span class="label">Composer</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="pipeline" data-tier="advanced" onclick="nav('pipeline')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⎈</span><span class="label">Pipelines</span></div>
@@ -1442,7 +1439,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ AGENTS ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTS <span class="help-tip" data-tip="Manage AI agents, connect tools, and automate workflows.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
         <div class="sidebar-group-content" id="group-tools" data-tier="advanced" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎯</span><span class="label">Supervisor</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="goals" data-tier="advanced" onclick="nav('goals')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎯</span><span class="label">Goals</span></div>
@@ -1461,7 +1458,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ MONITORING ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> MONITORING <span class="help-tip" data-tip="Track performance, costs, and security.">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> MONITORING  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
         <div class="sidebar-group-content" id="group-enterprise" data-tier="advanced" style="display:none">
           <div style="font-size:9.5px;color:var(--text-3);padding:8px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85">📊 Analytics</div>
           <div role="button" tabindex="0" class="nav-item" data-nav="dashboard" data-tier="advanced" onclick="nav('dashboard')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📊</span><span class="label">Dashboard</span></div>
@@ -1499,13 +1496,13 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
       </div>
 
-      <!-- Agents -->
-      <div class="sidebar-section">
-        <div class="sidebar-label">Agents</div>
-      </div>
-      <div class="agent-list" id="agent-list"></div>
-      <div role="button" tabindex="0" class="sidebar-add-agent" onclick="openAgentModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-        <span>＋</span> New Agent
+      <!-- Agents - Compact -->
+      <div id="sidebar-agents-section" style="border-top:1px solid var(--border);padding:8px;flex-shrink:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px;margin-bottom:4px">
+          <span style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px">Agents</span>
+          <button type="button" onclick="openAgentModal()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;padding:0;line-height:1" title="Add Agent">+</button>
+        </div>
+        <div class="agent-list" id="agent-list" style="max-height:120px;overflow-y:auto"></div>
       </div>
 
     </div>
@@ -3240,6 +3237,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 <script src="/static/js/26-swarm.js" defer></script>
 <script src="/static/js/27-galaxy.js" defer></script>
 <script src="/static/js/28-kanban.js" defer></script>
+<script src="/static/js/sidebar-enhancements.js" defer></script>
 <script src="/static/js/29-notifications.js" defer></script>
 <script src="/static/js/30-workspaces.js" defer></script>
 <script src="/static/js/31-control-tower.js" defer></script>
