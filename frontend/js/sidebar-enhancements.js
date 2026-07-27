@@ -1,5 +1,5 @@
-// Agentic OS — Sidebar Enhancements v5
-// Favorites on ALL components, no star icons, consistent behavior
+// Agentic OS — Sidebar Enhancements v6
+// No favorites, no star icons - clean sidebar
 'use strict';
 
 // ── Sidebar State ────────────────────────────────────────────────
@@ -33,11 +33,23 @@ function initSidebar() {
   }
 
   setupSidebarResizer();
-  setupFavorites();
   setupGroupTooltips();
   ensureDefaultState();
   
-  console.log('✅ Sidebar v5 loaded');
+  // Remove any existing favorite buttons and sections
+  removeAllFavorites();
+  
+  console.log('✅ Sidebar v6 loaded');
+}
+
+// ── Remove All Favorites ─────────────────────────────────────────
+function removeAllFavorites() {
+  // Remove favorite buttons from nav items
+  document.querySelectorAll('.nav-fav-btn, .nav-star-btn').forEach(btn => btn.remove());
+  
+  // Remove favorites section
+  const favSection = document.getElementById('sidebar-favorites-section');
+  if (favSection) favSection.remove();
 }
 
 // ── Ensure Default State ─────────────────────────────────────────
@@ -122,151 +134,6 @@ function setSidebarWidth(width) {
     collapseBtn.title = isCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)';
   }
   localStorage.setItem('agentic_os_sidebar_collapsed', isCollapsed ? 'true' : 'false');
-}
-
-// ── Favorites System (ALL components) ────────────────────────────
-function setupFavorites() {
-  const favorites = getFavorites();
-  
-  if (favorites.length > 0) {
-    createFavoritesSection(favorites);
-  }
-  
-  // Add favorite buttons to ALL nav items (not just core)
-  document.querySelectorAll('.nav-item[data-nav]').forEach(item => {
-    addFavoriteButton(item);
-  });
-}
-
-function getFavorites() {
-  try {
-    return JSON.parse(localStorage.getItem('agentic_os_favorites') || '[]');
-  } catch {
-    return [];
-  }
-}
-
-function saveFavorites(favorites) {
-  localStorage.setItem('agentic_os_favorites', JSON.stringify(favorites));
-}
-
-function addFavoriteButton(navItem) {
-  const navId = navItem.dataset.nav;
-  if (!navId) return;
-  if (navItem.querySelector('.nav-fav-btn')) return;
-
-  const favorites = getFavorites();
-  const isFav = favorites.includes(navId);
-  
-  const favBtn = document.createElement('button');
-  favBtn.className = 'nav-fav-btn';
-  favBtn.type = 'button';
-  favBtn.innerHTML = isFav ? '★' : '☆';
-  favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
-  favBtn.setAttribute('data-nav-id', navId);
-  favBtn.setAttribute('data-favorited', isFav ? 'true' : 'false');
-
-  // Show on hover, always show if favorited
-  if (!isFav) {
-    navItem.addEventListener('mouseenter', () => favBtn.classList.add('visible'));
-    navItem.addEventListener('mouseleave', () => favBtn.classList.remove('visible'));
-  } else {
-    favBtn.classList.add('visible');
-  }
-
-  // Click handler - stop propagation to prevent navigation
-  favBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    
-    const currentFavs = getFavorites();
-    const isCurrentlyFav = currentFavs.includes(navId);
-    
-    if (isCurrentlyFav) {
-      // Remove from favorites
-      const newFavs = currentFavs.filter(id => id !== navId);
-      saveFavorites(newFavs);
-      this.innerHTML = '☆';
-      this.title = 'Add to favorites';
-      this.setAttribute('data-favorited', 'false');
-      this.classList.remove('visible');
-      if (typeof toast === 'function') toast('Removed from favorites', 'ok');
-    } else {
-      // Add to favorites
-      currentFavs.push(navId);
-      saveFavorites(currentFavs);
-      this.innerHTML = '★';
-      this.title = 'Remove from favorites';
-      this.setAttribute('data-favorited', 'true');
-      this.classList.add('visible');
-      if (typeof toast === 'function') toast('Added to favorites', 'ok');
-    }
-    
-    // Update favorites section
-    createFavoritesSection(getFavorites());
-    return false;
-  });
-
-  navItem.appendChild(favBtn);
-}
-
-function createFavoritesSection(favorites) {
-  const existing = document.getElementById('sidebar-favorites-section');
-  if (existing) existing.remove();
-  if (favorites.length === 0) return;
-  
-  const sidebarScroll = document.querySelector('.sidebar-scroll');
-  if (!sidebarScroll) return;
-  
-  const section = document.createElement('div');
-  section.id = 'sidebar-favorites-section';
-  
-  let html = `
-    <div style="padding: 8px 12px 4px;">
-      <span style="font-size: 10px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px;">⭐ Favorites</span>
-    </div>
-  `;
-  
-  favorites.forEach(navId => {
-    const original = document.querySelector(`.nav-item[data-nav="${navId}"]`);
-    if (original) {
-      const icon = original.querySelector('.icon')?.textContent || '📌';
-      const label = original.querySelector('.label')?.textContent || navId;
-      html += `
-        <div class="nav-item fav-item" data-nav="${navId}" onclick="nav('${navId}')">
-          <span class="icon">${icon}</span>
-          <span class="label">${label}</span>
-          <button type="button" class="fav-remove-btn" title="Remove from favorites" 
-            onclick="event.stopPropagation(); removeFromFavorites('${navId}')">✕</button>
-        </div>
-      `;
-    }
-  });
-  
-  section.innerHTML = html;
-  sidebarScroll.insertBefore(section, sidebarScroll.firstChild);
-}
-
-function removeFromFavorites(navId) {
-  let favorites = getFavorites();
-  favorites = favorites.filter(id => id !== navId);
-  saveFavorites(favorites);
-  
-  // Update the favorite button on the original nav item
-  const originalItem = document.querySelector(`.nav-item[data-nav="${navId}"]`);
-  if (originalItem) {
-    const favBtn = originalItem.querySelector('.nav-fav-btn');
-    if (favBtn) {
-      favBtn.innerHTML = '☆';
-      favBtn.title = 'Add to favorites';
-      favBtn.setAttribute('data-favorited', 'false');
-      favBtn.classList.remove('visible');
-    }
-  }
-  
-  createFavoritesSection(favorites);
-  if (typeof toast === 'function') toast('Removed from favorites', 'ok');
 }
 
 // ── Group Tooltips ───────────────────────────────────────────────
@@ -405,64 +272,6 @@ sidebarStyles.textContent = `
     border: 1px solid var(--border-hi, rgba(255,255,255,0.12));
   }
 
-  /* Favorite button - subtle, appears on hover */
-  .nav-fav-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    padding: 2px 6px;
-    margin-left: auto;
-    flex-shrink: 0;
-    line-height: 1;
-    opacity: 0;
-    transition: opacity 0.15s, color 0.15s;
-    z-index: 10;
-    position: relative;
-    color: var(--text-3, #666);
-  }
-  .nav-fav-btn:hover {
-    color: var(--accent, #6366f1);
-  }
-  .nav-fav-btn.visible {
-    opacity: 1;
-  }
-  .nav-item:hover .nav-fav-btn {
-    opacity: 1;
-  }
-  .nav-fav-btn[data-favorited="true"] {
-    opacity: 1;
-    color: var(--warning, #eab308);
-  }
-
-  /* Favorites section */
-  #sidebar-favorites-section {
-    padding: 4px 0;
-    border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
-    margin-bottom: 4px;
-  }
-  #sidebar-favorites-section .fav-item {
-    padding: 6px 12px;
-    position: relative;
-  }
-  .fav-remove-btn {
-    background: none;
-    border: none;
-    color: var(--text-3, #666);
-    cursor: pointer;
-    font-size: 12px;
-    padding: 2px 4px;
-    opacity: 0;
-    transition: opacity 0.15s;
-    margin-left: auto;
-  }
-  .fav-item:hover .fav-remove-btn {
-    opacity: 1;
-  }
-  .fav-remove-btn:hover {
-    color: var(--danger, #ef4444);
-  }
-
   /* Collapsed sidebar */
   #sidebar.collapsed {
     width: 56px !important;
@@ -472,11 +281,8 @@ sidebarStyles.textContent = `
   #sidebar.collapsed .count,
   #sidebar.collapsed .badge,
   #sidebar.collapsed .sidebar-help-tip,
-  #sidebar.collapsed .nav-fav-btn,
-  #sidebar.collapsed .fav-remove-btn,
   #sidebar.collapsed .agent-info,
   #sidebar.collapsed #sidebar-nav-label,
-  #sidebar.collapsed #sidebar-favorites-section,
   #sidebar.collapsed #sidebar-agents-section > div:first-child {
     display: none !important;
   }
@@ -510,7 +316,6 @@ if (document.readyState === 'loading') {
 // ── Global Exports ────────────────────────────────────────────────
 window.initSidebar = initSidebar;
 window.setSidebarWidth = setSidebarWidth;
-window.removeFromFavorites = removeFromFavorites;
 window.ensureDefaultState = ensureDefaultState;
 
-console.log('%c✅ Sidebar v5 loaded', 'color:#22c55e;font-weight:bold');
+console.log('%c✅ Sidebar v6 loaded', 'color:#22c55e;font-weight:bold');
