@@ -1296,13 +1296,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
     <div class="spacer"></div>
 
-    <!-- Advanced quick actions — hidden in simplified topbar, kept for test compatibility -->
-    <div id="topbar-quick-actions" style="display:none" data-tier="advanced">
-      <button type="button" onclick="nav('hierarchy')">🧭 AI OPs Manual</button>
-      <button type="button" onclick="if(typeof openHierarchyInterview === 'function') openHierarchyInterview()">✨ AI Interview Wizard</button>
-      <button type="button" id="split-toggle-btn" onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace()">🗂️ Split View</button>
-      <button type="button" id="restart-engine-btn" onclick="if(typeof hardRebootBackendEngine === 'function') hardRebootBackendEngine()" data-tier="advanced" title="Restart AI Backend Engine">🛑 Restart</button>
-    </div>
+<!-- Advanced quick actions removed - kept minimal topbar -->
 
     <!-- Clean Topbar: Search, Notifications, Settings, Profile -->
     <div id="topbar-actions">

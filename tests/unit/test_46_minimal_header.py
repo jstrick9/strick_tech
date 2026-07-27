@@ -14,8 +14,7 @@ def test_model_control_can_be_shared_with_minimal_topbar():
 
 
 def test_nonessential_topbar_actions_are_visually_deemphasized_not_deleted():
-    assert 'id="topbar-quick-actions"' in INDEX
-    # Topbar quick actions and actions are now visible (not hidden)
-    # They were previously hidden with display:none which broke the UI
-    assert 'topbar-quick-actions' in CSS or 'topbar-quick-actions' in INDEX
-    assert 'id="restart-engine-btn"' in INDEX
+    # Topbar quick actions removed for clean minimal design
+    # Model selector stays in Chat, voice in Chat, restart in Settings
+    assert 'id="topbar-actions"' in INDEX
+    assert 'id="notif-bell-btn"' in INDEX
