@@ -460,58 +460,6 @@ window.renderCodeSearch = renderCodeSearch;
 window.runCodeSearch = runCodeSearch;
 
 // ══════════════════════════════════════════════════════
-//  SMART NEXT-ACTION SUGGESTIONS BAR
-// ══════════════════════════════════════════════════════
-function ensureSuggestionsBar(){
-  if(document.getElementById('smart-suggestions'))return;
-  const bar=document.createElement('div');
-  bar.id='smart-suggestions';
-  bar.style.cssText='position:relative;flex-shrink:0;background:var(--bg-1);border-top:1px solid var(--border);padding:6px 16px;z-index:10;display:none;flex-direction:column;gap:4px;box-shadow:0 -2px 8px rgba(0,0,0,0.1)';
-  bar.innerHTML='<div class="suggestion-chips" id="suggestion-chips"><span class="suggestion-label">💡 Next:</span></div>';
-  const content = document.getElementById('content');
-  const statusbar = document.getElementById('statusbar');
-  if (content && statusbar && content.contains(statusbar)) {
-    content.insertBefore(bar, statusbar);
-  } else if (content) {
-    content.appendChild(bar);
-  } else {
-    document.getElementById('shell')?.appendChild(bar);
-  }
-}
-
-function showSmartSuggestionsForPane(pane){
-  try { if (_safeLS.get('agentic_os_disable_hints') === 'true') return; } catch(e) {}
-  ensureSuggestionsBar();
-  const bar=document.getElementById('smart-suggestions');if(!bar)return;
-  bar.style.display='flex';
-  updateSuggestionChips(getDefaultSuggestions(pane));
-}
-
-function updateSuggestionChips(suggestions){
-  const chips=document.getElementById('suggestion-chips');if(!chips||!suggestions?.length)return;
-  chips.innerHTML=`<span class="suggestion-label">💡 Next:</span>`+
-    suggestions.map(s=>`<button class="suggestion-chip btn-3d" onclick="${s.action||''}" title="${escHtml(s.reason||'')}">${s.icon||'⚡'} ${escHtml(s.label)}</button>`).join('')+
-    `<div style="margin-left:auto;display:flex;align-items:center;gap:6px">
-       <button onclick="try { _safeLS.set('agentic_os_disable_hints', 'true'); } catch {}document.getElementById('smart-suggestions').style.display='none';toast('✕ Next hints turned off.')" class="btn-sm btn-ghost" style="padding:2px 8px;font-size:10px">🔕 Turn off hints</button>
-       <button onclick="document.getElementById('smart-suggestions').style.display='none'" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;padding:0 4px">×</button>
-     </div>`;
-}
-
-function getDefaultSuggestions(pane){
-  const map={
-    chat:[{icon:'💬',label:'Save Prompt',action:'saveCurrentAsPrompt?.()',reason:'Reuse later'},{icon:'🌀',label:'Run Swarm',action:"nav('swarm')",reason:'Multiple AI opinions'},{icon:'🎬',label:'Build in Studio',action:"nav('studio')",reason:'Create it'}],
-    studio:[{icon:'🧪',label:'Run Tests',action:"runE2EFull?.('web')",reason:'Verify changes'},{icon:'🐙',label:'Push to GitHub',action:'showGHPush?.()',reason:'Back up code'},{icon:'🚀',label:'Deploy',action:"nav('deploy')",reason:'Go live'}],
-    kanban:[{icon:'🏛️',label:'Run Pipeline',action:"nav('pipeline')",reason:'Automate'},{icon:'📊',label:'Analytics',action:"nav('dashboard')",reason:'Track progress'},{icon:'♾️',label:'Create Loop',action:"nav('loops')",reason:'Schedule'}],
-    deploy:[{icon:'🌐',label:'Share App',action:'shareProject?.()',reason:'Get public URL'},{icon:'🐙',label:'GitHub Pages',action:'showGHPages?.()',reason:'Free hosting'},{icon:'📊',label:'Monitor',action:"nav('dashboard')",reason:'Track usage'}],
-    templates:[{icon:'🎬',label:'Open Studio',action:"nav('studio')",reason:'Customize'},{icon:'💳',label:'Add Stripe',action:"scaffoldIntegration?.('stripe-payments')",reason:'Monetize'},{icon:'🔐',label:'Add Auth',action:"scaffoldIntegration?.('auth-clerk')",reason:'User accounts'}],
-    github:[{icon:'🚀',label:'Deploy Now',action:"nav('deploy')",reason:'Go live'},{icon:'📋',label:'Create PR',action:'showGHPR?.()',reason:'Code review'},{icon:'🌐',label:'GitHub Pages',action:'showGHPages?.()',reason:'Free hosting'}],
-  };
-  return map[pane]||[{icon:'💬',label:'Chat with AI',action:"nav('chat')",reason:'Get help'},{icon:'🎬',label:'Studio',action:"nav('studio')",reason:'Build'},{icon:'📊',label:'Dashboard',action:"nav('dashboard')",reason:'Analytics'}];
-}
-
-setTimeout(()=>showSmartSuggestionsForPane?.('chat'),3000);
-
-// ══════════════════════════════════════════════════════
 //  AI CODE REVIEWER
 // ══════════════════════════════════════════════════════
 let reviewOpen=false;
