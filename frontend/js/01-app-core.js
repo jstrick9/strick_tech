@@ -5639,7 +5639,9 @@ window.switchUIMode = async function(mode) {
   if (mode === 'simple') {
     if (typeof window.toggleSidebarGroup === 'function') window.toggleSidebarGroup('core', true);
   } else {
-    ['core', 'build', 'ship', 'tools', 'enterprise'].forEach(gid => {
+    // In power mode: keep ESSENTIALS expanded, collapse others
+    if (typeof window.toggleSidebarGroup === 'function') window.toggleSidebarGroup('core', true);
+    ['build', 'ship', 'tools', 'enterprise'].forEach(gid => {
       if (typeof window.toggleSidebarGroup === 'function') window.toggleSidebarGroup(gid, false);
     });
   }
