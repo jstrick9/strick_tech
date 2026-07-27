@@ -1,5 +1,5 @@
-// Agentic OS — Production Kanban Board v3
-// Fixed: modal auto-close, drag-and-drop, proper event handling
+// Agentic OS — Production Kanban Board v4
+// Fixed: drag-and-drop using inline handlers + proper data transfer
 'use strict';
 
 // ── Configuration ────────────────────────────────────────────────
@@ -25,7 +25,7 @@ const KANBAN_AGENTS = {
 
 // ── State ────────────────────────────────────────────────────────
 let kanbanTasks = [];
-let kanbanDragState = { taskId: null, sourceColumn: null };
+let kanbanDraggedTaskId = null;
 let kanbanActiveFilter = null;
 let kanbanModalOpen = false;
 
@@ -111,11 +111,13 @@ function kanbanRenderBoard() {
             <span>${col.label}</span>
             <span class="kanban-column-count">${columnTasks.length}</span>
           </div>
-          <button type="button" class="kanban-column-add" onclick="kanbanOpenCreateModal('${col.id}')" title="Add task to ${col.label}">+</button>
+          <button type="button" class="kanban-column-add" onclick="kanbanOpenCreateModal('${col.id}')">+</button>
         </div>
         <div class="kanban-column-body" 
              id="kanban-col-${col.id}"
-             data-column="${col.id}">
+             ondragover="kanbanOnDragOver(event)"
+             ondrop="kanbanOnDrop(event, '${col.id}')"
+             ondragleave="kanbanOnDragLeave(event)">
           ${columnTasks.length > 0 
             ? columnTasks.map(task => kanbanRenderCard(task)).join('')
             : `<div class="kanban-empty-col">
@@ -127,9 +129,6 @@ function kanbanRenderBoard() {
       </div>
     `;
   }).join('');
-
-  // Attach drag-and-drop event listeners AFTER rendering
-  kanbanAttachDragListeners();
 }
 
 // ── Render Card ───────────────────────────────────────────────────
@@ -141,14 +140,16 @@ function kanbanRenderCard(task) {
   return `
     <div class="kanban-card" 
          draggable="true"
-         data-task-id="${taskId}">
+         data-task-id="${taskId}"
+         ondragstart="kanbanOnDragStart(event, '${taskId}')"
+         ondragend="kanbanOnDragEnd(event)">
       <div class="kanban-card-top">
         <span class="kanban-card-priority" style="background:${priority.bg};color:${priority.color}">
           ${priority.label}
         </span>
         <div class="kanban-card-actions">
-          <button type="button" class="kanban-card-action" data-action="edit" data-task-id="${taskId}" title="Edit">✏️</button>
-          <button type="button" class="kanban-card-action" data-action="delete" data-task-id="${taskId}" title="Delete">🗑️</button>
+          <button type="button" class="kanban-card-action" onclick="event.stopPropagation();kanbanOpenEditModal('${taskId}')">✏️</button>
+          <button type="button" class="kanban-card-action" onclick="event.stopPropagation();kanbanDeleteTask('${taskId}')">🗑️</button>
         </div>
       </div>
       <div class="kanban-card-title">${kanbanEscapeHtml(task.title)}</div>
@@ -161,99 +162,109 @@ function kanbanRenderCard(task) {
   `;
 }
 
-// ── Attach Drag Listeners (AFTER render) ─────────────────────────
-function kanbanAttachDragListeners() {
-  // Card drag listeners
-  document.querySelectorAll('.kanban-card[draggable="true"]').forEach(card => {
-    card.addEventListener('dragstart', function(e) {
-      const taskId = this.dataset.taskId;
-      kanbanDragState.taskId = taskId;
-      kanbanDragState.sourceColumn = this.closest('.kanban-column')?.dataset.column;
-      
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', taskId);
-      
-      // Visual feedback - use 'this' instead of e.target
-      setTimeout(() => {
-        this.classList.add('kanban-card-dragging');
-      }, 0);
-    });
+// ── Drag & Drop Handlers (Inline) ────────────────────────────────
+function kanbanOnDragStart(event, taskId) {
+  kanbanDraggedTaskId = taskId;
+  
+  // Set drag data - REQUIRED for drag to work
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', String(taskId));
+  
+  // Add visual feedback to the dragged card
+  const card = event.target.closest('.kanban-card');
+  if (card) {
+    card.classList.add('kanban-card-dragging');
+  }
+  
+  console.debug('Kanban: Drag started for task', taskId);
+}
 
-    card.addEventListener('dragend', function(e) {
-      this.classList.remove('kanban-card-dragging');
-      
-      document.querySelectorAll('.kanban-column-body').forEach(col => {
-        col.classList.remove('kanban-column-drag-over');
-      });
-      
-      kanbanDragState = { taskId: null, sourceColumn: null };
-    });
+function kanbanOnDragEnd(event) {
+  // Remove visual feedback
+  const card = event.target.closest('.kanban-card');
+  if (card) {
+    card.classList.remove('kanban-card-dragging');
+  }
+  
+  // Remove all drag-over highlights
+  document.querySelectorAll('.kanban-column-body').forEach(col => {
+    col.classList.remove('kanban-column-drag-over');
   });
+  
+  kanbanDraggedTaskId = null;
+  console.debug('Kanban: Drag ended');
+}
 
-  // Column drop zone listeners
-  document.querySelectorAll('.kanban-column-body').forEach(colBody => {
-    colBody.addEventListener('dragover', function(e) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      this.classList.add('kanban-column-drag-over');
-    });
+function kanbanOnDragOver(event) {
+  // REQUIRED: preventDefault allows drop
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  
+  // Add visual highlight to drop zone
+  const dropZone = event.currentTarget;
+  dropZone.classList.add('kanban-column-drag-over');
+}
 
-    colBody.addEventListener('dragleave', function(e) {
-      if (!this.contains(e.relatedTarget)) {
-        this.classList.remove('kanban-column-drag-over');
-      }
-    });
+function kanbanOnDragLeave(event) {
+  // Remove highlight when leaving drop zone
+  const dropZone = event.currentTarget;
+  if (!dropZone.contains(event.relatedTarget)) {
+    dropZone.classList.remove('kanban-column-drag-over');
+  }
+}
 
-    colBody.addEventListener('drop', async function(e) {
-      e.preventDefault();
-      this.classList.remove('kanban-column-drag-over');
-      
-      const taskId = e.dataTransfer.getData('text/plain');
-      const targetColumn = this.dataset.column;
-      
-      if (!taskId || !targetColumn) return;
-      
-      // Find task - compare as strings since dataset values are strings
-      const task = kanbanTasks.find(t => String(t.id) === String(taskId));
-      if (!task || task.status === targetColumn) return;
-      
-      // Update local state
-      task.status = targetColumn;
-      
-      // Re-render immediately
-      kanbanRenderBoard();
-      
-      // Save to API
-      try {
-        const response = await fetch(`/api/tasks/${taskId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: targetColumn })
-        });
-        
-        if (response.ok) {
-          kanbanShowToast('Task moved', 'success');
-        }
-      } catch (err) {
-        console.warn('Kanban: API error:', err.message);
-      }
+async function kanbanOnDrop(event, targetColumn) {
+  event.preventDefault();
+  
+  // Remove highlight
+  const dropZone = event.currentTarget;
+  dropZone.classList.remove('kanban-column-drag-over');
+  
+  // Get task ID from drag data
+  const taskId = event.dataTransfer.getData('text/plain');
+  console.debug('Kanban: Drop detected', { taskId, targetColumn });
+  
+  if (!taskId) {
+    console.warn('Kanban: No task ID in drop data');
+    return;
+  }
+  
+  // Find task
+  const task = kanbanTasks.find(t => String(t.id) === String(taskId));
+  if (!task) {
+    console.warn('Kanban: Task not found:', taskId);
+    return;
+  }
+  
+  if (task.status === targetColumn) {
+    console.debug('Kanban: Task already in this column');
+    return;
+  }
+  
+  console.debug('Kanban: Moving task', taskId, 'from', task.status, 'to', targetColumn);
+  
+  // Update local state
+  task.status = targetColumn;
+  
+  // Re-render board
+  kanbanRenderBoard();
+  
+  // Save to API
+  try {
+    const response = await fetch(`/api/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: targetColumn })
     });
-  });
-
-  // Card action button listeners
-  document.querySelectorAll('.kanban-card-action').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      const action = this.dataset.action;
-      const taskId = this.dataset.taskId;
-      
-      if (action === 'edit') {
-        kanbanOpenEditModal(taskId);
-      } else if (action === 'delete') {
-        kanbanDeleteTask(taskId);
-      }
-    });
-  });
+    
+    if (response.ok) {
+      kanbanShowToast('Task moved', 'success');
+    } else {
+      console.warn('Kanban: API returned error');
+    }
+  } catch (err) {
+    console.warn('Kanban: API error:', err.message);
+  }
 }
 
 // ── Create Task Modal ─────────────────────────────────────────────
@@ -316,37 +327,22 @@ function kanbanOpenCreateModal(defaultColumn = 'todo') {
     </div>
   `;
 
-  // Attach event listeners AFTER DOM is ready
+  // Attach event listeners
   const overlay = document.getElementById('kanban-modal-overlay');
   const modalContent = document.getElementById('kanban-modal-content');
   const closeBtn = document.getElementById('kanban-modal-close-btn');
   const cancelBtn = document.getElementById('kanban-cancel-btn');
   const form = document.getElementById('kanban-create-form');
 
-  // Close when clicking overlay (outside modal)
   overlay.addEventListener('click', function(e) {
-    if (e.target === overlay) {
-      kanbanCloseModal();
-    }
+    if (e.target === overlay) kanbanCloseModal();
   });
-
-  // Prevent clicks inside modal from closing it
-  modalContent.addEventListener('click', function(e) {
-    e.stopPropagation();
-  });
-
-  // Close buttons
+  modalContent.addEventListener('click', function(e) { e.stopPropagation(); });
   closeBtn.addEventListener('click', kanbanCloseModal);
   cancelBtn.addEventListener('click', kanbanCloseModal);
-
-  // Form submission
   form.addEventListener('submit', kanbanSubmitCreate);
 
-  // Focus title input
-  setTimeout(() => {
-    const titleInput = document.getElementById('kb-title');
-    if (titleInput) titleInput.focus();
-  }, 100);
+  setTimeout(() => document.getElementById('kb-title')?.focus(), 100);
 }
 
 async function kanbanSubmitCreate(event) {
@@ -454,7 +450,7 @@ function kanbanOpenEditModal(taskId) {
     </div>
   `;
 
-  // Attach event listeners AFTER DOM is ready
+  // Attach event listeners
   const overlay = document.getElementById('kanban-modal-overlay');
   const modalContent = document.getElementById('kanban-modal-content');
   const closeBtn = document.getElementById('kanban-modal-close-btn');
@@ -463,26 +459,16 @@ function kanbanOpenEditModal(taskId) {
   const form = document.getElementById('kanban-edit-form');
 
   overlay.addEventListener('click', function(e) {
-    if (e.target === overlay) {
-      kanbanCloseModal();
-    }
+    if (e.target === overlay) kanbanCloseModal();
   });
-
-  modalContent.addEventListener('click', function(e) {
-    e.stopPropagation();
-  });
-
+  modalContent.addEventListener('click', function(e) { e.stopPropagation(); });
   closeBtn.addEventListener('click', kanbanCloseModal);
   cancelBtn.addEventListener('click', kanbanCloseModal);
-  
   deleteBtn.addEventListener('click', function() {
     kanbanDeleteTask(taskId);
     kanbanCloseModal();
   });
-
-  form.addEventListener('submit', function(e) {
-    kanbanSubmitEdit(e, taskId);
-  });
+  form.addEventListener('submit', function(e) { kanbanSubmitEdit(e, taskId); });
 }
 
 async function kanbanSubmitEdit(event, taskId) {
@@ -499,14 +485,10 @@ async function kanbanSubmitEdit(event, taskId) {
     status: document.getElementById('kb-edit-status')?.value || task.status
   };
 
-  // Update local state
   Object.assign(task, updates);
-
-  // Close modal and re-render
   kanbanCloseModal();
   kanbanRenderBoard();
 
-  // Save to API
   try {
     const response = await fetch(`/api/tasks/${taskId}`, {
       method: 'PATCH',
@@ -587,6 +569,11 @@ function kanbanShowToast(message, type) {
 
 // ── Global Exports ────────────────────────────────────────────────
 window.renderKanban = renderKanban;
+window.kanbanOnDragStart = kanbanOnDragStart;
+window.kanbanOnDragEnd = kanbanOnDragEnd;
+window.kanbanOnDragOver = kanbanOnDragOver;
+window.kanbanOnDragLeave = kanbanOnDragLeave;
+window.kanbanOnDrop = kanbanOnDrop;
 window.kanbanOpenCreateModal = kanbanOpenCreateModal;
 window.kanbanSubmitCreate = kanbanSubmitCreate;
 window.kanbanOpenEditModal = kanbanOpenEditModal;
@@ -595,4 +582,4 @@ window.kanbanDeleteTask = kanbanDeleteTask;
 window.kanbanSetFilter = kanbanSetFilter;
 window.kanbanCloseModal = kanbanCloseModal;
 
-console.log('%c✅ Kanban Board v3 loaded', 'color:#22c55e;font-weight:bold');
+console.log('%c✅ Kanban Board v4 loaded', 'color:#22c55e;font-weight:bold');
