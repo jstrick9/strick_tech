@@ -254,8 +254,9 @@ function removeFromFavorites(navId) {
   favorites = favorites.filter(id => id !== navId);
   saveFavorites(favorites);
   
-  // Update the favorite button on the original nav item
-  const originalItem = document.querySelector(`.nav-item[data-nav="${navId}"]`);
+  // Update the favorite button on the ORIGINAL nav item (not in favorites section)
+  // Use :not(.fav-item) to exclude the favorites section items
+  const originalItem = document.querySelector(`.nav-item[data-nav="${navId}"]:not(.fav-item)`);
   if (originalItem) {
     const favBtn = originalItem.querySelector('.nav-fav-btn');
     if (favBtn) {
@@ -266,6 +267,7 @@ function removeFromFavorites(navId) {
     }
   }
   
+  // Update favorites section
   createFavoritesSection(favorites);
   if (typeof toast === 'function') toast('Removed from favorites', 'ok');
 }
