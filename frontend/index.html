@@ -1195,11 +1195,11 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
 </style>
 <script>
-// Apply the saved appearance before styles render. Default is intentionally light;
+// Apply the saved appearance before styles render. Default is dark mode;
 // Auto follows the device without replacing a deliberate user selection.
 (function () {
   try {
-    var preference = localStorage.getItem('agentic_os_theme') || 'light';
+    var preference = localStorage.getItem('agentic_os_theme') || 'dark';
     var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     var effective = preference === 'auto' ? (dark ? 'dark' : 'light') : preference;
     document.documentElement.setAttribute('data-theme', effective);
