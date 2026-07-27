@@ -91,7 +91,8 @@ window.toggleSidebarGroup = function(groupId, forceOpen) {
   }
   
   content.style.display = isOpen ? '' : 'none';
-  if (arrow) arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+  // Swap arrow text: expanded = ▼, collapsed = ▶
+  if (arrow) arrow.textContent = isOpen ? '▼' : '▶';
   
   try { try { _safeLS.set('agentic_os_group_' + groupId + '_open', isOpen ? 'true' : 'false'); } catch {} } catch(e) {}
 };
