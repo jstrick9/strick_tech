@@ -26,15 +26,8 @@ window.S = S;
 
 // Keep the active model visible everywhere without duplicating model selectors.
 // The control remains the same DOM element, so existing model sync behavior works.
-window.placeGlobalModelControl = function() {
-  const topbar = document.getElementById('topbar');
-  const control = document.getElementById('chat-model-control');
-  const spacer = topbar?.querySelector('.spacer');
-  if (topbar && control && spacer && control.parentElement !== topbar) {
-    topbar.insertBefore(control, spacer);
-  }
-};
-document.addEventListener('DOMContentLoaded', window.placeGlobalModelControl);
+// Model control stays in chat header where it belongs
+// Removed placeGlobalModelControl - model selector should only be in Chat
 
 // JavaScript has no native Python-style title-case calls. Keep agent labels safe in
 // every browser, including WKWebView/Safari used by the macOS desktop app.
