@@ -11,40 +11,40 @@
    DESIGN TOKENS — Single source of truth
    ═══════════════════════════════════════════════════════════ */
 :root {
-  /* Backgrounds — Minimal, clean */
-  --bg-base: #000000;
-  --bg-0: #0a0a0a;
-  --bg-1: #111111;
-  --bg-2: #1a1a1a;
-  --bg-3: #222222;
-  --bg-4: #2a2a2a;
+  /* Backgrounds — Clean, visible */
+  --bg-base: #0a0a0a;
+  --bg-0: #111111;
+  --bg-1: #1a1a1a;
+  --bg-2: #222222;
+  --bg-3: #2a2a2a;
+  --bg-4: #333333;
 
-  /* Borders — Subtle, refined */
-  --border: rgba(255,255,255,0.06);
-  --border-hi: rgba(255,255,255,0.12);
+  /* Borders — Visible but subtle */
+  --border: rgba(255,255,255,0.1);
+  --border-hi: rgba(255,255,255,0.2);
   --border-focus: rgba(99,102,241,0.5);
 
-  /* Text — Clean hierarchy */
+  /* Text — High contrast for readability */
   --text-0: #ffffff;
-  --text-1: #e5e5e5;
-  --text-2: #a0a0a0;
-  --text-3: #666666;
+  --text-1: #e0e0e0;
+  --text-2: #b0b0b0;
+  --text-3: #808080;
 
   /* Accent — Refined indigo */
   --accent: #6366f1;
   --accent-hi: #818cf8;
   --accent-lo: #4f46e5;
-  --accent-glow: rgba(99,102,241,0.1);
+  --accent-glow: rgba(99,102,241,0.15);
 
   /* Semantic */
   --success: #22c55e;
-  --success-bg: rgba(34,197,94,0.1);
+  --success-bg: rgba(34,197,94,0.15);
   --warning: #eab308;
-  --warning-bg: rgba(234,179,8,0.1);
+  --warning-bg: rgba(234,179,8,0.15);
   --danger: #ef4444;
-  --danger-bg: rgba(239,68,68,0.1);
+  --danger-bg: rgba(239,68,68,0.15);
   --info: #3b82f6;
-  --info-bg: rgba(59,130,246,0.1);
+  --info-bg: rgba(59,130,246,0.15);
 
   /* Aliases */
   --green: var(--success);
@@ -56,9 +56,9 @@
   --topbar-h: 48px;
 
   /* Shadows — Subtle depth */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
-  --shadow: 0 2px 8px rgba(0,0,0,0.5);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.6);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow: 0 2px 8px rgba(0,0,0,0.6);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.7);
 
   /* Radius — Consistent */
   --radius-sm: 6px;
