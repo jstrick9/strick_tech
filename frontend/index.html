@@ -1367,7 +1367,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <!-- Settings -->
       <button type="button" class="icon-btn" onclick="nav('settings')" title="Settings (⌘,)">⚙️</button>
       <!-- User Profile -->
-      <div role="button" tabindex="0" id="user-identity-hub" onclick="if(typeof openUserProfileModal === 'function') openUserProfileModal(); else nav('settings')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Your Profile">
+      <div role="button" tabindex="0" id="user-identity-hub" onclick="nav('settings');switchSettingsTab('appearance')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Your Profile">
         <span id="topbar-user-avatar">👤</span>
       </div>
     </div>
@@ -1386,7 +1386,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <!-- Navigation -->
       <div class="sidebar-scroll">
         <!-- ═══ ESSENTIALS: Always visible, novice-friendly ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> ESSENTIALS <span class="sidebar-help-tip" data-tip="Core features to get started: Chat, Studio, Templates, Memory, Tasks, Settings">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> ESSENTIALS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
         <div class="sidebar-group-content" id="group-core" style="display:block">
           <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI — start here" role="menuitem" aria-label="Chat">
             <span class="icon">💬</span><span class="label">Chat</span>
@@ -1410,7 +1410,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ AI TOOLS: Core AI capabilities ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS <span class="sidebar-help-tip" data-tip="AI-powered tools: Swarm, Operating Manual, Code Editor, Web Search, Browser, Image Generator, Prompts, Docs, Terminal, Skills">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">10</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">10</span></div>
         <div class="sidebar-group-content" id="group-build" data-tier="advanced" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="swarm" data-tier="advanced" onclick="nav('swarm')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🌀</span><span class="label">Multi-Agent Swarm</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="hierarchy" data-tier="advanced" onclick="nav('hierarchy')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧭</span><span class="label">AI Operating Manual</span></div>
@@ -1425,7 +1425,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ BUILD: Ship your work ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD <span class="sidebar-help-tip" data-tip="Build and ship: Composer, Pipelines, Workflows, GitHub, Deploy, Spec Builder, Database, Workspaces, Plugins">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
         <div class="sidebar-group-content" id="group-ship" data-tier="advanced" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">✍</span><span class="label">Composer</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="pipeline" data-tier="advanced" onclick="nav('pipeline')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⎈</span><span class="label">Pipelines</span></div>
@@ -1439,7 +1439,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ AGENTS ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTS <span class="sidebar-help-tip" data-tip="Manage AI agents: Supervisor, Goals, Integrations, Tool Connections, Gateway, Agent Network, Identity, Review Queue, Guidelines, Fusion, Arena, Loops, Replay, Collaboration">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
         <div class="sidebar-group-content" id="group-tools" data-tier="advanced" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎯</span><span class="label">Supervisor</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="goals" data-tier="advanced" onclick="nav('goals')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎯</span><span class="label">Goals</span></div>
@@ -1458,7 +1458,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ MONITORING ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> MONITORING <span class="sidebar-help-tip" data-tip="Track and monitor: Dashboard, Audit Log, Leaderboard, Live Monitor, Cost Tracking, Evaluation, Observability, Evals, Health, Profiler, Secrets, Encryption, and more">?</span> <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> MONITORING  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
         <div class="sidebar-group-content" id="group-enterprise" data-tier="advanced" style="display:none">
           <div style="font-size:9.5px;color:var(--text-3);padding:8px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85">📊 Analytics</div>
           <div role="button" tabindex="0" class="nav-item" data-nav="dashboard" data-tier="advanced" onclick="nav('dashboard')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📊</span><span class="label">Dashboard</span></div>
@@ -3565,12 +3565,6 @@ document.addEventListener('keydown', function(e) {
 
 
 
-  <!-- Floating Action Button -->
-  <button type="button" class="fab" onclick="nav('chat')" title="New Chat" aria-label="New Chat">💬</button>
 
-  <!-- Theme toggle shortcut -->
-  <div role="button" tabindex="0" class="theme-toggle-hint" onclick="if(typeof applyTheme==='function'){const t=_safeLS.get('agentic_os_theme')||'dark';applyTheme(t==='dark'?'light':'dark')}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Switch light/dark theme">
-    <span>🌗</span> <span id="theme-hint-label">Theme</span>
-  </div>
 </body>
 </html>
