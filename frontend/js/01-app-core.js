@@ -93,11 +93,12 @@ window.toggleSidebarGroup = function(groupId, forceOpen) {
 window.initSidebarGroups = function() {
   ['core', 'build', 'ship', 'tools', 'enterprise'].forEach(gid => {
     let saved = null; try { saved = _safeLS.get('agentic_os_group_' + gid + '_open'); } catch {}
-    const isOpen = saved === 'true';
+    // ESSENTIALS (core) defaults to OPEN on first visit; others default to closed
+    const isOpen = saved === 'true' || (saved === null && gid === 'core');
     const content = document.getElementById('group-' + gid);
     const arrow = document.getElementById('arrow-' + gid);
     if (content) content.style.display = isOpen ? '' : 'none';
-    if (arrow) arrow.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+    if (arrow) arrow.textContent = isOpen ? '▼' : '▶';
   });
 };
 
