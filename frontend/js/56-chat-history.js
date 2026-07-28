@@ -467,6 +467,34 @@
     });
     btnGroup.appendChild(delBtn);
 
+    // 📋 Export MD button
+    var expMdBtn = document.createElement('button');
+    expMdBtn.title = 'Export as Markdown';
+    expMdBtn.style.cssText = 'background:none;border:none;color:var(--text-3);font-size:11px;cursor:pointer;padding:2px 4px;border-radius:4px;line-height:1;transition:all .1s';
+    expMdBtn.textContent = '📋';
+    expMdBtn.addEventListener('mouseenter', function() { expMdBtn.style.background = 'var(--bg-4)'; expMdBtn.style.color = 'var(--text-0)'; });
+    expMdBtn.addEventListener('mouseleave', function() { expMdBtn.style.background = 'none'; expMdBtn.style.color = 'var(--text-3)'; });
+    expMdBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      downloadExport(s.id, 'markdown');
+    });
+    btnGroup.appendChild(expMdBtn);
+
+    // 📄 Export JSON button
+    var expJsonBtn = document.createElement('button');
+    expJsonBtn.title = 'Export as JSON';
+    expJsonBtn.style.cssText = 'background:none;border:none;color:var(--text-3);font-size:11px;cursor:pointer;padding:2px 4px;border-radius:4px;line-height:1;transition:all .1s';
+    expJsonBtn.textContent = '📄';
+    expJsonBtn.addEventListener('mouseenter', function() { expJsonBtn.style.background = 'var(--bg-4)'; expJsonBtn.style.color = 'var(--text-0)'; });
+    expJsonBtn.addEventListener('mouseleave', function() { expJsonBtn.style.background = 'none'; expJsonBtn.style.color = 'var(--text-3)'; });
+    expJsonBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      downloadExport(s.id, 'json');
+    });
+    btnGroup.appendChild(expJsonBtn);
+
     topRow.appendChild(btnGroup);
     itemDiv.appendChild(topRow);
 
@@ -557,8 +585,8 @@
       { icon: session.pinned ? '📌' : '📍', label: session.pinned ? 'Unpin' : 'Pin to Top', handler: function() { window.pinChatSession(null, session.id, !session.pinned); } },
       { separator: true },
       { icon: '⎇', label: 'Fork / Branch', handler: function() { forkSessionQuick(session); } },
-      { icon: '📋', label: 'Export as Markdown', handler: function() { window.exportSession && window.exportSession(session.id); } },
-      { icon: '📄', label: 'Export as JSON', handler: function() { window.exportSessionJSON && window.exportSessionJSON(session.id); } },
+      { icon: '📋', label: 'Export as Markdown', handler: function() { downloadExport(session.id, 'markdown'); } },
+      { icon: '📄', label: 'Export as JSON', handler: function() { downloadExport(session.id, 'json'); } },
       { separator: true },
       { icon: '🗑', label: 'Delete', danger: true, shortcut: 'Del', handler: function() {
         // Two-click confirmation: first click shows confirm, second deletes
@@ -814,6 +842,22 @@
         window.loadChatSessions();
       });
     });
+  }
+
+  // ── Direct Export Download (no dependency on window.exportSession) ──
+  function downloadExport(sessionId, fmt) {
+    var label = fmt === 'json' ? 'JSON' : 'Markdown';
+    var ext = fmt === 'json' ? '.json' : '.md';
+    toast('📋 Downloading ' + label + '…', 'ok', 2000);
+    // Create a temporary link and click it synchronously
+    var a = document.createElement('a');
+    a.href = '/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=' + fmt;
+    a.download = 'export-' + sessionId.slice(0, 8) + ext;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    // Clean up after a short delay
+    setTimeout(function() { if (a.parentNode) a.remove(); }, 500);
   }
 
   // ── Helpers ────────────────────────────────────────────────────
