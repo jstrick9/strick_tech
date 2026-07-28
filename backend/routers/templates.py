@@ -37,6 +37,7 @@ TEMPLATES = [
         'category': 'saas',
         'emoji': '🚀',
         'description': 'Hero, features, social proof, pricing tiers, FAQ, CTA — ready to customise',
+        'prompt': 'Build a SaaS landing page with hero section, feature grid, social proof, pricing tiers, FAQ section, and call-to-action. Use a dark theme with gradient accents.',
         'tags': ['landing', 'saas', 'tailwind', 'dark'],
         'preview_color': '#5b8af8',
         'files': {
@@ -149,6 +150,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         'category': 'saas',
         'emoji': '📊',
         'description': 'Dark sidebar, stat cards, charts (Chart.js), data table, user management',
+        'prompt': 'Create an admin dashboard with sidebar navigation, data cards with stats, charts for analytics, a recent activity table, and user management section.',
         'tags': ['dashboard', 'admin', 'charts', 'table'],
         'preview_color': '#9d74f5',
         'files': {
@@ -227,6 +229,7 @@ new Chart(document.getElementById('sourceChart'),{type:'doughnut',data:{labels:[
         'category': 'apps',
         'emoji': '✅',
         'description': 'Drag-drop kanban todo with priorities, due dates, local storage persistence',
+        'prompt': 'Build a Kanban-style todo app with columns for To Do, In Progress, and Done. Support drag-and-drop between columns, adding new tasks, and marking tasks complete.',
         'tags': ['todo', 'productivity', 'kanban', 'dark'],
         'preview_color': '#4cc98a',
         'files': {
@@ -324,6 +327,7 @@ render();
         'category': 'portfolio',
         'emoji': '🎨',
         'description': 'Clean dev portfolio: hero, about, projects grid, skills, contact form',
+        'prompt': 'Create a developer portfolio with a hero section, project showcase grid with hover effects, skills section, about me, and contact form.',
         'tags': ['portfolio', 'personal', 'dark', 'animated'],
         'preview_color': '#f08850',
         'files': {
@@ -411,6 +415,7 @@ body{background:#08090e;color:#e8f0ff;font-family:Inter,system-ui,sans-serif;scr
         'category': 'marketing',
         'emoji': '📬',
         'description': 'Email waitlist capture with counter, social proof, and animated gradient background',
+        'prompt': 'Build a waitlist landing page with a compelling headline, email signup form, social proof counter, feature preview, and FAQ section.',
         'tags': ['waitlist', 'launch', 'email', 'marketing'],
         'preview_color': '#38c5d8',
         'files': {
@@ -465,6 +470,7 @@ function handleSubmit(e){
         'category': 'apps',
         'emoji': '📝',
         'description': 'Markdown notes with sidebar, search, auto-save to localStorage',
+        'prompt': 'Create a notes app with a sidebar listing notes, a rich text editor, search functionality, and the ability to create, edit, and delete notes.',
         'tags': ['notes', 'markdown', 'editor', 'productivity'],
         'preview_color': '#f0c060',
         'files': {
@@ -583,6 +589,7 @@ renderList();
         'category': 'saas',
         'emoji': '💰',
         'description': '3-tier pricing with toggle (monthly/annual), feature comparison table',
+        'prompt': 'Build a pricing page with 3 tiers (Basic, Pro, Enterprise), feature comparison table, toggle for monthly/annual billing, and FAQ section.',
         'tags': ['pricing', 'saas', 'conversion'],
         'preview_color': '#9d74f5',
         'files': {
@@ -595,6 +602,7 @@ renderList();
         'category': 'saas',
         'emoji': '🔐',
         'description': 'Auth pages with email/password and OAuth buttons, validation, dark theme',
+        'prompt': 'Create a login and signup page with email/password fields, social login buttons, forgot password flow, and form validation.',
         'tags': ['auth', 'login', 'signup', 'form'],
         'preview_color': '#4cc98a',
         'files': {
@@ -607,6 +615,7 @@ renderList();
         'category': 'ecommerce',
         'emoji': '🛒',
         'description': 'E-commerce product page with image gallery, variants, add to cart, reviews',
+        'prompt': 'Build an e-commerce product page with image gallery, product details, size/color selectors, add to cart button, reviews section, and related products.',
         'tags': ['ecommerce', 'product', 'shop', 'cart'],
         'preview_color': '#f06080',
         'files': {
@@ -619,6 +628,7 @@ renderList();
         'category': 'apps',
         'emoji': '🔗',
         'description': 'URL shortener with copy button, link history, and QR code generation',
+        'prompt': 'Create a URL shortener app with input field for long URLs, a list of shortened links with copy buttons, click analytics, and QR code generation.',
         'tags': ['utility', 'url', 'tool', 'qr'],
         'preview_color': '#38c5d8',
         'files': {
@@ -631,6 +641,7 @@ renderList();
         'category': 'apps',
         'emoji': '🌤️',
         'description': 'Beautiful weather card with animated icons, 5-day forecast, search by city',
+        'prompt': 'Build a weather app with current conditions display, 5-day forecast, location search, temperature toggle (C/F), and weather icons.',
         'tags': ['weather', 'api', 'animation', 'cards'],
         'preview_color': '#f0c060',
         'files': {
@@ -643,6 +654,7 @@ renderList();
         'category': 'marketing',
         'emoji': '🏢',
         'description': 'Creative agency homepage with case studies, team, services, contact',
+        'prompt': 'Create a marketing agency website with hero, services section, case studies, team grid, testimonials carousel, and contact form.',
         'tags': ['agency', 'marketing', 'business', 'professional'],
         'preview_color': '#9d74f5',
         'files': {
@@ -655,6 +667,7 @@ renderList();
         'category': 'apps',
         'emoji': '💬',
         'description': 'Real-time chat UI with message bubbles, typing indicator, emoji, file attach',
+        'prompt': 'Build a chat interface with message bubbles, typing indicators, user avatars, message input with file attachment, and a sidebar with conversation list.',
         'tags': ['chat', 'messaging', 'realtime', 'ui'],
         'preview_color': '#5b8af8',
         'files': {
@@ -667,6 +680,7 @@ renderList();
         'category': 'saas',
         'emoji': '🧾',
         'description': 'Professional invoice builder with line items, taxes, print/PDF export',
+        'prompt': 'Create an invoice generator with company details, line items table, tax/discount calculations, PDF preview, and the ability to add/remove items.',
         'tags': ['invoice', 'billing', 'pdf', 'business'],
         'preview_color': '#4cc98a',
         'files': {
@@ -702,6 +716,7 @@ def _template_summary(t: dict) -> dict:
         'description': t['description'],
         'tags': t['tags'],
         'preview_color': t.get('preview_color', '#5b8af8'),
+        'prompt': t.get('prompt', ''),
         'file_count': len(t.get('files', {})),
         'file_names': list(t.get('files', {}).keys()),
     }
