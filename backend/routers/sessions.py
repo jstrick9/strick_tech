@@ -7,6 +7,7 @@ Sessions survive page reloads, can be renamed, pinned, searched, and exported.
 from __future__ import annotations
 
 import logging
+import re
 import time
 import uuid
 
@@ -20,6 +21,16 @@ log = logging.getLogger('agentic.sessions')
 from backend.config import get_data_dir
 
 ROOT = get_data_dir()
+
+
+def _safe_filename(name: str, ext: str) -> str:
+    """Create a Content-Disposition safe filename (ASCII only)."""
+    # Strip non-ASCII characters (emojis, Unicode symbols) — HTTP headers
+    # must be Latin-1 encodable.  Replace with empty string, collapse spaces.
+    clean = re.sub(r'[^\x20-\x7e]', '', name).strip()
+    if not clean:
+        clean = 'export'
+    return f'{clean[:60]}.{ext}'
 
 
 def _ensure_sessions_table():
@@ -492,7 +503,7 @@ def export_session(session_id: str, fmt: str = 'markdown'):
         return Response(
             content=content,
             media_type='application/json',
-            headers={'Content-Disposition': f'attachment; filename="{name[:40]}.json"'},
+            headers={'Content-Disposition': f'attachment; filename="{_safe_filename(name, "json")}"'},
         )
 
     # Markdown export
@@ -515,7 +526,7 @@ def export_session(session_id: str, fmt: str = 'markdown'):
     return PlainTextResponse(
         md,
         media_type='text/markdown; charset=utf-8',
-        headers={'Content-Disposition': f'attachment; filename="{name[:40]}.md"'},
+        headers={'Content-Disposition': f'attachment; filename="{_safe_filename(name, "md")}"'},
     )
 
 
