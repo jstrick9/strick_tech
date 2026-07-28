@@ -517,6 +517,7 @@ function toggleRag() {
 function toggleStream() {
   S.useStream = !S.useStream;
   document.getElementById('stream-btn').classList.toggle('active', S.useStream);
+  toast(S.useStream ? '⚡ Stream ON — responses appear word by word' : '⚡ Stream OFF — responses appear all at once', 'ok', 1500);
 }
 
 // Keep the rich empty-state experience after clearing or loading a session.
@@ -2534,7 +2535,7 @@ let isListening = false;
 
 function initVoice() {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    toast('Voice not supported in this browser. Use Chrome or Edge.', 'warn', 4000);
+    toast('🎤 Voice requires Chrome or Edge browser. Not available in desktop app.', 'warn', 4000);
     return null;
   }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2553,7 +2554,13 @@ function initVoice() {
     }
   };
   mediaRecognition.onerror = e => {
-    toast('Voice error: ' + e.error, 'err', 2000);
+    if (e.error === 'not-allowed') {
+      toast('🎤 Microphone access denied. Allow mic in browser/system settings.', 'warn', 4000);
+    } else if (e.error === 'no-speech') {
+      toast('🎤 No speech detected. Try speaking louder.', 'warn', 2000);
+    } else {
+      toast('🎤 Voice error: ' + e.error, 'err', 2000);
+    }
     isListening = false;
     updateVoiceBtn(false);
   };
@@ -2568,11 +2575,16 @@ function toggleVoice() {
     mediaRecognition.stop();
     isListening = false;
     updateVoiceBtn(false);
+    toast('🎤 Voice stopped', 'ok', 1000);
   } else {
-    mediaRecognition.start();
-    isListening = true;
-    updateVoiceBtn(true);
-    toast('🎤 Listening… speak your message', 'ok', 2000);
+    try {
+      mediaRecognition.start();
+      isListening = true;
+      updateVoiceBtn(true);
+      toast('🎤 Listening… speak your message', 'ok', 2000);
+    } catch(e) {
+      toast('🎤 Could not start: ' + e.message, 'err', 2000);
+    }
   }
 }
 
