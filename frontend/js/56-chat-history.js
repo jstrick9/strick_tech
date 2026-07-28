@@ -506,14 +506,33 @@
         var el = document.querySelector('[data-session-id="' + session.id + '"] .session-title');
         if (el) startInlineRename(el.closest('.chat-session-item'), session, el);
       }},
-      { icon: '📁', label: 'Move to Folder…', handler: function() { showFolderPickerAtCenter(session); } },
+      { icon: '📁', label: 'Move to Folder…', handler: function() { showFolderPickerMenu(session); } },
       { icon: session.pinned ? '📌' : '📍', label: session.pinned ? 'Unpin' : 'Pin to Top', handler: function() { window.pinChatSession(null, session.id, !session.pinned); } },
       { separator: true },
       { icon: '⎇', label: 'Fork / Branch', handler: function() { forkSessionQuick(session); } },
       { icon: '📋', label: 'Export as Markdown', handler: function() { window.exportSession && window.exportSession(session.id); } },
       { icon: '📄', label: 'Export as JSON', handler: function() { window.exportSessionJSON && window.exportSessionJSON(session.id); } },
       { separator: true },
-      { icon: '🗑', label: 'Delete', danger: true, shortcut: 'Del', handler: function() { window.deleteChatSession(null, session.id); } },
+      { icon: '🗑', label: 'Delete', danger: true, shortcut: 'Del', handler: function() {
+        // Two-click confirmation: first click shows confirm, second deletes
+        var confirmItems = [
+          { icon: '⚠️', label: 'Confirm Delete?', danger: true, handler: function() {
+            fetch('/api/sessions/' + encodeURIComponent(session.id), { method: 'DELETE' })
+              .then(function(r) { return r.json(); })
+              .then(function(j) {
+                if (j.ok) {
+                  toast('🗑 Chat deleted', 'ok', 1500);
+                  if (window.S && window.S.sessionId === session.id && typeof window.startNewChatSession === 'function') window.startNewChatSession();
+                  window.loadChatSessions();
+                } else {
+                  toast('❌ Delete failed: ' + (j.error || 'Unknown'), 'err', 2500);
+                }
+              }).catch(function(e) { toast('❌ Delete error: ' + e.message, 'err', 2500); });
+          }},
+          { icon: '✕', label: 'Cancel', handler: function() {} },
+        ];
+        showContextMenu(Math.round(window.innerWidth / 2 - 120), Math.round(window.innerHeight / 2 - 50), confirmItems);
+      }},
     ];
     showContextMenu(x, y, items);
   }
@@ -528,6 +547,32 @@
     items.push({ separator: true });
     items.push({ icon: '➕', label: 'Create New Folder…', handler: function() { createNewFolder(session); } });
     showContextMenu(x, y, items);
+  }
+
+  function showFolderPickerMenu(session) {
+    var folders = getAllFolders();
+    var currentFolder = (session.description && session.description !== 'All') ? session.description : 'General';
+    var items = [];
+    for (var i = 0; i < folders.length; i++) {
+      (function(f) {
+        items.push({
+          icon: f === currentFolder ? '✓' : getFolderIcon(f),
+          label: f,
+          handler: function() { moveSessionToFolder(session, f); }
+        });
+      })(folders[i]);
+    }
+    items.push({ separator: true });
+    items.push({ icon: '➕', label: 'Create New Folder…', handler: function() {
+      var name = prompt('New folder name:');
+      if (name && name.trim()) {
+        var fldrs = getCustomFolders();
+        if (fldrs.indexOf(name.trim()) === -1) { fldrs.push(name.trim()); saveCustomFolders(fldrs); }
+        moveSessionToFolder(session, name.trim());
+      }
+    }});
+    // Show at center of viewport
+    showContextMenu(Math.round(window.innerWidth / 2 - 120), Math.round(window.innerHeight / 2 - 100), items);
   }
 
   function showFolderPickerAtCenter(session) {
@@ -576,12 +621,22 @@
   // ── Fork Quick ─────────────────────────────────────────────────
   function forkSessionQuick(session) {
     var name = '⎇ Fork: ' + (session.name || 'Chat').slice(0, 80);
+    var originalFolder = (session.description && session.description !== 'All') ? session.description : 'General';
     fetch('/api/sessions/' + encodeURIComponent(session.id) + '/branch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: name })
     }).then(function(r) { return r.json(); }).then(function(d) {
-      if (d.ok) { toast('⎇ Forked: ' + d.name + ' (' + d.messages_copied + ' msgs)', 'ok', 2500); window.loadChatSessions(); }
+      if (!d.ok) { toast('❌ Fork failed', 'err', 2000); return; }
+      // Preserve original folder — backend sets description to "Branched from..."
+      return fetch('/api/sessions/' + encodeURIComponent(d.id), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: originalFolder })
+      }).then(function() {
+        toast('⎇ Forked: ' + d.name + ' (' + d.messages_copied + ' msgs)', 'ok', 2500);
+        window.loadChatSessions();
+      });
     }).catch(function() { toast('❌ Fork failed', 'err', 2000); });
   }
 
