@@ -93,13 +93,22 @@ window.toggleSidebarGroup = function(groupId, forceOpen) {
 window.initSidebarGroups = function() {
   ['core', 'build', 'ship', 'tools', 'enterprise'].forEach(gid => {
     let saved = null; try { saved = _safeLS.get('agentic_os_group_' + gid + '_open'); } catch {}
-    // ESSENTIALS (core) defaults to OPEN on first visit; others default to closed
-    const isOpen = saved === 'true' || (saved === null && gid === 'core');
+    // ESSENTIALS (core) is ALWAYS open — never collapsed by saved state
+    const isOpen = gid === 'core' ? true : saved === 'true';
     const content = document.getElementById('group-' + gid);
     const arrow = document.getElementById('arrow-' + gid);
-    if (content) content.style.display = isOpen ? '' : 'none';
+    if (content) {
+      if (isOpen) { content.style.display = ''; }
+      else { content.style.display = 'none'; }
+    }
     if (arrow) arrow.textContent = isOpen ? '▼' : '▶';
   });
+  // Also ensure sidebar is not collapsed on startup
+  const sb = document.getElementById('sidebar');
+  if (sb && sb.classList.contains('collapsed')) {
+    sb.classList.remove('collapsed');
+    sb.style.width = 'var(--sidebar-w)';
+  }
 };
 
 window.PANE_TO_GROUP = {
