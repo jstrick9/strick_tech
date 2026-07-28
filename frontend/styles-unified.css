@@ -1190,7 +1190,6 @@ body {
 @media (max-width: 900px) {
   #sidebar { width: 48px; }
   .sidebar-group-label,
-  .label,
   .count,
   .help-tip { display: none; }
   .nav-item { justify-content: center; padding: 8px 6px; }

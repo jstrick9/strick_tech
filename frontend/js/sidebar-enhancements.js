@@ -23,13 +23,11 @@ function initSidebar() {
     }
   }
 
-  const isCollapsed = localStorage.getItem('agentic_os_sidebar_collapsed') === 'true';
-  if (isCollapsed) {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-      sidebar.classList.add('collapsed');
-      sidebar.style.width = SidebarState.collapsedWidth + 'px';
-    }
+  // Sidebar always starts expanded — never auto-collapse on page load
+  // Users can collapse manually with the toggle button or ⌘+B
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) {
+    sidebar.classList.remove('collapsed');
   }
 
   setupSidebarResizer();

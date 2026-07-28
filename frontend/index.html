@@ -170,6 +170,23 @@
 }
 .nav-item .icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
 .nav-item .label{flex:1;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;color:inherit}
+/* CRITICAL: Force nav labels visible when sidebar is NOT collapsed */
+#sidebar:not(.collapsed) .nav-item .label {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: var(--text-0, #ffffff) !important;
+  font-size: 13px !important;
+  width: auto !important;
+  max-width: none !important;
+}
+/* Override responsive rules that hide labels — sidebar nav labels always show */
+#sidebar .nav-item .label {
+  display: inline-block !important;
+}
+#sidebar.collapsed .label {
+  display: none !important;
+}
 .nav-item .count{
   font-size:10px;background:var(--bg-4);border-radius:99px;
   padding:1px 6px;color:var(--text-2);
