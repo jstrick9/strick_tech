@@ -4198,7 +4198,7 @@ async function deleteSession(sessionId) {
   }
 }
 
-async function exportSession(sessionId) {
+window.exportSession = async function exportSession(sessionId) {
   try {
     const r = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/export?fmt=markdown`);
     if (!r.ok) { showToast('Export failed: HTTP '+r.status); return; }
@@ -4216,7 +4216,7 @@ async function exportSession(sessionId) {
   }
 }
 
-async function exportSessionJSON(sessionId) {
+window.exportSessionJSON = async function exportSessionJSON(sessionId) {
   try {
     const r = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/export?fmt=json`);
     if (!r.ok) { showToast('Export failed: HTTP '+r.status); return; }
@@ -5837,6 +5837,8 @@ setTimeout(() => {
 
 window.gmAlert = gmAlert;
 window.gmConfirm = gmConfirm;
+window.gmPrompt = gmPrompt;
+window.gmDanger = gmDanger;
 window.escHtml = escHtml;
 
 // ── Loop count badge updater ──────────────────────────────────────
