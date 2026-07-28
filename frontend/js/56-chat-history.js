@@ -683,14 +683,12 @@
   }
 
   function createNewFolder(session) {
-    if (typeof window.gmPrompt !== 'function') return;
-    window.gmPrompt('Create New Folder', 'Enter a name for the new folder:', '').then(function(name) {
-      if (!name || !name.trim()) return;
-      var folderName = name.trim();
-      var folders = getCustomFolders();
-      if (folders.indexOf(folderName) === -1) { folders.push(folderName); saveCustomFolders(folders); toast('📁 Folder "' + folderName + '" created', 'ok', 1500); }
-      if (session) moveSessionToFolder(session, folderName);
-    });
+    var name = prompt('New folder name:');
+    if (!name || !name.trim()) return;
+    var folderName = name.trim();
+    var folders = getCustomFolders();
+    if (folders.indexOf(folderName) === -1) { folders.push(folderName); saveCustomFolders(folders); toast('📁 Folder "' + folderName + '" created', 'ok', 1500); }
+    if (session) moveSessionToFolder(session, folderName);
   }
 
   // ── Fork Quick ─────────────────────────────────────────────────
@@ -726,7 +724,7 @@
     if (changed) saveCustomFolders(existing);
   }
 
-  // ── Refresh Folder Pills ───────────────────────────────────────
+  // ── Refresh Folder Pills + Management Panel ────────────────────
   window.refreshFolderPills = function() {
     var container = document.getElementById('chat-folder-pills');
     if (!container) return;
@@ -734,47 +732,273 @@
     var activeFolder = window._activeChatFolder || 'All';
     container.innerHTML = '';
 
+    // ── Row 1: Filter pills ──
+    var pillRow = document.createElement('div');
+    pillRow.style.cssText = 'display:flex;gap:4px;overflow-x:auto;padding-bottom:2px;flex-wrap:nowrap;align-items:center';
+
     // "All" pill
-    var allBtn = document.createElement('button');
-    allBtn.type = 'button';
-    allBtn.className = 'tag';
-    allBtn.textContent = 'All Chats';
-    allBtn.style.cssText = folderPillStyle(activeFolder === 'All');
-    allBtn.addEventListener('click', function() { window.selectChatFolder('All'); });
-    container.appendChild(allBtn);
+    pillRow.appendChild(makeFolderPill('All Chats', activeFolder === 'All', function() { window.selectChatFolder('All'); }));
 
     // Folder pills
     folders.forEach(function(f) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'tag';
-      btn.textContent = getFolderIcon(f) + ' ' + f;
-      btn.style.cssText = folderPillStyle(activeFolder === f);
-      btn.addEventListener('click', function() { window.selectChatFolder(f); });
-      btn.addEventListener('contextmenu', function(e) { e.preventDefault(); showFolderManageMenu(e.clientX, e.clientY, f); });
-      container.appendChild(btn);
+      pillRow.appendChild(makeFolderPill(getFolderIcon(f) + ' ' + f, activeFolder === f, function() { window.selectChatFolder(f); }));
     });
 
-    // "New Folder" button
-    var newBtn = document.createElement('button');
-    newBtn.type = 'button';
-    newBtn.className = 'tag';
-    newBtn.innerHTML = '＋';
-    newBtn.title = 'Create new folder';
-    newBtn.style.cssText = 'cursor:pointer;font-weight:700;font-size:12px;padding:3px 8px;border-radius:6px;background:var(--bg-2);color:var(--text-2);border:1px dashed var(--border);flex-shrink:0;transition:all .1s';
-    newBtn.addEventListener('mouseenter', function() { newBtn.style.borderColor = 'var(--accent)'; newBtn.style.color = 'var(--accent)'; });
-    newBtn.addEventListener('mouseleave', function() { newBtn.style.borderColor = 'var(--border)'; newBtn.style.color = 'var(--text-2)'; });
-    newBtn.addEventListener('click', function() {
-      if (typeof window.gmPrompt !== 'function') return;
-      window.gmPrompt('Create New Folder', 'Enter a folder name:', '').then(function(name) {
-        if (name && name.trim()) {
-          var fldrs = getCustomFolders();
-          if (fldrs.indexOf(name.trim()) === -1) { fldrs.push(name.trim()); saveCustomFolders(fldrs); toast('📁 Folder "' + name.trim() + '" created!', 'ok', 1500); }
-        }
-      });
+    // "＋ New" inline
+    var newInline = document.createElement('button');
+    newInline.type = 'button';
+    newInline.textContent = '＋';
+    newInline.title = 'Create new folder';
+    newInline.style.cssText = 'cursor:pointer;font-weight:700;font-size:13px;padding:3px 8px;border-radius:6px;background:var(--bg-2);color:var(--text-2);border:1px dashed var(--border);flex-shrink:0;transition:all .12s';
+    newInline.addEventListener('mouseenter', function() { newInline.style.borderColor = 'var(--accent)'; newInline.style.color = 'var(--accent)'; });
+    newInline.addEventListener('mouseleave', function() { newInline.style.borderColor = 'var(--border)'; newInline.style.color = 'var(--text-2)'; });
+    newInline.addEventListener('click', function() { toggleFolderManager(true); });
+    pillRow.appendChild(newInline);
+
+    // "⚙" manage toggle
+    var manageBtn = document.createElement('button');
+    manageBtn.type = 'button';
+    manageBtn.textContent = '⚙';
+    manageBtn.title = 'Manage folders';
+    manageBtn.style.cssText = 'cursor:pointer;font-size:12px;padding:3px 6px;border-radius:6px;background:var(--bg-2);color:var(--text-3);border:1px solid var(--border);flex-shrink:0;transition:all .12s;margin-left:auto';
+    manageBtn.addEventListener('mouseenter', function() { manageBtn.style.borderColor = 'var(--accent)'; manageBtn.style.color = 'var(--accent)'; });
+    manageBtn.addEventListener('mouseleave', function() { manageBtn.style.borderColor = 'var(--border)'; manageBtn.style.color = 'var(--text-3)'; });
+    manageBtn.addEventListener('click', function() { toggleFolderManager(); });
+    pillRow.appendChild(manageBtn);
+
+    container.appendChild(pillRow);
+
+    // ── Row 2: Folder Management Panel (hidden by default) ──
+    var existing = document.getElementById('folder-manager-panel');
+    if (existing) existing.remove();
+    var panel = document.createElement('div');
+    panel.id = 'folder-manager-panel';
+    panel.style.cssText = 'display:none;flex-direction:column;gap:4px;padding:8px;margin-top:6px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px';
+
+    // Header
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:4px';
+    hdr.innerHTML = '<span style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em">Your Folders</span>';
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.title = 'Close';
+    closeBtn.style.cssText = 'background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px;padding:0 2px';
+    closeBtn.addEventListener('click', function() { panel.style.display = 'none'; });
+    hdr.appendChild(closeBtn);
+    panel.appendChild(hdr);
+
+    // Folder list
+    folders.forEach(function(f) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;transition:background .1s';
+      row.addEventListener('mouseenter', function() { row.style.background = 'var(--bg-3)'; });
+      row.addEventListener('mouseleave', function() { row.style.background = ''; });
+
+      var icon = document.createElement('span');
+      icon.style.cssText = 'font-size:13px;flex-shrink:0;width:18px;text-align:center';
+      icon.textContent = getFolderIcon(f);
+      row.appendChild(icon);
+
+      var nameSpan = document.createElement('span');
+      nameSpan.style.cssText = 'flex:1;font-size:12.5px;font-weight:600;color:var(--text-0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+      nameSpan.textContent = f;
+      row.appendChild(nameSpan);
+
+      // Edit button
+      var editBtn = document.createElement('button');
+      editBtn.textContent = '✏️';
+      editBtn.title = 'Rename folder';
+      editBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:12px;padding:2px 4px;border-radius:4px;color:var(--text-3);transition:all .1s;flex-shrink:0';
+      editBtn.addEventListener('mouseenter', function() { editBtn.style.background = 'var(--bg-4)'; editBtn.style.color = 'var(--text-0)'; });
+      editBtn.addEventListener('mouseleave', function() { editBtn.style.background = 'none'; editBtn.style.color = 'var(--text-3)'; });
+      editBtn.addEventListener('click', function() { inlineRenameFolder(f, row); });
+      row.appendChild(editBtn);
+
+      // Delete button (not for default folders)
+      if (DEFAULT_FOLDERS.indexOf(f) === -1) {
+        var delBtn = document.createElement('button');
+        delBtn.textContent = '🗑';
+        delBtn.title = 'Delete folder';
+        delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:12px;padding:2px 4px;border-radius:4px;color:var(--text-3);transition:all .1s;flex-shrink:0';
+        delBtn.addEventListener('mouseenter', function() { delBtn.style.background = 'rgba(232,82,82,.15)'; delBtn.style.color = 'var(--danger)'; });
+        delBtn.addEventListener('mouseleave', function() { delBtn.style.background = 'none'; delBtn.style.color = 'var(--text-3)'; });
+        delBtn.addEventListener('click', function() { confirmDeleteFolder(f); });
+        row.appendChild(delBtn);
+      } else {
+        var lockSpan = document.createElement('span');
+        lockSpan.style.cssText = 'font-size:10px;color:var(--text-3);padding:2px 4px;flex-shrink:0';
+        lockSpan.textContent = 'default';
+        lockSpan.title = 'Built-in folders cannot be deleted';
+        row.appendChild(lockSpan);
+      }
+
+      panel.appendChild(row);
     });
-    container.appendChild(newBtn);
+
+    // "＋ New Folder" button at bottom
+    var addRow = document.createElement('button');
+    addRow.type = 'button';
+    addRow.style.cssText = 'display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:6px;border:1px dashed var(--border);background:transparent;color:var(--accent);cursor:pointer;font-size:12px;font-weight:600;transition:all .12s;width:100%;margin-top:4px';
+    addRow.innerHTML = '<span style="font-size:14px">＋</span> New Folder';
+    addRow.addEventListener('mouseenter', function() { addRow.style.borderColor = 'var(--accent)'; addRow.style.background = 'var(--accent-glow)'; });
+    addRow.addEventListener('mouseleave', function() { addRow.style.borderColor = 'var(--border)'; addRow.style.background = 'transparent'; });
+    addRow.addEventListener('click', function() { createFolderInline(panel); });
+    panel.appendChild(addRow);
+
+    container.appendChild(panel);
   };
+
+  // ── Toggle folder manager panel ────────────────────────────────
+  function toggleFolderManager(forceOpen) {
+    var panel = document.getElementById('folder-manager-panel');
+    if (!panel) return;
+    var isOpen = panel.style.display !== 'none';
+    panel.style.display = (forceOpen === true || !isOpen) ? 'flex' : 'none';
+  }
+
+  // ── Make a filter pill button ──────────────────────────────────
+  function makeFolderPill(text, isActive, onClick) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = text;
+    btn.style.cssText = folderPillStyle(isActive);
+    btn.addEventListener('click', onClick);
+    return btn;
+  }
+
+  // ── Inline rename a folder (in the management panel) ───────────
+  function inlineRenameFolder(oldName, rowEl) {
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.value = oldName;
+    input.style.cssText = 'flex:1;min-width:0;background:var(--bg-0);border:1px solid var(--accent);border-radius:4px;padding:3px 6px;font-size:12.5px;font-weight:600;color:var(--text-0);outline:none;font-family:inherit';
+
+    var nameSpan = rowEl.querySelector('span:nth-child(2)');
+    if (nameSpan) nameSpan.replaceWith(input);
+    input.focus();
+    input.select();
+
+    var finished = false;
+    function finish(save) {
+      if (finished) return;
+      finished = true;
+      var newName = input.value.trim();
+      if (save && newName && newName !== oldName) {
+        doRenameFolder(oldName, newName);
+      } else {
+        // Revert
+        if (nameSpan) input.replaceWith(nameSpan);
+      }
+    }
+
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener('blur', function() { finish(true); });
+  }
+
+  // ── Perform folder rename ──────────────────────────────────────
+  function doRenameFolder(oldName, newName) {
+    var folders = getCustomFolders();
+    var idx = folders.indexOf(oldName);
+    if (idx >= 0) folders[idx] = newName;
+    else folders.push(newName);
+    saveCustomFolders(folders);
+    // Update all sessions in this folder
+    fetch('/api/sessions?limit=200').then(function(r) { return r.json(); }).then(function(d) {
+      var sessions = (d.sessions || []).filter(function(s) { return (s.description || 'General') === oldName; });
+      return Promise.all(sessions.map(function(s) {
+        return fetch('/api/sessions/' + encodeURIComponent(s.id), {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description: newName })
+        });
+      }));
+    }).then(function() {
+      toast('📁 Renamed to "' + newName + '"', 'ok', 1500);
+      if (window._activeChatFolder === oldName) window._activeChatFolder = newName;
+      window.loadChatSessions();
+    }).catch(function() { toast('❌ Rename failed', 'err', 2000); });
+  }
+
+  // ── Create folder inline ───────────────────────────────────────
+  function createFolderInline(panel) {
+    var name = prompt('New folder name:');
+    if (!name || !name.trim()) return;
+    var folderName = name.trim();
+    var folders = getCustomFolders();
+    if (folders.indexOf(folderName) !== -1) { toast('⚠️ Folder already exists', 'warn', 1500); return; }
+    folders.push(folderName);
+    saveCustomFolders(folders);
+    toast('📁 Folder "' + folderName + '" created!', 'ok', 1500);
+  }
+
+  // ── Confirm delete folder (two-click, no modal) ────────────────
+  function confirmDeleteFolder(folderName) {
+    // Find the delete button and change it to confirm state
+    var panel = document.getElementById('folder-manager-panel');
+    if (!panel) return;
+    var rows = panel.querySelectorAll('div');
+    for (var i = 0; i < rows.length; i++) {
+      var spans = rows[i].querySelectorAll('span');
+      var found = false;
+      for (var j = 0; j < spans.length; j++) {
+        if (spans[j].textContent === folderName) { found = true; break; }
+      }
+      if (found) {
+        var delBtn = rows[i].querySelector('button[title="Delete folder"]');
+        if (delBtn) {
+          delBtn.textContent = '⚠️';
+          delBtn.title = 'Click again to confirm';
+          delBtn.style.color = 'var(--danger)';
+          var timer = setTimeout(function() {
+            delBtn.textContent = '🗑';
+            delBtn.title = 'Delete folder';
+            delBtn.style.color = '';
+          }, 3000);
+          delBtn.onclick = function() {
+            clearTimeout(timer);
+            doDeleteFolder(folderName);
+          };
+        }
+        break;
+      }
+    }
+  }
+
+  // ── Perform folder delete ──────────────────────────────────────
+  function doDeleteFolder(folderName) {
+    // Move sessions to General
+    fetch('/api/sessions?limit=200').then(function(r) { return r.json(); }).then(function(d) {
+      var sessions = (d.sessions || []).filter(function(s) { return (s.description || 'General') === folderName; });
+      return Promise.all(sessions.map(function(s) {
+        return fetch('/api/sessions/' + encodeURIComponent(s.id), {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description: 'General' })
+        });
+      }));
+    }).then(function() {
+      var folders = getCustomFolders().filter(function(f) { return f !== folderName; });
+      saveCustomFolders(folders);
+      if (window._activeChatFolder === folderName) window._activeChatFolder = 'All';
+      toast('🗑 Folder "' + folderName + '" deleted', 'ok', 1500);
+      window.loadChatSessions();
+    });
+  }
+
+  // ── Old functions kept for context menu compatibility ───────────
+  function renameFolder(oldName) {
+    var newName = prompt('Rename "' + oldName + '" to:', oldName);
+    if (!newName || !newName.trim() || newName.trim() === oldName) return;
+    doRenameFolder(oldName, newName.trim());
+  }
+
+  function deleteFolder(folderName) {
+    if (DEFAULT_FOLDERS.indexOf(folderName) !== -1) { toast('⚠️ Cannot delete default folders', 'warn', 2000); return; }
+    var ok = confirm('Delete "' + folderName + '"? Sessions will be moved to General.');
+    if (!ok) return;
+    doDeleteFolder(folderName);
+  }
 
   function folderPillStyle(isActive) {
     return 'cursor:pointer;font-weight:' + (isActive ? '700' : '600') + ';font-size:11px;'
@@ -783,65 +1007,6 @@
       + 'color:' + (isActive ? '#fff' : 'var(--text-1)') + ';'
       + 'border:1px solid ' + (isActive ? 'var(--accent)' : 'var(--border)') + ';'
       + 'transition:all .12s';
-  }
-
-  // ── Folder Management Menu ─────────────────────────────────────
-  function showFolderManageMenu(x, y, folderName) {
-    var items = [
-      { icon: '✏️', label: 'Rename "' + folderName + '"', handler: function() { renameFolder(folderName); } },
-      { separator: true },
-      { icon: '🗑', label: 'Delete Folder', danger: true, handler: function() { deleteFolder(folderName); } },
-    ];
-    showContextMenu(x, y, items);
-  }
-
-  function renameFolder(oldName) {
-    if (typeof window.gmPrompt !== 'function') return;
-    window.gmPrompt('Rename Folder', 'Rename "' + oldName + '" to:', oldName).then(function(newName) {
-      if (!newName || !newName.trim() || newName.trim() === oldName) return;
-      var folders = getCustomFolders();
-      var idx = folders.indexOf(oldName);
-      if (idx >= 0) folders[idx] = newName.trim();
-      else folders.push(newName.trim());
-      saveCustomFolders(folders);
-      // Update sessions
-      fetch('/api/sessions?limit=200').then(function(r) { return r.json(); }).then(function(d) {
-        var sessions = (d.sessions || []).filter(function(s) { return (s.description || 'General') === oldName; });
-        return Promise.all(sessions.map(function(s) {
-          return fetch('/api/sessions/' + encodeURIComponent(s.id), {
-            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ description: newName.trim() })
-          });
-        }));
-      }).then(function() {
-        toast('📁 Folder renamed to "' + newName.trim() + '"', 'ok', 1500);
-        if (window._activeChatFolder === oldName) window._activeChatFolder = newName.trim();
-        window.loadChatSessions();
-      }).catch(function() { toast('❌ Rename failed', 'err', 2000); });
-    });
-  }
-
-  function deleteFolder(folderName) {
-    if (DEFAULT_FOLDERS.indexOf(folderName) !== -1) { toast('⚠️ Cannot delete default folders', 'warn', 2000); return; }
-    if (typeof window.gmConfirm !== 'function') return;
-    window.gmConfirm('Delete Folder', 'Delete "' + folderName + '"? Sessions will be moved to General.').then(function(ok) {
-      if (!ok) return;
-      fetch('/api/sessions?limit=200').then(function(r) { return r.json(); }).then(function(d) {
-        var sessions = (d.sessions || []).filter(function(s) { return (s.description || 'General') === folderName; });
-        return Promise.all(sessions.map(function(s) {
-          return fetch('/api/sessions/' + encodeURIComponent(s.id), {
-            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ description: 'General' })
-          });
-        }));
-      }).then(function() {
-        var folders = getCustomFolders().filter(function(f) { return f !== folderName; });
-        saveCustomFolders(folders);
-        if (window._activeChatFolder === folderName) window._activeChatFolder = 'All';
-        toast('🗑 Folder "' + folderName + '" deleted', 'ok', 1500);
-        window.loadChatSessions();
-      });
-    });
   }
 
   // ── Direct Export Download (no dependency on window.exportSession) ──
