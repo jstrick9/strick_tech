@@ -847,11 +847,17 @@
   // ── Direct Export Download (no dependency on window.exportSession) ──
   function downloadExport(sessionId, fmt) {
     var label = fmt === 'json' ? 'JSON' : 'Markdown';
+    var ext = fmt === 'json' ? '.json' : '.md';
     toast('📋 Downloading ' + label + '…', 'ok', 2000);
     var url = '/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=' + fmt;
-    // window.open with _blank: server returns Content-Disposition: attachment
-    // which forces download in both browser and Tauri webview
-    window.open(url, '_blank');
+    // Create a link, click it synchronously (direct user gesture), remove it.
+    // The server returns Content-Disposition: attachment which forces download.
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'export' + ext;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
 
   // ── Helpers ────────────────────────────────────────────────────
