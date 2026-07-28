@@ -432,6 +432,77 @@ function insertCmd(cmd) {
 }
 window.insertCmd = insertCmd;
 
+// ── Random prompt pools for quick actions ─────────────────────────
+var _buildPrompts = [
+  'Build a modern landing page with hero section, features grid, pricing table, and testimonials',
+  'Create a real-time chat application with message bubbles, typing indicators, and user avatars',
+  'Build a Kanban board with drag-and-drop columns for task management',
+  'Create a weather dashboard with current conditions, 5-day forecast, and interactive charts',
+  'Build a recipe app with search, filtering, ingredient lists, and step-by-step instructions',
+  'Create a personal finance tracker with expense categories, charts, and budget goals',
+  'Build a fitness tracking app with workout logging, progress charts, and goal setting',
+  'Create a project management tool with timelines, task assignments, and progress tracking',
+  'Build a social media feed with posts, likes, comments, and user profiles',
+  'Create an e-commerce product catalog with filtering, cart, and checkout flow',
+  'Build a music player UI with playlist management, album art, and playback controls',
+  'Create a file manager with folder navigation, drag-and-drop, and file previews',
+  'Build a habit tracker with streak counting, calendar view, and progress statistics',
+  'Create a job application tracker with status columns and company details',
+  'Build a reading list app with book covers, ratings, progress tracking, and notes',
+  'Create a restaurant reservation system with date picker, time slots, and guest count',
+  'Build a collaborative whiteboard with drawing tools, sticky notes, and real-time sync',
+  'Create a CRM dashboard with contact management, deal pipeline, and activity timeline',
+  'Build a travel planner with itinerary builder, packing lists, and expense tracking',
+  'Create an event management page with RSVP, countdown timer, and agenda view',
+];
+
+var _researchPrompts = [
+  'Research the latest developments in AI agent frameworks and compare their architectures',
+  'Analyze the current state of WebAssembly and its practical use cases in 2025',
+  'Compare the top 5 JavaScript frameworks for building real-time applications',
+  'Research best practices for designing accessible web applications (WCAG 2.2)',
+  'Analyze the security implications of running LLMs locally vs cloud-hosted',
+  'Research the most effective database indexing strategies for time-series data',
+  'Compare serverless vs container-based deployment for AI-powered applications',
+  'Research the current landscape of AI code generation tools and their limitations',
+  'Analyze different approaches to implementing real-time collaboration features',
+  'Research modern CSS architecture patterns (CSS Modules, Tailwind, CSS-in-JS)',
+  'Compare state management solutions for large-scale React applications',
+  'Research the latest advances in vector databases and their RAG applications',
+  'Analyze different CI/CD pipelines and their suitability for AI/ML projects',
+  'Research progressive web app capabilities vs native mobile apps in 2025',
+  'Compare authentication strategies: JWT vs sessions vs passkeys',
+  'Research the best approaches to API rate limiting and throttling',
+  'Analyze different caching strategies for dynamic web applications',
+  'Research edge computing platforms and their benefits for AI inference',
+  'Compare WebSocket vs Server-Sent Events vs long polling for real-time features',
+  'Research the current state of cross-platform desktop app frameworks',
+];
+
+var _codePrompts = [
+  'Review this code for performance bottlenecks and suggest optimizations',
+  'Analyze my codebase architecture and suggest structural improvements',
+  'Review this code for security vulnerabilities and best practices',
+  'Suggest TypeScript type improvements for better type safety',
+  'Analyze error handling patterns and suggest improvements',
+  'Review database queries for optimization opportunities',
+  'Suggest ways to improve test coverage and testing patterns',
+  'Review API endpoint design for REST best practices',
+  'Analyze component structure and suggest better separation of concerns',
+  'Review this code for accessibility improvements',
+];
+
+window.randomBuildPrompt = function() {
+  insertCmd(_buildPrompts[Math.floor(Math.random() * _buildPrompts.length)]);
+};
+window.randomResearchPrompt = function() {
+  insertCmd(_researchPrompts[Math.floor(Math.random() * _researchPrompts.length)]);
+};
+window.randomCodePrompt = function() {
+  insertCmd(_codePrompts[Math.floor(Math.random() * _codePrompts.length)]);
+};
+
+
 function hideChatEmpty() {
   const e = document.getElementById('chat-empty');
   if (e) e.style.display = 'none';
@@ -1565,18 +1636,29 @@ window.selectChatPersona = function(val) {
     S.currentAgent = { id: 'default', name: 'Direct AI Chat', avatar: '💬', model: '' };
     S.currentAgentId = 'default';
     try { try { _safeLS.set('agentic_os_chat_persona', 'default'); } catch {} } catch(e) {}
-    toast('💬 Direct AI Chat active (No Agent persona applied)', 'ok', 1500);
+    // Update VISIBLE display
+    var pi = document.getElementById('active-persona-icon');
+    var pl = document.getElementById('active-persona-label');
+    if (pi) pi.textContent = '💬';
+    if (pl) pl.textContent = 'Direct Chat';
+    toast('💬 Direct AI Chat active', 'ok', 1500);
     return;
   }
   const found = S.agents?.find(a => a.id === val) || { id: val, name: formatAgentName(val), avatar: '🧠', model: '' };
   S.currentAgent = found;
   S.currentAgentId = val;
   try { try { _safeLS.set('agentic_os_chat_persona', val); } catch {} } catch(e) {}
+  // Update VISIBLE display
+  var pi = document.getElementById('active-persona-icon');
+  var pl = document.getElementById('active-persona-label');
+  if (pi) pi.textContent = found.avatar || '🤖';
+  if (pl) pl.textContent = found.name;
+  // Update hidden legacy elements
   const avatarEl = document.getElementById('active-agent-avatar');
   if (avatarEl) avatarEl.textContent = found.avatar || '🤖';
   const nameEl = document.getElementById('active-agent-name');
   if (nameEl) nameEl.textContent = found.name;
-  toast(`🤖 Persona applied: ${found.name}`, 'ok', 1500);
+  toast(`🤖 Persona: ${found.name}`, 'ok', 1500);
 };
 
 // ── Chat Sessions & Folder Organization Management ─────────────────────────────
