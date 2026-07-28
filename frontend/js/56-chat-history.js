@@ -56,11 +56,11 @@
 
   function showContextMenu(x, y, items) {
     if (!_ctxMenu) createContextMenu();
-    _ctxMenu.innerHTML = items.map(item => {
+    _ctxMenu.innerHTML = items.map((item, idx) => {
       if (item.separator) return '<div style="height:1px;background:var(--border);margin:4px 8px"></div>';
       const danger = item.danger ? 'color:var(--danger)' : '';
       const icon = item.icon || '';
-      return `<div class="ctx-item" data-action="${item.action || ''}" style="
+      return `<div class="ctx-item" data-idx="${idx}" style="
         display:flex; align-items:center; gap:10px; padding:8px 12px; cursor:pointer;
         border-radius:8px; font-size:12.5px; color:var(--text-1); transition:all .1s;
         ${danger}
@@ -72,12 +72,14 @@
       </div>`;
     }).join('');
 
-    // Attach click handlers
-    _ctxMenu.querySelectorAll('.ctx-item').forEach((el, i) => {
+    // Attach click handlers — use data-idx to match the original items array
+    // (skips separator elements which don't have .ctx-item class)
+    _ctxMenu.querySelectorAll('.ctx-item').forEach((el) => {
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         hideContextMenu();
-        if (items[i]?.handler) items[i].handler();
+        const idx = parseInt(el.dataset.idx, 10);
+        if (!isNaN(idx) && items[idx]?.handler) items[idx].handler();
       });
     });
 
