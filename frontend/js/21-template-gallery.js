@@ -139,27 +139,22 @@ async function previewTemplate(templateId) {
   try {
     // Fetch preview HTML from backend
     const r = await fetch(`/api/templates/${encodeURIComponent(templateId)}/preview`);
-    if (!r.ok) { showToast('Preview failed: HTTP '+r.status); return; }
+    if (!r.ok) { toast('Preview failed: HTTP '+r.status); return; }
     const j = await r.json();
-    if (!j.ok) { showToast('Preview failed: '+(j.error||'Unknown')); return; }
+    if (!j.ok) { toast('Preview failed: '+(j.error||'Unknown')); return; }
 
     // Scaffold silently then open Studio
     await scaffoldTemplate(templateId, true);
     setTimeout(() => nav('studio'), 400);
-    showToast('👁 Preview loaded in Studio');
+    toast('👁 Preview loaded in Studio');
   } catch(ex) {
-    showToast('Preview error: '+ex?.message);
+    toast('Preview error: '+ex?.message);
   }
 }
 
 async function scaffoldTemplateDialog(templateId, templateName) {
-  const projectName = await gmPrompt(
-    `Scaffold "${templateName}"`,
-    'Project name (optional — leave blank to use template name)',
-    templateName
-  );
-  if (projectName === null) return; // User cancelled
-  await scaffoldTemplate(templateId, false, (projectName||'').trim());
+  // Scaffold directly using the template name — no prompt needed
+  await scaffoldTemplate(templateId, false, templateName);
 }
 
 async function scaffoldTemplate(templateId, silent, projectName) {
@@ -174,7 +169,7 @@ async function scaffoldTemplate(templateId, silent, projectName) {
     } catch(e) {}
   }
   const t = allTemplates.find(x => x.id === templateId);
-  if (!silent) showToast(`⚡ Scaffolding ${t?.name||templateId}…`);
+  if (!silent) toast(`⚡ Scaffolding ${t?.name||templateId}…`);
 
   try {
     const r = await fetch(`/api/templates/${encodeURIComponent(templateId)}/scaffold`, {
@@ -183,20 +178,20 @@ async function scaffoldTemplate(templateId, silent, projectName) {
       body: JSON.stringify({project_name: projectName || (t?.name || templateId)})
     });
     if (!r.ok) {
-      showToast('Scaffold failed: HTTP '+r.status);
+      toast('Scaffold failed: HTTP '+r.status);
       return;
     }
     const j = await r.json();
     if (j.ok) {
-      if (!silent) showToast(`✅ ${j.template} ready — opening Studio…`);
+      if (!silent) toast(`✅ ${j.template} ready — opening Studio…`);
       studioLoadFileTree?.();
       studioReloadPreview?.();
       if (!silent) setTimeout(() => nav('studio'), 600);
     } else {
-      showToast('Scaffold failed: '+(j.error||'Unknown error'));
+      toast('Scaffold failed: '+(j.error||'Unknown error'));
     }
   } catch(ex) {
-    showToast('Scaffold error: '+ex?.message);
+    toast('Scaffold error: '+ex?.message);
   }
 }
 
