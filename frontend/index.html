@@ -316,7 +316,7 @@
 #chat-input{
   flex:1;background:transparent;border:none;outline:none;
   color:var(--text-0);font-size:14px;resize:none;
-  min-height:22px;max-height:160px;line-height:1.5;
+  min-height:84px;max-height:320px;line-height:1.5;
   font-family:inherit;
 }
 #chat-input::placeholder{color:var(--text-3)}
@@ -1642,7 +1642,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <div class="chat-input-row">
                 <input id="chat-file-input" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.js,.jsx,.ts,.tsx,.py,.html,.css,.xml,.yaml,.yml,.log,.sql,.sh,.java,.go,.rs,.rb,.php,.c,.cpp,.h,.pdf,.docx,.jpg,.jpeg,.png,.gif,.webp,.svg">
                 <button type="button" class="chat-attach-btn btn-3d" onclick="document.getElementById('chat-file-input').click()" title="Attach files: Text, Code, CSV, JSON, PDF, Word, Images (max 5 files, 250KB text / 4MB documents)" aria-label="Attach files" style="font-size:13px">📎</button>
-                <textarea id="chat-input" aria-label="Chat message input" placeholder="Message AI… or drop a file or image here" rows="1"></textarea>
+                <textarea id="chat-input" aria-label="Chat message input" placeholder="Message AI… or drop a file or image here" rows="4" style="min-height:84px"></textarea>
                 <button type="button" class="chat-send-btn" id="chat-send" onclick="sendChat()" aria-label="Send message">➤</button>
               </div>
             </div>

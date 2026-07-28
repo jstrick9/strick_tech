@@ -2416,7 +2416,7 @@ if (chatInput) {
 
 function autoResizeInput(el) {
   el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  el.style.height = Math.max(84, Math.min(el.scrollHeight, 320)) + 'px';
 }
 
 // Clock
