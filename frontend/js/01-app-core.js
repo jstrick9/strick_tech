@@ -4200,12 +4200,24 @@ async function deleteSession(sessionId) {
 
 window.exportSession = function exportSession(sessionId) {
   toast('📋 Downloading Markdown…', 'ok', 2000);
-  window.location.href = '/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=markdown';
+  var f = document.createElement('form');
+  f.method = 'GET';
+  f.action = '/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=markdown';
+  f.style.display = 'none';
+  document.body.appendChild(f);
+  f.submit();
+  setTimeout(function() { f.remove(); }, 200);
 };
 
 window.exportSessionJSON = function exportSessionJSON(sessionId) {
   toast('📄 Downloading JSON…', 'ok', 2000);
-  window.location.href = '/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=json';
+  var f = document.createElement('form');
+  f.method = 'GET';
+  f.action = '/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=json';
+  f.style.display = 'none';
+  document.body.appendChild(f);
+  f.submit();
+  setTimeout(function() { f.remove(); }, 200);
 };
 
 async function branchSession(sessionId) {
