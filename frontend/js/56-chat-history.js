@@ -339,7 +339,53 @@
     inp.addEventListener('blur',function(){finish(true);});
   }
 
-  // ── Folder Rename (inline) ────────────────────────────────────
+  // ── Folder Rename Form (inline, no prompt) ─────────────────────
+  function showFolderRenameForm(oldName) {
+    if (!_ctxMenu) createContextMenu();
+    _ctxMenu.innerHTML = '<div style="padding:8px">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--text-0);margin-bottom:8px">Rename Folder</div>'
+      + '<input id="ctx-rename-folder-input" type="text" value="' + oldName.replace(/"/g, '&quot;') + '" style="width:100%;background:var(--bg-0);border:1px solid var(--accent);border-radius:6px;padding:6px 10px;color:var(--text-0);font-size:12px;outline:none;font-family:inherit;margin-bottom:10px">'
+      + '<button id="ctx-rename-folder-btn" type="button" style="width:100%;padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Rename</button>'
+      + '</div>';
+    _ctxMenu.style.display = 'block';
+    _ctxMenu.style.left = Math.round(window.innerWidth/2-120)+'px';
+    _ctxMenu.style.top = Math.round(window.innerHeight/2-80)+'px';
+
+    var nameInput = document.getElementById('ctx-rename-folder-input');
+    if (nameInput) { nameInput.focus(); nameInput.select(); }
+
+    function doRename() {
+      var newName = nameInput ? nameInput.value.trim() : '';
+      if (!newName || newName === oldName) { hideContextMenu(); return; }
+      var folders = getCustomFolders();
+      var idx = folders.indexOf(oldName);
+      if (idx >= 0) folders[idx] = newName; else folders.push(newName);
+      saveCustomFolders(folders);
+      var icons = getFolderIcons();
+      if (icons[oldName]) { icons[newName] = icons[oldName]; delete icons[oldName]; saveFolderIcons(icons); }
+      fetch('/api/sessions?limit=200').then(function(r){return r.json();}).then(function(d){
+        var toUpdate = (d.sessions||[]).filter(function(s){return(s.description||'')===oldName;});
+        return Promise.all(toUpdate.map(function(s){
+          return fetch('/api/sessions/'+encodeURIComponent(s.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({description:newName})});
+        }));
+      }).then(function(){
+        toast('📁 Renamed to "'+newName+'"','ok',1500);
+        hideContextMenu();
+        window.loadChatSessions();
+      }).catch(function(){toast('❌ Rename failed','err',2000);hideContextMenu();});
+    }
+
+    var renameBtn = document.getElementById('ctx-rename-folder-btn');
+    if (renameBtn) renameBtn.addEventListener('click', doRename);
+    if (nameInput) {
+      nameInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); doRename(); }
+        if (e.key === 'Escape') { hideContextMenu(); }
+      });
+    }
+  }
+
+  // ── Folder Rename (inline in tree) ────────────────────────────
   function startFolderRename(oldName, nameSpan) {
     var inp = document.createElement('input');
     inp.type = 'text'; inp.value = oldName;
@@ -620,20 +666,7 @@
           label: f,
           handler: function() {
             var subItems = [
-              { icon: '✏️', label: 'Rename "' + f + '"', handler: function() {
-                var newName = window.prompt('Rename "' + f + '" to:', f);
-                if (newName && newName.trim() && newName.trim() !== f) {
-                  var fldrs = getCustomFolders(); var idx = fldrs.indexOf(f);
-                  if (idx >= 0) fldrs[idx] = newName.trim(); saveCustomFolders(fldrs);
-                  var icons = getFolderIcons(); if (icons[f]) { icons[newName.trim()] = icons[f]; delete icons[f]; saveFolderIcons(icons); }
-                  fetch('/api/sessions?limit=200').then(function(r){return r.json();}).then(function(d){
-                    var toUpdate = (d.sessions||[]).filter(function(s){return(s.description||'')===f;});
-                    return Promise.all(toUpdate.map(function(s){
-                      return fetch('/api/sessions/'+encodeURIComponent(s.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({description:newName.trim()})});
-                    }));
-                  }).then(function(){toast('📁 Renamed','ok',1500);window.loadChatSessions();});
-                }
-              }},
+              { icon: '✏️', label: 'Rename "' + f + '"', handler: function() { showFolderRenameForm(f); } },
               { icon: '🎨', label: 'Change Icon', handler: function() { showIconPicker(Math.round(window.innerWidth/2), Math.round(window.innerHeight/2), f); } },
               { separator: true },
               { icon: '🗑', label: 'Delete Folder', danger: true, handler: function() { deleteFolder(f); } },
