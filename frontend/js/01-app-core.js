@@ -153,13 +153,12 @@ function setupSidebarResizer() {
 
   try {
     let savedW = null; try { savedW = _safeLS.get('agentic_os_sidebar_w'); } catch {}
-    const savedCol = _safeLS.get('agentic_os_sidebar_collapsed') === 'true';
-    if (savedCol) {
-      sb.classList.add('collapsed');
-      sb.style.width = '56px';
-    } else if (savedW) {
+    // Sidebar always starts expanded — never auto-collapse on page load
+    // (users can collapse manually with the toggle button)
+    if (savedW && parseInt(savedW) > 60) {
       sb.style.width = savedW;
     }
+    sb.classList.remove('collapsed');
   } catch(e) {}
 }
 
