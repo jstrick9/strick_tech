@@ -406,17 +406,64 @@
     });
     btnGroup.appendChild(moreBtn);
 
-    // ✕ delete button
+    // ✕ delete button — visual toggle: first click → "Confirm?", second → delete
     var delBtn = document.createElement('button');
     delBtn.title = 'Delete chat';
     delBtn.style.cssText = 'background:none;border:none;color:var(--text-3);font-size:12px;cursor:pointer;padding:2px 4px;border-radius:4px;line-height:1;transition:all .1s';
     delBtn.innerHTML = '✕';
-    delBtn.addEventListener('mouseenter', function() { delBtn.style.background = 'rgba(232,82,82,.15)'; delBtn.style.color = 'var(--danger)'; });
-    delBtn.addEventListener('mouseleave', function() { delBtn.style.background = 'none'; delBtn.style.color = 'var(--text-3)'; });
+    var delConfirming = false;
+    var delResetTimer = null;
+    delBtn.addEventListener('mouseenter', function() {
+      if (!delConfirming) { delBtn.style.background = 'rgba(232,82,82,.15)'; delBtn.style.color = 'var(--danger)'; }
+    });
+    delBtn.addEventListener('mouseleave', function() {
+      if (!delConfirming) { delBtn.style.background = 'none'; delBtn.style.color = 'var(--text-3)'; }
+    });
     delBtn.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      window.deleteChatSession(e, s.id);
+      if (!delConfirming) {
+        // First click: show confirm state
+        delConfirming = true;
+        delBtn.innerHTML = 'Confirm?';
+        delBtn.style.background = 'var(--danger)';
+        delBtn.style.color = '#fff';
+        delBtn.title = 'Click again to confirm deletion';
+        // Auto-reset after 3 seconds
+        clearTimeout(delResetTimer);
+        delResetTimer = setTimeout(function() {
+          delConfirming = false;
+          delBtn.innerHTML = '✕';
+          delBtn.style.background = 'none';
+          delBtn.style.color = 'var(--text-3)';
+          delBtn.title = 'Delete chat';
+        }, 3000);
+      } else {
+        // Second click: actually delete
+        clearTimeout(delResetTimer);
+        fetch('/api/sessions/' + encodeURIComponent(s.id), { method: 'DELETE' })
+          .then(function(r) { return r.json(); })
+          .then(function(j) {
+            if (j.ok) {
+              toast('🗑 Chat deleted', 'ok', 1500);
+              if (window.S && window.S.sessionId === s.id && typeof window.startNewChatSession === 'function') window.startNewChatSession();
+              window.loadChatSessions();
+            } else {
+              toast('❌ Delete failed: ' + (j.error || 'Unknown'), 'err', 2500);
+              delConfirming = false;
+              delBtn.innerHTML = '✕';
+              delBtn.style.background = 'none';
+              delBtn.style.color = 'var(--text-3)';
+            }
+          })
+          .catch(function(err) {
+            toast('❌ Delete error: ' + err.message, 'err', 2500);
+            delConfirming = false;
+            delBtn.innerHTML = '✕';
+            delBtn.style.background = 'none';
+            delBtn.style.color = 'var(--text-3)';
+          });
+      }
     });
     btnGroup.appendChild(delBtn);
 
@@ -817,6 +864,10 @@
   function init() {
     createContextMenu();
     setTimeout(function() { window.refreshFolderPills(); }, 500);
+    // Load chat history on first visit to the chat pane
+    setTimeout(function() {
+      if (typeof window.loadChatSessions === 'function') window.loadChatSessions();
+    }, 800);
   }
 
   if (document.readyState === 'loading') {

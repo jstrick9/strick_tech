@@ -4200,22 +4200,44 @@ async function deleteSession(sessionId) {
 
 window.exportSession = function exportSession(sessionId) {
   toast('📋 Exporting as Markdown…', 'ok', 1500);
-  var a = document.createElement('a');
-  a.href = '/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=markdown';
-  a.download = 'chat-export-' + sessionId.slice(0, 8) + '.md';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  fetch('/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=markdown')
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.blob();
+    })
+    .then(function(blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'chat-export-' + sessionId.slice(0, 8) + '.md';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+      toast('📄 Markdown exported!', 'ok', 2000);
+    })
+    .catch(function(e) { toast('❌ Export failed: ' + e.message, 'err', 2500); });
 };
 
 window.exportSessionJSON = function exportSessionJSON(sessionId) {
   toast('📄 Exporting as JSON…', 'ok', 1500);
-  var a = document.createElement('a');
-  a.href = '/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=json';
-  a.download = 'session-' + sessionId.slice(0, 8) + '.json';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  fetch('/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=json')
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.blob();
+    })
+    .then(function(blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'session-' + sessionId.slice(0, 8) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+      toast('📋 JSON exported!', 'ok', 2000);
+    })
+    .catch(function(e) { toast('❌ Export failed: ' + e.message, 'err', 2500); });
 };
 
 async function branchSession(sessionId) {
