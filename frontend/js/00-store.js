@@ -5,9 +5,9 @@
 'use strict';
 // Safe localStorage wrapper (private browsing / quota exceeded)
 const _safeLS = {
-  get: (k) => { try { return _safeLS.get(k); } catch { return null; } },
-  set: (k, v) => { try { _safeLS.set(k, v); } catch {} },
-  rm: (k) => { try { _safeLS.rm(k); } catch {} },
+  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+  rm: (k) => { try { localStorage.removeItem(k); } catch {} },
 };
 
 
