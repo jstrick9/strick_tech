@@ -1492,7 +1492,6 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <div style="display:flex; gap:4px; align-items:center">
                   <button type="button" id="new-folder-btn" title="Create new folder" style="background:none;border:1px dashed var(--border);color:var(--text-2);cursor:pointer;font-size:13px;padding:2px 6px;border-radius:6px;transition:all .12s">＋📁</button>
                   <button type="button" id="folder-settings-btn" title="Folder settings" style="background:none;border:1px solid var(--border);color:var(--text-2);cursor:pointer;font-size:13px;padding:2px 6px;border-radius:6px;transition:all .12s">⚙</button>
-                  <button type="button" onclick="startNewChatSession()" class="btn-3d btn-primary btn-sm" style="padding:4px 10px; font-size:11.5px; font-weight:700">＋ New</button>
                 </div>
               </div>
               <input type="text" id="chat-sessions-search" placeholder="🔍 Search chats..." oninput="if(typeof filterChatSessions==='function')filterChatSessions(this.value)" style="width:100%; background:var(--bg-2); border:1px solid var(--border-hi); border-radius:8px; padding:6px 10px; color:var(--text-0); font-size:12px; outline:none">
@@ -1513,11 +1512,12 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <button type="button" id="chat-page-next" class="btn-3d btn-ghost btn-sm" onclick="if(typeof changeChatPage==='function')changeChatPage(1)" style="padding:2px 8px; font-size:10.5px">Next ▶</button>
             </div>
           </div>
+          <div id="chat-drawer-resizer" style="width:4px;cursor:col-resize;flex-shrink:0;background:transparent;transition:background .15s;position:relative;z-index:10"></div>
 
           <!-- Main Chat Container -->
           <div id="chat-main-container" style="flex:1; display:flex; flex-direction:column; min-width:0; height:100%">
             <div class="chat-header" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg-1);flex-shrink:0;flex-wrap:wrap;overflow:visible;z-index:10">
-              <button type="button" class="btn-3d btn-ghost btn-sm" onclick="toggleChatHistoryDrawer()" style="padding:6px 10px;display:flex;align-items:center;gap:6px" title="Toggle Chat History & Folder Sidebar">📁 History</button>
+              <button type="button" id="history-toggle-btn" class="btn-3d btn-ghost btn-sm" onclick="toggleChatHistoryDrawer()" style="padding:6px 10px;display:flex;align-items:center;gap:6px" title="Toggle Chat History Sidebar">📁 Hide History</button>
               <button type="button" class="btn-3d btn-primary btn-sm" onclick="startNewChatSession()" style="padding:6px 10px;display:flex;align-items:center;gap:6px;font-weight:700">＋ New</button>
 
               <div id="chat-model-control" style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:4px 10px">

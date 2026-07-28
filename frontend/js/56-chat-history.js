@@ -1,6 +1,6 @@
 /**
- * Agentic OS — Enhanced Chat History Management
- * Folder tree view with icon selection, inline forms, no prompt() dependency.
+ * Agentic OS — Chat History Management
+ * Folder tree view with icon selection, resizer, no default folders.
  */
 
 (function() {
@@ -8,22 +8,21 @@
 
   var FOLDER_KEY = 'agentic_os_custom_folders';
   var FOLDER_ICONS_KEY = 'agentic_os_folder_icons';
-  var DEFAULT_FOLDERS = ['General', 'Engineering', 'Research', 'Ideas'];
   var _currentView = 'folders';
   var _expandedFolders = {};
   var _allSessions = [];
 
-  var ICON_OPTIONS = ['📁','📂','⚙️','🔧','🔬','💡','💼','🏠','🎯','📦','🚀','🎨','📊','🧪','🧠','💻','🌐','📝','🎮','🎵','📚','🛒','🏥','🎓','✈️','🏋️','🍳','🎬','📸','🌿'];
+  var ICON_OPTIONS = ['📁','📂','⚙️','🔧','🔬','💡','💼','🏠','🎯','📦','🚀','🎨','📊','🧪','🧠','💻','🌐','📝','🎮','🎵','📚','🛒','🏥','🎓','✈️','🏋️','🍳','🎬','📸','🌿','⭐','❤️','🔥','💎','🌟','🦄','🐉','🦊','🐱','🐶'];
 
   function getCustomFolders() {
-    try { var s = _safeLS.get(FOLDER_KEY); if (s) { var p = JSON.parse(s); if (Array.isArray(p) && p.length) return p; } } catch(e) {}
-    return DEFAULT_FOLDERS.slice();
+    try { var s = _safeLS.get(FOLDER_KEY); if (s) { var p = JSON.parse(s); if (Array.isArray(p)) return p; } } catch(e) {}
+    return [];
   }
   function saveCustomFolders(folders) { try { _safeLS.set(FOLDER_KEY, JSON.stringify(folders)); } catch(e) {} }
 
   function getFolderIcons() {
     try { var s = _safeLS.get(FOLDER_ICONS_KEY); if (s) return JSON.parse(s); } catch(e) {}
-    return { 'General':'📁','Engineering':'⚙️','Research':'🔬','Ideas':'💡' };
+    return {};
   }
   function saveFolderIcons(icons) { try { _safeLS.set(FOLDER_ICONS_KEY, JSON.stringify(icons)); } catch(e) {} }
 
@@ -49,6 +48,68 @@
     var w=new Date(now); w.setDate(w.getDate()-7); if(d>=w) return 'Previous 7 Days';
     var m=new Date(now); m.setMonth(m.getMonth()-1); if(d>=m) return 'Previous 30 Days';
     return 'Older';
+  }
+
+  // ── Toggle History Drawer ─────────────────────────────────────
+  window.toggleChatHistoryDrawer = function() {
+    var dr = document.getElementById('chat-history-drawer');
+    var btn = document.getElementById('history-toggle-btn');
+    var resizer = document.getElementById('chat-drawer-resizer');
+    if (!dr) return;
+    var isHidden = dr.style.display === 'none' || dr.style.width === '0px';
+    if (isHidden) {
+      dr.style.display = 'flex';
+      dr.style.width = '280px';
+      if (resizer) resizer.style.display = '';
+      if (btn) btn.textContent = '📁 Hide History';
+    } else {
+      dr.style.display = 'none';
+      if (resizer) resizer.style.display = 'none';
+      if (btn) btn.textContent = '📁 Show History';
+    }
+  };
+
+  // ── Drawer Resizer ────────────────────────────────────────────
+  function initDrawerResizer() {
+    var resizer = document.getElementById('chat-drawer-resizer');
+    var drawer = document.getElementById('chat-history-drawer');
+    if (!resizer || !drawer) return;
+
+    var isResizing = false, startX = 0, startW = 0;
+
+    resizer.addEventListener('mousedown', function(e) {
+      isResizing = true;
+      startX = e.clientX;
+      startW = drawer.getBoundingClientRect().width;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      resizer.style.background = 'var(--accent)';
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!isResizing) return;
+      var newW = startW + (e.clientX - startX);
+      if (newW < 60) { drawer.style.display = 'none'; resizer.style.display = 'none'; }
+      else { drawer.style.display = 'flex'; resizer.style.display = ''; drawer.style.width = Math.min(Math.max(newW, 180), 500) + 'px'; }
+    });
+
+    document.addEventListener('mouseup', function() {
+      if (!isResizing) return;
+      isResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      resizer.style.background = '';
+      // Update button text based on drawer state
+      var btn = document.getElementById('history-toggle-btn');
+      if (btn) {
+        if (drawer.style.display === 'none') btn.textContent = '📁 Show History';
+        else btn.textContent = '📁 Hide History';
+      }
+    });
+
+    // Hover effect on resizer
+    resizer.addEventListener('mouseenter', function() { if (!isResizing) resizer.style.background = 'var(--border-hi)'; });
+    resizer.addEventListener('mouseleave', function() { if (!isResizing) resizer.style.background = ''; });
   }
 
   // ── View Switching ────────────────────────────────────────────
@@ -84,7 +145,7 @@
       el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:32px 16px;text-align:center">'
         + '<div style="font-size:36px;margin-bottom:12px;opacity:.6">💬</div>'
         + '<div style="font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:4px">No conversations yet</div>'
-        + '<div style="font-size:11.5px;color:var(--text-3)">Start a chat to see history</div></div>';
+        + '<div style="font-size:11.5px;color:var(--text-3)">Start a chat to see history here</div></div>';
       return;
     }
     var q = (document.getElementById('chat-sessions-search')?.value||'').trim().toLowerCase();
@@ -98,14 +159,26 @@
     el.innerHTML = '';
     var folderMap = {};
     sessions.forEach(function(s) {
-      var f = (s.description && s.description !== 'All') ? s.description : 'General';
+      var f = (s.description && s.description !== 'All' && s.description.trim()) ? s.description.trim() : 'Uncategorized';
       if (!folderMap[f]) folderMap[f] = [];
       folderMap[f].push(s);
     });
-    var folders = getCustomFolders();
-    Object.keys(folderMap).forEach(function(f) { if (folders.indexOf(f) === -1) folders.push(f); });
 
-    folders.forEach(function(folder) {
+    var customFolders = getCustomFolders();
+    // Build folder list: custom folders first, then auto-detected from sessions
+    var allFolders = [];
+    customFolders.forEach(function(f) { if (allFolders.indexOf(f) === -1) allFolders.push(f); });
+    Object.keys(folderMap).forEach(function(f) { if (allFolders.indexOf(f) === -1) allFolders.push(f); });
+
+    if (!allFolders.length && !sessions.length) {
+      el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:32px 16px;text-align:center">'
+        + '<div style="font-size:36px;margin-bottom:12px;opacity:.6">📁</div>'
+        + '<div style="font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:4px">No folders yet</div>'
+        + '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:16px">Click ＋📁 to create your first folder</div></div>';
+      return;
+    }
+
+    allFolders.forEach(function(folder) {
       var items = folderMap[folder] || [];
       items.sort(function(a,b) { if(a.pinned!==b.pinned) return b.pinned-a.pinned; return new Date(b.updated_at||b.created_at||0)-new Date(a.updated_at||a.created_at||0); });
       var isExpanded = _expandedFolders[folder] !== false;
@@ -128,10 +201,7 @@
       icon.style.cssText = 'font-size:13px;flex-shrink:0;cursor:pointer';
       icon.textContent = getFolderIcon(folder);
       icon.title = 'Click to change icon';
-      icon.addEventListener('click', function(e) {
-        e.stopPropagation();
-        showIconPicker(e.clientX, e.clientY, folder);
-      });
+      icon.addEventListener('click', function(e) { e.stopPropagation(); showIconPicker(e.clientX, e.clientY, folder); });
       header.appendChild(icon);
 
       var name = document.createElement('span');
@@ -158,9 +228,9 @@
       editBtn.addEventListener('click', function(e){e.stopPropagation();startFolderRename(folder,name);});
       fActions.appendChild(editBtn);
 
-      if (DEFAULT_FOLDERS.indexOf(folder) === -1) {
+      if (folder !== 'Uncategorized') {
         var delBtn = document.createElement('button');
-        delBtn.textContent = '🗑'; delBtn.title = 'Delete';
+        delBtn.textContent = '🗑'; delBtn.title = 'Delete folder (moves chats to Uncategorized)';
         delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:11px;padding:1px 3px;border-radius:3px;color:var(--text-3);line-height:1';
         delBtn.addEventListener('click', function(e){e.stopPropagation();deleteFolder(folder);});
         fActions.appendChild(delBtn);
@@ -284,19 +354,14 @@
         var idx = folders.indexOf(oldName);
         if (idx >= 0) folders[idx] = newName; else folders.push(newName);
         saveCustomFolders(folders);
-        // Update icon mapping
         var icons = getFolderIcons();
         if (icons[oldName]) { icons[newName] = icons[oldName]; delete icons[oldName]; saveFolderIcons(icons); }
-        // Update sessions
         fetch('/api/sessions?limit=200').then(function(r){return r.json();}).then(function(d){
-          var toUpdate = (d.sessions||[]).filter(function(s){return(s.description||'General')===oldName;});
+          var toUpdate = (d.sessions||[]).filter(function(s){return(s.description||'')===oldName;});
           return Promise.all(toUpdate.map(function(s){
             return fetch('/api/sessions/'+encodeURIComponent(s.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({description:newName})});
           }));
-        }).then(function(){
-          toast('📁 Renamed to "'+newName+'"','ok',1500);
-          window.loadChatSessions();
-        }).catch(function(){toast('❌ Rename failed','err',2000);revert();});
+        }).then(function(){toast('📁 Renamed to "'+newName+'"','ok',1500);window.loadChatSessions();}).catch(function(){toast('❌ Rename failed','err',2000);revert();});
       } else revert();
     }
     function revert() { nameSpan.textContent = oldName; if (inp.parentNode) inp.replaceWith(nameSpan); }
@@ -310,10 +375,8 @@
     var currentIcon = icons[folder] || '📂';
     var items = ICON_OPTIONS.map(function(ic) {
       return { icon: ic === currentIcon ? '✓' : ic, label: ic === currentIcon ? ic + ' (current)' : '', handler: function() {
-        icons[folder] = ic;
-        saveFolderIcons(icons);
-        toast('🎨 Icon updated', 'ok', 1000);
-        renderChatList();
+        icons[folder] = ic; saveFolderIcons(icons);
+        toast('🎨 Icon updated', 'ok', 1000); renderChatList();
       }};
     });
     showContextMenu(x, y, items);
@@ -321,20 +384,18 @@
 
   // ── Delete Folder ─────────────────────────────────────────────
   function deleteFolder(folderName) {
-    if (DEFAULT_FOLDERS.indexOf(folderName) !== -1) { toast('⚠️ Cannot delete default folders', 'warn', 2000); return; }
     var confirmItems = [
       { icon: '⚠️', label: 'Delete "' + folderName + '"?', danger: true, handler: function() {
         fetch('/api/sessions?limit=200').then(function(r){return r.json();}).then(function(d){
-          var toUpdate = (d.sessions||[]).filter(function(s){return(s.description||'General')===folderName;});
+          var toUpdate = (d.sessions||[]).filter(function(s){return(s.description||'')===folderName;});
           return Promise.all(toUpdate.map(function(s){
-            return fetch('/api/sessions/'+encodeURIComponent(s.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({description:'General'})});
+            return fetch('/api/sessions/'+encodeURIComponent(s.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({description:''})});
           }));
         }).then(function(){
           var folders = getCustomFolders().filter(function(f){return f!==folderName;});
           saveCustomFolders(folders);
           var icons = getFolderIcons(); delete icons[folderName]; saveFolderIcons(icons);
-          toast('🗑 Folder deleted','ok',1500);
-          window.loadChatSessions();
+          toast('🗑 Folder deleted','ok',1500); window.loadChatSessions();
         });
       }},
       { icon: '✕', label: 'Cancel', handler: function() {} },
@@ -425,7 +486,8 @@
 
   // ── Folder Picker ─────────────────────────────────────────────
   function showFolderPickerMenu(session){
-    var folders=getCustomFolders(),cur=(session.description&&session.description!=='All')?session.description:'General';
+    var folders=getCustomFolders();
+    var cur=(session.description&&session.description!=='All'&&session.description.trim())?session.description.trim():'Uncategorized';
     var items=folders.map(function(f){return{icon:f===cur?'✓':getFolderIcon(f),label:f,handler:function(){moveSessionToFolder(session,f);}};});
     items.push({separator:true});
     items.push({icon:'➕',label:'Create New Folder…',handler:function(){showNewFolderForm(session);}});
@@ -439,42 +501,36 @@
     }).catch(function(){toast('❌ Failed','err',2000);});
   }
 
-  // ── New Folder Form (inline, no prompt) ───────────────────────
+  // ── New Folder Form (inline) ──────────────────────────────────
   function showNewFolderForm(session) {
-    // Show an inline form in the context menu position
-    var formHtml = '<div style="padding:8px">'
+    if (!_ctxMenu) createContextMenu();
+    var selectedIcon = '📁';
+    _ctxMenu.innerHTML = '<div style="padding:8px">'
       + '<div style="font-size:12px;font-weight:700;color:var(--text-0);margin-bottom:8px">New Folder</div>'
       + '<input id="ctx-new-folder-name" type="text" placeholder="Folder name" style="width:100%;background:var(--bg-0);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text-0);font-size:12px;outline:none;font-family:inherit;margin-bottom:8px">'
       + '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">Choose an icon:</div>'
       + '<div id="ctx-icon-grid" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">'
       + ICON_OPTIONS.map(function(ic,i){
-        return '<button type="button" class="ctx-icon-btn" data-icon="'+ic+'" style="background:'+(i===0?'var(--accent-glow)':'var(--bg-3)')+';border:1px solid '+(i===0?'var(--accent)':'var(--border)')+';border-radius:6px;padding:4px 6px;cursor:pointer;font-size:14px;transition:all .1s">'+ic+'</button>';
+        return '<button type="button" class="ctx-icon-btn" data-icon="'+ic+'" style="background:'+(ic==='📁'?'var(--accent-glow)':'var(--bg-3)')+';border:1px solid '+(ic==='📁'?'var(--accent)':'var(--border)')+';border-radius:6px;padding:4px 6px;cursor:pointer;font-size:14px;transition:all .1s">'+ic+'</button>';
       }).join('')
       + '</div>'
       + '<button id="ctx-create-folder-btn" type="button" style="width:100%;padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Create Folder</button>'
       + '</div>';
-
-    if (!_ctxMenu) createContextMenu();
-    _ctxMenu.innerHTML = formHtml;
     _ctxMenu.style.display = 'block';
     _ctxMenu.style.left = Math.round(window.innerWidth/2-120)+'px';
     _ctxMenu.style.top = Math.round(window.innerHeight/2-150)+'px';
 
-    var selectedIcon = ICON_OPTIONS[0];
     var nameInput = document.getElementById('ctx-new-folder-name');
     if (nameInput) nameInput.focus();
 
-    // Icon selection
     _ctxMenu.querySelectorAll('.ctx-icon-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
         _ctxMenu.querySelectorAll('.ctx-icon-btn').forEach(function(b){b.style.background='var(--bg-3)';b.style.borderColor='var(--border)';});
-        btn.style.background = 'var(--accent-glow)';
-        btn.style.borderColor = 'var(--accent)';
+        btn.style.background = 'var(--accent-glow)'; btn.style.borderColor = 'var(--accent)';
         selectedIcon = btn.dataset.icon;
       });
     });
 
-    // Create button
     var createBtn = document.getElementById('ctx-create-folder-btn');
     if (createBtn) {
       createBtn.addEventListener('click', function() {
@@ -482,8 +538,7 @@
         if (!name) { toast('⚠️ Enter a folder name', 'warn', 1500); return; }
         var folders = getCustomFolders();
         if (folders.indexOf(name) !== -1) { toast('⚠️ Folder already exists', 'warn', 1500); return; }
-        folders.push(name);
-        saveCustomFolders(folders);
+        folders.push(name); saveCustomFolders(folders);
         var icons = getFolderIcons(); icons[name] = selectedIcon; saveFolderIcons(icons);
         toast('📁 Folder "' + name + '" created!', 'ok', 1500);
         hideContextMenu();
@@ -492,7 +547,6 @@
       });
     }
 
-    // Enter key to create
     if (nameInput) {
       nameInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') { e.preventDefault(); var btn = document.getElementById('ctx-create-folder-btn'); if (btn) btn.click(); }
@@ -504,7 +558,7 @@
   // ── Fork ──────────────────────────────────────────────────────
   function forkSessionQuick(session){
     var name='⎇ Fork: '+(session.name||'Chat').slice(0,80);
-    var origFolder=(session.description&&session.description!=='All')?session.description:'General';
+    var origFolder=(session.description&&session.description!=='All'&&session.description.trim())?session.description.trim():'';
     fetch('/api/sessions/'+encodeURIComponent(session.id)+'/branch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})})
     .then(function(r){return r.json();}).then(function(d){
       if(!d.ok){toast('❌ Fork failed','err',2000);return;}
@@ -525,15 +579,14 @@
 
   function syncFoldersFromSessions(sessions){
     var existing=getCustomFolders();var changed=false;
-    sessions.forEach(function(s){var d=(s.description||'').trim();if(d&&d!=='All'&&existing.indexOf(d)===-1){existing.push(d);changed=true;}});
-    if(changed) saveCustomFolders(existing);
+    sessions.forEach(function(s){var d=(s.description||'').trim();if(d&&d!=='All'&&d!=='Uncategorized'&&existing.indexOf(d)===-1){/* auto-detected folders show in tree but not saved as custom */}});
   }
 
   // ── Init ──────────────────────────────────────────────────────
   function init() {
     createContextMenu();
+    initDrawerResizer();
 
-    // New folder button (＋📁)
     var newFolderBtn = document.getElementById('new-folder-btn');
     if (newFolderBtn) {
       newFolderBtn.addEventListener('click', function(e) {
@@ -542,7 +595,6 @@
       });
     }
 
-    // Folder settings button (⚙) — replaces ＋ New chat
     var settingsBtn = document.getElementById('folder-settings-btn');
     if (settingsBtn) {
       settingsBtn.addEventListener('click', function(e) {
@@ -559,30 +611,38 @@
     var folders = getCustomFolders();
     var items = [
       { icon: '➕', label: 'Create New Folder', handler: function() { showNewFolderForm(null); } },
-      { separator: true },
     ];
-    folders.forEach(function(f) {
-      items.push({
-        icon: getFolderIcon(f),
-        label: f + (DEFAULT_FOLDERS.indexOf(f) !== -1 ? ' (default)' : ''),
-        handler: function() {
-          // Show sub-menu with rename/delete for this folder
-          var subItems = [
-            { icon: '✏️', label: 'Rename "' + f + '"', handler: function() {
-              var el = document.querySelector('[data-folder-name="' + f + '"]');
-              if (el) startFolderRename(f, el);
-              else { var newName = window.prompt('Rename "' + f + '" to:', f); if (newName && newName.trim() && newName.trim() !== f) { var fldrs = getCustomFolders(); var idx = fldrs.indexOf(f); if (idx >= 0) fldrs[idx] = newName.trim(); saveCustomFolders(fldrs); var icons = getFolderIcons(); if (icons[f]) { icons[newName.trim()] = icons[f]; delete icons[f]; saveFolderIcons(icons); } toast('📁 Renamed', 'ok', 1500); window.loadChatSessions(); } }
-            }},
-            { icon: '🎨', label: 'Change Icon', handler: function() { showIconPicker(Math.round(window.innerWidth/2), Math.round(window.innerHeight/2), f); } },
-          ];
-          if (DEFAULT_FOLDERS.indexOf(f) === -1) {
-            subItems.push({ separator: true });
-            subItems.push({ icon: '🗑', label: 'Delete Folder', danger: true, handler: function() { deleteFolder(f); } });
+    if (folders.length) {
+      items.push({ separator: true });
+      folders.forEach(function(f) {
+        items.push({
+          icon: getFolderIcon(f),
+          label: f,
+          handler: function() {
+            var subItems = [
+              { icon: '✏️', label: 'Rename "' + f + '"', handler: function() {
+                var newName = window.prompt('Rename "' + f + '" to:', f);
+                if (newName && newName.trim() && newName.trim() !== f) {
+                  var fldrs = getCustomFolders(); var idx = fldrs.indexOf(f);
+                  if (idx >= 0) fldrs[idx] = newName.trim(); saveCustomFolders(fldrs);
+                  var icons = getFolderIcons(); if (icons[f]) { icons[newName.trim()] = icons[f]; delete icons[f]; saveFolderIcons(icons); }
+                  fetch('/api/sessions?limit=200').then(function(r){return r.json();}).then(function(d){
+                    var toUpdate = (d.sessions||[]).filter(function(s){return(s.description||'')===f;});
+                    return Promise.all(toUpdate.map(function(s){
+                      return fetch('/api/sessions/'+encodeURIComponent(s.id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({description:newName.trim()})});
+                    }));
+                  }).then(function(){toast('📁 Renamed','ok',1500);window.loadChatSessions();});
+                }
+              }},
+              { icon: '🎨', label: 'Change Icon', handler: function() { showIconPicker(Math.round(window.innerWidth/2), Math.round(window.innerHeight/2), f); } },
+              { separator: true },
+              { icon: '🗑', label: 'Delete Folder', danger: true, handler: function() { deleteFolder(f); } },
+            ];
+            showContextMenu(x, y, subItems);
           }
-          showContextMenu(x, y, subItems);
-        }
+        });
       });
-    });
+    }
     showContextMenu(x, y, items);
   }
 
