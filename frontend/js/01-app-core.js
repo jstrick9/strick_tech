@@ -4199,15 +4199,23 @@ async function deleteSession(sessionId) {
 }
 
 window.exportSession = function exportSession(sessionId) {
-  toast('📋 Exporting as Markdown…', 'ok', 1000);
-  window.open('/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=markdown');
-  toast('📄 Markdown download started', 'ok', 2000);
+  toast('📋 Exporting as Markdown…', 'ok', 1500);
+  var a = document.createElement('a');
+  a.href = '/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=markdown';
+  a.download = 'chat-export-' + sessionId.slice(0, 8) + '.md';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 };
 
 window.exportSessionJSON = function exportSessionJSON(sessionId) {
-  toast('📄 Exporting as JSON…', 'ok', 1000);
-  window.open('/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=json');
-  toast('📋 JSON download started', 'ok', 2000);
+  toast('📄 Exporting as JSON…', 'ok', 1500);
+  var a = document.createElement('a');
+  a.href = '/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=json';
+  a.download = 'session-' + sessionId.slice(0, 8) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 };
 
 async function branchSession(sessionId) {
