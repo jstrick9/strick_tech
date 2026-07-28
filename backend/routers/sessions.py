@@ -486,7 +486,14 @@ def export_session(session_id: str, fmt: str = 'markdown'):
     name = info_dict.get('name', 'Chat')
 
     if fmt == 'json':
-        return {'session': info_dict, 'messages': [dict(m) for m in msgs]}
+        import json as _json
+        from fastapi.responses import Response
+        content = _json.dumps({'session': info_dict, 'messages': [dict(m) for m in msgs]}, indent=2, default=str)
+        return Response(
+            content=content,
+            media_type='application/json',
+            headers={'Content-Disposition': f'attachment; filename="{name[:40]}.json"'},
+        )
 
     # Markdown export
     lines = [
