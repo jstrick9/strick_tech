@@ -4198,41 +4198,17 @@ async function deleteSession(sessionId) {
   }
 }
 
-window.exportSession = async function exportSession(sessionId) {
-  try {
-    const r = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/export?fmt=markdown`);
-    if (!r.ok) { showToast('Export failed: HTTP '+r.status); return; }
-    const md = await r.text();
-    const blob = new Blob([md], {type: 'text/markdown'});
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `chat-export-${sessionId.slice(0,8)}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('📄 Exported as Markdown');
-  } catch(ex) {
-    showToast('Export error: '+ex?.message);
-  }
-}
+window.exportSession = function exportSession(sessionId) {
+  toast('📋 Exporting as Markdown…', 'ok', 1000);
+  window.open('/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=markdown');
+  toast('📄 Markdown download started', 'ok', 2000);
+};
 
-window.exportSessionJSON = async function exportSessionJSON(sessionId) {
-  try {
-    const r = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/export?fmt=json`);
-    if (!r.ok) { showToast('Export failed: HTTP '+r.status); return; }
-    const d = await r.json();
-    const blob = new Blob([JSON.stringify(d, null, 2)], {type: 'application/json'});
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `session-${sessionId.slice(0,8)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('📋 Exported as JSON');
-  } catch(ex) {
-    showToast('Export error: '+ex?.message);
-  }
-}
+window.exportSessionJSON = function exportSessionJSON(sessionId) {
+  toast('📄 Exporting as JSON…', 'ok', 1000);
+  window.open('/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=json');
+  toast('📋 JSON download started', 'ok', 2000);
+};
 
 async function branchSession(sessionId) {
   const name = await gmPrompt('Branch name:', 'Branched conversation');
