@@ -3498,6 +3498,7 @@ toast = function(msg, type = 'ok', duration = 3000) {
   return _origToast(displayMsg, type, duration);
 };
 window.toast = toast;
+window.showToast = toast;  // Alias: 481 calls across 32 files use showToast
 
 // ── Loading skeleton helpers ──────────────────────────────────────
 function showLoadingSkeleton(containerId, count = 3) {
