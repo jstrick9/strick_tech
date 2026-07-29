@@ -1576,19 +1576,6 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <h3 style="font-size:26px;font-weight:900;letter-spacing:-0.5px;color:var(--text-0)">How can I help you today?</h3>
                 <p style="color:var(--text-2);font-size:15px;max-width:480px;margin:10px auto 0;line-height:1.7">Ask a question, write code, research a topic, or create something. I'm here to help.</p>
                 
-                <!-- Outcome-first launchpad: people can begin useful work before learning AI terminology. -->
-                <section id="mission-launchpad-deck" class="mission-launchpad" aria-label="Get started">
-                  <button type="button" onclick="document.getElementById('mission-launchpad-deck').style.display='none';try{localStorage.setItem('agentic_os_launchpad_hidden','true')}catch(e){}" title="Dismiss getting started" class="btn-3d btn-ghost btn-sm mission-launchpad-dismiss">✕</button>
-                  <p class="mission-launchpad-kicker">ESSENTIALS</p>
-                  <h3>Ready to use AI?</h3>
-                  <p class="mission-launchpad-copy">Connect once, then chat with 140+ models instantly.</p>
-                  <div class="mission-connect-actions" style="display:flex;gap:8px;margin:12px 0">
-                    <button type="button" onclick="if(typeof testOllamaConnection==='function')testOllamaConnection()" class="btn-3d btn-ghost btn-sm" style="padding:8px 16px">🖥️ Use Local AI (Ollama)</button>
-                    <button type="button" onclick="nav('settings');switchSettingsTab('api')" class="btn-3d btn-primary btn-sm" style="padding:8px 16px">☁️ Connect Cloud AI</button>
-                  </div>
-                  <span id="mission-connection-status" class="connection-status checking" style="font-size:12px">Checking your connection…</span>
-                </section>
-                
                 <!-- Quick Actions -->
                 <div style="margin-top:24px;max-width:560px">
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -1612,22 +1599,6 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                       <span class="title">Start from template</span>
                       <span class="desc">One-click deploy a project</span>
                     </div>
-                  </div>
-                </div>
-                
-                <!-- Tips -->
-                <div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center">
-                  <div style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px">
-                    <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">⌘K</kbd> Search everything
-                  </div>
-                  <div style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px">
-                    <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">⌘/</kbd> Focus chat
-                  </div>
-                  <div style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px">
-                    <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">⌘1-6</kbd> Quick nav
-                  </div>
-                  <div style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:4px">
-                    <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">⌘,</kbd> Settings
                   </div>
                 </div>
               </div>

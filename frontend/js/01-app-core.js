@@ -3210,66 +3210,6 @@ renderDashBody = function(d) {
 };
 
 // ── Enhanced chat empty state ──────────────────────────────────────
-(function upgradeChatEmptyState() {
-  const el = document.getElementById('chat-empty');
-  if (!el) { setTimeout(upgradeChatEmptyState, 400); return; }
-  el.innerHTML = `
-    <div style="text-align:center;max-width:440px;padding:24px">
-      <div style="font-size:52px;margin-bottom:16px;opacity:.8">🧠</div>
-      <h2 style="font-size:22px;font-weight:900;letter-spacing:-.025em;color:var(--text-0);margin-bottom:8px">
-        Mission Control
-      </h2>
-      <p style="font-size:14px;color:var(--text-2);line-height:1.7;margin-bottom:20px">
-        Your local-first AI operating system. Chat with specialist agents, build apps, run multi-agent swarms, manage your Memory Galaxy, and deploy — all from here.
-      </p>
-
-      <!-- Quick start for novices -->
-      <div style="background:rgba(91,138,248,.06);border:1px solid rgba(91,138,248,.15);border-radius:16px;padding:16px;margin-bottom:20px;text-align:left">
-        <div style="font-size:11px;font-weight:700;color:var(--accent-hi);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">💡 Quick start</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          ${[
-            ['💬', 'Just chat', 'Ask anything — "explain async/await in Python"'],
-            ['🎬', 'Build an app', 'Go to Studio → pick a template → customize'],
-            ['🌀', 'Run a swarm', 'Multiple AI agents work in parallel on one problem'],
-            ['⚡', 'Run a skill', 'SEO audit, email sequence, code review — one click'],
-          ].map(([icon, label, desc]) =>
-            `<div style="display:flex;gap:10px;align-items:flex-start">
-              <span style="font-size:16px;flex-shrink:0">${icon}</span>
-              <div><div style="font-size:12.5px;font-weight:600;color:var(--text-0)">${label}</div>
-              <div style="font-size:11.5px;color:var(--text-2)">${desc}</div></div>
-            </div>`
-          ).join('')}
-        </div>
-      </div>
-
-      <!-- Command chips -->
-      <div style="display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-bottom:16px">
-        ${[
-          ['/help', 'Show all commands'],
-          ['/goal build a SaaS landing page', 'Plan a goal'],
-          ['/research latest React 19 features', 'Deep research'],
-          ['/code write a dark mode toggle hook', 'Write code'],
-          ['/swarm compare RAG approaches', 'Run swarm'],
-        ].map(([cmd, hint]) =>
-          `<button onclick="insertCmd('${cmd.replace(/'/g,"&#39;")}')" class="cmd-chip" title="${hint}">${cmd.length > 30 ? cmd.slice(0,28)+'…' : cmd}</button>`
-        ).join('')}
-      </div>
-
-      <!-- Agent selector -->
-      <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">Active agent</div>
-      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap" id="quick-agent-select">
-        ${S.agents.slice(0,6).map(a =>
-          `<button onclick="setActiveAgent(${JSON.stringify(a).replace(/"/g,'&quot;')});document.getElementById('chat-empty').style.display='none'"
-            style="display:flex;align-items:center;gap:6px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;transition:var(--transition);font-size:12px;color:var(--text-1)"
-            onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text-0)'"
-            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-1)'">
-            <span>${a.avatar||'🤖'}</span><span>${escHtml(a.name)}</span>
-          </button>`
-        ).join('')}
-      </div>
-    </div>`;
-})();
-
 // ── Pane loading pattern — wrap all async renders ─────────────────
 function withSkeleton(paneId, asyncFn) {
   return async function() {
