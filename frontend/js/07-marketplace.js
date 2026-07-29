@@ -16,6 +16,13 @@ async function renderSteering() {
     fetch('/api/steering/compiled').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({context:'',length:0})),
     fetch('/api/steering/learned/patterns').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({patterns:[]})),
   ]);
+  // NOTE: the ternaries above resolve to `null` (not a rejection) whenever
+  // the response isn't ok (e.g. a transient 429/500), so the trailing
+  // .catch() fallback never fires and these can legitimately be null.
+  // Guard here so property access below never throws.
+  const filesData    = files    || { files: [] };
+  const compiledData = compiled || { context: '', length: 0 };
+  const patternsData = patterns || { patterns: [] };
 
   pane.innerHTML = `
   
@@ -38,20 +45,20 @@ async function renderSteering() {
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
         <span style="font-weight:700;font-size:13px">📡 Compiled Context</span>
         <span style="font-size:11px;color:var(--text-3)">
-          ${compiled.llm_chars||compiled.length||0} chars injected into every prompt
-          ${compiled.truncated_for_llm?'<span style="color:var(--warning)">⚠️ truncated</span>':''}
+          ${compiledData.llm_chars||compiledData.length||0} chars injected into every prompt
+          ${compiledData.truncated_for_llm?'<span style="color:var(--warning)">⚠️ truncated</span>':''}
         </span>
-        <span style="margin-left:auto;font-size:11px;${(compiled.length||0)>0?'color:var(--success)':'color:var(--text-3)'}">
-          ${(compiled.length||0)>0?'✅ Active':'⚠️ No files enabled'}
+        <span style="margin-left:auto;font-size:11px;${(compiledData.length||0)>0?'color:var(--success)':'color:var(--text-3)'}">
+          ${(compiledData.length||0)>0?'✅ Active':'⚠️ No files enabled'}
         </span>
       </div>
-      <div style="padding:12px 16px;max-height:120px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--text-2);white-space:pre-wrap">${escHtml((compiled.context||'').slice(0,800))}${(compiled.length||0)>800?'…':''}</div>
+      <div style="padding:12px 16px;max-height:120px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--text-2);white-space:pre-wrap">${escHtml((compiledData.context||'').slice(0,800))}${(compiledData.length||0)>800?'…':''}</div>
     </div>
 
     <!-- Steering files -->
-    <div style="font-size:13px;font-weight:700;margin-bottom:10px">Steering Files (${(files.files||[]).length})</div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px">Steering Files (${(filesData.files||[]).length})</div>
     <div id="steer-file-list">
-      ${(files.files||[]).map(f=>`
+      ${(filesData.files||[]).map(f=>`
         <div class="steer-card">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
             <button class="steer-toggle ${f.enabled?'on':''}" onclick="steerToggle(${JSON.stringify(f.id)},this)" title="${f.enabled?'Enabled':'Disabled'}"></button>
@@ -69,10 +76,10 @@ async function renderSteering() {
     </div>
 
     <!-- Learned patterns -->
-    ${(patterns.patterns||[]).length ? `
-    <div style="margin-top:20px;font-size:13px;font-weight:700;margin-bottom:10px">🧠 Learned Patterns (${patterns.count||0})</div>
+    ${(patternsData.patterns||[]).length ? `
+    <div style="margin-top:20px;font-size:13px;font-weight:700;margin-bottom:10px">🧠 Learned Patterns (${patternsData.count||0})</div>
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-      ${(patterns.patterns||[]).slice(0,10).map(p=>`
+      ${(patternsData.patterns||[]).slice(0,10).map(p=>`
         <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px">
           <span style="color:var(--text-3);width:140px;flex-shrink:0">${escHtml(p.pattern_key||'')}</span>
           <span style="color:var(--text-1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((p.pattern_val||'').slice(0,80))}</span>

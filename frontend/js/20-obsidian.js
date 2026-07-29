@@ -248,7 +248,7 @@ async function saveQuickNote() {
   const title   = titleEl?.value?.trim();
   const body    = bodyEl?.value?.trim() || '';
   if (!title) { showToast('⚠️ Enter a note title'); return; }
-  const content  = `# ${escHtml(_title)}\n\n${body}`;
+  const content  = `# ${escHtml(title)}\n\n${body}`;
   const filename = title.replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'_') + '.md';
   try {
     const r = await fetch('/api/obsidian/note', {

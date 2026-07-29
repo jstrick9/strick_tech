@@ -1,5 +1,60 @@
 // MCP Gateway — Extracted from 06-sprint-features.js
 (function(S, nav, toast, escHtml, fetch, document) {
+// NOTE: this state/constants block was originally (incorrectly) left in
+// the separate 49-goals.js IIFE, which has its own private closure scope
+// and cannot be seen from here. Moved here since it belongs to this module.
+// ══════════════════════════════════════════════════════════════════
+//  SPRINT C — MCP GATEWAY
+// ══════════════════════════════════════════════════════════════════
+
+
+// ══════════════════════════════════════════════════════════════════
+//  POLICY RULE BUILDER — Complete Implementation
+//  Replaces old renderMCPGateway + all mcg* functions
+// ══════════════════════════════════════════════════════════════════
+
+// ── State ─────────────────────────────────────────────────────────
+let _prbPolicies   = [];    // all loaded policies
+let _prbServers    = [];    // all MCP servers
+let _prbTemplates  = [];    // policy templates
+let _prbFilter     = { action: '', search: '', server: '' };
+let _prbSelected   = null;  // currently editing policy_id
+let _prbTab        = 'rules';  // 'rules' | 'builder' | 'simulator' | 'conflicts' | 'servers'
+let _prbConflicts  = null;  // cached conflict data
+let _prbSimResult  = null;  // last simulation result
+let _prbSelIds     = new Set(); // selected policy IDs for bulk ops
+
+// ── Constants ─────────────────────────────────────────────────────
+const PRB_ACTION_COLORS = {
+  allow:        { bg: 'rgba(61,186,122,.15)',  border: '#3dba7a',  text: '#3dba7a',  icon: '✅' },
+  deny:         { bg: 'rgba(232,82,82,.15)',   border: '#e85252',  text: '#e85252',  icon: '🚫' },
+  require_hitl: { bg: 'rgba(232,162,55,.15)', border: '#e8a237',  text: '#e8a237',  icon: '🛂' },
+};
+const PRB_CATEGORY_COLORS = {
+  Security:          '#e85252',
+  'Agent Scoping':   '#5b8af8',
+  Governance:        '#e8a237',
+  'Privileged Access': '#3dba7a',
+  'Data Protection': '#9d74f5',
+};
+const PRB_AGENTS = [
+  {id:'*',        label:'All Agents (*)'},
+  {id:'researcher', label:'🔍 Researcher'},
+  {id:'builder',    label:'🔨 Builder'},
+  {id:'reviewer',   label:'🔬 Reviewer'},
+  {id:'creative',   label:'✍️  Creative'},
+  {id:'brain',      label:'💡 Brain'},
+  {id:'orchestrator',label:'🎯 Orchestrator'},
+  {id:'memory',     label:'🧠 Memory'},
+  {id:'user',       label:'👤 User'},
+  {id:'guest',      label:'👻 Guest'},
+];
+const PRB_CONFLICT_SEVERITY = {
+  error:   { icon:'❌', color:'#e85252', label:'Conflict' },
+  warning: { icon:'⚠️',  color:'#e8a237', label:'Warning' },
+  info:    { icon:'ℹ️',  color:'#5b8af8', label:'Info' },
+};
+
 async function renderMCPGateway() {
   const pane = document.getElementById('pane-mcp-gateway');
   if (!pane) return;
@@ -955,4 +1010,5 @@ async function mcgDeletePolicy(id) {
 const CONNECTOR_CATEGORY_ICONS = {
   communication:'💬', project_mgmt:'🎫', productivity:'📊',
 };
+window.renderMCPGateway = renderMCPGateway;
 })(S, nav, toast, escHtml, fetch, document);

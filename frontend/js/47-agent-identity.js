@@ -227,53 +227,5 @@ async function identityRotateKeys(agentId) {
 //  Replaces old renderSupervisor + all supervisor* functions
 // ══════════════════════════════════════════════════════════════════
 
-// ── State ─────────────────────────────────────────────────────────
-let _supervisorPollTimer = null;   // live-poll for active runs
-let _dagRuns        = [];          // sidebar run list
-let _dagActiveRun   = null;        // full {run, tasks, edges, waves} from /dag
-let _dagZoom        = 1.0;
-let _dagPanX        = 0;
-let _dagPanY        = 0;
-let _dagPanning     = false;
-let _dagPanStart    = {x:0,y:0,px:0,py:0};
-let _dagSelectedTask = null;       // currently highlighted task_id
-let _dagLiveTimer   = null;        // SSE poll for running runs
-let _dagAnimFrame   = null;        // rAF for animated edges
-
-// ── Constants ──────────────────────────────────────────────────────
-const DAG_AGENT_COLORS = {
-  researcher:   '#5b8af8',
-  builder:      '#3dba7a',
-  reviewer:     '#e8a237',
-  creative:     '#c084fc',
-  memory:       '#38c5d8',
-  brain:        '#9d74f5',
-  orchestrator: '#f06080',
-};
-const DAG_AGENT_ICONS = {
-  researcher:   '🔍',
-  builder:      '🔨',
-  reviewer:     '🔬',
-  creative:     '✍️',
-  memory:       '🧠',
-  brain:        '💡',
-  orchestrator: '🎯',
-};
-const DAG_STATUS_COLORS = {
-  pending:       'rgba(255,255,255,.15)',
-  running:       '#e8a237',
-  done:          '#3dba7a',
-  failed:        '#e85252',
-  killed:        '#7a8aaa',
-  awaiting_hitl: '#c084fc',
-};
-const DAG_STATUS_ICONS = {
-  decomposing:   '🧩', scheduled: '📋', running: '⚡',
-  synthesizing:  '🔀', done: '✅', failed: '❌', killed: '🛑',
-  pending:       '⏳', awaiting_hitl: '🛂',
-};
-const DAG_RUN_STATUS_COLOR = {
-  decomposing:'var(--warning)', scheduled:'var(--accent)', running:'#e8a237',
-  synthesizing:'#9d74f5', done:'var(--success)', failed:'var(--danger)', killed:'var(--text-3)',
-};
+window.renderAgentIdentity = renderAgentIdentity;
 })(S, nav, toast, escHtml, fetch, document);

@@ -190,4 +190,5 @@ async function evalAddCase(suiteId) {
   if (d.ok) renderEvalFramework();
 }
 
+window.renderEvalFramework = renderEvalFramework;
 })(S, nav, toast, escHtml, fetch, document);

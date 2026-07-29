@@ -1,5 +1,47 @@
 // Goals — Extracted from 06-sprint-features.js
 (function(S, nav, toast, escHtml, fetch, document, gmPrompt, gmConfirm, gmAlert) {
+// NOTE: this state/constants block was originally (incorrectly) left in
+// the separate 48-supervisor.js IIFE, which has its own private closure
+// scope and cannot be seen from here. Moved here since it belongs to this
+// module.
+// ══════════════════════════════════════════════════════════════════
+//  GOAL DECOMPOSITION & OUTCOME SCORING — Complete Implementation
+// ══════════════════════════════════════════════════════════════════
+
+// ── State ─────────────────────────────────────────────────────────
+let _goalFilter   = { status: '', domain: '', priority: '' };
+let _goalList     = [];           // cached goal array
+let _goalSelected = null;         // currently open goal detail {goal, milestones, checkins, decomposition, score_history}
+let _goalTab      = 'overview';   // 'overview' | 'decompose' | 'score' | 'history'
+let _goalPollTimer = null;
+
+// ── Constants ──────────────────────────────────────────────────────
+const GOAL_PRIORITY_COLORS = {
+  critical: '#e85252', high: '#e8a237', medium: '#5b8af8', low: '#7a8aaa'
+};
+const GOAL_STATUS_COLORS = {
+  active: '#3dba7a', paused: '#e8a237', done: '#9d74f5',
+  cancelled: '#7a8aaa', blocked: '#e85252'
+};
+const GOAL_DOMAIN_ICONS = {
+  Work:'💼', Health:'🏃', Finance:'💰', Learning:'📚',
+  Home:'🏠', Travel:'✈️', Personal:'⭐', Research:'🔬'
+};
+const GOAL_AGENT_COLORS = {
+  researcher:'#5b8af8', builder:'#3dba7a', reviewer:'#e8a237',
+  creative:'#c084fc', memory:'#38c5d8', brain:'#9d74f5', orchestrator:'#f06080'
+};
+const GOAL_AGENT_ICONS = {
+  researcher:'🔍', builder:'🔨', reviewer:'🔬', creative:'✍️',
+  memory:'🧠', brain:'💡', orchestrator:'🎯'
+};
+const GRADE_COLORS = {
+  'A+':'#3dba7a','A':'#3dba7a','A-':'#5b8af8',
+  'B+':'#5b8af8','B':'#5b8af8','B-':'#e8a237',
+  'C+':'#e8a237','C':'#e8a237','C-':'#e85252',
+  'D':'#e85252','F':'#e85252'
+};
+
 async function renderGoals() {
   const pane = document.getElementById('pane-goals');
   if (!pane) return;
@@ -878,56 +920,5 @@ function goalDomainFilter(domain)       { _goalFilter.domain=_goalFilter.domain=
 function renderGoalCard(g)              { return ''; } // no longer used standalone
 
 
-
-// ══════════════════════════════════════════════════════════════════
-//  SPRINT C — MCP GATEWAY
-// ══════════════════════════════════════════════════════════════════
-
-
-// ══════════════════════════════════════════════════════════════════
-//  POLICY RULE BUILDER — Complete Implementation
-//  Replaces old renderMCPGateway + all mcg* functions
-// ══════════════════════════════════════════════════════════════════
-
-// ── State ─────────────────────────────────────────────────────────
-let _prbPolicies   = [];    // all loaded policies
-let _prbServers    = [];    // all MCP servers
-let _prbTemplates  = [];    // policy templates
-let _prbFilter     = { action: '', search: '', server: '' };
-let _prbSelected   = null;  // currently editing policy_id
-let _prbTab        = 'rules';  // 'rules' | 'builder' | 'simulator' | 'conflicts' | 'servers'
-let _prbConflicts  = null;  // cached conflict data
-let _prbSimResult  = null;  // last simulation result
-let _prbSelIds     = new Set(); // selected policy IDs for bulk ops
-
-// ── Constants ─────────────────────────────────────────────────────
-const PRB_ACTION_COLORS = {
-  allow:        { bg: 'rgba(61,186,122,.15)',  border: '#3dba7a',  text: '#3dba7a',  icon: '✅' },
-  deny:         { bg: 'rgba(232,82,82,.15)',   border: '#e85252',  text: '#e85252',  icon: '🚫' },
-  require_hitl: { bg: 'rgba(232,162,55,.15)', border: '#e8a237',  text: '#e8a237',  icon: '🛂' },
-};
-const PRB_CATEGORY_COLORS = {
-  Security:          '#e85252',
-  'Agent Scoping':   '#5b8af8',
-  Governance:        '#e8a237',
-  'Privileged Access': '#3dba7a',
-  'Data Protection': '#9d74f5',
-};
-const PRB_AGENTS = [
-  {id:'*',        label:'All Agents (*)'},
-  {id:'researcher', label:'🔍 Researcher'},
-  {id:'builder',    label:'🔨 Builder'},
-  {id:'reviewer',   label:'🔬 Reviewer'},
-  {id:'creative',   label:'✍️  Creative'},
-  {id:'brain',      label:'💡 Brain'},
-  {id:'orchestrator',label:'🎯 Orchestrator'},
-  {id:'memory',     label:'🧠 Memory'},
-  {id:'user',       label:'👤 User'},
-  {id:'guest',      label:'👻 Guest'},
-];
-const PRB_CONFLICT_SEVERITY = {
-  error:   { icon:'❌', color:'#e85252', label:'Conflict' },
-  warning: { icon:'⚠️',  color:'#e8a237', label:'Warning' },
-  info:    { icon:'ℹ️',  color:'#5b8af8', label:'Info' },
-};
+window.renderGoals = renderGoals;
 })(S, nav, toast, escHtml, fetch, document, gmPrompt, gmConfirm, gmAlert);

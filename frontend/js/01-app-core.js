@@ -4637,8 +4637,13 @@ function _disabled__s7NavBase(pane) {
 }
 
 // ── Updated Deploy panel — add new providers ──────────────────────
-const _origRenderDeploy = renderDeploy;
-renderDeploy = async function() {
+// NOTE: renderDeploy's base implementation lives in the deferred
+// 35-deploy.js, which has NOT loaded yet when this (non-deferred) script
+// runs. Referencing the bare identifier `renderDeploy` here throws an
+// uncaught ReferenceError that aborts ALL remaining top-level code in this
+// file (including window.openProfilePanel further down). Assign directly to
+// window instead of reading/reassigning the undeclared global.
+window.renderDeploy = async function() {
   const pane = document.getElementById('pane-deploy');
   if (!pane) return;
   let statusData = {};
@@ -5826,9 +5831,9 @@ if (typeof PALETTE_CMDS !== 'undefined') {
   const _s13 = window.nav || function(){};
   window.nav = function(pane) {
     _s13(pane);
-    if (pane === 'prompts')    renderPrompts?.();
-    if (pane === 'codesearch') renderCodeSearch?.();
-    showSmartSuggestionsForPane?.(pane);
+    if (typeof window.renderPrompts === 'function' && pane === 'prompts') window.renderPrompts();
+    if (typeof window.renderCodeSearch === 'function' && pane === 'codesearch') window.renderCodeSearch();
+    if (typeof window.showSmartSuggestionsForPane === 'function') window.showSmartSuggestionsForPane(pane);
   };
 })();
 

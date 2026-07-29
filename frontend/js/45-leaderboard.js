@@ -415,42 +415,5 @@ async function lbSeedData() {
 // ══════════════════════════════════════════════════════════════════
 
 // ── State ──────────────────────────────────────────────────────────
-let _crcTab          = 'dashboard';   // dashboard | generate | history | audit
-let _crcReports      = [];
-let _crcSummary      = null;
-let _crcAuditEntries = [];
-let _crcAuditTotal   = 0;
-let _crcAuditFilter  = { risk:'', outcome:'', agent:'' };
-let _crcGenerating   = false;
-let _crcSelectedFw   = 'General';
-let _crcSelectedFmt  = 'pdf';
-let _crcScope        = {
-  audit_chain: true, hitl: true, policies: true,
-  agent_identity: true, connectors: true, cost: true, supervisor: true,
-};
-
-// ── Constants ───────────────────────────────────────────────────────
-const CRC_FRAMEWORKS = [
-  { id:'General',  name:'General Audit',  icon:'📋', desc:'Comprehensive governance review' },
-  { id:'SOC2',     name:'SOC 2 Type II',  icon:'🛡️',  desc:'Security, Availability, Processing Integrity' },
-  { id:'GDPR',     name:'GDPR',           icon:'🇪🇺', desc:'Art. 30 records, Art. 32 security measures' },
-  { id:'HIPAA',    name:'HIPAA',          icon:'🏥', desc:'§164.312 technical safeguards & audit controls' },
-  { id:'FINRA',    name:'FINRA',          icon:'📈', desc:'Rule 4370, Rule 17a-4 record retention' },
-  { id:'ISO27001', name:'ISO/IEC 27001',  icon:'🔏', desc:'Annex A technology & organizational controls' },
-];
-const CRC_SECTIONS = [
-  { key:'audit_chain',    label:'Audit Chain',      icon:'🔗' },
-  { key:'hitl',           label:'HITL Approvals',   icon:'🛂' },
-  { key:'policies',       label:'Policy Enforcement',icon:'📋' },
-  { key:'agent_identity', label:'Agent Identity',   icon:'🪪' },
-  { key:'connectors',     label:'Connector Calls',  icon:'🔌' },
-  { key:'cost',           label:'Cost & Tokens',    icon:'💰' },
-  { key:'supervisor',     label:'Supervisor Runs',  icon:'🧠' },
-];
-const CRC_RISK_COLORS = {
-  low:'var(--success)', medium:'var(--warning)', high:'var(--danger)', critical:'#e85252'
-};
-const CRC_OUTCOME_ICONS = {
-  success:'✅', failure:'❌', blocked:'🚫', pending:'⏳'
-};
+window.renderLeaderboard = renderLeaderboard;
 })(S, nav, toast, escHtml, fetch, document);
