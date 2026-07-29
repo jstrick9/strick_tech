@@ -323,16 +323,14 @@
     }
   }
 
-  // ── Create Custom Template ─────────────────────────────────────
-  window.showCreateTemplateForm = function() {
-    var name = prompt('Template name:');
+  // ── Create Custom Template (uses gmPrompt for Tauri compat) ──
+  window.showCreateTemplateForm = async function() {
+    var name = await gmPrompt('Template name:', 'My Template');
     if (!name || !name.trim()) return;
-    var description = prompt('Description (what does this template build?):', '');
-    var category = prompt('Category (e.g. apps, saas, portfolio, marketing):', 'custom');
-    var promptText = prompt('Chat prompt (what gets inserted into chat input):', 'Build a ' + name.trim());
-    var emoji = prompt('Emoji icon:', '📄');
-
-    if (!name.trim()) return;
+    var description = await gmPrompt('Description:', 'What does this template build?');
+    var category = await gmPrompt('Category:', 'custom');
+    var promptText = await gmPrompt('Chat prompt:', 'Build a ' + name.trim());
+    var emoji = await gmPrompt('Emoji icon:', '📄');
 
     var id = 'custom-' + Date.now();
     var newTemplate = {
@@ -354,17 +352,17 @@
     renderTemplates();
   };
 
-  // ── Edit Custom Template ───────────────────────────────────────
-  window.showEditTemplateForm = function(t) {
-    var name = prompt('Template name:', t.name || '');
+  // ── Edit Custom Template (uses gmPrompt for Tauri compat) ─────
+  window.showEditTemplateForm = async function(t) {
+    var name = await gmPrompt('Template name:', t.name || '');
     if (name === null) return;
-    var description = prompt('Description:', t.description || '');
+    var description = await gmPrompt('Description:', t.description || '');
     if (description === null) return;
-    var category = prompt('Category:', t.category || 'custom');
+    var category = await gmPrompt('Category:', t.category || 'custom');
     if (category === null) return;
-    var promptText = prompt('Chat prompt:', t.prompt || '');
+    var promptText = await gmPrompt('Chat prompt:', t.prompt || '');
     if (promptText === null) return;
-    var emoji = prompt('Emoji icon:', t.emoji || '📄');
+    var emoji = await gmPrompt('Emoji icon:', t.emoji || '📄');
     if (emoji === null) return;
 
     var customs = getCustomTemplates();
