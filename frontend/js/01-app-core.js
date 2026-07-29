@@ -950,13 +950,16 @@ async function saveFile() {
 }
 
 async function commitFile() {
-  const r = await fetch('/api/preview/commit', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ path: S.currentFile, author: 'user', message: 'manual checkpoint' })
-  });
-  const j = await r.json();
-  if (j.ok) toast(`📸 Committed v${j.version_id}`, 'ok');
+  try {
+    const r = await fetch('/api/preview/commit', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ path: S.currentFile, author: 'user', message: 'manual checkpoint' })
+    });
+    const j = await r.json();
+    if (j.ok) toast('📸 Committed v' + j.version_id, 'ok');
+    else toast('Commit failed: ' + (j.error || 'Unknown'), 'err');
+  } catch(e) { toast('Commit error: ' + e.message, 'err'); }
 }
 
 function switchBuilderTab(tab) {
@@ -981,15 +984,17 @@ function openPreviewBlank() {
 }
 
 async function loadDiffVersions() {
-  if (!S.fileVersions.length && S.currentFile) {
-    const r = await fetch('/api/preview/history?path=' + encodeURIComponent(S.currentFile));
-    S.fileVersions = await r.json();
-    const sel = document.getElementById('diff-version-sel');
-    if (sel) {
-      sel.innerHTML = '<option value="">Select version…</option>' +
-        S.fileVersions.map(v => `<option value="${v.id}">v${v.id} — ${v.ts}</option>`).join('');
+  try {
+    if (!S.fileVersions.length && S.currentFile) {
+      const r = await fetch('/api/preview/history?path=' + encodeURIComponent(S.currentFile));
+      S.fileVersions = await r.json();
+      const sel = document.getElementById('diff-version-sel');
+      if (sel) {
+        sel.innerHTML = '<option value="">Select version…</option>' +
+          S.fileVersions.map(v => '<option value="' + v.id + '">v' + v.id + ' — ' + v.ts + '</option>').join('');
+      }
     }
-  }
+  } catch(e) { toast('Failed to load versions: ' + e.message, 'err'); }
 }
 
 async function loadDiff() {
@@ -1959,19 +1964,9 @@ window.deleteChatSession = async function(e, sid) {
 
 window.renameChatSessionModal = async function(e, sid, oldName, oldFolder) {
   if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-  let newName = null;
-  if (typeof window.gmPrompt === 'function') {
-    newName = await window.gmPrompt('Rename Chat Conversation', 'Enter a new title for this chat:', oldName || '');
-  } else {
-    newName = prompt('Enter a new name for this chat:', oldName || '');
-  }
+  const newName = await gmPrompt('Rename Chat Conversation', 'Enter a new title for this chat:', oldName || '');
   if (newName === null || !newName.trim()) return;
-  let newFolder = null;
-  if (typeof window.gmPrompt === 'function') {
-    newFolder = await window.gmPrompt('Move to Folder / Category', 'Enter folder name (General, Engineering, Research, Ideas...):', oldFolder || 'General');
-  } else {
-    newFolder = prompt('Enter folder/category (General, Engineering, Research, Ideas...):', oldFolder || 'General');
-  }
+  const newFolder = await gmPrompt('Move to Folder / Category', 'Enter folder name:', oldFolder || 'General');
   if (newFolder === null || !newFolder.trim()) return;
   try {
     toast('✏️ Updating chat...', 'ok', 1000);
@@ -2379,10 +2374,12 @@ async function checkKeyStatus() {
 }
 
 async function doBackup() {
-  const r = await fetch('/api/backup', {method:'POST'});
-  const j = await r.json();
-  if (j.ok) toast(`💾 Backup created: ${j.path?.split('/').pop()}`, 'ok');
-  else toast('Backup failed: ' + (j.error||''), 'err');
+  try {
+    const r = await fetch('/api/backup', {method:'POST'});
+    const j = await r.json();
+    if (j.ok) toast('💾 Backup created: ' + (j.path||'').split('/').pop(), 'ok');
+    else toast('Backup failed: ' + (j.error||''), 'err');
+  } catch(e) { toast('Backup error: ' + e.message, 'err'); }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────
