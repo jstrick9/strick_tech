@@ -2,7 +2,7 @@
  * Agentic OS — Service Worker
  * Enables PWA installation, offline support, and background sync.
  */
-const CACHE_VERSION = 'agentic-v6-s18';
+const CACHE_VERSION = 'agentic-v12-s1';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_API     = `${CACHE_VERSION}-api`;
 
