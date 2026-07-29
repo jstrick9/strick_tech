@@ -1103,6 +1103,35 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   DRAG & DROP FILE ATTACHMENT OVERLAY
+   Hidden by default — only shown while dragging files over the
+   content area (toggled via the .active class in JS). Without
+   this rule the overlay div falls back to browser default
+   display:block and stays permanently visible as plain text
+   pinned near the bottom of every pane.
+   ═══════════════════════════════════════════════════════════ */
+.dropzone-overlay {
+  display: none;
+  position: fixed;
+  inset: 16px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: color-mix(in srgb, var(--bg-0) 82%, transparent);
+  border: 2px dashed var(--accent);
+  border-radius: 12px;
+  color: var(--text-0);
+  font-size: 16px;
+  font-weight: 750;
+  z-index: 12000;
+  pointer-events: none;
+  backdrop-filter: blur(3px);
+}
+.dropzone-overlay.active {
+  display: flex;
+}
+
+/* ═══════════════════════════════════════════════════════════
    STATUS BAR — Always visible at bottom
    ═══════════════════════════════════════════════════════════ */
 #statusbar {
