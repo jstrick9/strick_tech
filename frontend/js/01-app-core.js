@@ -5859,6 +5859,154 @@ window.gmPrompt = gmPrompt;
 window.gmDanger = gmDanger;
 window.escHtml = escHtml;
 
+
+// ═══════════════════════════════════════════════════════════════
+//  PROFILE PANEL — slide-out panel for user profile management
+// ═══════════════════════════════════════════════════════════════
+
+window.openProfilePanel = async function() {
+  // Remove existing panel if open
+  var existing = document.getElementById('profile-panel');
+  if (existing) { existing.remove(); return; }
+
+  // Load profile data
+  var profile = {};
+  try {
+    var r = await fetch('/api/profile');
+    if (r.ok) profile = await r.json();
+  } catch(e) {}
+
+  var panel = document.createElement('div');
+  panel.id = 'profile-panel';
+  panel.style.cssText = 'position:fixed;top:var(--topbar-h);right:0;width:360px;height:calc(100vh - var(--topbar-h));background:var(--bg-1);border-left:1px solid var(--border);z-index:500;display:flex;flex-direction:column;overflow:hidden;box-shadow:-8px 0 32px rgba(0,0,0,.3);animation:slideInRight .2s ease';
+
+  var avatarEmojis = ['👤','🧑‍💻','👨‍💻','👩‍💻','🤖','🧠','⚡','🔧','🎨','📊','🧪','💡','🚀','🌟','🦄','🐉','🦊','🐱','🐶','🦉'];
+  var roles = ['developer','analyst','writer','designer','manager','student'];
+  var skillLevels = ['beginner','intermediate','advanced','expert'];
+
+  panel.innerHTML = ''
+    + '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">'
+    + '<span style="font-size:15px;font-weight:800;color:var(--text-0)">👤 Your Profile</span>'
+    + '<button onclick="document.getElementById(\u0027profile-panel\u0027).remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:18px">✕</button>'
+    + '</div>'
+    + '<div style="flex:1;overflow-y:auto;padding:20px">'
+    
+    // Avatar
+    + '<div style="text-align:center;margin-bottom:20px">'
+    + '<div id="profile-avatar-display" style="font-size:48px;margin-bottom:8px">' + (profile.avatar || '👤') + '</div>'
+    + '<div id="profile-avatar-picker" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;max-width:280px;margin:0 auto"></div>'
+    + '</div>'
+    
+    // Name
+    + '<div style="margin-bottom:14px">'
+    + '<label style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Display Name</label>'
+    + '<input id="profile-name" type="text" value="' + escHtml(profile.name || '') + '" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:13px;outline:none;font-family:inherit">'
+    + '</div>'
+    
+    // Email
+    + '<div style="margin-bottom:14px">'
+    + '<label style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Email</label>'
+    + '<input id="profile-email" type="email" value="' + escHtml(profile.email || '') + '" placeholder="your@email.com" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:13px;outline:none;font-family:inherit">'
+    + '</div>'
+    
+    // Role
+    + '<div style="margin-bottom:14px">'
+    + '<label style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Role</label>'
+    + '<select id="profile-role" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:13px;outline:none;cursor:pointer">'
+    + roles.map(function(r) { return '<option value="' + r + '"' + (profile.role === r ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>'; }).join('')
+    + '</select></div>'
+    
+    // Skill Level
+    + '<div style="margin-bottom:14px">'
+    + '<label style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Skill Level</label>'
+    + '<select id="profile-skill" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:13px;outline:none;cursor:pointer">'
+    + skillLevels.map(function(s) { return '<option value="' + s + '"' + (profile.skill_level === s ? ' selected' : '') + '>' + s.charAt(0).toUpperCase() + s.slice(1) + '</option>'; }).join('')
+    + '</select></div>'
+    
+    // Notifications
+    + '<div style="margin-bottom:14px">'
+    + '<label style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px">Notifications</label>'
+    + '<div style="display:flex;flex-direction:column;gap:6px">'
+    + makeNotifToggle('agent_complete', 'Agent completes task', profile.notifications?.agent_complete !== false)
+    + makeNotifToggle('hitl_interrupt', 'Human review needed', profile.notifications?.hitl_interrupt !== false)
+    + makeNotifToggle('daily_summary', 'Daily summary email', profile.notifications?.daily_summary === true)
+    + makeNotifToggle('sound', 'Sound effects', profile.notifications?.sound !== false)
+    + '</div></div>'
+    
+    // Stats
+    + '<div style="margin-bottom:14px">'
+    + '<label style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px">Account</label>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    + '<div style="background:var(--bg-2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--text-0)">' + (profile.created_at ? new Date(profile.created_at).toLocaleDateString() : '—') + '</div><div style="font-size:10px;color:var(--text-3)">Joined</div></div>'
+    + '<div style="background:var(--bg-2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--text-0)">' + (profile.onboarding_done ? '✅' : '⏳') + '</div><div style="font-size:10px;color:var(--text-3)">Onboarding</div></div>'
+    + '</div></div>'
+    
+    // Save button
+    + '<button id="profile-save-btn" style="width:100%;padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px">💾 Save Profile</button>'
+    
+    + '</div>';
+
+  document.body.appendChild(panel);
+
+  // Render avatar picker
+  var picker = document.getElementById('profile-avatar-picker');
+  if (picker) {
+    avatarEmojis.forEach(function(emoji) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = emoji;
+      btn.style.cssText = 'width:32px;height:32px;border-radius:8px;background:var(--bg-3);border:2px solid ' + ((profile.avatar || '👤') === emoji ? 'var(--accent)' : 'transparent') + ';cursor:pointer;font-size:16px;transition:all .1s';
+      btn.addEventListener('click', function() {
+        picker.querySelectorAll('button').forEach(function(b) { b.style.borderColor = 'transparent'; });
+        btn.style.borderColor = 'var(--accent)';
+        document.getElementById('profile-avatar-display').textContent = emoji;
+      });
+      picker.appendChild(btn);
+    });
+  }
+
+  // Save button handler
+  document.getElementById('profile-save-btn').addEventListener('click', async function() {
+    var name = document.getElementById('profile-name').value.trim();
+    var email = document.getElementById('profile-email').value.trim();
+    var role = document.getElementById('profile-role').value;
+    var skill = document.getElementById('profile-skill').value;
+    var avatar = document.getElementById('profile-avatar-display').textContent;
+
+    var notifs = {};
+    document.querySelectorAll('.profile-notif-toggle').forEach(function(toggle) {
+      notifs[toggle.dataset.key] = toggle.checked;
+    });
+
+    try {
+      var r = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, email: email, role: role, skill_level: skill, avatar: avatar, notifications: notifs })
+      });
+      var j = await r.json();
+      if (j.ok) {
+        toast('✅ Profile saved!', 'ok', 2000);
+        // Update topbar avatar
+        var topbarAvatar = document.getElementById('topbar-user-avatar');
+        if (topbarAvatar) topbarAvatar.textContent = avatar;
+        panel.remove();
+      } else {
+        toast('❌ Save failed: ' + (j.error || 'Unknown'), 'err', 3000);
+      }
+    } catch(e) { toast('❌ Save error: ' + e.message, 'err', 3000); }
+  });
+};
+
+function makeNotifToggle(key, label, checked) {
+  return '<label style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;cursor:pointer">'
+    + '<span style="font-size:12.5px;color:var(--text-1)">' + label + '</span>'
+    + '<input type="checkbox" class="profile-notif-toggle" data-key="' + key + '"' + (checked ? ' checked' : '') + ' style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">'
+    + '</label>';
+}
+
+
+
 // ── Loop count badge updater ──────────────────────────────────────
 setInterval(async () => {
   try {
