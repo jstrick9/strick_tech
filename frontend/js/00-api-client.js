@@ -2,20 +2,18 @@
 // Keeps request headers, secure-mode token handling, JSON parsing, and errors
 // in one place while legacy feature modules migrate incrementally.
 'use strict';
-// Safe localStorage wrapper (private browsing / quota exceeded)
-const _safeLS = {
-  get: (k) => { try { return _safeLS.get(k); } catch { return null; } },
-  set: (k, v) => { try { _safeLS.set(k, v); } catch {} },
-  rm: (k) => { try { _safeLS.rm(k); } catch {} },
-};
-
+// NOTE: _safeLS is declared once in 00-store.js (loaded before this file) and
+// is available here via the shared top-level script scope. Do not redeclare
+// it — a duplicate `const _safeLS` in a later <script> tag throws a
+// SyntaxError ("Identifier '_safeLS' has already been declared") which
+// aborts this entire file, silently killing window.AgenticAPI.
 
 (function() {
   const TOKEN_KEY = 'agentic_os_auth_token';
 
   function authHeaders(headers) {
     const out = Object.assign({}, headers || {});
-    const token = window._safeLS.get(TOKEN_KEY);
+    const token = _safeLS.get(TOKEN_KEY);
     if (token && !out.Authorization) out.Authorization = `Bearer ${token}`;
     return out;
   }

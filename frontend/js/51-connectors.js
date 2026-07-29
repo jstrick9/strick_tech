@@ -1,5 +1,12 @@
 // Connectors — Extracted from 06-sprint-features.js
 (function(S, nav, toast, escHtml, fetch, document) {
+// NOTE: CONNECTOR_CATEGORY_ICONS was originally only defined inside the
+// separate 50-mcp-gateway.js IIFE and is not visible here — each of these
+// extracted modules has its own private closure scope. Define our own copy.
+const CONNECTOR_CATEGORY_ICONS = {
+  communication:'💬', project_mgmt:'🎫', productivity:'📊',
+};
+
 async function renderConnectors() {
   const pane = document.getElementById('pane-connectors');
   if (!pane) return;
@@ -159,4 +166,5 @@ async function connectorRegister() {
 
 // ══════════════════════════════════════════════════════════════════
 //  A2A PROTOCOL — Agent-to-Agent Network
+window.renderConnectors = renderConnectors;
 })(S, nav, toast, escHtml, fetch, document);

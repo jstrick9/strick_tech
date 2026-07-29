@@ -53,24 +53,30 @@
   const _base = window.nav || function(){};
   window.nav = function masterNav18(pane) {
     _base(pane);
-    if (pane==='fusion')        renderFusion?.();
-    if (pane==='hitl')          renderHITL?.();
-    if (pane==='browser')       renderBrowserAgent?.();
-    if (pane==='websearch')     renderWebSearch?.();
-    if (pane==='leaderboard')   renderLeaderboard?.();
-    if (pane==='audit-log')     renderAuditLog?.();
-    if (pane==='agent-identity')renderAgentIdentity?.();
-    if (pane==='supervisor')    renderSupervisor?.();
-    if (pane==='goals')         renderGoals?.();
-    if (pane==='mcp-gateway')   renderMCPGateway?.();
-    if (pane==='connectors')    renderConnectors?.();
-    if (pane==='agent-monitor') renderAgentMonitor?.();
-    if (pane==='finops')        renderFinOps?.();
-    if (pane==='eval-framework')renderEvalFramework?.();
-    if (pane==='a2a')           renderA2A?.();
+    // NOTE: renderFusion/renderHITL/etc. are defined in separate IIFE-wrapped
+    // modules and only exposed via `window.render...`. Calling the bare
+    // (undeclared) identifier with `?.()` still throws a ReferenceError —
+    // optional chaining only guards null/undefined, not "not defined".
+    // Always go through `window.` + `typeof` checks.
+    if (pane==='fusion'         && typeof window.renderFusion === 'function')        window.renderFusion();
+    if (pane==='hitl'           && typeof window.renderHITL === 'function')          window.renderHITL();
+    if (pane==='browser'        && typeof window.renderBrowserAgent === 'function')  window.renderBrowserAgent();
+    if (pane==='websearch'      && typeof window.renderWebSearch === 'function')     window.renderWebSearch();
+    if (pane==='leaderboard'    && typeof window.renderLeaderboard === 'function')   window.renderLeaderboard();
+    if (pane==='audit-log'      && typeof window.renderAuditLog === 'function')      window.renderAuditLog();
+    if (pane==='agent-identity' && typeof window.renderAgentIdentity === 'function') window.renderAgentIdentity();
+    if (pane==='supervisor'     && typeof window.renderSupervisor === 'function')    window.renderSupervisor();
+    if (pane==='goals'          && typeof window.renderGoals === 'function')         window.renderGoals();
+    if (pane==='mcp-gateway'    && typeof window.renderMCPGateway === 'function')    window.renderMCPGateway();
+    if (pane==='connectors'     && typeof window.renderConnectors === 'function')    window.renderConnectors();
+    if (pane==='agent-monitor'  && typeof window.renderAgentMonitor === 'function')  window.renderAgentMonitor();
+    if (pane==='finops'         && typeof window.renderFinOps === 'function')        window.renderFinOps();
+    if (pane==='eval-framework' && typeof window.renderEvalFramework === 'function') window.renderEvalFramework();
+    if (pane==='a2a'            && typeof window.renderA2A === 'function')           window.renderA2A();
   };
   console.debug('%c✅ Sprint A+B+C+D features loaded', 'color:#3dba7a');
 })();
+
 
 // HITL WebSocket listener
 (function listenForHITL() {

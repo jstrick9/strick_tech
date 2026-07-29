@@ -3,13 +3,9 @@
 
 
 'use strict';
-// Safe localStorage wrapper (private browsing / quota exceeded)
-const _safeLS = {
-  get: (k) => { try { return _safeLS.get(k); } catch { return null; } },
-  set: (k, v) => { try { _safeLS.set(k, v); } catch {} },
-  rm: (k) => { try { _safeLS.rm(k); } catch {} },
-};
-
+// NOTE: _safeLS is declared once in 00-store.js (loaded before this file).
+// Do not redeclare it here — a duplicate top-level `const _safeLS` throws a
+// SyntaxError that aborts this entire file at load time.
 
 // ══════════════════════════════════════════════════════════════════
 //  EXECUTION REPLAY — frame-by-frame workflow scrubber

@@ -1722,11 +1722,11 @@ async function sdkNewPack() {
 }
 
 async function sdkSelectPack(packId) {
+  const area = document.getElementById('sdk-editor-area');
   try {
     const r = await fetch(`/api/pluginsdk/packs/${encodeURIComponent(packId)}`);
     _sdkCurrentPack = await r.json();
     
-    const area = document.getElementById('sdk-editor-area');
     if (!area) return;
     
     const pack = _sdkCurrentPack;
@@ -1977,7 +1977,7 @@ async function mtLoadTabs() {
     mtRenderTabs();
     const active = _mtTabs.find(t => t.active) || _mtTabs[0];
     if (active) mtActivateTab(active.id, false);
-  } catch(e) { log && console.warn('mtLoadTabs:', e.message); }
+  } catch(e) { console.warn('mtLoadTabs:', e.message); }
 }
 
 function mtRenderTabs() {

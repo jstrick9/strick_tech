@@ -1,5 +1,59 @@
 // Supervisor — Extracted from 06-sprint-features.js
 (function(S, nav, toast, escHtml, fetch, document) {
+// ── State ─────────────────────────────────────────────────────────
+// NOTE: these were originally (incorrectly) declared in the separate
+// 47-agent-identity.js IIFE, which has its own private closure scope and
+// cannot be seen from here. Moved to this file since they belong to the
+// DAG visualizer used by renderSupervisor below.
+let _supervisorPollTimer = null;   // live-poll for active runs
+let _dagRuns        = [];          // sidebar run list
+let _dagActiveRun   = null;        // full {run, tasks, edges, waves} from /dag
+let _dagZoom        = 1.0;
+let _dagPanX        = 0;
+let _dagPanY        = 0;
+let _dagPanning     = false;
+let _dagPanStart    = {x:0,y:0,px:0,py:0};
+let _dagSelectedTask = null;       // currently highlighted task_id
+let _dagLiveTimer   = null;        // SSE poll for running runs
+let _dagAnimFrame   = null;        // rAF for animated edges
+
+// ── Constants ──────────────────────────────────────────────────────
+const DAG_AGENT_COLORS = {
+  researcher:   '#5b8af8',
+  builder:      '#3dba7a',
+  reviewer:     '#e8a237',
+  creative:     '#c084fc',
+  memory:       '#38c5d8',
+  brain:        '#9d74f5',
+  orchestrator: '#f06080',
+};
+const DAG_AGENT_ICONS = {
+  researcher:   '🔍',
+  builder:      '🔨',
+  reviewer:     '🔬',
+  creative:     '✍️',
+  memory:       '🧠',
+  brain:        '💡',
+  orchestrator: '🎯',
+};
+const DAG_STATUS_COLORS = {
+  pending:       'rgba(255,255,255,.15)',
+  running:       '#e8a237',
+  done:          '#3dba7a',
+  failed:        '#e85252',
+  killed:        '#7a8aaa',
+  awaiting_hitl: '#c084fc',
+};
+const DAG_STATUS_ICONS = {
+  decomposing:   '🧩', scheduled: '📋', running: '⚡',
+  synthesizing:  '🔀', done: '✅', failed: '❌', killed: '🛑',
+  pending:       '⏳', awaiting_hitl: '🛂',
+};
+const DAG_RUN_STATUS_COLOR = {
+  decomposing:'var(--warning)', scheduled:'var(--accent)', running:'#e8a237',
+  synthesizing:'#9d74f5', done:'var(--success)', failed:'var(--danger)', killed:'var(--text-3)',
+};
+
 async function renderSupervisor() {
   const pane = document.getElementById('pane-supervisor');
   if (!pane) return;
@@ -982,43 +1036,5 @@ async function supervisorDelete(runId) {
 function renderSupervisorRunCard(r) { return ''; } // no longer used
 
 
-
-
-// ══════════════════════════════════════════════════════════════════
-//  GOAL DECOMPOSITION & OUTCOME SCORING — Complete Implementation
-// ══════════════════════════════════════════════════════════════════
-
-// ── State ─────────────────────────────────────────────────────────
-let _goalFilter   = { status: '', domain: '', priority: '' };
-let _goalList     = [];           // cached goal array
-let _goalSelected = null;         // currently open goal detail {goal, milestones, checkins, decomposition, score_history}
-let _goalTab      = 'overview';   // 'overview' | 'decompose' | 'score' | 'history'
-let _goalPollTimer = null;
-
-// ── Constants ──────────────────────────────────────────────────────
-const GOAL_PRIORITY_COLORS = {
-  critical: '#e85252', high: '#e8a237', medium: '#5b8af8', low: '#7a8aaa'
-};
-const GOAL_STATUS_COLORS = {
-  active: '#3dba7a', paused: '#e8a237', done: '#9d74f5',
-  cancelled: '#7a8aaa', blocked: '#e85252'
-};
-const GOAL_DOMAIN_ICONS = {
-  Work:'💼', Health:'🏃', Finance:'💰', Learning:'📚',
-  Home:'🏠', Travel:'✈️', Personal:'⭐', Research:'🔬'
-};
-const GOAL_AGENT_COLORS = {
-  researcher:'#5b8af8', builder:'#3dba7a', reviewer:'#e8a237',
-  creative:'#c084fc', memory:'#38c5d8', brain:'#9d74f5', orchestrator:'#f06080'
-};
-const GOAL_AGENT_ICONS = {
-  researcher:'🔍', builder:'🔨', reviewer:'🔬', creative:'✍️',
-  memory:'🧠', brain:'💡', orchestrator:'🎯'
-};
-const GRADE_COLORS = {
-  'A+':'#3dba7a','A':'#3dba7a','A-':'#5b8af8',
-  'B+':'#5b8af8','B':'#5b8af8','B-':'#e8a237',
-  'C+':'#e8a237','C':'#e8a237','C-':'#e85252',
-  'D':'#e85252','F':'#e85252'
-};
+window.renderSupervisor = renderSupervisor;
 })(S, nav, toast, escHtml, fetch, document);

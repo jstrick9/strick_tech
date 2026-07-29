@@ -407,4 +407,5 @@ async function fusionSubagent() {
 }
 
 
+window.renderFusion = renderFusion;
 })(S, nav, toast, escHtml, fetch, document);

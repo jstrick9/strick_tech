@@ -1,5 +1,58 @@
 // Agent Monitor — Extracted from 06-sprint-features.js
 (function(S, nav, toast, escHtml, fetch, document) {
+// ── State ─────────────────────────────────────────────────────────
+// NOTE: this state/constants block was originally (incorrectly) left in the
+// separate 52-a2a.js IIFE, which has its own private closure scope and
+// cannot be seen from here. Moved here since it belongs to this module.
+let _monitorPoll    = null;    // live poll timer
+let _driftTab       = 'dashboard';  // dashboard | agents | alerts | history
+let _driftSummary   = null;
+let _driftSelected  = null;    // currently viewed agent_id
+let _driftAlerts    = [];
+let _driftHistory   = [];
+let _driftLeaderboard = [];
+
+// ── Constants ──────────────────────────────────────────────────────
+const DRIFT_SEV_COLORS = {
+  none:     { bg:'rgba(61,186,122,.12)',   border:'#3dba7a',  text:'#3dba7a',   label:'None'     },
+  low:      { bg:'rgba(91,138,248,.12)',   border:'#5b8af8',  text:'#5b8af8',   label:'Low'      },
+  medium:   { bg:'rgba(232,162,55,.12)',   border:'#e8a237',  text:'#e8a237',   label:'Medium'   },
+  high:     { bg:'rgba(240,96,128,.15)',   border:'#f06080',  text:'#f06080',   label:'High'     },
+  critical: { bg:'rgba(232,82,82,.15)',    border:'#e85252',  text:'#e85252',   label:'Critical' },
+};
+const DRIFT_TREND_ICONS = {
+  stable:             '→',
+  improving:          '↗',
+  degrading:          '↘',
+  volatile:           '↕',
+  insufficient_data:  '?',
+};
+const DRIFT_TREND_COLORS = {
+  stable:             'var(--text-3)',
+  improving:          'var(--success)',
+  degrading:          'var(--danger)',
+  volatile:           'var(--warning)',
+  insufficient_data:  'var(--text-3)',
+};
+const DRIFT_DIM_LABELS = {
+  latency:    { label:'Latency',    icon:'⏱️', unit:'ms' },
+  tokens:     { label:'Tokens',     icon:'🔤', unit:'/task' },
+  cost:       { label:'Cost',       icon:'💰', unit:'/task' },
+  error_rate: { label:'Error Rate', icon:'❌', unit:'%' },
+  volume:     { label:'Volume',     icon:'📊', unit:'/hr' },
+};
+const DRIFT_ACTION_LABELS = {
+  none:             { label:'No Action',         color:'var(--text-3)',  icon:'—' },
+  alerted:          { label:'Alert Raised',      color:'var(--warning)', icon:'⚠️' },
+  kill_recommended: { label:'Kill Recommended',  color:'var(--danger)',  icon:'🛑' },
+};
+const DRIFT_REC_LABELS = {
+  monitor:       'Monitor',
+  restart_agent: 'Restart Agent',
+  kill_agent:    'Kill Agent',
+  escalate:      'Escalate',
+};
+
 async function renderAgentMonitor() {
   const pane = document.getElementById('pane-agent-monitor');
   if (!pane) return;
@@ -697,4 +750,5 @@ async function monitorResolveAnomaly(id) {
 
 
 
+window.renderAgentMonitor = renderAgentMonitor;
 })(S, nav, toast, escHtml, fetch, document);

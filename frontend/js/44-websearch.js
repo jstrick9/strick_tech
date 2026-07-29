@@ -158,7 +158,7 @@ async function wsGroundedStream() {
                 ${(d.citations||[]).map(c=>`<a href="${escHtml(c.url||'')}" target="_blank" rel="noopener" style="display:block;font-size:12px;color:var(--accent);padding:2px 0">[${c.num}] ${escHtml(c.title||c.url||'')}</a>`).join('')}
               </div>`);
           }
-        } catch(e) { log?.warn?.('SSE parse error', e); }
+        } catch(e) { console.warn('SSE parse error', e); }
       }
     }
   } catch(ex) {
@@ -331,4 +331,5 @@ async function wsAutocomplete(inputId, datalistId) {
 }
 
 
+window.renderWebSearch = renderWebSearch;
 })(S, nav, toast, escHtml, fetch, document);
