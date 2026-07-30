@@ -134,6 +134,20 @@
     document.removeEventListener('keydown', accountSettingsEscHandler);
   };
 
+  // Re-shows the modal if it's just hidden (display:none) rather than
+  // removed — used when returning from "Customize Sidebar" so closing that
+  // popup takes you back to Account Settings instead of dropping you back
+  // to whatever pane was underneath with no way back in one click.
+  window.restoreAccountSettings = function () {
+    const el = document.getElementById('account-settings-modal');
+    if (el) {
+      el.style.display = 'flex';
+      document.addEventListener('keydown', accountSettingsEscHandler);
+    } else {
+      window.openAccountSettings(_activeTab);
+    }
+  };
+
   function selectAccountTab(tabId) {
     _activeTab = tabId;
     const overlay = document.getElementById('account-settings-modal');
@@ -354,7 +368,17 @@
     });
 
     body.querySelector('#acct-high-contrast-btn').addEventListener('click', () => window.toggleHighContrastTheme?.());
-    body.querySelector('#acct-customize-sidebar-btn').addEventListener('click', () => { window.closeAccountSettings(); window.showSidebarCustomizer?.(); });
+    body.querySelector('#acct-customize-sidebar-btn').addEventListener('click', () => {
+      // NOTE: previously this called window.closeAccountSettings() which
+      // REMOVES the modal from the DOM entirely, so there was nothing to
+      // "go back to" once the sidebar customizer was closed. Instead, hide
+      // it (keep it in the DOM) and let showSidebarCustomizer() restore it
+      // when the customizer itself closes — see window.restoreAccountSettings.
+      const modal = document.getElementById('account-settings-modal');
+      if (modal) modal.style.display = 'none';
+      document.removeEventListener('keydown', accountSettingsEscHandler);
+      window.showSidebarCustomizer?.();
+    });
   }
 
   // ── TAB: Notifications ───────────────────────────────────────────────

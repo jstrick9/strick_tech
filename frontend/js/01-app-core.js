@@ -2283,6 +2283,7 @@ document.addEventListener('keydown', function masterEscapeHandler(e) {
       document.getElementById('palette-modal'),
       document.getElementById('review-overlay'),
       document.getElementById('profile-panel'),
+      document.getElementById('sidebar-customizer'),
       document.getElementById('account-settings-modal'),
       document.getElementById('shortcuts-modal'),
       document.getElementById('ctx-help-overlay'),
@@ -2314,6 +2315,9 @@ document.addEventListener('keydown', function masterEscapeHandler(e) {
           else m.classList.remove('open');
         } else if (m.id === 'profile-panel' || m.id === 'ctx-help-overlay') {
           m.remove();
+        } else if (m.id === 'sidebar-customizer') {
+          if (typeof window.closeSidebarCustomizer === 'function') window.closeSidebarCustomizer();
+          else m.remove();
         } else if (m.id === 'account-settings-modal') {
           if (typeof window.closeAccountSettings === 'function') window.closeAccountSettings();
           else m.remove();
