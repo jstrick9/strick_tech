@@ -158,10 +158,17 @@ function ensureSimpleHeader() {
 //  HIDDEN PANES & SIDEBAR CUSTOMIZATION
 // ══════════════════════════════════════════════════════════════════
 function applyHiddenPanes(hiddenPanes) {
-  if (_UI.uiMode === 'simple') return; // simple mode handles its own visibility
+  if (_UI.uiMode === 'simple') return; // simple mode handles its own visibility (only 6 core panes ever show)
   document.querySelectorAll('.nav-item[data-nav]').forEach(el => {
     const pane = el.getAttribute('data-nav') || '';
-    el.style.display = hiddenPanes.includes(pane) ? 'none' : '';
+    // NOTE: previously this set el.style.display = 'none' directly, but an
+    // inline style has lower CSS specificity than the tier rules below
+    // (.nav-item[data-tier="core"] and [data-ui-mode="power"]
+    // .nav-item[data-tier="advanced"], both !important), so hiding a pane
+    // never actually worked — the button/profile state updated correctly,
+    // but the pane stayed visible in the sidebar. Using a class lets the
+    // dedicated .pane-hidden-by-user CSS rule win via higher specificity.
+    el.classList.toggle('pane-hidden-by-user', hiddenPanes.includes(pane));
   });
 }
 
@@ -174,11 +181,33 @@ async function togglePaneVisibility(paneId) {
     applyHiddenPanes(newHidden);
     if (_UI.profile) _UI.profile.hidden_panes = newHidden; // FIX 3: keep in-memory state current
     showToast(d.action === 'hidden' ? `🙈 ${paneId} hidden from sidebar` : `👁 ${paneId} shown in sidebar`);
-    // FIX 4: re-render the open customizer so button states + bg colors refresh
-    const cust = document.getElementById('sidebar-customizer');
-    if (cust) { cust.remove(); showSidebarCustomizer(); }
+    // Update just this row in place instead of destroying/rebuilding the
+    // whole customizer (which reset scroll position back to the top on
+    // every single click).
+    updateCustomizerRow(paneId, {hidden: d.action === 'hidden'});
   } catch(e) {
     showToast('⚠️ Could not update sidebar — check connection');
+  }
+}
+
+function updateCustomizerRow(paneId, {hidden, pinned} = {}) {
+  const row = document.getElementById(`cust-row-${paneId}`);
+  if (!row) return;
+  if (hidden !== undefined) {
+    row.style.borderColor = hidden ? 'var(--border)' : 'var(--border-hi)';
+    const toggleBtn = row.querySelector('.cust-toggle-btn');
+    if (toggleBtn) {
+      toggleBtn.textContent = hidden ? 'Show' : 'Hide';
+      toggleBtn.style.background = hidden ? 'var(--bg-4)' : 'rgba(91,138,248,.15)';
+    }
+  }
+  if (pinned !== undefined) {
+    const pinBtn = row.querySelector('.cust-pin-btn');
+    if (pinBtn) {
+      pinBtn.textContent = pinned ? '★' : '☆';
+      pinBtn.style.color = pinned ? 'var(--accent)' : 'var(--text-3)';
+      pinBtn.title = pinned ? 'Unpin from sidebar top' : 'Pin to sidebar top';
+    }
   }
 }
 
@@ -194,7 +223,7 @@ async function togglePaneVisibility(paneId) {
 // automatically in a global script — no wrapper needed.
 function showSidebarCustomizer() {
   const existing = document.getElementById('sidebar-customizer');
-  if (existing) { existing.remove(); return; }
+  if (existing) { closeSidebarCustomizer(); return; }
 
   const profile = _UI.profile || {};
   const hidden  = profile.hidden_panes || [];
@@ -297,7 +326,7 @@ function showSidebarCustomizer() {
         <span style="font-size:14px">${p.icon}</span>
         <span style="font-size:12px;color:var(--text-1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.label)}</span>
         <button type="button" class="cust-toggle-btn" data-pane-id="${p.id}" style="font-size:11px;background:${isHidden ? 'var(--bg-4)' : 'rgba(91,138,248,.15)'};border:1px solid var(--border);border-radius:5px;color:var(--text-2);padding:2px 8px;cursor:pointer;flex-shrink:0">${isHidden ? 'Show' : 'Hide'}</button>
-        <button type="button" class="cust-pin-btn" data-pane-id="${p.id}" title="Pin/unpin from sidebar top" style="font-size:11px;background:none;border:1px solid var(--border);border-radius:5px;color:${isPinned ? 'var(--accent)' : 'var(--text-3)'};padding:2px 6px;cursor:pointer;flex-shrink:0">📌</button>`;
+        <button type="button" class="cust-pin-btn" data-pane-id="${p.id}" title="${isPinned ? 'Unpin from sidebar top' : 'Pin to sidebar top'}" style="font-size:13px;background:none;border:1px solid var(--border);border-radius:5px;color:${isPinned ? 'var(--accent)' : 'var(--text-3)'};padding:2px 6px;cursor:pointer;flex-shrink:0">${isPinned ? '★' : '☆'}</button>`;
       grid.appendChild(row);
     });
     groupsWrap.appendChild(section);
@@ -317,13 +346,31 @@ function showSidebarCustomizer() {
     if (pinBtn) { pinPaneToggle(pinBtn.dataset.paneId); return; }
   });
 
-  overlay.querySelector('#sidebar-customizer-close-x').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#sidebar-customizer-close-x').addEventListener('click', () => closeSidebarCustomizer());
   overlay.querySelector('#sidebar-customizer-reset').addEventListener('click', () => resetSidebarToDefaults());
   overlay.querySelector('#sidebar-customizer-simple').addEventListener('click', () => switchUIMode('simple'));
   overlay.querySelector('#sidebar-customizer-power').addEventListener('click', () => switchUIMode('power'));
 
-  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+  overlay.addEventListener('click', e => { if(e.target===overlay) closeSidebarCustomizer(); });
+  document.addEventListener('keydown', sidebarCustomizerEscHandler);
   document.body.appendChild(overlay);
+}
+
+// Closes the Customize Sidebar popup and, if it was opened from Account
+// Settings > Preferences, returns you there instead of just dropping back
+// to whatever pane is underneath. Account Settings is only hidden (not
+// destroyed) while the customizer is open, specifically so this can
+// restore it — see the "Customize Sidebar" button handler in
+// 57-account-settings.js.
+function closeSidebarCustomizer() {
+  document.getElementById('sidebar-customizer')?.remove();
+  document.removeEventListener('keydown', sidebarCustomizerEscHandler);
+  window.restoreAccountSettings?.();
+}
+function sidebarCustomizerEscHandler(e) {
+  if (e.key === 'Escape' && document.getElementById('sidebar-customizer')) {
+    e.preventDefault(); e.stopPropagation(); closeSidebarCustomizer();
+  }
 }
 
 async function resetSidebarToDefaults() {
@@ -333,7 +380,7 @@ async function resetSidebarToDefaults() {
     if (!rr.ok) throw new Error(`HTTP ${rr.status}`);
     if (_UI.profile) _UI.profile.hidden_panes = [];
     applyHiddenPanes([]);
-    document.getElementById('sidebar-customizer')?.remove();
+    closeSidebarCustomizer();
     showToast('✅ Sidebar reset to defaults');
   } catch(ex) {
     showToast('⚠️ Could not reset sidebar: ' + (ex?.message||String(ex)));
@@ -347,10 +394,11 @@ async function pinPaneToggle(paneId) {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
     if (_UI.profile) _UI.profile.pinned_panes = d.pinned_panes || [];
-    showToast(d.action === 'pinned' ? `📌 ${paneId} pinned to sidebar top` : `📌 ${paneId} unpinned`);
-    // Re-render customizer if open
-    const cust = document.getElementById('sidebar-customizer');
-    if (cust) { cust.remove(); showSidebarCustomizer(); }
+    const isPinned = d.action === 'pinned';
+    showToast(isPinned ? `★ ${paneId} pinned to sidebar top` : `☆ ${paneId} unpinned`);
+    // Update just this row in place — see togglePaneVisibility for why we
+    // stopped destroying/rebuilding the whole customizer on every click.
+    updateCustomizerRow(paneId, {pinned: isPinned});
   } catch(ex) {
     showToast('⚠️ Could not update pin: ' + (ex?.message||String(ex)));
   }

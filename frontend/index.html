@@ -961,6 +961,15 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 [data-ui-mode="power"] .nav-item[data-tier="sprint"] {
   display: flex !important;
 }
+/* User-hidden panes (via Account Settings > Customize Sidebar) must win
+   over the tier rules above — those rules were previously the highest
+   priority declaration on .nav-item, so applyHiddenPanes()'s inline
+   `style.display:none` never had any visible effect on Core panes or on
+   Advanced/Sprint panes while Power mode was active: Hide/Show correctly
+   updated the button label and saved to your profile, but the pane never
+   actually left the sidebar. This selector combines a class + attribute
+   for higher specificity than the single-attribute rules above. */
+.nav-item[data-nav].pane-hidden-by-user { display: none !important; }
 /* Advanced group toggle */
 .advanced-toggle {
   display: flex;
