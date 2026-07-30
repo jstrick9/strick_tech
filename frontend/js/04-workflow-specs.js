@@ -182,7 +182,16 @@ async function togglePaneVisibility(paneId) {
   }
 }
 
-window.showSidebarCustomizer = function() { showSidebarCustomizer(); };
+// NOTE: the line that used to be here —
+//   window.showSidebarCustomizer = function() { showSidebarCustomizer(); };
+// — created infinite self-recursion: this file is a plain (non-module)
+// script, so `window.showSidebarCustomizer` and the bare identifier
+// `showSidebarCustomizer` are the SAME binding. Assigning a wrapper to
+// `window.showSidebarCustomizer` silently replaced what the bare name
+// resolved to, so the wrapper's call to `showSidebarCustomizer()` called
+// itself forever ("Maximum call stack size exceeded"). The function
+// declaration below already becomes `window.showSidebarCustomizer`
+// automatically in a global script — no wrapper needed.
 function showSidebarCustomizer() {
   const existing = document.getElementById('sidebar-customizer');
   if (existing) { existing.remove(); return; }
@@ -1438,201 +1447,15 @@ function updateNextActionBar(pane) {
 
 
 // ══════════════════════════════════════════════════════════════════
-//  USER PROFILE PANEL
+//  USER PROFILE PANEL + TOPBAR PROFILE BUTTON — REMOVED (superseded)
+//  This used to render a separate "Identity & Custom App Branding"
+//  panel (triggered by a "Me" pill in the topbar) that duplicated and
+//  drifted out of sync with the "Your Profile" panel from 01-app-core.js.
+//  Both are now unified into a single Account Settings modal — see
+//  57-account-settings.js (window.openAccountSettings). The old
+//  window.showUserProfile / window.openUserProfileModal names are kept
+//  as aliases there so any remaining callers still work.
 // ══════════════════════════════════════════════════════════════════
-async function showUserProfile() {
-  const existing = document.getElementById('profile-panel');
-  if (existing) { existing.remove(); return; }
-
-  // FIX A+C: try/catch on fetches; fallback uses correct field 'trial_days_left'
-  let profile = {}, licStatus = {tier:'trial', trial_days_left:14, is_trial:true};
-  try {
-    const [profRes, licRes] = await Promise.all([
-      fetch('/api/profile').then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }),
-      fetch('/api/license/status').then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }),
-    ]);
-    profile   = profRes || {};
-    licStatus = licRes  || {tier:'trial', trial_days_left:14, is_trial:true};
-  } catch(e) {
-    console.warn('Profile panel fetch failed, using defaults', e);
-  }
-
-  const tierColors = {free:'var(--text-3)',trial:'var(--accent)',pro:'var(--accent)',enterprise:'#f0c060'};
-  const tierColor = tierColors[licStatus.tier||'trial'] || 'var(--accent)';
-
-  // FIX E: dynamic top — account for 32px trial banner when visible
-  const bannerOffset = document.getElementById('trial-banner') ? 32 : 0;
-  const panelTop     = 52 + bannerOffset;
-
-  const panel = document.createElement('div');
-  panel.id = 'profile-panel';
-  panel.style.cssText = `position:fixed;top:${panelTop}px;right:12px;width:320px;background:var(--bg-2);border:1px solid var(--border);border-radius:14px;z-index:9995;box-shadow:0 8px 32px rgba(0,0,0,.4);overflow:hidden`;
-  panel.innerHTML = `
-    <div style="padding:18px;background:linear-gradient(135deg,var(--bg-3),var(--bg-2));border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-        <div id="profile-avatar-display" style="width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;overflow:hidden">${escHtml(profile.avatar||'\u{1F9D1}\u{200D}\u{1F4BB}')}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;color:var(--text-0);font-size:15px">${escHtml(profile.name||'Joshua')}</div>
-          <div style="font-size:11px;color:${tierColor};font-weight:700">${(licStatus.tier||'trial').toUpperCase()} ${licStatus.is_trial&&licStatus.trial_days_left>0?`\xB7 ${licStatus.trial_days_left} days left`:''}</div>
-        </div>
-        <button onclick="document.getElementById('profile-panel')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px">\u2715</button>
-      </div>
-      <div style="display:flex;gap:6px;margin-bottom:12px">
-        <input type="file" id="profile-avatar-file" accept="image/*" style="display:none" onchange="if(typeof uploadProfileAvatar==='function') uploadProfileAvatar(this)">
-        <button class="btn-3d btn-sm" onclick="document.getElementById('profile-avatar-file')?.click()" style="flex:1;font-size:11px">📸 Upload Picture</button>
-      </div>
-      <div style="display:flex;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:3px">
-        <button onclick="switchUIMode('simple');document.getElementById('profile-panel')?.remove()" class="btn-3d" style="flex:1;padding:5px;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;background:${_UI.uiMode==='simple'?'var(--accent)':'transparent'};color:${_UI.uiMode==='simple'?'#fff':'var(--text-2)'}">&#x2728; Simple</button>
-        <button onclick="switchUIMode('power');document.getElementById('profile-panel')?.remove()" class="btn-3d" style="flex:1;padding:5px;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;background:${_UI.uiMode==='power'?'var(--accent)':'transparent'};color:${_UI.uiMode==='power'?'#fff':'var(--text-2)'}">&#x26A1; Power</button>
-      </div>
-    </div>
-    <div style="padding:12px 14px;border-bottom:1px solid var(--border)">
-      <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;margin-bottom:8px">Identity & Custom App Branding</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <div>
-          <label style="font-size:10.5px;color:var(--text-2);display:block;margin-bottom:2px">Custom Username</label>
-          <input id="custom-username-input" value="${escHtml(profile.name||'Joshua')}" placeholder="Username" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text-0);font-size:12px" onchange="if(typeof saveCustomIdentity==='function') saveCustomIdentity()">
-        </div>
-        <div>
-          <label style="font-size:10.5px;color:var(--text-2);display:block;margin-bottom:2px">Custom Current Role</label>
-          <input id="custom-role-input" value="${escHtml(profile.role||'Senior Architect')}" placeholder="Role or Title" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text-0);font-size:12px" onchange="if(typeof saveCustomIdentity==='function') saveCustomIdentity()">
-        </div>
-        <div>
-          <label style="font-size:10.5px;color:var(--text-2);display:block;margin-bottom:2px">Custom Agentic OS App Name</label>
-          <input id="custom-app-name-input" value="${escHtml(profile.workspace_name||'Strick Tech')}" placeholder="e.g. Strick Tech Command Center" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text-0);font-size:12px" onchange="if(typeof saveCustomIdentity==='function') saveCustomIdentity()">
-        </div>
-        <button class="btn-primary btn-sm btn-3d" onclick="if(typeof saveCustomIdentity==='function') saveCustomIdentity()" style="width:100%;margin-top:4px">💾 Save Identity & Branding</button>
-      </div>
-    </div>
-    <div style="padding:10px 14px">
-      ${[
-        {icon:'\u{1F39B}\uFE0F',label:'Customize Sidebar',action:"showSidebarCustomizer();document.getElementById('profile-panel')?.remove()"},
-        {icon:'\u{1F3AF}',label:'Restart Tour',action:"startTour();document.getElementById('profile-panel')?.remove()"},
-        {icon:'\u{1F4D6}',label:'Documentation',action:"nav('docs');document.getElementById('profile-panel')?.remove()"},
-        {icon:'\u{1F4B3}',label:'View Plans',action:"showTierPlans();document.getElementById('profile-panel')?.remove()"},
-        {icon:'\u2699\uFE0F',label:'Settings',action:"nav('settings');document.getElementById('profile-panel')?.remove()"},
-      ].map(item=>`
-        <button onclick="${item.action}" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;background:none;border:none;border-radius:8px;color:var(--text-1);cursor:pointer;font-size:12.5px;text-align:left;transition:background .1s" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background='none'">
-          <span>${item.icon}</span><span>${item.label}</span>
-        </button>`).join('')}
-    </div>
-    ${licStatus.is_trial?`
-    <div style="margin:0 14px 14px;background:rgba(91,138,248,.1);border:1px solid var(--accent)33;border-radius:8px;padding:10px 12px">
-      <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:4px">&#x23F0; ${licStatus.trial_days_left} days of trial remaining</div>
-      <div style="font-size:11px;color:var(--text-2);margin-bottom:8px">Upgrade to keep access to all features.</div>
-      <button onclick="showTierPlans();document.getElementById('profile-panel')?.remove()" class="btn-3d" style="width:100%;padding:7px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">View Upgrade Options</button>
-    </div>`:''}
-  `;
-
-  document.addEventListener('click', function closePanel(e) {
-    if (!panel.contains(e.target)) {
-      panel.remove();
-      document.removeEventListener('click', closePanel);
-    }
-  }, { capture: true });
-  document.body.appendChild(panel);
-}
-window.openUserProfileModal = function() { showUserProfile(); };
-
-window.saveCustomIdentity = async function() {
-  const name = document.getElementById('custom-username-input')?.value?.trim() || 'Joshua';
-  const role = document.getElementById('custom-role-input')?.value?.trim() || 'Senior Architect';
-  const appName = document.getElementById('custom-app-name-input')?.value?.trim() || 'Strick Tech';
-  
-  const titleEl = document.getElementById('custom-app-title');
-  if (titleEl) titleEl.innerHTML = `${escHtml(appName)} <span style="color:var(--accent)">Agentic OS</span>`;
-  const nameEl = document.getElementById('topbar-user-name');
-  if (nameEl) nameEl.textContent = name;
-  if (document.title) document.title = `${appName} Agentic OS — Mission Control`;
-
-  try {
-    try { _safeLS.set('agentic_os_app_name', appName); } catch {}
-    try { _safeLS.set('agentic_os_username', name); } catch {}
-    try { _safeLS.set('agentic_os_userrole', role); } catch {}
-  } catch(e) {}
-
-  showToast('✅ Identity & App Name Saved!', 2000);
-  try {
-    await fetch('/api/profile', {
-      method: 'PATCH', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name, role, workspace_name: appName})
-    });
-  } catch(e) {}
-};
-
-window.uploadProfileAvatar = function(input) {
-  const file = input?.files?.[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const dataUri = e.target?.result;
-    if (!dataUri) return;
-    const avEl = document.getElementById('topbar-user-avatar');
-    if (avEl) avEl.innerHTML = `<img src="${dataUri}" style="width:20px;height:20px;border-radius:50%;object-fit:cover">`;
-    try { try { _safeLS.set('agentic_os_avatar_picture', dataUri); } catch {} } catch(err) {}
-    showToast('📸 Profile picture uploaded & saved!', 2500);
-    try {
-      await fetch('/api/profile', {
-        method: 'PATCH', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({avatar: dataUri})
-      });
-    } catch(err) {}
-  };
-  reader.readAsDataURL(file);
-};
-
-async function applyRole(roleId) {
-  // FIX B: try/catch; FIX G: targeted state update instead of full loadUIConfig()
-  try {
-    const r = await fetch(`/api/profile/role/${encodeURIComponent(roleId)}`,{method:'POST'});
-    const d = await r.json();
-    if (!d.ok) { showToast(`\u26A0\uFE0F Could not set role: ${d.error||'unknown error'}`); return; }
-    showToast(`\u2705 Role set to ${roleId} \u2014 sidebar preferences updated`);
-    document.getElementById('profile-panel')?.remove();
-    // FIX G: update in-memory profile state without re-triggering boot sequence
-    if (_UI.profile) {
-      _UI.profile.role          = roleId;
-      _UI.profile.pinned_panes  = d.applied?.pinned_panes  || _UI.profile.pinned_panes;
-      _UI.profile.quick_actions = d.applied?.quick_actions || _UI.profile.quick_actions;
-      _UI.profile.default_agent = d.applied?.default_agent || _UI.profile.default_agent;
-    }
-    applyHiddenPanes(_UI.profile?.hidden_panes || []);
-  } catch(e) {
-    showToast('\u26A0\uFE0F Could not update role \u2014 check connection');
-  }
-}
-function applyProfileTheme(profile) {
-  if (!profile) return;
-  const size = {sm:'12px', base:'14px', lg:'16px'}[profile.font_size] || '14px';
-  document.documentElement.style.setProperty('--text-base', size);
-}
-
-
-// ══════════════════════════════════════════════════════════════════
-//  TOPBAR PROFILE BUTTON
-// ══════════════════════════════════════════════════════════════════
-(function addProfileButton() {
-  const topbar = document.getElementById('topbar');
-  if (!topbar || document.getElementById('profile-btn')) return;
-
-  const btn = document.createElement('button');
-  btn.id = 'profile-btn';
-  btn.style.cssText = `
-    background:var(--bg-2);border:1px solid var(--border);border-radius:8px;
-    color:var(--text-2);padding:4px 10px;cursor:pointer;
-    font-size:14px;display:flex;align-items:center;gap:6px;
-    transition:all .12s;flex-shrink:0;
-  `;
-  btn.innerHTML = '🧑‍💻 <span id="profile-btn-name" style="font-size:12px;font-weight:600">Me</span>';
-  btn.onclick = (e) => { e.stopPropagation(); showUserProfile(); };
-  btn.onmouseover = () => { btn.style.borderColor='var(--accent)'; btn.style.color='var(--text-0)'; };
-  btn.onmouseout  = () => { btn.style.borderColor='var(--border)'; btn.style.color='var(--text-2)'; };
-
-  const spacer = topbar.querySelector('.spacer') || topbar.lastChild;
-  topbar.insertBefore(btn, spacer);
-})();
-
-
 
 
 // ══════════════════════════════════════════════════════════════════
