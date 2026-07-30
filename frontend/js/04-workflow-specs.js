@@ -299,7 +299,7 @@ function showSidebarCustomizer() {
       </div>
       <div style="overflow-y:auto;padding:12px 16px" id="sidebar-customizer-groups"></div>
       <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">
-        <button type="button" id="sidebar-customizer-reset" class="btn-sm">↺ Reset to Defaults</button>
+        <button type="button" id="sidebar-customizer-reset" class="btn-sm" title="Shows all hidden panes again. Does not change your Favorites.">↺ Reset to Defaults</button>
         <div style="margin-left:auto;display:flex;gap:8px">
           <button type="button" id="sidebar-customizer-simple" class="btn-sm">✨ Simple Mode</button>
           <button type="button" id="sidebar-customizer-power" class="btn-sm">⚡ Power Mode</button>
@@ -381,8 +381,18 @@ async function resetSidebarToDefaults() {
     if (!rr.ok) throw new Error(`HTTP ${rr.status}`);
     if (_UI.profile) _UI.profile.hidden_panes = [];
     applyHiddenPanes([]);
-    closeSidebarCustomizer();
-    showToast('✅ Sidebar reset to defaults');
+    // NOTE: previously this called closeSidebarCustomizer() immediately,
+    // which closed the whole popup before you could see anything change —
+    // combined with the fact that only hidden_panes was ever cleared (not
+    // Favorites/pinned_panes, left alone on purpose — Favorites is a
+    // separate preference), it looked like "Reset to Defaults" did
+    // nothing at all. Keep the popup open and refresh every row in place
+    // instead, so un-hiding is immediately visible before you close it
+    // yourself.
+    document.querySelectorAll('#sidebar-customizer .cust-toggle-btn').forEach(btn => {
+      updateCustomizerRow(btn.dataset.paneId, {hidden: false});
+    });
+    showToast('✅ All panes shown again — sidebar reset to defaults');
   } catch(ex) {
     showToast('⚠️ Could not reset sidebar: ' + (ex?.message||String(ex)));
   }
