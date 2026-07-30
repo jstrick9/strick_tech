@@ -198,79 +198,130 @@ function showSidebarCustomizer() {
 
   const profile = _UI.profile || {};
   const hidden  = profile.hidden_panes || [];
+  const pinned  = profile.pinned_panes || [];
 
-  // FIX 1: ALL_PANES now includes all 53 panes from backend PANE_TIERS
-  // (previously 13 panes were missing: codeindex, codesearch, collabedit, health,
-  //  integrations, marketplace, multitab, pipeline, pluginsdk, profiler, replay,
-  //  settings, voice)
-  const ALL_PANES = [
-    // Free tier
-    {id:'chat',label:'Chat',icon:'💬'},{id:'kanban',label:'Kanban',icon:'📋'},
-    {id:'dashboard',label:'Dashboard',icon:'📊'},{id:'docs',label:'Docs',icon:'📖'},
-    {id:'settings',label:'Settings',icon:'⚙️'},
-    // Pro tier — Build
-    {id:'studio',label:'Studio',icon:'🎨'},{id:'builder',label:'Builder',icon:'🏗️'},
-    {id:'workflow',label:'Workflows',icon:'🗺️'},{id:'specs',label:'Spec Builder',icon:'📋'},
-    {id:'codesearch',label:'Code Search',icon:'🔍'},{id:'codeindex',label:'Code Index',icon:'📑'},
-    {id:'terminal',label:'Terminal',icon:'💻'},{id:'imagegen',label:'Image Gen',icon:'🎨'},
-    {id:'prompts',label:'Prompts',icon:'💬'},{id:'testgen',label:'Test Gen',icon:'🧪'},
-    // Pro tier — AI
-    {id:'swarm',label:'Swarm',icon:'🌀'},{id:'galaxy',label:'Memory',icon:'🌌'},
-    {id:'loops',label:'Loops',icon:'♾️'},{id:'mcp',label:'MCP Tools',icon:'🔧'},
-    {id:'steering',label:'Steering',icon:'🧭'},{id:'bugbot',label:'BugBot',icon:'🐛'},
-    {id:'arena',label:'Arena',icon:'⚔️'},{id:'fusion',label:'Fusion',icon:'🔀'},
-    {id:'ambient',label:'Ambient',icon:'🌊'},{id:'browser',label:'Browser Agent',icon:'🌐'},
-    {id:'websearch',label:'Web Search',icon:'🔎'},{id:'hitl',label:'HITL',icon:'🛡️'},
-    // Note: 'voice' is a topbar button feature, not a sidebar nav pane — excluded intentionally
-    {id:'pipeline',label:'Pipeline',icon:'⚡'},
-    // Pro tier — Ship
-    {id:'github',label:'GitHub',icon:'🐙'},{id:'deploy',label:'Deploy',icon:'🚀'},
-    {id:'gitai',label:'Git AI',icon:'🌿'},{id:'hooks',label:'Hooks',icon:'⚡'},
-    // Pro tier — Workspace
-    {id:'dbstudio',label:'Database',icon:'🗄️'},{id:'plugins',label:'Plugins',icon:'🧩'},
-    {id:'obsidian',label:'Obsidian',icon:'🧿'},{id:'system',label:'System',icon:'💻'},
-    {id:'control',label:'Control Tower',icon:'🎛️'},{id:'workspaces',label:'Workspaces',icon:'📁'},
-    {id:'webhooks',label:'Webhooks',icon:'🌐'},{id:'integrations',label:'Integrations',icon:'🔗'},
-    {id:'health',label:'Health',icon:'❤️'},{id:'profiler',label:'Profiler',icon:'📈'},
-    {id:'pluginsdk',label:'Plugin SDK',icon:'🔌'},{id:'multitab',label:'Multi-Tab',icon:'🗂️'},
-    {id:'replay',label:'Replay',icon:'⏮️'},{id:'collabedit',label:'Collab Edit',icon:'🤝'},
-    {id:'marketplace',label:'Marketplace',icon:'🛒'},{id:'leaderboard',label:'Leaderboard',icon:'🏆'},
-    // Enterprise tier
-    {id:'evals',label:'Evals',icon:'🧮'},{id:'observability',label:'Observability',icon:'👁️'},
-    {id:'knowledge-graph',label:'Knowledge Graph',icon:'🕸'},{id:'rag',label:'RAG',icon:'📚'},
+  // Grouped by the SAME 5 categories used in the real sidebar
+  // (#group-core/build/ship/tools/enterprise in index.html), so this
+  // customizer visually matches what the user actually sees & organizes.
+  // Previously this was one flat, ungrouped 2-column list of all 69 panes.
+  const PANE_GROUPS = [
+    {id: 'core', label: 'Essentials', color: 'var(--accent)', panes: [
+      {id:'chat',label:'Chat',icon:'💬'},{id:'studio',label:'Code Studio',icon:'⚡'},
+      {id:'templates',label:'Templates',icon:'📋'},{id:'galaxy',label:'Memory',icon:'🧠'},
+      {id:'kanban',label:'Tasks',icon:'✅'},{id:'settings',label:'Settings',icon:'⚙️'},
+    ]},
+    {id: 'build', label: 'AI Tools', color: '#7dd3fc', panes: [
+      {id:'swarm',label:'Multi-Agent Swarm',icon:'🌀'},{id:'hierarchy',label:'AI Operating Manual',icon:'🧭'},
+      {id:'builder',label:'Code Editor',icon:'⌨️'},{id:'websearch',label:'Web Search',icon:'🔍'},
+      {id:'browser',label:'Browser Agent',icon:'🌐'},{id:'imagegen',label:'Image Generator',icon:'🎨'},
+      {id:'prompts',label:'Prompt Library',icon:'💡'},{id:'docs',label:'Docs & Help',icon:'📖'},
+      {id:'terminal',label:'Terminal',icon:'💻'},{id:'skills',label:'Skills',icon:'⚡'},
+    ]},
+    {id: 'ship', label: 'Build', color: '#a855f7', panes: [
+      {id:'composer',label:'Composer',icon:'✍️'},{id:'pipeline',label:'Pipelines',icon:'⎈'},
+      {id:'workflow',label:'Workflows',icon:'⎈'},{id:'github',label:'GitHub',icon:'🐙'},
+      {id:'deploy',label:'Deploy',icon:'🚀'},{id:'specs',label:'Spec Builder',icon:'📐'},
+      {id:'dbstudio',label:'Database',icon:'🗄️'},{id:'workspaces',label:'Workspaces',icon:'📂'},
+      {id:'plugins',label:'Plugins',icon:'🧩'},
+    ]},
+    {id: 'tools', label: 'Agents', color: '#34d399', panes: [
+      {id:'supervisor',label:'Supervisor',icon:'🎯'},{id:'goals',label:'Goals',icon:'🎯'},
+      {id:'connectors',label:'Integrations',icon:'🔗'},{id:'mcp',label:'Tool Connections',icon:'🔧'},
+      {id:'mcp-gateway',label:'Gateway',icon:'🚪'},{id:'a2a',label:'Agent Network',icon:'🌐'},
+      {id:'agent-identity',label:'Agent Identity',icon:'🪪'},{id:'hitl',label:'Review Queue',icon:'👁️'},
+      {id:'steering',label:'AI Guidelines',icon:'🧭'},{id:'fusion',label:'Model Fusion',icon:'🔀'},
+      {id:'arena',label:'Model Arena',icon:'⚔️'},{id:'loops',label:'Autonomous Loops',icon:'♾️'},
+      {id:'replay',label:'Execution Replay',icon:'⟲'},{id:'collabedit',label:'Collaborative Edit',icon:'👥'},
+    ]},
+    {id: 'enterprise', label: 'Monitoring', color: '#f43f5e', panes: [
+      {id:'dashboard',label:'Dashboard',icon:'📊'},{id:'audit-log',label:'Audit Log',icon:'📝'},
+      {id:'leaderboard',label:'Leaderboard',icon:'🏆'},{id:'agent-monitor',label:'Live Monitor',icon:'📡'},
+      {id:'finops',label:'Cost Tracking',icon:'💰'},{id:'eval-framework',label:'Evaluation',icon:'🧪'},
+      {id:'observability',label:'Observability',icon:'🔭'},{id:'evals',label:'Evals',icon:'🧪'},
+      {id:'health',label:'Health',icon:'💚'},{id:'profiler',label:'Profiler',icon:'📈'},
+      {id:'secrets',label:'Secrets Vault',icon:'🔐'},{id:'pqc',label:'Encryption',icon:'🛡️'},
+      {id:'obsidian',label:'Obsidian Sync',icon:'📝'},{id:'webhooks',label:'Webhooks',icon:'🔔'},
+      {id:'integrations',label:'Docs & Integrations',icon:'🔗'},{id:'knowledge-graph',label:'Knowledge Graph',icon:'🕸️'},
+      {id:'rag',label:'Knowledge Search',icon:'📚'},{id:'hooks',label:'Event Hooks',icon:'⚡'},
+      {id:'codeindex',label:'Code Index',icon:'🔍'},{id:'codesearch',label:'Code Search',icon:'⌕'},
+      {id:'gitai',label:'Git Assistant',icon:'⎇'},{id:'bugbot',label:'Bug Finder',icon:'🐛'},
+      {id:'testgen',label:'Test Generator',icon:'🧪'},{id:'marketplace',label:'Marketplace',icon:'🛒'},
+      {id:'pluginsdk',label:'Plugin SDK',icon:'🔧'},{id:'multitab',label:'Multi-Preview',icon:'◫'},
+      {id:'control',label:'Control Tower',icon:'🎛️'},{id:'system',label:'System',icon:'⚙️'},
+      {id:'ambient',label:'Ambient Mode',icon:'🌙'},{id:'finetune',label:'Fine-Tuning',icon:'🧪'},
+    ]},
   ];
+  const totalPanes = PANE_GROUPS.reduce((n, g) => n + g.panes.length, 0);
 
   const overlay = document.createElement('div');
   overlay.id = 'sidebar-customizer';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.innerHTML = `
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:560px;width:100%;max-height:80vh;overflow:hidden;display:flex;flex-direction:column">
-      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:640px;width:100%;max-height:82vh;overflow:hidden;display:flex;flex-direction:column">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">
         <span style="font-size:18px">🎛️</span>
         <h3 style="margin:0;color:var(--text-0)">Customize Sidebar</h3>
-        <span style="font-size:11px;color:var(--text-3);margin-left:4px">${ALL_PANES.length} panes</span>
-        <button onclick="this.closest('#sidebar-customizer').remove()" style="margin-left:auto;background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+        <span style="font-size:11px;color:var(--text-3);margin-left:4px">${totalPanes} panes</span>
+        <button type="button" id="sidebar-customizer-close-x" style="margin-left:auto;background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
       </div>
-      <div style="padding:12px 16px;font-size:12px;color:var(--text-2);border-bottom:1px solid var(--border)">
+      <div style="padding:12px 16px;font-size:12px;color:var(--text-2);border-bottom:1px solid var(--border);flex-shrink:0">
         Toggle which panes appear in your sidebar. Hidden panes are still accessible via keyboard shortcuts.
       </div>
-      <div style="overflow-y:auto;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        ${ALL_PANES.map(p=>`
-          <div id="cust-row-${p.id}" style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg-3);border-radius:8px;border:1px solid ${hidden.includes(p.id)?'var(--border)':'var(--border-hi)'}">
-            <span style="font-size:14px">${p.icon}</span>
-            <span style="font-size:12px;color:var(--text-1);flex:1">${p.label}</span>
-            <button onclick="togglePaneVisibility(${JSON.stringify(p.id)})" style="font-size:11px;background:${hidden.includes(p.id)?'var(--bg-4)':'rgba(91,138,248,.15)'};border:1px solid var(--border);border-radius:5px;color:var(--text-2);padding:2px 8px;cursor:pointer">
-              ${hidden.includes(p.id)?'Show':'Hide'}
-            </button>
-            <button onclick="pinPaneToggle(${JSON.stringify(p.id)})" title="Pin/unpin from sidebar top" style="font-size:11px;background:none;border:1px solid var(--border);border-radius:5px;color:${(profile.pinned_panes||[]).includes(p.id)?'var(--accent)':'var(--text-3)'};padding:2px 6px;cursor:pointer;flex-shrink:0">📌</button>
-          </div>`).join('')}
-      </div>
-      <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
-        <button onclick="resetSidebarToDefaults()" class="btn-sm">↺ Reset to Defaults</button>
-        <button onclick="switchUIMode('simple')" class="btn-sm">✨ Simple Mode</button>
-        <button onclick="switchUIMode('power')" class="btn" style="margin-left:auto">⚡ Power Mode</button>
+      <div style="overflow-y:auto;padding:12px 16px" id="sidebar-customizer-groups"></div>
+      <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">
+        <button type="button" id="sidebar-customizer-reset" class="btn-sm">↺ Reset to Defaults</button>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button type="button" id="sidebar-customizer-simple" class="btn-sm">✨ Simple Mode</button>
+          <button type="button" id="sidebar-customizer-power" class="btn-sm">⚡ Power Mode</button>
+        </div>
       </div>
     </div>`;
+
+  const groupsWrap = overlay.querySelector('#sidebar-customizer-groups');
+  PANE_GROUPS.forEach(group => {
+    const section = document.createElement('div');
+    section.style.cssText = 'margin-bottom:16px';
+    section.innerHTML = `
+      <div style="font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:${group.color};padding:2px 2px 8px">
+        ${escHtml(group.label)} <span style="color:var(--text-3);font-weight:600">(${group.panes.length})</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" data-group-grid="${group.id}"></div>`;
+    const grid = section.querySelector(`[data-group-grid="${group.id}"]`);
+    group.panes.forEach(p => {
+      const isHidden = hidden.includes(p.id);
+      const isPinned = pinned.includes(p.id);
+      const row = document.createElement('div');
+      row.id = `cust-row-${p.id}`;
+      row.style.cssText = `display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg-3);border-radius:8px;border:1px solid ${isHidden ? 'var(--border)' : 'var(--border-hi)'}`;
+      row.innerHTML = `
+        <span style="font-size:14px">${p.icon}</span>
+        <span style="font-size:12px;color:var(--text-1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.label)}</span>
+        <button type="button" class="cust-toggle-btn" data-pane-id="${p.id}" style="font-size:11px;background:${isHidden ? 'var(--bg-4)' : 'rgba(91,138,248,.15)'};border:1px solid var(--border);border-radius:5px;color:var(--text-2);padding:2px 8px;cursor:pointer;flex-shrink:0">${isHidden ? 'Show' : 'Hide'}</button>
+        <button type="button" class="cust-pin-btn" data-pane-id="${p.id}" title="Pin/unpin from sidebar top" style="font-size:11px;background:none;border:1px solid var(--border);border-radius:5px;color:${isPinned ? 'var(--accent)' : 'var(--text-3)'};padding:2px 6px;cursor:pointer;flex-shrink:0">📌</button>`;
+      grid.appendChild(row);
+    });
+    groupsWrap.appendChild(section);
+  });
+
+  // Event delegation instead of inline onclick="...(${JSON.stringify(id)})" —
+  // the inline-onclick version broke on every pane id because
+  // JSON.stringify() wraps the id in double quotes, which collide with the
+  // double quotes delimiting the onclick="" attribute itself, truncating
+  // the handler (e.g. onclick="togglePaneVisibility(" with nothing after
+  // the open paren) and throwing "Uncaught SyntaxError: Unexpected end of
+  // input" the moment any toggle/pin button was clicked.
+  groupsWrap.addEventListener('click', (e) => {
+    const toggleBtn = e.target.closest('.cust-toggle-btn');
+    if (toggleBtn) { togglePaneVisibility(toggleBtn.dataset.paneId); return; }
+    const pinBtn = e.target.closest('.cust-pin-btn');
+    if (pinBtn) { pinPaneToggle(pinBtn.dataset.paneId); return; }
+  });
+
+  overlay.querySelector('#sidebar-customizer-close-x').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#sidebar-customizer-reset').addEventListener('click', () => resetSidebarToDefaults());
+  overlay.querySelector('#sidebar-customizer-simple').addEventListener('click', () => switchUIMode('simple'));
+  overlay.querySelector('#sidebar-customizer-power').addEventListener('click', () => switchUIMode('power'));
+
   overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
   document.body.appendChild(overlay);
 }
