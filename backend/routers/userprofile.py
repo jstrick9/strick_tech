@@ -33,6 +33,7 @@ VALID_ROLES = {'developer', 'analyst', 'writer', 'designer', 'manager', 'student
 DEFAULT_PROFILE: dict = {
     'name': '',
     'email': '',
+    'job_title': '',
     'avatar': '🧑‍💻',
     'role': 'developer',
     'skill_level': 'beginner',
@@ -180,6 +181,7 @@ async def update_profile(req: Request):
     updatable = {
         'name',
         'email',
+        'job_title',
         'avatar',
         'role',
         'skill_level',
@@ -207,8 +209,14 @@ async def update_profile(req: Request):
             profile[k] = str(body[k])[:100]
         elif k == 'email':
             profile[k] = str(body[k])[:200]
+        elif k == 'job_title':
+            profile[k] = str(body[k])[:100]
         elif k == 'avatar':
-            profile[k] = str(body[k])[:10]
+            # Avatar can be a short emoji (few chars) OR a base64 data: URI
+            # from an uploaded picture (can be 100KB+). The old 10-char
+            # limit here silently truncated/corrupted every uploaded photo.
+            raw = str(body[k])
+            profile[k] = raw[:2_000_000] if raw.startswith('data:') else raw[:10]
         elif k == 'notifications' and isinstance(body[k], dict):
             profile['notifications'] = {**profile['notifications'], **body[k]}
         elif k == 'enabled_features' and isinstance(body[k], dict):
