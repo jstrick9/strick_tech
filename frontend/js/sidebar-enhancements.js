@@ -123,30 +123,69 @@ function setSidebarWidth(width) {
 }
 
 // ── Favorites System ─────────────────────────────────────────────
+// NOTE: this used to be a fully separate, localStorage-only favorites
+// system, completely disconnected from the "Pin/Unpin" feature in
+// Account Settings > Preferences > Customize Sidebar (which saved to
+// the backend's profile.pinned_panes and had no visible effect anywhere).
+// Both are now unified: profile.pinned_panes (synced via /api/profile) is
+// the single source of truth for "Favorites," used identically by the
+// sidebar's hover ☆/★ buttons AND the Customize Sidebar dialog. See
+// window.pinPaneToggle() in 04-workflow-specs.js, which both call.
+let _favoritesCache = [];
+
 function setupFavorites() {
-  const favorites = getFavorites();
-  
-  // Create favorites section if there are favorites
-  if (favorites.length > 0) {
-    createFavoritesSection(favorites);
-  }
-  
-  // Add favorite ☆/★ buttons to ALL nav items
-  document.querySelectorAll('.nav-item[data-nav]').forEach(item => {
-    addFavoriteButton(item);
+  loadFavoritesFromBackend().then(favorites => {
+    _favoritesCache = favorites;
+    if (favorites.length > 0) createFavoritesSection(favorites);
+    document.querySelectorAll('.nav-item[data-nav]').forEach(item => addFavoriteButton(item));
   });
 }
 
-function getFavorites() {
+async function loadFavoritesFromBackend() {
+  // One-time migration: if this browser has favorites saved from the old
+  // localStorage-only system and the backend has none yet, carry them
+  // over so nobody silently loses their existing favorites.
   try {
-    return JSON.parse(localStorage.getItem('agentic_os_favorites') || '[]');
-  } catch {
+    const legacyRaw = localStorage.getItem('agentic_os_favorites');
+    if (legacyRaw) {
+      const legacy = JSON.parse(legacyRaw);
+      if (Array.isArray(legacy) && legacy.length > 0) {
+        const r = await fetch('/api/profile');
+        const profile = r.ok ? await r.json() : {};
+        const current = profile.pinned_panes || [];
+        if (current.length === 0) {
+          await fetch('/api/profile', {
+            method: 'PATCH', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({pinned_panes: legacy}),
+          });
+          if (typeof _UI !== 'undefined' && _UI.profile) _UI.profile.pinned_panes = legacy;
+          localStorage.removeItem('agentic_os_favorites');
+          return legacy;
+        }
+        localStorage.removeItem('agentic_os_favorites');
+        return current;
+      }
+      localStorage.removeItem('agentic_os_favorites');
+    }
+  } catch (e) { /* best-effort migration only */ }
+
+  // Normal path: use the already-loaded profile if available (loadUIConfig
+  // in 04-workflow-specs.js usually finishes first), otherwise fetch fresh.
+  try {
+    if (typeof _UI !== 'undefined' && _UI.profile && Array.isArray(_UI.profile.pinned_panes)) {
+      return _UI.profile.pinned_panes;
+    }
+    const r = await fetch('/api/profile');
+    if (!r.ok) return [];
+    const profile = await r.json();
+    return profile.pinned_panes || [];
+  } catch (e) {
     return [];
   }
 }
 
-function saveFavorites(favorites) {
-  localStorage.setItem('agentic_os_favorites', JSON.stringify(favorites));
+function getFavorites() {
+  return _favoritesCache;
 }
 
 function addFavoriteButton(navItem) {
@@ -154,14 +193,13 @@ function addFavoriteButton(navItem) {
   if (!navId) return;
   if (navItem.querySelector('.nav-fav-btn')) return;
 
-  const favorites = getFavorites();
-  const isFav = favorites.includes(navId);
+  const isFav = getFavorites().includes(navId);
   
   const favBtn = document.createElement('button');
   favBtn.className = 'nav-fav-btn';
   favBtn.type = 'button';
   favBtn.innerHTML = isFav ? '★' : '☆';
-  favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+  favBtn.title = isFav ? 'Remove from Favorites' : 'Add to Favorites';
   favBtn.setAttribute('data-nav-id', navId);
   favBtn.setAttribute('data-favorited', isFav ? 'true' : 'false');
 
@@ -178,33 +216,10 @@ function addFavoriteButton(navItem) {
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
-    
-    const currentFavs = getFavorites();
-    const isCurrentlyFav = currentFavs.includes(navId);
-    
-    if (isCurrentlyFav) {
-      // Remove from favorites
-      const newFavs = currentFavs.filter(id => id !== navId);
-      saveFavorites(newFavs);
-      this.innerHTML = '☆';
-      this.title = 'Add to favorites';
-      this.setAttribute('data-favorited', 'false');
-      this.classList.remove('visible');
-      if (typeof toast === 'function') toast('Removed from favorites', 'ok');
-    } else {
-      // Add to favorites
-      currentFavs.push(navId);
-      saveFavorites(currentFavs);
-      this.innerHTML = '★';
-      this.title = 'Remove from favorites';
-      this.setAttribute('data-favorited', 'true');
-      this.classList.add('visible');
-      if (typeof toast === 'function') toast('Added to favorites', 'ok');
-    }
-    
-    // Update favorites section
-    createFavoritesSection(getFavorites());
-    return false;
+    // Shared with Customize Sidebar's "Add to Favorites" button — same
+    // backend call, same in-place UI refresh, so both stay in sync no
+    // matter which one you use.
+    if (typeof window.pinPaneToggle === 'function') window.pinPaneToggle(navId);
   });
 
   navItem.appendChild(favBtn);
@@ -228,7 +243,7 @@ function createFavoritesSection(favorites) {
   `;
   
   favorites.forEach(navId => {
-    const original = document.querySelector(`.nav-item[data-nav="${navId}"]`);
+    const original = document.querySelector(`.nav-item[data-nav="${navId}"]:not(.fav-item)`);
     if (original) {
       const icon = original.querySelector('.icon')?.textContent || '📌';
       const label = original.querySelector('.label')?.textContent || navId;
@@ -236,7 +251,7 @@ function createFavoritesSection(favorites) {
         <div class="nav-item fav-item" data-nav="${navId}" onclick="nav('${navId}')">
           <span class="icon">${icon}</span>
           <span class="label">${label}</span>
-          <button type="button" class="fav-remove-btn" title="Remove from favorites" 
+          <button type="button" class="fav-remove-btn" title="Remove from Favorites" 
             onclick="event.stopPropagation(); removeFromFavorites('${navId}')">✕</button>
         </div>
       `;
@@ -248,27 +263,28 @@ function createFavoritesSection(favorites) {
 }
 
 function removeFromFavorites(navId) {
-  let favorites = getFavorites();
-  favorites = favorites.filter(id => id !== navId);
-  saveFavorites(favorites);
-  
-  // Update the favorite button on the ORIGINAL nav item (not in favorites section)
-  // Use :not(.fav-item) to exclude the favorites section items
-  const originalItem = document.querySelector(`.nav-item[data-nav="${navId}"]:not(.fav-item)`);
-  if (originalItem) {
-    const favBtn = originalItem.querySelector('.nav-fav-btn');
-    if (favBtn) {
-      favBtn.innerHTML = '☆';
-      favBtn.title = 'Add to favorites';
-      favBtn.setAttribute('data-favorited', 'false');
-      favBtn.classList.remove('visible');
-    }
-  }
-  
-  // Update favorites section
-  createFavoritesSection(favorites);
-  if (typeof toast === 'function') toast('Removed from favorites', 'ok');
+  if (typeof window.pinPaneToggle === 'function') window.pinPaneToggle(navId);
 }
+
+// Called by pinPaneToggle() (04-workflow-specs.js) after every successful
+// backend toggle, from EITHER the sidebar's own ☆/★ buttons or the
+// Customize Sidebar dialog, so both surfaces always reflect the same
+// state immediately without needing a page reload.
+function refreshSidebarFavorites(pinnedPanes) {
+  _favoritesCache = pinnedPanes || [];
+  document.querySelectorAll('.nav-item[data-nav]:not(.fav-item)').forEach(item => {
+    const navId = item.dataset.nav;
+    const favBtn = item.querySelector('.nav-fav-btn');
+    if (!favBtn) return;
+    const isFav = _favoritesCache.includes(navId);
+    favBtn.innerHTML = isFav ? '★' : '☆';
+    favBtn.title = isFav ? 'Remove from Favorites' : 'Add to Favorites';
+    favBtn.setAttribute('data-favorited', isFav ? 'true' : 'false');
+    favBtn.classList.toggle('visible', isFav);
+  });
+  createFavoritesSection(_favoritesCache);
+}
+window.refreshSidebarFavorites = refreshSidebarFavorites;
 
 // ── Group Tooltips ───────────────────────────────────────────────
 // Help tips removed per user request
