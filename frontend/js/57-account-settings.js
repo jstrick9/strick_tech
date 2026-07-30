@@ -339,7 +339,7 @@
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <div>
           <div style="font-weight:700;font-size:13px;margin-bottom:2px">🎛️ Sidebar & Navigation</div>
-          <div style="font-size:11.5px;color:var(--text-2)">Choose which panes show in your sidebar and pin favorites.</div>
+          <div style="font-size:11.5px;color:var(--text-2)">Choose which panes show in your sidebar and star your Favorites.</div>
         </div>
         <button type="button" id="acct-customize-sidebar-btn" class="btn-3d btn-sm">Customize Sidebar</button>
       </div>

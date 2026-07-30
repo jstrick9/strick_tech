@@ -202,11 +202,12 @@ function updateCustomizerRow(paneId, {hidden, pinned} = {}) {
     }
   }
   if (pinned !== undefined) {
-    const pinBtn = row.querySelector('.cust-pin-btn');
-    if (pinBtn) {
-      pinBtn.textContent = pinned ? '★' : '☆';
-      pinBtn.style.color = pinned ? 'var(--accent)' : 'var(--text-3)';
-      pinBtn.title = pinned ? 'Unpin from sidebar top' : 'Pin to sidebar top';
+    const favBtn = row.querySelector('.cust-pin-btn');
+    if (favBtn) {
+      favBtn.innerHTML = pinned ? '★ Favorited' : '☆ Favorite';
+      favBtn.style.background = pinned ? 'rgba(234,179,8,.15)' : 'none';
+      favBtn.style.color = pinned ? 'var(--warning)' : 'var(--text-3)';
+      favBtn.title = pinned ? 'Remove from Favorites' : 'Add to Favorites';
     }
   }
 }
@@ -286,7 +287,7 @@ function showSidebarCustomizer() {
   overlay.id = 'sidebar-customizer';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.innerHTML = `
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:640px;width:100%;max-height:82vh;overflow:hidden;display:flex;flex-direction:column">
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:720px;width:100%;max-height:82vh;overflow:hidden;display:flex;flex-direction:column">
       <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">
         <span style="font-size:18px">🎛️</span>
         <h3 style="margin:0;color:var(--text-0)">Customize Sidebar</h3>
@@ -318,15 +319,15 @@ function showSidebarCustomizer() {
     const grid = section.querySelector(`[data-group-grid="${group.id}"]`);
     group.panes.forEach(p => {
       const isHidden = hidden.includes(p.id);
-      const isPinned = pinned.includes(p.id);
+      const isFavorited = pinned.includes(p.id);
       const row = document.createElement('div');
       row.id = `cust-row-${p.id}`;
-      row.style.cssText = `display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg-3);border-radius:8px;border:1px solid ${isHidden ? 'var(--border)' : 'var(--border-hi)'}`;
+      row.style.cssText = `display:flex;align-items:center;gap:6px;padding:7px 8px;background:var(--bg-3);border-radius:8px;border:1px solid ${isHidden ? 'var(--border)' : 'var(--border-hi)'}`;
       row.innerHTML = `
         <span style="font-size:14px">${p.icon}</span>
         <span style="font-size:12px;color:var(--text-1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.label)}</span>
-        <button type="button" class="cust-toggle-btn" data-pane-id="${p.id}" style="font-size:11px;background:${isHidden ? 'var(--bg-4)' : 'rgba(91,138,248,.15)'};border:1px solid var(--border);border-radius:5px;color:var(--text-2);padding:2px 8px;cursor:pointer;flex-shrink:0">${isHidden ? 'Show' : 'Hide'}</button>
-        <button type="button" class="cust-pin-btn" data-pane-id="${p.id}" title="${isPinned ? 'Unpin from sidebar top' : 'Pin to sidebar top'}" style="font-size:13px;background:none;border:1px solid var(--border);border-radius:5px;color:${isPinned ? 'var(--accent)' : 'var(--text-3)'};padding:2px 6px;cursor:pointer;flex-shrink:0">${isPinned ? '★' : '☆'}</button>`;
+        <button type="button" class="cust-toggle-btn" data-pane-id="${p.id}" style="font-size:11px;background:${isHidden ? 'var(--bg-4)' : 'rgba(91,138,248,.15)'};border:1px solid var(--border);border-radius:5px;color:var(--text-2);padding:2px 7px;cursor:pointer;flex-shrink:0;white-space:nowrap">${isHidden ? 'Show' : 'Hide'}</button>
+        <button type="button" class="cust-pin-btn" data-pane-id="${p.id}" title="${isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}" style="font-size:11px;background:${isFavorited ? 'rgba(234,179,8,.15)' : 'none'};border:1px solid var(--border);border-radius:5px;color:${isFavorited ? 'var(--warning)' : 'var(--text-3)'};padding:2px 7px;cursor:pointer;flex-shrink:0;white-space:nowrap">${isFavorited ? '★ Favorited' : '☆ Favorite'}</button>`;
       grid.appendChild(row);
     });
     groupsWrap.appendChild(section);
@@ -394,13 +395,18 @@ async function pinPaneToggle(paneId) {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
     if (_UI.profile) _UI.profile.pinned_panes = d.pinned_panes || [];
-    const isPinned = d.action === 'pinned';
-    showToast(isPinned ? `★ ${paneId} pinned to sidebar top` : `☆ ${paneId} unpinned`);
+    const isFavorited = d.action === 'pinned';
+    showToast(isFavorited ? `⭐ ${paneId} added to Favorites` : `${paneId} removed from Favorites`);
     // Update just this row in place — see togglePaneVisibility for why we
     // stopped destroying/rebuilding the whole customizer on every click.
-    updateCustomizerRow(paneId, {pinned: isPinned});
+    updateCustomizerRow(paneId, {pinned: isFavorited});
+    // Keep the REAL sidebar's ⭐ Favorites section (sidebar-enhancements.js)
+    // in sync too — "Add to Favorites" here and the sidebar's own ☆/★
+    // hover buttons both call this same function so both surfaces always
+    // agree, whichever one you use.
+    window.refreshSidebarFavorites?.(d.pinned_panes || []);
   } catch(ex) {
-    showToast('⚠️ Could not update pin: ' + (ex?.message||String(ex)));
+    showToast('⚠️ Could not update Favorites: ' + (ex?.message||String(ex)));
   }
 }
 
