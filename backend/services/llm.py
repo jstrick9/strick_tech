@@ -236,7 +236,13 @@ async def stream(
         for word in stub.split(' '):
             yield f'data: {json.dumps({"delta": word + " ", "done": False})}\n\n'
             await asyncio.sleep(0.02)
-        yield f'data: {json.dumps({"delta": "", "done": True, "model": model_str})}\n\n'
+        # FIX: mark this final chunk as a stub reply (no LLM actually ran) so
+        # callers like Studio's AI-edit diff overlay can tell the difference
+        # between "the AI proposed real replacement code" and "there's no API
+        # key configured" — without this flag, Studio would offer the raw
+        # "No OPENROUTER_API_KEY set..." help text as an Accept-able code diff,
+        # and clicking Accept & Apply would overwrite the file with that text.
+        yield f'data: {json.dumps({"delta": "", "done": True, "model": model_str, "stub": True})}\n\n'
         return
 
     payload = {
