@@ -2386,14 +2386,27 @@ document.addEventListener('keydown', e => {
   const injectSettings = () => {
     const settingsPane = document.getElementById('pane-settings');
     if (!settingsPane) return;
-    
+
     // Add Tauri section if not already there
     if (!document.getElementById('tauri-build-section')) {
+      // BUG FIX: this used `settingsPane.querySelector('div')` — which
+      // matches the FIRST <div> anywhere inside #pane-settings, i.e.
+      // `.settings-workstation` itself (the flex row containing the left
+      // nav sidebar and the right content area). Appending here made
+      // #tauri-build-section a THIRD flex sibling competing for width
+      // alongside `.settings-sidebar` and `.settings-content-area`,
+      // squeezing the real content area down to a sliver (confirmed live:
+      // .settings-content-area measured 88px wide instead of ~800px+,
+      // causing every element inside every settings tab to wrap into an
+      // unreadably narrow column). This panel is genuinely a System-level
+      // setting (alongside the storage/backup section), so it now targets
+      // the System tab's content pane instead of the outer workstation row.
+      const target = document.getElementById('settings-tab-system') || settingsPane.querySelector('.settings-content-area') || settingsPane;
       const div = document.createElement('div');
       div.id = 'tauri-build-section';
-      settingsPane.querySelector('div')?.appendChild(div);
+      target.appendChild(div);
     }
-    
+
     // Trigger render if settings pane is active
     if (settingsPane.classList.contains('active')) {
       renderTauriStatus();
