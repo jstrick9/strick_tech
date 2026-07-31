@@ -657,6 +657,7 @@
     var folders = getCustomFolders();
     var items = [
       { icon: '➕', label: 'Create New Folder', handler: function() { showNewFolderForm(null); } },
+      { icon: '📊', label: 'Session Stats', handler: function() { if (typeof window.showSessionStats === 'function') window.showSessionStats(); } },
     ];
     if (folders.length) {
       items.push({ separator: true });

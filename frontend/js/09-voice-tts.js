@@ -1,15 +1,14 @@
 // ═══════════════════════════════════════════════════════════════
 //  Agentic OS — Voice & TTS Frontend Integration
-//  Adds speak buttons to messages, voice input to chat bar,
-//  and voice settings to the settings pane.
+//  Text-to-speech playback for AI messages (window.speakMessage /
+//  window.stopSpeaking). Voice INPUT lives in 03-features-b.js
+//  (window.toggleVoice) — see the note further down for why.
 // ═══════════════════════════════════════════════════════════════
 'use strict';
 
 (function() {
   var _ttsPlaying = null;
   var _ttsAudio = null;
-  var _recognition = null;
-  var _isListening = false;
 
   // ── Speak a message (TTS) ──────────────────────────────────
   window.speakMessage = function(text, agentId) {
@@ -100,166 +99,22 @@
     // No-op: removed top-right absolute speak buttons so only bottom .msg-actions Listen button is shown
   };
 
-  // ── Voice Input (WebSpeech API) ────────────────────────────
-  window.toggleVoiceInput = function() {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      if (window.showToast) showToast('Voice input not supported in this browser. Try Chrome or Edge.');
-      return;
-    }
-    
-    if (_isListening) {
-      stopVoiceInput();
-      return;
-    }
-    
-    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    _recognition = new SpeechRecognition();
-    _recognition.continuous = false;
-    _recognition.interimResults = true;
-    _recognition.lang = 'en-US';
-    
-    var voiceBtn = document.getElementById('voice-input-btn');
-    var chatInput = document.getElementById('chat-input');
-    
-    _recognition.onstart = function() {
-      _isListening = true;
-      if (voiceBtn) {
-        voiceBtn.style.background = 'var(--danger)';
-        voiceBtn.style.color = 'white';
-        voiceBtn.textContent = '⏹';
-        voiceBtn.title = 'Stop listening';
-      }
-      if (window.showToast) showToast('🎤 Listening…');
-    };
-    
-    _recognition.onresult = function(event) {
-      var transcript = '';
-      for (var i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
-      }
-      if (chatInput) {
-        chatInput.value = transcript;
-        // Auto-resize
-        chatInput.style.height = 'auto';
-        chatInput.style.height = Math.min(chatInput.scrollHeight, 160) + 'px';
-      }
-      
-      // If final result, parse as voice command
-      if (event.results[event.results.length - 1].isFinal) {
-        parseVoiceCommand(transcript);
-      }
-    };
-    
-    _recognition.onerror = function(event) {
-      console.warn('Speech recognition error:', event.error);
-      stopVoiceInput();
-      if (event.error !== 'no-speech' && window.showToast) {
-        showToast('Voice error: ' + event.error);
-      }
-    };
-    
-    _recognition.onend = function() {
-      stopVoiceInput();
-    };
-    
-    _recognition.start();
-  };
-
-  function stopVoiceInput() {
-    _isListening = false;
-    if (_recognition) {
-      try { _recognition.stop(); } catch(e) {}
-      _recognition = null;
-    }
-    var voiceBtn = document.getElementById('voice-input-btn');
-    if (voiceBtn) {
-      voiceBtn.style.background = '';
-      voiceBtn.style.color = '';
-      voiceBtn.textContent = '🎤';
-      voiceBtn.title = 'Voice input (Ctrl+Shift+V)';
-    }
-  }
-
-  // ── Parse voice command ────────────────────────────────────
-  async function parseVoiceCommand(transcript) {
-    if (!transcript || transcript.length < 3) return;
-    
-    try {
-      var resp = await fetch('/api/voice/parse', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({transcript: transcript})
-      });
-      var data = await resp.json();
-      
-      if (data.ok && data.action !== 'chat_send') {
-        // It's a command — execute it
-        executeVoiceAction(data.action, data.payload);
-        if (window.showToast) showToast('🎤 Voice command: ' + data.action);
-      }
-      // If chat_send, the text is already in the input — user just needs to press Enter
-    } catch(e) {
-      // Silently fail — voice parsing is optional
-    }
-  }
-
-  function executeVoiceAction(action, payload) {
-    switch(action) {
-      case 'navigate':
-        if (window.nav) nav(payload);
-        break;
-      case 'command_palette':
-        if (window.openPalette) openPalette();
-        break;
-      case 'toggle_sidebar':
-        if (window.toggleSidebar) toggleSidebar();
-        break;
-      case 'new_chat':
-        if (window.clearChatHistory) clearChatHistory();
-        break;
-      case 'clear_chat':
-        if (window.clearChatHistory) clearChatHistory();
-        break;
-      case 'help':
-        if (window.showKeyboardShortcuts) showKeyboardShortcuts();
-        break;
-      case 'save':
-        if (window.studioSaveFile) studioSaveFile();
-        break;
-      case 'search':
-        if (window.openPalette) openPalette();
-        break;
-      default:
-        // Unknown command — just send as chat
-        break;
-    }
-  }
-
-  // ── Inject voice button into chat bar ───────────────────────
-  function injectVoiceButton() {
-    var chatTools = document.querySelector('.chat-tools');
-    if (!chatTools || document.getElementById('voice-input-btn')) return;
-    
-    var btn = document.createElement('button');
-    btn.id = 'voice-input-btn';
-    btn.className = 'chat-tool';
-    btn.textContent = '🎤';
-    btn.title = 'Voice input (Ctrl+Shift+V)';
-    btn.onclick = function() { toggleVoiceInput(); };
-    chatTools.appendChild(btn);
-  }
-
-  // ── Keyboard shortcut for voice ────────────────────────────
-  document.addEventListener('keydown', function(e) {
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'V') {
-      e.preventDefault();
-      toggleVoiceInput();
-    }
-  });
+  // NOTE: this file used to also define its own separate voice-INPUT
+  // system (window.toggleVoiceInput, a #voice-input-btn button, and its
+  // own Ctrl+Shift+V shortcut) that duplicated — and directly conflicted
+  // with — the richer voice-coding system in 03-features-b.js
+  // (window.toggleVoice / #voice-btn / the same Ctrl+Shift+V shortcut).
+  // Because both files bound the identical shortcut, a single keypress
+  // started TWO separate SpeechRecognition sessions at once, and the two
+  // near-identical 🎤 buttons sitting side-by-side in the chat toolbar
+  // were confusing and did different things. Removed this file's copy;
+  // 03-features-b.js's voice coding (navigate/chat_send/run_agent/
+  // create_file/open_file/run_tests command parsing) is the sole voice
+  // INPUT implementation now. This file keeps only text-to-speech
+  // (window.speakMessage / window.stopSpeaking), which is unique to it.
 
   // ── Auto-inject buttons ────────────────────────────────────
   setTimeout(function() {
-    injectVoiceButton();
     // Re-inject speak buttons when chat messages change
     var observer = new MutationObserver(function() {
       injectSpeakButtons();

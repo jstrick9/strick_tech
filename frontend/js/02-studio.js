@@ -145,8 +145,13 @@ if (typeof PALETTE_CMDS !== 'undefined') {
 
 // ── 3. Quick Action Bar (context-sensitive) ────────────────────
 // Shows relevant actions based on current pane
+// NOTE: 'chat' intentionally has no entry here anymore. It used to show
+// ['💬 New Session', 'newSession()'] which called a dead legacy function
+// (a completely separate, disconnected session-creation path from the
+// real "+ New" button already in the Chat header — see 01-app-core.js)
+// plus ['🌀 Run Swarm', '⚡ Skills'] which just duplicated sidebar nav
+// items that are always one click away already.
 const QUICK_ACTIONS = {
-  chat:       [['💬 New Session','newSession()'],['🌀 Run Swarm',"nav('swarm')"],['⚡ Skills',"nav('skills')"]],
   studio:     [['⚡ Scaffold',"studioScaffold?.()"],['💾 Save',"studioSaveFile?.()"],['🧪 Test',"runE2EFull?.('web')"]],
   kanban:     [['＋ Task',"openNewTaskModal()"],['📋 Done',""],['♾️ Auto',"nav('loops')"]],
   dashboard:  [['⟳ Refresh',"renderDashboard?.()"],['📤 Export',"exportWorkspace?.('current')"]],

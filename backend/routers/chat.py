@@ -149,6 +149,73 @@ async def chat_stream(req: Request):
 
         return StreamingResponse(_models(), media_type='text/event-stream')
 
+    if cmd == '/goal':
+        # NOTE: previously /help advertised /goal ("Plan a goal → Apollo
+        # breaks into Kanban tasks") but there was no handler for it at
+        # all here — it silently fell through to the plain LLM chat path,
+        # so typing "/goal Build a SaaS landing page" just sent that
+        # literal text (slash included) to whatever model was selected,
+        # confusing it. Now genuinely creates a real goal via the same
+        # goals_v2 table /api/goals uses, then tells the user it's ready
+        # to decompose/launch from the Goals pane.
+        goal_title = rest.strip() or message.strip()
+        if not goal_title:
+            async def _goal_empty():
+                yield f'data: {json.dumps({"delta": "Usage: `/goal <what you want to accomplish>`", "done": True})}\n\n'
+            return StreamingResponse(_goal_empty(), media_type='text/event-stream')
+
+        from . import goal_manager
+
+        goal_id = None
+        try:
+            goal_id = goal_manager._create_goal_record(title=goal_title[:300], domain='Work', priority='medium')
+        except Exception:
+            goal_id = None
+
+        if goal_id:
+            text = (
+                f'✅ **Goal created:** {goal_title}\n\n'
+                f'Opening the Goals workstation so you can decompose it into milestones, '
+                f'assign agents, and launch it.'
+            )
+        else:
+            text = f"⚠️ Couldn't create the goal automatically. Open the **Goals** pane and create it manually: {goal_title}"
+
+        async def _goal():
+            payload = {'delta': text, 'done': True, 'action': 'navigate', 'target': 'goals'}
+            if goal_id:
+                payload['goal_id'] = goal_id
+            yield f'data: {json.dumps(payload)}\n\n'
+
+        return StreamingResponse(_goal(), media_type='text/event-stream')
+
+    if cmd in ('/research', '/code', '/review', '/ship', '/swarm'):
+        # Same story as /goal above — these were listed in /help with no
+        # actual implementation. Each now routes you to the workstation
+        # built for that job, with your prompt carried over so you don't
+        # have to retype it.
+        target_pane = {
+            '/research': 'websearch',
+            '/code': 'studio',
+            '/review': 'bugbot',
+            '/ship': 'deploy',
+            '/swarm': 'swarm',
+        }[cmd]
+        pane_label = {
+            'websearch': 'Web Search',
+            'studio': 'Code Studio',
+            'bugbot': 'BugBot',
+            'deploy': 'Deploy',
+            'swarm': 'Multi-Agent Swarm',
+        }[target_pane]
+        carried_prompt = rest.strip() or message.strip()
+        text = f'🚀 Opening **{pane_label}**' + (f' with your prompt ready to go.' if carried_prompt else '.')
+
+        async def _route():
+            yield f'data: {json.dumps({"delta": text, "done": True, "action": "navigate", "target": target_pane, "carry_prompt": carried_prompt})}\n\n'
+
+        return StreamingResponse(_route(), media_type='text/event-stream')
+
     if cmd == '/memory':
         results = memory_db.memory_search_fts(rest or 'recent', limit=10)
         text = f'**Memory search:** `{rest}`\n\n'

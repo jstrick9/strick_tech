@@ -149,32 +149,34 @@ def list_goals(
     return {'goals': [_goal_dict(r) for r in rows], 'total': total}
 
 
-@router.post('')
-async def create_goal(req: Request):
-    """Create and initialize a new goal."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
-
-    title = (body.get('title') or '').strip()
+def _create_goal_record(
+    title: str,
+    description: str = '',
+    domain: str = 'Work',
+    priority: str = 'medium',
+    success_criteria: str = '',
+    assigned_agents: list | None = None,
+    deadline: str = '',
+    tags: str = '',
+    parent_goal_id: str = '',
+    notes: str = '',
+    milestones: list | None = None,
+) -> str:
+    """Insert a new goal row directly (used by both the POST /api/goals
+    handler and the chat /goal slash command in chat.py) and return its id."""
+    title = (title or '').strip()
     if not title:
-        return JSONResponse({'ok': False, 'error': 'title required'}, status_code=400)
+        raise ValueError('title required')
 
     goal_id = f'goal_{uuid.uuid4().hex[:10]}'
     now = _now()
 
-    domain = body.get('domain', 'Work')
     if domain not in DOMAINS:
         domain = 'Work'
-    priority = body.get('priority', 'medium')
     if priority not in PRIORITIES:
         priority = 'medium'
 
-    agents = body.get('assigned_agents') or []
+    agents = assigned_agents or []
     if isinstance(agents, str):
         agents = [a.strip() for a in agents.split(',') if a.strip()]
 
@@ -190,42 +192,75 @@ async def create_goal(req: Request):
             (
                 goal_id,
                 title[:300],
-                (body.get('description') or '')[:2000],
-                (body.get('success_criteria') or '')[:1000],
+                (description or '')[:2000],
+                (success_criteria or '')[:1000],
                 domain,
                 priority,
                 'active',
                 json.dumps(agents),
-                (body.get('deadline') or '')[:30],
-                (body.get('tags') or '')[:200],
-                (body.get('parent_goal_id') or '')[:50],
-                (body.get('notes') or '')[:2000],
+                (deadline or '')[:30],
+                (tags or '')[:200],
+                (parent_goal_id or '')[:50],
+                (notes or '')[:2000],
                 now,
                 now,
             ),
         )
 
-        # Seed milestones if provided
-        for ms in body.get('milestones') or []:
+        for ms in milestones or []:
             ms_id = f'ms_{uuid.uuid4().hex[:8]}'
             con.execute(
                 """
                 INSERT INTO goal_milestones (id,goal_id,title,description,due_date,created_at)
                 VALUES (?,?,?,?,?,?)
             """,
-                (
-                    ms_id,
-                    goal_id,
-                    (ms.get('title') or 'Milestone')[:200],
-                    (ms.get('description') or '')[:500],
-                    (ms.get('due_date') or '')[:30],
-                    now,
-                ),
+                (ms_id, goal_id, (ms.get('title') or '')[:200], (ms.get('description') or '')[:1000], (ms.get('due_date') or '')[:30], now),
             )
-
         con.commit()
     finally:
         con.close()
+
+    return goal_id
+
+
+@router.post('')
+async def create_goal(req: Request):
+    """Create and initialize a new goal."""
+    try:
+        try:
+            body = await req.json()
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+            body = {}
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+
+    title = (body.get('title') or '').strip()
+    if not title:
+        return JSONResponse({'ok': False, 'error': 'title required'}, status_code=400)
+
+    try:
+        goal_id = _create_goal_record(
+            title=title,
+            description=body.get('description') or '',
+            domain=body.get('domain', 'Work'),
+            priority=body.get('priority', 'medium'),
+            success_criteria=body.get('success_criteria') or '',
+            assigned_agents=body.get('assigned_agents') or [],
+            deadline=body.get('deadline') or '',
+            tags=body.get('tags') or '',
+            parent_goal_id=body.get('parent_goal_id') or '',
+            notes=body.get('notes') or '',
+            milestones=body.get('milestones') or [],
+        )
+    except ValueError as exc:
+        return JSONResponse({'ok': False, 'error': str(exc)}, status_code=400)
+
+    domain = body.get('domain', 'Work')
+    if domain not in DOMAINS:
+        domain = 'Work'
+    priority = body.get('priority', 'medium')
+    if priority not in PRIORITIES:
+        priority = 'medium'
 
     # Record in audit log
     try:
