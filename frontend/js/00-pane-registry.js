@@ -43,7 +43,7 @@ window.MASTER_PANE_REGISTRY = {
   'hooks':          () => typeof window.renderHooks === 'function' && window.renderHooks(),
   'codeindex':      () => typeof window.renderCodeIndex === 'function' && window.renderCodeIndex(),
   'arena':          () => typeof window.renderArena === 'function' && window.renderArena(),
-  'steering':       () => typeof window.renderSteering === 'function' && window.renderSteering(),
+  'steering':       () => {}, // MODULE MERGE: folded into 'hierarchy' as a tab (window.nav() redirects 'steering' -> 'hierarchy' before this registry is ever consulted); kept as a harmless no-op entry rather than removing the key outright, in case any stale external deep-link still resolves the pane id directly.
   'bugbot':         () => typeof window.renderBugBot === 'function' && window.renderBugBot(),
   'health':         () => typeof window.renderHealth === 'function' && window.renderHealth(),
   'gitai':          () => typeof window.renderGitAI === 'function' && window.renderGitAI(),
