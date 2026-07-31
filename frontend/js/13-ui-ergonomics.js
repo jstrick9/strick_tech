@@ -24,6 +24,7 @@
     'websearch': { icon: '🔎', title: 'Web Search', desc: 'Grounded AI answers, raw search, and deep research with live web citations' },
     'browser': { icon: '🌐', title: 'Browser Agent', desc: 'Autonomous Playwright-driven browser tasks, screenshots, and session history' },
     'imagegen': { icon: '🎨', title: 'Image Generator', desc: 'AI image generation, Figma import, style transfer, and asset library management' },
+    'prompts': { icon: '💡', title: 'Prompt Library', desc: 'Save, organize, and reuse your best AI prompts' },
     // MODULE MERGE: 'builder' (Code Editor) retired and folded into
     // 'studio' (Code Studio) — nav('builder') redirects to nav('studio')
     // so this pane id no longer appears in the breadcrumb bar directly.

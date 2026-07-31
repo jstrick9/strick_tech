@@ -1,5 +1,33 @@
 // Agentic OS — Prompt Library
 // Extracted from 01-app-core.js for modularity
+//
+// BUG FIX (quote-collision crash): the category filter buttons and every
+// action button on a prompt card (Use/Edit/Duplicate/Favorite/Delete)
+// interpolated `JSON.stringify(...)` directly into a double-quoted HTML
+// attribute, e.g. onclick="usePrompt(${JSON.stringify(p.id)},
+// ${JSON.stringify(p.content)})". JSON.stringify() performs no
+// HTML-entity escaping, so the double quotes it wraps a string in collide
+// with the onclick attribute's own double-quote delimiters, corrupting
+// the HTML. Since prompt `content` is long, free-form, user-authored
+// text, this was near-guaranteed to break on real-world prompts (e.g.
+// "write a function that returns "hello world""). Reproduced live:
+// created a prompt with content containing a double-quote and clicking
+// its "→ Use" button threw
+// "Uncaught SyntaxError: Failed to execute 'click' on 'HTMLElement':
+// Unexpected end of input" and did nothing.
+// Fixed by switching every dynamically-generated onclick attribute in
+// the prompt grid and category filter to `data-*` attributes wired via
+// delegated `addEventListener` calls in wirePromptGridEvents()/
+// wireCategoryFilterEvents(), looked up by prompt id / category id
+// against the already-loaded `promptsData` array rather than ever
+// re-serializing prompt content into an HTML attribute. Static onclick
+// attributes with no interpolated user data (New Prompt/Export/Import/
+// search input/sort select/Favorites toggle/modal Cancel+Save) are left
+// as-is since they cannot collide.
+//
+// Also replaced every `showToast(...)` call in this file's Prompt
+// Library section with `toast(...)` per this codebase's standing rule
+// (`showToast` is a legacy compatibility alias for old code only).
 // ── Prompt Library state ─────────────────────────────────────────────────────
 let promptsData    = [];
 let promptCategory = 'all';
@@ -40,10 +68,10 @@ async function renderPrompts() {
           <option value="title">A-Z</option>
         </select>
         <button onclick="toggleFavs()" class="btn ${promptFavOnly?'btn-primary':'btn-ghost'} btn-sm" id="fav-btn">⭐ Favorites</button>
-        <div style="display:flex;gap:4px;flex-wrap:wrap">
-          <button onclick="setPromptCat('all')" class="term-btn" id="pcat-all"
+        <div style="display:flex;gap:4px;flex-wrap:wrap" id="prompt-cat-filter">
+          <button type="button" data-prompt-cat="all" class="term-btn" id="pcat-all"
                   style="${promptCategory==='all'?'border-color:var(--accent);color:var(--accent-hi)':''}">All (${promptsData.length})</button>
-          ${cats.map(c=>`<button onclick="setPromptCat(${JSON.stringify(c.id)})" class="term-btn" id="pcat-${c.id}"
+          ${cats.map(c=>`<button type="button" data-prompt-cat="${escHtml(c.id)}" class="term-btn" id="pcat-${escHtml(c.id)}"
             style="${promptCategory===c.id?'border-color:var(--accent);color:var(--accent-hi)':''}">${escHtml(c.id)} (${c.count})</button>`).join('')}
         </div>
       </div>
@@ -78,10 +106,56 @@ async function renderPrompts() {
         </div>
       </div>`;
 
+    wireCategoryFilterEvents();
+    wirePromptGridEvents();
+
   } catch(ex) {
     pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Error loading prompts: ${escHtml(ex?.message||String(ex))}<br>
       <button class="btn-sm" onclick="renderPrompts()" style="margin-top:8px">↻ Retry</button></div>`;
   }
+}
+
+// Category filter chips: delegated click handling looked up by the
+// category id stored in data-prompt-cat, instead of the old
+// onclick="setPromptCat(${JSON.stringify(c.id)})" pattern.
+function wireCategoryFilterEvents() {
+  const filterBar = document.getElementById('prompt-cat-filter');
+  if (!filterBar) return;
+  filterBar.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-prompt-cat]');
+    if (btn) setPromptCat(btn.dataset.promptCat);
+  });
+}
+
+// Prompt card action buttons (Use/Edit/Duplicate/Favorite/Delete):
+// delegated click handling looked up by prompt id against the
+// already-loaded promptsData array, instead of the old
+// onclick="usePrompt(${JSON.stringify(p.id)},${JSON.stringify(p.content)})"
+// pattern that corrupted the HTML on any prompt whose content contained a
+// double-quote (see file header note for the full bug writeup and live
+// repro). Re-wired every time renderPromptCards() replaces #prompt-grid's
+// innerHTML (renderPrompts() initial render, and every filterPrompts()
+// call from search/category/favorites-toggle/sort), since the listener
+// is attached to the stable #prompt-grid container itself (event
+// delegation), not to the individual card buttons that get replaced.
+function wirePromptGridEvents() {
+  const grid = document.getElementById('prompt-grid');
+  if (!grid || grid.dataset.wired) return;
+  grid.dataset.wired = '1';
+  grid.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-prompt-action]');
+    if (!btn) return;
+    const pid = btn.dataset.promptId;
+    const p = promptsData.find(x => x.id === pid);
+    switch (btn.dataset.promptAction) {
+      case 'use':        if (p) usePrompt(pid, p.content); break;
+      case 'edit':       editPrompt(pid); break;
+      case 'duplicate':  duplicatePrompt(pid); break;
+      case 'favorite':   toggleFavorite(pid, p?.is_favorite ? 1 : 0); break;
+      case 'delete':     deletePrompt(pid); break;
+      case 'create-first': openNewPromptModal(); break;
+    }
+  });
 }
 
 function renderPromptCards() {
@@ -96,7 +170,7 @@ function renderPromptCards() {
   );
   if (!filtered.length) return `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-3)">
     No prompts found${q?' matching "'+escHtml(q)+'"':''}.
-    ${!promptsData.length?'<br><button class="btn btn-primary btn-sm" onclick="openNewPromptModal()" style="margin-top:8px">＋ Create First Prompt</button>':''}
+    ${!promptsData.length?'<br><button type="button" class="btn btn-primary btn-sm" data-prompt-action="create-first" style="margin-top:8px">＋ Create First Prompt</button>':''}
   </div>`;
 
   return filtered.map(p => `
@@ -115,11 +189,11 @@ function renderPromptCards() {
       </div>
       <p style="font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:10px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${escHtml(p.content)}</p>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        <button onclick="usePrompt(${JSON.stringify(p.id)},${JSON.stringify(p.content)})" class="btn btn-primary btn-sm" style="flex:1" title="Load in chat">→ Use</button>
-        <button onclick="editPrompt(${JSON.stringify(p.id)})" class="btn btn-ghost btn-sm" title="Edit">✏️</button>
-        <button onclick="duplicatePrompt(${JSON.stringify(p.id)})" class="btn btn-ghost btn-sm" title="Duplicate">⧉</button>
-        <button onclick="toggleFavorite(${JSON.stringify(p.id)},${p.is_favorite?1:0})" class="btn btn-ghost btn-sm" title="${p.is_favorite?'Remove from favorites':'Add to favorites'}">${p.is_favorite?'⭐':'☆'}</button>
-        <button onclick="deletePrompt(${JSON.stringify(p.id)})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:3px 6px" title="Delete">🗑</button>
+        <button type="button" data-prompt-action="use" data-prompt-id="${escHtml(p.id)}" class="btn btn-primary btn-sm" style="flex:1" title="Load in chat">→ Use</button>
+        <button type="button" data-prompt-action="edit" data-prompt-id="${escHtml(p.id)}" class="btn btn-ghost btn-sm" title="Edit">✏️</button>
+        <button type="button" data-prompt-action="duplicate" data-prompt-id="${escHtml(p.id)}" class="btn btn-ghost btn-sm" title="Duplicate">⧉</button>
+        <button type="button" data-prompt-action="favorite" data-prompt-id="${escHtml(p.id)}" class="btn btn-ghost btn-sm" title="${p.is_favorite?'Remove from favorites':'Add to favorites'}">${p.is_favorite?'⭐':'☆'}</button>
+        <button type="button" data-prompt-action="delete" data-prompt-id="${escHtml(p.id)}" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:3px 6px" title="Delete">🗑</button>
       </div>
     </div>`).join('');
 }
@@ -191,7 +265,7 @@ function closePromptModal() {
 async function savePrompt() {
   const title    = document.getElementById('pm-title')?.value?.trim();
   const content  = document.getElementById('pm-content')?.value?.trim();
-  if (!title || !content) { showToast('⚠️ Title and content are required'); return; }
+  if (!title || !content) { toast('⚠️ Title and content are required', 'warn'); return; }
 
   const payload = {
     title,
@@ -207,23 +281,23 @@ async function savePrompt() {
 
   try {
     const r = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
-    if (!r.ok) { showToast('Save failed: HTTP '+r.status); return; }
+    if (!r.ok) { toast('Save failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
     if (j.ok) {
-      showToast(editingPromptId ? '✅ Prompt updated' : '✅ Prompt saved');
+      toast(editingPromptId ? '✅ Prompt updated' : '✅ Prompt saved', 'ok');
       closePromptModal();
       renderPrompts();
     } else {
-      showToast('Save failed: '+(j.error||'Unknown error'));
+      toast('Save failed: '+(j.error||'Unknown error'), 'err');
     }
   } catch(ex) {
-    showToast('Save error: '+ex?.message);
+    toast('Save error: '+ex?.message, 'err');
   }
 }
 
 function editPrompt(pid) {
   const p = promptsData.find(x => x.id === pid);
-  if (!p) { showToast('Prompt not found'); return; }
+  if (!p) { toast('Prompt not found', 'err'); return; }
   editingPromptId = pid;
   const modalTitle = document.getElementById('pm-modal-title');
   const titleEl    = document.getElementById('pm-title');
@@ -252,17 +326,17 @@ async function deletePrompt(pid) {
   if (!(await gmDanger('Delete Prompt', `Remove "${name}" from your library?`))) return;
   try {
     const r = await fetch(`/api/prompts/${encodeURIComponent(pid)}`, {method:'DELETE'});
-    if (!r.ok) { showToast('Delete failed: HTTP '+r.status); return; }
+    if (!r.ok) { toast('Delete failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
     if (j.ok) {
       promptsData = promptsData.filter(p => p.id !== pid);
-      showToast('🗑 Prompt deleted');
+      toast('🗑 Prompt deleted', 'ok');
       filterPrompts();
     } else {
-      showToast('Delete failed: '+(j.error||'Unknown'));
+      toast('Delete failed: '+(j.error||'Unknown'), 'err');
     }
   } catch(ex) {
-    showToast('Delete error: '+ex?.message);
+    toast('Delete error: '+ex?.message, 'err');
   }
 }
 
@@ -272,18 +346,18 @@ async function toggleFavorite(pid, current) {
       method:'PATCH', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({is_favorite: current ? 0 : 1})
     });
-    if (!r.ok) { showToast('Favorite toggle failed: HTTP '+r.status); return; }
+    if (!r.ok) { toast('Favorite toggle failed: HTTP '+r.status, 'err'); return; }
     const d = await r.json();
     if (d.ok) {
       const p = promptsData.find(x => x.id === pid);
       if (p) p.is_favorite = current ? 0 : 1;
       filterPrompts();
-      showToast(current ? '☆ Removed from favorites' : '⭐ Added to favorites');
+      toast(current ? '☆ Removed from favorites' : '⭐ Added to favorites', 'ok');
     } else {
-      showToast('Toggle failed: '+(d.error||'Unknown'));
+      toast('Toggle failed: '+(d.error||'Unknown'), 'err');
     }
   } catch(ex) {
-    showToast('Favorite error: '+ex?.message);
+    toast('Favorite error: '+ex?.message, 'err');
   }
 }
 
@@ -305,29 +379,29 @@ async function usePrompt(pid, content) {
       if (emptyEl) emptyEl.style.display = 'none';
     }
   }, 200);
-  showToast('✅ Prompt loaded in chat');
+  toast('✅ Prompt loaded in chat', 'ok');
 }
 
 async function duplicatePrompt(pid) {
   try {
     const r = await fetch(`/api/prompts/${encodeURIComponent(pid)}/duplicate`, {method:'POST'});
-    if (!r.ok) { showToast('Duplicate failed: HTTP '+r.status); return; }
+    if (!r.ok) { toast('Duplicate failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
     if (j.ok) {
-      showToast('⧉ Prompt duplicated: '+escHtml(j.title||''));
+      toast('⧉ Prompt duplicated: '+escHtml(j.title||''), 'ok');
       renderPrompts();
     } else {
-      showToast('Duplicate failed: '+(j.error||'Unknown'));
+      toast('Duplicate failed: '+(j.error||'Unknown'), 'err');
     }
   } catch(ex) {
-    showToast('Duplicate error: '+ex?.message);
+    toast('Duplicate error: '+ex?.message, 'err');
   }
 }
 
 async function exportPrompts() {
   try {
     const r = await fetch('/api/prompts/export');
-    if (!r.ok) { showToast('Export failed: HTTP '+r.status); return; }
+    if (!r.ok) { toast('Export failed: HTTP '+r.status, 'err'); return; }
     const d = await r.json();
     const blob = new Blob([JSON.stringify(d.prompts, null, 2)], {type:'application/json'});
     const a = document.createElement('a');
@@ -335,9 +409,9 @@ async function exportPrompts() {
     a.download = `prompts-export-${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
-    showToast(`✅ Exported ${d.count} prompts`);
+    toast(`✅ Exported ${d.count} prompts`, 'ok');
   } catch(ex) {
-    showToast('Export error: '+ex?.message);
+    toast('Export error: '+ex?.message, 'err');
   }
 }
 
@@ -352,21 +426,21 @@ async function importPrompts() {
       const text = await file.text();
       const data = JSON.parse(text);
       const prompts = Array.isArray(data) ? data : (data.prompts || []);
-      if (!prompts.length) { showToast('No prompts found in file'); return; }
+      if (!prompts.length) { toast('No prompts found in file', 'warn'); return; }
       const r = await fetch('/api/prompts/import', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({prompts})
       });
-      if (!r.ok) { showToast('Import failed: HTTP '+r.status); return; }
+      if (!r.ok) { toast('Import failed: HTTP '+r.status, 'err'); return; }
       const j = await r.json();
       if (j.ok) {
-        showToast(`✅ Imported ${j.imported} prompts (${j.skipped} skipped)`);
+        toast(`✅ Imported ${j.imported} prompts (${j.skipped} skipped)`, 'ok');
         renderPrompts();
       } else {
-        showToast('Import failed: '+(j.error||'Unknown'));
+        toast('Import failed: '+(j.error||'Unknown'), 'err');
       }
     } catch(ex) {
-      showToast('Import parse error: '+ex?.message);
+      toast('Import parse error: '+ex?.message, 'err');
     }
   };
   input.click();
@@ -375,7 +449,7 @@ async function importPrompts() {
 // Save current chat input as a prompt
 window.saveCurrentAsPrompt = async function() {
   const content = document.getElementById('chat-input')?.value?.trim();
-  if (!content) { showToast('⚠️ Type a prompt first'); return; }
+  if (!content) { toast('⚠️ Type a prompt first', 'warn'); return; }
   const title = await gmPrompt('Save Prompt', 'Name for this prompt', content.slice(0,50)+(content.length>50?'…':''));
   if (!title || !title.trim()) return;
   try {
@@ -383,12 +457,12 @@ window.saveCurrentAsPrompt = async function() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({title:title.trim(), content, category:'general'})
     });
-    if (!r.ok) { showToast('Save failed: HTTP '+r.status); return; }
+    if (!r.ok) { toast('Save failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
-    if (j.ok) showToast('✅ Saved to Prompt Library');
-    else showToast('Save failed: '+(j.error||'Unknown'));
+    if (j.ok) toast('✅ Saved to Prompt Library', 'ok');
+    else toast('Save failed: '+(j.error||'Unknown'), 'err');
   } catch(ex) {
-    showToast('Save error: '+ex?.message);
+    toast('Save error: '+ex?.message, 'err');
   }
 };
 
