@@ -259,7 +259,7 @@ function showSidebarCustomizer() {
       {id:'connectors',label:'Integrations',icon:'🔗'},{id:'mcp',label:'Tool Connections',icon:'🔧'},
       {id:'mcp-gateway',label:'Gateway',icon:'🚪'},{id:'a2a',label:'Agent Network',icon:'🌐'},
       {id:'agent-identity',label:'Agent Identity',icon:'🪪'},{id:'hitl',label:'Review Queue',icon:'👁️'},
-      {id:'steering',label:'AI Guidelines',icon:'🧭'},{id:'fusion',label:'Model Fusion',icon:'🔀'},
+      {id:'fusion',label:'Model Fusion',icon:'🔀'},
       {id:'arena',label:'Model Arena',icon:'⚔️'},{id:'loops',label:'Autonomous Loops',icon:'♾️'},
       {id:'replay',label:'Execution Replay',icon:'⟲'},{id:'collabedit',label:'Collaborative Edit',icon:'👥'},
     ]},
@@ -1590,15 +1590,22 @@ function updateNextActionBar(pane) {
     // FIX C: Complete set of ALL Pro + Enterprise panes that require tier >= pro.
     // Previously 23 pro panes (studio, builder, swarm, github, deploy, etc.) were missing,
     // allowing free-tier users to navigate to them without seeing the upgrade gate.
+    // MODULE MERGE (AI Operating Manual + AI Guidelines): 'hierarchy' was
+    // completely absent from this set — a real gating bug letting free-tier
+    // users open the AI Operating Manual pane with no upgrade prompt at all,
+    // even though the backend's PANE_TIERS already defaulted it to 'pro'.
+    // Added it explicitly now that it's also the merged home for what used
+    // to be the separate 'steering' (AI Guidelines) pane, which is removed
+    // from the sidebar/gate list below (folded into 'hierarchy' as a tab).
     const gatedPanes = new Set([
       // Enterprise panes
       'evals','observability','knowledge-graph','rag',
-      // Pro panes (all 45)
-      'studio','builder','swarm','galaxy','loops','mcp','github','deploy','dbstudio',
+      // Pro panes
+      'studio','builder','swarm','galaxy','hierarchy','loops','mcp','github','deploy','dbstudio',
       'plugins','obsidian','system','control','workspaces','webhooks','testgen','terminal','secrets',
       'integrations','imagegen','prompts','codesearch','workflow','profiler','pluginsdk',
       'multitab','replay','collabedit','marketplace','specs','hooks','codeindex','arena',
-      'steering','bugbot','health','gitai','ambient','fusion','hitl','browser','websearch',
+      'bugbot','health','gitai','ambient','fusion','hitl','browser','websearch',
       'leaderboard','voice','pipeline',
     ]);
 

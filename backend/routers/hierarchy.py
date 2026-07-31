@@ -379,6 +379,23 @@ def get_compiled_context(project_id:str | None = Query(None, description="Option
         compiled += f"\n=== TIER 2: PROJECT-SPECIFIC DELTAS & IVREN ==={project_text}"
     compiled += "\n</information-hierarchy>"
 
+    # MODULE MERGE: the "AI Guidelines" (Steering Files) tab now lives inside
+    # this same pane, and its rules are ALSO injected into every AI call
+    # (see backend/routers/chat.py's chat_stream()). The "Preview Injection"
+    # / live split-preview UI in this pane claims to show "the exact context
+    # injected into every Agentic OS chat" — before this fix that was only
+    # half true, since it never included the Guidelines block. Append it here
+    # so both preview surfaces (which just call this one endpoint) show the
+    # complete, honest picture without needing separate frontend fetches.
+    try:
+        from .steering import compile_steering_context
+
+        steering_text = compile_steering_context(max_chars=4000)
+        if steering_text:
+            compiled += f"\n\n=== AI GUIDELINES: STEERING RULES ===\n{steering_text.strip()}"
+    except Exception:
+        pass
+
     return {
         "ok": True,
         "project_id": project_id or "universal_only",

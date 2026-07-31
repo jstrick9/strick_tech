@@ -5,230 +5,18 @@
 'use strict';
 
 // ══════════════════════════════════════════════════════════════════
-//  STEERING FILES — persistent project context in every prompt
+//  STEERING FILES — MODULE MERGE NOTICE
+//  The standalone "AI Guidelines" (Steering Files) pane UI that used to
+//  live here (renderSteering, steerNew/steerEdit/steerDelete/steerToggle/
+//  steerLearnFromChat/steerPromotePatterns) has moved to
+//  frontend/js/12-information-hierarchy.js as a third tab
+//  ("🧭 AI Guidelines") inside the merged "AI Operating Manual" pane —
+//  see renderGuidelinesTab() there. The backend (/api/steering/*,
+//  backend/routers/steering.py) is UNCHANGED; only the presentation
+//  layer moved, so no data migration was needed. Kept this notice
+//  instead of leaving a silent gap so future readers of this file don't
+//  wonder where the Steering UI went.
 // ══════════════════════════════════════════════════════════════════
-async function renderSteering() {
-  const pane = document.getElementById('pane-steering');
-  if (!pane) return;
-
-  const [files, compiled, patterns] = await Promise.all([
-    fetch('/api/steering').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({files:[]})),
-    fetch('/api/steering/compiled').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({context:'',length:0})),
-    fetch('/api/steering/learned/patterns').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({patterns:[]})),
-  ]);
-  // NOTE: the ternaries above resolve to `null` (not a rejection) whenever
-  // the response isn't ok (e.g. a transient 429/500), so the trailing
-  // .catch() fallback never fires and these can legitimately be null.
-  // Guard here so property access below never throws.
-  const filesData    = files    || { files: [] };
-  const compiledData = compiled || { context: '', length: 0 };
-  const patternsData = patterns || { patterns: [] };
-
-  pane.innerHTML = `
-  
-
-  <div style="padding:20px;max-width:900px;margin:0 auto">
-    <div class="section-head">
-      <div>
-        <h2>🧭 Steering Files</h2>
-        <p>Project rules &amp; context injected into every AI prompt — like Kiro steering + Cursor .cursorrules + Windsurf Memories</p>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn" onclick="steerNew()">＋ New File</button>
-        <button class="btn-sm" onclick="steerLearnFromChat()">🧠 Auto-Learn</button>
-        <button class="btn-sm" onclick="steerPromotePatterns()">⬆ Promote Patterns</button>
-      </div>
-    </div>
-
-    <!-- Context preview -->
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden">
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-        <span style="font-weight:700;font-size:13px">📡 Compiled Context</span>
-        <span style="font-size:11px;color:var(--text-3)">
-          ${compiledData.llm_chars||compiledData.length||0} chars injected into every prompt
-          ${compiledData.truncated_for_llm?'<span style="color:var(--warning)">⚠️ truncated</span>':''}
-        </span>
-        <span style="margin-left:auto;font-size:11px;${(compiledData.length||0)>0?'color:var(--success)':'color:var(--text-3)'}">
-          ${(compiledData.length||0)>0?'✅ Active':'⚠️ No files enabled'}
-        </span>
-      </div>
-      <div style="padding:12px 16px;max-height:120px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--text-2);white-space:pre-wrap">${escHtml((compiledData.context||'').slice(0,800))}${(compiledData.length||0)>800?'…':''}</div>
-    </div>
-
-    <!-- Steering files -->
-    <div style="font-size:13px;font-weight:700;margin-bottom:10px">Steering Files (${(filesData.files||[]).length})</div>
-    <div id="steer-file-list">
-      ${(filesData.files||[]).map(f=>`
-        <div class="steer-card">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <button class="steer-toggle ${f.enabled?'on':''}" onclick="steerToggle(${JSON.stringify(f.id)},this)" title="${f.enabled?'Enabled':'Disabled'}"></button>
-            <strong style="color:var(--text-0)">${escHtml(f.title)}</strong>
-            <span class="steer-cat">${escHtml(f.category||'general')}</span>
-            ${f.auto_learned?'<span class="steer-auto-badge">Auto-learned</span>':''}
-            <div style="margin-left:auto;display:flex;gap:5px">
-              <button class="btn-sm" onclick="steerEdit(${JSON.stringify(f.id)})">✏</button>
-              <button class="btn-sm" style="color:var(--danger)" onclick="steerDelete(${JSON.stringify(f.id)})">🗑</button>
-            </div>
-          </div>
-          <div style="font-size:11px;color:var(--text-2);font-family:monospace;line-height:1.6;max-height:80px;overflow:hidden">${escHtml((f.content||'').slice(0,300))}${(f.content||'').length>300?'…':''}</div>
-        </div>
-      `).join('') || '<div style="color:var(--text-3);padding:16px;text-align:center">No steering files yet. Create one or click Auto-Learn.</div>'}
-    </div>
-
-    <!-- Learned patterns -->
-    ${(patternsData.patterns||[]).length ? `
-    <div style="margin-top:20px;font-size:13px;font-weight:700;margin-bottom:10px">🧠 Learned Patterns (${patternsData.count||0})</div>
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
-      ${(patternsData.patterns||[]).slice(0,10).map(p=>`
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px">
-          <span style="color:var(--text-3);width:140px;flex-shrink:0">${escHtml(p.pattern_key||'')}</span>
-          <span style="color:var(--text-1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((p.pattern_val||'').slice(0,80))}</span>
-          <span style="color:var(--accent);font-weight:700;width:40px;text-align:right">${Math.round((p.confidence||0)*100)}%</span>
-          <span style="color:var(--text-3);font-size:10px;width:50px">×${p.occurrences||1}</span>
-          ${p.promoted?'<span style="font-size:10px;color:var(--success)">✅</span>':''}
-        </div>
-      `).join('')}
-    </div>` : ''}
-  </div>`;
-}
-
-async function steerNew() {
-  const title = await gmPrompt('Steering file title:', 'My Convention');
-  if (!title) return;
-  const cat   = await gmPrompt('Category (stack|style|architecture|context|custom):', 'custom');
-  const overlay = document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-  overlay.innerHTML=`
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;width:600px;max-height:80vh;display:flex;flex-direction:column;padding:20px;gap:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <h3 style="margin:0">New Steering File: ${escHtml(title)}</h3>
-        <button onclick="this.closest('[style*=\"fixed\"]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
-      </div>
-      <textarea id="steer-new-content" rows="15" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;font-family:monospace;padding:10px;resize:none" placeholder="# ${title}\n\nWrite your project rules and conventions here..."></textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button class="btn-sm" onclick="this.closest('[style*=\"fixed\"]').remove()">Cancel</button>
-        <button class="btn" data-title="${title.replace(/"/g,'&quot;')}" data-cat="${(cat||'custom').replace(/"/g,'&quot;')}" onclick="steerSaveNew(this.dataset.title,this.dataset.cat,this)">💾 Save</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-}
-
-async function steerSaveNew(title, cat, btn) {
-  const content = document.getElementById('steer-new-content')?.value||'';
-  if (!content.trim()) { gmAlert('Add some content first'); return; }
-  try {
-    await fetch('/api/steering',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({title,category:cat,content,enabled:true})});
-    btn.closest('[style*="fixed"]').remove();
-    renderSteering();
-    showToast('✅ Steering file saved');
-  } catch(ex) { gmAlert('Save failed: '+ex.message); }
-}
-
-async function steerToggle(fileId, btn) {
-  // FIX 9: try/catch for silent failure; FIX 9b: re-render compiled preview on change
-  try {
-    const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}/toggle`,{method:'POST'});
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error||'Toggle failed');
-    btn.classList.toggle('on', d.enabled);
-    btn.title = d.enabled ? 'Enabled' : 'Disabled';
-    // Re-render compiled context bar to reflect new char count
-    fetch('/api/steering/compiled').then(r=>r.ok?r.json().catch(()=>{}):null).then(compiled => { if (!compiled) return;
-      const bar = document.querySelector('#pane-steering [style*="Compiled Context"]');
-      if (!bar) return;
-      const charsEl = bar.querySelector('[style*="chars"]') || bar.parentElement?.querySelector('span[style*="color"]');
-      // Simplest: just re-render the whole pane
-      renderSteering();
-    }).catch(()=>{});
-  } catch(ex) {
-    showToast('⚠️ Toggle failed: ' + ex.message, 'err', 3000);
-    // Revert visual state
-    btn.classList.toggle('on');
-  }
-}
-
-async function steerEdit(fileId) {
-  const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}`);
-  const f = await r.json();
-  const overlay = document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-  overlay.innerHTML=`
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;width:700px;max-height:85vh;display:flex;flex-direction:column;padding:20px;gap:12px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <h3 style="margin:0;flex:1">✏ ${escHtml(f.title||fileId)}</h3>
-        <button onclick="this.closest('[style*=\"fixed\"]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
-      </div>
-      <textarea id="steer-edit-ta" rows="18" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;font-family:monospace;padding:10px;resize:none">${escHtml(f.content||'')}</textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button class="btn-sm" onclick="this.closest('[style*=\"fixed\"]').remove()">Cancel</button>
-        <button class="btn" onclick="steerSaveEdit(${JSON.stringify(fileId)},this)">💾 Save</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-}
-
-async function steerSaveEdit(fileId, btn) {
-  // FIX 11: proper try/catch for edit save
-  const ta = document.getElementById('steer-edit-ta');
-  const c  = ta?.value ?? '';
-  try {
-    btn.textContent = '⏳ Saving…';
-    btn.disabled = true;
-    const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}`, {
-      method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({content: c})
-    });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    btn.closest('[style*="fixed"]').remove();
-    renderSteering();
-    showToast('✅ Steering file saved');
-  } catch(ex) {
-    btn.textContent = '💾 Save';
-    btn.disabled = false;
-    gmAlert('Save failed: ' + ex.message);
-  }
-}
-
-async function steerDelete(fileId) {
-  // FIX 10: use gmDanger for destructive action + showToast feedback
-  if (!(await gmDanger('Delete Steering File', 'This rule will no longer be injected into prompts.', 'Delete'))) return;
-  try {
-    const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}`,{method:'DELETE'});
-    const d = await r.json();
-    showToast(d.deleted !== false ? '🗑 Steering file deleted' : '⚠️ File not found', d.deleted !== false ? 'ok' : 'err', 2000);
-  } catch(ex) { showToast('⚠️ Delete failed', 'err', 2000); }
-  renderSteering();
-}
-
-async function steerLearnFromChat() {
-  showToast('🧠 Learning from your chat history…');
-  try {
-    const r = await fetch('/api/steering/learn/from-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({limit:100})});
-    const d = await r.json();
-    if (d.ok) {
-      gmAlert(`✅ Learned ${d.stored_patterns} patterns from your chat history!\n\nClick "Promote Patterns" to create a steering file.`);
-      renderSteering();
-    } else {
-      gmAlert(d.error||'Nothing to learn yet. Chat more first!');
-    }
-  } catch(ex) { gmAlert('Learn failed: '+ex.message); }
-}
-
-async function steerPromotePatterns() {
-  try {
-    const r = await fetch('/api/steering/learn/promote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({min_confidence:0.5})});
-    const d = await r.json();
-    if (d.ok) {
-      gmAlert(`✅ Promoted ${d.patterns_promoted} patterns into a new steering file!\n\n"${d.file_id}" is now active.`);
-      renderSteering();
-    } else {
-      gmAlert(d.error||'No patterns ready to promote yet. Run Auto-Learn first.');
-    }
-  } catch(ex) { gmAlert('Promote failed: '+ex.message); }
-}
-
 
 // ══════════════════════════════════════════════════════════════════
 //  BUGBOT — AI PR / Code Reviewer
@@ -950,7 +738,19 @@ async function ambientShowTask(taskId) {
   const _base = window.nav || function(){};
   window.nav = function masterNav17(pane) {
     _base(pane);
-    if (pane==='steering') renderSteering?.();
+    // MODULE MERGE: 'steering' is no longer a real pane — window.nav()
+    // (01-app-core.js) now redirects it to 'hierarchy' + the AI Guidelines
+    // tab before this wrapper even runs, so `pane==='steering'` would never
+    // be true here in practice. Removed the dangling `renderSteering?.()`
+    // call entirely rather than leaving unreachable dead code referencing a
+    // function that no longer exists (its logic moved to
+    // renderGuidelinesTab() in 12-information-hierarchy.js). Reproduced
+    // live before this fix: calling window.nav('steering') directly (e.g.
+    // an old bookmark's #/steering deep link, or the Ctrl+Shift+N shortcut
+    // elsewhere in this file) hit this exact line and threw
+    // `ReferenceError: renderSteering is not defined` — bare-identifier
+    // optional chaining (`fn?.()`) only guards against null/undefined, NOT
+    // against a completely undeclared identifier.
     if (pane==='bugbot')   renderBugBot?.();
     if (pane==='health')   renderHealth?.();
     if (pane==='gitai')    renderGitAI?.();

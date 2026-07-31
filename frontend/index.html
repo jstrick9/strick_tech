@@ -1411,7 +1411,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ AGENTS ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">14</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">13</span></div>
         <div class="sidebar-group-content" id="group-tools" data-tier="advanced" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎯</span><span class="label">Supervisor</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="goals" data-tier="advanced" onclick="nav('goals')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎯</span><span class="label">Goals</span></div>
@@ -1421,7 +1421,6 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div role="button" tabindex="0" class="nav-item" data-nav="a2a" data-tier="advanced" onclick="nav('a2a')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🌐</span><span class="label">Agent Network</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="agent-identity" data-tier="advanced" onclick="nav('agent-identity')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🪪</span><span class="label">Agent Identity</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="hitl" data-tier="advanced" onclick="nav('hitl')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">👁</span><span class="label">Review Queue</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="steering" data-tier="advanced" onclick="nav('steering')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧭</span><span class="label">AI Guidelines</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="fusion" data-tier="advanced" onclick="nav('fusion')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔀</span><span class="label">Model Fusion</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="arena" data-tier="advanced" onclick="nav('arena')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⚔</span><span class="label">Model Arena</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="loops" data-tier="advanced" onclick="nav('loops')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">♾</span><span class="label">Autonomous Loops</span><span class="count" id="loop-count">0</span></div>
@@ -2291,13 +2290,21 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           </div>
         </div>
 
-        <!-- Sub-tabs for Tier 1 vs Tier 2 -->
+        <!-- Sub-tabs for Tier 1 vs Tier 2 vs AI Guidelines -->
         <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg-1);padding:0 24px;gap:24px">
           <button type="button" id="h-tab-tier1" onclick="switchHierarchyTab('tier1')" class="h-tab active" style="padding:12px 0;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text-0);font-weight:700;font-size:13.5px;cursor:pointer">
             🏢 Tier 1: Universal Business Context (4 Files)
           </button>
           <button type="button" id="h-tab-tier2" onclick="switchHierarchyTab('tier2')" class="h-tab" style="padding:12px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:13.5px;cursor:pointer">
             📁 Tier 2: Project IVREN Subfolders (<span id="h-project-count">0</span>)
+          </button>
+          <!-- MODULE MERGE: this tab replaces the old standalone "AI Guidelines"
+               (Steering Files) sidebar pane — same feature (freeform coding/
+               project rules + auto-learned patterns, injected into every AI
+               call), now living alongside Tier 1/2 so all persistent AI
+               context lives in one place instead of two disconnected panes. -->
+          <button type="button" id="h-tab-guidelines" onclick="switchHierarchyTab('guidelines')" class="h-tab" style="padding:12px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:13.5px;cursor:pointer">
+            🧭 AI Guidelines (Coding & Project Rules)
           </button>
         </div>
 
@@ -2385,6 +2392,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             </div>
           </div>
         </div>
+
+        <!-- Tab Content: AI Guidelines (formerly the standalone Steering pane) -->
+        <div id="h-view-guidelines" style="flex:1;display:none;overflow-y:auto;padding:24px"></div>
 
         <!-- Side-by-Side Live XML Split Preview Panel (Phase C) -->
         <div id="h-live-split-panel" style="display:none;width:44%;border-left:1px solid var(--border);background:var(--bg-1);flex-direction:column;padding:20px;overflow:hidden">
@@ -2522,8 +2532,6 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <div class="pane" id="pane-codeindex" style="background:var(--bg-0);flex-direction:column;overflow:hidden"></div>
       <!-- ARENA MODE — A/B MODEL TESTING -->
       <div class="pane" id="pane-arena" style="background:var(--bg-0);flex-direction:column;overflow:hidden"></div>
-      <!-- STEERING PANE -->
-      <div class="pane" id="pane-steering" style="overflow:auto;background:var(--bg-0)"></div>
       <!-- BUGBOT PANE -->
       <div class="pane" id="pane-bugbot" style="overflow:auto;background:var(--bg-0)"></div>
       <!-- HEALTH DASHBOARD PANE -->

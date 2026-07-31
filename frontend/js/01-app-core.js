@@ -128,12 +128,25 @@ window.initSidebarGroups = function() {
   }
 };
 
+// BUG FIX: this map is used to auto-expand the correct sidebar category
+// group when navigating to a pane via any path OTHER than directly clicking
+// its own sidebar link (keyboard shortcuts, command palette, deep links,
+// programmatic nav() calls) — see nav()'s `window.toggleSidebarGroup(gid,
+// true)` call below. It had drifted badly out of sync with the actual
+// sidebar HTML structure: 27 of 69 panes (including 'hierarchy' itself,
+// mapped to 'core' instead of 'build') pointed at the WRONG category, so
+// e.g. opening a pane via the command palette could silently expand and
+// leave visible an unrelated sidebar section while the actual pane's own
+// section stayed collapsed. Regenerated directly from index.html's real
+// sidebar-group-content blocks (single source of truth) instead of being
+// hand-maintained a second time in JS. Also drops 'steering' (folded into
+// 'hierarchy' as a tab — see the module-merge redirect in window.nav above).
 window.PANE_TO_GROUP = {
-  'chat':'core', 'studio':'core', 'templates':'core', 'swarm':'core', 'galaxy':'core', 'hierarchy':'core', 'kanban':'core', 'settings':'core',
-  'builder':'build', 'composer':'build', 'pipeline':'build', 'skills':'build', 'loops':'build', 'mcp':'build', 'fusion':'build', 'arena':'build', 'plugins':'build', 'terminal':'build', 'secrets':'build', 'finetune':'build',
-  'github':'ship', 'deploy':'ship', 'dbstudio':'ship', 'dashboard':'ship', 'system':'ship', 'workspaces':'ship', 'control':'ship', 'supervisor':'ship', 'goals':'ship',
-  'workflow':'tools', 'specs':'tools', 'steering':'tools', 'bugbot':'tools', 'gitai':'tools', 'marketplace':'tools', 'replay':'tools', 'collabedit':'tools', 'ambient':'tools', 'hitl':'tools', 'connectors':'tools', 'mcp-gateway':'tools', 'a2a':'tools', 'agent-identity':'tools',
-  'audit-log':'enterprise', 'leaderboard':'enterprise', 'agent-monitor':'enterprise', 'finops':'enterprise', 'eval-framework':'enterprise', 'docs':'enterprise', 'websearch':'enterprise', 'browser':'enterprise', 'knowledge-graph':'enterprise', 'rag':'enterprise', 'hooks':'enterprise', 'codeindex':'enterprise', 'observability':'enterprise', 'evals':'enterprise', 'health':'enterprise', 'integrations':'enterprise', 'imagegen':'enterprise', 'prompts':'enterprise', 'codesearch':'enterprise', 'obsidian':'enterprise', 'pluginsdk':'enterprise', 'multitab':'enterprise', 'profiler':'enterprise', 'webhooks':'enterprise', 'testgen':'enterprise', 'pqc':'enterprise'
+  'chat':'core', 'studio':'core', 'templates':'core', 'galaxy':'core', 'kanban':'core', 'settings':'core',
+  'swarm':'build', 'hierarchy':'build', 'builder':'build', 'websearch':'build', 'browser':'build', 'imagegen':'build', 'prompts':'build', 'docs':'build', 'terminal':'build', 'skills':'build',
+  'composer':'ship', 'pipeline':'ship', 'workflow':'ship', 'github':'ship', 'deploy':'ship', 'specs':'ship', 'dbstudio':'ship', 'workspaces':'ship', 'plugins':'ship',
+  'supervisor':'tools', 'goals':'tools', 'connectors':'tools', 'mcp':'tools', 'mcp-gateway':'tools', 'a2a':'tools', 'agent-identity':'tools', 'hitl':'tools', 'fusion':'tools', 'arena':'tools', 'loops':'tools', 'replay':'tools', 'collabedit':'tools',
+  'dashboard':'enterprise', 'audit-log':'enterprise', 'leaderboard':'enterprise', 'agent-monitor':'enterprise', 'finops':'enterprise', 'eval-framework':'enterprise', 'observability':'enterprise', 'evals':'enterprise', 'health':'enterprise', 'profiler':'enterprise', 'secrets':'enterprise', 'pqc':'enterprise', 'obsidian':'enterprise', 'webhooks':'enterprise', 'integrations':'enterprise', 'knowledge-graph':'enterprise', 'rag':'enterprise', 'hooks':'enterprise', 'codeindex':'enterprise', 'codesearch':'enterprise', 'gitai':'enterprise', 'bugbot':'enterprise', 'testgen':'enterprise', 'marketplace':'enterprise', 'pluginsdk':'enterprise', 'multitab':'enterprise', 'control':'enterprise', 'system':'enterprise', 'ambient':'enterprise', 'finetune':'enterprise'
 };
 
 function setupSidebarResizer() {
@@ -184,6 +197,17 @@ function setupSidebarResizer() {
 
 window.nav = function(pane) {
   if (!pane) return;
+  // MODULE MERGE: the standalone "AI Guidelines" (Steering Files) pane was
+  // folded into the "AI Operating Manual" pane (hierarchy) as a third tab —
+  // see 12-information-hierarchy.js. Redirect any remaining callers of the
+  // old pane id (deep links via #/steering, the N keyboard shortcut in
+  // 07-marketplace.js, command palette entries, etc.) to the new location
+  // instead of hitting a dead/nonexistent pane id.
+  if (pane === 'steering') {
+    window.nav('hierarchy');
+    setTimeout(() => { if (typeof window.switchHierarchyTab === 'function') window.switchHierarchyTab('guidelines'); }, 50);
+    return;
+  }
   if (window.NavigationState) window.NavigationState.set(pane);
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));

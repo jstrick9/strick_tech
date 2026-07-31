@@ -41,20 +41,33 @@
 
   window.switchHierarchyTab = function(tab) {
     currentHierarchyTab = tab;
-    document.getElementById('h-tab-tier1').classList.toggle('active', tab === 'tier1');
-    document.getElementById('h-tab-tier2').classList.toggle('active', tab === 'tier2');
-    document.getElementById('h-tab-tier1').style.borderBottom = tab === 'tier1' ? '2px solid var(--accent)' : '2px solid transparent';
-    document.getElementById('h-tab-tier1').style.color = tab === 'tier1' ? 'var(--text-0)' : 'var(--text-2)';
-    document.getElementById('h-tab-tier2').style.borderBottom = tab === 'tier2' ? '2px solid var(--accent)' : '2px solid transparent';
-    document.getElementById('h-tab-tier2').style.color = tab === 'tier2' ? 'var(--text-0)' : 'var(--text-2)';
-
-    document.getElementById('h-view-tier1').style.display = tab === 'tier1' ? 'flex' : 'none';
-    document.getElementById('h-view-tier2').style.display = tab === 'tier2' ? 'flex' : 'none';
+    // MODULE MERGE: extended from a 2-way (tier1/tier2) toggle to a 3-way
+    // toggle to also drive the folded-in "AI Guidelines" (Steering Files)
+    // tab. Kept the same explicit per-button style-toggle pattern already
+    // used here rather than a generic loop, to minimize the diff against
+    // the existing working tier1/tier2 logic.
+    const tabs = { tier1: 'h-tab-tier1', tier2: 'h-tab-tier2', guidelines: 'h-tab-guidelines' };
+    const views = { tier1: 'h-view-tier1', tier2: 'h-view-tier2', guidelines: 'h-view-guidelines' };
+    Object.keys(tabs).forEach(key => {
+      const btn = document.getElementById(tabs[key]);
+      if (!btn) return;
+      const active = key === tab;
+      btn.classList.toggle('active', active);
+      btn.style.borderBottom = active ? '2px solid var(--accent)' : '2px solid transparent';
+      btn.style.color = active ? 'var(--text-0)' : 'var(--text-2)';
+    });
+    Object.keys(views).forEach(key => {
+      const view = document.getElementById(views[key]);
+      if (!view) return;
+      view.style.display = key === tab ? (key === 'guidelines' ? 'block' : 'flex') : 'none';
+    });
 
     if (tab === 'tier1') {
       loadTier1File(currentTier1File);
-    } else {
+    } else if (tab === 'tier2') {
       loadIvrenSection(currentTier2Project, currentIvrenSection);
+    } else if (tab === 'guidelines') {
+      renderGuidelinesTab();
     }
   };
 
@@ -237,6 +250,243 @@
     } catch(err) {
       if (window.toast) toast('Error appending feedback note', 'err');
     }
+  };
+
+  // ── AI Guidelines Tab (merged from the former standalone Steering pane) ─────
+  // Reuses the existing, working /api/steering/* backend (backend/routers/
+  // steering.py) unchanged — only the presentation layer moved. This keeps
+  // the merge low-risk: no DB schema changes, no endpoint changes, just a
+  // new home for the same UI inside the Hierarchy pane's third tab.
+  async function renderGuidelinesTab() {
+    const host = document.getElementById('h-view-guidelines');
+    if (!host) return;
+
+    const [files, compiled, patterns] = await Promise.all([
+      fetch('/api/steering').then(r=>r.ok?r.json().catch(()=>null):null).catch(()=>null),
+      fetch('/api/steering/compiled').then(r=>r.ok?r.json().catch(()=>null):null).catch(()=>null),
+      fetch('/api/steering/learned/patterns').then(r=>r.ok?r.json().catch(()=>null):null).catch(()=>null),
+    ]);
+    const filesData    = files    || { files: [] };
+    const compiledData = compiled || { context: '', length: 0 };
+    const patternsData = patterns || { patterns: [] };
+
+    host.innerHTML = `
+    <div style="max-width:900px;margin:0 auto">
+      <div class="section-head" style="margin-bottom:16px">
+        <div>
+          <h2 style="font-size:18px;margin:0 0 4px">🧭 AI Guidelines — Coding & Project Rules</h2>
+          <p style="color:var(--text-2);font-size:13px;margin:0">Freeform rules injected into every AI prompt alongside your Tier 1/2 context above — like Kiro steering, Cursor .cursorrules, or Windsurf Memories.</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" onclick="steerNew()">＋ New Rule File</button>
+          <button class="btn-sm btn-ghost" onclick="steerLearnFromChat()">🧠 Auto-Learn</button>
+          <button class="btn-sm btn-ghost" onclick="steerPromotePatterns()">⬆ Promote Patterns</button>
+        </div>
+      </div>
+
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden">
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+          <span style="font-weight:700;font-size:13px">📡 Compiled Guidelines Context</span>
+          <span style="font-size:11px;color:var(--text-3)">
+            ${compiledData.llm_chars||compiledData.length||0} chars injected into every prompt
+            ${compiledData.truncated_for_llm?'<span style="color:var(--warning)">⚠️ truncated</span>':''}
+          </span>
+          <span style="margin-left:auto;font-size:11px;${(compiledData.length||0)>0?'color:var(--success)':'color:var(--text-3)'}">
+            ${(compiledData.length||0)>0?'✅ Active':'⚠️ No rule files enabled'}
+          </span>
+        </div>
+        <div style="padding:12px 16px;max-height:120px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--text-2);white-space:pre-wrap">${escHtml((compiledData.context||'').slice(0,800))}${(compiledData.length||0)>800?'…':''}</div>
+      </div>
+
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">Rule Files (${(filesData.files||[]).length})</div>
+      <div id="steer-file-list">
+        ${(filesData.files||[]).map(f=>`
+          <div class="steer-card" data-file-id="${escHtml(f.id)}">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <button class="steer-toggle ${f.enabled?'on':''}" title="${f.enabled?'Enabled':'Disabled'}"></button>
+              <strong style="color:var(--text-0)">${escHtml(f.title)}</strong>
+              <span class="steer-cat">${escHtml(f.category||'general')}</span>
+              ${f.auto_learned?'<span class="steer-auto-badge">Auto-learned</span>':''}
+              <div style="margin-left:auto;display:flex;gap:5px">
+                <button class="btn-sm steer-edit-btn">✏</button>
+                <button class="btn-sm steer-delete-btn" style="color:var(--danger)">🗑</button>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text-2);font-family:monospace;line-height:1.6;max-height:80px;overflow:hidden">${escHtml((f.content||'').slice(0,300))}${(f.content||'').length>300?'…':''}</div>
+          </div>
+        `).join('') || '<div style="color:var(--text-3);padding:16px;text-align:center">No rule files yet. Create one or click Auto-Learn.</div>'}
+      </div>
+
+      ${(patternsData.patterns||[]).length ? `
+      <div style="margin-top:20px;font-size:13px;font-weight:700;margin-bottom:10px">🧠 Learned Patterns (${patternsData.count||0})</div>
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        ${(patternsData.patterns||[]).slice(0,10).map(p=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px">
+            <span style="color:var(--text-3);width:140px;flex-shrink:0">${escHtml(p.pattern_key||'')}</span>
+            <span style="color:var(--text-1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((p.pattern_val||'').slice(0,80))}</span>
+            <span style="color:var(--accent);font-weight:700;width:40px;text-align:right">${Math.round((p.confidence||0)*100)}%</span>
+            <span style="color:var(--text-3);font-size:10px;width:50px">×${p.occurrences||1}</span>
+            ${p.promoted?'<span style="font-size:10px;color:var(--success)">✅</span>':''}
+          </div>
+        `).join('')}
+      </div>` : ''}
+    </div>`;
+
+    // BUG FIX (quote-collision, same class already fixed elsewhere in this
+    // codebase for Swarm/Chat/Memory): the toggle/edit/delete buttons above
+    // used to be built as inline onclick="steerToggle(${JSON.stringify(f.id)},this)"
+    // strings. JSON.stringify() wraps its output in double quotes, which
+    // collide with the onclick attribute's own double quotes — the browser's
+    // HTML attribute parser truncates the handler at the first unescaped
+    // quote it sees. Reproduced live: clicking a rule file's toggle button
+    // threw `Uncaught SyntaxError: Failed to execute 'click' on
+    // 'HTMLElement': Unexpected end of input` and never actually flipped
+    // the enabled state. Since steering file ids are user-influenced
+    // strings (derived from a user-typed title), this was a real,
+    // reachable bug, not just a theoretical one. Fixed by reading the id
+    // from a `data-file-id` attribute and wiring real addEventListener
+    // handlers instead of serializing it into the attribute string.
+    host.querySelectorAll('.steer-card').forEach(card => {
+      const fileId = card.dataset.fileId;
+      card.querySelector('.steer-toggle')?.addEventListener('click', (e) => steerToggle(fileId, e.currentTarget));
+      card.querySelector('.steer-edit-btn')?.addEventListener('click', () => steerEdit(fileId));
+      card.querySelector('.steer-delete-btn')?.addEventListener('click', () => steerDelete(fileId));
+    });
+  }
+  // Exposed so the compiled-context preview / other panes can re-render this
+  // tab specifically (mirrors window.renderHierarchyPane for tier1/tier2).
+  window.renderGuidelinesTab = renderGuidelinesTab;
+
+  window.steerNew = async function() {
+    const title = await gmPrompt('Rule file title:', 'My Convention');
+    if (!title) return;
+    const cat   = await gmPrompt('Category (stack|style|architecture|context|custom):', 'custom');
+    const overlay = document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.innerHTML=`
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;width:600px;max-height:80vh;display:flex;flex-direction:column;padding:20px;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3 style="margin:0">New Rule File: ${escHtml(title)}</h3>
+          <button onclick="this.closest('[style*=\\"fixed\\"]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+        </div>
+        <textarea id="steer-new-content" rows="15" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;font-family:monospace;padding:10px;resize:none" placeholder="# ${escHtml(title)}\n\nWrite your project rules and conventions here..."></textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn-sm" onclick="this.closest('[style*=\\"fixed\\"]').remove()">Cancel</button>
+          <button class="btn" data-title="${escHtml(title)}" data-cat="${escHtml(cat||'custom')}" onclick="steerSaveNew(this.dataset.title,this.dataset.cat,this)">💾 Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+  };
+
+  window.steerSaveNew = async function(title, cat, btn) {
+    const content = document.getElementById('steer-new-content')?.value||'';
+    if (!content.trim()) { gmAlert('Add some content first'); return; }
+    try {
+      await fetch('/api/steering',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({title,category:cat,content,enabled:true})});
+      btn.closest('[style*="fixed"]').remove();
+      renderGuidelinesTab();
+      if (window.toast) toast('✅ Rule file saved', 'ok');
+    } catch(ex) { gmAlert('Save failed: '+ex.message); }
+  };
+
+  window.steerToggle = async function(fileId, btn) {
+    try {
+      const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}/toggle`,{method:'POST'});
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error||'Toggle failed');
+      renderGuidelinesTab();
+    } catch(ex) {
+      if (window.toast) toast('⚠️ Toggle failed: ' + ex.message, 'err', 3000);
+    }
+  };
+
+  window.steerEdit = async function(fileId) {
+    const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}`);
+    const f = await r.json();
+    const overlay = document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.innerHTML=`
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;width:700px;max-height:85vh;display:flex;flex-direction:column;padding:20px;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <h3 style="margin:0;flex:1">✏ ${escHtml(f.title||fileId)}</h3>
+          <button class="steer-modal-close-btn" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+        </div>
+        <textarea id="steer-edit-ta" rows="18" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;font-family:monospace;padding:10px;resize:none">${escHtml(f.content||'')}</textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn-sm steer-modal-cancel-btn">Cancel</button>
+          <button class="btn steer-modal-save-btn">💾 Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    // BUG FIX: same quote-collision class as the file-card buttons above —
+    // `fileId` is a user-influenced string (derived from a user-typed rule
+    // title), so serializing it via JSON.stringify() straight into an
+    // onclick="..." attribute could truncate/break the handler for any id
+    // containing a double quote. Wired via addEventListener + closure over
+    // the real `fileId` variable instead.
+    overlay.querySelector('.steer-modal-close-btn')?.addEventListener('click', () => overlay.remove());
+    overlay.querySelector('.steer-modal-cancel-btn')?.addEventListener('click', () => overlay.remove());
+    overlay.querySelector('.steer-modal-save-btn')?.addEventListener('click', (e) => steerSaveEdit(fileId, e.currentTarget));
+  };
+
+  window.steerSaveEdit = async function(fileId, btn) {
+    const ta = document.getElementById('steer-edit-ta');
+    const c  = ta?.value ?? '';
+    try {
+      btn.textContent = '⏳ Saving…';
+      btn.disabled = true;
+      const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}`, {
+        method:'PUT', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({content: c})
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      btn.closest('[style*="fixed"]').remove();
+      renderGuidelinesTab();
+      if (window.toast) toast('✅ Rule file saved', 'ok');
+    } catch(ex) {
+      btn.textContent = '💾 Save';
+      btn.disabled = false;
+      gmAlert('Save failed: ' + ex.message);
+    }
+  };
+
+  window.steerDelete = async function(fileId) {
+    if (!(await gmDanger('Delete Rule File', 'This rule will no longer be injected into prompts.', 'Delete'))) return;
+    try {
+      const r = await fetch(`/api/steering/${encodeURIComponent(fileId)}`,{method:'DELETE'});
+      const d = await r.json();
+      if (window.toast) toast(d.deleted !== false ? '🗑 Rule file deleted' : '⚠️ File not found', d.deleted !== false ? 'ok' : 'err', 2000);
+    } catch(ex) { if (window.toast) toast('⚠️ Delete failed', 'err', 2000); }
+    renderGuidelinesTab();
+  };
+
+  window.steerLearnFromChat = async function() {
+    if (window.toast) toast('🧠 Learning from your chat history…', 'ok');
+    try {
+      const r = await fetch('/api/steering/learn/from-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({limit:100})});
+      const d = await r.json();
+      if (d.ok) {
+        gmAlert(`✅ Learned ${d.stored_patterns} patterns from your chat history!\n\nClick "Promote Patterns" to create a rule file.`);
+        renderGuidelinesTab();
+      } else {
+        gmAlert(d.error||'Nothing to learn yet. Chat more first!');
+      }
+    } catch(ex) { gmAlert('Learn failed: '+ex.message); }
+  };
+
+  window.steerPromotePatterns = async function() {
+    try {
+      const r = await fetch('/api/steering/learn/promote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({min_confidence:0.5})});
+      const d = await r.json();
+      if (d.ok) {
+        gmAlert(`✅ Promoted ${d.patterns_promoted} patterns into a new rule file!\n\n"${d.file_id}" is now active.`);
+        renderGuidelinesTab();
+      } else {
+        gmAlert(d.error||'No patterns ready to promote yet. Run Auto-Learn first.');
+      }
+    } catch(ex) { gmAlert('Promote failed: '+ex.message); }
   };
 
   // ── Modals & Wizards ────────────────────────────────────────────────────────

@@ -243,7 +243,28 @@ async def chat_stream(req: Request):
                 ctx = '\n'.join(f'- [{r["source"]}] {r["content"][:200]}' for r in filtered)
                 system_prompt += f'\n\n**Relevant memories:**\n{ctx}'
 
-    # Auto-inject compounding 2-Tier Information Hierarchy (Universal Context + Project IVREN)
+    # Auto-inject compounding 2-Tier Information Hierarchy (Universal Context +
+    # Project IVREN) AND the merged AI Guidelines (Steering Files) block —
+    # get_compiled_context() now appends the compiled steering rules itself
+    # (see backend/routers/hierarchy.py), so a single call here covers both.
+    #
+    # BUG FIX (Tier 1 / Universal Context): this used to ONLY fire when the
+    # user's message text happened to contain a Tier-2 project's id/name as
+    # a literal keyword match — meaning Tier 1 (About Me / Business / Voice /
+    # Offers), which the pane's own UI explicitly advertises as
+    # "automatically applies to every conversation", was in fact NEVER
+    # injected into ordinary chat messages that didn't happen to name a
+    # project. Per product decision: Chat now always receives Tier 1
+    # unconditionally (matching what Swarm already effectively got via
+    # inject_steering=True), with the Tier 2 project-keyword-match behavior
+    # preserved as an ADDITIONAL delta on top when a project is mentioned.
+    #
+    # BUG FIX (Steering Files / AI Guidelines): /api/chat previously called
+    # llm.stream()/llm.complete() with inject_steering=False, meaning
+    # Steering Files NEVER made it into a single regular chat message
+    # despite being advertised as "injected into every AI prompt" — only
+    # non-Chat callers that didn't opt out (e.g. Swarm) actually received
+    # them. Per product decision: Chat now includes this too, matching Swarm.
     try:
         from .hierarchy import get_compiled_context, list_projects
         project_match = None
@@ -251,10 +272,9 @@ async def chat_stream(req: Request):
             if p['project_id'] in message.lower() or p['name'].lower() in message.lower():
                 project_match = p['project_id']
                 break
-        if project_match:
-            hierarchy_ctx = get_compiled_context(project_match).get('compiled_context', '')
-            if hierarchy_ctx:
-                system_prompt += f'\n\n{hierarchy_ctx}'
+        hierarchy_ctx = get_compiled_context(project_match).get('compiled_context', '')
+        if hierarchy_ctx:
+            system_prompt += f'\n\n{hierarchy_ctx}'
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         pass
 

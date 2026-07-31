@@ -116,6 +116,16 @@ PANE_TIERS: dict[str, str] = {
     'builder': 'pro',
     'swarm': 'pro',
     'galaxy': 'pro',
+    # BUG FIX / consolidation: 'hierarchy' (AI Operating Manual) was missing
+    # from this explicit map entirely — it silently fell through to the
+    # PANE_TIERS.get(pane, 'pro') default, which happened to already be
+    # correct, but every OTHER pane in the app is listed explicitly here.
+    # Made it explicit both for clarity and because this pane now also
+    # hosts the merged "AI Guidelines" (Steering Files) tab, which was
+    # already 'pro' — keeping one unambiguous source of truth for the
+    # combined pane's tier avoids the two systems silently drifting to
+    # different tiers again if this map is ever restructured.
+    'hierarchy': 'pro',
     'loops': 'pro',
     'mcp': 'pro',
     'github': 'pro',
