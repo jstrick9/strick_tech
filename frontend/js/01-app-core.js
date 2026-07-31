@@ -997,13 +997,34 @@ async function openFile(path) {
 async function saveFile() {
   if (!S.monacoEditor) { toast('Editor not loaded', 'warn'); return; }
   const content = S.monacoEditor.getValue();
-  const r = await fetch('/api/preview/save', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ path: S.currentFile, content, author: 'user', message: 'save' })
-  });
-  const j = await r.json();
+  // BUG FIX: two-layer defensive fix (paired with the S.currentFile default
+  // fix in 00-store.js and the backend null-path fix in builder.py). If
+  // S.currentFile is ever falsy for any reason, fall back to 'index.html'
+  // client-side too rather than sending a literal null path. Also now
+  // checks `r.ok` before parsing JSON -- previously a non-2xx response
+  // (e.g. a backend 500) still got piped into `r.json()`, which throws on
+  // the plain-text error body and aborts silently with zero user-visible
+  // feedback (no toast at all, not even the generic failure one below).
+  const path = S.currentFile || 'index.html';
+  let r;
+  try {
+    r = await fetch('/api/preview/save', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ path, content, author: 'user', message: 'save' })
+    });
+  } catch(e) {
+    toast('Could not save — network error: ' + e.message, 'err');
+    return;
+  }
+  if (!r.ok) {
+    toast(`Could not save — server error (${r.status})`, 'err');
+    return;
+  }
+  let j;
+  try { j = await r.json(); } catch(e) { toast('Could not save — invalid server response', 'err'); return; }
   if (j.ok) {
+    S.currentFile = path;
     toast(`💾 Saved — ${j.versions} versions`, 'ok', 1500);
     document.getElementById('ed-versions').textContent = `${j.versions} versions`;
   } else {
@@ -1042,7 +1063,17 @@ function reloadPreview() {
 
 function openPreviewBlank() {
   const src = document.getElementById('preview-target')?.value || '/preview/index.html';
-  window.open(src, '_blank');
+  // BUG FIX: this used a raw `window.open()`, which does nothing (or fails
+  // silently) inside the Tauri desktop app's WebKit webview — exactly the
+  // pattern the app's Tauri-safety rule forbids. Code Studio's equivalent
+  // "open in new tab" button (the ↗ button in its preview toolbar) already
+  // correctly routes through `openExternalLink()`, which tries
+  // `window.__TAURI__.shell.open()` first, then a backend
+  // `/api/system/open-url` fallback, and only falls back to `window.open()`
+  // itself when running in a plain browser tab where it's safe. Builder's
+  // "open preview in new tab" button (↗) had silently drifted out of sync
+  // with Studio's fix and never got the same treatment.
+  openExternalLink(location.origin + src);
 }
 
 async function loadDiffVersions() {

@@ -132,7 +132,17 @@ def preview_read(path: str = 'index.html'):
 async def preview_save(req: Request):
     """Execute or process preview save operation."""
     d = await _request_json(req)
-    path = d.get('path', 'index.html').lstrip('/')
+    # BUG FIX: `d.get('path', 'index.html')` only supplies the default when
+    # the key is *missing*; it still returns `None` when the frontend sends
+    # an explicit `{"path": null, ...}`, which the Code Editor (Builder)
+    # pane did whenever the user typed into Monaco and hit Save without
+    # first clicking a file in the tree (S.currentFile defaulted to `null`
+    # -- fixed separately in frontend/js/00-store.js). `None.lstrip('/')`
+    # then raised an unhandled AttributeError -> HTTP 500, and the frontend
+    # never checked `r.ok` before `r.json()`, so the failure was completely
+    # silent to the user. `or` catches both "missing" and "explicitly
+    # null/empty" cases.
+    path = (d.get('path') or 'index.html').lstrip('/')
     content = d.get('content', '')
     f = (PREVIEW_DIR / path).resolve()
     if not _is_within(f, PREVIEW_DIR):
@@ -160,8 +170,8 @@ async def preview_save(req: Request):
             (
                 path,
                 content,
-                d.get('author', 'builder'),
-                d.get('message', 'save')[:240],
+                d.get('author') or 'builder',
+                (d.get('message') or 'save')[:240],
                 workspace_id,
             ),
         )
@@ -185,7 +195,7 @@ async def preview_save(req: Request):
 async def preview_new(req: Request):
     """Execute or process preview new operation."""
     d = await _request_json(req)
-    path = d.get('path', 'untitled.html').lstrip('/')
+    path = (d.get('path') or 'untitled.html').lstrip('/')
     f = (PREVIEW_DIR / path).resolve()
     if not _is_within(f, PREVIEW_DIR):
         return {'ok': False, 'error': 'path traversal'}
@@ -204,7 +214,7 @@ async def preview_delete(req: Request):
         d = await _request_json(req)
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         d = {}
-    path = d.get('path', '').lstrip('/')
+    path = (d.get('path') or '').lstrip('/')
     f = (PREVIEW_DIR / path).resolve()
     if not _is_within(f, PREVIEW_DIR):
         return {'ok': False, 'error': 'path traversal'}
@@ -266,7 +276,7 @@ async def preview_restore(req: Request):
 async def preview_commit(req: Request):
     """Execute or process preview commit operation."""
     d = await _request_json(req)
-    path = d.get('path', 'index.html')
+    path = d.get('path') or 'index.html'
     f = (PREVIEW_DIR / path).resolve()
     # FIX 4: traversal guard on commit path
     if not _is_within(f, PREVIEW_DIR):
@@ -348,10 +358,10 @@ async def complete_code(req: Request):
         d = await _request_json(req)
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         d = {}
-    prefix = d.get('prefix', '')[-1800:]
-    suffix = d.get('suffix', '')[:400]
-    filepath = d.get('filepath', 'index.html')
-    language = d.get('language', '')
+    prefix = (d.get('prefix') or '')[-1800:]
+    suffix = (d.get('suffix') or '')[:400]
+    filepath = d.get('filepath') or 'index.html'
+    language = d.get('language') or ''
 
     if not language:
         ext = filepath.rsplit('.', 1)[-1] if '.' in filepath else 'html'
