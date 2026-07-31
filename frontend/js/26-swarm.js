@@ -289,16 +289,23 @@ function copyWinner() {
 
 function acceptWinnerToMonaco() {
   if (!swarmLastWinner) { toast('No winner yet','warn'); return; }
-  nav('builder');
+  // BUG FIX / MODULE MERGE: this used to nav('builder') and insert into
+  // the standalone Code Editor pane's Monaco instance (S.monacoEditor).
+  // That pane has been retired and merged into Code Studio (nav('builder')
+  // now redirects to nav('studio') -- see 01-app-core.js), whose editor
+  // lives on Studio.editor instead, so this now targets the correct
+  // instance. Falls back to clipboard copy if Studio's editor genuinely
+  // isn't ready yet (e.g. Monaco still loading from CDN).
+  nav('studio');
   setTimeout(() => {
-    if (S.monacoEditor) {
-      const sel = S.monacoEditor.getSelection();
-      S.monacoEditor.executeEdits('swarm', [{range: sel, text: '\n\n/* 🌀 Swarm */\n' + swarmLastWinner}]);
+    if (typeof Studio !== 'undefined' && Studio.editor) {
+      const sel = Studio.editor.getSelection();
+      Studio.editor.executeEdits('swarm', [{range: sel, text: '\n\n/* 🌀 Swarm */\n' + swarmLastWinner}]);
       toast('→ Inserted into editor','ok');
     } else {
       navigator.clipboard.writeText(swarmLastWinner).then(()=>toast('Copied — paste into editor','ok'));
     }
-  }, 400);
+  }, 500);
 }
 
 async function loadSwarmHistory() {

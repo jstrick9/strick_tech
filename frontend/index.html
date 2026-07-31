@@ -338,33 +338,6 @@
 .chat-tool:hover{color:var(--text-0);border-color:var(--border-hi)}
 .chat-tool.active{color:var(--accent-hi);border-color:var(--accent);background:var(--accent-glow)}
 
-/* ── Builder pane ────────────────────────────────────────── */
-#pane-builder{background:var(--bg-0);flex-direction:row}
-.builder-sidebar{
-  width:220px;flex-shrink:0;border-right:1px solid var(--border);
-  background:var(--bg-1);display:flex;flex-direction:column;overflow:hidden;
-}
-.builder-sidebar-head{
-  padding:10px 12px;border-bottom:1px solid var(--border);
-  font-size:12px;font-weight:700;color:var(--text-1);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.builder-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.builder-tabs{
-  display:flex;border-bottom:1px solid var(--border);
-  background:var(--bg-1);padding:0 12px;gap:2px;flex-shrink:0;
-}
-.builder-tab{
-  padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;
-  color:var(--text-2);border-bottom:2px solid transparent;transition:var(--transition);
-}
-.builder-tab:hover{color:var(--text-0)}
-.builder-tab.active{color:var(--accent-hi);border-bottom-color:var(--accent)}
-#monaco-host{flex:1;min-height:0}
-.preview-frame{
-  flex:1;border:none;background:var(--bg-0);
-  width:100%;height:100%;
-}
 .file-row{
   display:flex;align-items:center;gap:6px;padding:5px 10px;
   border-radius:var(--radius-sm);cursor:pointer;
@@ -1382,11 +1355,10 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- ═══ AI TOOLS: Core AI capabilities ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">10</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
         <div class="sidebar-group-content" id="group-build" data-tier="advanced" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="swarm" data-tier="advanced" onclick="nav('swarm')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🌀</span><span class="label">Multi-Agent Swarm</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="hierarchy" data-tier="advanced" onclick="nav('hierarchy')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧭</span><span class="label">AI Operating Manual</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="builder" data-tier="advanced" onclick="nav('builder')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⌨</span><span class="label">Code Editor</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="hierarchy" data-tier="advanced" onclick="nav('hierarchy')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧭</span><span class="label">AI Context &amp; Guidelines</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="websearch" data-tier="advanced" onclick="nav('websearch')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔍</span><span class="label">Web Search</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="browser" data-tier="advanced" onclick="nav('browser')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🌐</span><span class="label">Browser Agent</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="imagegen" data-tier="advanced" onclick="nav('imagegen')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎨</span><span class="label">Image Generator</span></div>
@@ -1772,10 +1744,13 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             </div>
           </div>
 
-          <!-- Diff overlay (hidden until AI proposes change) -->
+          <!-- Diff overlay (hidden until AI proposes a change, or the user
+               compares a historical file version against the live file via
+               the ⇄ button in the version-history popover — ported from the
+               retired standalone Code Editor pane's Diff tab) -->
           <div class="diff-overlay" id="studio-diff-overlay" style="display:none">
             <div class="diff-overlay-head">
-              <span style="font-weight:800;font-size:14px">⇄ AI Proposed Changes</span>
+              <span id="diff-overlay-title" style="font-weight:800;font-size:14px">⇄ AI Proposed Changes</span>
               <span id="diff-overlay-file" style="font-size:12px;color:var(--text-2)"></span>
               <div style="margin-left:auto;display:flex;gap:8px">
                 <button type="button" class="diff-reject-btn" onclick="studioRejectDiff()">✕ Reject</button>
@@ -1812,71 +1787,6 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             </div>
           </div>
         </div><!-- /studio-main-area -->
-      </div>
-
-      <!-- BUILDER PANE -->
-      <div class="pane" id="pane-builder">
-        <div class="builder-sidebar">
-          <div class="builder-sidebar-head">
-            <span>📁 Files</span>
-            <button type="button" onclick="openNewFileModal()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:18px">+</button>
-          </div>
-          <div id="file-tree" style="flex:1;overflow-y:auto;padding:4px"></div>
-          <div style="border-top:1px solid var(--border);padding:10px">
-            <div style="font-size:11px;color:var(--text-2);margin-bottom:6px;font-weight:700">Scaffold</div>
-            <select id="scaffold-fw" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;color:var(--text-1);font-size:12px;margin-bottom:6px">
-              <option value="web">🌐 Web</option>
-              <option value="nextjs">⚛️ Next.js 15</option>
-              <option value="sveltekit">🔥 SvelteKit</option>
-              <option value="expo">📱 Expo RN</option>
-            </select>
-            <input id="scaffold-prompt" placeholder="Describe your app…" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;color:var(--text-1);font-size:12px;margin-bottom:6px">
-            <button type="button" onclick="runScaffold()" class="btn btn-primary btn-sm" style="width:100%">⚡ Scaffold</button>
-          </div>
-        </div>
-        <div class="builder-main">
-          <div class="builder-tabs">
-            <div role="button" tabindex="0" class="builder-tab active" data-btab="editor" onclick="switchBuilderTab('editor')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Editor</div>
-            <div role="button" tabindex="0" class="builder-tab" data-btab="preview" onclick="switchBuilderTab('preview')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Preview</div>
-            <div role="button" tabindex="0" class="builder-tab" data-btab="diff" onclick="switchBuilderTab('diff')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">⇄ Diff</div>
-            <div class="spacer"></div>
-            <button type="button" onclick="commitFile()" class="btn btn-ghost btn-sm" style="margin:5px">📸 Commit</button>
-            <button type="button" onclick="saveFile()" class="btn btn-primary btn-sm" style="margin:5px">💾 Save</button>
-          </div>
-          <div id="btab-editor" style="flex:1;min-height:0;display:flex">
-            <div id="monaco-host" style="flex:1;min-height:0"></div>
-          </div>
-          <div id="btab-preview" style="flex:1;min-height:0;display:none">
-            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg-1)">
-              <span style="font-size:12px;color:var(--text-2)">Preview:</span>
-              <select id="preview-target" onchange="reloadPreview()" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:3px 7px;color:var(--text-1);font-size:12px">
-                <option value="/preview/index.html">🌐 Web</option>
-                <option value="/preview/mobile/index.html">📱 Mobile</option>
-              </select>
-              <button type="button" onclick="reloadPreview()" class="btn btn-ghost btn-sm">⟳</button>
-              <button type="button" onclick="openPreviewBlank()" class="btn btn-ghost btn-sm">↗</button>
-            </div>
-            <iframe id="preview-frame" class="preview-frame" src="/preview/index.html" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
-          </div>
-          <div id="btab-diff" style="flex:1;min-height:0;display:none;flex-direction:column">
-            <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg-1);display:flex;gap:10px;align-items:center">
-              <span style="font-size:12px;color:var(--text-2)">Version:</span>
-              <select id="diff-version-sel" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text-1);font-size:12px">
-                <option value="">Select version to compare…</option>
-              </select>
-              <button type="button" onclick="loadDiff()" class="btn btn-primary btn-sm">Load Diff</button>
-              <button type="button" onclick="restoreVersion()" class="btn btn-ghost btn-sm">↶ Restore</button>
-            </div>
-            <div id="diff-host" style="flex:1;min-height:0"></div>
-          </div>
-          <div style="padding:6px 12px;border-top:1px solid var(--border);background:var(--bg-1);font-size:11px;color:var(--text-2);display:flex;gap:12px;flex-shrink:0" id="editor-status">
-            <span id="ed-file">No file</span>
-            <span id="ed-versions">0 versions</span>
-            <span id="ed-lang"></span>
-            <span class="spacer"></span>
-            <span id="ed-cursor">Ln 1, Col 1</span>
-          </div>
-        </div>
       </div>
 
       <!-- KANBAN PANE -->
@@ -2795,7 +2705,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   <button type="button" id="settings-simple-btn" onclick="switchUIMode('simple');updateSettingsModeButtons();toast('✨ Core Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
                     <div style="font-size:22px;margin-bottom:6px">⚡</div>
                     <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:var(--accent)">Core Workstation</div>
-                    <div style="font-size:12px;color:var(--text-2);line-height:1.4">Streamlined focused view. Essential Chat, Multi-Agent Swarm, Code Studio, and AI Operating Manual.</div>
+                    <div style="font-size:12px;color:var(--text-2);line-height:1.4">Streamlined focused view. Essential Chat, Multi-Agent Swarm, Code Studio, and AI Context &amp; Guidelines.</div>
                   </button>
                   <button type="button" id="settings-power-btn" onclick="switchUIMode('power');updateSettingsModeButtons();toast('🌌 Power Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
                     <div style="font-size:22px;margin-bottom:6px">🌌</div>
@@ -2839,7 +2749,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               </div>
 
               <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
-                <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">🧭 AI Operating Manual Isolation</h3>
+                <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">🧭 AI Context &amp; Guidelines Isolation</h3>
                 <p style="font-size:13px;color:var(--text-2);line-height:1.6">When navigating away from the `2 Tier Hierarchy` panel (`#pane-hierarchy`), all split view panes and bottom sticky bars immediately vanish so your active studio or chat workspace gets 100% of the screen height.</p>
               </div>
             </div>

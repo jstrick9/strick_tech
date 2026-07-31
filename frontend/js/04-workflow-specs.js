@@ -233,7 +233,7 @@ function showSidebarCustomizer() {
   // Grouped by the SAME 5 categories used in the real sidebar
   // (#group-core/build/ship/tools/enterprise in index.html), so this
   // customizer visually matches what the user actually sees & organizes.
-  // Previously this was one flat, ungrouped 2-column list of all 69 panes.
+  // Previously this was one flat, ungrouped 2-column list of all panes.
   const PANE_GROUPS = [
     {id: 'core', label: 'Essentials', color: 'var(--accent)', panes: [
       {id:'chat',label:'Chat',icon:'💬'},{id:'studio',label:'Code Studio',icon:'⚡'},
@@ -241,8 +241,8 @@ function showSidebarCustomizer() {
       {id:'kanban',label:'Tasks',icon:'✅'},{id:'settings',label:'Settings',icon:'⚙️'},
     ]},
     {id: 'build', label: 'AI Tools', color: '#7dd3fc', panes: [
-      {id:'swarm',label:'Multi-Agent Swarm',icon:'🌀'},{id:'hierarchy',label:'AI Operating Manual',icon:'🧭'},
-      {id:'builder',label:'Code Editor',icon:'⌨️'},{id:'websearch',label:'Web Search',icon:'🔍'},
+      {id:'swarm',label:'Multi-Agent Swarm',icon:'🌀'},{id:'hierarchy',label:'AI Context & Guidelines',icon:'🧭'},
+      {id:'websearch',label:'Web Search',icon:'🔍'},
       {id:'browser',label:'Browser Agent',icon:'🌐'},{id:'imagegen',label:'Image Generator',icon:'🎨'},
       {id:'prompts',label:'Prompt Library',icon:'💡'},{id:'docs',label:'Docs & Help',icon:'📖'},
       {id:'terminal',label:'Terminal',icon:'💻'},{id:'skills',label:'Skills',icon:'⚡'},
@@ -1597,11 +1597,16 @@ function updateNextActionBar(pane) {
     // Added it explicitly now that it's also the merged home for what used
     // to be the separate 'steering' (AI Guidelines) pane, which is removed
     // from the sidebar/gate list below (folded into 'hierarchy' as a tab).
+    // MODULE MERGE (Code Editor + Code Studio): 'builder' was retired and
+    // folded into 'studio' — nav('builder') now redirects to nav('studio')
+    // in 01-app-core.js, so the pane id is removed from this gate list
+    // (it can no longer be reached directly; 'studio' alone still gates
+    // correctly for the merged functionality).
     const gatedPanes = new Set([
       // Enterprise panes
       'evals','observability','knowledge-graph','rag',
       // Pro panes
-      'studio','builder','swarm','galaxy','hierarchy','loops','mcp','github','deploy','dbstudio',
+      'studio','swarm','galaxy','hierarchy','loops','mcp','github','deploy','dbstudio',
       'plugins','obsidian','system','control','workspaces','webhooks','testgen','terminal','secrets',
       'integrations','imagegen','prompts','codesearch','workflow','profiler','pluginsdk',
       'multitab','replay','collabedit','marketplace','specs','hooks','codeindex','arena',

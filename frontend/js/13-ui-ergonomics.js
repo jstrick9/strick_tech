@@ -21,7 +21,9 @@
     'hierarchy': { icon: '🧭', title: 'AI Context & Guidelines', desc: 'Universal business context, project deltas, and coding/steering rules injected into every AI call' },
     'kanban': { icon: '📋', title: 'Kanban', desc: 'Task workflow board' },
     'settings': { icon: '⚙️', title: 'Settings', desc: 'System configuration & API keys' },
-    'builder': { icon: '📝', title: 'Editor', desc: 'Advanced code builder' },
+    // MODULE MERGE: 'builder' (Code Editor) retired and folded into
+    // 'studio' (Code Studio) — nav('builder') redirects to nav('studio')
+    // so this pane id no longer appears in the breadcrumb bar directly.
     'composer': { icon: '🪄', title: 'Composer', desc: 'Multi-file refactoring engine' },
     'pipeline': { icon: '🏛️', title: 'Pipeline', desc: 'Sequential agent workflow runs' },
     'skills': { icon: '⚡', title: 'Skills', desc: 'Agent capabilities & tool definitions' },
@@ -67,7 +69,10 @@
     // Dynamic sub-context summaries
     if (pane === 'hierarchy') {
       subEl.innerHTML = '<span style="color:var(--accent)">Active:</span> Universal Context & IVREN Deltas';
-    } else if (pane === 'studio' || pane === 'builder') {
+    } else if (pane === 'studio') {
+      // MODULE MERGE: 'builder' (Code Editor) retired and folded into
+      // 'studio' — nav('builder') redirects here, so this branch never
+      // needs to special-case the old id anymore.
       subEl.innerHTML = '<span style="color:var(--success)">● Live Preview Sandbox:</span> index.html / app.js';
     } else if (pane === 'chat') {
       subEl.innerHTML = '<span style="color:var(--accent)">Engine:</span> Multi-Agent Streaming + Information Hierarchy';

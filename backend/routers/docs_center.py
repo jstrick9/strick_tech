@@ -447,8 +447,8 @@ FEATURE_DOCS: dict[str, dict] = {
     'studio': {
         'title': 'Code Studio', 'icon': '⚡', 'tier': 'free',
         'summary': 'Full-featured code editor with Monaco, live preview, file tree, and AI-assisted editing.',
-        'details': 'Monaco editor, live preview, file tree, and AI chat in one workspace. Edit code with syntax highlighting, preview changes in real time, and ask AI to help write or refactor code.',
-        'tips': ['Use ⌘2 to jump to Studio', 'The live preview updates as you type', 'Ask AI to modify code using the built-in chat panel'],
+        'details': 'Monaco editor, live preview, file tree, and AI chat in one workspace. Edit code with syntax highlighting, preview changes in real time, and ask AI to help write or refactor code. Includes full version history with a side-by-side diff view (⇄) for comparing any saved version against your current file before restoring.',
+        'tips': ['Use ⌘2 to jump to Studio', 'The live preview updates as you type', 'Ask AI to modify code using the built-in chat panel', 'Click the version count in the status bar to browse history, preview, diff, or restore any past save'],
         'video_url': '',
     },
     'kanban': {
@@ -473,17 +473,10 @@ FEATURE_DOCS: dict[str, dict] = {
         'video_url': '',
     },
     'hierarchy': {
-        'title': 'AI Operating Manual', 'icon': '🧭', 'tier': 'free',
-        'summary': 'Build a 2-tier operating manual that guides all AI agents with your preferences and context.',
-        'details': 'The AI Operating Manual lets you define universal context and project-specific instructions that are automatically injected into every agent conversation.',
-        'tips': ['Start with Tier 1: Universal Context about yourself and your work', 'Add Tier 2 for project-specific instructions', 'The interview wizard helps you build this step by step'],
-        'video_url': '',
-    },
-    'builder': {
-        'title': 'Code Editor', 'icon': '⌨', 'tier': 'pro',
-        'summary': 'Advanced code editor with Monaco, file management, version history, and AI scaffolding.',
-        'details': 'Full development environment with Monaco editor, file tree, version control, and AI-powered scaffolding for rapid prototyping.',
-        'tips': ['Use Ctrl+S to save', 'Right-click files for context menu', 'Use the scaffold button to generate project structures'],
+        'title': 'AI Context & Guidelines', 'icon': '🧭', 'tier': 'pro',
+        'summary': 'Build universal business context, project-specific instructions, and coding/steering rules that guide every AI agent.',
+        'details': 'AI Context & Guidelines lets you define universal Tier 1 business context, Tier 2 project-specific IVREN instructions, and freeform AI Guidelines (coding/architecture rules), all automatically injected into every agent conversation, swarm query, and specialized agent session.',
+        'tips': ['Start with Tier 1: Universal Context about yourself and your work', 'Add Tier 2 for project-specific instructions', 'Use the AI Guidelines tab for coding/architecture rules that should apply to every AI-generated change', 'The interview wizard helps you build this step by step'],
         'video_url': '',
     },
     'templates': {
