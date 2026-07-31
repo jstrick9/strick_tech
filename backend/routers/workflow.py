@@ -443,6 +443,45 @@ async def run_workflow(wf_id: str, req: Request):
                     context['prev_output'] = f'[Merged outputs]\n{context["prev_output"]}'
                 yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": "Transformed"})}\n\n'
 
+            elif node['type'] == 'loop':
+                # Iterative-refinement loop: re-runs an agent prompt against its own
+                # previous output up to `iterations` times, stopping early if
+                # `stop_keyword` appears in the output (case-insensitive). This was
+                # previously advertised in the node palette ("Repeat N times or
+                # until condition") but had NO execution handler at all — placing
+                # a Loop node in a workflow silently no-op'd it. True arbitrary
+                # cycle-following (jumping backward in the DAG) is intentionally
+                # out of scope: the executor is a single-pass BFS with a `visited`
+                # guard against infinite loops, so "loop" here means "iterate this
+                # node's own agent call", which is what the properties panel now
+                # exposes.
+                try:
+                    iterations = min(10, max(1, int(cfg.get('iterations', 3))))
+                except (TypeError, ValueError):
+                    iterations = 3
+                stop_kw = str(cfg.get('stop_keyword', '') or '').strip().lower()
+                loop_prompt_tpl = cfg.get('prompt', '{{prev_output}}')
+                agent_id = cfg.get('agent_id', 'builder')
+                last_output = context['prev_output']
+                for i in range(iterations):
+                    loop_prompt = loop_prompt_tpl.replace('{{input}}', context['input']).replace(
+                        '{{prev_output}}', last_output
+                    )
+                    try:
+                        result = await llm_svc.complete(
+                            [{'role': 'user', 'content': loop_prompt}],
+                            agent_id=agent_id, max_tokens=1024, inject_steering=False,
+                        )
+                        last_output = result.get('text', '')
+                    except Exception as ex:
+                        yield f'data: {json.dumps({"type": "node_error", "node_id": nid, "error": str(ex)})}\n\n'
+                        break
+                    preview = f'[iteration {i + 1}/{iterations}] {last_output[:200]}'
+                    yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": preview})}\n\n'
+                    if stop_kw and stop_kw in last_output.lower():
+                        break
+                context['prev_output'] = last_output
+
             elif node['type'] == 'delay':
                 try:
                     secs = min(10, max(0, int(cfg.get('seconds', 1))))

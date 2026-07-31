@@ -187,8 +187,7 @@ async function wfLoadNodeTypes() {
   if (!palette) return;
   palette.innerHTML = _wfNodeTypes.map(t => `
     <div class="wf-node-chip" draggable="true"
-         ondragstart="wfPaletteStart(event,${JSON.stringify(t.id)})"
-         ondblclick="wfAddNodeCenter(${JSON.stringify(t.id)})"
+         data-node-type="${escHtml(t.id)}"
          title="${escHtml(t.desc||'')} — double-click to add">
       <span class="chip-dot" style="background:${t.color}"></span>
       <div>
@@ -196,6 +195,26 @@ async function wfLoadNodeTypes() {
         <div class="wf-chip-desc">${escHtml((t.desc||'').slice(0,38))}</div>
       </div>
     </div>`).join('');
+  wfWirePaletteEvents();
+}
+
+// Delegated listeners on the palette container — survives every re-render
+// of its children since the container node itself is never replaced after
+// the first bind. Avoids the JSON.stringify()-in-onclick quote-collision
+// bug class entirely (see wfWireListEvents / wfWireContextMenuEvents).
+let _wfPaletteWired = false;
+function wfWirePaletteEvents() {
+  const palette = document.getElementById('wf-node-palette');
+  if (!palette || _wfPaletteWired) return;
+  _wfPaletteWired = true;
+  palette.addEventListener('dragstart', e => {
+    const chip = e.target.closest('.wf-node-chip');
+    if (chip) wfPaletteStart(e, chip.dataset.nodeType);
+  });
+  palette.addEventListener('dblclick', e => {
+    const chip = e.target.closest('.wf-node-chip');
+    if (chip) wfAddNodeCenter(chip.dataset.nodeType);
+  });
 }
 
 async function wfLoadWorkflows() {
@@ -203,22 +222,53 @@ async function wfLoadWorkflows() {
     const r   = await fetch('/api/workflow');
     const d   = await r.json();
     const wfs = d.workflows || [];
+    _wfListData = wfs;
     const list = document.getElementById('wf-list');
     if (!list) return;
-    list.innerHTML = wfs.length ? wfs.map(w => `
-      <div class="wf-list-item ${_wfData?.id === w.id ? 'active' : ''}"
-           onclick="wfSelectWorkflow(${JSON.stringify(w.id)})">
+    list.innerHTML = wfs.length ? wfs.map((w, idx) => `
+      <div class="wf-list-item ${_wfData?.id === w.id ? 'active' : ''}" data-wf-idx="${idx}">
         <span>🗺️</span>
         <span class="wf-list-item-name" title="${escHtml(w.name)}">${escHtml(w.name)}</span>
         <div class="wf-list-item-actions">
-          <button class="wf-list-icon-btn" onclick="event.stopPropagation();wfDuplicateWf(${JSON.stringify(w.id)})" title="Duplicate">⧉</button>
-          <button class="wf-list-icon-btn" onclick="event.stopPropagation();wfExportById(${JSON.stringify(w.id)})" title="Export">⬇</button>
-          <button class="wf-list-icon-btn" onclick="event.stopPropagation();wfDeleteWf(${JSON.stringify(w.id)},${JSON.stringify(w.name)})" title="Delete" style="color:var(--danger)">✕</button>
+          <button class="wf-list-icon-btn" data-wf-action="duplicate" data-wf-idx="${idx}" title="Duplicate">⧉</button>
+          <button class="wf-list-icon-btn" data-wf-action="export" data-wf-idx="${idx}" title="Export">⬇</button>
+          <button class="wf-list-icon-btn" data-wf-action="delete" data-wf-idx="${idx}" title="Delete" style="color:var(--danger)">✕</button>
         </div>
       </div>`).join('') :
       '<div style="color:var(--text-3);font-size:11px;padding:6px">No workflows yet. Create one above.</div>';
+    wfWireListEvents();
   } catch(e) {}
 }
+
+// State backing the delegated #wf-list listener — indices are stable for the
+// lifetime of one render pass, avoiding JSON.stringify()-in-onclick quote
+// collisions (an unconditional bug: ANY id/name, even ones with zero special
+// characters, corrupts the onclick attribute once re-serialized into HTML).
+let _wfListData = [];
+let _wfListWired = false;
+function wfWireListEvents() {
+  const list = document.getElementById('wf-list');
+  if (!list || _wfListWired) return;
+  _wfListWired = true;
+  list.addEventListener('click', e => {
+    const actionBtn = e.target.closest('[data-wf-action]');
+    const item = e.target.closest('.wf-list-item');
+    if (!item) return;
+    const idx = +item.dataset.wfIdx;
+    const w = _wfListData[idx];
+    if (!w) return;
+    if (actionBtn) {
+      e.stopPropagation();
+      const action = actionBtn.dataset.wfAction;
+      if (action === 'duplicate') wfDuplicateWf(w.id);
+      else if (action === 'export') wfExportById(w.id);
+      else if (action === 'delete') wfDeleteWf(w.id, w.name);
+      return;
+    }
+    wfSelectWorkflow(w.id);
+  });
+}
+
 
 
 // ── Workflow selection & CRUD ─────────────────────────────────────────
@@ -234,8 +284,9 @@ async function wfSelectWorkflow(wfId) {
     wfUpdateUndoButtons();
     wfValidateAsync();
     document.querySelectorAll('#wf-list .wf-list-item').forEach(el =>
-      el.classList.toggle('active', el.onclick?.toString().includes(wfId)));
-  } catch(e) { showToast('⚠️ Failed to load workflow'); }
+      el.classList.toggle('active', _wfListData[+el.dataset.wfIdx]?.id === wfId));
+
+  } catch(e) { toast('⚠️ Failed to load workflow'); }
 }
 
 async function wfNewWorkflow() {
@@ -255,8 +306,8 @@ async function wfNewWorkflow() {
     document.getElementById('wf-empty-state').style.display = 'none';
     wfRenderCanvas();
     wfUpdateUndoButtons();
-    showToast('✅ Workflow created');
-  } catch(e) { showToast('⚠️ Create failed'); }
+    toast('✅ Workflow created');
+  } catch(e) { toast('⚠️ Create failed'); }
 }
 
 async function wfRename() {
@@ -273,11 +324,11 @@ async function wfDuplicateWf(wfId) {
     const r = await fetch(`/api/workflow/${encodeURIComponent(wfId)}/duplicate`, {method:'POST'});
     const d = await r.json();
     if (d.ok) {
-      showToast(`⧉ Duplicated: ${d.workflow.name}`);
+      toast(`⧉ Duplicated: ${d.workflow.name}`);
       await wfLoadWorkflows();
       wfSelectWorkflow(d.workflow.id);
     }
-  } catch(e) { showToast('⚠️ Duplicate failed'); }
+  } catch(e) { toast('⚠️ Duplicate failed'); }
 }
 
 async function wfDeleteWf(wfId, name) {
@@ -294,7 +345,7 @@ async function wfDeleteWf(wfId, name) {
     if (edgesG) edgesG.innerHTML = '';
     wfCloseProps();
   }
-  showToast('🗑 Workflow deleted');
+  toast('🗑 Workflow deleted');
   wfLoadWorkflows();
 }
 
@@ -305,9 +356,9 @@ async function wfSave() {
       method:'PUT', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(_wfData)
     });
-    showToast('💾 Saved');
+    toast('💾 Saved');
     wfLoadWorkflows();
-  } catch(e) { showToast('⚠️ Save failed'); }
+  } catch(e) { toast('⚠️ Save failed'); }
 }
 
 function wfAutoSaveDebounce() {
@@ -653,7 +704,7 @@ function wfAddNode(type, x, y) {
 }
 
 function wfAddNodeCenter(type) {
-  if (!_wfData) { showToast('⚠️ Open a workflow first'); return; }
+  if (!_wfData) { toast('⚠️ Open a workflow first'); return; }
   const wrap = document.getElementById('wf-canvas-wrap');
   const rect = wrap?.getBoundingClientRect();
   if (!rect) return;
@@ -786,6 +837,27 @@ function wfSelectNode(nodeId) {
       <label>Delay Seconds</label>
       <input type="number" min="0" max="60" value="${node.config?.seconds||1}" oninput="wfUpdateConfig('seconds',+this.value)">
     </div>` : ''}
+    ${node.type==='loop' ? `
+    <div class="wf-prop-group">
+      <label>Agent ID</label>
+      <select onchange="wfUpdateConfig('agent_id',this.value)">
+        ${['orchestrator','researcher','builder','reviewer','creative','brain','memory','local'].map(a=>`<option value="${a}" ${a===node.config?.agent_id?'selected':''}>${a}</option>`).join('')}
+      </select>
+    </div>
+    <div class="wf-prop-group">
+      <label>Prompt Template</label>
+      <textarea rows="4" oninput="wfUpdateConfig('prompt',this.value)" placeholder="{{prev_output}}">${escHtml(node.config?.prompt||'{{prev_output}}')}</textarea>
+      <div class="wf-prop-hint">Re-run this prompt against the agent's own previous output each iteration</div>
+    </div>
+    <div class="wf-prop-group">
+      <label>Iterations</label>
+      <input type="number" min="1" max="10" value="${node.config?.iterations||3}" oninput="wfUpdateConfig('iterations',+this.value)">
+    </div>
+    <div class="wf-prop-group">
+      <label>Stop Keyword (optional)</label>
+      <input value="${escHtml(node.config?.stop_keyword||'')}" oninput="wfUpdateConfig('stop_keyword',this.value)" placeholder="e.g. done">
+      <div class="wf-prop-hint">Loop stops early if this keyword appears in the output</div>
+    </div>` : ''}
     ${node.type==='webhook' ? `
     <div class="wf-prop-group">
       <label>Endpoint URL</label>
@@ -825,9 +897,10 @@ function wfSelectNode(nodeId) {
     <div class="wf-prop-actions">
       <button class="wf-prop-btn" onclick="wfCopyNode()" title="Copy (⌘C)">⧉ Copy</button>
       <button class="wf-prop-btn" onclick="wfDuplicateNode()" title="Duplicate">⊕ Dupe</button>
-      <button class="wf-prop-btn danger" onclick="wfDeleteNode(${JSON.stringify(nodeId)})" title="Delete (Del)">🗑 Delete</button>
+      <button class="wf-prop-btn danger" onclick="wfDeleteNode(_wfSelected)" title="Delete (Del)">🗑 Delete</button>
     </div>`;
 }
+
 
 function wfCloseProps() {
   document.getElementById('wf-properties')?.classList.remove('open');
@@ -868,11 +941,11 @@ function wfCopyNode() {
   const node = _wfData?.nodes?.find(n => n.id === _wfSelected);
   if (!node) return;
   _wfClipboard = JSON.parse(JSON.stringify(node));
-  showToast('⧉ Node copied');
+  toast('⧉ Node copied');
 }
 
 function wfPasteNode() {
-  if (!_wfClipboard || !_wfData) { showToast('Nothing to paste'); return; }
+  if (!_wfClipboard || !_wfData) { toast('Nothing to paste'); return; }
   const node = JSON.parse(JSON.stringify(_wfClipboard));
   node.id = `n${Date.now()}`;
   node.x  = (node.x || 200) + 30;
@@ -979,12 +1052,23 @@ function wfContextMenu(e, nodeId) {
   menu.className = 'wf-context-menu';
   menu.style.cssText = `left:${e.clientX}px;top:${e.clientY}px`;
   menu.innerHTML = `
-    <div class="wf-ctx-item" onclick="wfDuplicateNode();wfRemoveContextMenu()">⊕ Duplicate</div>
-    <div class="wf-ctx-item" onclick="wfCopyNode();wfRemoveContextMenu()">⧉ Copy</div>
+    <div class="wf-ctx-item" data-ctx="dup">⊕ Duplicate</div>
+    <div class="wf-ctx-item" data-ctx="copy">⧉ Copy</div>
     <div class="wf-ctx-sep"></div>
-    <div class="wf-ctx-item" onclick="wfSelectNode(${JSON.stringify(nodeId)});document.getElementById('wf-properties').classList.add('open');wfRemoveContextMenu()">⚙️ Properties</div>
+    <div class="wf-ctx-item" data-ctx="props">⚙️ Properties</div>
     <div class="wf-ctx-sep"></div>
-    <div class="wf-ctx-item danger" onclick="wfDeleteNode(${JSON.stringify(nodeId)});wfRemoveContextMenu()">🗑 Delete Node</div>`;
+    <div class="wf-ctx-item danger" data-ctx="delete">🗑 Delete Node</div>`;
+  // Menu is a one-shot element (created fresh and torn down on every open),
+  // so closures over `nodeId` are safe here — no re-render/stale-index risk,
+  // and it avoids ever re-serializing `nodeId` into an HTML attribute at all.
+  menu.querySelector('[data-ctx="dup"]').addEventListener('click', () => { wfDuplicateNode(); wfRemoveContextMenu(); });
+  menu.querySelector('[data-ctx="copy"]').addEventListener('click', () => { wfCopyNode(); wfRemoveContextMenu(); });
+  menu.querySelector('[data-ctx="props"]').addEventListener('click', () => {
+    wfSelectNode(nodeId);
+    document.getElementById('wf-properties').classList.add('open');
+    wfRemoveContextMenu();
+  });
+  menu.querySelector('[data-ctx="delete"]').addEventListener('click', () => { wfDeleteNode(nodeId); wfRemoveContextMenu(); });
   document.body.appendChild(menu);
   setTimeout(() => document.addEventListener('click', wfRemoveContextMenu, {once:true}), 0);
 }
@@ -994,8 +1078,8 @@ function wfEdgeContextMenu(e, edgeId) {
   const menu = document.createElement('div');
   menu.className = 'wf-context-menu';
   menu.style.cssText = `left:${e.clientX}px;top:${e.clientY}px`;
-  menu.innerHTML = `
-    <div class="wf-ctx-item danger" onclick="wfDeleteEdge(${JSON.stringify(edgeId)});wfRemoveContextMenu()">🗑 Delete Edge</div>`;
+  menu.innerHTML = `<div class="wf-ctx-item danger" data-ctx="delete">🗑 Delete Edge</div>`;
+  menu.querySelector('[data-ctx="delete"]').addEventListener('click', () => { wfDeleteEdge(edgeId); wfRemoveContextMenu(); });
   document.body.appendChild(menu);
   setTimeout(() => document.addEventListener('click', wfRemoveContextMenu, {once:true}), 0);
 }
@@ -1009,14 +1093,22 @@ function wfCanvasContextMenu(e) {
   const rect = wrap?.getBoundingClientRect();
   const x = rect ? Math.round((e.clientX-rect.left-_wfPanX)/_wfScale) : 200;
   const y = rect ? Math.round((e.clientY-rect.top-_wfPanY)/_wfScale) : 200;
+  const addTypes = _wfNodeTypes.slice(0,8);
   menu.innerHTML = `
     <div style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase">Add Node</div>
-    ${_wfNodeTypes.slice(0,8).map(t=>`
-      <div class="wf-ctx-item" onclick="wfAddNode(${JSON.stringify(t.id)},${x},${y});wfRemoveContextMenu()">
+    ${addTypes.map((t,i)=>`
+      <div class="wf-ctx-item" data-ctx="add" data-add-idx="${i}">
         ${WF_NODE_ICONS[t.id]||'⬡'} ${escHtml(t.label?.replace(/^[^ ]+ /,'') || t.id)}
       </div>`).join('')}
     <div class="wf-ctx-sep"></div>
-    <div class="wf-ctx-item" onclick="wfPasteNode();wfRemoveContextMenu()">📋 Paste ${_wfClipboard?'('+escHtml(_wfClipboard.label||_wfClipboard.type)+')':''}</div>`;
+    <div class="wf-ctx-item" data-ctx="paste">📋 Paste ${_wfClipboard?'('+escHtml(_wfClipboard.label||_wfClipboard.type)+')':''}</div>`;
+  menu.querySelectorAll('[data-ctx="add"]').forEach(el => {
+    el.addEventListener('click', () => {
+      wfAddNode(addTypes[+el.dataset.addIdx].id, x, y);
+      wfRemoveContextMenu();
+    });
+  });
+  menu.querySelector('[data-ctx="paste"]').addEventListener('click', () => { wfPasteNode(); wfRemoveContextMenu(); });
   document.body.appendChild(menu);
   setTimeout(() => document.addEventListener('click', wfRemoveContextMenu, {once:true}), 0);
 }
@@ -1180,26 +1272,27 @@ function wfShowValidation() {
 
 // ── Export / Import ────────────────────────────────────────────────────
 async function wfExport() {
-  if (!_wfData) { showToast('⚠️ No workflow selected'); return; }
+  if (!_wfData) { toast('⚠️ No workflow selected'); return; }
   const url = URL.createObjectURL(new Blob([JSON.stringify(_wfData, null, 2)], {type:'application/json'}));
   const a   = document.createElement('a');
   a.href = url;
   a.download = `${(_wfData.name||'workflow').replace(/\s+/g,'_')}.wf.json`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast('⬇ Workflow exported');
+  toast('⬇ Workflow exported');
 }
 
-async function wfExportById(wfId) {
-  const r = await fetch(`/api/workflow/${encodeURIComponent(wfId)}/export`);
-  const blob = await r.blob();
-  const cd = r.headers.get('Content-Disposition')||'';
-  const filename = cd.match(/filename="([^"]+)"/)?.[1] || 'workflow.wf.json';
-  const url = URL.createObjectURL(blob);
+function wfExportById(wfId) {
+  // Synchronous <a download> click — the backend endpoint already sets
+  // Content-Disposition: attachment, so no fetch()/blob() round-trip is
+  // needed. This matters in the Tauri WebKit webview: an async gap
+  // (await fetch/await blob) before a.click() breaks the user-gesture
+  // chain and can silently fail to trigger a save dialog.
   const a = document.createElement('a');
-  a.href=url; a.download=filename; a.click();
-  URL.revokeObjectURL(url);
-  showToast('⬇ Exported');
+  a.href = `/api/workflow/${encodeURIComponent(wfId)}/export`;
+  a.download = '';
+  a.click();
+  toast('⬇ Exported');
 }
 
 function wfImportDialog() {
@@ -1211,20 +1304,20 @@ function wfImportDialog() {
     try {
       const text = await file.text();
       const wf   = JSON.parse(text);
-      if (!wf.nodes || !wf.edges) { showToast('⚠️ Invalid workflow file'); return; }
+      if (!wf.nodes || !wf.edges) { toast('⚠️ Invalid workflow file'); return; }
       const r = await fetch('/api/workflow/import', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: text
       });
       const d = await r.json();
       if (d.ok) {
-        showToast(`⬆ Imported: ${d.workflow.name}`);
+        toast(`⬆ Imported: ${d.workflow.name}`);
         await wfLoadWorkflows();
         wfSelectWorkflow(d.workflow.id);
       } else {
-        showToast('⚠️ Import failed: ' + (d.error||''));
+        toast('⚠️ Import failed: ' + (d.error||''));
       }
-    } catch(ex) { showToast('⚠️ Parse error: ' + ex.message); }
+    } catch(ex) { toast('⚠️ Parse error: ' + ex.message); }
   };
   input.click();
 }
