@@ -1072,15 +1072,15 @@ async function restoreVersion() {
 }
 
 async function openNewFileModal() {
-  const name = await gmPrompt('New File', 'e.g. about.html, styles.css');
-  if (!name) return;
-  fetch('/api/preview/new', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ path: name, content: '' })
-  }).then(r => r.json()).then(j => {
-    if (j.ok) { toast(`✅ Created ${name}`, 'ok'); loadFileTree(); openFile(name); }
-    else toast('Error: ' + (j.error || ''), 'err');
-  });
+  // NOTE: this definition is intentionally kept as a no-op passthrough to
+  // the pane-aware implementation registered on `window.openNewFileModal`
+  // further down this file (see the "BUG FIX" comment there) — both Code
+  // Studio's "+" button and the legacy Builder pane's "+" button call the
+  // same bare `openNewFileModal()` global, and since this is a plain
+  // (non-IIFE) script, whichever same-named top-level declaration loads
+  // LAST silently wins for every caller. Keeping only one real
+  // implementation avoids the two definitions drifting out of sync again.
+  return window.openNewFileModal();
 }
 
 async function runScaffold() {
@@ -2955,7 +2955,25 @@ window.openNewFileModal = async function() {
     body: JSON.stringify({ path: name, content: '' })
   });
   const j = await r.json();
-  if (j.ok) { toast(`✅ Created ${name}`, 'ok'); loadFileTree(); openFile(name); }
+  if (j.ok) {
+    toast(`✅ Created ${name}`, 'ok');
+    // BUG FIX: this always refreshed/opened the file in the OLD "Code
+    // Editor" (Builder) pane's tree/editor (`loadFileTree()`/`openFile()`),
+    // even when the user clicked "+" from the newer Code Studio pane (whose
+    // file tree lives in `#studio-file-tree` and whose editor state is
+    // `Studio`/`studioLoadFileTree()`/`studioOpenFile()`). Concretely: click
+    // "+" in Studio, create a file — the file WAS created on disk, but
+    // Studio's own file list never refreshed and the new file never opened
+    // in the Studio editor; it silently appeared only in the other pane.
+    // Now routes to whichever pane is actually active.
+    if (document.getElementById('pane-studio')?.classList.contains('active')) {
+      await studioLoadFileTree();
+      studioOpenFile(name);
+    } else {
+      loadFileTree();
+      openFile(name);
+    }
+  }
   else toast('Error: ' + (j.error || ''), 'err');
 };
 
@@ -4162,6 +4180,7 @@ async function studioFormatFile() {
     })
   });
   let formatted = '';
+  let isStub = false;
   const reader  = r.body.getReader();
   const decoder = new TextDecoder();
   while (true) {
@@ -4169,8 +4188,20 @@ async function studioFormatFile() {
     if (done) break;
     for (const line of decoder.decode(value, {stream:true}).split('\n')) {
       if (!line.startsWith('data:')) continue;
-      try { const d = JSON.parse(line.slice(5).trim()); if (d.delta) formatted += d.delta; } catch(e) {}
+      try {
+        const d = JSON.parse(line.slice(5).trim());
+        if (d.delta) formatted += d.delta;
+        if (d.stub) isStub = true;
+      } catch(e) {}
     }
+  }
+  // BUG FIX: same stub-guard as studioAIEdit — without this, formatting a
+  // file with no AI provider configured would silently overwrite the editor
+  // buffer with the "No OPENROUTER_API_KEY set..." help text instead of
+  // leaving the file untouched.
+  if (isStub) {
+    toast('⚠️ No AI provider configured — install a Monaco formatter or add an API key', 'warn', 3000);
+    return;
   }
   if (formatted.trim()) {
     Studio.editor.setValue(formatted.trim().replace(/^```\w*\n?/, '').replace(/\n?```$/, ''));
@@ -4454,6 +4485,13 @@ const Studio = {
   chatHistory:    [],
   previewSrc:     '/preview/index.html',
 };
+// BUG FIX: `const Studio = {...}` does NOT auto-attach to `window` the way a
+// top-level `function`/`var` declaration does. Several other files (and code
+// paths in this same file, e.g. openCodeInStudio / insertImageIntoCode)
+// reference `window.Studio`/`window.Studio?.editor` expecting to find this
+// object — without this line those checks always silently see `undefined`
+// and fall through to broken/degraded fallback behavior.
+window.Studio = Studio;
 
 // ── Init ───────────────────────────────────────────────────────────
 
@@ -4591,15 +4629,55 @@ async function studioLoadFileTree() {
       const extColors = {html:'#f08850',css:'#38c5d8',js:'#f0c060',jsx:'#5b8af8',
                          ts:'#5b8af8',tsx:'#5b8af8',json:'#9ece6a',md:'#bb9af7',py:'#f7768e'};
       const c = extColors[ext] || '#7a8aaa';
-      return `<div class="file-row ${f.path===Studio.currentFile?'active':''}"
-               onclick="studioOpenFile('${escHtml(f.path)}')" title="${escHtml(f.path)}">
+      // BUG FIX: DELETE /api/preview/delete has always existed on the backend
+      // but the Studio file tree never exposed any way to call it — there
+      // was no delete/remove affordance anywhere in the UI (only "+ New
+      // file" existed). Added a hover-revealed 🗑 button per row (stops
+      // propagation so it doesn't also trigger studioOpenFile on the row).
+      return `<div class="file-row ${f.path===Studio.currentFile?'active':''}" data-path="${escHtml(f.path)}"
+               onclick="studioOpenFile('${escHtml(f.path)}')" title="${escHtml(f.path)}" style="display:flex;align-items:center;gap:0">
         <span style="font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;background:${c}22;color:${c};flex-shrink:0">${ext}</span>
-        <span style="flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(name)}</span>
+        <span style="flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">${escHtml(name)}</span>
         <span style="font-size:10px;color:var(--text-3)">${formatBytes(f.size)}</span>
+        <button type="button" class="file-row-delete-btn" title="Delete file" onclick="event.stopPropagation();studioDeleteFile('${escHtml(f.path)}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:2px 4px;margin-left:2px;opacity:0;transition:opacity .15s">🗑</button>
       </div>`;
     }).join('') + `<div class="new-file-btn" onclick="openNewFileModal()">＋ New file</div>`;
+    // Reveal the delete button only on row hover, via JS (avoids adding a
+    // new global CSS rule for a single component).
+    el.querySelectorAll('.file-row').forEach(row => {
+      row.addEventListener('mouseenter', () => { const b = row.querySelector('.file-row-delete-btn'); if (b) b.style.opacity = '1'; });
+      row.addEventListener('mouseleave', () => { const b = row.querySelector('.file-row-delete-btn'); if (b) b.style.opacity = '0'; });
+    });
   } catch(e) { console.warn('studioLoadFileTree error:', e); }
 }
+
+window.studioDeleteFile = async function(path) {
+  if (!path) return;
+  if (!(await gmDanger('Delete File', `Permanently delete "${path}"? This cannot be undone.`, 'Delete'))) return;
+  try {
+    const r = await fetch('/api/preview/delete', {
+      method: 'DELETE', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ path })
+    });
+    const j = await r.json();
+    if (j.ok) {
+      toast(`🗑 Deleted ${path}`, 'ok', 1500);
+      await studioLoadFileTree();
+      // If the deleted file was open, fall back to index.html (or first remaining file)
+      if (Studio.currentFile === path) {
+        const filesR = await fetch('/api/preview/files');
+        const files = await filesR.json();
+        const fallback = files.find(f => f.path === 'index.html') || files[0];
+        if (fallback) studioOpenFile(fallback.path);
+        else if (Studio.editor) Studio.editor.setValue('');
+      }
+    } else {
+      toast('Delete failed: ' + (j.error || 'unknown'), 'err');
+    }
+  } catch(e) {
+    toast('Delete error: ' + e.message, 'err');
+  }
+};
 
 async function studioOpenFile(path) {
   Studio.currentFile = path;
@@ -4622,8 +4700,14 @@ async function studioOpenFile(path) {
     const langEl = document.getElementById('studio-ed-lang');
     if (langEl) langEl.textContent = lang;
     updateStudioScrubber(path);
+    // BUG FIX: was matching via `getAttribute('onclick')?.includes(...)` —
+    // a fragile substring match against inline-JS text (could mis-highlight
+    // e.g. a file literally named the empty string, or theoretically match
+    // if one path is a substring of another due to quote placement). Now
+    // matches the same `data-path` attribute set on each row, computed
+    // in studioLoadFileTree(), for an exact comparison.
     document.querySelectorAll('#studio-file-tree .file-row').forEach(el =>
-      el.classList.toggle('active', el.getAttribute('onclick')?.includes(`'${path}'`)));
+      el.classList.toggle('active', el.dataset.path === path));
   } catch(e) { console.warn('studioOpenFile error:', e); }
 }
 
@@ -4749,9 +4833,95 @@ window.resetStudioScrubber = function() {
 
   if (typeof Studio !== 'undefined' && Studio.editor && studioLiveContentCache) {
     Studio.editor.setValue(studioLiveContentCache);
+    // BUG FIX: this fallback called `studioLoadFile()`, a function that does
+    // not exist anywhere in the codebase (the real function is
+    // `studioOpenFile()`) — `typeof studioLoadFile === 'function'` always
+    // evaluated to false, so restoring to "Live Version" silently did
+    // nothing when the live-content cache wasn't populated yet.
   } else if (typeof Studio !== 'undefined' && Studio.currentFile) {
-    if (typeof studioLoadFile === 'function') studioLoadFile(Studio.currentFile);
+    if (typeof studioOpenFile === 'function') studioOpenFile(Studio.currentFile);
   }
+};
+
+// ── Version history popover (real UI for the previously-orphaned scrubber logic) ──
+// FIX: `updateStudioScrubber`/`scrubStudioCommit`/`resetStudioScrubber` above
+// were fully implemented against a `#studio-scrubber-slider` / `-label` /
+// `-reset-btn` UI that was never actually added to index.html — the "N
+// versions" status-bar label was a static, unclickable `<span>`, so this
+// entire version-history feature was completely unreachable from the UI.
+// This adds a lightweight popover (toggled by clicking the versions label)
+// listing each commit with Restore / Preview actions, wired to the same
+// already-working `/api/preview/history`, `/api/preview/version`, and
+// `/api/preview/restore` endpoints used elsewhere in Studio.
+window.toggleStudioVersionHistory = async function() {
+  const pop = document.getElementById('studio-version-history');
+  if (!pop) return;
+  const willShow = pop.style.display === 'none';
+  if (!willShow) { pop.style.display = 'none'; return; }
+  await studioRenderVersionHistory();
+  pop.style.display = 'block';
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function closeHandler(e) {
+      if (!pop.contains(e.target) && e.target.id !== 'studio-ed-versions') {
+        pop.style.display = 'none';
+        document.removeEventListener('click', closeHandler);
+      }
+    });
+  }, 0);
+};
+
+async function studioRenderVersionHistory() {
+  const list = document.getElementById('studio-version-history-list');
+  if (!list) return;
+  list.innerHTML = '<div style="padding:8px;color:var(--text-3);font-size:11px">Loading…</div>';
+  try {
+    const r = await fetch('/api/preview/history?path=' + encodeURIComponent(Studio.currentFile));
+    const hist = r.ok ? await r.json() : [];
+    if (!hist.length) {
+      list.innerHTML = '<div style="padding:8px;color:var(--text-3);font-size:11px">No saved versions yet for this file.</div>';
+      return;
+    }
+    list.innerHTML = hist.map(v => `
+      <div style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:5px;font-size:11px" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-2)" title="${escHtml(v.message || '')}">v${v.id} · ${escHtml((v.ts||'').slice(5,16))} · ${escHtml(v.author||'')}</span>
+        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" onclick="studioPreviewVersion(${v.id})">👁</button>
+        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" onclick="studioRestoreVersion(${v.id})">↶</button>
+      </div>`).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="padding:8px;color:var(--danger)">Failed to load history.</div>';
+  }
+}
+
+window.studioPreviewVersion = async function(id) {
+  try {
+    const r = await fetch('/api/preview/version?id=' + id);
+    const data = await r.json();
+    if ((data.ok !== false) && Studio.editor) {
+      if (!studioLiveContentCache) studioLiveContentCache = Studio.editor.getValue();
+      Studio.editor.setValue(data.content || '');
+      toast(`👁 Previewing v${id} (read view — click a version again or Restore to keep it)`, 'ok', 2500);
+      document.getElementById('studio-version-history').style.display = 'none';
+    }
+  } catch(e) { toast('Could not load version', 'err'); }
+};
+
+window.studioRestoreVersion = async function(id) {
+  if (!(await gmDanger('Restore Version', `Overwrite the live file with v${id}? This cannot be undone.`, 'Restore'))) return;
+  try {
+    const r = await fetch('/api/preview/restore', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ version_id: id })
+    });
+    const j = await r.json();
+    if (j.ok) {
+      toast(`↶ Restored v${id}`, 'ok');
+      document.getElementById('studio-version-history').style.display = 'none';
+      studioOpenFile(Studio.currentFile);
+    } else {
+      toast('Restore failed', 'err');
+    }
+  } catch(e) { toast('Restore error: ' + e.message, 'err'); }
 };
 
 // ── Preview ────────────────────────────────────────────────────────
@@ -4866,11 +5036,14 @@ function studioZoom(delta) {
 
 // ── Screenshot ─────────────────────────────────────────────────────
 function studioScreenshot() {
-  const url = studioPreviewUrl();
-  const a = document.createElement('a');
-  a.href = url;
-  a.target = '_blank';
-  a.click();
+  // BUG FIX (Tauri compat): previously built an <a target="_blank"> and
+  // called .click() directly — functionally equivalent to window.open() and
+  // unreliable inside the Tauri WebKit webview (no new window/tab exists to
+  // navigate to). Route through openExternalLink() which uses the Tauri
+  // shell.open() API when running as a desktop app, falling back to a real
+  // browser window.open() only when running in an actual web browser.
+  const url = location.origin + studioPreviewUrl();
+  openExternalLink(url);
   toast('📷 Opening preview for screenshot…', 'ok', 2000);
 }
 
@@ -5001,6 +5174,7 @@ async function studioAIEdit() {
       throw new Error('No response body — check network or server logs');
     }
     let fullText = '';
+    let isStub = false;
     const reader  = resp.body.getReader();
     const decoder = new TextDecoder();
     while (true) {
@@ -5012,12 +5186,25 @@ async function studioAIEdit() {
         try {
           const data = JSON.parse(line.slice(5).trim());
           if (data.delta) fullText += data.delta;
+          if (data.stub) isStub = true;
         } catch(e) {}
       }
     }
 
     // Remove thinking message
     document.getElementById(thinkingId)?.remove();
+
+    // BUG FIX: when no OPENROUTER_API_KEY (or Ollama fallback) is configured,
+    // the backend streams a helpful "No API key set" message flagged with
+    // `stub:true` on its final chunk. Previously this text was treated as a
+    // legitimate AI code proposal and shown as an "Accept & Apply"-able diff —
+    // clicking Accept would overwrite the real file with the plain-English
+    // help text. Now we detect the stub flag and show it as plain chat text
+    // instead of opening the diff overlay.
+    if (isStub) {
+      addStudioMsg(fullText.trim() || '⚠️ No AI provider configured. Add an OPENROUTER_API_KEY or start Ollama in Settings.', 'agent');
+      return;
+    }
 
     // Clean up code fences if AI returned them
     let proposed = fullText.trim();

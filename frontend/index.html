@@ -1705,10 +1705,15 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <!-- Monaco -->
           <div id="studio-monaco-host" style="flex:1;min-height:0"></div>
           <!-- Editor status bar -->
-          <div style="padding:3px 10px;border-top:1px solid var(--border);background:var(--bg-1);font-size:10.5px;color:var(--text-3);display:flex;gap:12px;flex-shrink:0">
+          <div style="padding:3px 10px;border-top:1px solid var(--border);background:var(--bg-1);font-size:10.5px;color:var(--text-3);display:flex;gap:12px;flex-shrink:0;position:relative">
             <span id="studio-ed-lang">html</span>
             <span id="studio-ed-cursor">Ln 1, Col 1</span>
-            <span id="studio-ed-versions" style="margin-left:auto">0 versions</span>
+            <button type="button" id="studio-ed-versions" onclick="toggleStudioVersionHistory()" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:10.5px;padding:0;text-decoration:underline dotted" title="Browse version history">0 versions</button>
+            <!-- Version history popover -->
+            <div id="studio-version-history" style="display:none;position:absolute;bottom:22px;right:8px;width:280px;max-height:280px;overflow-y:auto;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:50;padding:6px">
+              <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;padding:4px 6px">Version History</div>
+              <div id="studio-version-history-list" style="display:flex;flex-direction:column;gap:2px"></div>
+            </div>
           </div>
         </div>
 
@@ -1732,7 +1737,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <div class="divider"></div>
             <!-- Actions -->
             <button type="button" class="device-btn" onclick="studioReloadPreview()" title="Reload preview">⟳</button>
-            <button type="button" class="device-btn" onclick="window.open(studioPreviewUrl(),'_blank')" title="Open in new tab">↗</button>
+            <button type="button" class="device-btn" onclick="openExternalLink(location.origin + studioPreviewUrl())" title="Open in new tab">↗</button>
             <button type="button" class="device-btn" onclick="studioScreenshot()" title="Screenshot">📷</button>
             <button type="button" class="device-btn" onclick="studioQR()" title="QR code for phone">📲</button>
             <!-- Zoom -->

@@ -1338,10 +1338,28 @@ async function processVoiceTranscript(transcript) {
         if (!filename) break;
         nav('studio');
         showToast(`📄 Creating ${filename}…`);
-        // Trigger file creation via studio if available
-        setTimeout(() => {
-          if (typeof createNewFile === 'function') createNewFile(filename);
-          else if (typeof studioNewFile === 'function') studioNewFile(filename);
+        // BUG FIX: neither `createNewFile` nor `studioNewFile` exist anywhere
+        // in the codebase — this voice command silently did nothing beyond
+        // navigating to Studio (both `typeof` checks always evaluated to
+        // false). The real API is `POST /api/preview/new` followed by
+        // `studioOpenFile()` (used elsewhere in Studio, e.g. openNewFileModal).
+        setTimeout(async () => {
+          try {
+            const r = await fetch('/api/preview/new', {
+              method: 'POST', headers: {'Content-Type':'application/json'},
+              body: JSON.stringify({ path: filename, content: '' })
+            });
+            const j = await r.json();
+            if (j.ok) {
+              if (typeof studioLoadFileTree === 'function') await studioLoadFileTree();
+              if (typeof studioOpenFile === 'function') studioOpenFile(filename);
+              showToast(`✅ Created ${filename}`);
+            } else {
+              showToast(`⚠️ Could not create ${filename}: ${j.error || 'unknown error'}`);
+            }
+          } catch (e) {
+            showToast(`⚠️ Create file failed: ${e.message}`);
+          }
         }, 300);
         break;
       }
@@ -1350,9 +1368,13 @@ async function processVoiceTranscript(transcript) {
         nav('studio');
         const filename = d.payload;
         showToast(`📂 Opening ${filename}…`);
+        // BUG FIX: `openFileInStudio` does not exist anywhere in the
+        // codebase — the fallback branch below was dead code. The primary
+        // check (`studioOpenFile`) is correct and already covers this case;
+        // removed the unreachable fallback rather than leaving a reference
+        // to a function that will never be defined.
         setTimeout(() => {
           if (typeof studioOpenFile === 'function') studioOpenFile(filename);
-          else if (typeof openFileInStudio === 'function') openFileInStudio(filename);
         }, 300);
         break;
       }
@@ -1368,8 +1390,15 @@ async function processVoiceTranscript(transcript) {
 
       case 'save': {
         showToast('💾 Saving…');
-        // Try Monaco save, then fallback toast
-        if (window.S?.monacoEditor) {
+        // BUG FIX: this only ever checked the OLD Builder pane's editor
+        // (`window.S?.monacoEditor`) — if the user was in the newer Code
+        // Studio pane (`Studio.editor`) when saying "save", nothing
+        // happened except the misleading fallback toast telling them to
+        // press Ctrl+S (which Studio does support, but the voice command
+        // itself did nothing). Now checks both editors.
+        if (document.getElementById('pane-studio')?.classList.contains('active') && typeof studioSaveFile === 'function') {
+          studioSaveFile();
+        } else if (window.S?.monacoEditor) {
           window.S.monacoEditor.trigger('voice', 'editor.action.saveFile', {});
         } else {
           showToast('💾 Use Ctrl+S to save the current file');

@@ -143,15 +143,27 @@ async def preview_save(req: Request):
     con = DB()
     workspace_id = _current_workspace_id()
     if old != content:
+        # BUG FIX: this used to store `old` (the pre-save content) as the
+        # version-history snapshot instead of `content` (what was actually
+        # just saved). Every other version-consuming code path -- the version
+        # scrubber/history popover, /api/preview/restore,
+        # /api/preview/commit (which correctly stores the CURRENT content)
+        # -- treats a file_versions row as "the file as of this save", so
+        # storing the old content made every "vN" label off-by-one: clicking
+        # Restore on the version created by a given save actually restored
+        # whatever the file looked like *before* that save, silently
+        # reverting the user's most recent edit instead of the one they
+        # picked. Store `content` (post-save state) to match commit()'s
+        # semantics and to make Restore behave as labeled.
         con.execute(
             'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
             (
                 path,
-                old,
+                content,
                 d.get('author', 'builder'),
                 d.get('message', 'save')[:240],
                 workspace_id,
-            ),  # FIX 2: store pre-save state (even if ""), not new content
+            ),
         )
         con.execute("INSERT INTO audit(action,detail) VALUES ('preview_save',?)", (path,))
         con.commit()
