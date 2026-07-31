@@ -153,7 +153,7 @@ if (typeof PALETTE_CMDS !== 'undefined') {
 // items that are always one click away already.
 const QUICK_ACTIONS = {
   studio:     [['⚡ Scaffold',"studioScaffold?.()"],['💾 Save',"studioSaveFile?.()"],['🧪 Test',"runE2EFull?.('web')"]],
-  kanban:     [['＋ Task',"openNewTaskModal()"],['📋 Done',""],['♾️ Auto',"nav('loops')"]],
+  kanban:     [['＋ Task',"kanbanOpenCreateModal?.()"],['📋 Done',"kanbanJumpToDone?.()"],['♾️ Auto',"nav('loops')"]],
   dashboard:  [['⟳ Refresh',"renderDashboard?.()"],['📤 Export',"exportWorkspace?.('current')"]],
   github:     [['⬆ Push',"showGHPush?.()"],['⬇ Pull',"showGHPull?.()"],['🌐 Pages',"showGHPages?.()"]],
   deploy:     [['▲ Vercel',"doDeploy?.('vercel')"],['◈ Netlify',"doDeploy?.('netlify')"],['🌐 Pages',"showGHPages?.()"]],

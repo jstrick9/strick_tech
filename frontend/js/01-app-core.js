@@ -2977,28 +2977,17 @@ window.openNewFileModal = async function() {
   else toast('Error: ' + (j.error || ''), 'err');
 };
 
-// openNewTaskModal
-window.openNewTaskModal = async function() {
-  const title = await gmPrompt('New Task', 'Describe the task…');
-  if (!title) return;
-  const agent = await gmPrompt('Assign to agent', 'e.g. builder, brain, researcher', 'builder');
-  if (agent === null) return;
-  const r = await fetch('/api/tasks', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ title, agent: agent||'builder', status:'todo', priority:'medium' })
-  });
-  const j = await r.json();
-  if (j.ok) { toast('✅ Task created', 'ok'); renderKanban(); }
-};
-
-// deleteTask
-window.deleteTask = async function(id) {
-  const ok = await gmDanger('Delete Task', 'This cannot be undone.', 'Delete');
-  if (!ok) return;
-  await fetch(`/api/tasks/${encodeURIComponent(id)}`, { method: 'DELETE' });
-  toast('🗑 Task deleted', 'ok', 1500);
-  renderKanban();
-};
+// BUG FIX / DEAD CODE REMOVAL: `openNewTaskModal` and `deleteTask` below were
+// a separate, less-capable task-creation/deletion path (gmPrompt-only: no
+// description, priority, or column selection) that used to be wired to the
+// Kanban pane's Quick Action bar ("＋ Task" button in 02-studio.js). That
+// button has been repointed to the REAL, fully-featured create-task modal
+// (kanbanOpenCreateModal in 28-kanban.js — same one the board's own
+// "＋ New Task" button already used), and grep confirms zero remaining
+// callers of either function anywhere in the codebase. Removed rather than
+// left as unreachable dead code that could silently drift out of sync with
+// the real task system again (already happened once with the Kanban
+// board's task list vs. this file's separate in-memory state).
 
 // openCreateSkill
 window.openCreateSkill = async function() {

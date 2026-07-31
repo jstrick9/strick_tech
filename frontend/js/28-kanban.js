@@ -508,7 +508,18 @@ async function kanbanSubmitEdit(event, taskId) {
 
 // ── Delete Task ───────────────────────────────────────────────────
 async function kanbanDeleteTask(taskId) {
-  if (!confirm('Delete this task? This cannot be undone.')) return;
+  // BUG FIX (Tauri compat): this used the native confirm() dialog, which is
+  // explicitly unsupported/unreliable in the Tauri WebKit webview per
+  // project standards. Every other confirmation in the app (including the
+  // create/edit modals right next to this function) uses the custom
+  // gmDanger in-app modal. Verified live: with the native confirm() in
+  // place, an automated click on "Delete" inside the Edit modal never
+  // actually removed the task (the dialog auto-dismissed with no visible
+  // affordance in a Tauri-style headless/webview context, leaving
+  // kanbanDeleteTask silently short-circuited at the `if (!confirm(...))`
+  // guard every time).
+  const ok = await gmDanger('Delete Task', 'Delete this task? This cannot be undone.', 'Delete');
+  if (!ok) return;
 
   kanbanTasks = kanbanTasks.filter(t => String(t.id) !== String(taskId));
   kanbanRenderBoard();
@@ -525,6 +536,25 @@ async function kanbanDeleteTask(taskId) {
 function kanbanSetFilter(priority) {
   kanbanActiveFilter = priority;
   kanbanRenderBoard();
+}
+
+// BUG FIX: the Quick Action bar's kanban entry (02-studio.js QUICK_ACTIONS)
+// had a "📋 Done" button with an EMPTY string as its action — showQuickActions()
+// treats a falsy action as "render nothing for this entry", so it silently
+// never appeared in the DOM at all (confirmed live: only "＋ Task" and
+// "♾️ Auto" rendered). Added a real, useful action: scroll the board to the
+// Done column and briefly highlight it, so the button does what its label
+// implies instead of being dead config.
+function kanbanJumpToDone() {
+  const col = document.getElementById('kanban-col-done');
+  if (!col) { if (typeof toast === 'function') toast('Open the Tasks board first', 'warn'); return; }
+  col.closest('.kanban-column')?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  const header = col.closest('.kanban-column')?.querySelector('.kanban-column-header');
+  if (header) {
+    header.style.transition = 'background-color .3s';
+    header.style.backgroundColor = 'rgba(34,197,94,0.25)';
+    setTimeout(() => { header.style.backgroundColor = ''; }, 1200);
+  }
 }
 
 // ── Close Modal ───────────────────────────────────────────────────
@@ -580,6 +610,7 @@ window.kanbanOpenEditModal = kanbanOpenEditModal;
 window.kanbanSubmitEdit = kanbanSubmitEdit;
 window.kanbanDeleteTask = kanbanDeleteTask;
 window.kanbanSetFilter = kanbanSetFilter;
+window.kanbanJumpToDone = kanbanJumpToDone;
 window.kanbanCloseModal = kanbanCloseModal;
 
 console.log('%c✅ Kanban Board v4 loaded', 'color:#22c55e;font-weight:bold');

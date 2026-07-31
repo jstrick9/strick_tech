@@ -70,7 +70,16 @@
         '2': 'studio',
         '3': 'templates',
         '4': 'swarm',
-        '5': 'memory',
+        // BUG FIX: this mapped Alt+5 to a pane id of 'memory', but the real
+        // Memory pane's id (see index.html / data-nav attribute / sidebar
+        // link) is 'galaxy', not 'memory'. Since window.nav() silently
+        // creates a blank placeholder pane for any unrecognized id instead
+        // of erroring, Alt+5 previously navigated to an empty
+        // "⚡ Initializing memory component..." stub pane that was never
+        // wired to any renderer, instead of the real 3D Memory Galaxy.
+        // Verified live before the fix: document.querySelector('.pane.active').id
+        // was 'pane-memory' with placeholder text, not 'pane-galaxy'.
+        '5': 'galaxy',
         '6': 'kanban',
         '7': 'settings'
       };
