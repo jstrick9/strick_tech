@@ -1085,6 +1085,37 @@ function tourBack() {
 // ══════════════════════════════════════════════════════════════════
 //  DOCS CENTER PANE
 // ══════════════════════════════════════════════════════════════════
+// Docs & Help — best-practices rewrite of the dynamic click-handler
+// wiring in this pane (see per-call-site fix notes below for details):
+//
+// 1. QUOTE-COLLISION BUGS: `docsShowFeature(${JSON.stringify(f)})` had NO
+//    escaping at all, so any feature whose summary/details contained a
+//    double-quote (e.g. Spec Builder's "like AWS Kiro... prevents 'vibe
+//    coding' drift") corrupted the onclick attribute and threw
+//    "Uncaught SyntaxError: ...Unexpected end of input" on click,
+//    reproduced live. Several OTHER call sites in this same file
+//    (docsShowVideoGuide, docsSearchResultClick, the inspection drawer's
+//    "Read Full Documentation" button) used a `.replace(/"/g, '&quot;')`
+//    workaround that happens to work but is a fragile, easy-to-forget,
+//    inconsistent pattern (proven by docsShowFeature being the one place
+//    someone forgot it). All of these are now replaced with `data-*`
+//    attributes + delegated `addEventListener` wiring instead of ever
+//    serializing arbitrary doc/feature/video objects into HTML attributes.
+// 2. FRAGILE TAB-INDEX BUGS: "back" buttons and search-result-click
+//    hardcoded magic child-index selectors to re-activate a tab, e.g.
+//    `document.querySelector('#pane-docs .docs-tab:nth-child(4)')` for
+//    "Videos" — except Videos is actually the 5th tab (Quick Starts,
+//    Features, FAQ, Shortcuts, Videos), so clicking "← Back to Video
+//    Guides" from a video detail page activated the WRONG tab
+//    (Shortcuts), reproduced live. Replaced every such lookup with
+//    `docsFindTab(tabId)`, which finds the real tab button by its stable
+//    `data-tab` attribute (added to each tab button below) rather than
+//    a magic position that silently drifts out of sync if a tab is ever
+//    added, removed, or reordered.
+function docsFindTab(tabId) {
+  return document.querySelector(`#pane-docs .docs-tab[data-tab="${tabId}"]`);
+}
+
 async function renderDocs() {
   const pane = document.getElementById('pane-docs');
   if (!pane) return;
@@ -1108,11 +1139,11 @@ async function renderDocs() {
 
       <!-- Tabs -->
       <div style="display:flex;border-bottom:1px solid var(--border);overflow-x:auto">
-        <button class="docs-tab active" onclick="docsTab('quickstarts',this)">🚀 Quick Starts</button>
-        <button class="docs-tab" onclick="docsTab('features',this)">📘 Features</button>
-        <button class="docs-tab" onclick="docsTab('faq',this)">❓ FAQ</button>
-        <button class="docs-tab" onclick="docsTab('shortcuts',this)">⌨️ Shortcuts</button>
-        <button class="docs-tab" onclick="docsTab('videos',this)">🎥 Videos</button>
+        <button type="button" class="docs-tab active" data-tab="quickstarts" onclick="docsTab('quickstarts',this)">🚀 Quick Starts</button>
+        <button type="button" class="docs-tab" data-tab="features" onclick="docsTab('features',this)">📘 Features</button>
+        <button type="button" class="docs-tab" data-tab="faq" onclick="docsTab('faq',this)">❓ FAQ</button>
+        <button type="button" class="docs-tab" data-tab="shortcuts" onclick="docsTab('shortcuts',this)">⌨️ Shortcuts</button>
+        <button type="button" class="docs-tab" data-tab="videos" onclick="docsTab('videos',this)">🎥 Videos</button>
       </div>
     </div>
 
@@ -1137,9 +1168,9 @@ async function docsTab(tab, el) {
     const d = await fetch('/api/docs/quick-starts').then(r=>r.ok?r.json():null).catch(()=>({quick_starts:[]}));
     content.innerHTML = `
       <div style="font-size:13px;font-weight:700;color:var(--text-0);margin-bottom:12px">Get started with these guides</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px" id="docs-qs-grid">
         ${(d.quick_starts||[]).map((qs) =>`
-          <div class="qs-card" onclick="docsShowQuickStart(${JSON.stringify(qs.id)})">
+          <div class="qs-card" data-qs-id="${escHtml(qs.id)}">
             <span style="font-size:30px;flex-shrink:0">${qs.icon}</span>
             <div>
               <div style="font-weight:700;color:var(--text-0);font-size:14px;margin-bottom:4px">${escHtml(qs.title)}</div>
@@ -1148,14 +1179,19 @@ async function docsTab(tab, el) {
             </div>
           </div>`).join('')}
       </div>`;
+    document.getElementById('docs-qs-grid')?.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-qs-id]');
+      if (card) docsShowQuickStart(card.dataset.qsId);
+    });
   }
   else if (tab === 'features') {
     const d = await fetch('/api/docs/features').then(r=>r.ok?r.json():null).catch(()=>({features:[]}));
+    const features = d.features || [];
     content.innerHTML = `
       <div style="font-size:13px;font-weight:700;color:var(--text-0);margin-bottom:12px">Feature Reference</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
-        ${(d.features||[]).map((f) =>`
-          <div class="feature-card" onclick="docsShowFeature(${JSON.stringify(f)})">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px" id="docs-feature-grid">
+        ${features.map((f, idx) =>`
+          <div class="feature-card" data-feature-idx="${idx}">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
               <span style="font-size:20px">${f.icon||'🔧'}</span>
               <span style="font-weight:600;color:var(--text-0);font-size:13px">${escHtml(f.title||'')}</span>
@@ -1166,19 +1202,42 @@ async function docsTab(tab, el) {
             <div style="font-size:11px;color:var(--text-2);line-height:1.5">${escHtml((f.summary||'').slice(0,80))}</div>
           </div>`).join('')}
       </div>`;
+    // BUG FIX: this used to be onclick="docsShowFeature(${JSON.stringify(f)})",
+    // which had ZERO HTML-escaping -- any feature whose summary/details
+    // contained a double-quote corrupted the attribute and crashed with
+    // "Unexpected end of input" on click (reproduced live with the real
+    // Spec Builder feature doc). Looked up by grid index into the real
+    // `features` array instead of ever serializing the object into HTML.
+    document.getElementById('docs-feature-grid')?.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-feature-idx]');
+      if (card) docsShowFeature(features[Number(card.dataset.featureIdx)]);
+    });
   }
   else if (tab === 'faq') {
     const d = await fetch('/api/docs/faq').then(r=>r.ok?r.json():null).catch(()=>({faq:[]}));
     content.innerHTML = `
       <div style="font-size:13px;font-weight:700;color:var(--text-0);margin-bottom:12px">Frequently Asked Questions</div>
+      <div id="docs-faq-list">
       ${(d.faq||[]).map((f, i)=>`
         <div class="faq-item">
-          <div class="faq-q" onclick="const a=this.nextElementSibling; const arr=this.querySelector('.faq-arrow') || this.querySelectorAll('span')[1]; const open=a.style.display==='block'; a.style.display=open?'none':'block'; if(arr) arr.textContent=open?'▼':'▲';">
+          <div class="faq-q" data-faq-toggle>
             <span style="flex:1;font-weight:600">${escHtml(f.q||'')}</span>
             <span class="faq-arrow" style="color:var(--text-3);font-size:11px">▼</span>
           </div>
           <div class="faq-a">${escHtml(f.a||'')}</div>
-        </div>`).join('')}`;
+        </div>`).join('')}
+      </div>`;
+    // Expand/collapse: delegated listener replaces the old inline onclick
+    // that packed the toggle logic directly into the attribute string.
+    document.getElementById('docs-faq-list')?.addEventListener('click', (e) => {
+      const q = e.target.closest('[data-faq-toggle]');
+      if (!q) return;
+      const answer = q.nextElementSibling;
+      const arrow  = q.querySelector('.faq-arrow');
+      const open   = answer.style.display === 'block';
+      answer.style.display = open ? 'none' : 'block';
+      if (arrow) arrow.textContent = open ? '▼' : '▲';
+    });
   }
   else if (tab === 'shortcuts') {
     const d = await fetch('/api/docs/shortcuts').then(r=>r.ok?r.json():null).catch(()=>({shortcuts:[]}));
@@ -1193,20 +1252,21 @@ async function docsTab(tab, el) {
       </div>`;
   }
   else if (tab === 'videos') {
+    const videos = [
+      {icon:'💬',title:'Getting Started: Your First Chat',dur:'2:30',level:'Beginner'},
+      {icon:'🤖',title:'Creating Your First Agent',dur:'3:45',level:'Beginner'},
+      {icon:'🗺️',title:'Building Workflows',dur:'5:20',level:'Intermediate'},
+      {icon:'📋',title:'Spec-Driven Development',dur:'8:00',level:'Intermediate'},
+      {icon:'🐛',title:'BugBot Code Review',dur:'4:15',level:'Intermediate'},
+      {icon:'⚔️',title:'Arena Mode: A/B Model Testing',dur:'3:00',level:'Intermediate'},
+      {icon:'🧮',title:'Agent Evals & Red Teaming',dur:'6:30',level:'Advanced'},
+      {icon:'📚',title:'Building a RAG Pipeline',dur:'7:00',level:'Advanced'},
+    ];
     content.innerHTML = `
       <div style="font-size:13px;font-weight:700;color:var(--text-0);margin-bottom:12px">Video Guides</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
-        ${[
-          {icon:'💬',title:'Getting Started: Your First Chat',dur:'2:30',level:'Beginner'},
-          {icon:'🤖',title:'Creating Your First Agent',dur:'3:45',level:'Beginner'},
-          {icon:'🗺️',title:'Building Workflows',dur:'5:20',level:'Intermediate'},
-          {icon:'📋',title:'Spec-Driven Development',dur:'8:00',level:'Intermediate'},
-          {icon:'🐛',title:'BugBot Code Review',dur:'4:15',level:'Intermediate'},
-          {icon:'⚔️',title:'Arena Mode: A/B Model Testing',dur:'3:00',level:'Intermediate'},
-          {icon:'🧮',title:'Agent Evals & Red Teaming',dur:'6:30',level:'Advanced'},
-          {icon:'📚',title:'Building a RAG Pipeline',dur:'7:00',level:'Advanced'},
-        ].map(v=>`
-          <div onclick="if(typeof docsShowVideoGuide==='function') docsShowVideoGuide(${JSON.stringify(v).replace(/"/g, '&quot;')})" style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .12s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px" id="docs-video-grid">
+        ${videos.map((v, idx)=>`
+          <div data-video-idx="${idx}" style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .12s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
             <div style="background:var(--bg-3);height:120px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px">
               <span style="font-size:40px">${v.icon}</span>
               <div style="background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 12px;font-size:11px;color:#fff;display:flex;align-items:center;gap:5px">
@@ -1221,8 +1281,26 @@ async function docsTab(tab, el) {
       </div>
       <div style="text-align:center;margin-top:20px;padding:16px;background:var(--bg-2);border:1px solid var(--border);border-radius:12px">
         <div style="font-size:13px;color:var(--text-2);margin-bottom:8px">More videos coming soon! Have a request?</div>
-        <button class="btn-sm" onclick="(async()=>{const req=await gmPrompt('Video Request','Which feature would you like a video for?','e.g. Workflow Builder, RAG Pipeline…');if(req)showToast('🎬 Video request noted: '+req);})()">📹 Request a Video</button>
+        <button type="button" class="btn-sm" id="docs-request-video-btn">📹 Request a Video</button>
       </div>`;
+    // BUG FIX: this used to be
+    // onclick="...docsShowVideoGuide(${JSON.stringify(v).replace(/"/g, '&quot;')})"
+    // -- a working but fragile/inconsistent manual-escaping pattern (the
+    // sibling docsShowFeature() call site above forgot this exact
+    // .replace() and crashed as a result). Looked up by grid index into
+    // the real `videos` array instead.
+    document.getElementById('docs-video-grid')?.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-video-idx]');
+      if (card) docsShowVideoGuide(videos[Number(card.dataset.videoIdx)]);
+    });
+    // BUG FIX: "Request a Video" used an inline async IIFE in its onclick
+    // attribute AND called showToast(...) directly instead of toast(...)
+    // (this codebase's standing rule: showToast is a legacy alias for old
+    // code only). Moved to a real named handler using toast().
+    document.getElementById('docs-request-video-btn')?.addEventListener('click', async () => {
+      const req = await gmPrompt('Video Request', 'Which feature would you like a video for?', 'e.g. Workflow Builder, RAG Pipeline…');
+      if (req) toast('🎬 Video request noted: ' + req, 'ok');
+    });
   }
 }
 
@@ -1239,23 +1317,32 @@ async function docsSearch(q) {
       ${results.length} results for "<strong style="color:var(--text-0)">${escHtml(q)}</strong>"
     </div>
     ${results.length===0?'<div style="color:var(--text-3);text-align:center;padding:24px">No results found. Try different keywords.</div>':''}
-    ${results.map((r) =>`
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;cursor:pointer;transition:all .12s" onclick="docsSearchResultClick(${JSON.stringify(r).replace(/"/g,'&quot;')})" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+    <div id="docs-search-results">
+    ${results.map((r, idx) =>`
+      <div data-search-result-idx="${idx}" style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;cursor:pointer;transition:all .12s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
           <span style="font-size:11px;padding:1px 6px;border-radius:3px;background:var(--bg-3);color:var(--text-3);text-transform:uppercase">${r.type||'doc'}</span>
           <span style="font-weight:600;color:var(--text-0);font-size:13px">${escHtml(r.title||'')}</span>
           ${r.shortcut?`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:monospace;font-size:10px;color:var(--accent)">${escHtml(r.shortcut)}</span>`:''}
         </div>
         ${r.answer_preview?`<div style="font-size:12px;color:var(--text-2)">${escHtml(r.answer_preview)}</div>`:''}
-      </div>`).join('')}`;
+      </div>`).join('')}
+    </div>`;
+  // BUG FIX: this used to be
+  // onclick="docsSearchResultClick(${JSON.stringify(r).replace(/"/g,'&quot;')})"
+  // -- same fragile manual-escaping pattern as the video grid above.
+  // Looked up by result index into the real `results` array instead.
+  document.getElementById('docs-search-results')?.addEventListener('click', (e) => {
+    const row = e.target.closest('[data-search-result-idx]');
+    if (row) docsSearchResultClick(results[Number(row.dataset.searchResultIdx)]);
+  });
 }
 
 function docsSearchResultClick(result) {
   if (result.type==='quickstart') docsShowQuickStart(result.id);
   else if (result.type==='feature') nav(result.id);
   else if (result.type==='faq') {
-    const tab = document.querySelector('#pane-docs .docs-tab:nth-child(3)');
-    docsTab('faq', tab);
+    docsTab('faq', docsFindTab('faq'));
   }
 }
 
@@ -1270,7 +1357,7 @@ async function docsShowQuickStart(qsId) {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const qs = await r.json();
     content.innerHTML=`
-      <button onclick="window._docsPreventAutoTab=false;docsTab('quickstarts',document.querySelector('#pane-docs .docs-tab'))" class="btn-sm btn-3d" style="background:var(--bg-3);color:var(--text-1);border:1px solid var(--border);cursor:pointer;margin-bottom:16px">← Back to Quick Starts</button>
+      <button type="button" class="btn-sm btn-3d" id="docs-qs-back-btn" style="background:var(--bg-3);color:var(--text-1);border:1px solid var(--border);cursor:pointer;margin-bottom:16px">← Back to Quick Starts</button>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <span style="font-size:32px">${escHtml(qs.icon||'📄')}</span>
         <div>
@@ -1287,9 +1374,18 @@ async function docsShowQuickStart(qsId) {
             ${s.tip?`<div style="font-size:11px;background:rgba(91,138,248,.1);border:1px solid var(--accent)33;border-radius:6px;padding:6px 10px;color:var(--accent)">💡 Pro Tip: ${escHtml(s.tip)}</div>`:''}
           </div>
         </div>`).join('')}
-      ${(qs.related||[]).length?`<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px"><div style="font-size:12px;font-weight:700;color:var(--text-3);margin-bottom:8px">RELATED GUIDES</div><div style="display:flex;gap:8px">${(qs.related||[]).map(rel=>`<button onclick="docsShowQuickStart(${JSON.stringify(rel)})" class="btn-sm btn-3d">${escHtml(rel.replace('qs_','').replace(/_/g,' '))}</button>`).join('')}</div></div>`:''}`;
+      ${(qs.related||[]).length?`<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px"><div style="font-size:12px;font-weight:700;color:var(--text-3);margin-bottom:8px">RELATED GUIDES</div><div style="display:flex;gap:8px" id="docs-qs-related">${(qs.related||[]).map(rel=>`<button type="button" data-related-qs-id="${escHtml(rel)}" class="btn-sm btn-3d">${escHtml(rel.replace('qs_','').replace(/_/g,' '))}</button>`).join('')}</div></div>`:''}`;
+    document.getElementById('docs-qs-back-btn')?.addEventListener('click', () => {
+      window._docsPreventAutoTab = false;
+      docsTab('quickstarts', docsFindTab('quickstarts'));
+    });
+    document.getElementById('docs-qs-related')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-related-qs-id]');
+      if (btn) docsShowQuickStart(btn.dataset.relatedQsId);
+    });
   } catch(ex) {
-    content.innerHTML = `<div style="color:var(--danger);padding:20px">${escHtml(ex?.message||String(ex))}<br><button class="btn-sm btn-3d" style="margin-top:8px" onclick="docsShowQuickStart(${JSON.stringify(qsId)})">Retry</button></div>`;
+    content.innerHTML = `<div style="color:var(--danger);padding:20px">${escHtml(ex?.message||String(ex))}<br><button type="button" class="btn-sm btn-3d" id="docs-qs-retry-btn" style="margin-top:8px">Retry</button></div>`;
+    document.getElementById('docs-qs-retry-btn')?.addEventListener('click', () => docsShowQuickStart(qsId));
   }
 }
 
@@ -1299,7 +1395,7 @@ function docsShowFeature(feature) {
   const content = document.getElementById('docs-content');
   if (!content) return;
   content.innerHTML=`
-    <button onclick="window._docsPreventAutoTab=false;docsTab('features',document.querySelectorAll('#pane-docs .docs-tab')[1])" class="btn-sm btn-3d" style="background:var(--bg-3);color:var(--text-1);border:1px solid var(--border);cursor:pointer;margin-bottom:16px">← Back to Features</button>
+    <button type="button" class="btn-sm btn-3d" id="docs-feature-back-btn" style="background:var(--bg-3);color:var(--text-1);border:1px solid var(--border);cursor:pointer;margin-bottom:16px">← Back to Features</button>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <span style="font-size:36px">${feature.icon||'🔧'}</span>
       <div>
@@ -1315,7 +1411,19 @@ function docsShowFeature(feature) {
         <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:8px">💡 PRO TIPS</div>
         ${(feature.tips||[]).map((t) =>`<div style="font-size:12px;color:var(--text-2);padding:3px 0;border-bottom:1px solid var(--border)">→ ${escHtml(t)}</div>`).join('')}
       </div>`:''}
-    <button onclick="nav('${(feature.id||'chat')}')" class="btn btn-primary btn-3d">Open ${escHtml(feature.title||'')} →</button>`;
+    <button type="button" class="btn btn-primary btn-3d" id="docs-feature-open-btn">Open ${escHtml(feature.title||'')} →</button>`;
+  // BUG FIX: the "Back to Features" button used to do
+  // docsTab('features',document.querySelectorAll('#pane-docs .docs-tab')[1])
+  // -- a magic array-index lookup instead of the stable docsFindTab()
+  // helper. Also moved the "Open <Feature>" button off inline onclick
+  // (feature.id is a safe backend dict key with no user data, so this one
+  // wasn't exploitable, but consolidating onto addEventListener keeps the
+  // whole pane consistent).
+  document.getElementById('docs-feature-back-btn')?.addEventListener('click', () => {
+    window._docsPreventAutoTab = false;
+    docsTab('features', docsFindTab('features'));
+  });
+  document.getElementById('docs-feature-open-btn')?.addEventListener('click', () => nav(feature.id||'chat'));
 }
 window.openFeatureDoc = function(doc) {
   window._docsPreventAutoTab = true;
@@ -1333,7 +1441,7 @@ window.docsShowVideoGuide = function(video) {
   if (!content) return;
   const vidId = 'vid-frame-' + Math.random().toString(36).slice(2, 8);
   content.innerHTML = `
-    <button onclick="docsTab('videos',document.querySelector('#pane-docs .docs-tab:nth-child(4)'))" class="btn-sm btn-3d" style="background:var(--bg-3);color:var(--text-1);border:1px solid var(--border);cursor:pointer;margin-bottom:16px">← Back to Video Guides</button>
+    <button type="button" class="btn-sm btn-3d" id="docs-video-back-btn" style="background:var(--bg-3);color:var(--text-1);border:1px solid var(--border);cursor:pointer;margin-bottom:16px">← Back to Video Guides</button>
     <div style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:16px;padding:24px;max-width:800px;margin:0 auto;box-shadow:var(--shadow)">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
         <span style="font-size:38px">${escHtml(video.icon||'🎬')}</span>
@@ -1345,7 +1453,7 @@ window.docsShowVideoGuide = function(video) {
       
       <div id="${vidId}" style="background:#04060e;border-radius:12px;aspect-ratio:16/9;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;position:relative;overflow:hidden;margin-bottom:20px;border:1px solid var(--border-hi);box-shadow:inset 0 0 40px rgba(0,0,0,0.8)">
         <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 50%, rgba(56,189,248,0.15), rgba(0,0,0,0.85));pointer-events:none"></div>
-        <div id="${vidId}-play-btn" style="font-size:54px;z-index:2;cursor:pointer;transition:transform 0.15s" onclick="startInteractiveVideoWalkthrough('${vidId}', ${JSON.stringify(video.title).replace(/"/g, '&quot;')})">▶️</div>
+        <div id="${vidId}-play-btn" style="font-size:54px;z-index:2;cursor:pointer;transition:transform 0.15s">▶️</div>
         <div id="${vidId}-label" style="font-size:14px;font-weight:700;margin-top:12px;z-index:2;color:#e2e8f0">Click to Play Interactive Walkthrough (${escHtml(video.title)})</div>
         <div id="${vidId}-sim-box" style="display:none;z-index:2;width:90%;height:75%;background:rgba(8,12,28,0.9);border:1px solid rgba(56,189,248,0.3);border-radius:8px;padding:16px;font-family:monospace;font-size:12px;color:#38bdf8;overflow-y:auto;text-align:left"></div>
         <div style="position:absolute;bottom:12px;left:14px;right:14px;display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;z-index:2">
@@ -1362,6 +1470,20 @@ window.docsShowVideoGuide = function(video) {
       </div>
     </div>
   `;
+  // BUG FIX (fragile tab-index): "← Back to Video Guides" used to do
+  // docsTab('videos',document.querySelector('#pane-docs .docs-tab:nth-child(4)'))
+  // -- but Videos is the 5th tab (Quick Starts, Features, FAQ, Shortcuts,
+  // Videos), not the 4th, so this activated the WRONG tab (Shortcuts).
+  // Reproduced live. Now uses docsFindTab('videos'), which looks up the
+  // real tab button by its stable data-tab attribute.
+  document.getElementById('docs-video-back-btn')?.addEventListener('click', () => docsTab('videos', docsFindTab('videos')));
+  // BUG FIX (quote-collision): the play button used to be
+  // onclick="startInteractiveVideoWalkthrough('${vidId}', ${JSON.stringify(video.title).replace(/"/g, '&quot;')})"
+  // -- vidId is a random alphanumeric string but video.title (e.g. "Arena
+  // Mode: A/B Model Testing") is plain text passed through the same
+  // fragile manual-escaping pattern seen elsewhere in this pane. Wired via
+  // addEventListener with the real, unescaped video.title value instead.
+  document.getElementById(`${vidId}-play-btn`)?.addEventListener('click', () => startInteractiveVideoWalkthrough(vidId, video.title));
 };
 
 window.startInteractiveVideoWalkthrough = function(vidId, title) {
@@ -1447,7 +1569,7 @@ window.openInspectionDrawer = function(doc) {
           <span style="font-size:11px;color:var(--accent);font-weight:700">${escHtml((doc.tier||'PRO').toUpperCase())} TIER WORKSTATION</span>
         </div>
       </div>
-      <button onclick="closeInspectionDrawer()" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:14px">✕</button>
+      <button type="button" id="insp-drawer-close-btn" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:14px">✕</button>
     </div>
     <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px">
       <div class="surface-z2" style="padding:14px;border-radius:12px;font-size:13px;color:var(--text-1);line-height:1.65">
@@ -1459,11 +1581,31 @@ window.openInspectionDrawer = function(doc) {
           ${doc.tips.map(t => `<div style="font-size:12.5px;color:var(--text-2);padding:4px 0;border-bottom:1px solid var(--border)">→ ${escHtml(t)}</div>`).join('')}
         </div>` : ''}
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:14px;border-top:1px solid var(--border)">
-        <button onclick="closeInspectionDrawer();if(typeof openFeatureDoc === 'function') openFeatureDoc(${JSON.stringify(doc).replace(/"/g, '&quot;')}); else { nav('docs'); docsShowFeature(${JSON.stringify(doc).replace(/"/g, '&quot;')}); }" class="btn-3d btn-primary" style="width:100%">Read Full Documentation ↗</button>
-        <button onclick="closeInspectionDrawer();if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace(true, '${doc.id||'docs'}')" class="btn-3d btn-ghost" style="width:100%">🗂️ Dock in Secondary Slot</button>
+        <button type="button" id="insp-drawer-read-btn" class="btn-3d btn-primary" style="width:100%">Read Full Documentation ↗</button>
+        <button type="button" id="insp-drawer-dock-btn" class="btn-3d btn-ghost" style="width:100%">🗂️ Dock in Secondary Slot</button>
       </div>
     </div>
   `;
+  // BUG FIX: both buttons used to interpolate
+  // ${JSON.stringify(doc).replace(/"/g, '&quot;')} / '${doc.id||'docs'}'
+  // directly into onclick attributes. `doc` here can come from arbitrary
+  // callers (e.g. Multi-Agent Swarm's DAG node inspection passes
+  // user-renamed agent name/role — the exact bug already found and fixed
+  // in 26-swarm.js earlier this session by switching its OWN call site to
+  // addEventListener; this fixes the drawer's INTERNAL buttons too, since
+  // they had the same fragile pattern one level down). Wired via
+  // addEventListener with the real, unescaped `doc` object captured in
+  // closure instead.
+  document.getElementById('insp-drawer-close-btn')?.addEventListener('click', () => closeInspectionDrawer());
+  document.getElementById('insp-drawer-read-btn')?.addEventListener('click', () => {
+    closeInspectionDrawer();
+    if (typeof openFeatureDoc === 'function') openFeatureDoc(doc);
+    else { nav('docs'); docsShowFeature(doc); }
+  });
+  document.getElementById('insp-drawer-dock-btn')?.addEventListener('click', () => {
+    closeInspectionDrawer();
+    if (typeof toggleSplitWorkspace === 'function') toggleSplitWorkspace(true, doc.id||'docs');
+  });
   drawer.style.display = 'flex';
   setTimeout(() => drawer.style.transform = 'translateX(0)', 20);
 };
