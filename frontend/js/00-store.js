@@ -111,7 +111,21 @@ const _safeLS = {
     isStreaming: false,
     
     // Builder State
-    currentFile: null,
+    // BUG FIX: this used to default to `null`. `01-app-core.js` seeds any
+    // key that is `undefined` on window.S from `_S_DEFAULTS` (which sets
+    // currentFile: 'index.html'), but `null !== undefined`, so that seeding
+    // never fired for this specific key -- S.currentFile stayed `null` for
+    // the entire session. Effect: opening the Code Editor (Builder) pane
+    // always loaded with "No file" and a blank Monaco model (openFile()
+    // correctly no-ops on a falsy path), and clicking Save before manually
+    // picking a file from the tree POSTed {path: null, ...} to
+    // /api/preview/save, which crashed the backend with an unhandled
+    // AttributeError (500) -- silently, since the frontend never checked
+    // r.ok before calling r.json(). Default to 'index.html' to match both
+    // _S_DEFAULTS here and Studio's own separate `Studio.currentFile`
+    // default, so the editor opens with a real file selected like Code
+    // Studio does.
+    currentFile: 'index.html',
     files: [],
     monacoEditor: null,
     
