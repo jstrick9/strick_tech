@@ -1320,7 +1320,7 @@ async function processVoiceTranscript(transcript) {
         if (chatInput) {
           chatInput.value = d.payload;
           chatInput.dispatchEvent(new Event('input'));
-          setTimeout(() => document.getElementById('send-btn')?.click(), 100);
+          setTimeout(() => document.getElementById('chat-send')?.click(), 100);
         }
         break;
       }

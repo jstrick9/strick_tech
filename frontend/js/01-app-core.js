@@ -9,7 +9,7 @@
 
 // ── State ───────────────────────────────────────────────────────
 var currentAgent = null, monacoEditor = null, diffEditor = null, agentModalId = null, studioMonacoLoaded = false;
-const S = window.S || {
+const _S_DEFAULTS = {
   agents: [], currentAgent: null,
   chatHistory: [],
   sessionId: 'session_' + Date.now(),
@@ -22,6 +22,23 @@ const S = window.S || {
   selectedAvatar: '🤖',
   selectedColor: '#5b8af8',
 };
+const S = window.S || _S_DEFAULTS;
+// NOTE: by the time this file runs, window.S already exists as a
+// Proxy-backed reactive store created in 00-store.js (which loads first).
+// `window.S || _S_DEFAULTS` always picks the truthy empty Proxy, so EVERY
+// one of these defaults was being silently discarded — S.sessionId,
+// S.useRag, S.useStream, S.currentFile, S.fileVersions, S.selectedAvatar,
+// S.selectedColor, S.paletteFocusIdx, and S.agentModalMode were all
+// `undefined` for the entire session. This broke chat session continuity
+// (every message created a brand-new backend session instead of
+// continuing the conversation) and silently disabled the Memory/RAG
+// toggle (S.useRag was never true/false, just undefined, so the button
+// could never show its "active" state). Explicitly seed any keys the
+// Proxy doesn't already have, instead of only falling back when the
+// whole object is falsy.
+Object.keys(_S_DEFAULTS).forEach(function(key) {
+  if (S[key] === undefined) S[key] = _S_DEFAULTS[key];
+});
 window.S = S;
 
 // Keep the active model visible everywhere without duplicating model selectors.
@@ -703,6 +720,27 @@ async function sendChat() {
           }
           if (data.action === 'clear_history') {
             clearChatHistory();
+          }
+          if (data.action === 'navigate' && data.target) {
+            // Slash commands like /goal, /research, /code, /review, /ship,
+            // /swarm route you to the right workstation instead of just
+            // sending "/goal ..." as a literal chat message to the model
+            // (which used to be what happened, since none of the six were
+            // actually implemented server-side).
+            const targetPane = data.target;
+            const carryPrompt = (data.carry_prompt || '').trim();
+            setTimeout(() => {
+              nav(targetPane);
+              if (carryPrompt) {
+                // Best-effort: drop the carried prompt into whatever that
+                // pane's primary text input is, if it has one.
+                const candidates = ['#chat-input', '#ws-query-input', '#builder-instruction', '#studio-ai-input', 'textarea', 'input[type="text"]'];
+                for (const sel of candidates) {
+                  const el = document.querySelector(`#pane-${targetPane} ${sel}`);
+                  if (el && 'value' in el) { el.value = carryPrompt; el.dispatchEvent(new Event('input')); break; }
+                }
+              }
+            }, 400);
           }
         } catch(e) {}
       }
@@ -2535,74 +2573,22 @@ nav = function(pane) {
 };
 
 // ── Voice agent (Web Speech API) ──────────────────────────────────
-let mediaRecognition = null;
-let isListening = false;
+// ── Voice agent (Web Speech API) ──────────────────────────────────
+// NOTE: the actual toggleVoice/updateVoiceBtn implementations used to
+// live here too, but 03-features-b.js (loaded later, deferred) defines
+// its own versions of the SAME global names with a much richer feature
+// set — real voice-command parsing (navigate/chat_send/run_agent/
+// create_file/open_file/run_tests) via /api/voice/parse, not just "always
+// auto-send whatever was transcribed". Since both files are plain global
+// scripts, the later one silently wins regardless, making this file's
+// copy 100% dead code that only added confusion when reading/maintaining
+// this file. Removed; 03-features-b.js is now the single source of truth
+// for window.toggleVoice / window.updateVoiceBtn. This file only creates
+// the button itself (#voice-btn) since chat-tools lives in this file's
+// DOM section.
 
-function initVoice() {
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    toast('🎤 Voice requires Chrome or Edge browser. Not available in desktop app.', 'warn', 4000);
-    return null;
-  }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  mediaRecognition = new SR();
-  mediaRecognition.continuous    = false;
-  mediaRecognition.interimResults = true;
-  mediaRecognition.lang          = 'en-US';
-  mediaRecognition.onresult = e => {
-    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
-    document.getElementById('chat-input').value = transcript;
-    autoResizeInput(document.getElementById('chat-input'));
-    if (e.results[0].isFinal) {
-      isListening = false;
-      updateVoiceBtn(false);
-      sendChat();
-    }
-  };
-  mediaRecognition.onerror = e => {
-    if (e.error === 'not-allowed') {
-      toast('🎤 Microphone access denied. Allow mic in browser/system settings.', 'warn', 4000);
-    } else if (e.error === 'no-speech') {
-      toast('🎤 No speech detected. Try speaking louder.', 'warn', 2000);
-    } else {
-      toast('🎤 Voice error: ' + e.error, 'err', 2000);
-    }
-    isListening = false;
-    updateVoiceBtn(false);
-  };
-  mediaRecognition.onend = () => { isListening = false; updateVoiceBtn(false); };
-  return mediaRecognition;
-}
-
-function toggleVoice() {
-  if (!mediaRecognition) mediaRecognition = initVoice();
-  if (!mediaRecognition) return;
-  if (isListening) {
-    mediaRecognition.stop();
-    isListening = false;
-    updateVoiceBtn(false);
-    toast('🎤 Voice stopped', 'ok', 1000);
-  } else {
-    try {
-      mediaRecognition.start();
-      isListening = true;
-      updateVoiceBtn(true);
-      toast('🎤 Listening… speak your message', 'ok', 2000);
-    } catch(e) {
-      toast('🎤 Could not start: ' + e.message, 'err', 2000);
-    }
-  }
-}
-
-function updateVoiceBtn(listening) {
-  const btn = document.getElementById('voice-btn');
-  if (!btn) return;
-  btn.textContent = listening ? '🔴 Stop' : '🎤 Voice';
-  btn.classList.toggle('active', listening);
-}
-
-// Add voice button to chat tools dynamically
+// Restore saved theme on page load
 document.addEventListener('DOMContentLoaded', () => {
-  // Restore saved theme on page load
   try {
     const savedTheme = _safeLS.get('agentic_os_theme') || 'dark';
     if (typeof applyTheme === 'function') applyTheme(savedTheme);
@@ -2616,7 +2602,14 @@ document.addEventListener('DOMContentLoaded', () => {
   btn.id = 'voice-btn';
   btn.textContent = '🎤 Voice';
   btn.title = 'Voice input — speak your message';
-  btn.onclick = toggleVoice;
+  // NOTE: this file (01-app-core.js) loads synchronously, before the
+  // deferred 03-features-b.js has had a chance to define window.toggleVoice.
+  // Assigning `btn.onclick = toggleVoice` directly here would throw
+  // "ReferenceError: toggleVoice is not defined" the instant this IIFE
+  // runs (there's no local toggleVoice in this file anymore — see the
+  // note above). Wrapping in a closure defers the lookup to click-time,
+  // by which point 03-features-b.js has always finished loading.
+  btn.onclick = function() { if (typeof window.toggleVoice === 'function') window.toggleVoice(); };
   tools.appendChild(btn);
 })();
 
@@ -3858,17 +3851,34 @@ window.regenerateMsg = async function(btn, msgId) {
   if (!targetMsg) return;
   let prev = targetMsg.previousElementSibling;
   let userText = '';
+  let userMsgEl = null;
   while (prev) {
     if (prev.classList.contains('user')) {
       const b = prev.querySelector('.msg-bubble');
       userText = b?.innerText || b?.textContent || '';
+      userMsgEl = prev;
       break;
     }
     prev = prev.previousElementSibling;
   }
   if (!userText) { toast('Could not find previous user prompt to regenerate', 'err', 2000); return; }
   toast('↺ Regenerating response...', 'ok', 1500);
+  // NOTE: sendChat() always re-adds a fresh user bubble (and pushes it
+  // onto S.chatHistory) for whatever's in the input box. Previously only
+  // the AI's bubble was removed here, so after sendChat() ran the
+  // transcript ended up with the ORIGINAL user message left in place
+  // PLUS a brand-new duplicate of the same user message right below it.
+  // Remove the old user bubble too, and drop its matching entries from
+  // S.chatHistory (the last user+assistant pair), so regenerating
+  // actually replaces the exchange instead of duplicating half of it.
   targetMsg.remove();
+  if (userMsgEl) userMsgEl.remove();
+  if (Array.isArray(S.chatHistory) && S.chatHistory.length) {
+    // Drop the trailing assistant reply (if present) and the user turn
+    // that prompted it — i.e. the last one or two entries.
+    if (S.chatHistory[S.chatHistory.length - 1]?.role === 'assistant') S.chatHistory.pop();
+    if (S.chatHistory[S.chatHistory.length - 1]?.role === 'user') S.chatHistory.pop();
+  }
   const inp = document.getElementById('chat-input');
   if (inp) {
     inp.value = userText.trim();
@@ -4071,317 +4081,19 @@ setTimeout(initAtMentions, 1000);
 // Also re-init when nav changes
 document.addEventListener('click', () => setTimeout(initAtMentions, 100));
 
-// ── Persistent Sessions ────────────────────────────────────────────
-// ── Chat Sessions ─────────────────────────────────────────────────
-let currentSessionId = S.sessionId;
-let _sessions = [];   // cached session list (renamed from 'sessions' to avoid global pollution)
-
-async function loadSessionsList() {
-  try {
-    const r = await fetch('/api/sessions?limit=50');
-    if (!r.ok) { console.warn('[Sessions] load failed:', r.status); return; }
-    const d = await r.json();
-    _sessions = d.sessions || [];
-    renderSessionsList();
-  } catch(ex) {
-    console.warn('[Sessions] loadSessionsList error:', ex);
-  }
-}
-
-function renderSessionsList() {
-  const el = document.getElementById('sessions-sidebar');
-  if (!el) return;
-  if (!_sessions.length) {
-    el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:12px;text-align:center">No sessions yet</div>';
-    return;
-  }
-  el.innerHTML = _sessions.slice(0, 50).map(s => `
-    <div onclick="switchSession(${JSON.stringify(s.id)})"
-         style="padding:7px 10px;border-radius:var(--radius-sm);cursor:pointer;transition:background .1s;border:1px solid ${s.id===currentSessionId?'var(--accent)':'transparent'};background:${s.id===currentSessionId?'var(--accent-glow)':''}"
-         onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background='${s.id===currentSessionId?'var(--accent-glow)':''}'"
-         class="session-item">
-      <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
-        ${s.pinned?'<span style="font-size:10px">📌</span>':''}
-        <span style="font-size:11px;flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-0)">${escHtml(s.name||'Untitled')}</span>
-        <div style="display:flex;gap:2px;flex-shrink:0">
-          <button onclick="event.stopPropagation();pinSession(${JSON.stringify(s.id)},${s.pinned?0:1})"
-                  style="background:none;border:none;cursor:pointer;font-size:11px;opacity:.5" title="${s.pinned?'Unpin':'Pin'}">${s.pinned?'📌':'📍'}</button>
-          <button onclick="event.stopPropagation();renameSession(${JSON.stringify(s.id)})"
-                  style="background:none;border:none;cursor:pointer;font-size:11px;opacity:.5" title="Rename">✏️</button>
-          <button onclick="event.stopPropagation();branchSession(${JSON.stringify(s.id)})"
-                  style="background:none;border:none;cursor:pointer;font-size:11px;opacity:.5" title="Branch">⎇</button>
-          <button onclick="event.stopPropagation();exportSession(${JSON.stringify(s.id)})"
-                  style="background:none;border:none;cursor:pointer;font-size:11px;opacity:.5" title="Export">⬇</button>
-          <button onclick="event.stopPropagation();deleteSession(${JSON.stringify(s.id)})"
-                  style="background:none;border:none;cursor:pointer;font-size:11px;opacity:.5;color:var(--danger)" title="Delete">🗑</button>
-        </div>
-      </div>
-      <div style="font-size:10px;color:var(--text-3);display:flex;gap:6px">
-        <span>${escHtml(s.agent_id||'brain')}</span>
-        <span>${s.message_count||0} msgs</span>
-        <span>${(s.updated_at||'').slice(5,16)}</span>
-      </div>
-    </div>`).join('');
-}
-
-async function switchSession(sessionId) {
-  try {
-    const r = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/messages`);
-    if (!r.ok) { showToast('Failed to load session: HTTP '+r.status); return; }
-    const d = await r.json();
-    if (d.ok === false) { showToast('Session not found: '+(d.error||'')); return; }
-
-    currentSessionId = sessionId;
-    S.sessionId      = sessionId;
-    S.chatHistory    = [];
-
-    const msgs = d.messages || [];
-    const chatEl = document.getElementById('chat-messages');
-    if (chatEl) chatEl.innerHTML = '';
-    const emptyEl = document.getElementById('chat-empty');
-    if (emptyEl) emptyEl.style.display = msgs.length ? 'none' : 'flex';
-
-    msgs.forEach(m => {
-      if (m.role === 'user') {
-        addMessage(m.message, 'user', '👤', 'You');
-        S.chatHistory.push({role: 'user', content: m.message});
-      } else {
-        addMessage(m.message, 'agent', S.currentAgent?.avatar || '🤖', m.agent || 'Agent');
-        S.chatHistory.push({role: 'assistant', content: m.message});
-      }
-    });
-
-    renderSessionsList();
-    showToast(`📂 Loaded: ${(_sessions.find(s=>s.id===sessionId)||{}).name||sessionId}`);
-    toggleSessionsPanel(); // close panel after switching
-  } catch(ex) {
-    showToast('Session load error: '+ex?.message);
-  }
-}
-
-async function newSession(name) {
-  try {
-    const sessionName = name || `Chat ${new Date().toLocaleTimeString()}`;
-    const r = await fetch('/api/sessions', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: sessionName, agent_id: S.currentAgent?.id || 'brain'})
-    });
-    if (!r.ok) { showToast('Failed to create session: HTTP '+r.status); return; }
-    const j = await r.json();
-    if (!j.ok) { showToast('Create failed: '+(j.error||'Unknown')); return; }
-    currentSessionId = j.id;
-    S.sessionId      = j.id;
-    S.chatHistory    = [];
-    if (typeof clearChatHistory === 'function') clearChatHistory();
-    else {
-      const chatEl = document.getElementById('chat-messages');
-      if (chatEl) chatEl.innerHTML = '';
-    }
-    await loadSessionsList();
-    showToast(`✅ New session: ${j.name}`);
-  } catch(ex) {
-    showToast('New session error: '+ex?.message);
-  }
-}
-
-async function renameSession(sessionId) {
-  const s = _sessions.find(s => s.id === sessionId);
-  const name = await gmPrompt('Rename session:', s?.name || '');
-  if (!name || !name.trim()) return;
-  try {
-    const r = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`, {
-      method: 'PATCH', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name.trim()})
-    });
-    if (!r.ok) { showToast('Rename failed: HTTP '+r.status); return; }
-    const d = await r.json();
-    if (!d.ok) { showToast('Rename failed: '+(d.error||'Unknown')); return; }
-    showToast('✅ Renamed');
-    loadSessionsList();
-  } catch(ex) {
-    showToast('Rename error: '+ex?.message);
-  }
-}
-
-async function pinSession(sessionId, pinState) {
-  try {
-    const r = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`, {
-      method: 'PATCH', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({pinned: !!pinState})
-    });
-    if (!r.ok) { showToast('Pin failed: HTTP '+r.status); return; }
-    showToast(pinState ? '📌 Pinned' : '📍 Unpinned');
-    loadSessionsList();
-  } catch(ex) {
-    showToast('Pin error: '+ex?.message);
-  }
-}
-
-async function deleteSession(sessionId) {
-  const s = _sessions.find(s => s.id === sessionId);
-  const name = s?.name || sessionId;
-  if (!(await gmDanger('Delete Session', `Delete "${name}" and all its messages? This cannot be undone.`))) return;
-  try {
-    const r = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`, {method: 'DELETE'});
-    if (!r.ok) { showToast('Delete failed: HTTP '+r.status); return; }
-    const d = await r.json();
-    if (!d.ok) { showToast('Delete failed: '+(d.error||'Unknown')); return; }
-    if (sessionId === currentSessionId) {
-      const chatEl = document.getElementById('chat-messages');
-      if (chatEl) chatEl.innerHTML = '';
-      currentSessionId = S.sessionId = 'session_' + Date.now();
-    }
-    showToast('🗑 Session deleted');
-    loadSessionsList();
-  } catch(ex) {
-    showToast('Delete error: '+ex?.message);
-  }
-}
-
-window.exportSession = function exportSession(sessionId) {
-  toast('📋 Downloading Markdown…', 'ok', 2000);
-  var f = document.createElement('form');
-  f.method = 'GET';
-  f.action = '/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=markdown';
-  f.style.display = 'none';
-  document.body.appendChild(f);
-  f.submit();
-  setTimeout(function() { f.remove(); }, 200);
-};
-
-window.exportSessionJSON = function exportSessionJSON(sessionId) {
-  toast('📄 Downloading JSON…', 'ok', 2000);
-  var f = document.createElement('form');
-  f.method = 'GET';
-  f.action = '/api/sessions/' + encodeURIComponent(sessionId) + '/export?fmt=json';
-  f.style.display = 'none';
-  document.body.appendChild(f);
-  f.submit();
-  setTimeout(function() { f.remove(); }, 200);
-};
-
-async function branchSession(sessionId) {
-  const name = await gmPrompt('Branch name:', 'Branched conversation');
-  if (!name) return;
-  try {
-    const r = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/branch`, {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: name.trim()})
-    });
-    if (!r.ok) { showToast('Branch failed: HTTP '+r.status); return; }
-    const d = await r.json();
-    if (!d.ok) { showToast('Branch failed: '+(d.error||'Unknown')); return; }
-    showToast(`⎇ Branched → ${d.name} (${d.messages_copied} msgs)`);
-    loadSessionsList();
-  } catch(ex) {
-    showToast('Branch error: '+ex?.message);
-  }
-}
-
-async function searchSessions(q) {
-  if (!q) { loadSessionsList(); return; }
-  try {
-    const r = await fetch('/api/sessions?q=' + encodeURIComponent(q));
-    if (!r.ok) return;
-    const d = await r.json();
-    _sessions = d.sessions || [];
-    renderSessionsList();
-  } catch(ex) {
-    console.warn('[Sessions] search error:', ex);
-  }
-}
-
-// Patch sendChat to persist session after each message
-(function patchSendChatForSessions() {
-  const _orig = window.sendChat;
-  if (typeof _orig !== 'function') {
-    // Retry if sendChat not defined yet
-    setTimeout(patchSendChatForSessions, 500);
-    return;
-  }
-  window.sendChat = async function() {
-    await _orig.apply(this, arguments);
-    try {
-      await fetch(`/api/sessions/${encodeURIComponent(currentSessionId)}/touch`, {method: 'POST'});
-      loadSessionsList();
-    } catch(e) {}
-  };
-})();
-
-// Sessions panel injection
-(function injectSessionsPanel() {
-  const chatPane = document.getElementById('pane-chat');
-  if (!chatPane) { setTimeout(injectSessionsPanel, 400); return; }
-  if (document.getElementById('sessions-panel')) return;
-
-  const header = chatPane.querySelector('.chat-header');
-  if (!header) { setTimeout(injectSessionsPanel, 400); return; }
-
-  // Sessions toggle button
-  const btn = document.createElement('button');
-  btn.className   = 'icon-btn';
-  btn.title       = 'Session history (all chats)';
-  btn.textContent = '🗂';
-  btn.style.cssText = 'margin-right:4px';
-  btn.onclick = toggleSessionsPanel;
-  header.insertBefore(btn, header.firstChild);
-
-  // New session button
-  const newBtn = document.createElement('button');
-  newBtn.className   = 'icon-btn';
-  newBtn.title       = 'New chat session';
-  newBtn.textContent = '＋';
-  newBtn.onclick     = () => newSession();
-  header.insertBefore(newBtn, header.firstChild);
-
-  // Sessions panel
-  const panel = document.createElement('div');
-  panel.id = 'sessions-panel';
-  panel.style.cssText = [
-    'display:none;position:absolute;top:52px;left:0;width:280px;bottom:0',
-    'background:var(--bg-1);border-right:1px solid var(--border);z-index:50',
-    'flex-direction:column;overflow:hidden',
-  ].join(';');
-  panel.innerHTML = `
-    <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-      <span style="font-weight:700;font-size:13px">🗂 Sessions</span>
-      <div style="display:flex;gap:5px">
-        <button onclick="newSession()" class="btn btn-primary btn-sm" title="New session">＋ New</button>
-        <button onclick="showSessionStats()" class="btn-sm" title="Session stats">📊</button>
-        <button onclick="toggleSessionsPanel()" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:16px" title="Close">×</button>
-      </div>
-    </div>
-    <div style="padding:8px">
-      <input id="session-search" placeholder="Search sessions…"
-             oninput="filterSessions()"
-             style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none;box-sizing:border-box">
-    </div>
-    <div id="sessions-sidebar" style="flex:1;overflow-y:auto;padding:4px 8px"></div>`;
-  chatPane.style.position = 'relative';
-  chatPane.appendChild(panel);
-  loadSessionsList();
-})();
-
-function toggleSessionsPanel() {
-  const p = document.getElementById('sessions-panel');
-  if (!p) return;
-  const visible = p.style.display !== 'none';
-  p.style.display = visible ? 'none' : 'flex';
-  if (!visible) loadSessionsList();
-}
-
-function filterSessions() {
-  const q = (document.getElementById('session-search')?.value || '').toLowerCase().trim();
-  if (!q) {
-    // Show all
-    document.querySelectorAll('.session-item').forEach(el => { el.style.display = ''; });
-    return;
-  }
-  document.querySelectorAll('.session-item').forEach(el => {
-    el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
-  });
-}
-
+// ── Session Stats — the only piece of the old duplicate session
+//    system worth keeping. Everything else here (loadSessionsList,
+//    renderSessionsList, switchSession, newSession, renameSession,
+//    pinSession, deleteSession, branchSession, searchSessions, the
+//    injected #sessions-panel/#sessions-sidebar with its own "+"/
+//    "🗂" header buttons) was a second, completely separate session
+//    management system running in parallel with the real, working
+//    folder/date chat-history drawer in 56-chat-history.js. It wrote
+//    to the same /api/sessions backend but never synced with the
+//    visible UI, so using it (e.g. its own "+ New" or duplicate
+//    Quick Action "New Session" button) silently created orphaned
+//    sessions the real drawer never showed. Removed; Session Stats is
+//    now reachable from the real drawer's folder-settings (⚙) menu.
 async function showSessionStats() {
   try {
     const r = await fetch('/api/sessions/stats/overview');
@@ -4418,9 +4130,7 @@ async function showSessionStats() {
     showToast('Stats error: '+ex?.message);
   }
 }
-
-// Init sessions on startup
-setTimeout(loadSessionsList, 1500);
+window.showSessionStats = showSessionStats;
 
 
 
@@ -5790,28 +5500,14 @@ function _disabled__s10NavBase(pane) {
 })();
 
 // ── Image Generation ─────────────────────────────────────────────
-// ── UX: First-run project type selector ─────────────────────────
-(function addProjectTypeSelector() {
-  setTimeout(() => {
-    const el = document.getElementById('chat-empty');
-    if (!el || el.dataset.projectTypes) return;
-    el.dataset.projectTypes = '1';
-    const types = document.createElement('div');
-    types.style.cssText = 'margin-top:16px;width:100%;max-width:420px';
-    types.innerHTML = `<div style="font-size:11px;color:var(--text-3);text-align:center;margin-bottom:8px;font-weight:600;letter-spacing:.05em;text-transform:uppercase">Quick start</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">
-        ${[['🚀','SaaS','/goal Build a SaaS landing page with hero, pricing, and CTA'],['📱','Mobile','/goal Build an Expo React Native app with navigation'],['🛒','Shop','/goal Build an e-commerce product page with cart'],['🎨','Portfolio','/goal Build a developer portfolio with projects section'],['📊','Dashboard','/goal Build an admin dashboard with charts'],['🤖','AI App','/goal Build an AI-powered app with chat interface']].map(([e,l,p])=>
-          `<button onclick="setProjectType(${JSON.stringify(p)})" style="display:flex;align-items:center;gap:5px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--text-1);transition:var(--transition)" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">${e} ${l}</button>`).join('')}
-      </div>`;
-    el.appendChild(types);
-  }, 1500);
-})();
-
-function setProjectType(prompt) {
-  const input = document.getElementById('chat-input');
-  if (input) { input.value = prompt; input.focus(); const e=document.getElementById('chat-empty'); if(e)e.style.display='none'; autoResizeInput?.(input); }
-}
-
+// NOTE: this used to inject a SECOND "Quick start" row of 6 hardcoded
+// project-idea pills (SaaS/Mobile/Shop/Portfolio/Dashboard/AI App) below
+// the chat empty-state, stacked directly under the 4 built-in
+// "Build something / Research a topic / Improve my code / Start from
+// template" quick-action cards already in index.html — two different
+// "quick start" UIs with overlapping intent on the same empty screen.
+// Removed for clarity; the 4 built-in cards (plus the random build/
+// research/code prompt generators wired to them) already cover this.
 
 
 // ── Add Sprint 12 to command palette ────────────────────────────
