@@ -1,5 +1,33 @@
 // Agentic OS — Skills Hub
 // Extracted from 01-app-core.js for modularity
+//
+// BUG FIX (quote-collision, total breakage of skill-card clicks): the
+// skill grid's onclick="openSkillModal(${JSON.stringify(s.id)})" is the
+// same unconditional-breakage pattern found in the Terminal module's
+// quick-command toolbar earlier this session -- JSON.stringify() ALWAYS
+// wraps its output in literal double quotes, which ALWAYS collide with
+// the onclick attribute's own double-quote delimiters, regardless of
+// what `s.id` actually contains. Reproduced live: clicking ANY skill
+// card (including one with a plain, no-special-characters id like
+// "seo_audit") threw "Uncaught SyntaxError: Unexpected end of input" and
+// never opened the Run Skill modal -- every one of the 48 skill cards
+// was completely unclickable. Fixed via data-skill-idx + a delegated
+// listener on the grid container, looking up the real skill object from
+// the already-loaded `filtered` array by index instead of ever
+// serializing it into an HTML attribute.
+//
+// A second, related bug: the "🔊 Listen" button inside the skill result
+// view used onclick="speakText(${JSON.stringify(...).replace(/'/g,
+// '&#39;')}, ...)" -- a manual, incomplete escape (only handles single
+// quotes, not the double quotes JSON.stringify itself introduces) that
+// still collided with the double-quoted onclick attribute. Fixed the
+// same way, via a real button + addEventListener capturing the actual
+// (unescaped) output text and agent id in closure.
+//
+// The category filter pills' onclick="filterSkills('${escHtml(c.id)}')"
+// pattern (single-quoted JS string literal + escHtml, which converts an
+// embedded quote to its HTML entity before the browser ever parses the
+// attribute) is a CORRECT escaping pattern and was left as-is.
 // ── Skills Hub ────────────────────────────────────────────────────
 let allSkills = [], activeSkill = null, skillCategory = 'all';
 
@@ -59,10 +87,9 @@ function renderSkillGrid() {
   const grid = document.getElementById('skill-grid');
   if (!grid) return;
   const filtered = skillCategory === 'all' ? allSkills : allSkills.filter(s => s.category === skillCategory);
-  grid.innerHTML = filtered.map(s => `
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:var(--transition)"
-         onmouseover="this.style.borderColor='var(--border-hi)'" onmouseout="this.style.borderColor='var(--border)'"
-         onclick="openSkillModal(${JSON.stringify(s.id)})">
+  grid.innerHTML = filtered.map((s, idx) => `
+    <div data-skill-idx="${idx}" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:var(--transition)"
+         onmouseover="this.style.borderColor='var(--border-hi)'" onmouseout="this.style.borderColor='var(--border)'">
       <div style="font-size:24px;margin-bottom:8px">${s.emoji||'⚡'}</div>
       <div style="font-weight:700;font-size:14px;margin-bottom:4px">${escHtml(s.name)}</div>
       <div style="font-size:12px;color:var(--text-2);margin-bottom:10px;min-height:32px">${escHtml(s.description||'')}</div>
@@ -71,6 +98,13 @@ function renderSkillGrid() {
         <span style="font-size:11px;color:var(--text-2)">🤖 ${s.agent||'brain'}</span>
       </div>
     </div>`).join('');
+  // Delegated click handler replaces the old onclick="openSkillModal(
+  // ${JSON.stringify(s.id)})" -- see file header note for the full bug
+  // writeup. Looks up the real skill object from `filtered` by index.
+  grid.onclick = (e) => {
+    const card = e.target.closest('[data-skill-idx]');
+    if (card) openSkillModal(filtered[Number(card.dataset.skillIdx)]?.id);
+  };
 }
 
 function openSkillModal(skillId) {
@@ -128,13 +162,28 @@ async function execSkill() {
     });
     if (!r.ok) throw new Error('Server error ' + r.status);
     const j = await r.json();
+    const skillOutput = j.output || '';
+    const skillAgent = j.agent || 'default';
     resEl.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <span style="color:${j.ok?'var(--green)':'var(--red)'};">${j.ok?'✅':'❌'}</span>
         <span style="font-size:12px;color:var(--text-2)">${escHtml(j.agent||'')} · ${j.latency_ms||0}ms · ${j.tokens||0} tokens · $${(j.cost||0).toFixed(5)}</span>
-        <button onclick="speakText(${JSON.stringify((j.output||'').slice(0,1000)).replace(/'/g,'&#39;')}, '${j.agent||'default'}')" class="btn btn-ghost btn-sm" style="margin-left:auto">🔊 Listen</button>
+        <button type="button" id="srm-listen-btn" class="btn btn-ghost btn-sm" style="margin-left:auto">🔊 Listen</button>
       </div>
-      <div style="white-space:pre-wrap;line-height:1.6">${renderMarkdown(j.output||'(empty)')}</div>`;
+      <div style="white-space:pre-wrap;line-height:1.6">${renderMarkdown(skillOutput||'(empty)')}</div>`;
+    // BUG FIX: this used to be onclick="speakText(${JSON.stringify(
+    // (j.output||'').slice(0,1000)).replace(/'/g,'&#39;')}, '${j.agent||
+    // 'default'}')" -- a manual, incomplete escape (handles single quotes
+    // in the ALREADY-double-quoted JSON.stringify output, but does
+    // nothing about the double quotes JSON.stringify itself always
+    // introduces, which still collide with the onclick attribute's own
+    // delimiters). Any real AI-generated skill output long enough to
+    // contain a double-quote character anywhere in its first 1000 chars
+    // would crash this button. Wired via addEventListener instead,
+    // capturing the real (unescaped) output text and agent id in closure.
+    document.getElementById('srm-listen-btn')?.addEventListener('click', () => {
+      speakText(skillOutput.slice(0, 1000), skillAgent);
+    });
     if (j.ok) toast(`✅ ${activeSkill.name} complete · ${j.latency_ms}ms`, 'ok', 3000);
     else toast('Skill error: ' + (j.error||'check output'), 'err');
   } catch(e) {

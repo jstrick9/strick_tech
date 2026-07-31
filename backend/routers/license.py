@@ -143,6 +143,18 @@ PANE_TIERS: dict[str, str] = {
     'webhooks': 'pro',
     'testgen': 'pro',
     'terminal': 'pro',
+    # BUG FIX: 'skills' was missing from this explicit map entirely,
+    # silently falling through to PANE_TIERS.get(pane, 'pro') in
+    # _pane_allowed() -- which happened to already default to the
+    # correct tier ('pro'), but the frontend's OWN gate (gatedPanes Set
+    # in 04-workflow-specs.js) did NOT include 'skills' at all, so a
+    # free-tier user could open the Skills Hub pane with zero upgrade
+    # prompt shown, even though the backend endpoint itself would
+    # correctly deny pro-only actions if actually checked. A real
+    # free-tier feature leak, same bug class as the earlier 'hierarchy'
+    # gating gap found this session. Fixed on both sides: added here
+    # explicitly, and added 'skills' to the frontend gatedPanes Set.
+    'skills': 'pro',
     'integrations': 'pro',
     'imagegen': 'pro',
     'prompts': 'pro',
