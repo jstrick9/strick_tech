@@ -24,7 +24,20 @@ window.renderSwarmDAG = function(runs = [], winner = '', isRunning = false, acti
   if (!dagHost) return;
   const agentMap = {};
   runs.forEach(r => { agentMap[r.agent] = r; });
-  
+  // BUG FIX: node click handlers used to be built as inline
+  // onclick="...openInspectionDrawer({...})..." strings with agent name/role
+  // text run only through escHtml() (HTML-entity escaping) but NOT
+  // JS-string-escaping. Any agent name/role containing an apostrophe (e.g.
+  // "O'Brien's Brain") broke the single-quoted JS string literal embedded in
+  // the onclick attribute, throwing `Uncaught SyntaxError: Unexpected
+  // identifier` on click and never opening the inspection drawer at all —
+  // reproduced live by renaming the built-in "brain" agent to include an
+  // apostrophe and clicking its DAG node. Fixed by keying each node's real
+  // (unescaped) inspection-drawer payload in this side-table and wiring
+  // real addEventListener click handlers after the HTML is inserted,
+  // eliminating string-escaping entirely for this data path.
+  const nodeInspectionData = {};
+
   const levels = [
     { title: 'Level 1: Orchestration & Task Decomposition', nodes: ['orchestrator'] },
     { title: 'Level 2: Architecture & Synthesis', nodes: ['brain', 'design_decomposer', 'builder'] },
@@ -57,9 +70,16 @@ window.renderSwarmDAG = function(runs = [], winner = '', isRunning = false, acti
               const runData = agentMap[nid];
               const nodeAgent = (S.agents || []).find(a => a.id === nid) || { name: nid, avatar: '🤖', role: 'Specialist Agent' };
               const statusStr = isRunning ? '● Computing...' : (runData ? `✅ ${runData.latency_ms}ms · ${runData.tokens}t` : (isSelected ? '⏳ Queued' : '○ Bypassed'));
+              nodeInspectionData[nid] = {
+                id: nid,
+                title: `${nodeAgent.name} Workstation Node`,
+                icon: nodeAgent.avatar || '🤖',
+                tier: 'PRO',
+                summary: `Role: ${nodeAgent.role || 'Specialist'}. ${runData ? 'Execution Output: ' + (runData.output || '') : 'Node in standby.'}`,
+              };
               return `
               <div class="card-elevated ${runData ? 'surface-z3' : 'surface-z1'}" style="flex:1;min-width:170px;border:${runData?.agent === winner ? '2px solid #10b981' : (isRunning && isSelected ? '1px solid var(--accent)' : '1px solid var(--border)')};transition:all .15s;cursor:pointer"
-                onclick="if(typeof openInspectionDrawer === 'function') openInspectionDrawer({id:'${nid}',title:'${escHtml(nodeAgent.name)} Workstation Node',icon:'${nodeAgent.avatar||'🤖'}',tier:'PRO',summary:'Role: ${escHtml(nodeAgent.role||'Specialist')}. ${runData ? 'Execution Output: ' + escHtml(runData.output||'') : 'Node in standby.'}'})">
+                data-swarm-node-id="${escHtml(nid)}">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
                   <div style="display:flex;align-items:center;gap:6px">
                     <span style="font-size:18px">${nodeAgent.avatar||'🤖'}</span>
@@ -79,6 +99,14 @@ window.renderSwarmDAG = function(runs = [], winner = '', isRunning = false, acti
         ${lIdx < levels.length - 1 ? `<div style="text-align:center;color:var(--accent);font-size:14px;opacity:0.6;margin:-4px 0">↓ Conduit Data Stream</div>` : ''}
       `).join('')}
     </div>`;
+
+  dagHost.querySelectorAll('[data-swarm-node-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      const nid = el.dataset.swarmNodeId;
+      const doc = nodeInspectionData[nid];
+      if (doc && typeof openInspectionDrawer === 'function') openInspectionDrawer(doc);
+    });
+  });
 };
 
 function renderSwarm() {
