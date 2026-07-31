@@ -216,6 +216,19 @@
     chatBtn.addEventListener('click', function() { insertTemplateIntoChat(t); });
     actions.appendChild(chatBtn);
 
+    // Preview (read-only, no writes to disk) — only meaningful for built-in
+    // templates that actually ship HTML files; custom templates are just a
+    // saved chat prompt with no file content to preview.
+    if (!t._custom && (t.file_count || 0) > 0) {
+      var previewBtn = document.createElement('button');
+      previewBtn.className = 'btn btn-ghost btn-sm';
+      previewBtn.style.cssText = 'font-size:11px;padding:4px 8px';
+      previewBtn.textContent = '👁';
+      previewBtn.title = 'Preview (read-only — does not touch your Studio files)';
+      previewBtn.addEventListener('click', function() { previewTemplate(t.id); });
+      actions.appendChild(previewBtn);
+    }
+
     // Scaffold to Studio
     var studioBtn = document.createElement('button');
     studioBtn.className = 'btn btn-primary btn-sm';
@@ -307,20 +320,62 @@
     }
   }
 
-  // ── Preview Template ───────────────────────────────────────────
+  // ── Preview Template (non-destructive) ─────────────────────────
+  // BUG FIX / MISSING FEATURE: this function existed and was exposed on
+  // `window.previewTemplate` but was never wired to any button anywhere in
+  // the UI — completely unreachable dead code. Its old implementation also
+  // wasn't really a "preview" at all: it silently scaffolded the template
+  // into preview/ (overwriting whatever the user currently had open in
+  // Studio) and then navigated there, i.e. functionally identical to the
+  // "⚡ Studio" button already on every card. Rewritten as a genuine
+  // non-destructive preview: renders the template's raw HTML in a sandboxed
+  // iframe via srcdoc, using the read-only GET /api/templates/{id}/preview
+  // endpoint — no writes to preview/ or Studio's file tree at all. Wired to
+  // a new "👁 Preview" button on every card.
   async function previewTemplate(templateId) {
     try {
       var r = await fetch('/api/templates/' + encodeURIComponent(templateId) + '/preview');
       if (!r.ok) { toast('❌ Preview failed: HTTP ' + r.status, 'err', 2000); return; }
       var j = await r.json();
       if (!j.ok) { toast('❌ Preview failed: ' + (j.error || 'Unknown'), 'err', 2000); return; }
-      // Scaffold silently then open Studio
-      await scaffoldTemplate(templateId, true);
-      setTimeout(function() { if (typeof nav === 'function') nav('studio'); }, 400);
-      toast('👁 Preview loaded in Studio', 'ok', 2000);
+      showTemplatePreviewModal(j.template || templateId, j.content || '', templateId);
     } catch(ex) {
       toast('❌ Preview error: ' + ex.message, 'err', 2000);
     }
+  }
+
+  function showTemplatePreviewModal(name, html, templateId) {
+    var existing = document.getElementById('tmpl-preview-modal');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'tmpl-preview-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+    overlay.innerHTML =
+      '<div style="background:var(--bg-1);border:1px solid var(--border);border-radius:16px;width:100%;max-width:1000px;height:85vh;display:flex;flex-direction:column;overflow:hidden">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0">' +
+          '<span style="font-weight:800;font-size:14px">👁 ' + escHtml(name) + ' — read-only preview (nothing written to disk)</span>' +
+          '<div style="display:flex;gap:8px">' +
+            '<button class="btn btn-primary btn-sm" id="tmpl-preview-scaffold-btn">⚡ Scaffold into Studio</button>' +
+            '<button class="btn btn-ghost btn-sm" id="tmpl-preview-close-btn">✕ Close</button>' +
+          '</div>' +
+        '</div>' +
+        // `allow-same-origin` is required here because several templates
+        // (e.g. todo-app, notes-app) use localStorage for their in-page
+        // demo state — without it, `srcdoc` content runs in a unique opaque
+        // origin and any localStorage access throws a SecurityError,
+        // breaking the very features being previewed. Matches the sandbox
+        // flags already used by Studio's own preview iframes in index.html.
+        '<iframe id="tmpl-preview-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" style="flex:1;border:none;background:#fff"></iframe>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    var frame = document.getElementById('tmpl-preview-iframe');
+    if (frame) frame.srcdoc = html;
+    document.getElementById('tmpl-preview-close-btn').onclick = function() { overlay.remove(); };
+    document.getElementById('tmpl-preview-scaffold-btn').onclick = function() {
+      overlay.remove();
+      scaffoldTemplate(templateId, false, name);
+    };
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
   }
 
   // ── Create Custom Template (uses gmPrompt for Tauri compat) ──
@@ -381,8 +436,13 @@
   };
 
   // ── Delete Custom Template ─────────────────────────────────────
-  function deleteCustomTemplate(id) {
-    if (!confirm('Delete this template? This cannot be undone.')) return;
+  async function deleteCustomTemplate(id) {
+    // BUG FIX (Tauri compat): this used the native confirm() dialog, which
+    // is explicitly unsupported in the Tauri WebKit webview per project
+    // standards (only gmPrompt/gmConfirm/gmDanger — the custom in-app modal
+    // system — are safe to use for confirmations; everything else in this
+    // file already correctly uses gmPrompt). Switched to gmDanger to match.
+    if (!(await gmDanger('Delete Template', 'Delete this template? This cannot be undone.', 'Delete'))) return;
     var customs = getCustomTemplates().filter(function(t) { return t.id !== id; });
     saveCustomTemplates(customs);
     toast('🗑 Template deleted', 'ok', 1500);
