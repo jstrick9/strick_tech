@@ -1,6 +1,36 @@
 // Agentic OS — Image Generation
-// Extracted from 01-app-core.js for modularity
-// ── Image Generation state ────────────────────────────────────────────────────
+// Generate AI images, import Figma designs, apply style transfer, and
+// manage an asset library.
+//
+// ARCHITECTURE NOTE: this file uses plain top-level function declarations
+// (not IIFE-wrapped), so — unlike the Web Search / Browser Agent modules
+// fixed earlier this session — every handler function IS correctly
+// visible on `window` and inline onclick attributes DO resolve. However,
+// several onclick attributes interpolated `JSON.stringify(...)` directly
+// into a double-quoted HTML attribute, which performs no HTML-entity
+// escaping: the double quotes JSON.stringify wraps strings in collide
+// with the onclick attribute's own double-quote delimiters, corrupting
+// the HTML. Reproduced live for all three cases below (clicking a style
+// chip, a gallery thumbnail, or a variation thumbnail all threw
+// "Uncaught SyntaxError: Unexpected end of input" and did nothing):
+//   - selectImageStyle(${JSON.stringify(s.id)}) in the style picker
+//   - selectGalleryImage(${JSON.stringify(img.url)}, ${JSON.stringify(img.name)})
+//     and igDeleteImage(${JSON.stringify(img.name)}) in the asset library
+//   - igSelectVariation(${JSON.stringify(src)}, this) in the variations modal
+// Fixed by switching every dynamically-generated onclick attribute in this
+// file to `data-*` attributes + `addEventListener`, matching the pattern
+// already used to fix this same bug class in other modules this session.
+// Static onclick attributes with no interpolated data (Generate/Enhance/
+// Vary/Download/Save to Gallery/Insert/Import/Apply/Refresh/Upload/Retry
+// and the two modal-close buttons) are left as-is since they carry no
+// user- or server-derived data and cannot collide.
+//
+// Also replaced every `showToast(...)` call with `toast(...)` — this
+// codebase's standing rule is that `showToast` is a legacy compatibility
+// alias for old code only; new/rewritten code must call `toast()`
+// directly.
+
+// ── Image Generation state ────────────────────────────────────────────
 let selectedImageStyle = '';
 let _imgLastPrompt     = '';
 
@@ -33,7 +63,7 @@ async function renderImageGen() {
           </div>` : ''}
           <textarea id="img-prompt" class="input" style="min-height:70px;margin-bottom:8px;font-size:13px" placeholder="A dark SaaS dashboard with charts, clean and modern…" oninput="_imgLastPrompt=this.value"></textarea>
           <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px" id="style-picker">
-            ${styles.map(s=>`<button class="term-btn" id="style-${s.id}" onclick="selectImageStyle(${JSON.stringify(s.id)})" title="${escHtml(s.prompt)}">${escHtml(s.label)}</button>`).join('')}
+            ${styles.map(s=>`<button type="button" class="term-btn" id="style-${escHtml(s.id)}" data-style-id="${escHtml(s.id)}" title="${escHtml(s.prompt)}">${escHtml(s.label)}</button>`).join('')}
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
             <select id="img-size" style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none">
@@ -106,17 +136,18 @@ async function renderImageGen() {
         </div>
         ${gallery.images.length === 0
           ? '<div style="text-align:center;padding:20px;color:var(--text-3);font-size:12px">No images yet — generate or upload one above</div>'
-          : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;max-height:220px;overflow-y:auto">
-              ${gallery.images.map(img=>`
-                <div style="aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border);cursor:pointer;position:relative;group"
-                     onclick="selectGalleryImage(${JSON.stringify(img.url)},${JSON.stringify(img.name)})" title="${escHtml(img.name)}">
+          : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;max-height:220px;overflow-y:auto" id="asset-library-grid">
+              ${gallery.images.map((img, idx)=>`
+                <div data-gallery-idx="${idx}" style="aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border);cursor:pointer;position:relative;group" title="${escHtml(img.name)}">
                   <img src="${escHtml(img.url)}" style="width:100%;height:100%;object-fit:cover" loading="lazy">
-                  <button onclick="event.stopPropagation();igDeleteImage(${JSON.stringify(img.name)})"
+                  <button type="button" data-gallery-delete-idx="${idx}"
                           style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);border:none;border-radius:4px;color:#fff;font-size:10px;cursor:pointer;padding:1px 4px;display:none" class="ig-del-btn">🗑</button>
                 </div>`).join('')}
             </div>`}
       </div>
       </div>`;
+
+    wireGalleryEvents(gallery.images);
 
     // Add hover to show delete button
     setTimeout(() => {
@@ -127,10 +158,38 @@ async function renderImageGen() {
       });
     }, 100);
 
+    // Style picker: wired via data-style-id + addEventListener (see file
+    // header note) instead of the old JSON.stringify-in-attribute pattern.
+    document.querySelectorAll('#style-picker [data-style-id]').forEach(btn => {
+      btn.addEventListener('click', () => selectImageStyle(btn.dataset.styleId));
+    });
+
   } catch(ex) {
     pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Error loading Image Gen: ${escHtml(ex?.message||String(ex))}<br>
       <button class="btn-sm" onclick="renderImageGen()" style="margin-top:8px">↻ Retry</button></div>`;
   }
+}
+
+// Delegated click handling for the asset library grid (thumbnail select /
+// delete), looked up by numeric index into the real gallery array rather
+// than ever re-serializing a filename/URL into an HTML attribute.
+function wireGalleryEvents(images) {
+  const grid = document.getElementById('asset-library-grid');
+  if (!grid) return;
+  grid.addEventListener('click', (e) => {
+    const delBtn = e.target.closest('[data-gallery-delete-idx]');
+    if (delBtn) {
+      e.stopPropagation();
+      const img = images[Number(delBtn.dataset.galleryDeleteIdx)];
+      if (img) igDeleteImage(img.name);
+      return;
+    }
+    const cell = e.target.closest('[data-gallery-idx]');
+    if (cell) {
+      const img = images[Number(cell.dataset.galleryIdx)];
+      if (img) selectGalleryImage(img.url, img.name);
+    }
+  });
 }
 
 function selectImageStyle(id) {
@@ -146,7 +205,7 @@ async function generateImage() {
   const prompt = document.getElementById('img-prompt')?.value?.trim();
   const size   = document.getElementById('img-size')?.value || '1024x1024';
   const saveTo = document.getElementById('img-save-to')?.value?.trim() || '';
-  if (!prompt) { showToast('⚠️ Enter a prompt first'); return; }
+  if (!prompt) { toast('⚠️ Enter a prompt first', 'warn'); return; }
 
   const btn = document.getElementById('img-gen-btn');
   const st  = document.getElementById('img-status');
@@ -182,15 +241,15 @@ async function generateImage() {
         if (prev)  prev.src   = src;
         if (urlEl) urlEl.value = src;
         if (st) st.textContent = `✅ ${j.saved_to ? 'Saved: '+j.saved_to : 'Generated!'}`;
-        showToast('🎨 Image ready!');
+        toast('🎨 Image ready!', 'ok');
       }
     } else {
       if (st) st.textContent = '✗ '+(j.error||'Generation failed');
-      showToast('Image generation failed: '+(j.error||'Unknown'));
+      toast('Image generation failed: '+(j.error||'Unknown'), 'err');
     }
   } catch(ex) {
     if (st) st.textContent = '✗ '+(ex?.message||String(ex));
-    showToast('Image gen error: '+ex?.message);
+    toast('Image gen error: '+ex?.message, 'err');
   } finally {
     if (btn) { btn.disabled=false; btn.textContent='🎨 Generate'; }
   }
@@ -199,7 +258,7 @@ async function generateImage() {
 async function importFigma() {
   const url = document.getElementById('figma-url')?.value?.trim();
   const fw  = document.getElementById('figma-framework')?.value || 'html';
-  if (!url) { showToast('⚠️ Enter a Figma URL'); return; }
+  if (!url) { toast('⚠️ Enter a Figma URL', 'warn'); return; }
   const st = document.getElementById('figma-status');
   if (st) st.textContent = 'Importing design…';
   try {
@@ -211,22 +270,22 @@ async function importFigma() {
     const j = await r.json();
     if (j.ok) {
       if (st) st.textContent = `✅ Imported → ${j.file}`;
-      showToast(`🎯 Imported → ${j.file}`);
+      toast(`🎯 Imported → ${j.file}`, 'ok');
       studioLoadFileTree?.();
     } else {
       if (st) st.textContent = '✗ '+(j.error||'Import failed');
-      showToast('Figma import failed: '+(j.error||'Unknown'));
+      toast('Figma import failed: '+(j.error||'Unknown'), 'err');
     }
   } catch(ex) {
     if (st) st.textContent = '✗ '+ex?.message;
-    showToast('Figma import error: '+ex?.message);
+    toast('Figma import error: '+ex?.message, 'err');
   }
 }
 
 async function igStyleTransfer() {
   const prompt  = document.getElementById('st-prompt')?.value?.trim();
   const styleId = document.getElementById('st-style')?.value || 'cinematic';
-  if (!prompt) { showToast('⚠️ Enter a subject description'); return; }
+  if (!prompt) { toast('⚠️ Enter a subject description', 'warn'); return; }
   const st = document.getElementById('st-status');
   if (st) st.textContent = 'Applying style…';
   try {
@@ -252,83 +311,91 @@ async function igStyleTransfer() {
         if (urlEl) urlEl.value = j.url;
       }
       if (res) res.style.display = 'block';
-      showToast(`🎨 Style: ${styleId} applied`);
+      toast(`🎨 Style: ${styleId} applied`, 'ok');
     } else {
       if (st) st.textContent = '✗ '+(j.error||'Failed');
     }
   } catch(ex) {
     if (st) st.textContent = '✗ '+ex?.message;
-    showToast('Style transfer error: '+ex?.message);
+    toast('Style transfer error: '+ex?.message, 'err');
   }
 }
 
 async function igEnhancePrompt() {
   const prompt = document.getElementById('img-prompt')?.value?.trim();
-  if (!prompt) { showToast('⚠️ Enter a prompt to enhance'); return; }
-  showToast('✨ Enhancing prompt…');
+  if (!prompt) { toast('⚠️ Enter a prompt to enhance', 'warn'); return; }
+  toast('✨ Enhancing prompt…', 'ok');
   try {
     const r = await fetch('/api/imagegen/enhance-prompt', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({prompt, style: selectedImageStyle})
     });
-    if (!r.ok) { showToast('Enhance failed: HTTP '+r.status); return; }
+    if (!r.ok) { toast('Enhance failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
     if (j.ok && j.enhanced) {
       const inp = document.getElementById('img-prompt');
       if (inp) inp.value = j.enhanced;
-      showToast('✨ Prompt enhanced!');
+      toast('✨ Prompt enhanced!', 'ok');
     } else {
-      showToast('Enhance failed: '+(j.error||'Unknown'));
+      toast('Enhance failed: '+(j.error||'Unknown'), 'err');
     }
   } catch(ex) {
-    showToast('Enhance error: '+ex?.message);
+    toast('Enhance error: '+ex?.message, 'err');
   }
 }
 
 async function igVariations() {
   const prompt = document.getElementById('img-prompt')?.value?.trim();
-  if (!prompt) { showToast('⚠️ Enter a prompt first'); return; }
-  showToast('⊞ Generating 4 variations…');
+  if (!prompt) { toast('⚠️ Enter a prompt first', 'warn'); return; }
+  toast('⊞ Generating 4 variations…', 'ok');
   try {
     const r = await fetch('/api/imagegen/variations', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({prompt, count: 4, size: '512x512'})
     });
-    if (!r.ok) { showToast('Variations failed: HTTP '+r.status); return; }
+    if (!r.ok) { toast('Variations failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
-    if (!j.ok) { showToast('Variations failed: '+(j.error||'Unknown')); return; }
+    if (!j.ok) { toast('Variations failed: '+(j.error||'Unknown'), 'err'); return; }
+
+    const variations = (j.variations || []).map(v => ({
+      src: v.svg ? URL.createObjectURL(new Blob([v.svg], {type:'image/svg+xml'})) : (v.url || ''),
+      modifier: v.modifier || '',
+    }));
+
     // Show variations in a modal
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-    const variants = (j.variations||[]).map((v,i) => {
-      const src = v.svg
-        ? URL.createObjectURL(new Blob([v.svg], {type:'image/svg+xml'}))
-        : (v.url || '');
-      return `<div style="cursor:pointer;border:2px solid var(--border);border-radius:8px;overflow:hidden" onclick="igSelectVariation(${JSON.stringify(src)},this)">
-        <img src="${escHtml(src)}" style="width:100%;height:140px;object-fit:cover">
-        <div style="font-size:10px;color:var(--text-3);padding:4px 6px">${escHtml(v.modifier||'')}</div>
-      </div>`;
-    }).join('');
+    const variantsHtml = variations.map((v, i) =>
+      `<div data-variation-idx="${i}" style="cursor:pointer;border:2px solid var(--border);border-radius:8px;overflow:hidden">
+        <img src="${escHtml(v.src)}" style="width:100%;height:140px;object-fit:cover">
+        <div style="font-size:10px;color:var(--text-3);padding:4px 6px">${escHtml(v.modifier)}</div>
+      </div>`
+    ).join('');
     overlay.innerHTML = `
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:520px;width:100%;padding:20px">
         <div style="display:flex;justify-content:space-between;margin-bottom:12px">
           <h3 style="margin:0;color:var(--text-0)">⊞ Variations (${j.count})</h3>
-          <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button type="button" data-modal-close style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px" id="var-grid">${variants}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px" id="var-grid">${variantsHtml}</div>
         <div style="display:flex;justify-content:flex-end">
-          <button onclick="this.closest('[style*=fixed]').remove()" class="btn-sm">Close</button>
+          <button type="button" data-modal-close class="btn-sm">Close</button>
         </div>
       </div>`;
-    overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay || e.target.closest('[data-modal-close]')) { overlay.remove(); return; }
+      const cell = e.target.closest('[data-variation-idx]');
+      if (cell) igSelectVariation(variations[Number(cell.dataset.variationIdx)]?.src, cell);
+    });
     document.body.appendChild(overlay);
-    showToast(`✅ ${j.count} variations generated`);
+    toast(`✅ ${j.count} variations generated`, 'ok');
   } catch(ex) {
-    showToast('Variations error: '+ex?.message);
+    toast('Variations error: '+ex?.message, 'err');
   }
 }
 
 function igSelectVariation(src, el) {
+  if (!src) return;
   const prev  = document.getElementById('img-preview');
   const urlEl = document.getElementById('img-url');
   const res   = document.getElementById('img-result');
@@ -337,25 +404,25 @@ function igSelectVariation(src, el) {
   if (res)   res.style.display = 'block';
   document.querySelectorAll('#var-grid > div').forEach(d => d.style.borderColor = 'var(--border)');
   if (el) el.style.borderColor = 'var(--accent)';
-  showToast('✅ Variation selected');
+  toast('✅ Variation selected', 'ok');
 }
 
 function downloadImage() {
   const u = document.getElementById('img-url')?.value;
-  if (!u) { showToast('⚠️ No image to download'); return; }
+  if (!u) { toast('⚠️ No image to download', 'warn'); return; }
   const prompt = document.getElementById('img-prompt')?.value?.trim() || 'image';
   const fname  = prompt.split(' ').slice(0,4).join('-').toLowerCase().replace(/[^a-z0-9-]/g,'') || 'image';
   const a = document.createElement('a');
   a.href = u;
   a.download = fname + (u.includes('svg') ? '.svg' : '.png');
   a.click();
-  showToast('⬇ Downloading…');
+  toast('⬇ Downloading…', 'ok');
 }
 
 async function igSaveToGallery() {
   const src = document.getElementById('img-url')?.value;
   const prompt = document.getElementById('img-prompt')?.value?.trim() || 'image';
-  if (!src) { showToast('⚠️ No image to save'); return; }
+  if (!src) { toast('⚠️ No image to save', 'warn'); return; }
   // If it's a blob URL (SVG placeholder), download and re-upload
   const fname = prompt.split(' ').slice(0,4).join('_').toLowerCase().replace(/[^a-z0-9_]/g,'') || 'image';
   try {
@@ -365,12 +432,12 @@ async function igSaveToGallery() {
     const fd   = new FormData();
     fd.append('file', blob, fname + ext);
     const r = await fetch('/api/imagegen/gallery/upload', {method:'POST', body:fd});
-    if (!r.ok) { showToast('Save failed: HTTP '+r.status); return; }
+    if (!r.ok) { toast('Save failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
-    if (j.ok) { showToast('💾 Saved to gallery: '+j.name); }
-    else showToast('Save failed: '+(j.error||'Unknown'));
+    if (j.ok) { toast('💾 Saved to gallery: '+j.name, 'ok'); }
+    else toast('Save failed: '+(j.error||'Unknown'), 'err');
   } catch(ex) {
-    showToast('Save error: '+ex?.message);
+    toast('Save error: '+ex?.message, 'err');
   }
 }
 
@@ -379,18 +446,18 @@ async function igDeleteImage(filename) {
   if (!ok) return;
   try {
     const r = await fetch(`/api/imagegen/gallery/${encodeURIComponent(filename)}`, {method:'DELETE'});
-    if (!r.ok) { showToast('Delete failed: HTTP '+r.status); return; }
+    if (!r.ok) { toast('Delete failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
-    if (j.ok) { showToast('🗑 Deleted'); renderImageGen(); }
-    else showToast('Delete failed: '+(j.error||'Unknown'));
+    if (j.ok) { toast('🗑 Deleted', 'ok'); renderImageGen(); }
+    else toast('Delete failed: '+(j.error||'Unknown'), 'err');
   } catch(ex) {
-    showToast('Delete error: '+ex?.message);
+    toast('Delete error: '+ex?.message, 'err');
   }
 }
 
 function insertImageIntoCode() {
   const u = document.getElementById('img-url')?.value;
-  if (!u) { showToast('⚠️ No image to insert'); return; }
+  if (!u) { toast('⚠️ No image to insert', 'warn'); return; }
   const alt = (document.getElementById('img-prompt')?.value||'AI Generated').slice(0,60);
   nav('studio');
   setTimeout(() => {
@@ -398,9 +465,9 @@ function insertImageIntoCode() {
     if (window.Studio?.editor) {
       const sel = Studio.editor.getSelection();
       Studio.editor.executeEdits('img', [{range:sel, text:tag}]);
-      showToast('→ Inserted into editor');
+      toast('→ Inserted into editor', 'ok');
     } else {
-      navigator.clipboard.writeText(tag).then(() => showToast('📋 Copied img tag'));
+      navigator.clipboard.writeText(tag).then(() => toast('📋 Copied img tag', 'ok'));
     }
   }, 500);
 }
@@ -412,7 +479,7 @@ function selectGalleryImage(url, name) {
   if (p) p.src  = url;
   if (u) u.value = url;
   if (r) r.style.display = 'block';
-  showToast(`🖼️ ${name}`);
+  toast(`🖼️ ${name}`, 'ok');
 }
 
 function igUpload() {
@@ -424,18 +491,16 @@ function igUpload() {
     if (!file) return;
     const fd = new FormData();
     fd.append('file', file);
-    showToast('⬆ Uploading…');
+    toast('⬆ Uploading…', 'ok');
     try {
       const r = await fetch('/api/imagegen/gallery/upload', {method:'POST', body:fd});
-      if (!r.ok) { showToast('Upload failed: HTTP '+r.status); return; }
+      if (!r.ok) { toast('Upload failed: HTTP '+r.status, 'err'); return; }
       const j = await r.json();
-      if (j.ok) { showToast(`✅ Uploaded: ${j.name}`); renderImageGen(); }
-      else showToast('Upload failed: '+(j.error||'Unknown'));
+      if (j.ok) { toast(`✅ Uploaded: ${j.name}`, 'ok'); renderImageGen(); }
+      else toast('Upload failed: '+(j.error||'Unknown'), 'err');
     } catch(ex) {
-      showToast('Upload error: '+ex?.message);
+      toast('Upload error: '+ex?.message, 'err');
     }
   };
   inp.click();
 }
-
-
