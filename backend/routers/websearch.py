@@ -394,7 +394,26 @@ async def grounded_stream(req: Request):
             max_tokens=2000,
             inject_steering=False,
         ):
-            yield f'data: {json.dumps({"type": "chunk", "text": chunk})}\n\n'
+            # BUG FIX: llm_svc.stream() yields fully-formatted SSE lines
+            # ('data: {"delta": ..., "done": ...}\n\n'), not raw text
+            # chunks -- confirmed by every other correct caller of
+            # llm_svc.stream() in this codebase (e.g. bugbot.py, chat.py),
+            # which all parse out the `delta` field before re-emitting.
+            # This endpoint instead re-wrapped the ENTIRE raw SSE string as
+            # {"type": "chunk", "text": chunk}, so the frontend displayed
+            # literal `data: {"delta": "...", "done": false}` JSON text
+            # instead of the actual answer — reproduced live (grounded
+            # streaming showed raw SSE frames verbatim in the UI). Extract
+            # the real text delta before re-emitting, same pattern as
+            # bugbot.py's _stream().
+            delta = ''
+            try:
+                if chunk.startswith('data:'):
+                    delta = json.loads(chunk[5:].strip()).get('delta', '')
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+                pass
+            if delta:
+                yield f'data: {json.dumps({"type": "chunk", "text": delta})}\n\n'
 
         yield f'data: {json.dumps({"type": "done", "citations": citations})}\n\n'
 
@@ -489,7 +508,17 @@ async def deep_research(req: Request):
             max_tokens=3000,
             inject_steering=False,
         ):
-            yield f'data: {json.dumps({"type": "chunk", "text": chunk})}\n\n'
+            # BUG FIX: same issue as grounded_stream() above -- extract the
+            # real text delta from the raw SSE line instead of re-emitting
+            # the entire unparsed 'data: {...}\n\n' string as the "text".
+            delta = ''
+            try:
+                if chunk.startswith('data:'):
+                    delta = json.loads(chunk[5:].strip()).get('delta', '')
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+                pass
+            if delta:
+                yield f'data: {json.dumps({"type": "chunk", "text": delta})}\n\n'
 
         citations = [{'num': i + 1, 'title': s['title'], 'url': s['url']} for i, s in enumerate(unique_sources[:15])]
         yield f'data: {json.dumps({"type": "done", "citations": citations, "source_count": len(unique_sources)})}\n\n'
