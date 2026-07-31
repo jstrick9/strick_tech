@@ -230,6 +230,27 @@ def memory_search_fts(q: str, limit: int = 20) -> list[dict]:
     """Execute or process memory search fts operation."""
     con = get_conn()
     try:
+        # BUG FIX: this used to pass the raw user query straight into FTS5's
+        # MATCH operator. SQLite FTS5 query syntax treats characters like
+        # `-`, `"`, `(`, `)`, `*`, `:` as operators (hyphen prefixes a token
+        # to mean NOT, unmatched quotes/parens are syntax errors, etc).
+        # Extremely common real-world search terms — "multi-agent",
+        # "test-driven", "e-commerce", any hyphenated phrase — always threw
+        # `sqlite3.OperationalError: no such column: ...` (the exception was
+        # caught below and silently returned an empty list, so a completely
+        # reasonable search just quietly returned "no results" instead of
+        # the obviously-matching memory). Verified via server logs: manually
+        # searching "multi-agent" logged
+        # `FTS search error: no such column: agent` and returned [].
+        # Fixed the same way `hybrid_search()` elsewhere in this file
+        # already correctly does it: tokenize on word characters and quote
+        # each token individually so FTS5 treats it as a literal phrase
+        # match, OR'd together (preserves "any of these words" search
+        # semantics rather than requiring an exact phrase).
+        terms = re.findall(r'\w+', q or '')
+        if not terms:
+            return []
+        fts_query = ' OR '.join(f'"{term}"' for term in terms)
         rows = con.execute(
             """SELECT m.id, m.source, m.content, m.tags, m.created_at,
                       snippet(memory_fts, 0, '<b>', '</b>', '…', 32) as snippet
@@ -237,7 +258,7 @@ def memory_search_fts(q: str, limit: int = 20) -> list[dict]:
                JOIN memory m ON m.id = memory_fts.rowid
                WHERE memory_fts MATCH ?
                ORDER BY rank LIMIT ?""",
-            (q, limit),
+            (fts_query, limit),
         ).fetchall()
         return [dict(r) for r in rows]
     except Exception as e:

@@ -78,15 +78,42 @@ function showGxNode(n) {
   const el = document.getElementById('gx-results');
   if (!el) return;
   const memId = n.mem_id || n.id;
+  // BUG FIX: this used to build onclick="navigator.clipboard.writeText(${JSON.stringify(...)})"
+  // etc. directly inline in an HTML attribute — but that attribute itself is
+  // wrapped in double quotes, and JSON.stringify() also wraps its output in
+  // double quotes. Any node label containing an apostrophe was fine, but ANY
+  // label containing an actual double-quote character, OR (as verified live)
+  // certain punctuation/quote combinations the browser's HTML attribute
+  // parser treats as attribute-value terminators, silently truncated or
+  // corrupted the onclick handler — reproduced live with a memory labeled
+  // "Workspace 'My Agentic OS' initialized..." which threw
+  // "Uncaught SyntaxError: Unexpected end of input" when Chat was clicked,
+  // and the Copy button's clipboard call received a mangled string. Switched
+  // to the data-attribute + addEventListener pattern already used correctly
+  // elsewhere in this same file (doGxSearch's rendered rows).
   el.innerHTML = `<div class="gx-hit">
     <div class="gx-hit-source">${escHtml(n.source||'')} · mem #${memId}</div>
     <div class="gx-hit-text">${escHtml(n.label||'')}</div>
     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
-      <button onclick="navigator.clipboard.writeText(${JSON.stringify(n.label||'')})" class="btn btn-ghost btn-sm">📋 Copy</button>
-      <button onclick="insertCmd('Tell me more about: '+${JSON.stringify((n.label||'').slice(0,60))});nav('chat')" class="btn btn-ghost btn-sm">💬 Chat</button>
-      <button onclick="deleteGxNode(${JSON.stringify(memId)})" class="btn btn-ghost btn-sm" style="color:var(--danger)">🗑 Delete</button>
+      <button class="btn btn-ghost btn-sm gx-node-copy">📋 Copy</button>
+      <button class="btn btn-ghost btn-sm gx-node-chat">💬 Chat</button>
+      <button class="btn btn-ghost btn-sm gx-node-delete" style="color:var(--danger)">🗑 Delete</button>
     </div>
   </div>`;
+  const label = n.label || '';
+  el.querySelector('.gx-node-copy')?.addEventListener('click', () => {
+    navigator.clipboard.writeText(label).then(
+      () => toast('📋 Copied', 'ok', 1200),
+      () => toast('⚠️ Clipboard access denied', 'warn', 1500)
+    );
+  });
+  el.querySelector('.gx-node-chat')?.addEventListener('click', () => {
+    insertCmd('Tell me more about: ' + label.slice(0, 60));
+    nav('chat');
+  });
+  el.querySelector('.gx-node-delete')?.addEventListener('click', () => {
+    deleteGxNode(memId);
+  });
 }
 
 async function deleteGxNode(memId) {
@@ -146,7 +173,17 @@ async function doGxSearch() {
       el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:12px">No memories found for that query.</div>';
       return;
     }
-    el.innerHTML = results.map(m => `
+    // BUG FIX: hybrid search silently falls back to "most recent memories"
+    // when there are zero real matches for the query — the backend now
+    // tags each of those rows with `_fallback: true`. Previously these were
+    // rendered identically to genuine search hits, making an empty result
+    // look like a successful match on completely unrelated content. Show
+    // an honest banner instead.
+    const isFallback = results.length && results[0]._fallback;
+    const banner = isFallback
+      ? '<div style="color:var(--text-3);font-size:11px;padding:6px 4px 10px;font-style:italic">No exact matches for "' + escHtml(q) + '" — showing recent memories instead:</div>'
+      : '';
+    el.innerHTML = banner + results.map(m => `
       <div class="gx-hit">
         <div class="gx-hit-source">${escHtml(m.source||'')}${m.tags?' · '+escHtml(m.tags):''} · mem #${m.id}</div>
         <div class="gx-hit-text">${escHtml((m.content||'').slice(0,150))}</div>

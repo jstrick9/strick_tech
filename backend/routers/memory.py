@@ -57,9 +57,21 @@ def search(q: str = '', mode: str = 'hybrid', limit: int = 20, source: str = '')
     fts_results = memory_search_fts(q, limit=limit)
     if source:
         fts_results = [r for r in fts_results if r.get('source') == source]
-    # fallback: if no FTS hits, return recent
+    # BUG FIX: when a hybrid search found ZERO real FTS matches, this
+    # silently fell back to returning the most recent N memories with no
+    # relation to the query at all — and no signal to the caller that these
+    # aren't real matches. A user searching for e.g. "quantum computing"
+    # (with nothing relevant stored) would see a list of totally unrelated
+    # recent memories rendered exactly like real search hits, making it look
+    # like their search worked and matched that content. Now each fallback
+    # row is tagged `_fallback: true` so the frontend can render an honest
+    # "no exact matches — showing recent memories instead" state rather than
+    # presenting them as real results.
     if not fts_results:
-        return memory_list(limit=limit, source=source)
+        recent = memory_list(limit=limit, source=source)
+        for r in recent:
+            r['_fallback'] = True
+        return recent
     return fts_results
 
 
