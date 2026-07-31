@@ -358,17 +358,13 @@ function ensurePaneRendered(pane) {
 })();
 
 
-// ── API key health indicator ─────────────────────────────────────
-(function checkApiKeyHealth() {
-  const keyDot  = document.getElementById('key-dot');
-  const keyLabel = document.getElementById('key-label');
-  fetch('/api/secrets/get?key=OPENROUTER_API_KEY').then(r=>r.ok?r.json().catch(()=>{}):{}).then(j=>{
-    const hasKey = j.ok && j.fingerprint;
-    if (keyDot) keyDot.className = hasKey ? 'key-dot ok' : 'key-dot';
-    if (keyLabel) keyLabel.textContent = hasKey ? 'API key set ✓' : 'No API key';
-    // Also update the model badge visibility
-    const badge = document.getElementById('active-model-badge');
-    if (badge && !hasKey) badge.style.opacity = '0.4';
-  }).catch(()=>{});
-})();
+// BUG FIX / DEAD CODE REMOVAL: this IIFE targeted `#key-dot`/`#key-label`,
+// two DOM ids that do not exist anywhere in index.html (removed in a past
+// redesign). Its `if (keyDot)`/`if (keyLabel)` guards meant it never
+// crashed, but it was a complete no-op every time it ran — and it fully
+// duplicated the real key-status check already performed correctly on
+// startup by `checkKeyStatus()`/`updateKeyStatus()` in 01-app-core.js
+// (which targets the real `#sb-key-label` sidebar element). Removed rather
+// than fixed-in-place to avoid two independent implementations of the same
+// "is there an API key" check drifting out of sync again.
 

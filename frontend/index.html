@@ -2723,7 +2723,19 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <div id="vault-audit-result" style="font-size:12px;color:var(--text-2);margin-top:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--border);display:none;font-family:monospace"></div>
               </div>
             </div>
-            </div>
+            <!-- BUG FIX: there was an extra stray </div> here that closed
+                 .settings-content-area right after Tab 1 (API) instead of
+                 after all 6 tabs. That made Tabs 2-6 (Appearance, Layout,
+                 Agents, Ollama, System) render as SIBLINGS of
+                 .settings-content-area instead of its children, breaking
+                 the flex layout for the entire Settings pane — several
+                 elements (e.g. #settings-api-ollama-models) collapsed to
+                 ~0px width with all their content stacked into an
+                 unreadable single-character-wide column. Verified live via
+                 getBoundingClientRect() before/after: settings-tab-pane
+                 elements had width:0 and were direct children of
+                 .settings-workstation instead of .settings-content-area
+                 before this fix. -->
 
             <!-- TAB 2: Theme & Visual Aesthetics -->
             <div id="settings-tab-appearance" class="settings-tab-pane">

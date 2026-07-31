@@ -161,6 +161,35 @@ html, body {
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
 }
 
+/* High Contrast Theme Overrides (WCAG AAA) — Settings > Theme & Aesthetics
+   BUG FIX: these rules previously only existed in styles.css, a legacy
+   file that is NOT linked from index.html (only styles-unified.css and
+   styles-redesign.css are actually loaded). toggleHighContrastTheme()
+   (13-ui-ergonomics.js) correctly toggled the `body.theme-high-contrast`
+   class and persisted the preference to localStorage, but with no
+   matching CSS rule anywhere in a loaded stylesheet, clicking "Toggle
+   High Contrast" in Settings > Theme had zero visible effect — it just
+   showed a toast claiming the WCAG AAA theme was now active while nothing
+   on screen changed. Ported the rules here so the feature actually works. */
+body.theme-high-contrast {
+  --bg-base: #000000;
+  --bg-0: #040508;
+  --bg-1: #0a0c14;
+  --bg-2: #141726;
+  --border: rgba(255,255,255,.4);
+  --border-hi: rgba(255,255,255,.7);
+  --text-0: #ffffff;
+  --text-1: #f1f5f9;
+  --text-2: #cbd5e1;
+}
+body.theme-high-contrast .btn,
+body.theme-high-contrast button {
+  border: 1.5px solid var(--accent-hi) !important;
+}
+body.theme-high-contrast a {
+  text-decoration: underline !important;
+}
+
 /* ═══════════════════════════════════════════════════════════
    TYPOGRAPHY — Purposeful, expressive
    ═══════════════════════════════════════════════════════════ */

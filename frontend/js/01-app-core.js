@@ -1510,25 +1510,39 @@ window.quickPullSelectedOllamaModel = function() {
 };
 
 window.pullOllamaModel = async function(modelName) {
-  const modelsEl = document.getElementById('settings-api-ollama-models') || document.getElementById('ollama-models');
+  // BUG FIX: this always preferred `#settings-api-ollama-models` (the
+  // Connect AI tab's status box) over `#ollama-models` (the dedicated
+  // Local Ollama Server tab's own status box), REGARDLESS of which tab's
+  // "Pull" button was actually clicked. Since Settings only shows one tab
+  // at a time, clicking "⚡ Pull llama3.1:8b" from the visible Ollama tab
+  // silently wrote its progress/result into a currently-hidden element on
+  // a different tab — the user saw zero feedback (confirmed live: the
+  // visible `#ollama-models` box stayed permanently empty while the
+  // hidden `#settings-api-ollama-models` box on the other tab received the
+  // real status text). Now updates BOTH status boxes together (they
+  // represent the same underlying pull operation, so keeping them in sync
+  // is correct regardless of which tab initiated it or which tab the user
+  // is looking at when it finishes).
+  const modelsEls = [document.getElementById('settings-api-ollama-models'), document.getElementById('ollama-models')].filter(Boolean);
   const urlInp = document.getElementById('settings-api-ollama-url') || document.getElementById('ollama-url-input');
   const url = urlInp ? urlInp.value.trim() : 'http://localhost:11434';
+  const setModelsHtml = (html) => modelsEls.forEach(el => { el.innerHTML = html; });
   toast(`⚡ Triggering model pull for ${modelName}... Check Ollama local server`, 'ok', 4000);
-  if (modelsEl) modelsEl.innerHTML = `<div style="color:var(--accent);font-weight:700">⏳ Pulling model '${escHtml(modelName)}' via Ollama API (` + '`http://localhost:11434/api/pull`' + `)...</div>`;
+  setModelsHtml(`<div style="color:var(--accent);font-weight:700">⏳ Pulling model '${escHtml(modelName)}' via Ollama API (` + '`http://localhost:11434/api/pull`' + `)...</div>`);
   try {
     const r = await fetch(url + '/api/pull', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({name: modelName, stream: false})
     });
     if (r.ok) {
-      if (modelsEl) modelsEl.innerHTML = `<div style="color:var(--success);font-weight:700">✅ Model '${escHtml(modelName)}' downloaded and ready locally on Apple Silicon!</div>`;
+      setModelsHtml(`<div style="color:var(--success);font-weight:700">✅ Model '${escHtml(modelName)}' downloaded and ready locally on Apple Silicon!</div>`);
       toast(`✅ Model ${modelName} ready!`, 'ok', 4000);
       if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
     } else {
-      if (modelsEl) modelsEl.innerHTML = `<div style="color:var(--warning);font-weight:700">⚠️ Ollama pull requested (${escHtml(modelName)}). If CORS blocked direct browser call, run: <code style="color:var(--accent)">ollama pull ${escHtml(modelName)}</code> in Terminal.</div>`;
+      setModelsHtml(`<div style="color:var(--warning);font-weight:700">⚠️ Ollama pull requested (${escHtml(modelName)}). If CORS blocked direct browser call, run: <code style="color:var(--accent)">ollama pull ${escHtml(modelName)}</code> in Terminal.</div>`);
     }
   } catch(e) {
-    if (modelsEl) modelsEl.innerHTML = `<div style="color:var(--warning);font-weight:700">⚠️ Run <code style="color:var(--accent)">ollama pull ${escHtml(modelName)}</code> inside your macOS Terminal to install offline.</div>`;
+    setModelsHtml(`<div style="color:var(--warning);font-weight:700">⚠️ Run <code style="color:var(--accent)">ollama pull ${escHtml(modelName)}</code> inside your macOS Terminal to install offline.</div>`);
   }
 };
 
@@ -2394,17 +2408,27 @@ async function updateStatusBar() {
 }
 
 function updateKeyStatus(hasKey) {
-  const dot   = document.getElementById('key-dot');
-  const label = document.getElementById('key-label');
+  // BUG FIX: `#key-dot` and `#key-label` do not exist anywhere in
+  // index.html (removed in a past redesign, but this function was never
+  // updated to match) — `dot.className = ...` / `label.textContent = ...`
+  // unconditionally dereferenced null, throwing
+  // `TypeError: Cannot set properties of null (setting 'className')` on
+  // EVERY call to saveApiKey(), removeApiKey(), and checkKeyStatus() (i.e.
+  // on every page load, since checkKeyStatus runs on startup). This was a
+  // silent unhandled promise rejection — the surrounding code still mostly
+  // worked because the crash happened after the important vault/badge
+  // updates ran, but it aborted the rest of updateKeyStatus() including the
+  // sidebar status indicator and the chat empty-state banner toggle below.
+  // The real sidebar key-status element (`#sb-key` / its child
+  // `#sb-key-label`) already existed and is now the only status target.
+  const sbKeyLabel = document.getElementById('sb-key-label');
   const sbKey = document.getElementById('sb-key');
   if (hasKey) {
-    dot.className  = 'key-dot ok';
-    label.textContent = 'API key set';
-    if (sbKey) sbKey.textContent = '🔑 Key set';
+    if (sbKeyLabel) sbKeyLabel.textContent = 'Key set';
+    if (sbKey) sbKey.title = 'AI connection status — API key configured';
   } else {
-    dot.className  = 'key-dot';
-    label.textContent = 'No API key';
-    if (sbKey) sbKey.textContent = '🔑 No key';
+    if (sbKeyLabel) sbKeyLabel.textContent = 'No key';
+    if (sbKey) sbKey.title = 'AI connection status — no API key configured';
   }
   // Update chat empty state banner
   const banner = document.getElementById('chat-key-banner');
