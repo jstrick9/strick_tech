@@ -69,6 +69,29 @@ async def _gh_patch(path: str, body: dict) -> dict:
         return r.json()
 
 
+def _valid_repo_name(repo_name: str) -> bool:
+    """
+    Validate a client-supplied "owner/repo" string before interpolating it
+    into a GitHub API URL path. Without this, a value like "../admin" or
+    "a/../../b" gets silently path-normalized by httpx's URL joining (e.g.
+    "/repos/../admin/settings/contents/x" resolves to
+    "/admin/settings/contents/x"), which could misroute a request to an
+    unintended api.github.com endpoint using the user's own token. This is
+    low-severity here (single-user local app, same host, user's own
+    credentials — no cross-tenant risk), but rejecting malformed repo
+    identifiers up front is cheap, correct, and matches GitHub's own
+    owner/repo naming rules (alphanumeric plus - . _, no leading dot,
+    exactly one "/").
+    """
+    import re as _re
+
+    if not repo_name or repo_name.count('/') != 1:
+        return False
+    owner, _, name = repo_name.partition('/')
+    pattern = r'^[A-Za-z0-9](?:[A-Za-z0-9._-]{0,99})$'
+    return bool(_re.match(pattern, owner)) and bool(_re.match(pattern, name))
+
+
 # ── Status ─────────────────────────────────────────────────────────────────────
 @router.get('/status')
 async def github_status():
@@ -225,6 +248,8 @@ async def push_to_github(req: Request):
         return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
     if not repo_name:
         return {'ok': False, 'error': 'repo required (e.g. username/repo-name)'}
+    if not _valid_repo_name(repo_name):
+        return {'ok': False, 'error': 'Invalid repo format — expected "owner/repo-name"'}
 
     source_dir = (ROOT / directory if directory != 'preview' else ROOT / 'preview').resolve()
     # Security: ensure source_dir is within ROOT
@@ -309,6 +334,8 @@ async def pull_from_github(req: Request):
         return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
     if not repo_name:
         return {'ok': False, 'error': 'repo required'}
+    if not _valid_repo_name(repo_name):
+        return {'ok': False, 'error': 'Invalid repo format — expected "owner/repo-name"'}
 
     target_dir = ROOT / 'preview' if target == 'preview' else ROOT / target
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -494,6 +521,8 @@ async def deploy_github_pages(req: Request):
         return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
     if not repo_name:
         return {'ok': False, 'error': 'repo required (e.g. username/repo-name)'}
+    if not _valid_repo_name(repo_name):
+        return {'ok': False, 'error': 'Invalid repo format — expected "owner/repo-name"'}
 
     # First push files to gh-pages branch
     push_result = await push_to_github(
@@ -560,6 +589,8 @@ async def sync_with_github(req: Request):
         return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
     if not repo_name:
         return {'ok': False, 'error': 'repo required'}
+    if not _valid_repo_name(repo_name):
+        return {'ok': False, 'error': 'Invalid repo format — expected "owner/repo-name"'}
 
     if direction not in ('push', 'pull', 'both'):
         return {'ok': False, 'error': f"Invalid direction '{direction}'. Use: push, pull, or both"}

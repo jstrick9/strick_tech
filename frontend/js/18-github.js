@@ -24,9 +24,20 @@ async function renderGitHub() {
 function renderGitHubBody(s) {
   const el = document.getElementById('gh-body');
   if (!s.connected) {
+    // s.token_set + s.error means a token IS saved but GitHub rejected it
+    // (bad/expired/revoked credentials, missing scopes, rate limit, or a
+    // network failure) — previously this silently fell back to the exact
+    // same "Connect GitHub" form shown to a user with NO token at all,
+    // giving zero indication that their save actually went through but
+    // the token itself doesn't work. Surface the real reason instead.
+    const errorBanner = (s.token_set && s.error) ? `
+      <div style="background:rgba(232,82,82,.1);border:1px solid var(--danger);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:var(--danger)">
+        ⚠️ A GitHub token is saved, but the connection failed: ${escHtml(s.error)}
+      </div>` : '';
     el.innerHTML = `
     <div class="settings-card">
       <h3>🔑 Connect GitHub</h3>
+      ${errorBanner}
       <p>A GitHub token unlocks: repo create, push/pull code, branch management, PRs, and GitHub Pages deploy.</p>
       <div style="background:var(--bg-1);border-radius:var(--radius-sm);padding:14px;font-size:13px;line-height:1.9;margin-bottom:16px">
         ${(s.setup?.steps||[]).map(step => `<div>${escHtml(step)}</div>`).join('')}
@@ -81,7 +92,7 @@ function renderGitHubBody(s) {
       </div>` : ''}
       <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px">Recent Repos</div>
       <div style="display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto">
-        ${(s.recent_repos||[]).map(r => `
+        ${(s.recent_repos||[]).length ? (s.recent_repos||[]).map(r => `
           <div onclick="ghSetRepo('${escHtml(r.full_name)}')"
                style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition)"
                onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
@@ -90,7 +101,7 @@ function renderGitHubBody(s) {
               <div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(r.name)}</div>
               <div style="font-size:10.5px;color:var(--text-3)">${r.default_branch} · ${r.updated_at}</div>
             </div>
-          </div>`).join('')}
+          </div>`).join('') : '<div style="color:var(--text-3);font-size:11.5px;padding:6px">No repositories yet — create one above.</div>'}
       </div>
     </div>
   </div>
@@ -122,7 +133,18 @@ async function saveGHToken() {
     });
     if (!r.ok) { toast('Server error ' + r.status, 'err'); return; }
     const j = await r.json();
-    if (j.ok) { toast('🐙 GitHub token saved! Reload to activate.', 'ok', 4000); }
+    if (j.ok) {
+      // /api/secrets/set injects the token into os.environ synchronously in
+      // the same request (backend/routers/secrets.py), so GITHUB_TOKEN is
+      // live immediately — no process restart/page reload is actually
+      // needed. Re-render right away and check whether GitHub actually
+      // accepted the token (renderGitHub() re-fetches /api/github/status,
+      // whose result — including any bad-credentials error — is what
+      // renderGitHubBody() displays) rather than presuming success.
+      toast('🔐 Token saved — checking connection…', 'ok', 2000);
+      await renderGitHub();
+      toast(ghStatus?.connected ? '✅ GitHub connected!' : '⚠️ Token saved, but GitHub rejected it — see details below', ghStatus?.connected ? 'ok' : 'warn', 4000);
+    }
     else toast('Failed: ' + (j.error||''), 'err');
   } catch(ex) { toast('Save failed: ' + ex.message, 'err'); }
 }
@@ -265,7 +287,7 @@ async function showGHPR() {
     const j = await r.json();
     if (j.ok) {
       toast(`🔀 PR #${j.number} created!`, 'ok', 4000);
-      window.open(j.url, '_blank');
+      window.openExternalLink(j.url);
     } else toast('PR failed: ' + (j.error||''), 'err');
   } catch(ex) { toast('PR error: ' + ex.message, 'err'); }
 }
