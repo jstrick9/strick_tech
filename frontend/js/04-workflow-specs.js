@@ -1753,7 +1753,7 @@ function updateNextActionBar(pane) {
       'integrations','imagegen','prompts','codesearch','workflow','profiler','pluginsdk',
       'multitab','replay','collabedit','marketplace','specs','hooks','codeindex','arena',
       'bugbot','health','gitai','ambient','fusion','hitl','browser','websearch',
-      'leaderboard','voice','pipeline',
+      'leaderboard','voice','pipeline','skills',
     ]);
 
     if (gatedPanes.has(pane) && _UI.loaded) {
