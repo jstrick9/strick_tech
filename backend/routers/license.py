@@ -113,7 +113,11 @@ PANE_TIERS: dict[str, str] = {
     'dashboard': 'free',
     # Pro features
     'studio': 'pro',
-    'builder': 'pro',
+    # MODULE MERGE: 'builder' (Code Editor) retired and folded into
+    # 'studio' — nav('builder') redirects to nav('studio') in
+    # 01-app-core.js, so the pane id can no longer be reached directly.
+    # Any stale caller of GET /api/license/pane-access/builder still gets a
+    # safe 'pro' answer via this dict's .get(pane, 'pro') default below.
     'swarm': 'pro',
     'galaxy': 'pro',
     # BUG FIX / consolidation: 'hierarchy' (AI Operating Manual) was missing

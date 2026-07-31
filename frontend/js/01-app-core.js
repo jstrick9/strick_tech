@@ -143,7 +143,7 @@ window.initSidebarGroups = function() {
 // 'hierarchy' as a tab — see the module-merge redirect in window.nav above).
 window.PANE_TO_GROUP = {
   'chat':'core', 'studio':'core', 'templates':'core', 'galaxy':'core', 'kanban':'core', 'settings':'core',
-  'swarm':'build', 'hierarchy':'build', 'builder':'build', 'websearch':'build', 'browser':'build', 'imagegen':'build', 'prompts':'build', 'docs':'build', 'terminal':'build', 'skills':'build',
+  'swarm':'build', 'hierarchy':'build', 'websearch':'build', 'browser':'build', 'imagegen':'build', 'prompts':'build', 'docs':'build', 'terminal':'build', 'skills':'build',
   'composer':'ship', 'pipeline':'ship', 'workflow':'ship', 'github':'ship', 'deploy':'ship', 'specs':'ship', 'dbstudio':'ship', 'workspaces':'ship', 'plugins':'ship',
   'supervisor':'tools', 'goals':'tools', 'connectors':'tools', 'mcp':'tools', 'mcp-gateway':'tools', 'a2a':'tools', 'agent-identity':'tools', 'hitl':'tools', 'fusion':'tools', 'arena':'tools', 'loops':'tools', 'replay':'tools', 'collabedit':'tools',
   'dashboard':'enterprise', 'audit-log':'enterprise', 'leaderboard':'enterprise', 'agent-monitor':'enterprise', 'finops':'enterprise', 'eval-framework':'enterprise', 'observability':'enterprise', 'evals':'enterprise', 'health':'enterprise', 'profiler':'enterprise', 'secrets':'enterprise', 'pqc':'enterprise', 'obsidian':'enterprise', 'webhooks':'enterprise', 'integrations':'enterprise', 'knowledge-graph':'enterprise', 'rag':'enterprise', 'hooks':'enterprise', 'codeindex':'enterprise', 'codesearch':'enterprise', 'gitai':'enterprise', 'bugbot':'enterprise', 'testgen':'enterprise', 'marketplace':'enterprise', 'pluginsdk':'enterprise', 'multitab':'enterprise', 'control':'enterprise', 'system':'enterprise', 'ambient':'enterprise', 'finetune':'enterprise'
@@ -206,6 +206,23 @@ window.nav = function(pane) {
   if (pane === 'steering') {
     window.nav('hierarchy');
     setTimeout(() => { if (typeof window.switchHierarchyTab === 'function') window.switchHierarchyTab('guidelines'); }, 50);
+    return;
+  }
+  // MODULE MERGE: the standalone "Code Editor" (Builder) pane was retired
+  // and folded into Code Studio, which already provided ~95% of the same
+  // functionality (its own Monaco editor, file tree, live preview, and
+  // version history) plus more (AI chat sidebar, device frames, HMR
+  // console). Builder's only unique capability -- a side-by-side diff
+  // against a historical file version -- was ported into Studio's version
+  // history popover as a new "⇄" button (see studioDiffAgainstVersion in
+  // this file), reusing Studio's existing AI-diff-review overlay rather
+  // than duplicating a second Monaco diff editor instance. Redirect any
+  // remaining callers of the old pane id (deep links via #/builder, the
+  // ⌘⇧E keyboard shortcut, Swarm's "insert winner" action, command palette
+  // entries, quick actions, etc.) to Code Studio instead of hitting a
+  // dead/nonexistent pane id.
+  if (pane === 'builder') {
+    window.nav('studio');
     return;
   }
   if (window.NavigationState) window.NavigationState.set(pane);
@@ -872,289 +889,17 @@ function renderMarkdown(text) {
   return t;
 }
 
-// ── Builder ───────────────────────────────────────────────────────
-let monacoLoaded = false;
-function initBuilder() {
-  loadFileTree();
-  if (!monacoLoaded) loadMonaco();
-}
-
-function loadMonaco() {
-  if (window.monaco) { setupMonaco(); return; }
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.47.0/min/vs/loader.js';
-  script.onload = () => {
-    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.47.0/min/vs' }});
-    require(['vs/editor/editor.main'], setupMonaco);
-  };
-  document.head.appendChild(script);
-}
-
-function setupMonaco() {
-  monacoLoaded = true;
-  monaco.editor.defineTheme('agentic', {
-    base: 'vs-dark',
-    inherit: true,
-    rules: [
-      { token: '', foreground: 'c9d1d9', background: '08090e' },
-      { token: 'comment', foreground: '6b7ca5', fontStyle: 'italic' },
-      { token: 'keyword', foreground: '7aa4ff' },
-      { token: 'string', foreground: '9ece6a' },
-      { token: 'number', foreground: 'f08850' },
-    ],
-    colors: {
-      'editor.background': '#08090e',
-      'editor.foreground': '#c9d1d9',
-      'editorLineNumber.foreground': '#3d4868',
-      'editorCursor.foreground': '#5b8af8',
-      'editor.selectionBackground': '#1a2e5088',
-      'editorIndentGuide.background': '#1a1f35',
-      'editorLineNumber.activeForeground': '#7a8aaa',
-    }
-  });
-  S.monacoEditor = monaco.editor.create(document.getElementById('monaco-host'), {
-    theme: 'agentic',
-    fontSize: 14,
-    fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace",
-    fontLigatures: true,
-    lineHeight: 22,
-    minimap: { enabled: false },
-    scrollBeyondLastLine: false,
-    wordWrap: 'on',
-    padding: { top: 16 },
-    automaticLayout: true,
-    smoothScrolling: true,
-    cursorBlinking: 'smooth',
-    renderLineHighlight: 'line',
-  });
-  if (S.monacoEditor && typeof S.monacoEditor.onDidChangeCursorPosition === 'function') {
-    S.monacoEditor.onDidChangeCursorPosition(e => {
-      const p = e.position;
-      const cur = document.getElementById('ed-cursor');
-      if (cur) cur.textContent = `Ln ${p.lineNumber}, Col ${p.column}`;
-    });
-  }
-  if (S.monacoEditor && typeof S.monacoEditor.addCommand === 'function' && window.monaco?.KeyMod && window.monaco?.KeyCode) {
-    S.monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveFile);
-  }
-  openFile(S.currentFile);
-}
-
-async function loadFileTree() {
-  try {
-    const files = await AgenticAPI.get('/api/preview/files');
-    const el = document.getElementById('file-tree');
-    if (!el) return;
-    if (!files.length) {
-      el.innerHTML = `<div style="color:var(--text-3);font-size:12px;padding:16px;text-align:center">
-        No files yet. Scaffold a project →</div>`;
-      return;
-    }
-    el.innerHTML = files.map(f => {
-      const ext = f.path.split('.').pop() || 'txt';
-      const name = f.path.split('/').pop();
-      return `<div class="file-row ${f.path===S.currentFile?'active':''}" onclick="openFile('${f.path}')">
-        <span class="file-ext">${ext}</span>
-        <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${f.path}">${name}</span>
-        <span style="font-size:10px;color:var(--text-3)">${formatBytes(f.size)}</span>
-      </div>`;
-    }).join('') + `<div class="new-file-btn" onclick="openNewFileModal()">＋ New file</div>`;
-  } catch(e) { console.warn('File tree failed:', e); }
-}
-
-async function openFile(path) {
-  if (!path || typeof path !== 'string') return;
-  S.currentFile = path;
-  const edFile = document.getElementById('ed-file'); if (edFile) edFile.textContent = path;
-  if (!S.monacoEditor) return;
-  try {
-    const r    = await fetch('/api/preview/read?path=' + encodeURIComponent(path));
-    const text = await r.text();
-    const ext  = path.split('.').pop();
-    const lang = {html:'html',css:'css',js:'javascript',jsx:'javascript',
-                  ts:'typescript',tsx:'typescript',json:'json',md:'markdown',
-                  py:'python',svelte:'html'}[ext] || 'plaintext';
-    const model = monaco.editor.createModel(text, lang);
-    S.monacoEditor.setModel(model);
-    document.getElementById('ed-lang').textContent = lang;
-    // load version count
-    const hr = await fetch('/api/preview/history?path=' + encodeURIComponent(path));
-    const hist = await hr.json();
-    document.getElementById('ed-versions').textContent = `${hist.length} versions`;
-    S.fileVersions = hist;
-    // update diff dropdown
-    const sel = document.getElementById('diff-version-sel');
-    if (sel) {
-      sel.innerHTML = '<option value="">Select version…</option>' +
-        hist.map(v => `<option value="${v.id}">v${v.id} — ${v.ts} — ${v.author}</option>`).join('');
-    }
-    // highlight in file tree
-    document.querySelectorAll('.file-row').forEach(r =>
-      r.classList.toggle('active', r.textContent.trim().startsWith(path.split('/').pop())));
-  } catch(e) { console.warn('openFile error:', e); }
-}
-
-async function saveFile() {
-  if (!S.monacoEditor) { toast('Editor not loaded', 'warn'); return; }
-  const content = S.monacoEditor.getValue();
-  // BUG FIX: two-layer defensive fix (paired with the S.currentFile default
-  // fix in 00-store.js and the backend null-path fix in builder.py). If
-  // S.currentFile is ever falsy for any reason, fall back to 'index.html'
-  // client-side too rather than sending a literal null path. Also now
-  // checks `r.ok` before parsing JSON -- previously a non-2xx response
-  // (e.g. a backend 500) still got piped into `r.json()`, which throws on
-  // the plain-text error body and aborts silently with zero user-visible
-  // feedback (no toast at all, not even the generic failure one below).
-  const path = S.currentFile || 'index.html';
-  let r;
-  try {
-    r = await fetch('/api/preview/save', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ path, content, author: 'user', message: 'save' })
-    });
-  } catch(e) {
-    toast('Could not save — network error: ' + e.message, 'err');
-    return;
-  }
-  if (!r.ok) {
-    toast(`Could not save — server error (${r.status})`, 'err');
-    return;
-  }
-  let j;
-  try { j = await r.json(); } catch(e) { toast('Could not save — invalid server response', 'err'); return; }
-  if (j.ok) {
-    S.currentFile = path;
-    toast(`💾 Saved — ${j.versions} versions`, 'ok', 1500);
-    document.getElementById('ed-versions').textContent = `${j.versions} versions`;
-  } else {
-    toast('Could not save — please try again or check your connection', 'err');
-  }
-}
-
-async function commitFile() {
-  try {
-    const r = await fetch('/api/preview/commit', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ path: S.currentFile, author: 'user', message: 'manual checkpoint' })
-    });
-    const j = await r.json();
-    if (j.ok) toast('📸 Committed v' + j.version_id, 'ok');
-    else toast('Commit failed: ' + (j.error || 'Unknown'), 'err');
-  } catch(e) { toast('Commit error: ' + e.message, 'err'); }
-}
-
-function switchBuilderTab(tab) {
-  document.querySelectorAll('.builder-tab').forEach(t => t.classList.toggle('active', t.dataset.btab === tab));
-  ['editor','preview','diff'].forEach(t => {
-    const el = document.getElementById('btab-' + t);
-    if (el) el.style.display = t === tab ? 'flex' : 'none';
-  });
-  if (tab === 'preview') reloadPreview();
-  if (tab === 'diff') loadDiffVersions();
-}
-
-function reloadPreview() {
-  const frame = document.getElementById('preview-frame');
-  const src   = document.getElementById('preview-target')?.value || '/preview/index.html';
-  frame.src   = src + '?t=' + Date.now();
-}
-
-function openPreviewBlank() {
-  const src = document.getElementById('preview-target')?.value || '/preview/index.html';
-  // BUG FIX: this used a raw `window.open()`, which does nothing (or fails
-  // silently) inside the Tauri desktop app's WebKit webview — exactly the
-  // pattern the app's Tauri-safety rule forbids. Code Studio's equivalent
-  // "open in new tab" button (the ↗ button in its preview toolbar) already
-  // correctly routes through `openExternalLink()`, which tries
-  // `window.__TAURI__.shell.open()` first, then a backend
-  // `/api/system/open-url` fallback, and only falls back to `window.open()`
-  // itself when running in a plain browser tab where it's safe. Builder's
-  // "open preview in new tab" button (↗) had silently drifted out of sync
-  // with Studio's fix and never got the same treatment.
-  openExternalLink(location.origin + src);
-}
-
-async function loadDiffVersions() {
-  try {
-    if (!S.fileVersions.length && S.currentFile) {
-      const r = await fetch('/api/preview/history?path=' + encodeURIComponent(S.currentFile));
-      S.fileVersions = await r.json();
-      const sel = document.getElementById('diff-version-sel');
-      if (sel) {
-        sel.innerHTML = '<option value="">Select version…</option>' +
-          S.fileVersions.map(v => '<option value="' + v.id + '">v' + v.id + ' — ' + v.ts + '</option>').join('');
-      }
-    }
-  } catch(e) { toast('Failed to load versions: ' + e.message, 'err'); }
-}
-
-async function loadDiff() {
-  const vid = document.getElementById('diff-version-sel')?.value;
-  if (!vid) { toast('Select a version first', 'warn'); return; }
-  if (!window.monaco) { toast('Monaco not loaded', 'warn'); return; }
-
-  const [verR, curR] = await Promise.all([
-    fetch('/api/preview/version?id=' + vid),
-    fetch('/api/preview/read?path=' + encodeURIComponent(S.currentFile))
-  ]);
-  const ver = await verR.json();
-  const cur = await curR.text();
-
-  const host = document.getElementById('diff-host');
-  if (S.diffEditor) { S.diffEditor.dispose(); S.diffEditor = null; }
-  S.diffEditor = monaco.editor.createDiffEditor(host, {
-    theme: 'agentic', readOnly: true, automaticLayout: true, renderSideBySide: true,
-  });
-  S.diffEditor.setModel({
-    original: monaco.editor.createModel(ver.content || '', 'html'),
-    modified: monaco.editor.createModel(cur, 'html'),
-  });
-}
-
-async function restoreVersion() {
-  const vid = document.getElementById('diff-version-sel')?.value;
-  if (!vid) { toast('Select a version first', 'warn'); return; }
-  if (!(await gmDanger('Restore Version', 'Overwrite current file with this version? This cannot be undone.', 'Restore'))) return;
-  const r = await fetch('/api/preview/restore', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ version_id: parseInt(vid) })
-  });
-  const j = await r.json();
-  if (j.ok) { toast('↶ Restored!', 'ok'); openFile(S.currentFile); switchBuilderTab('editor'); }
-  else toast('Could not restore — please try again', 'err');
-}
-
-async function openNewFileModal() {
-  // NOTE: this definition is intentionally kept as a no-op passthrough to
-  // the pane-aware implementation registered on `window.openNewFileModal`
-  // further down this file (see the "BUG FIX" comment there) — both Code
-  // Studio's "+" button and the legacy Builder pane's "+" button call the
-  // same bare `openNewFileModal()` global, and since this is a plain
-  // (non-IIFE) script, whichever same-named top-level declaration loads
-  // LAST silently wins for every caller. Keeping only one real
-  // implementation avoids the two definitions drifting out of sync again.
-  return window.openNewFileModal();
-}
-
-async function runScaffold() {
-  const fw     = document.getElementById('scaffold-fw').value;
-  const prompt = document.getElementById('scaffold-prompt').value.trim() || fw;
-  toast('⚡ Scaffolding ' + fw + '…', 'ok');
-  const r = await fetch('/api/preview/scaffold', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ framework: fw, prompt })
-  });
-  const j = await r.json();
-  if (j.ok) {
-    toast(`✅ ${j.message}`, 'ok', 4000);
-    loadFileTree();
-    if (j.files?.length) openFile(j.files[0]);
-  } else {
-    toast('Scaffold failed', 'err');
-  }
-}
+// ── Builder (retired) ────────────────────────────────────────────
+// MODULE MERGE: the standalone "Code Editor" (Builder) pane and all its
+// dedicated functions (initBuilder/loadMonaco/setupMonaco/loadFileTree/
+// openFile/saveFile/commitFile/switchBuilderTab/reloadPreview/
+// openPreviewBlank/loadDiffVersions/loadDiff/restoreVersion/runScaffold)
+// were removed. Builder was ~95% functionally overlapping with Code
+// Studio (own Monaco editor, file tree, live preview, version history);
+// its one unique feature -- a side-by-side diff against a historical
+// file version -- was ported into Studio's version-history popover as
+// the new \u21c4 button (see studioDiffAgainstVersion further down this
+// file). nav('builder') now redirects to nav('studio').
 
 // ── Dedicated 2-Column Settings Workstation & Drag/Drop Engine ──
 window.startConnectionPath = function(path) {
@@ -2193,7 +1938,6 @@ window.syncOpenWebUIConnections = async function() {
 // ── Command Palette ───────────────────────────────────────────────
 const PALETTE_CMDS = [
   {icon:'✨', label:'Chat',           desc:'Open chat & multi-agent swarm', action:()=>nav('chat')},
-  {icon:'⚡', label:'Builder',        desc:'Code editor + preview studio',  action:()=>nav('builder')},
   {icon:'📋', label:'Kanban',         desc:'Task board',                    action:()=>nav('kanban')},
   {icon:'🌀', label:'Swarm',          desc:'Multi-agent orchestration',     action:()=>nav('swarm')},
   {icon:'🌌', label:'Memory Galaxy',  desc:'3D vector memory graph',        action:()=>nav('galaxy')},
@@ -2905,8 +2649,13 @@ async function runAutofix(target = 'web') {
   toast(`🔧 Auto-fix: ${j.status} · ${final}% pass rate · ${j.iterations?.length||0} iters`,
         j.ok ? 'ok' : 'warn', 5000);
   if (j.ok) {
-    // Reload the current file in editor
-    if (S.currentFile) openFile(S.currentFile);
+    // MODULE MERGE: this used to reload the file in the retired standalone
+    // Code Editor (Builder) pane's editor via openFile(S.currentFile).
+    // Reload it in Code Studio's editor instead, if Studio's editor is the
+    // one currently loaded.
+    if (typeof Studio !== 'undefined' && Studio.editor && Studio.currentFile) {
+      studioOpenFile(Studio.currentFile);
+    }
   }
 }
 
@@ -2989,7 +2738,8 @@ nav = function(pane) {
   if (pane === 'system')   renderSystem();
 };
 
-// ── HMR — auto-reload preview when files change ────────────────────
+// ── HMR — flash status-bar indicator when files change (global, runs
+// regardless of which pane is open) ────────────────────────────────
 let hmrSource = null;
 
 function startHMR() {
@@ -3000,13 +2750,14 @@ function startHMR() {
     try {
       const ev = JSON.parse(e.data);
       if (ev.type === 'file_changed') {
-        // Reload preview iframe silently
-        const frame = document.getElementById('preview-frame');
-        if (frame && document.getElementById('pane-builder')?.classList.contains('active')) {
-          const src = frame.src.split('?')[0];
-          frame.src = src + '?t=' + Date.now();
-        }
-        // Flash status indicator
+        // MODULE MERGE: this used to also silently reload the standalone
+        // Code Editor (Builder) pane's #preview-frame iframe when that pane
+        // was active. Builder has been retired and folded into Code
+        // Studio, which already has its own independent HMR handling
+        // (initStudioHMR/studioHmrSource further down this file) driving
+        // its own #studio-preview-iframe — duplicating that here would
+        // double-reload Studio's preview on every file change. This
+        // function now only owns the global status-bar flash.
         const sb = document.getElementById('sb-version');
         if (sb) {
           const orig = sb.textContent;
@@ -3036,22 +2787,15 @@ window.openNewFileModal = async function() {
   const j = await r.json();
   if (j.ok) {
     toast(`✅ Created ${name}`, 'ok');
-    // BUG FIX: this always refreshed/opened the file in the OLD "Code
-    // Editor" (Builder) pane's tree/editor (`loadFileTree()`/`openFile()`),
-    // even when the user clicked "+" from the newer Code Studio pane (whose
-    // file tree lives in `#studio-file-tree` and whose editor state is
-    // `Studio`/`studioLoadFileTree()`/`studioOpenFile()`). Concretely: click
-    // "+" in Studio, create a file — the file WAS created on disk, but
-    // Studio's own file list never refreshed and the new file never opened
-    // in the Studio editor; it silently appeared only in the other pane.
-    // Now routes to whichever pane is actually active.
-    if (document.getElementById('pane-studio')?.classList.contains('active')) {
-      await studioLoadFileTree();
-      studioOpenFile(name);
-    } else {
-      loadFileTree();
-      openFile(name);
-    }
+    // MODULE MERGE: this used to branch between the OLD standalone "Code
+    // Editor" (Builder) pane's tree/editor (loadFileTree()/openFile()) and
+    // Code Studio's own (studioLoadFileTree()/studioOpenFile()), because
+    // both panes had their own separate "+" button. Builder has been
+    // retired and folded into Studio (its only remaining caller is
+    // Studio's own "+" button in the file-tree header), so this always
+    // targets Studio's file tree/editor now.
+    await studioLoadFileTree();
+    studioOpenFile(name);
   }
   else toast('Error: ' + (j.error || ''), 'err');
 };
@@ -3227,13 +2971,6 @@ async function renderSettings() {
   if (typeof loadSettings === 'function') await loadSettings();
 }
 
-// renderBuilder
-async function renderBuilder() {
-  const pane = document.getElementById('pane-builder');
-  if (!pane) return;
-  if (typeof initBuilder === 'function') initBuilder();
-}
-
 // renderGithub (was renderGitHub)
 async function renderGithub() {
   if (typeof renderGitHub === 'function') await renderGitHub();
@@ -3257,7 +2994,6 @@ function _disabled__s9NavBase(pane) {
   const map = {
     galaxy:   renderGalaxy,
     settings: renderSettings,
-    builder:  renderBuilder,
     github:   renderGithub,
     dbstudio: renderDbstudio,
     mcp:      renderMcp,
@@ -4953,13 +4689,41 @@ async function studioRenderVersionHistory() {
     list.innerHTML = hist.map(v => `
       <div style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:5px;font-size:11px" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-2)" title="${escHtml(v.message || '')}">v${v.id} · ${escHtml((v.ts||'').slice(5,16))} · ${escHtml(v.author||'')}</span>
-        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" onclick="studioPreviewVersion(${v.id})">👁</button>
-        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" onclick="studioRestoreVersion(${v.id})">↶</button>
+        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" onclick="studioPreviewVersion(${v.id})" title="Preview (load into editor)">👁</button>
+        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" onclick="studioDiffAgainstVersion(${v.id})" title="Compare with current live file">⇄</button>
+        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" onclick="studioRestoreVersion(${v.id})" title="Restore this version">↶</button>
       </div>`).join('');
   } catch(e) {
     list.innerHTML = '<div style="padding:8px;color:var(--danger)">Failed to load history.</div>';
   }
 }
+
+// ── Diff-against-version (ported from the retired standalone Code Editor
+// pane's dedicated "⇄ Diff" tab, which let a user pick any historical
+// version from a dropdown and see a real side-by-side Monaco diff against
+// the current file before restoring). Code Studio's version-history
+// popover already listed 👁 Preview and ↶ Restore per version but had no
+// diff view of its own; Code Studio and Code Editor were ~95% overlapping
+// panes with this diff capability as Code Editor's only unique feature, so
+// per user approval both panes were merged: Code Editor is retired
+// (nav('builder') now redirects to nav('studio'), matching the existing
+// nav('steering') -> nav('hierarchy') redirect pattern) and this ⇄ button
+// reuses Studio's OWN existing diff-overlay machinery
+// (studioShowDiff/studioAcceptDiff/studioRejectDiff, originally built only
+// for AI-proposed edits) rather than duplicating a second diff editor
+// instance. Accepting the diff here applies + saves the historical
+// version's content into the live file, i.e. functions as a "restore with
+// a preview step" — Reject just closes the overlay with no changes. ──
+window.studioDiffAgainstVersion = async function(id) {
+  try {
+    const r = await fetch('/api/preview/version?id=' + id);
+    const ver = await r.json();
+    if (ver.ok === false) { toast('Could not load that version', 'err'); return; }
+    const current = (typeof Studio !== 'undefined' && Studio.editor) ? Studio.editor.getValue() : '';
+    document.getElementById('studio-version-history').style.display = 'none';
+    studioShowDiff(current, ver.content || '', `⇄ Current vs. v${id}`, { author: 'user', message: `restored from v${id}` });
+  } catch(e) { toast('Could not load version for diff: ' + e.message, 'err'); }
+};
 
 window.studioPreviewVersion = async function(id) {
   try {
@@ -5311,13 +5075,15 @@ async function studioAIFix() {
 }
 
 // ── Diff overlay ────────────────────────────────────────────────────
-function studioShowDiff(original, modified) {
-  Studio.diffPending = { original, modified, path: Studio.currentFile };
+function studioShowDiff(original, modified, title, meta) {
+  Studio.diffPending = { original, modified, path: Studio.currentFile, author: meta?.author, message: meta?.message };
 
-  const overlay = document.getElementById('studio-diff-overlay');
-  const fileEl  = document.getElementById('diff-overlay-file');
+  const overlay  = document.getElementById('studio-diff-overlay');
+  const fileEl   = document.getElementById('diff-overlay-file');
+  const titleEl  = document.getElementById('diff-overlay-title');
   if (overlay) overlay.style.display = 'flex';
   if (fileEl)  fileEl.textContent = Studio.currentFile;
+  if (titleEl) titleEl.textContent = title || '⇄ AI Proposed Changes';
 
   // Create / update Monaco diff editor
   const host = document.getElementById('studio-diff-host');
@@ -5342,7 +5108,7 @@ function studioShowDiff(original, modified) {
 
 async function studioAcceptDiff() {
   if (!Studio.diffPending) return;
-  const { modified, path } = Studio.diffPending;
+  const { modified, path, author, message } = Studio.diffPending;
 
   // Apply to editor
   if (Studio.editor) {
@@ -5353,7 +5119,7 @@ async function studioAcceptDiff() {
   // Save immediately
   const r = await fetch('/api/preview/save', {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ path, content: modified, author: 'ai-edit', message: 'AI accepted diff' })
+    body: JSON.stringify({ path, content: modified, author: author || 'ai-edit', message: message || 'AI accepted diff' })
   });
   const j = await r.json();
 
@@ -5497,15 +5263,14 @@ async function studioSyncAfterScaffold(result) {
 }
 
 // ── Keyboard shortcut: ⌘⇧P → open Studio ─────────────────────────
+// MODULE MERGE: ⌘⇧E used to open the standalone Code Editor (Builder)
+// pane. That pane is retired and folded into Studio, so the shortcut is
+// removed rather than left as a confusing second binding for the exact
+// same destination as ⌘⇧P.
 document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'P') {
     e.preventDefault();
     nav('studio');
-  }
-  // ⌘⇧E → open old editor
-  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'E') {
-    e.preventDefault();
-    nav('builder');
   }
 });
 

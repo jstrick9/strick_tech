@@ -6,7 +6,9 @@
 window.MASTER_PANE_REGISTRY = {
   'chat':           () => {},
   'studio':         () => typeof window.initStudio === 'function' && window.initStudio(),
-  'builder':        () => typeof window.initBuilder === 'function' && window.initBuilder(),
+  // MODULE MERGE: 'builder' (Code Editor) retired and folded into 'studio'
+  // (Code Studio) — nav('builder') now redirects to nav('studio') in
+  // 01-app-core.js, so this registry never needs to resolve it directly.
   'templates':      () => typeof window.renderTemplates === 'function' && window.renderTemplates(),
   'composer':       () => typeof window.renderComposer === 'function' && window.renderComposer(),
   'kanban':         () => typeof window.renderKanban === 'function' && window.renderKanban(),

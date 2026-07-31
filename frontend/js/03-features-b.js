@@ -1390,16 +1390,15 @@ async function processVoiceTranscript(transcript) {
 
       case 'save': {
         showToast('💾 Saving…');
-        // BUG FIX: this only ever checked the OLD Builder pane's editor
-        // (`window.S?.monacoEditor`) — if the user was in the newer Code
-        // Studio pane (`Studio.editor`) when saying "save", nothing
-        // happened except the misleading fallback toast telling them to
-        // press Ctrl+S (which Studio does support, but the voice command
-        // itself did nothing). Now checks both editors.
+        // MODULE MERGE: the standalone Code Editor (Builder) pane was
+        // retired and folded into Code Studio (see 01-app-core.js's
+        // nav('builder') -> nav('studio') redirect), so S.monacoEditor is
+        // never created anymore -- Studio.editor is the only real editor
+        // instance left. Simplified accordingly (previously checked both).
         if (document.getElementById('pane-studio')?.classList.contains('active') && typeof studioSaveFile === 'function') {
           studioSaveFile();
-        } else if (window.S?.monacoEditor) {
-          window.S.monacoEditor.trigger('voice', 'editor.action.saveFile', {});
+        } else if (typeof Studio !== 'undefined' && Studio.editor) {
+          Studio.editor.trigger('voice', 'editor.action.saveFile', {});
         } else {
           showToast('💾 Use Ctrl+S to save the current file');
         }
@@ -1408,8 +1407,8 @@ async function processVoiceTranscript(transcript) {
 
       case 'undo': {
         showToast('↩ Undoing…');
-        if (window.S?.monacoEditor) {
-          window.S.monacoEditor.trigger('voice', 'undo', {});
+        if (typeof Studio !== 'undefined' && Studio.editor) {
+          Studio.editor.trigger('voice', 'undo', {});
         } else {
           document.execCommand('undo');
         }
