@@ -385,19 +385,6 @@ FEATURE_DOCS: dict[str, dict] = {
         ],
         'video_url': '',  # TODO: Add walkthrough video
     },
-    'steering': {
-        'title': 'Steering Files',
-        'icon': '🧭',
-        'tier': 'pro',
-        'summary': 'Persistent project context injected into every AI prompt. Like Kiro steering + Cursor .cursorrules.',
-        'details': 'Steering files encode your tech stack, coding conventions, and architectural decisions so the AI always follows your standards without you repeating them. Enable Auto-Learn to extract patterns automatically.',
-        'tips': [
-            'Start with the 4 pre-loaded files: Stack, Style, Architecture, Context',
-            'Auto-Learn analyzes your last 100 chats to extract your patterns',
-            'Enable/disable individual files per project',
-        ],
-        'video_url': '',  # TODO: Add walkthrough video
-    },
     'arena': {
         'title': 'Arena Mode',
         'icon': '⚔️',
@@ -907,7 +894,7 @@ FAQ = [
     },
     {
         'q': "What's a Steering File?",
-        'a': "Steering files are like .cursorrules or Kiro's .kiro/steering/ — markdown files that get injected into every AI prompt so the AI always knows your tech stack, coding style, and project context. Go to 🧭 Steering to manage them.",
+        'a': "Steering files (now called AI Guidelines) are like .cursorrules or Kiro's .kiro/steering/ — freeform rule files that get injected into every AI prompt so the AI always knows your tech stack, coding style, and project context. Go to 🧭 AI Context & Guidelines → the AI Guidelines tab to manage them.",
         'tags': ['steering', 'agents'],
     },
     {
