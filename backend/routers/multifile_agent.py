@@ -251,6 +251,28 @@ Return ONLY the complete code file, no explanation."""
         inject_steering=False,  # FIX 3
     )
 
+    # BUG FIX: this never checked `result.get('ok')` / `result.get('provider')`
+    # before treating the LLM response as real generated code to write to
+    # disk. When no OPENROUTER_API_KEY is configured (or any other LLM
+    # failure occurs), llm.complete() returns a graceful stub/error
+    # response with ok=False and a human-readable "No OPENROUTER_API_KEY
+    # set..." message in `text` -- this endpoint was overwriting the
+    # user's live preview file (e.g. index.html) with that literal stub
+    # text and reporting `{"ok": true}` back to the frontend, which then
+    # showed a false "✅ Converted!" success message. Reproduced live:
+    # ran Screenshot → Code with no API key configured and confirmed
+    # preview/index.html was silently overwritten with the stub message.
+    # Now checks result.get('ok') is not explicitly False before treating
+    # the text as real code (matches the pattern already used by
+    # websearch.py's grounded-completion endpoints, which check
+    # `'[LLM error' in result.get('text', '')` similarly).
+    if result.get('ok') is False:
+        return {
+            'ok': False,
+            'error': result.get('text', 'AI request failed — check your API key in Settings.'),
+            'filename': filename,
+        }
+
     code = result.get('text', '').strip()
     if code.startswith('```'):
         code = '\n'.join(code.split('\n')[1:])

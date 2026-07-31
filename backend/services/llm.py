@@ -184,10 +184,29 @@ def _normalize_messages(messages: list[dict]) -> list[dict]:
     cleaned = []
     for m in messages:
         role = m.get('role', 'user')
-        content = (m.get('content') or '').strip()
+        raw_content = m.get('content')
+        # BUG FIX: multi-modal messages (e.g. vision/screenshot-to-code,
+        # which sends `content` as a LIST of {type: text|image_url, ...}
+        # parts per the OpenAI vision message format) crashed this
+        # function with an unhandled AttributeError ('list' object has no
+        # attribute 'strip') because it unconditionally called
+        # `.strip()` on `content` assuming it was always a string.
+        # Reproduced live via POST /api/composer/screenshot-to-code,
+        # which builds exactly this list-shaped content -- every
+        # screenshot-to-code request crashed with an HTTP 500 regardless
+        # of API key configuration, since this crash happens before any
+        # network call. List-content messages are now passed through
+        # as-is (non-empty by construction, so always kept) and are never
+        # merged/deduped against an adjacent same-role message, since the
+        # simple string concatenation below has no sane meaning for a
+        # list of content parts.
+        if isinstance(raw_content, list):
+            cleaned.append({'role': role, 'content': raw_content})
+            continue
+        content = (raw_content or '').strip()
         if not content and role != 'system':
             continue
-        if cleaned and cleaned[-1].get('role') == role and role in ('user', 'assistant'):
+        if cleaned and cleaned[-1].get('role') == role and role in ('user', 'assistant') and isinstance(cleaned[-1].get('content'), str):
             if content and content != cleaned[-1].get('content'):
                 cleaned[-1]['content'] = cleaned[-1]['content'] + '\n\n' + content
         else:
@@ -715,6 +734,14 @@ def _estimate_cost(model: str, usage: dict) -> float:
 # ── Stub (no key) ──────────────────────────────────────────────────────────────
 def _stub_reply(messages: list[dict], agent_id: str, model: str) -> dict:
     last = next((m['content'] for m in reversed(messages) if m['role'] == 'user'), '')
+    # BUG FIX: `last` can be a LIST for multi-modal (vision) messages
+    # (see _normalize_messages() fix above) -- `last[:200]` on a list
+    # would slice the first 200 LIST ITEMS (harmless but nonsensical) and
+    # then fail when f-string interpolation tries to render it, or in
+    # other cases outright crash downstream string operations. Extract
+    # just the text parts for the stub's preview line.
+    if isinstance(last, list):
+        last = ' '.join(part.get('text', '') for part in last if isinstance(part, dict) and part.get('type') == 'text')
     return {
         'text': (
             f'⚠️ **No OPENROUTER_API_KEY set.**\n\n'
