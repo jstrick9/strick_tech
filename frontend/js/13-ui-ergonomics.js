@@ -22,6 +22,7 @@
     'kanban': { icon: '📋', title: 'Kanban', desc: 'Task workflow board' },
     'settings': { icon: '⚙️', title: 'Settings', desc: 'System configuration & API keys' },
     'websearch': { icon: '🔎', title: 'Web Search', desc: 'Grounded AI answers, raw search, and deep research with live web citations' },
+    'browser': { icon: '🌐', title: 'Browser Agent', desc: 'Autonomous Playwright-driven browser tasks, screenshots, and session history' },
     // MODULE MERGE: 'builder' (Code Editor) retired and folded into
     // 'studio' (Code Studio) — nav('builder') redirects to nav('studio')
     // so this pane id no longer appears in the breadcrumb bar directly.
