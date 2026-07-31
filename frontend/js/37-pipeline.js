@@ -1,5 +1,22 @@
 // Agentic OS — Pipeline
 // Extracted from 01-app-core.js for modularity
+//
+// BUG FIX (quote-collision, total breakage of template buttons): the
+// goal-template buttons used
+// onclick="document.getElementById('pipe-goal').value=${JSON.stringify(t.goal)}"
+// -- the same unconditional-breakage pattern found in Terminal's
+// quick-command toolbar and Skills' skill-card grid earlier this
+// session. JSON.stringify() ALWAYS wraps its output in literal double
+// quotes, which ALWAYS collide with the onclick attribute's own
+// double-quote delimiters, regardless of what `t.goal` contains.
+// Reproduced live: clicking the "🚀 SaaS Landing Page" template button
+// (whose goal text is plain, quote-free prose) still threw "Uncaught
+// SyntaxError: Unexpected end of input" and never filled the goal
+// textarea -- every one of the 6 preset templates was completely
+// unusable via its button. Fixed via data-template-idx + a delegated
+// listener on the template button container, looking up the real goal
+// string from the already-fetched `templates` array by index instead of
+// ever serializing it into an HTML attribute.
 // ── Pipeline Pane ─────────────────────────────────────────────────
 async function renderPipeline() {
   const pane = document.getElementById('pane-pipeline');
@@ -24,8 +41,8 @@ async function renderPipeline() {
             </label>`).join('')}
         </div>
         <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Templates</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
-          ${templates.map(t => `<button onclick="document.getElementById('pipe-goal').value=${JSON.stringify(t.goal)}" class="btn btn-ghost btn-sm">${t.label}</button>`).join('')}
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px" id="pipe-templates">
+          ${templates.map((t, idx) => `<button type="button" data-template-idx="${idx}" class="btn btn-ghost btn-sm">${escHtml(t.label)}</button>`).join('')}
         </div>
         <button onclick="runPipeline()" class="btn btn-primary" style="width:100%" id="pipe-run-btn">🏛️ Run Pipeline</button>
         <div id="pipe-status" style="font-size:12px;color:var(--text-2);margin-top:8px;min-height:18px"></div>
@@ -37,6 +54,13 @@ async function renderPipeline() {
       </div>
     </div>
   </div>`;
+
+  document.getElementById('pipe-templates')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-template-idx]');
+    if (!btn) return;
+    const goalEl = document.getElementById('pipe-goal');
+    if (goalEl) goalEl.value = templates[Number(btn.dataset.templateIdx)]?.goal || '';
+  });
 }
 
 async function runPipeline() {
