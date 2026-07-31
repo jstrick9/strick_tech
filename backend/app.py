@@ -315,7 +315,19 @@ SECURITY_HEADERS = {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; "
         "img-src 'self' data: blob: https:; "
-        "connect-src 'self' ws: wss: http://127.0.0.1:* http://localhost:* https://api.github.com https://openrouter.ai https://slack.com https://gmail.googleapis.com https://graph.microsoft.com https://oauth2.googleapis.com https://www.googleapis.com https://jira.*.atlassian.net https://api.notion.com; "
+        # BUG FIX: connect-src did not allow `blob:`, while img-src/
+        # worker-src/frame-src all explicitly did. Image Generator's
+        # "Save to Gallery" button calls `fetch(src)` to re-fetch an
+        # AI-generated image's blob: URL for re-upload (needed because SVG
+        # placeholders and Style Transfer results are both returned as
+        # in-memory Blobs, not server-hosted files) — that fetch() was
+        # silently blocked by CSP ("Refused to connect... violates the
+        # document's Content Security Policy"), so Save to Gallery never
+        # worked whenever an image came from a blob: URL, which is the
+        # common case with no OPENROUTER_API_KEY configured. Reproduced
+        # live and confirmed fixed by adding `blob:` here to match the
+        # other three directives that already allow it.
+        "connect-src 'self' blob: ws: wss: http://127.0.0.1:* http://localhost:* https://api.github.com https://openrouter.ai https://slack.com https://gmail.googleapis.com https://graph.microsoft.com https://oauth2.googleapis.com https://www.googleapis.com https://jira.*.atlassian.net https://api.notion.com; "
         "worker-src 'self' blob:; "
         "frame-src 'self' blob: data:; "
     ),
