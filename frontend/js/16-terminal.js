@@ -13,16 +13,17 @@ async function renderTerminal() {
   }
   let env = {};
   try { const r = await fetch('/api/terminal/env'); env = await r.json(); } catch(e) {}
+  const QUICK_COMMANDS = ['ls -la','git status','git log --oneline -5','npm install','npm run dev','npm run build','pip install -r requirements.txt','node --version','python3 --version'];
   pane.innerHTML = `
     <div class="terminal-tabs" id="term-tabs">
       <div class="terminal-tab active" data-sess="main">main</div>
-      <div class="terminal-tab" onclick="termNewSession()" style="padding:6px 10px;color:var(--text-3)">＋</div>
+      <div class="terminal-tab" id="term-new-session-btn" style="padding:6px 10px;color:var(--text-3)">＋</div>
     </div>
     <div class="terminal-toolbar" id="term-toolbar">
-      ${['ls -la','git status','git log --oneline -5','npm install','npm run dev','npm run build','pip install -r requirements.txt','node --version','python3 --version'].map(c=>
-        `<button class="term-btn" onclick="termRun(${JSON.stringify(c)})">${c}</button>`).join('')}
-      <button class="term-btn" id="term-kill-btn" onclick="termKill()" style="margin-left:auto;color:var(--danger);display:none" title="Kill running process (Ctrl+C)">■ Kill</button>
-      <button class="term-btn" onclick="termClear()" style="color:var(--text-3)">Clear</button>
+      ${QUICK_COMMANDS.map((c, idx)=>
+        `<button type="button" class="term-btn" data-quick-cmd-idx="${idx}">${escHtml(c)}</button>`).join('')}
+      <button type="button" class="term-btn" id="term-kill-btn" style="margin-left:auto;color:var(--danger);display:none" title="Kill running process (Ctrl+C)">■ Kill</button>
+      <button type="button" class="term-btn" id="term-clear-btn" style="color:var(--text-3)">Clear</button>
     </div>
     <div class="terminal-container">
       <div class="terminal-output" id="term-output">
@@ -36,6 +37,25 @@ async function renderTerminal() {
         <input class="terminal-input" id="term-input" placeholder="Enter command…" autocomplete="off" spellcheck="false">
       </div>
     </div>`;
+  // BUG FIX (quote-collision, total breakage of the quick-command
+  // toolbar): this used to be
+  // onclick="termRun(${JSON.stringify(c)})" for every toolbar button.
+  // JSON.stringify() ALWAYS wraps its output in literal double quotes,
+  // which ALWAYS collide with the onclick attribute's own double-quote
+  // delimiters -- this broke EVERY toolbar quick-command button
+  // (ls -la, git status, npm install, etc.), not just ones with special
+  // characters, since the wrapping quotes themselves are the problem.
+  // Reproduced live: clicking any single toolbar button threw "Uncaught
+  // SyntaxError: Failed to execute 'click' on 'HTMLElement': Unexpected
+  // end of input". Fixed via data-quick-cmd-idx + a delegated listener
+  // looking up the real command string from the QUICK_COMMANDS array.
+  document.getElementById('term-toolbar')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-quick-cmd-idx]');
+    if (btn) termRun(QUICK_COMMANDS[Number(btn.dataset.quickCmdIdx)]);
+  });
+  document.getElementById('term-new-session-btn')?.addEventListener('click', termNewSession);
+  document.getElementById('term-kill-btn')?.addEventListener('click', termKill);
+  document.getElementById('term-clear-btn')?.addEventListener('click', termClear);
   const input = document.getElementById('term-input');
   if (input) { input.focus(); input.addEventListener('keydown', termKeyDown); input.addEventListener('input', termShowSuggestions); }
   try { const r=await fetch('/api/terminal/history'); const h=await r.json(); Terminal.history['main']=(h||[]).map(x=>x.command||'').reverse(); Terminal.histIdx['main']=Terminal.history['main'].length; } catch(e){}
@@ -111,7 +131,27 @@ async function termShowSuggestions() {
     if(!dd){dd=document.createElement('div');dd.id='term-suggestions';dd.style.cssText='position:fixed;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-sm);z-index:9999;max-width:400px;box-shadow:var(--shadow-lg);font-family:monospace;font-size:12px';document.body.appendChild(dd);}
     const rect=input.getBoundingClientRect(); dd.style.bottom=(window.innerHeight-rect.top+4)+'px'; dd.style.left=rect.left+'px';
     if(!suggs.length){dd.remove();return;}
-    dd.innerHTML=suggs.slice(0,6).map(s=>`<div onclick="document.getElementById('term-input').value=${JSON.stringify(s.cmd)};document.getElementById('term-suggestions')?.remove();document.getElementById('term-input').focus()" style="padding:7px 12px;cursor:pointer;display:flex;gap:10px;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''"><span style="color:var(--accent);flex:1">${escHtml(s.cmd)}</span><span style="color:var(--text-3)">${escHtml(s.desc)}</span></div>`).join('');
+    const top6 = suggs.slice(0,6);
+    // BUG FIX (quote-collision, total breakage of autocomplete):
+    // this used to be onclick="document.getElementById('term-input')
+    // .value=${JSON.stringify(s.cmd)};..." for every suggestion row.
+    // Same root cause as the toolbar bug above -- JSON.stringify() always
+    // wraps its output in literal double quotes, which always collide
+    // with the onclick attribute's own delimiters, breaking every single
+    // suggestion regardless of its content. Reproduced live: clicking any
+    // autocomplete suggestion (even a plain one like "git status") threw
+    // "Uncaught SyntaxError: ...Unexpected end of input" and never filled
+    // the input. Fixed via data-sugg-idx + a delegated listener on the
+    // dropdown container looking up the real command from `top6`.
+    dd.innerHTML=top6.map((s,idx)=>`<div data-sugg-idx="${idx}" style="padding:7px 12px;cursor:pointer;display:flex;gap:10px;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''"><span style="color:var(--accent);flex:1">${escHtml(s.cmd)}</span><span style="color:var(--text-3)">${escHtml(s.desc)}</span></div>`).join('');
+    dd.addEventListener('click', (e) => {
+      const row = e.target.closest('[data-sugg-idx]');
+      if (!row) return;
+      const cmd = top6[Number(row.dataset.suggIdx)]?.cmd;
+      if (cmd !== undefined) document.getElementById('term-input').value = cmd;
+      dd?.remove();
+      document.getElementById('term-input')?.focus();
+    });
     document.addEventListener('click',()=>dd?.remove(),{once:true});
   } catch(e){}
 }
@@ -123,6 +163,18 @@ function termNewSession(){const id='s'+Date.now().toString(36);
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  SECRETS VAULT — Encrypted key/value store with Fernet AES-256
+//  NOTE: this backs a SEPARATE pane (pane-secrets / 'secrets' nav item),
+//  not the Terminal pane -- it lives in this file only for code
+//  organization. Out of scope for this Terminal review pass; queued for
+//  its own individual review later per the no-batching instruction. Spot
+//  -checked while here: vaultReveal/vaultEdit/vaultDelete/vaultShowAdd's
+//  onclick="...('${escHtml(item.key)}')" pattern is NOT an active
+//  quote-collision bug today because backend/routers/secrets.py's
+//  set_secret() validates key format server-side
+//  (^[A-Z][A-Z0-9_]{0,127}$ -- uppercase letters/digits/underscores
+//  only), so no stored key can ever contain a quote character. Still
+//  worth revisiting for consistency with the data-*/addEventListener
+//  pattern used elsewhere in this app when this pane gets its own pass.
 // ══════════════════════════════════════════════════════════════════════════════
 async function renderSecretsVault() {
   const pane = document.getElementById('pane-secrets');
