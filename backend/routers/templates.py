@@ -706,6 +706,28 @@ def _safe_name(name: str) -> str:
     return re.sub(r'[^\w\s\-]', '', (name or '').strip())[:80]
 
 
+def _current_workspace_id() -> str:
+    """Resolve the active workspace without making workspace imports mandatory.
+
+    BUG FIX: template scaffolding previously inserted into `file_versions`
+    without a `workspace_id` at all (it defaults to '' at the column level),
+    unlike every other write path into this table (builder.py's save/commit/
+    restore/scaffold all tag rows with the CURRENT workspace). Every
+    version-history read query in the app matches `workspace_id=? OR
+    workspace_id=''` specifically to remain backward-compatible with old
+    untagged rows — which means an untagged template-scaffold row is visible
+    from EVERY workspace's history, not just the one it was scaffolded into.
+    Tagging these rows properly prevents template-scaffold history from
+    leaking across workspace boundaries.
+    """
+    try:
+        from .workspaces import _current_ws_id
+
+        return _current_ws_id() or ''
+    except Exception:
+        return ''
+
+
 def _template_summary(t: dict) -> dict:
     """Return safe public fields (no raw file content)."""
     return {
@@ -832,8 +854,8 @@ async def scaffold_template(template_id: str, req: Request):
             # Record in file_versions
             try:
                 con.execute(
-                    'INSERT INTO file_versions(path,content,author,message) VALUES (?,?,?,?)',
-                    (filename, file_content, 'template', f'Template: {t["name"]}'),
+                    'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
+                    (filename, file_content, 'template', f'Template: {t["name"]}', _current_workspace_id()),
                 )
             except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                 pass
