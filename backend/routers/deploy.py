@@ -50,9 +50,9 @@ async def deploy_vercel(req: Request):
             'setup': [
                 '1. Go to https://vercel.com/account/tokens',
                 "2. Create a token with 'Full Access'",
-                '3. Add to .env: VERCEL_TOKEN=your_token',
-                '4. Or save via 🔐 Vault tab in Agentic OS',
-                '5. Restart Agentic OS and try again',
+                '3. Save it via 🔐 Vault tab in Agentic OS (takes effect immediately)',
+                '4. Or add to .env: VERCEL_TOKEN=your_token (requires an app restart)',
+                '5. Try again',
             ],
         }
 
@@ -132,8 +132,8 @@ async def deploy_netlify(req: Request):
             'setup': [
                 '1. Go to https://app.netlify.com/user/applications#personal-access-tokens',
                 '2. Create a personal access token',
-                '3. Add NETLIFY_TOKEN to .env or Vault',
-                '4. Restart and redeploy',
+                '3. Save it via 🔐 Vault (takes effect immediately) or add NETLIFY_TOKEN to .env (requires restart)',
+                '4. Redeploy',
             ],
             'alternative': 'Drag & drop your preview/ folder at https://app.netlify.com/drop',
         }
@@ -184,6 +184,24 @@ async def start_tunnel(req: Request):
     import asyncio
     import re
     import shutil
+
+    # A second click of "Start Public Tunnel" (double-click, stale UI state
+    # after a page reload, etc.) previously spawned a SECOND cloudflared
+    # process and silently leaked the first one — _active_tunnel only ever
+    # held one proc/url pair, so the original tunnel kept running
+    # unreferenced (unstoppable via the UI's "Stop Tunnel" button, which
+    # only knows about whatever is in _active_tunnel) while the new one
+    # overwrote it. Return the already-active tunnel instead of starting a
+    # duplicate.
+    existing_proc = _active_tunnel.get('proc')
+    if existing_proc is not None and existing_proc.returncode is None and _active_tunnel.get('url'):
+        return {
+            'ok': True,
+            'url': _active_tunnel['url'],
+            'note': 'Tunnel already running. Use POST /api/deploy/tunnel/stop to stop it.',
+            'qr': f'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={_active_tunnel["url"]}',
+            'already_active': True,
+        }
 
     cf = shutil.which('cloudflared')
     if not cf:
@@ -343,7 +361,21 @@ async def deploy_railway(req: Request):
 
 @router.post('/render')
 async def deploy_render(req: Request):
-    """Deploy to Render via API."""
+    """
+    Render has no drag-and-drop / zip-upload deploy API like Netlify —
+    their API only supports triggering a deploy on a service that's
+    already connected to a GitHub repo via their dashboard. So unlike
+    every other provider in this router, there is no actual deploy
+    action this endpoint can perform; it can only confirm the API key is
+    present and point the user at the one-time manual setup step.
+    Previously this returned bare `{"ok": True, ...}` with no `no_action`
+    flag, which the frontend's shared success-path rendering interpreted
+    identically to a REAL deploy — showing "✅ Deployed!" even though
+    literally nothing was deployed, and with no memory_add/audit_log
+    entry either (unlike vercel/netlify/railway/flyio, which all record
+    a real deploy event). Fixed to set `no_action: True` so the frontend
+    can render an honest "no deploy happened yet" message instead.
+    """
     key = os.getenv('RENDER_API_KEY', '')
     if not key:
         return {
@@ -359,7 +391,8 @@ async def deploy_render(req: Request):
     return {
         'ok': True,
         'provider': 'render',
-        'tip': 'Connect your GitHub repo to Render for auto-deploy at https://dashboard.render.com/new/static',
+        'no_action': True,
+        'tip': 'Render has no zip-upload API — connect your GitHub repo to Render for auto-deploy at https://dashboard.render.com/new/static',
     }
 
 
