@@ -58,17 +58,57 @@ async function specLoadList() {
     _specList = d.specs || [];
     const list = document.getElementById('spec-list');
     if (!list) return;
-    list.innerHTML = _specList.map(s => `
-      <div class="spec-item ${_specCurrent?.id===s.id?'active':''}" onclick="specSelect(${JSON.stringify(s.id)})">
+    list.innerHTML = _specList.map((s, idx) => `
+      <div class="spec-item ${_specCurrent?.id===s.id?'active':''}" data-spec-idx="${idx}">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
           <span style="font-weight:600;font-size:13px;color:var(--text-0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.title)}</span>
           <span class="spec-phase-badge ${s.phase}">${s.phase}</span>
-          <button onclick="event.stopPropagation();specDelete(${JSON.stringify(s.id)},${JSON.stringify(s.title)})"            style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:12px;padding:0 2px;line-height:1" title="Delete spec">🗑</button>
+          <button data-spec-delete-idx="${idx}"            style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:12px;padding:0 2px;line-height:1" title="Delete spec">🗑</button>
         </div>
         <div style="font-size:10px;color:var(--text-3)">${new Date(s.updated_at).toLocaleDateString()}</div>
       </div>
     `).join('') || '<div style="color:var(--text-3);font-size:12px">No specs yet</div>';
+    specWireListEvents();
   } catch(e) {}
+}
+
+// Delegated listener on the #spec-list container — replaces
+// onclick="specSelect(${JSON.stringify(s.id)})" /
+// onclick="specDelete(${JSON.stringify(s.id)},${JSON.stringify(s.title)})",
+// which broke UNCONDITIONALLY (not just on titles containing quotes) —
+// JSON.stringify() always wraps its output in literal double quotes that
+// collide with the onclick attribute's own double-quote delimiters,
+// corrupting the HTML and throwing "Uncaught SyntaxError: Unexpected end
+// of input" on click. Reproduced live with a spec titled
+// `He said "hello" <script>alert(1)</script>` — confirmed the crash, then
+// confirmed the fix with the exact same hostile title.
+//
+// NOTE: unlike Workflow's #wf-list (bound once, never destroyed), renderSpecs()
+// unconditionally rebuilds the ENTIRE pane's innerHTML — including #spec-list
+// itself — on every nav('specs') call (no early-return guard). A module-level
+// "already wired" boolean would therefore skip re-binding to the brand-new
+// #spec-list element created on the second+ visit, silently breaking the
+// whole list again. Marking the wired-state on the element itself
+// (`dataset.wired`) instead of a module variable ensures each fresh element
+// gets its own listener exactly once.
+function specWireListEvents() {
+  const list = document.getElementById('spec-list');
+  if (!list || list.dataset.wired === '1') return;
+  list.dataset.wired = '1';
+  list.addEventListener('click', e => {
+    const delBtn = e.target.closest('[data-spec-delete-idx]');
+    const item = e.target.closest('.spec-item');
+    if (!item) return;
+    const idx = +item.dataset.specIdx;
+    const s = _specList[idx];
+    if (!s) return;
+    if (delBtn) {
+      e.stopPropagation();
+      specDelete(s.id, s.title);
+      return;
+    }
+    specSelect(s.id);
+  });
 }
 
 async function specNew() {
@@ -99,9 +139,9 @@ async function specDelete(specId, title) {
       document.getElementById('spec-content').innerHTML = '';
     }
     await specLoadList();
-    showToast('🗑️ Spec deleted');
+    toast('🗑️ Spec deleted');
   } catch(e) {
-    showToast('⚠️ Delete failed — check connection');
+    toast('⚠️ Delete failed — check connection');
   }
 }
 
@@ -321,6 +361,14 @@ async function specRunAll() {
     await specConsumeStream(resp, (d) => {
       if (d.type==='pipeline_phase') specLog(`\n▶ Phase: ${d.phase}`);
       if (d.type==='phase_error')    specLog(`  ✗ Phase error: ${d.error}`);
+      // Execute-phase events (added when the previously-missing 4th phase
+      // was implemented — run-all's docstring always promised
+      // "requirements → design → tasks → execute" but the execute phase
+      // was never actually run, so these event types never fired before).
+      if (d.type==='wave_start')     specLog(`  🌊 Wave ${d.wave} starting (${d.task_count} parallel tasks)…`);
+      if (d.type==='task_done')      specLog(`    ✅ Task ${d.task_no}: ${d.title} (${d.output_len} chars)`);
+      if (d.type==='task_error')     specLog(`    ✗ Task error: ${d.error}`);
+      if (d.type==='wave_done')      specLog(`  ✓ Wave ${d.wave} complete`);
       if (d.type==='pipeline_done') {
         specLog('\n✅ Full pipeline complete!');
         setTimeout(async()=>{const r=await fetch(`/api/specs/${encodeURIComponent(_specCurrent.id)}`);_specCurrent=await r.json();specLoadList();},500);

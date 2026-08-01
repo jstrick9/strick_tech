@@ -815,3 +815,56 @@ body {
     .wf-node-palette::-webkit-scrollbar,.wf-list::-webkit-scrollbar,.wf-props-body::-webkit-scrollbar,.wf-log-lines::-webkit-scrollbar { width:4px }
     .wf-node-palette::-webkit-scrollbar-thumb,.wf-list::-webkit-scrollbar-thumb,.wf-props-body::-webkit-scrollbar-thumb,.wf-log-lines::-webkit-scrollbar-thumb { background:var(--border) }
   
+
+
+/* ══════════════════════════════════════════════════════════════════
+   SPEC-DRIVEN DEVELOPMENT (#pane-specs) — migrated from dead
+   frontend/styles.css (never linked from index.html), which meant
+   this entire pane rendered completely unstyled since it was built.
+   Same root cause as the Workflow Builder pane's CSS bug (see the
+   fix in the previous session's Workflow module commit).
+   ══════════════════════════════════════════════════════════════════ */
+    .spec-layout { display:flex;flex:1;overflow:hidden;height:100% }
+    .spec-sidebar { width:260px;flex-shrink:0;background:var(--bg-1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden }
+    .spec-sidebar-top { padding:12px;border-bottom:1px solid var(--border) }
+    .spec-sidebar-top h3 { font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px }
+    .spec-list { flex:1;overflow-y:auto;padding:8px }
+    .spec-item { padding:10px 12px;margin-bottom:5px;background:var(--bg-2);border:1px solid var(--border);border-radius: 8px;cursor:pointer;transition:all .12s }
+    .spec-item:hover { border-color:var(--accent) }
+    .spec-item.active { border-color:var(--accent);background:rgba(91,138,248,.1) }
+    .spec-phase-badge { font-size:10px;padding:1px 6px;border-radius:4px;font-weight:700 }
+    .spec-phase-badge.requirements { background:rgba(61,186,122,.15);color:var(--success) }
+    .spec-phase-badge.design       { background:rgba(56,197,216,.15);color:var(--info) }
+    .spec-phase-badge.tasks        { background:rgba(232,162,55,.15);color:var(--warning) }
+    .spec-phase-badge.code         { background:rgba(91,138,248,.15);color:var(--accent) }
+    .spec-phase-badge.draft        { background:rgba(122,138,170,.15);color:var(--text-3) }
+
+    .spec-main { flex:1;display:flex;flex-direction:column;overflow:hidden }
+    .spec-topbar { padding:10px 16px;background:var(--bg-1);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0 }
+    .spec-pipeline { display:flex;align-items:center;gap:0;background:var(--bg-2);border:1px solid var(--border);border-radius: 12px;overflow:hidden;flex-shrink:0 }
+    .spec-phase-btn { padding:7px 14px;font-size:11px;font-weight:600;color:var(--text-2);background:transparent;border:none;cursor:pointer;border-right:1px solid var(--border);transition:all .12s;display:flex;align-items:center;gap:5px }
+    .spec-phase-btn:last-child { border-right:none }
+    .spec-phase-btn:hover { background:var(--bg-3);color:var(--text-0) }
+    .spec-phase-btn.active { background:var(--accent);color:#fff }
+    .spec-phase-btn.done { color:var(--success) }
+
+    .spec-content { flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px }
+    .spec-desc-input { width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius: 12px;color:var(--text-0);font-size:14px;padding:14px;resize:vertical;min-height:100px;font-family:inherit;line-height:1.6 }
+    .spec-desc-input:focus { outline:none;border-color:var(--accent) }
+
+    .spec-artifact { background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden }
+    .spec-artifact-hdr { padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--bg-3) }
+    .spec-artifact-body { padding:16px;font-size:12px;color:var(--text-1);white-space:pre-wrap;font-family:'JetBrains Mono',monospace;max-height:400px;overflow-y:auto;line-height:1.7 }
+
+    .spec-task-card { background:var(--bg-2);border:1px solid var(--border);border-radius: 8px;padding:12px;margin-bottom:6px;transition:all .12s }
+    .spec-task-card.done { border-color:var(--success);background:rgba(61,186,122,.05) }
+    .spec-task-card.executing { border-color:var(--warning);animation:spec-pulse .8s infinite }
+    @keyframes spec-pulse{0%,100%{opacity:1}50%{opacity:.6}}
+    .spec-wave-label { font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px;display:flex;align-items:center;gap:8px }
+    .spec-wave-line { flex:1;height:1px;background:var(--border) }
+
+    .spec-stream-log { background:var(--bg-1);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-1);max-height:200px;overflow-y:auto;white-space:pre-wrap;line-height:1.6 }
+    .spec-run-all-btn { background:linear-gradient(135deg,var(--accent),#9d74f5);border:none;color:#fff;padding:10px 24px;border-radius: 12px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s }
+    .spec-run-all-btn:hover { opacity:.9;transform:translateY(-1px) }
+    .spec-run-all-btn:disabled { opacity:.5;transform:none;cursor:default }
+  

@@ -468,10 +468,16 @@ Rules:
                         t.get('agent_id', 'builder'),
                     ),
                 )
-            _update_spec(spec_id, tasks_json=json.dumps(tasks_json), phase='tasks')
             con.commit()
         finally:
             con.close()
+        # BUG FIX: _update_spec() opens its OWN connection and commits. Calling
+        # it while `con` above still held an open, uncommitted write
+        # transaction caused "database is locked" (confirmed live via a real
+        # /run-all request — the whole pipeline aborted at the tasks phase
+        # with exactly this error). Moved outside the `con` block, after its
+        # commit/close, so the two connections never overlap.
+        _update_spec(spec_id, tasks_json=json.dumps(tasks_json), phase='tasks')
 
         # Generate tasks.md
         tasks_md = '# Implementation Tasks\n\n'
@@ -750,10 +756,12 @@ Return ONLY a JSON array: [{"task_no":1,"title":"...","description":"...","wave"
                             t.get('agent_id', 'builder'),
                         ),
                     )
-                _update_spec(spec_id, tasks_json=json.dumps(tasks_json), phase='tasks')
                 con.commit()
             finally:
                 con.close()
+            # BUG FIX: same "database is locked" issue as generate_tasks()
+            # above — _update_spec() must run after `con`'s commit/close.
+            _update_spec(spec_id, tasks_json=json.dumps(tasks_json), phase='tasks')
             tasks_md = f'# Tasks for {spec_id}\n\n'
             for t in tasks_json:
                 tasks_md += f'- [ ] Task {t.get("task_no")}: {t.get("title")}\n'
@@ -761,6 +769,85 @@ Return ONLY a JSON array: [{"task_no":1,"title":"...","description":"...","wave"
             yield f'data: {json.dumps({"type": "phase_done", "phase": "tasks", "task_count": len(tasks_json)})}\n\n'
         except Exception as ex:
             yield f'data: {json.dumps({"type": "phase_error", "phase": "tasks", "error": str(ex)})}\n\n'
+            return
+
+        # Phase 4: Execute (wave-based parallel, mirroring execute_spec()).
+        # BUG FIX: this phase was completely MISSING — the function's own
+        # docstring promises "requirements → design → tasks → execute", and
+        # the frontend's "🚀 Run Full Pipeline" button implies the same, but
+        # the generator previously `return`ed (implicitly, by falling off
+        # the end) right after the tasks phase and emitted "pipeline_done"
+        # having executed ZERO tasks. Confirmed live: after a real run-all
+        # call, `GET /{spec_id}/tasks` showed every task still `status:
+        # "pending"` with empty `output`, and the Specs pane's "✅ Full
+        # pipeline complete!" message was shown despite nothing having run.
+        yield f'data: {json.dumps({"type": "pipeline_phase", "phase": "execute"})}\n\n'
+        try:
+            from ..services.memory_db import get_conn
+
+            req_text_full = _load_artifact(spec_id, 'requirements.md')
+            des_text_full = _load_artifact(spec_id, 'design.md')
+            waves: dict[int, list] = {}
+            for t in tasks_json:
+                waves.setdefault(t.get('wave', 1), []).append(t)
+
+            completed: dict[int, str] = {}
+            for wave_no in sorted(waves):
+                wave_tasks = waves[wave_no]
+                yield f'data: {json.dumps({"type": "wave_start", "wave": wave_no, "task_count": len(wave_tasks)})}\n\n'
+
+                async def _run_task(task: dict) -> dict:
+                    tn = task.get('task_no', 0)
+                    title = task.get('title', '')
+                    tdesc = task.get('description', '')
+                    aid = task.get('agent_id', 'builder')
+                    dep_context = ''
+                    for dep in task.get('depends_on', []) or []:
+                        if dep in completed:
+                            dep_context += f'\n### Output from Task {dep}:\n{completed[dep][:500]}\n'
+                    prompt = (
+                        f'You are implementing task {tn} of a spec-driven feature.\n\n'
+                        f'**Task:** {title}\n**Description:** {tdesc}\n\n'
+                        f'**Requirements context:**\n{req_text_full[:1000]}\n\n'
+                        f'**Design context:**\n{des_text_full[:1500]}\n\n'
+                        f'{dep_context}\n\n'
+                        f'Implement this task. Return the complete code/content needed. '
+                        f'Be specific and production-ready.'
+                    )
+                    result = await llm_svc.complete(
+                        [{'role': 'user', 'content': prompt}], agent_id=aid, max_tokens=2000, inject_steering=False
+                    )
+                    output = result.get('text', '')
+                    c2 = get_conn()
+                    try:
+                        c2.execute(
+                            "UPDATE spec_tasks SET status='done',output=? WHERE spec_id=? AND task_no=?",
+                            (output[:4000], spec_id, tn),
+                        )
+                        c2.commit()
+                    finally:
+                        c2.close()
+                    return {'task_no': tn, 'title': title, 'output': output}
+
+                wave_results = await asyncio.gather(*[_run_task(t) for t in wave_tasks], return_exceptions=True)
+                for res in wave_results:
+                    if isinstance(res, Exception):
+                        yield f'data: {json.dumps({"type": "task_error", "error": str(res)})}\n\n'
+                    else:
+                        completed[res['task_no']] = res['output']
+                        payload = {
+                            'type': 'task_done',
+                            'task_no': res['task_no'],
+                            'title': res['title'],
+                            'output_len': len(res['output']),
+                        }
+                        yield f'data: {json.dumps(payload)}\n\n'
+                yield f'data: {json.dumps({"type": "wave_done", "wave": wave_no, "completed": len(completed)})}\n\n'
+
+            _update_spec(spec_id, status='done', phase='code')
+            yield f'data: {json.dumps({"type": "phase_done", "phase": "execute", "total_completed": len(completed)})}\n\n'
+        except Exception as ex:
+            yield f'data: {json.dumps({"type": "phase_error", "phase": "execute", "error": str(ex)})}\n\n'
             return
 
         yield f'data: {json.dumps({"type": "pipeline_done", "spec_id": spec_id})}\n\n'
