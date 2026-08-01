@@ -47,10 +47,10 @@ async function renderSQLiteTab(el) {
   }
   el.innerHTML = `<div style="display:grid;grid-template-columns:200px 1fr;gap:16px;height:calc(100vh - 200px)">
     <!-- Table list -->
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px;overflow-y:auto">
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px;overflow-y:auto" id="db-table-list">
       <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Tables (${tables.length})</div>
-      ${tables.map(t => `
-        <div onclick="dbLoadTable(${JSON.stringify(t.name)})"
+      ${tables.map((t, idx) => `
+        <div data-table-idx="${idx}"
              style="padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;margin-bottom:2px;${dbActiveTable===t.name?'background:var(--accent-glow);color:var(--accent-hi)':''}"
              onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background='${dbActiveTable===t.name?'var(--accent-glow)':''}'"
         >
@@ -65,6 +65,21 @@ async function renderSQLiteTab(el) {
       </div>
     </div>
   </div>`;
+  // Delegated listener on the table-list container — replaces
+  // onclick="dbLoadTable(${JSON.stringify(t.name)})", which broke
+  // UNCONDITIONALLY (not just on names containing quotes/spaces):
+  // JSON.stringify() always wraps its output in literal double quotes
+  // that collide with the onclick attribute's own double-quote
+  // delimiters, corrupting the HTML. Reproduced live by creating a table
+  // named `weird name with spaces` via the SQL Editor tab, then clicking
+  // it in this list — threw "Uncaught SyntaxError: Unexpected end of
+  // input" before this fix.
+  document.getElementById('db-table-list')?.addEventListener('click', e => {
+    const row = e.target.closest('[data-table-idx]');
+    if (!row) return;
+    const t = tables[+row.dataset.tableIdx];
+    if (t) dbLoadTable(t.name);
+  });
   if (dbActiveTable) dbLoadTable(dbActiveTable);
 }
 
@@ -89,7 +104,7 @@ async function dbLoadTable(name) {
           <button onclick="dbSetTab('sql')" class="btn btn-ghost btn-sm">SQL</button>
         </div>
       </div>
-      <div style="overflow:auto;flex:1">
+      <div style="overflow:auto;flex:1" id="db-table-rows">
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead>
             <tr style="background:var(--bg-1);position:sticky;top:0;z-index:1">
@@ -98,15 +113,32 @@ async function dbLoadTable(name) {
             </tr>
           </thead>
           <tbody>
-            ${rows.map(row => `
+            ${rows.map((row, idx) => `
               <tr style="border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
                 ${columns.map(c => `<td style="padding:6px 10px;color:var(--text-1);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(String(row[c]??''))}">${escHtml(String(row[c]??''))}</td>`).join('')}
-                <td style="padding:6px 10px"><button onclick="dbDeleteRow(${JSON.stringify(name)},${JSON.stringify(String(row[columns[0]]??''))},${JSON.stringify(columns[0])})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button></td>
+                <td style="padding:6px 10px"><button data-row-idx="${idx}" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button></td>
               </tr>`).join('')}
           </tbody>
         </table>
       </div>
       ${rows.length === 0 ? '<div style="text-align:center;padding:20px;color:var(--text-3)">No rows</div>' : ''}`;
+    // Delegated listener on the rows container — replaces
+    // onclick="dbDeleteRow(${JSON.stringify(name)},${JSON.stringify(...)},${JSON.stringify(...)})",
+    // which broke UNCONDITIONALLY (same JSON.stringify()-in-onclick quote
+    // collision as the table-list rows above) and additionally exposed
+    // arbitrary cell VALUES (not just table/column names) to the same bug
+    // — a row whose primary-key value happened to contain a quote or
+    // backslash would corrupt the onclick attribute even if the table and
+    // column names were both innocuous. Delete button now looks up the
+    // real row/columns from the already-fetched `rows`/`columns` arrays
+    // by index, never re-serializing cell data into HTML at all.
+    document.getElementById('db-table-rows')?.addEventListener('click', e => {
+      const btn = e.target.closest('[data-row-idx]');
+      if (!btn) return;
+      const row = rows[+btn.dataset.rowIdx];
+      if (!row) return;
+      dbDeleteRow(name, String(row[columns[0]] ?? ''), columns[0]);
+    });
   } catch(e) {
     el.innerHTML = `<div style="color:var(--red);padding:12px">${escHtml(e.message)}</div>`;
   }
@@ -164,8 +196,20 @@ async function renderSupabaseTab(el) {
     return;
   }
   if (!s.connected) {
+    // s.error means an actual connection attempt was made and failed
+    // (bad URL/key, network error, non-2xx response from Supabase) — vs.
+    // simply having no keys saved yet. Previously both cases rendered the
+    // identical bare "Connect Supabase" form with zero indication that a
+    // save had already happened but the credentials didn't work (same UX
+    // gap fixed for GitHub's "Connect GitHub" screen earlier this
+    // session).
+    const errorBanner = s.error ? `
+      <div style="background:rgba(232,82,82,.1);border:1px solid var(--danger);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:var(--danger)">
+        ⚠️ Connection failed: ${escHtml(s.error)}
+      </div>` : '';
     el.innerHTML = `<div class="settings-card">
       <h3>☁️ Connect Supabase</h3>
+      ${errorBanner}
       <p>PostgreSQL + Auth + Storage — the same stack Lovable uses.</p>
       <div style="background:var(--bg-1);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.8;margin-bottom:14px">
         ${(s.setup?.steps||[]).map(s=>escHtml(s)).join('<br>')}
@@ -195,9 +239,9 @@ async function renderSupabaseTab(el) {
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <button onclick="supaGenerateSchema()" class="btn btn-primary">🤖 AI Schema Designer</button>
-      <button onclick="window.open('${s.url?.replace('.supabase.co','')}.supabase.co/project/default/editor','_blank')" class="btn btn-ghost">SQL Editor ↗</button>
-      <button onclick="window.open('${s.url?.replace('.supabase.co','')}.supabase.co/project/default/auth/users','_blank')" class="btn btn-ghost">Auth Users ↗</button>
-      <button onclick="window.open('${s.url?.replace('.supabase.co','')}.supabase.co/project/default/storage/buckets','_blank')" class="btn btn-ghost">Storage ↗</button>
+      <button onclick="openExternalLink('${escHtml(s.url?.replace('.supabase.co','')||'')}.supabase.co/project/default/editor')" class="btn btn-ghost">SQL Editor ↗</button>
+      <button onclick="openExternalLink('${escHtml(s.url?.replace('.supabase.co','')||'')}.supabase.co/project/default/auth/users')" class="btn btn-ghost">Auth Users ↗</button>
+      <button onclick="openExternalLink('${escHtml(s.url?.replace('.supabase.co','')||'')}.supabase.co/project/default/storage/buckets')" class="btn btn-ghost">Storage ↗</button>
     </div>
   </div>`;
 }
@@ -210,7 +254,16 @@ async function saveSupabaseKeys() {
     const r1 = await fetch('/api/secrets/set', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'SUPABASE_URL',value:url,scope:'global'})});
     const r2 = await fetch('/api/secrets/set', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'SUPABASE_ANON_KEY',value:key,scope:'global'})});
     if (!r1.ok || !r2.ok) { toast('Save failed: server error', 'err'); return; }
-    toast('☁️ Supabase connected! Reload to activate.', 'ok', 4000);
+    // /api/secrets/set injects into os.environ synchronously in the same
+    // request (backend/routers/secrets.py), so both keys are live
+    // immediately — no restart needed. Re-render right away instead of
+    // telling the user to reload (the same fix applied to GitHub's and
+    // Deploy's equivalent "reload to activate" messages earlier this
+    // session), and report the REAL connection outcome rather than
+    // presuming success.
+    toast('🔐 Keys saved — checking connection…', 'ok', 2000);
+    const el = document.getElementById('db-body');
+    if (el) await renderSupabaseTab(el);
   } catch(ex) { toast('Save failed: ' + ex.message, 'err'); }
 }
 
@@ -322,10 +375,24 @@ async function generateSchema(type) {
     el.innerHTML = `<div style="position:relative">
       <pre style="background:var(--bg-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto">${escHtml(j.sql)}</pre>
       <div style="display:flex;gap:6px;margin-top:8px">
-        <button onclick="navigator.clipboard.writeText(${JSON.stringify(j.sql)}).then(()=>toast('📋 Copied','ok',1500))" class="btn btn-ghost btn-sm">📋 Copy</button>
-        ${type==='sqlite'?`<button onclick="runGeneratedSchema(${JSON.stringify(j.sql)})" class="btn btn-primary btn-sm">▶ Create Table</button>`:''}
+        <button id="schema-copy-btn" class="btn btn-ghost btn-sm">📋 Copy</button>
+        ${type==='sqlite'?`<button id="schema-create-btn" class="btn btn-primary btn-sm">▶ Create Table</button>`:''}
       </div>
     </div>`;
+    // Bind via closures over the real `j.sql` string instead of
+    // re-serializing it into onclick="...${JSON.stringify(j.sql)}..." —
+    // that pattern broke UNCONDITIONALLY (not just on SQL containing
+    // quotes) for the exact same reason as every other quote-collision
+    // bug fixed this session, and here `j.sql` is arbitrary multi-line
+    // LLM-generated SQL that routinely contains both single and double
+    // quotes (string literals, quoted identifiers), making it one of the
+    // highest-risk instances of this bug class in the app.
+    document.getElementById('schema-copy-btn')?.addEventListener('click', () => {
+      navigator.clipboard.writeText(j.sql).then(() => toast('📋 Copied', 'ok', 1500));
+    });
+    document.getElementById('schema-create-btn')?.addEventListener('click', () => {
+      runGeneratedSchema(j.sql);
+    });
     }
   } catch(ex) { if (el) el.innerHTML = `<div style="color:var(--red)">Error: ${escHtml(ex.message)}</div>`; }
 }
