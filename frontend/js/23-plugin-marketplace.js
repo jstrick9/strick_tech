@@ -1,6 +1,4 @@
-// Agentic OS — Plugin Marketplace
-// Extracted from 01-app-core.js for modularity
-// ── Plugin Marketplace ────────────────────────────────────────────
+// Agentic OS — Plugin Marketplace (quote-collision fixed with data-* + delegated listeners)
 let pluginRegistry = [], pluginInstalled = new Set();
 
 async function renderPlugins() {
@@ -43,13 +41,15 @@ function renderPluginCats() {
   if (!el) return;
   const cats = [...new Set(pluginRegistry.map(p => p.category))];
   el.innerHTML = cats.map(c =>
-    `<span class="tag" style="cursor:pointer;padding:5px 12px" onclick="filterPlugins(${JSON.stringify(c)})">${escHtml(c)}</span>`
+    `<span class="tag" style="cursor:pointer;padding:5px 12px" data-plugin-cat="${escHtml(c)}">${escHtml(c)}</span>`
   ).join('');
-}
-
-function filterPlugins(cat) {
-  const filtered = cat ? pluginRegistry.filter(p => p.category === cat) : pluginRegistry;
-  renderPluginGrid(filtered);
+  el.querySelectorAll('[data-plugin-cat]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.pluginCat;
+      const filtered = cat ? pluginRegistry.filter(p => p.category === cat) : pluginRegistry;
+      renderPluginGrid(filtered);
+    });
+  });
 }
 
 function renderPluginGrid(list = pluginRegistry) {
@@ -58,6 +58,8 @@ function renderPluginGrid(list = pluginRegistry) {
   grid.innerHTML = list.map(p => {
     const installed = pluginInstalled.has(p.id);
     return `<div style="background:var(--bg-2);border:1px solid ${installed?'var(--accent)':'var(--border)'};border-radius:var(--radius-lg);padding:18px;transition:var(--transition)"
+         data-plugin-id="${escHtml(p.id)}"
+         data-plugin-name="${escHtml(p.name)}"
          onmouseover="this.style.borderColor='var(--border-hi)'" onmouseout="this.style.borderColor='${installed?'var(--accent)':'var(--border)'}'">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <span style="font-size:28px">${p.emoji||'🧩'}</span>
@@ -74,12 +76,19 @@ function renderPluginGrid(list = pluginRegistry) {
           <span class="tag">${p.skill_count||p.skills?.length||0} skills</span>
         </div>
         ${installed
-          ? `<button onclick="uninstallPlugin(${JSON.stringify(p.id)},${JSON.stringify(p.name)})" class="btn btn-ghost btn-sm" style="color:var(--red)">Uninstall</button>`
-          : `<button onclick="installPlugin(${JSON.stringify(p.id)})" class="btn btn-primary btn-sm" id="install-btn-${p.id}">Install</button>`
+          ? `<button class="btn btn-ghost btn-sm btn-uninstall" data-uninstall-id="${escHtml(p.id)}" data-uninstall-name="${escHtml(p.name)}" style="color:var(--red)">Uninstall</button>`
+          : `<button class="btn btn-primary btn-sm btn-install" data-install-id="${escHtml(p.id)}" id="install-btn-${escHtml(p.id)}">Install</button>`
         }
       </div>
     </div>`;
   }).join('') || '<div style="color:var(--text-3)">No plugins found.</div>';
+
+  grid.querySelectorAll('.btn-install').forEach(btn => {
+    btn.addEventListener('click', () => installPlugin(btn.dataset.installId));
+  });
+  grid.querySelectorAll('.btn-uninstall').forEach(btn => {
+    btn.addEventListener('click', () => uninstallPlugin(btn.dataset.uninstallId, btn.dataset.uninstallName));
+  });
 }
 
 async function installPlugin(pluginId) {
@@ -95,7 +104,6 @@ async function installPlugin(pluginId) {
   if (j.ok) {
     toast(`🧩 ${j.plugin} installed — ${j.skills_added} skills added to Skills Hub`, 'ok', 5000);
     loadPluginRegistry();
-    // refresh skills in background
     fetch('/api/skills').then(r=>r.ok?r.json().catch(()=>{}):[]).then(s => { allSkills = s||[]; }).catch(()=>{});
   } else {
     toast(j.error || 'Install failed', j.installed ? 'warn' : 'err');
@@ -143,7 +151,6 @@ async function exportWorkspaceData() {
   if (!r.ok) { toast('Export failed: server error ' + r.status, 'err'); return; }
   const j = await r.json();
   if (j.ok === false) { toast('Export failed: ' + (j.error||''), 'err'); return; }
-  // Download as JSON file
   const blob = new Blob([JSON.stringify(j, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
@@ -172,4 +179,3 @@ async function showImportWorkspace() {
     } else toast('Import failed', 'err');
   } catch(e) { toast('Invalid JSON: ' + e.message, 'err'); }
 }
-

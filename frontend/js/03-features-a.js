@@ -1832,10 +1832,10 @@ async function sdkSelectPack(packId) {
             <div style="font-size:11px;color:var(--text-3)">v${pack.version} · ID: ${pack.id}</div>
           </div>
           <div style="margin-left:auto;display:flex;gap:6px">
-            <button class="btn-sm" onclick="sdkValidatePack(${JSON.stringify(packId)})">✔ Validate</button>
-            <button class="btn-sm" onclick="sdkPublishPack(${JSON.stringify(packId)})">🚀 Publish</button>
-            <button class="btn-sm" onclick="sdkExportPack(${JSON.stringify(packId)})">⬇ Export ZIP</button>
-            <button class="btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="sdkDeletePack(${JSON.stringify(packId)})">🗑</button>
+            <button class="btn-sm sdk-validate" data-pack-id="${escHtml(packId)}">✔ Validate</button>
+            <button class="btn-sm sdk-publish" data-pack-id="${escHtml(packId)}">🚀 Publish</button>
+            <button class="btn-sm sdk-export" data-pack-id="${escHtml(packId)}">⬇ Export ZIP</button>
+            <button class="btn-sm sdk-delete" style="color:var(--danger);border-color:var(--danger)" data-pack-id="${escHtml(packId)}">🗑</button>
           </div>
         </div>
         <div style="padding:16px">
@@ -1849,12 +1849,12 @@ async function sdkSelectPack(packId) {
                   <div style="font-size:13px;font-weight:600">${escHtml(s.name||s.id)}</div>
                   <div style="font-size:11px;color:var(--text-3)">${escHtml((s.description||'').slice(0,60))}</div>
                 </div>
-                <button class="btn-sm" onclick="sdkTestSkill(${JSON.stringify(packId)},${JSON.stringify(s.id)})">▶ Test</button>
-                <button class="btn-sm" onclick="sdkEditSkill(${i})">✏</button>
+                <button class="btn-sm sdk-test" data-pack-id="${escHtml(packId)}" data-skill-id="${escHtml(s.id)}">▶ Test</button>
+                <button class="btn-sm sdk-edit" data-idx="${i}">✏</button>
               </div>
             `).join('') || '<div style="color:var(--text-3);font-size:12px">No skills yet</div>'}
           </div>
-          <button class="btn-sm" onclick="sdkAddSkill(${JSON.stringify(packId)})" style="margin-top:8px">＋ Add Skill</button>
+          <button class="btn-sm sdk-add-skill" data-pack-id="${escHtml(packId)}" style="margin-top:8px">＋ Add Skill</button>
 
           <!-- Pack JSON editor -->
           <div style="margin-top:16px">
@@ -1864,12 +1864,32 @@ async function sdkSelectPack(packId) {
               background:var(--bg-3);border:1px solid var(--border);border-radius:8px;
               color:var(--text-0);padding:10px;resize:vertical;
             ">${JSON.stringify(pack, null, 2)}</textarea>
-            <button class="btn" onclick="sdkSaveJSON(${JSON.stringify(packId)})" style="margin-top:8px">💾 Save JSON</button>
+            <button class="btn sdk-save" data-pack-id="${escHtml(packId)}" style="margin-top:8px">💾 Save JSON</button>
           </div>
         </div>
       </div>
     `;
+    // Wire delegated SDK editor buttons (quote-collision fix)
+    area.querySelectorAll('.sdk-validate').forEach(btn => btn.addEventListener('click', () => sdkValidatePack(btn.dataset.packId)));
+    area.querySelectorAll('.sdk-publish').forEach(btn => btn.addEventListener('click', () => sdkPublishPack(btn.dataset.packId)));
+    area.querySelectorAll('.sdk-export').forEach(btn => btn.addEventListener('click', () => { const a=document.createElement('a'); a.href=`/api/pluginsdk/export/${btn.dataset.packId}`; a.download=''; a.click(); }));
+    area.querySelectorAll('.sdk-delete').forEach(btn => btn.addEventListener('click', () => sdkDeletePack(btn.dataset.packId)));
+    area.querySelectorAll('.sdk-add-skill').forEach(btn => btn.addEventListener('click', () => sdkAddSkill(btn.dataset.packId)));
+    area.querySelectorAll('.sdk-save').forEach(btn => btn.addEventListener('click', () => sdkSaveJSON(btn.dataset.packId)));
+    area.querySelectorAll('.sdk-test').forEach(btn => btn.addEventListener('click', () => sdkTestSkill(btn.dataset.packId, btn.dataset.skillId)));
+    area.querySelectorAll('.sdk-edit').forEach(btn => btn.addEventListener('click', () => sdkEditSkill(+btn.dataset.idx)));
   } catch(ex) { if (area) area.innerHTML = `<div style="color:var(--danger);padding:16px">Load error: ${escHtml(ex.message)}</div>`; }
+}
+
+function sdkEditSkill(idx) {
+  if (!_sdkCurrentPack) return;
+  const skill = _sdkCurrentPack.skills?.[idx];
+  if (!skill) return;
+  gmPrompt('Edit skill prompt', 'Update prompt template:', skill.prompt || '').then(promptText => {
+    if (promptText === null) return;
+    skill.prompt = promptText || skill.prompt || '';
+    sdkSaveJSON(_sdkCurrentPack.id);
+  });
 }
 
 async function sdkAddSkill(packId) {
@@ -1927,7 +1947,11 @@ async function sdkPublishPack(packId) {
 }
 
 async function sdkExportPack(packId) {
-  window.open(`/api/pluginsdk/export/${packId}`, '_blank');
+  // Synchronous download via direct endpoint (safe for Tauri WebKit)
+  const a = document.createElement('a');
+  a.href = `/api/pluginsdk/export/${encodeURIComponent(packId)}`;
+  a.download = '';
+  a.click();
 }
 
 async function sdkDeletePack(packId) {
