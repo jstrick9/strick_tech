@@ -33,9 +33,98 @@ async function renderWorkspaces() {
           <div style="text-align:center;color:var(--text-3)"><div style="font-size:24px;margin-bottom:4px">＋</div><div style="font-size:12.5px">New Project</div></div>
         </div>
       </div>
+
+      <!-- Full app-data Backup / Restore. Wires up a previously-unreachable
+           backend feature (backend/routers/workspace_export.py's
+           /api/workspace/export, /import, /stats — a complete portable
+           JSON archive of agents, chat history, memory, tasks, secrets,
+           prompts, and skills) that was fully implemented and registered
+           on the server but had ZERO frontend UI anywhere in the app.
+           Distinct from the per-project ZIP export above, which only
+           captures one workspace's preview/ files, not the shared
+           app-wide SQLite database. -->
+      <div class="card" style="margin-top:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <span style="font-size:20px">💾</span>
+          <div style="font-weight:700;font-size:14px">Full Backup &amp; Restore</div>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:12px">Export your entire Agentic OS database — agents, chat history, memory, tasks, prompts, and skills — as one portable JSON file. Restore it here or on another machine.</div>
+        <div id="ws-backup-stats" style="font-size:11.5px;color:var(--text-3);margin-bottom:12px">Loading stats…</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button onclick="exportFullBackup()" class="btn btn-primary btn-sm">💾 Export Full Backup</button>
+          <label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+            <input type="checkbox" id="ws-backup-include-secrets">
+            <span style="color:var(--text-2)">Include secrets (encrypted)</span>
+          </label>
+          <button onclick="importFullBackupDialog()" class="btn btn-ghost btn-sm">⬆ Restore from Backup</button>
+        </div>
+      </div>
       </div>`;
+    loadBackupStats();
   } catch(e) { pane.innerHTML=`<div class="page-content">${emptyState({icon:'⚠️',title:'Error',body:e.message})}</div>`; }
 }
+
+async function loadBackupStats() {
+  const el = document.getElementById('ws-backup-stats');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/workspace/stats');
+    if (!r.ok) throw new Error('server error ' + r.status);
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'stats failed');
+    const s = j.stats;
+    el.textContent = `${s.agents} agents · ${s.chat_log} messages · ${s.memory} memory entries · ${s.tasks} tasks · ${s.db_size_mb} MB database`;
+  } catch(ex) {
+    el.textContent = 'Could not load stats: ' + ex.message;
+  }
+}
+
+async function exportFullBackup() {
+  const includeSecrets = document.getElementById('ws-backup-include-secrets')?.checked || false;
+  toast('💾 Preparing backup…', 'ok', 2000);
+  try {
+    const r = await fetch(`/api/workspace/export?include_secrets=${includeSecrets}`);
+    if (!r.ok) { toast('Export failed: server error ' + r.status, 'err'); return; }
+    const archive = await r.json();
+    // Client-side JSON blob download — this data was already fetched via
+    // GET, so a synchronous <a download> click right after (no further
+    // await in between) is safe in the Tauri WebKit webview.
+    const blob = new Blob([JSON.stringify(archive, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `agentic-os-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`💾 Backup exported — ${archive.summary?.total_rows||0} rows across ${archive.summary?.tables_exported||0} tables`, 'ok', 4000);
+  } catch(ex) { toast('Export error: ' + ex.message, 'err'); }
+}
+
+function importFullBackupDialog() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const archive = JSON.parse(text);
+      if (archive.format !== 'agentic-os-workspace') { toast('⚠️ Not a valid Agentic OS backup file', 'warn'); return; }
+      if (!(await gmDanger('Restore from Backup', 'This will merge (upsert) the backup\'s data into your current database. Existing rows with matching IDs will be overwritten. Continue?', 'Restore'))) return;
+      toast('⬆️ Restoring…', 'ok', 3000);
+      const r = await fetch('/api/workspace/import', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: text
+      });
+      if (!r.ok) { toast('Restore failed: server error ' + r.status, 'err'); return; }
+      const j = await r.json();
+      if (j.ok) { toast(`✅ Restored ${j.total} rows`, 'ok', 4000); loadBackupStats(); }
+      else toast('Restore failed: ' + (j.error||''), 'err');
+    } catch(ex) { toast('⚠️ Parse error: ' + ex.message, 'err'); }
+  };
+  input.click();
+}
+
 async function activateWorkspace(wsId, name) {
   toast(`⚡ Switching to ${name}…`, 'ok', 2000);
   try {
