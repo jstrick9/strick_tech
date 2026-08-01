@@ -26,11 +26,35 @@ ROOT = get_data_dir()
 DB = ROOT / 'memory' / 'agentic.db'
 
 
+def _connect() -> sqlite3.Connection:
+    """
+    Open a connection to the same agentic.db file used app-wide by
+    backend/services/memory_db.py's get_conn(). Every call site in this
+    router previously used a bare `sqlite3.connect(DB)` with Python's
+    stdlib defaults — notably a 5-SECOND busy_timeout and no WAL/
+    synchronous tuning — while every OTHER part of the app (chat, memory,
+    agents, specs, workflows, etc.) opens the identical file via
+    memory_db.get_conn()'s 10-SECOND busy_timeout + WAL journal mode.
+    Database Studio is a power-user tool explicitly meant to run
+    SELECT/INSERT/DELETE/DDL against live application data WHILE the rest
+    of the app keeps writing to the same file — mismatched locking
+    behavior here is exactly the kind of "works in isolation, flakes
+    under real concurrent use" bug this session has repeatedly found and
+    fixed elsewhere (see the Specs module's "database is locked" fix).
+    Centralizing connection setup here matches get_conn()'s settings.
+    """
+    con = sqlite3.connect(DB, check_same_thread=False, timeout=10)
+    con.execute('PRAGMA busy_timeout=10000')
+    con.execute('PRAGMA journal_mode=WAL')
+    con.execute('PRAGMA synchronous=NORMAL')
+    return con
+
+
 # ── SQLite Studio ──────────────────────────────────────────────────────────────
 @router.get('/sqlite/tables')
 def sqlite_tables():
     """List all user-created tables (excluding system tables)."""
-    con = sqlite3.connect(DB)
+    con = _connect()
     con.row_factory = sqlite3.Row
     try:
         tables = con.execute(
@@ -64,7 +88,7 @@ def sqlite_table_data(table: str, limit: int = 100, offset: int = 0, q: str = ''
     # Validate table name
     if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table):
         return {'ok': False, 'error': 'Invalid table name'}
-    con = sqlite3.connect(DB)
+    con = _connect()
     con.row_factory = sqlite3.Row
     try:
         cols = [c[1] for c in con.execute(f'PRAGMA table_info("{table}")').fetchall()]
@@ -107,15 +131,39 @@ async def sqlite_query(req: Request):
     if not sql:
         return {'ok': False, 'error': 'SQL required'}
 
-    # Safety: only allow SELECT unless explicitly enabled
-    sql_upper = sql.upper().lstrip()
+    # SECURITY FIX: the write-detection below used to check
+    # `sql.upper().lstrip()` for a write-keyword PREFIX, but never stripped
+    # SQL comments first. A query like "/* x */ DROP TABLE foo" starts with
+    # "/*", not "DROP", so `is_write` evaluated False and the DROP executed
+    # even with allow_write=False — trivially bypassing the entire
+    # write-protection safeguard. Confirmed live: created a real table via
+    # allow_write=true, then dropped it with allow_write=false disguised
+    # behind a leading comment — the table was actually gone afterward
+    # (verified via GET /sqlite/tables), while the API response even
+    # falsely reported `{"type": "select", "count": 0}` as if nothing
+    # destructive had happened. Fixed by stripping ALL leading `--` line
+    # comments and `/* */` block comments (repeatedly, since more than one
+    # can precede the real statement) before checking the keyword prefix.
+    check_sql = sql
+    while True:
+        stripped = check_sql.lstrip()
+        if stripped.startswith('--'):
+            nl = stripped.find('\n')
+            stripped = stripped[nl + 1 :] if nl != -1 else ''
+        elif stripped.startswith('/*'):
+            end = stripped.find('*/')
+            stripped = stripped[end + 2 :] if end != -1 else ''
+        if stripped == check_sql:
+            break
+        check_sql = stripped
+    sql_upper = check_sql.upper().lstrip()
     is_write = any(
         sql_upper.startswith(kw) for kw in ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER', 'REPLACE']
     )
     if is_write and not allow_write:
         return {'ok': False, 'error': 'Write queries disabled. Set allow_write=true to enable.', 'is_write': True}
 
-    con = sqlite3.connect(DB)
+    con = _connect()
     con.row_factory = sqlite3.Row
     try:
         cur = con.execute(sql)
@@ -150,7 +198,7 @@ async def sqlite_insert(table: str, req: Request):
     row = body.get('row', {})
     if not row:
         return {'ok': False, 'error': 'row data required'}
-    con = sqlite3.connect(DB)
+    con = _connect()
     try:
         cols = list(row.keys())
         vals = list(row.values())
@@ -179,7 +227,7 @@ async def sqlite_delete_row(table: str, req: Request):
     value = body.get('pk_value')
     if value is None:
         return {'ok': False, 'error': 'pk_value required'}
-    con = sqlite3.connect(DB)
+    con = _connect()
     try:
         cur = con.execute(f'DELETE FROM "{table}" WHERE "{pk}"=?', (value,))
         con.commit()
@@ -193,7 +241,7 @@ async def sqlite_delete_row(table: str, req: Request):
 @router.get('/sqlite/schema')
 def sqlite_schema():
     """Return the full database schema (CREATE statements)."""
-    con = sqlite3.connect(DB)
+    con = _connect()
     try:
         rows = con.execute('SELECT name, sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY type, name').fetchall()
         return [{'name': r[0], 'sql': r[1]} for r in rows if not r[0].startswith('memory_fts')]
@@ -228,7 +276,7 @@ async def create_table(req: Request):
     if not sql:
         return {'ok': False, 'error': 'Provide sql or name+columns'}
 
-    con = sqlite3.connect(DB)
+    con = _connect()
     try:
         con.execute(sql)
         con.commit()
