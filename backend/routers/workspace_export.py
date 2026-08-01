@@ -16,6 +16,19 @@ log = logging.getLogger('agentic.workspace')
 
 from ..services.memory_db import get_conn
 
+# BUG FIX: 3 of these 11 entries referenced table names that don't actually
+# exist in the schema — 'prompts' (the real table is 'prompt_library',
+# see backend/routers/prompts.py), 'steering_rules' (the real tables are
+# 'steering_files' and 'steering_learned', see backend/routers/steering.py),
+# and 'skills' (skills are stored in a JSON file — skills/skills.json, see
+# backend/routers/skills.py — not a DB table at all). Every export silently
+# produced an empty [] for these 3 "tables" (the existing `except Exception:
+# archive['tables'][table] = []` fallback masked the mismatch completely —
+# confirmed live: a real export's summary reported 0 rows for all 3), and
+# a restore of such an archive correctly no-ops for them, but the omission
+# meant this backup feature was silently missing prompts, steering rules,
+# and skills entirely since the feature was first written — a real gap now
+# that it's wired up to an actual "Export/Restore" UI in this pass.
 EXPORT_TABLES = [
     'agents',
     'chat_sessions',
@@ -25,9 +38,9 @@ EXPORT_TABLES = [
     'goals',
     'secrets',
     'swarm_history',
-    'prompts',
-    'steering_rules',
-    'skills',
+    'prompt_library',
+    'steering_files',
+    'steering_learned',
 ]
 
 
@@ -104,22 +117,53 @@ async def import_workspace(req: Request):
     try:
         imported = {}
         for table_name, rows in tables.items():
+            # SECURITY FIX: `table_name` and each row's column names (both
+            # fully attacker-controlled — this endpoint accepts an
+            # arbitrary uploaded/pasted JSON archive) were previously
+            # interpolated directly into a raw SQL string with ZERO
+            # validation: `f'INSERT OR REPLACE INTO {table_name}
+            # ({col_names}) VALUES (...)'`. Parameterized `?` placeholders
+            # only protect VALUES, never table/column identifiers — this
+            # is a classic SQL-injection-via-identifier pattern. Since
+            # this endpoint is being wired up to a real "Restore from
+            # Backup" UI button in this pass (previously it had zero
+            # frontend access at all), it needs to actually be hardened
+            # rather than left as a latent landmine now that a user can
+            # reach it by importing an untrusted/tampered .json file.
+            # Fix: only allow table names from the same fixed allow-list
+            # this router itself exports from (EXPORT_TABLES), and only
+            # allow column names that actually exist on that table
+            # (via PRAGMA table_info, the same safe pattern already used
+            # in backend/routers/database.py) — any unrecognized table or
+            # column is silently skipped rather than ever reaching SQL.
+            if table_name not in EXPORT_TABLES:
+                imported[table_name] = 0
+                continue
             if not rows:
                 imported[table_name] = 0
                 continue
 
-            # Get column names from first row
-            columns = list(rows[0].keys())
-            placeholders = ','.join(['?' for _ in columns])
-            col_names = ','.join(columns)
+            try:
+                real_columns = {c[1] for c in con.execute(f'PRAGMA table_info("{table_name}")').fetchall()}
+            except Exception:
+                imported[table_name] = 0
+                continue
+            if not real_columns:
+                imported[table_name] = 0
+                continue
 
             count = 0
             for row in rows:
+                columns = [c for c in row.keys() if c in real_columns]
+                if not columns:
+                    continue
+                placeholders = ','.join(['?' for _ in columns])
+                col_names = ','.join(f'"{c}"' for c in columns)
                 try:
                     values = [row.get(c) for c in columns]
                     con.execute(
-                        f'INSERT OR REPLACE INTO {table_name} ({col_names}) VALUES ({placeholders})',
-                        values
+                        f'INSERT OR REPLACE INTO "{table_name}" ({col_names}) VALUES ({placeholders})',
+                        values,
                     )
                     count += 1
                 except Exception:
