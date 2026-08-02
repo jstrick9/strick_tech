@@ -51,6 +51,10 @@
     'gitai': { icon: '🌿', title: 'Git AI', desc: 'AI commit generator & diff analysis' },
     'marketplace': { icon: '🛒', title: 'Marketplace', desc: 'Curated & community skill packs' },
     'replay': { icon: '⏮️', title: 'Replay', desc: 'Time-travel step scrubbing & execution frame deltas' },
+    'supervisor': { icon: '🎯', title: 'Supervisor', desc: 'Autonomous goal DAG execution with multi-agent swarm' },
+    'goals': { icon: '🎯', title: 'Goals', desc: 'Strategic objective tracking and milestone planning' },
+    'connectors': { icon: '🔗', title: 'Integrations', desc: 'External system integrations and API connectors' },
+    'mcp-gateway': { icon: '🚪', title: 'Gateway', desc: 'MCP gateway routing and protocol bridging' },
     'collabedit': { icon: '✍️', title: 'Collab Edit', desc: 'Real-time CRDT Operational Transformation rooms' }
   };
 
