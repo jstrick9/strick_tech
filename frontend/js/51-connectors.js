@@ -88,10 +88,10 @@ function renderConnectorCard(c, statusColor) {
     </div>
 
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      ${c.status==='unconfigured'?`<button class="btn" onclick="connectorConfigure(${JSON.stringify(c.connector_id)},${JSON.stringify(c.name)},${JSON.stringify(c.auth_type)})" style="flex:1">⚙️ Configure</button>`:
-        `<button class="btn-sm" onclick="connectorExecute(${JSON.stringify(c.connector_id)},${JSON.stringify(c.name)},${JSON.stringify(caps)})">▶ Execute</button>
-         <button class="btn-sm" onclick="connectorHistory(${JSON.stringify(c.connector_id)})">📋 History</button>
-         <button class="btn-sm" onclick="connectorTest(${JSON.stringify(c.connector_id)})">🧪 Test</button>`}
+      ${c.status==='unconfigured'?`<button class="btn" data-connector-id="${escHtml(c.connector_id)}" data-connector-name="${escHtml(c.name)}" data-connector-auth="${escHtml(c.auth_type)}" onclick="connectorConfigure(this.dataset.connectorId, this.dataset.connectorName, this.dataset.connectorAuth)" style="flex:1">⚙️ Configure</button>`:
+        `<button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-connector-caps='${JSON.stringify(caps).replace(/\'/g, "&#39;")}' onclick="connectorExecute(this.dataset.connectorId, this.dataset.connectorName, JSON.parse(this.dataset.connectorCaps))">▶ Execute</button>
+         <button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" onclick="connectorHistory(this.dataset.connectorId)">📋 History</button>
+         <button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" onclick="connectorTest(this.dataset.connectorId)">🧪 Test</button>`}
     </div>
   </div>`;
 }

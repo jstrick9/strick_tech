@@ -198,7 +198,7 @@ function prbRenderList() {
     const ac = PRB_ACTION_COLORS[p.action] || PRB_ACTION_COLORS.allow;
     const isSelected = _prbSelected === p.policy_id;
     const isChecked  = _prbSelIds.has(p.policy_id);
-    return `<div class="prb-policy-item ${!p.enabled?'disabled':''} ${isSelected?'selected':''}" onclick="prbSelectPolicy(${JSON.stringify(p.policy_id)})" style="border-left-color:${p.enabled?ac.border:'var(--text-3)'}">
+    return `<div class="prb-policy-item ${!p.enabled?'disabled':''} ${isSelected?'selected':''}" data-policy-id="${escHtml(p.policy_id)}" style="border-left-color:${p.enabled?ac.border:'var(--text-3)'}">
       <input type="checkbox" class="prb-policy-check" ${isChecked?'checked':''} onclick="event.stopPropagation();prbToggleSelect(${JSON.stringify(p.policy_id)},this.checked)">
       <div class="prb-policy-item-body">
         <div class="prb-policy-item-name">${escHtml(p.name)}</div>
@@ -262,8 +262,8 @@ function prbRenderRulesTab(container) {
         const isSelected = _prbSelected === p.policy_id;
         const isChecked  = _prbSelIds.has(p.policy_id);
         const hasConditions = p.conditions && p.conditions !== '{}' && p.conditions !== '';
-        return `<tr class="${!p.enabled?'disabled':''} ${isSelected?'selected':''}" onclick="prbSelectPolicy(${JSON.stringify(p.policy_id)})">
-          <td onclick="event.stopPropagation()"><input type="checkbox" ${isChecked?'checked':''} onclick="prbToggleSelect(${JSON.stringify(p.policy_id)},this.checked)" style="accent-color:var(--accent)"></td>
+        return `<tr class="${!p.enabled?'disabled':''} ${isSelected?'selected':''}" data-policy-id="${escHtml(p.policy_id)}">
+          <td onclick="event.stopPropagation()"><input type="checkbox" ${isChecked?'checked':''} data-policy-id="${escHtml(p.policy_id)}" onclick="prbToggleSelect(this.dataset.policyId,this.checked)" style="accent-color:var(--accent)"></td>
           <td><span class="prb-priority-badge">${p.priority}</span></td>
           <td><span class="prb-action-chip" style="background:${ac.bg};color:${ac.text}">${ac.icon} ${p.action}</span></td>
           <td style="font-weight:600;color:var(--text-0);max-width:180px">
@@ -274,15 +274,15 @@ function prbRenderRulesTab(container) {
           <td><span class="prb-code" style="font-size:9px">${escHtml(p.server_id.replace('srv_',''))}</span></td>
           <td><span class="prb-code">${escHtml(p.tool_pattern)}</span></td>
           <td onclick="event.stopPropagation()">
-            <span class="prb-toggle" onclick="prbToggleEnabled(${JSON.stringify(p.policy_id)},${p.enabled})" title="${p.enabled?'Click to disable':'Click to enable'}">
+            <span class="prb-toggle" data-policy-id="${escHtml(p.policy_id)}" data-policy-enabled="${p.enabled}" onclick="prbToggleEnabled(this.dataset.policyId,this.dataset.policyEnabled==='true')" title="${p.enabled?'Click to disable':'Click to enable'}">
               ${p.enabled ? '🟢' : '⚫'}
             </span>
           </td>
           <td onclick="event.stopPropagation()">
             <div class="prb-row-actions">
-              <button class="prb-row-btn" onclick="prbEditPolicy(${JSON.stringify(p.policy_id)})" title="Edit">✏️</button>
-              <button class="prb-row-btn" onclick="prbSimulateFromRow(${JSON.stringify(p)})" title="Simulate">🧪</button>
-              ${!p.policy_id.startsWith('pol_allow_builtin') ? `<button class="prb-row-btn danger" onclick="prbDeletePolicy(${JSON.stringify(p.policy_id)},${JSON.stringify(p.name)})" title="Delete">🗑</button>` : ''}
+              <button class="prb-row-btn" data-policy-id="${escHtml(p.policy_id)}" onclick="prbEditPolicy(this.dataset.policyId)" title="Edit">✏️</button>
+              <button class="prb-row-btn" data-policy-id="${escHtml(p.policy_id)}" onclick="prbSimulateFromRow(this.dataset.policyId)" title="Simulate">🧪</button>
+              ${!p.policy_id.startsWith('pol_allow_builtin') ? `<button class="prb-row-btn danger" data-policy-id="${escHtml(p.policy_id)}" data-policy-name="${escHtml(p.name)}" onclick="prbDeletePolicy(this.dataset.policyId,this.dataset.policyName)" title="Delete">🗑</button>` : ''}
             </div>
           </td>
         </tr>`;
@@ -317,7 +317,7 @@ function prbRenderBuilderTab(container) {
         ${_prbTemplates.map(t => {
           const ac = PRB_ACTION_COLORS[t.action] || PRB_ACTION_COLORS.allow;
           const catCol = PRB_CATEGORY_COLORS[t.category] || 'var(--text-3)';
-          return `<div class="prb-tpl-card" onclick="prbApplyTemplate(${JSON.stringify(t)})">
+          return `<div class="prb-tpl-card" data-template-id="${escHtml(t.id||t.name)}" onclick="prbApplyTemplateById(this.dataset.templateId)">
             <div class="prb-tpl-icon">${t.icon}</div>
             <div class="prb-tpl-name">${escHtml(t.name)}</div>
             <div class="prb-tpl-desc">${escHtml(t.description)}</div>
@@ -350,7 +350,7 @@ function prbRenderBuilderTab(container) {
           const labels = { allow:['✅','Allow','Permit this tool call to proceed'], deny:['🚫','Deny','Block this call entirely — returns error'], require_hitl:['🛂','Require HITL','Pause and require human approval before proceeding'] };
           const [icon, label, desc] = labels[action];
           const isSelected = (editing?.action || 'allow') === action;
-          return `<div class="prb-action-opt ${isSelected?'selected-'+action:''}" id="prb-aopt-${action}" onclick="prbSelectAction(${JSON.stringify(action)})">
+          return `<div class="prb-action-opt ${isSelected?'selected-'+action:''}" id="prb-aopt-${action}" data-action="${escHtml(action)}" onclick="prbSelectAction(this.dataset.action)">
             <div class="prb-action-icon">${icon}</div>
             <div class="prb-action-label" style="color:${ac.text}">${label}</div>
             <div class="prb-action-desc">${desc}</div>
@@ -442,7 +442,7 @@ function prbRenderBuilderTab(container) {
 
     <!-- Submit row -->
     <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
-      <button class="prb-new-btn" style="flex:1;padding:10px" onclick="prbSubmitRule(${JSON.stringify(editing?.policy_id||'')})">
+      <button class="prb-new-btn" style="flex:1;padding:10px" data-edit-id="${escHtml(editing?.policy_id||'')}" onclick="prbSubmitRule(this.dataset.editId)">
         ${editing ? '💾 Save Changes' : '✅ Create Rule'}
       </button>
       ${editing ? `<button style="padding:10px 16px;border-radius:7px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer;font-size:12px" onclick="prbClearEdit()">✕ Cancel</button>` : ''}
@@ -573,7 +573,7 @@ function prbApplyTemplate(tpl) {
   }
   prbSelectAction(tpl.action);
   prbUpdatePreview();
-  showToast(`📋 Template applied: ${tpl.name}`);
+  toast(`📋 Template applied: ${tpl.name}`);
 }
 
 async function prbSubmitRule(editingId) {
@@ -589,7 +589,7 @@ async function prbSubmitRule(editingId) {
   const priority = parseInt(document.getElementById('prb-f-priority')?.value || '100');
   const conditions = prbBuildConditionsObject();
 
-  if (!name) { showToast('⚠️ Rule name is required'); return; }
+  if (!name) { toast('⚠️ Rule name is required'); return; }
 
   const body = { name, description: desc, action, agent_id: agentId,
                  server_id: server, tool_pattern: tool, priority, conditions };
@@ -609,14 +609,14 @@ async function prbSubmitRule(editingId) {
     }
     d = await r.json();
     if (d.ok) {
-      showToast(editingId ? `✅ Rule updated` : `✅ Rule created: ${d.policy_id}`);
+      toast(editingId ? `✅ Rule updated` : `✅ Rule created: ${d.policy_id}`);
       _prbSelected = null;
       await prbRefresh();
       prbSetTab('rules');
     } else {
-      showToast('⚠️ ' + (d.error || 'Failed'));
+      toast('⚠️ ' + (d.error || 'Failed'));
     }
-  } catch(e) { showToast('⚠️ ' + e.message); }
+  } catch(e) { toast('⚠️ ' + e.message); }
 }
 
 function prbClearEdit() {
@@ -664,7 +664,7 @@ function prbRenderSimulatorTab(container) {
           ['builder','srv_filesystem','fs.delete'],
           ['*','srv_http','http.post'],
           ['orchestrator','srv_connectors','slack.message'],
-        ].map(([a,s,t])=>`<button onclick="prbQuickSim(${JSON.stringify(a)},${JSON.stringify(s)},${JSON.stringify(t)})" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">${a} → ${t}</button>`).join('')}
+        ].map(([a,s,t])=>`<button data-quick="${escHtml(a)}|${escHtml(s)}|${escHtml(t)}" onclick="prbQuickSimFromData(this.dataset.quick)" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">${a} → ${t}</button>`).join('')}
       </div>
     </div>
 
@@ -711,7 +711,7 @@ async function prbRunSimulation() {
   const agent  = document.getElementById('sim-agent')?.value  || 'researcher';
   const server = document.getElementById('sim-server')?.value || 'srv_filesystem';
   const tool   = document.getElementById('sim-tool')?.value?.trim() || 'fs.list';
-  if (!tool) { showToast('⚠️ Tool name required'); return; }
+  if (!tool) { toast('⚠️ Tool name required'); return; }
 
   try {
     const r = await fetch('/api/mcp-gateway/policies/simulate', {
@@ -720,7 +720,7 @@ async function prbRunSimulation() {
     });
     _prbSimResult = await r.json();
     prbRenderSimulatorTab(document.getElementById('prb-content'));
-  } catch(e) { showToast('⚠️ Simulation failed: ' + e.message); }
+  } catch(e) { toast('⚠️ Simulation failed: ' + e.message); }
 }
 
 function prbQuickSim(agent, server, tool) {
@@ -733,7 +733,17 @@ function prbQuickSim(agent, server, tool) {
   prbRunSimulation();
 }
 
-function prbSimulateFromRow(pol) {
+function prbSimulateFromRow(polId) {
+  if (typeof polId === 'string') {
+    const pol = _prbPolicies.find(p => p.policy_id === polId);
+    if (!pol) return;
+    const agentSel = document.getElementById('sim-agent');
+    const svEl = document.getElementById('sim-server');
+    const tlEl = document.getElementById('sim-tool');
+    if (agentSel) agentSel.value = pol.agent_id || '*';
+    if (svEl) { [...svEl.options].some(o => { if (o.value === pol.server_id) { o.selected = true; return true; } return false; }); }
+    if (tlEl) tlEl.value = pol.tool_pattern || '*';
+  }
   _prbTab = 'simulator';
   document.querySelectorAll('.prb-tab').forEach(el => el.classList.toggle('active', el.id === 'prb-tab-simulator'));
   const content = document.getElementById('prb-content');
@@ -809,8 +819,8 @@ function prbRenderConflictsTab(container) {
             <span style="font-size:9px;color:var(--text-3);margin-left:4px">P:${c.policy_b?.priority||'?'}</span>
           </div>
           ${c.winner ? `<div class="prb-conflict-pol" style="border-color:var(--success)"><span style="font-size:10px;color:var(--success)">Winner: ${escHtml(c.winner.name)}</span></div>` : ''}
-          ${c.policy_a ? `<button onclick="prbEditPolicy(${JSON.stringify(c.policy_a.id)})" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">✏️ Edit A</button>` : ''}
-          ${c.policy_b ? `<button onclick="prbEditPolicy(${JSON.stringify(c.policy_b.id)})" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">✏️ Edit B</button>` : ''}
+          ${c.policy_a ? `<button data-policy-id="${escHtml(c.policy_a?.id||'')}" onclick="prbEditPolicy(this.dataset.policyId)" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">✏️ Edit A</button>` : ''}
+          ${c.policy_b ? `<button data-policy-id="${escHtml(c.policy_b?.id||'')}" onclick="prbEditPolicy(this.dataset.policyId)" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">✏️ Edit B</button>` : ''}
         </div>
       </div>`;
     }).join('')}
@@ -848,9 +858,9 @@ function prbRenderServersTab(container) {
             Tools: ${tools.slice(0,4).map(t=>`<span class="prb-code">${escHtml(t.name||t)}</span>`).join(' ')}${tools.length>4?` +${tools.length-4}`:''}</div>` : ''}
           <div class="prb-server-actions">
             ${isActive
-              ? `<button onclick="prbToggleServer(${JSON.stringify(s.server_id)},true)" style="font-size:10px;padding:3px 8px;border-radius:5px;background:rgba(232,82,82,.12);border:1px solid rgba(232,82,82,.3);color:#e85252;cursor:pointer">🔴 Disable</button>`
-              : `<button onclick="prbToggleServer(${JSON.stringify(s.server_id)},false)" style="font-size:10px;padding:3px 8px;border-radius:5px;background:rgba(61,186,122,.12);border:1px solid rgba(61,186,122,.3);color:#3dba7a;cursor:pointer">🟢 Enable</button>`}
-            <button onclick="prbAddPolicyForServer(${JSON.stringify(s.server_id)},${JSON.stringify(s.name)})" style="font-size:10px;padding:3px 8px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">+ Add Rule</button>
+              ? `<button data-server-id="${escHtml(s.server_id)}" data-disable="true" onclick="prbToggleServer(this.dataset.serverId,true)" style="font-size:10px;padding:3px 8px;border-radius:5px;background:rgba(232,82,82,.12);border:1px solid rgba(232,82,82,.3);color:#e85252;cursor:pointer">🔴 Disable</button>`
+              : `<button data-server-id="${escHtml(s.server_id)}" data-disable="false" onclick="prbToggleServer(this.dataset.serverId,false)" style="font-size:10px;padding:3px 8px;border-radius:5px;background:rgba(61,186,122,.12);border:1px solid rgba(61,186,122,.3);color:#3dba7a;cursor:pointer">🟢 Enable</button>`}
+            <button data-server-id="${escHtml(s.server_id)}" data-server-name="${escHtml(s.name)}" onclick="prbAddPolicyForServer(this.dataset.serverId,this.dataset.serverName)" style="font-size:10px;padding:3px 8px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">+ Add Rule</button>
           </div>
         </div>`;
       }).join('')}
@@ -877,7 +887,7 @@ function prbEditPolicy(polId) {
 async function prbToggleEnabled(polId, currentEnabled) {
   const r = await fetch(`/api/mcp-gateway/policies/${encodeURIComponent(polId)}/toggle`, {method:'PATCH'}).catch(()=>null);
   const d = r ? await r.json() : {};
-  showToast(d.ok ? `📋 Rule ${d.enabled?'enabled':'disabled'}` : '⚠️ Failed');
+  toast(d.ok ? `📋 Rule ${d.enabled?'enabled':'disabled'}` : '⚠️ Failed');
   await prbRefresh();
 }
 
@@ -886,7 +896,7 @@ async function prbDeletePolicy(polId, name) {
   if (!ok) return;
   const r = await fetch(`/api/mcp-gateway/policies/${encodeURIComponent(polId)}`, {method:'DELETE'}).catch(()=>null);
   const d = r ? await r.json() : {};
-  showToast(d.ok ? '🗑 Rule deleted' : '⚠️ ' + (d.error||'Failed'));
+  toast(d.ok ? '🗑 Rule deleted' : '⚠️ ' + (d.error||'Failed'));
   if (d.ok) { if(_prbSelected===polId) _prbSelected=null; await prbRefresh(); }
 }
 
@@ -904,7 +914,7 @@ function prbSelectAll(checked) {
 }
 
 async function prbBulkAction(action) {
-  if (_prbSelIds.size === 0) { showToast('⚠️ Select rules first (use checkboxes)'); return; }
+  if (_prbSelIds.size === 0) { toast('⚠️ Select rules first (use checkboxes)'); return; }
   const count = _prbSelIds.size;
   if (action === 'delete') {
     const ok = await gmDanger('Bulk Delete', `Delete ${count} selected rule${count>1?'s':''}? This cannot be undone.`);
@@ -915,7 +925,7 @@ async function prbBulkAction(action) {
     body: JSON.stringify({ action, policy_ids: [..._prbSelIds] })
   }).catch(()=>null);
   const d = r ? await r.json() : {};
-  showToast(d.ok ? `${action==='enable'?'✓':action==='disable'?'○':'🗑'} ${d.affected} rule${d.affected!==1?'s':''} ${action}d` : '⚠️ '+(d.error||'Failed'));
+  toast(d.ok ? `${action==='enable'?'✓':action==='disable'?'○':'🗑'} ${d.affected} rule${d.affected!==1?'s':''} ${action}d` : '⚠️ '+(d.error||'Failed'));
   _prbSelIds.clear();
   if (d.ok) await prbRefresh();
 }
@@ -933,7 +943,7 @@ async function prbToggleServer(serverId, disable) {
     method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({disable})
   }).catch(()=>null);
   const d = r ? await r.json() : {};
-  showToast(d.ok ? `${disable?'🔴 Disabled':'🟢 Enabled'}: ${serverId}` : '⚠️ '+(d.error||'Failed'));
+  toast(d.ok ? `${disable?'🔴 Disabled':'🟢 Enabled'}: ${serverId}` : '⚠️ '+(d.error||'Failed'));
   if (d.ok) await prbRefresh();
 }
 
@@ -947,7 +957,7 @@ async function prbRegisterServer() {
     body: JSON.stringify({name, endpoint, description:desc, server_type:'external'})
   }).catch(()=>null);
   const d = r ? await r.json() : {};
-  showToast(d.ok ? `🖥️ Registered: ${d.server_id}` : '⚠️ '+(d.error||'Failed'));
+  toast(d.ok ? `🖥️ Registered: ${d.server_id}` : '⚠️ '+(d.error||'Failed'));
   if (d.ok) await prbRefresh();
 }
 
@@ -973,13 +983,13 @@ async function mcgTestCall() {
   if (!tool.trim()) return;
   const argsStr = await gmPrompt('Args (JSON):', '{"path":"./"}') || '{}';
   let args = {};
-  try { args = JSON.parse(argsStr); } catch(e) { showToast('⚠️ Invalid JSON args'); return; }
-  showToast('📞 Calling via MCP Gateway…');
+  try { args = JSON.parse(argsStr); } catch(e) { toast('⚠️ Invalid JSON args'); return; }
+  toast('📞 Calling via MCP Gateway…');
   const r = await fetch('/api/mcp-gateway/call', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({server_id:'srv_filesystem', tool, args, agent_id:'user'})
   }).catch(()=>null);
-  if (!r) { showToast('⚠️ Call failed'); return; }
+  if (!r) { toast('⚠️ Call failed'); return; }
   const d = await r.json();
   await gmAlert(`🔀 Gateway Result: ${tool}`,
     `Call ID: ${d.call_id||'?'}\nPolicy: ${d.policy_decision||'?'}\nDuration: ${d.gateway_duration_ms||0}ms\nStatus: ${d.ok?'✅ OK':'❌ Failed'}\n\nResult:\n${JSON.stringify(d.result||d.error||d,null,2).slice(0,600)}`);
@@ -1012,3 +1022,13 @@ const CONNECTOR_CATEGORY_ICONS = {
 };
 window.renderMCPGateway = renderMCPGateway;
 })(S, nav, toast, escHtml, fetch, document);
+
+function prbQuickSimFromData(dataStr) {
+  const [a, s, t] = dataStr.split('|');
+  prbQuickSim(a, s, t);
+}
+function prbApplyTemplateById(id) {
+  const tpl = _prbTemplates.find(t => t.id === id || t.name === id);
+  if (tpl) prbApplyTemplate(tpl);
+}
+

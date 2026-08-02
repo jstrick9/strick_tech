@@ -145,7 +145,7 @@ function gmRenderList() {
     const isActive = _goalSelected?.goal?.id === g.id;
     const score  = g.outcome_score != null ? Math.round(g.outcome_score*100) : null;
     const icon   = GOAL_DOMAIN_ICONS[g.domain] || '📌';
-    return `<div class="gm-goal-card ${isActive?'active':''}" style="border-left-color:${pCol}" onclick="gmSelectGoal(${JSON.stringify(g.id)})">
+    return `<div class="gm-goal-card ${isActive?'active':''}" style="border-left-color:${pCol}" data-goal-id="${escHtml(g.id)}" >>
       <div class="gm-goal-card-top">
         <span class="gm-goal-icon">${icon}</span>
         <span class="gm-goal-title">${escHtml(g.title.slice(0,55))}</span>
@@ -166,6 +166,10 @@ function gmRenderList() {
   }).join('');
 }
 
+  document.getElementById('gm-goal-list')?.addEventListener('click', e => { const card = e.target.closest('.gm-goal-card'); if (!card) return; const gid = card.dataset.goalId; if (gid) gmSelectGoal(gid); });
+
+
+  document.querySelector('.gm-milestone-list')?.addEventListener('click', e => { const ms = e.target.closest('[data-ms-id]'); if (!ms) return; gmCompleteMilestone(ms.dataset.msId, parseInt(ms.dataset.msDone)); });
 function gmFilterChange() {
   _goalFilter.status   = document.getElementById('gm-filter-status')?.value   || '';
   _goalFilter.domain   = document.getElementById('gm-filter-domain')?.value   || '';
@@ -178,7 +182,7 @@ function gmFilterChange() {
 async function gmSelectGoal(goalId) {
   const d = await fetch(`/api/goals/${encodeURIComponent(goalId)}/full`)
     .then(r=>r.ok?r.json():null).catch(()=>null);
-  if (!d || !d.ok) { showToast('Could not load goal'); return; }
+  if (!d || !d.ok) { toast('Could not load goal'); return; }
   _goalSelected = d;
   _goalTab = 'overview';
   gmRenderList();
@@ -293,7 +297,7 @@ function gmTabOverview() {
       ${ms.length ? `
       <div class="gm-milestone-list">
         ${ms.map(m=>`
-        <div class="gm-milestone-item ${m.completed?'done':''}" onclick="gmCompleteMilestone(${JSON.stringify(m.id)},${m.completed?1:0})">
+        <div class="gm-milestone-item ${m.completed?'done':''}" data-ms-id="${escHtml(m.id)}" data-ms-done="${m.completed ? 1 : 0}" onclick="gmCompleteMilestone('${escHtml(m.id)}', ${m.completed ? 1 : 0})">
           <span class="gm-milestone-check">${m.completed?'✅':'⬜'}</span>
           <span class="gm-milestone-title ${m.completed?'done':''}">${escHtml(m.title)}</span>
           ${m.due_date ? `<span style="font-size:10px;color:var(--text-3)">${m.due_date}</span>` : ''}
@@ -383,7 +387,7 @@ function gmTabDecompose() {
     const icon = GOAL_AGENT_ICONS[t.agent_hint] || '🤖';
     return `<div class="gm-decomp-task" id="gdt-${t.id}"
       style="left:${t._x}px;top:${t._y}px;border-color:${col}33"
-      onclick="gmSelectDecompTask(${JSON.stringify(t.id)})">
+      data-decomp-id="${escHtml(t.id)}" onclick="gmSelectDecompTask('${escHtml(t.id)}')">
       <div class="gm-decomp-task-hdr">
         <div class="gm-decomp-seq" style="background:${col}">${t.seq}</div>
         <span class="gm-decomp-label">${escHtml(t.title)}</span>
@@ -646,35 +650,35 @@ function gmTabHistory() {
 async function gmDecomposeGoal(force=false) {
   if (!_goalSelected) return;
   const goalId = _goalSelected.goal.id;
-  showToast('🧩 Decomposing goal with Brain agent…');
+  toast('🧩 Decomposing goal with Brain agent…');
   try {
     const r = await fetch(`/api/goals/${encodeURIComponent(goalId)}/decompose`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({force})
     });
     const d = await r.json();
-    if (!d.ok) { showToast('⚠️ Decomposition failed: ' + (d.error||'')); return; }
-    showToast(`✅ Decomposed into ${d.task_count} tasks${d.cached?' (cached)':''}`);
+    if (!d.ok) { toast('⚠️ Decomposition failed: ' + (d.error||'')); return; }
+    toast(`✅ Decomposed into ${d.task_count} tasks${d.cached?' (cached)':''}`);
     // Reload full goal
     await gmSelectGoal(goalId);
     gmSetTab('decompose');
-  } catch(e) { showToast('⚠️ ' + e.message); }
+  } catch(e) { toast('⚠️ ' + e.message); }
 }
 
 async function gmScoreGoal() {
   if (!_goalSelected) return;
   const goalId = _goalSelected.goal.id;
-  showToast('⭐ Evaluating outcome — calling Evaluator agent…');
+  toast('⭐ Evaluating outcome — calling Evaluator agent…');
   try {
     const r = await fetch(`/api/goals/${encodeURIComponent(goalId)}/score`, {
       method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'
     });
     const d = await r.json();
-    if (!d.ok) { showToast('⚠️ Scoring failed: '+(d.error||'')); return; }
-    showToast(`✅ Score: ${d.overall_pct}% (${d.grade}) — Iteration ${d.iteration}`);
+    if (!d.ok) { toast('⚠️ Scoring failed: '+(d.error||'')); return; }
+    toast(`✅ Score: ${d.overall_pct}% (${d.grade}) — Iteration ${d.iteration}`);
     await gmSelectGoal(goalId);
     gmSetTab('score');
-  } catch(e) { showToast('⚠️ '+e.message); }
+  } catch(e) { toast('⚠️ '+e.message); }
 }
 
 async function gmLaunchGoal() {
@@ -682,19 +686,19 @@ async function gmLaunchGoal() {
   const g = _goalSelected.goal;
   const ok = await gmDanger('Launch Supervisor', `Autonomously work toward:\n\n"${g.title}"\n\nThe Brain will decompose and execute this goal using specialist agents.`);
   if (!ok) return;
-  showToast('🚀 Launching supervisor run…');
+  toast('🚀 Launching supervisor run…');
   try {
     const r = await fetch(`/api/goals/${encodeURIComponent(g.id)}/launch`, {
       method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'
     });
     const d = await r.json();
     if (d.ok) {
-      showToast(`🧠 Supervisor run started: ${d.run_id}`);
+      toast(`🧠 Supervisor run started: ${d.run_id}`);
       await gmSelectGoal(g.id);
     } else {
-      showToast('⚠️ Launch failed: '+(d.error||''));
+      toast('⚠️ Launch failed: '+(d.error||''));
     }
-  } catch(e) { showToast('⚠️ '+e.message); }
+  } catch(e) { toast('⚠️ '+e.message); }
 }
 
 async function gmLaunchGoalFromDecomp() {
@@ -718,7 +722,7 @@ async function gmAddCheckin() {
       body: JSON.stringify({progress:n, note, agent_id:'user'})
     });
   }
-  showToast(`📈 Progress updated: ${n}%`);
+  toast(`📈 Progress updated: ${n}%`);
   await gmSelectGoal(g.id);
 }
 
@@ -732,7 +736,7 @@ async function gmAddMilestone() {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({title, due_date: due})
   });
-  showToast('📌 Milestone added');
+  toast('📌 Milestone added');
   await gmSelectGoal(g.id);
 }
 
@@ -754,7 +758,7 @@ async function gmEditGoal() {
     method:'PATCH', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({title: title||g.title, success_criteria: criteria})
   });
-  showToast('✏️ Goal updated');
+  toast('✏️ Goal updated');
   await gmSelectGoal(g.id);
   await gmLoadGoals();
 }
@@ -765,7 +769,7 @@ async function gmDeleteGoal() {
   const ok = await gmDanger('Delete Goal', `Delete "${g.title}" and all its data?`);
   if (!ok) return;
   await fetch(`/api/goals/${encodeURIComponent(g.id)}`, {method:'DELETE'});
-  showToast('🗑 Goal deleted');
+  toast('🗑 Goal deleted');
   _goalSelected = null;
   document.getElementById('gm-main').innerHTML = `
     <div class="gm-empty">
@@ -862,7 +866,7 @@ function gcfAddMilestone() {
 
 async function gmCreateGoal() {
   const title    = document.getElementById('gcf-title')?.value?.trim();
-  if (!title) { showToast('⚠️ Title is required'); return; }
+  if (!title) { toast('⚠️ Title is required'); return; }
   const desc     = document.getElementById('gcf-desc')?.value?.trim()     || '';
   const criteria = document.getElementById('gcf-criteria')?.value?.trim() || '';
   const domain   = document.getElementById('gcf-domain')?.value           || 'Work';
@@ -881,10 +885,10 @@ async function gmCreateGoal() {
     body: JSON.stringify({title, description:desc, success_criteria:criteria,
                           domain, priority, deadline, tags, milestones:msList})
   }).catch(()=>null);
-  if (!r||!r.ok) { showToast('⚠️ Create failed'); return; }
+  if (!r||!r.ok) { toast('⚠️ Create failed'); return; }
   const d = await r.json();
-  if (!d.ok) { showToast('⚠️ '+(d.error||'Create failed')); return; }
-  showToast(`🎯 Goal created: ${title.slice(0,40)}`);
+  if (!d.ok) { toast('⚠️ '+(d.error||'Create failed')); return; }
+  toast(`🎯 Goal created: ${title.slice(0,40)}`);
   await gmLoadGoals();
   await gmSelectGoal(d.id || d.goal_id);
 
@@ -922,3 +926,5 @@ function renderGoalCard(g)              { return ''; } // no longer used standal
 
 window.renderGoals = renderGoals;
 })(S, nav, toast, escHtml, fetch, document, gmPrompt, gmConfirm, gmAlert);
+
+  document.querySelector('#gm-tab-content')?.addEventListener('click', e => { const t = e.target.closest('[data-decomp-id]'); if (!t) return; gmSelectDecompTask(t.dataset.decompId); });
