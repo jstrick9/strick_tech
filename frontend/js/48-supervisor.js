@@ -339,7 +339,7 @@ function dagRenderRunList() {
     const icon       = DAG_STATUS_ICONS[r.status]     || '❓';
     const progress   = r.task_count > 0 ? Math.round(r.done_count / r.task_count * 100) : 0;
     const ts         = new Date(r.created_at).toLocaleString(undefined, {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-    return `<div class="dag-run-card ${isActive?'active':''}" onclick="dagSelectRun(${JSON.stringify(r.run_id)})">
+    return `<div class="dag-run-card ${isActive?'active':''}" data-run-id="${escHtml(r.run_id)}">
       <div class="dag-run-card-top">
         <span class="dag-badge" style="background:${col}22;color:${col}">${icon} ${r.status}</span>
         ${isRunning ? '<div class="dag-live-dot" style="margin-left:auto"></div>' : ''}
@@ -354,6 +354,7 @@ function dagRenderRunList() {
       </div>` : ''}
     </div>`;
   }).join('');
+  bindSupervisorDelegated();
 }
 
 
@@ -362,7 +363,7 @@ async function dagSelectRun(runId) {
   try {
     const d = await fetch(`/api/supervisor/run/${encodeURIComponent(runId)}/dag`)
       .then(r => r.ok ? r.json() : null);
-    if (!d || !d.ok) { showToast('Could not load DAG'); return; }
+    if (!d || !d.ok) { toast('Could not load DAG'); return; }
 
     _dagActiveRun = d;
     _dagSelectedTask = null;
@@ -374,7 +375,7 @@ async function dagSelectRun(runId) {
     dagUpdatePhaseBanner();
     dagFitView();
     dagMaybePoll();
-  } catch(e) { console.error('dagSelectRun', e); showToast('Error loading DAG: ' + e.message); }
+  } catch(e) { console.error('dagSelectRun', e); toast('Error loading DAG: ' + e.message); }
 }
 
 function dagUpdateToolbar() {
@@ -495,7 +496,7 @@ function dagNodeHTML(t) {
 
   return `<div class="dag-node ${stCls} ${_dagSelectedTask===t.task_id?'n-selected':''}" id="dagn-${t.task_id}"
               style="left:${t.x||0}px;top:${t.y||0}px"
-              onclick="dagClickTask(event,${JSON.stringify(t.task_id)})">
+              onclick="dagClickTask(event,'${escHtml(t.task_id)}')">
     <div class="dag-node-hdr">
       <div class="dag-node-seq" style="background:${col}">${t.seq}</div>
       <span class="dag-node-label" title="${escHtml(t.title)}">${escHtml(t.title)}</span>
@@ -638,7 +639,7 @@ function dagShowTaskDetail(taskId) {
   if (titleEl) titleEl.textContent = `Task #${task.seq} — ${task.title}`;
 
   const copy = (txt) =>
-    `<button class="dag-copy-btn" onclick="navigator.clipboard.writeText(${JSON.stringify(txt)}).then(()=>showToast('Copied!'))">Copy</button>`;
+    `<button class="dag-copy-btn" onclick="navigator.clipboard.writeText('${escHtml(txt)}').then(()=>toast('Copied!'))">Copy</button>`;
 
   body.innerHTML = `
     <!-- Header -->
@@ -942,7 +943,7 @@ function dagOpenLaunch() {
       <p>The Brain agent will decompose your goal into a task DAG, assign specialist agents, and execute waves in parallel. Watch the graph light up in real time.</p>
       <textarea id="dag-goal-ta" placeholder="Describe your goal in detail…&#10;&#10;Be specific about deliverables, constraints, and desired output format." rows="4"></textarea>
       <div class="dag-modal-examples">
-        ${examples.map(ex => `<div class="dag-modal-example" onclick="document.getElementById('dag-goal-ta').value=${JSON.stringify(ex)}">${ex}</div>`).join('')}
+        ${examples.map(ex => `<div class="dag-modal-example" onclick="document.getElementById('dag-goal-ta').value='${escHtml(ex)}'">${escHtml(ex)}</div>`).join('')}
       </div>
       <div class="dag-modal-row">
         <button class="dag-toolbar-btn" onclick="document.getElementById('dag-launch-modal').remove()">Cancel</button>
@@ -956,22 +957,22 @@ function dagOpenLaunch() {
 
 async function dagLaunchGoal() {
   const goal = document.getElementById('dag-goal-ta')?.value?.trim();
-  if (!goal) { showToast('⚠️ Enter a goal first'); return; }
+  if (!goal) { toast('⚠️ Enter a goal first'); return; }
   document.getElementById('dag-launch-modal')?.remove();
-  showToast('⚡ Launching supervisor run…');
+  toast('⚡ Launching supervisor run…');
   try {
     const r = await fetch('/api/supervisor/run', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ goal })
     });
-    if (!r.ok) { showToast('⚠️ Launch failed (HTTP ' + r.status + ')'); return; }
+    if (!r.ok) { toast('⚠️ Launch failed (HTTP ' + r.status + ')'); return; }
     const d = await r.json();
-    if (!d.ok) { showToast('⚠️ ' + (d.error || 'Launch failed')); return; }
-    showToast(`🧠 Run started: ${d.run_id}`);
+    if (!d.ok) { toast('⚠️ ' + (d.error || 'Launch failed')); return; }
+    toast(`🧠 Run started: ${d.run_id}`);
     // Refresh list and auto-select the new run
     await dagRefresh();
     await dagSelectRun(d.run_id);
-  } catch(e) { showToast('⚠️ Launch error: ' + e.message); }
+  } catch(e) { toast('⚠️ Launch error: ' + e.message); }
 }
 
 
@@ -987,9 +988,9 @@ async function dagKillActive() {
       body: JSON.stringify({reason:'User kill switch'})
     });
     const d = await r.json();
-    showToast(d.ok ? `🛑 Run killed` : '⚠️ Kill failed: ' + (d.error || ''));
+    toast(d.ok ? `🛑 Run killed` : '⚠️ Kill failed: ' + (d.error || ''));
     await dagRefresh();
-  } catch(e) { showToast('⚠️ ' + e.message); }
+  } catch(e) { toast('⚠️ ' + e.message); }
 }
 
 async function dagDeleteActive() {
@@ -1001,14 +1002,14 @@ async function dagDeleteActive() {
     const r = await fetch(`/api/supervisor/run/${encodeURIComponent(runId)}`, { method:'DELETE' });
     const d = await r.json();
     if (d.ok) {
-      showToast('🗑 Run deleted');
+      toast('🗑 Run deleted');
       _dagActiveRun = null;
       _dagSelectedTask = null;
       await dagRefresh();
     } else {
-      showToast('⚠️ Delete failed: ' + (d.error || ''));
+      toast('⚠️ Delete failed: ' + (d.error || ''));
     }
-  } catch(e) { showToast('⚠️ ' + e.message); }
+  } catch(e) { toast('⚠️ ' + e.message); }
 }
 
 
@@ -1035,6 +1036,16 @@ async function supervisorDelete(runId) {
 }
 function renderSupervisorRunCard(r) { return ''; } // no longer used
 
+
+// Delegated listener for run cards (quote-collision fix)
+function bindSupervisorDelegated() {
+  document.getElementById('dag-run-list')?.addEventListener('click', e => {
+    const card = e.target.closest('.dag-run-card');
+    if (!card) return;
+    const runId = card.dataset.runId;
+    if (runId) dagSelectRun(runId);
+  });
+}
 
 window.renderSupervisor = renderSupervisor;
 })(S, nav, toast, escHtml, fetch, document);
