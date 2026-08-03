@@ -68,7 +68,6 @@ from .routers.arena import router as arena_router
 # ── Sprint A: Governance Foundation ───────────────────────────────────────────
 from .routers.audit_log import router as audit_log_router
 from .routers.auth import router as auth_router
-from .routers.bci import router as bci_router
 from .routers.bounty_hunter import router as bounty_hunter_router
 from .routers.browser_agent import router as browser_router
 from .routers.bugbot import router as bugbot_router
@@ -80,13 +79,11 @@ from .routers.cluster import router as cluster_router
 from .routers.codeindex import router as codeindex_router
 from .routers.codesearch import router as codesearch_router
 from .routers.collab import router as collab_router
-from .routers.compiler import router as compiler_router
 from .routers.compliance import router as compliance_router
 from .routers.control_tower import router as control_tower_router
 from .routers.crdt import router as crdt_router
 from .routers.database import router as database_router
 from .routers.deploy import router as deploy_router
-from .routers.digital_twin import router as digital_twin_router
 from .routers.docs_center import router as docs_router
 from .routers.documents import router as documents_router
 from .routers.drift import router as drift_router
@@ -115,7 +112,6 @@ from .routers.notifications import router as notifications_router
 from .routers.observability import router as observability_router
 from .routers.obsidian import router as obsidian_router
 from .routers.onboarding import router as onboarding_router
-from .routers.p2p_sharding import router as p2p_sharding_router
 from .routers.pipeline import router as pipeline_router
 from .routers.plugins import router as plugins_router
 from .routers.pluginsdk import router as pluginsdk_router
@@ -125,8 +121,6 @@ from .routers.prompts import router as prompts_router
 from .routers.rag import router as rag_router
 from .routers.rbac import router as rbac_router
 from .routers.replay import router as replay_router
-from .routers.robotics import router as robotics_router
-from .routers.satellite import router as satellite_router
 from .routers.search import router as search_router
 from .routers.secrets import router as secrets_router
 from .routers.security import router as security_router
@@ -138,7 +132,6 @@ from .routers.swarm import router as swarm_router
 from .routers.sync import router as sync_router
 from .routers.system import router as system_router
 from .routers.tauri_build import router as tauri_router
-from .routers.telephony import router as telephony_router
 from .routers.templates import router as templates_router
 from .routers.terminal import router as terminal_router
 from .routers.testgen import router as testgen_router
@@ -235,17 +228,10 @@ app = FastAPI(
         {'name': 'mobile', 'description': 'Mobile app bridge, manifest, and device push notifications'},
         {'name': 'sync', 'description': 'Self-hosted encrypted vault cloud synchronization (AES-256)'},
         {'name': 'rbac', 'description': 'Role-Based Access Control and fine-grained API token scoping'},
-        {'name': 'telephony', 'description': 'Autonomous voice-to-voice telephony streaming (WebRTC / Twilio)'},
         {'name': 'cluster', 'description': 'Distributed multi-node edge device compute grid & task dispatch'},
         {'name': 'finetune', 'description': 'Local zero-shot LoRA fine-tuning engine (MLX / CUDA)'},
         {'name': 'bounty-hunter', 'description': 'Autonomous zero-day security scanner & self-patching loop'},
-        {'name': 'p2p-sharding', 'description': 'Decentralized P2P encrypted model checkpoint sharding (IPFS/BitTorrent)'},
         {'name': 'pqc', 'description': 'Lattice-based post-quantum cryptography (ML-KEM-1024 / Kyber / Dilithium)'},
-        {'name': 'robotics', 'description': 'Hardware robotics actuators & IoT sensor telemetry control (ROS 2 / MQTT)'},
-        {'name': 'bci', 'description': 'Real-time EEG brain-computer interface telemetry & neural intent decoding'},
-        {'name': 'compiler', 'description': 'Self-replicating native binary compilation & zero-downtime hot-swap kernel patching'},
-        {'name': 'digital-twin', 'description': 'Physical-digital reality twin synchronization (Apple Vision Pro / OpenXR spatial computing)'},
-        {'name': 'satellite', 'description': 'Multi-planetary offline satellite edge mesh networking (DTN / RFC 9171 Bundle Protocol)'},
         {'name': 'system', 'description': 'System health and monitoring'},
     ],
 )
@@ -549,20 +535,13 @@ app.include_router(hierarchy_router)
 app.include_router(mobile_router)
 app.include_router(sync_router)
 app.include_router(rbac_router)
-app.include_router(telephony_router)
 app.include_router(cluster_router)
 app.include_router(finetune_router)
 app.include_router(bounty_hunter_router)
-app.include_router(p2p_sharding_router)
 app.include_router(pqc_router)
 app.include_router(workspace_export_router)
 app.include_router(auth_router)
 app.include_router(engine_router)
-app.include_router(robotics_router)
-app.include_router(bci_router)
-app.include_router(compiler_router)
-app.include_router(digital_twin_router)
-app.include_router(satellite_router)
 
 # ── WebSocket endpoint registered directly on app (include_router may not work for WS in FastAPI 0.139+) ──
 from .routers.websocket import _get_agent_statuses, _get_memory_stats

@@ -1,10 +1,9 @@
 """
 Unit Tests — Version 8.0 Features (`tests/unit/test_35_v8_0_features.py`)
-Tests all 4 pillars of the v8.0 Roadmap:
+Tests the remaining pillars of the v8.0 Roadmap:
 1. Enterprise RBAC & API token scoping (`/api/rbac/*`)
-2. Autonomous voice-to-voice telephony agents (`/api/telephony/*`)
-3. Distributed multi-node Swarm clustering across edge devices (`/api/cluster/*`)
-4. Local zero-shot fine-tuning engine (`/api/finetune/*`)
+2. Distributed multi-node Swarm clustering across edge devices (`/api/cluster/*`)
+3. Local zero-shot fine-tuning engine (`/api/finetune/*`)
 """
 from __future__ import annotations
 import pytest
@@ -58,26 +57,6 @@ class TestV80Features:
         assert ver_fail.status_code == 200
         assert ver_fail.json()["valid"] is False
         assert "Insufficient scope" in ver_fail.json()["error"]
-
-    def test_telephony_voice_stream_and_outbound_calls(self, client):
-        cfg_r = client.get("/api/telephony/config")
-        assert cfg_r.status_code == 200
-        cfg = cfg_r.json()
-        assert cfg["ok"] is True
-        assert "WebRTC" in cfg["providers_supported"]
-        assert "Joshua Strickland" in cfg["creator"]
-
-        out_r = client.post("/api/telephony/calls/outbound", json={
-            "phone_number": "+15550199888",
-            "agent_id": "voice_assistant",
-            "greeting_prompt": "Hello from Strick Tech AI.",
-            "goal": "Verify system appointment"
-        })
-        assert out_r.status_code == 200
-        out_data = out_r.json()
-        assert out_data["ok"] is True
-        assert out_data["status"] == "ringing"
-        assert "out_" in out_data["call_id"]
 
     def test_cluster_grid_node_join_and_dispatch(self, client):
         status_r = client.get("/api/cluster/status")

@@ -219,28 +219,12 @@ async function renderSupervisor() {
           <div style="position:absolute;top:50px;left:35px;width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 10px #f59e0b" title="Node 3 (GPU Inference Node)"></div>
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:12px;font-family:monospace">
-          <div class="card-elevated surface-z2" style="padding:12px;border-left:3px solid #10b981;border-radius:8px;display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div style="color:#10b981;font-weight:800;font-size:13px">Node 1: Local Master MacBook Pro M3 Max</div>
-              <div style="color:var(--text-2);font-size:11px">Port 8787 • 64GB Unified Memory • Metal MPS Accelerated</div>
-            </div>
-            <span class="badge badge-success">ACTIVE · 1.1ms</span>
-          </div>
-          <div class="card-elevated surface-z2" style="padding:12px;border-left:3px solid #a855f7;border-radius:8px;display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div style="color:#a855f7;font-weight:800;font-size:13px">Node 2: Edge Worker MacBook Air M2</div>
-              <div style="color:var(--text-2);font-size:11px">Port 8788 • 16GB Unified Memory • Local Ollama Instance</div>
-            </div>
-            <span class="badge badge-accent">ACTIVE · 2.4ms</span>
-          </div>
-          <div class="card-elevated surface-z2" style="padding:12px;border-left:3px solid #f59e0b;border-radius:8px;display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div style="color:#f59e0b;font-weight:800;font-size:13px">Node 3: Linux GPU Inference Mesh Server</div>
-              <div style="color:var(--text-2);font-size:11px">Port 8789 • 24GB VRAM (RTX 4090) • DeepSeek R1 / Llama 3.3</div>
-            </div>
-            <span class="badge badge-warning">STANDBY · 4.8ms</span>
-          </div>
+        <!-- Live node list — populated from GET /api/cluster/nodes by
+             clusterRefresh(). This used to be three hardcoded <div>s naming
+             invented laptop/GPU hardware with fake sub-millisecond latencies,
+             shown regardless of what was actually registered. -->
+        <div id="cluster-node-list" style="display:flex;flex-direction:column;gap:12px;font-family:monospace">
+          <div style="color:var(--text-3);font-size:12px">Loading cluster nodes…</div>
         </div>
       </div>
     </div>
@@ -266,30 +250,136 @@ window.supervisorSwitchView = function(view) {
     if (clusterView) clusterView.style.display = 'block';
     if (btnDag) { btnDag.className = 'btn-3d btn-ghost btn-sm'; }
     if (btnCluster) { btnCluster.className = 'btn-3d btn-primary btn-sm'; }
+    // Load real node data whenever the view is opened.
+    if (typeof window.clusterRefresh === 'function') window.clusterRefresh();
+  }
+};
+
+// ── Cluster (Multi-Node Edge Radar) ────────────────────────────────
+// BUG FIX: every control in this view used to be theatre. clusterAddNode()
+// never contacted the host it was given, clusterScanLAN() claimed to have
+// "Scanned 254 local LAN addresses" and "Discovered 2 active nodes" without
+// sending a single packet, and clusterRebalanceLoad() reported invented
+// percentages ("Master 40%, Edge M2 35%"). A real, working /api/cluster
+// router (join / nodes / heartbeat / dispatch / status) already existed and
+// was wired to nothing. These handlers now use it, and report honestly.
+
+function clusterNodeCard(node) {
+  const online = (Date.now() / 1000 - (node.last_heartbeat || 0)) < 60;
+  const colour = node.role === 'master' ? '#10b981' : (online ? '#a855f7' : '#f59e0b');
+  const caps = node.capabilities || {};
+  const detail = [
+    caps.gpu,
+    caps.vram_gb ? `${caps.vram_gb}GB VRAM` : '',
+    (caps.models_loaded || []).join(', '),
+  ].filter(Boolean).join(' • ');
+
+  const card = document.createElement('div');
+  card.className = 'card-elevated surface-z2';
+  card.style.cssText = `padding:12px;border-left:3px solid ${colour};border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:10px`;
+
+  const left = document.createElement('div');
+  left.style.cssText = 'min-width:0';
+  const title = document.createElement('div');
+  title.style.cssText = `color:${colour};font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
+  title.textContent = `${node.name || node.node_id}${node.role === 'master' ? ' (master)' : ''}`;
+  const sub = document.createElement('div');
+  sub.style.cssText = 'color:var(--text-2);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  sub.textContent = `${node.host_url || 'unknown host'}${detail ? ' • ' + detail : ''}`;
+  left.append(title, sub);
+
+  const badge = document.createElement('span');
+  badge.className = 'badge ' + (online ? 'badge-success' : 'badge-warning');
+  badge.style.flexShrink = '0';
+  badge.textContent = online ? (node.status || 'active').toUpperCase() : 'STALE';
+
+  card.append(left, badge);
+  return card;
+}
+
+window.clusterRefresh = async function() {
+  const list = document.getElementById('cluster-node-list');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/cluster/nodes');
+    const d = await r.json();
+    const nodes = (d && d.nodes) || [];
+    list.replaceChildren();
+    if (!nodes.length) {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'color:var(--text-3);font-size:12px';
+      empty.textContent = 'No nodes registered. Use “＋ Add Edge Node” to join one.';
+      list.appendChild(empty);
+      return;
+    }
+    nodes.forEach((n) => list.appendChild(clusterNodeCard(n)));
+  } catch (e) {
+    list.replaceChildren();
+    const err = document.createElement('div');
+    err.style.cssText = 'color:var(--danger);font-size:12px';
+    err.textContent = `Could not load cluster nodes: ${e && e.message ? e.message : e}`;
+    list.appendChild(err);
   }
 };
 
 window.clusterAddNode = async function() {
-  const host = await gmPrompt('Add Edge Node', 'Enter Node Host URL / IP address (e.g. http://192.168.1.142:8787):', 'http://192.168.1.142:8787');
-  if (!host?.trim()) return;
-  toast(`📡 Scanning and verifying handshake with ${host}...`, 'ok', 2500);
-  setTimeout(() => {
-    toast(`✅ Edge Node verified & joined cluster mesh: ${host}`, 'ok', 4000);
-  }, 1200);
+  const host = await gmPrompt('Add Edge Node', 'Enter the node\'s host URL (e.g. http://192.168.1.142:8787):', 'http://192.168.1.142:8787');
+  if (!host || !host.trim()) return;
+  const hostUrl = host.trim();
+  toast(`Registering ${hostUrl}…`, 'ok', 2000);
+  try {
+    const r = await fetch('/api/cluster/nodes/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ host_url: hostUrl, name: hostUrl.replace(/^https?:\/\//, '') }),
+    });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.detail || d.error || `HTTP ${r.status}`);
+    toast(`✅ Node registered: ${d.node_id}`, 'ok', 3000);
+    window.clusterRefresh();
+  } catch (e) {
+    toast(`❌ Could not register node: ${e && e.message ? e.message : e}`, 'err', 4000);
+  }
 };
 
-window.clusterScanLAN = function() {
-  toast('📡 Broadcasting discovery ping across local subnet (255.255.255.0)...', 'ok', 3000);
-  setTimeout(() => {
-    gmAlert('📡 Subnet Discovery Results', 'Scanned 254 local LAN addresses.\n\nDiscovered <strong style="color:var(--accent)">2 active Agentic OS node instances</strong> on subnet <code style="font-family:monospace">192.168.1.*</code>.\n\nHandshake latency verified under 3ms.');
-  }, 1500);
+window.clusterScanLAN = async function() {
+  // Honest behaviour: the backend has no subnet-scanning capability, so this
+  // reports what is actually registered rather than inventing a LAN sweep.
+  toast('Refreshing registered cluster nodes…', 'ok', 1500);
+  try {
+    const r = await fetch('/api/cluster/status');
+    const d = await r.json();
+    await window.clusterRefresh();
+    gmAlert(
+      '📡 Cluster Status',
+      `Cluster <code style="font-family:monospace">${escHtml(d.cluster_id || 'unknown')}</code><br><br>` +
+      `Registered nodes: <strong style="color:var(--accent)">${d.node_count ?? 0}</strong><br>` +
+      `Active (recent heartbeat): <strong>${d.active_nodes ?? 0}</strong><br>` +
+      `Total VRAM reported: <strong>${d.total_vram_gb ?? 0} GB</strong><br><br>` +
+      `<span style="color:var(--text-3)">Automatic subnet discovery isn't available — add nodes by URL with “＋ Add Edge Node”.</span>`
+    );
+  } catch (e) {
+    toast(`❌ Could not read cluster status: ${e && e.message ? e.message : e}`, 'err', 4000);
+  }
 };
 
-window.clusterRebalanceLoad = function() {
-  toast('⚡ Rebalancing active Swarm inference jobs across all 3 cluster nodes...', 'ok', 2500);
-  setTimeout(() => {
-    toast('✅ Swarm load balanced: Master 40%, Edge M2 35%, Linux GPU 25%', 'ok', 4000);
-  }, 1200);
+window.clusterRebalanceLoad = async function() {
+  // Uses the real dispatch endpoint, which picks a node and returns the
+  // assignment, instead of announcing fabricated load percentages.
+  toast('Dispatching a probe task to the cluster…', 'ok', 2000);
+  try {
+    const r = await fetch('/api/cluster/dispatch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_prompt: 'Cluster rebalance probe' }),
+    });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.detail || d.error || `HTTP ${r.status}`);
+    toast(`✅ ${d.message || 'Task dispatched to ' + (d.dispatched_to_node || 'a node')}`, 'ok', 4000);
+    window.clusterRefresh();
+  } catch (e) {
+    toast(`❌ Dispatch failed: ${e && e.message ? e.message : e}`, 'err', 4000);
+  }
 };
 
 
