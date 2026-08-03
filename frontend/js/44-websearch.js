@@ -46,6 +46,23 @@ const state = {
 };
 
 const TABS = ['grounded', 'search', 'research', 'history'];
+
+// SECURITY: escHtml() makes a string safe as HTML *text*, but it does NOT
+// neutralise a dangerous URL scheme — `javascript:alert(1)` survives it intact
+// and stays live in an href. Every URL rendered by this pane comes from
+// scraped third-party search results, so it is attacker-influenced input.
+// Verified in jsdom: `href="${escHtml('javascript:alert(document.cookie)')}"`
+// produced an anchor whose href was still the javascript: payload.
+// safeUrl() allows only http/https and returns '#' for anything else.
+function safeUrl(url) {
+  const raw = String(url == null ? '' : url).trim();
+  if (!raw) return '#';
+  // Strip control characters that can be used to smuggle a scheme past a
+  // naive prefix check (e.g. "java\tscript:").
+  const normalised = raw.replace(/[\u0000-\u001F\u007F]/g, '').toLowerCase();
+  if (normalised.startsWith('http://') || normalised.startsWith('https://')) return raw;
+  return '#';
+}
 const KIND_ICONS = { search: '🔍', grounded: '🤖', grounded_stream: '⚡', research: '📚' };
 
 function $(id) { return document.getElementById(id); }
@@ -220,7 +237,7 @@ async function grounded() {
         <div style="border-top:1px solid var(--border);padding-top:10px">
           <div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:6px">SOURCES (${d.sources||0})</div>
           ${(d.citations||[]).map(c=>`
-            <a href="${escHtml(c.url||'')}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;padding:4px 0;text-decoration:none">
+            <a href="${escHtml(safeUrl(c.url))}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;padding:4px 0;text-decoration:none">
               <span style="font-size:10px;background:var(--bg-3);padding:1px 5px;border-radius:3px;color:var(--text-3)">[${escHtml(String(c.num))}]</span>
               <span style="font-size:12px;color:var(--accent)">${escHtml(c.title||c.url||'')}</span>
             </a>`).join('')}
@@ -254,7 +271,7 @@ async function groundedStream() {
         if (t) t.insertAdjacentHTML('afterend', `
           <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:10px">
             <div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:6px">SOURCES</div>
-            ${d.citations.map(c=>`<a href="${escHtml(c.url||'')}" target="_blank" rel="noopener" style="display:block;font-size:12px;color:var(--accent);padding:2px 0">[${escHtml(String(c.num))}] ${escHtml(c.title||c.url||'')}</a>`).join('')}
+            ${d.citations.map(c=>`<a href="${escHtml(safeUrl(c.url))}" target="_blank" rel="noopener" style="display:block;font-size:12px;color:var(--accent);padding:2px 0">[${escHtml(String(c.num))}] ${escHtml(c.title||c.url||'')}</a>`).join('')}
           </div>`);
       }
     });
@@ -281,7 +298,7 @@ async function search() {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
           <span style="font-size:10px;color:var(--text-3)">[${i+1}]</span>
-          <a href="${escHtml(res.url||'')}" target="_blank" rel="noopener" style="font-weight:600;font-size:13px;color:var(--accent);text-decoration:none">${escHtml(res.title||'')}</a>
+          <a href="${escHtml(safeUrl(res.url))}" target="_blank" rel="noopener" style="font-weight:600;font-size:13px;color:var(--accent);text-decoration:none">${escHtml(res.title||'')}</a>
         </div>
         <div style="font-size:12px;color:var(--text-2);line-height:1.5">${escHtml(res.snippet||'')}</div>
         <div style="font-size:10px;color:var(--text-3);margin-top:4px">${escHtml(res.url||'')}</div>
@@ -324,7 +341,7 @@ async function research() {
             <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px">
               <div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:8px">SOURCES (${d.citations.length})</div>
               ${d.citations.map(c=>`
-                <a href="${escHtml(c.url||'')}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;padding:3px 0;text-decoration:none">
+                <a href="${escHtml(safeUrl(c.url))}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;padding:3px 0;text-decoration:none">
                   <span style="font-size:10px;background:var(--bg-3);padding:1px 5px;border-radius:3px;color:var(--text-3);flex-shrink:0">[${escHtml(String(c.num))}]</span>
                   <span style="font-size:12px;color:var(--accent)">${escHtml(c.title||c.url||'')}</span>
                 </a>`).join('')}
