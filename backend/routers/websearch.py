@@ -29,6 +29,8 @@ log = logging.getLogger('agentic.websearch')
 
 from backend.config import get_data_dir
 
+from ..services.llm import sse_guard
+
 ROOT = get_data_dir()
 DB = ROOT / 'memory' / 'agentic.db'
 
@@ -485,8 +487,7 @@ async def grounded_stream(req: Request):
 
         yield f'data: {json.dumps({"type": "done", "citations": citations})}\n\n'
 
-    return StreamingResponse(
-        _stream(),
+    return StreamingResponse(sse_guard(_stream()),
         media_type='text/event-stream',
         headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'},
     )
@@ -591,8 +592,7 @@ async def deep_research(req: Request):
         citations = [{'num': i + 1, 'title': s['title'], 'url': s['url']} for i, s in enumerate(unique_sources[:15])]
         yield f'data: {json.dumps({"type": "done", "citations": citations, "source_count": len(unique_sources)})}\n\n'
 
-    return StreamingResponse(
-        _stream(),
+    return StreamingResponse(sse_guard(_stream()),
         media_type='text/event-stream',
         headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'},
     )

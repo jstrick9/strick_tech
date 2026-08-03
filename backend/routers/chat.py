@@ -12,6 +12,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
 from ..services import llm, memory_db
+from ..services.llm import sse_guard
 
 router = APIRouter(tags=['chat'])
 
@@ -144,7 +145,7 @@ async def chat_stream(req: Request):
         async def _empty():
             yield f'data: {json.dumps({"delta": "Please enter a message.", "done": True})}\n\n'
 
-        return StreamingResponse(_empty(), media_type='text/event-stream')
+        return StreamingResponse(sse_guard(_empty()), media_type='text/event-stream')
 
     # resolve agent
     agents = memory_db.agents_list()
@@ -168,7 +169,7 @@ async def chat_stream(req: Request):
         async def _help():
             yield f'data: {json.dumps({"delta": help_text, "done": True})}\n\n'
 
-        return StreamingResponse(_help(), media_type='text/event-stream')
+        return StreamingResponse(sse_guard(_help()), media_type='text/event-stream')
 
     if cmd == '/clear':
         # BUG FIX: this used to report "✅ Chat history cleared." while doing
@@ -208,7 +209,7 @@ async def chat_stream(req: Request):
                 payload['action'] = 'clear_history'
             yield f'data: {json.dumps(payload)}\n\n'
 
-        return StreamingResponse(_clear(), media_type='text/event-stream')
+        return StreamingResponse(sse_guard(_clear()), media_type='text/event-stream')
 
     if cmd == '/models':
         # UX FIX: this only ever listed the hardcoded OpenRouter registry, so a
@@ -245,7 +246,7 @@ async def chat_stream(req: Request):
         async def _models():
             yield f'data: {json.dumps({"delta": text, "done": True})}\n\n'
 
-        return StreamingResponse(_models(), media_type='text/event-stream')
+        return StreamingResponse(sse_guard(_models()), media_type='text/event-stream')
 
     if cmd == '/goal':
         # NOTE: previously /help advertised /goal ("Plan a goal → Apollo
@@ -260,7 +261,7 @@ async def chat_stream(req: Request):
         if not goal_title:
             async def _goal_empty():
                 yield f'data: {json.dumps({"delta": "Usage: `/goal <what you want to accomplish>`", "done": True})}\n\n'
-            return StreamingResponse(_goal_empty(), media_type='text/event-stream')
+            return StreamingResponse(sse_guard(_goal_empty()), media_type='text/event-stream')
 
         from . import goal_manager
 
@@ -285,7 +286,7 @@ async def chat_stream(req: Request):
                 payload['goal_id'] = goal_id
             yield f'data: {json.dumps(payload)}\n\n'
 
-        return StreamingResponse(_goal(), media_type='text/event-stream')
+        return StreamingResponse(sse_guard(_goal()), media_type='text/event-stream')
 
     if cmd in ('/research', '/code', '/review', '/ship', '/swarm'):
         # Same story as /goal above — these were listed in /help with no
@@ -312,7 +313,7 @@ async def chat_stream(req: Request):
         async def _route():
             yield f'data: {json.dumps({"delta": text, "done": True, "action": "navigate", "target": target_pane, "carry_prompt": carried_prompt})}\n\n'
 
-        return StreamingResponse(_route(), media_type='text/event-stream')
+        return StreamingResponse(sse_guard(_route()), media_type='text/event-stream')
 
     if cmd == '/memory':
         results = memory_db.memory_search_fts(rest or 'recent', limit=10)
@@ -326,7 +327,7 @@ async def chat_stream(req: Request):
         async def _mem():
             yield f'data: {json.dumps({"delta": text, "done": True})}\n\n'
 
-        return StreamingResponse(_mem(), media_type='text/event-stream')
+        return StreamingResponse(sse_guard(_mem()), media_type='text/event-stream')
 
     # build messages list
     system_prompt = _system_prompt_for_agent(agent)
@@ -433,7 +434,7 @@ async def chat_stream(req: Request):
         async def _blocked():
             yield f'data: {json.dumps({"delta": blocked_text, "done": True, "blocked": True, "cap_id": gate.get("cap_id", "")})}\n\n'
 
-        return StreamingResponse(_blocked(), media_type='text/event-stream')
+        return StreamingResponse(sse_guard(_blocked()), media_type='text/event-stream')
 
     # log user message
     _log_chat(session_id, agent_id, 'user', message, model=req_model or agent.get('model', ''))
@@ -557,8 +558,7 @@ async def chat_stream(req: Request):
                     tags=f'chat,{agent_id}',
                 )
 
-    return StreamingResponse(
-        generate(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(generate()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 

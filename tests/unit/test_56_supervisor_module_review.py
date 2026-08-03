@@ -152,7 +152,10 @@ class TestStubRunsAreNotReportedAsSuccess:
     """A run where no model executed must not report a passing score."""
 
     def test_stub_flag_is_propagated_from_the_llm_layer(self):
-        assert "result.get('provider') == 'stub'" in SUPERVISOR_PY
+        # The provider=='stub' literal now lives once, in the llm service.
+        # Supervisor uses the shared llm.is_stub() helper instead of its own copy.
+        assert 'llm_is_stub(result)' in SUPERVISOR_PY
+        assert 'import is_stub as llm_is_stub' in SUPERVISOR_PY
         assert "'is_stub'" in SUPERVISOR_PY
 
     def test_a_stub_result_fails_the_task(self):

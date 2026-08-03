@@ -39,6 +39,8 @@ log = logging.getLogger('agentic.eval_fw')
 
 from backend.config import get_data_dir
 
+from ..services.llm import sse_guard
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -568,8 +570,7 @@ async def run_eval(req: Request):
 
         yield f'data: {json.dumps({"type": "done", "run_id": run_id, "passed": passed, "failed": failed, "total": total, "avg_score": round(avg_score, 3), "suite_pass": suite_pass, "pass_threshold": pass_thresh})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 

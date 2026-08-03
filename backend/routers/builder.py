@@ -27,6 +27,8 @@ router = APIRouter(tags=['builder'])
 
 from backend.config import get_data_dir
 
+from ..services.llm import sse_guard
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 MOBILE_DIR = PREVIEW_DIR / 'mobile'
@@ -460,7 +462,7 @@ async def agent_edit(req: Request):
         async for chunk in llm.stream(messages, agent_id='builder', max_tokens=4096, inject_steering=False):  # FIX M
             yield chunk
 
-    return StreamingResponse(generate(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache'})
+    return StreamingResponse(sse_guard(generate()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache'})
 
 
 @router.post('/api/agent/fix')

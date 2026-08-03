@@ -41,6 +41,57 @@ OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
 OLLAMA_BASE = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
 
 
+# ── No-provider handling ───────────────────────────────────────────────────────
+# When no AI provider is reachable, complete() used to return a *placeholder*
+# result tagged provider='stub' / ok=False whose `text` is human-readable help
+# ("⚠️ No OPENROUTER_API_KEY set…"). Callers that forgot to inspect that flag
+# treated the help text as a genuine model response and reported success:
+# Chat, Supervisor and Browser Agent each shipped that bug independently, and
+# 30-odd other call sites never checked at all.
+#
+# The flag is now enforced *here* instead of at every call site. complete()
+# raises LLMUnavailableError unless the caller explicitly opts in with
+# allow_stub=True, and app.py maps the exception to HTTP 503 with actionable
+# guidance. Opting in is a deliberate, greppable act.
+
+STUB_PROVIDER = 'stub'
+
+NO_PROVIDER_MESSAGE = (
+    'No AI provider is configured or reachable. Set OPENROUTER_API_KEY in your .env '
+    '(free keys at https://openrouter.ai/keys), store one in the Vault, or run a local '
+    'Ollama model — Settings → Connect AI walks through both.'
+)
+
+
+class LLMUnavailableError(RuntimeError):
+    """Raised when a completion was requested but no AI provider actually ran.
+
+    Carries the placeholder result so callers that catch it can still surface
+    the help text, and so the HTTP layer can report the model that *would*
+    have been used.
+    """
+
+    def __init__(self, result: dict | None = None, message: str = NO_PROVIDER_MESSAGE):
+        super().__init__(message)
+        self.result = result or {}
+        self.message = message
+
+    @property
+    def model(self) -> str:
+        return str(self.result.get('model', ''))
+
+
+def is_stub(result: dict | None) -> bool:
+    """True when `result` is the no-provider placeholder rather than a real reply.
+
+    Accepts both the completion dict and the final streaming chunk (which
+    carries `stub: True`).
+    """
+    if not isinstance(result, dict):
+        return False
+    return result.get('provider') == STUB_PROVIDER or result.get('stub') is True
+
+
 def _or_key() -> str:
     return os.getenv('OPENROUTER_API_KEY', '')
 
@@ -100,8 +151,15 @@ async def complete(
     max_tokens: int = 2048,
     timeout: float = 60.0,
     inject_steering: bool = True,
+    allow_stub: bool = False,
 ) -> dict:
-    """Single-shot completion. Returns {text, tokens, cost, model, latency_ms}"""
+    """Single-shot completion. Returns {text, tokens, cost, model, latency_ms}.
+
+    Raises LLMUnavailableError when no AI provider is configured or reachable, so
+    callers cannot mistake the placeholder help text for a real model reply.
+    Pass allow_stub=True to receive the placeholder dict instead (only for
+    callers that genuinely want to render the setup guidance).
+    """
     messages = _normalize_messages(messages)
     if inject_steering and agent_id not in ('steering', 'gitai', 'bugbot', 'specs'):
         messages = _inject_steering(messages)
@@ -124,7 +182,10 @@ async def complete(
                         return await _ollama_complete(messages, fb_model, temperature, max_tokens, timeout)
         except Exception:
             pass
-        return _stub_reply(messages, agent_id, model_str)
+        stub = _stub_reply(messages, agent_id, model_str)
+        if allow_stub:
+            return stub
+        raise LLMUnavailableError(stub)
 
     payload = {
         'model': model_str,
@@ -812,3 +873,30 @@ async def list_openrouter_models() -> list[dict]:
             return data.get('data', [])
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         return [{'id': k, 'model': v} for k, v in OPENROUTER_MODELS.items()]
+
+
+# ── SSE safety net ─────────────────────────────────────────────────────────────
+async def sse_guard(gen, *, event_type: str = 'error'):
+    """Wrap an SSE generator so LLMUnavailableError becomes a clean error frame.
+
+    Raising out of a generator that is already streaming truncates the HTTP
+    response mid-chunk — the client sees `RemoteProtocolError: peer closed
+    connection without sending complete message body`, not the reason. The
+    status line was sent long ago, so there is no 503 left to return; the only
+    honest option is a final error event and a graceful close.
+
+    Usage:
+        return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream')
+    """
+    try:
+        async for chunk in gen:
+            yield chunk
+    except LLMUnavailableError as exc:
+        payload = {
+            'type': event_type,
+            'error': exc.message,
+            'code': 'llm_unavailable',
+            'model': exc.model,
+            'done': True,
+        }
+        yield f'data: {json.dumps(payload)}\n\n'

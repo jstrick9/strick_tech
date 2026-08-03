@@ -15,6 +15,8 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
+from ..services.llm import sse_guard
+
 router = APIRouter(prefix='/api/arena', tags=['arena'])
 log = logging.getLogger('agentic.arena')
 
@@ -249,8 +251,7 @@ async def create_battle(req: Request):
 
         yield f'data: {json.dumps({"type": "battle_ready", "battle_id": battle_id, "ready_to_vote": True})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 

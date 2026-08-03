@@ -46,7 +46,7 @@ class TestBugBotIntegration:
             "diff": "+ def greet(name: str) -> str:\n+     return f'Hello, {name}!'",
             "agent_id": "builder"
         })
-        check("schema accepted (200 or 500)", r.status_code in (200, 500))
+        check("schema accepted (200/500, or 503 with no provider)", r.status_code in (200, 500, 503))
 
     async def test_05_file_review_schema_accepted(self, client):
         r = await POST(client, "/api/bugbot/review/file", {
@@ -54,18 +54,18 @@ class TestBugBotIntegration:
             "filename": "math_utils.py",
             "agent_id": "builder"
         })
-        check("file review accepted", r.status_code in (200, 500))
+        check("file review accepted", r.status_code in (200, 500, 503))
 
     async def test_06_git_review_accessible(self, client):
         r = await POST(client, "/api/bugbot/review/git", {"agent_id": "builder"})
-        assert r.status_code in (200, 400, 404, 500)
+        assert r.status_code in (200, 400, 404, 500, 503)
 
     async def test_07_github_pr_review_accessible(self, client):
         r = await POST(client, "/api/bugbot/review/github-pr", {
             "pr_url": "https://github.com/owner/repo/pull/1",
             "agent_id": "builder"
         })
-        assert r.status_code in (200, 400, 404, 500)
+        assert r.status_code in (200, 400, 404, 500, 503)
 
     async def test_08_feedback_on_review(self, client):
         reviews = await GET(client, "/api/bugbot/reviews")
@@ -161,15 +161,19 @@ class TestBrowserAgentIntegration:
             "task": "Integration test: describe the page",
             "max_steps": 2
         })
-        check("task 200", r.status_code == 200)
+        check("task 200 or honest 503", r.status_code in (200, 503))
+        if r.status_code == 503:
+            check("503 explains why", r.json().get("code") == "browser_unavailable")
+            return
         check("SSE events in response", "data:" in r.text)
         check("session_start event", "session_start" in r.text or "step" in r.text or "done" in r.text)
 
     async def test_05_task_empty_url_handled(self, client):
         """Empty URL is handled gracefully."""
         r = await POST(client, "/api/browser/task", {"url": "", "task": "test"})
-        # Browser agent falls back to default URL or errors gracefully
-        assert r.status_code in (200, 400, 422)
+        # Browser agent falls back to default URL or errors gracefully.
+        # 503 = Chromium absent and simulation not requested (opt-in now).
+        assert r.status_code in (200, 400, 422, 503)
 
     async def test_06_simulation_mode_when_no_playwright(self, client):
         """Without Playwright, browser agent runs in simulation mode."""

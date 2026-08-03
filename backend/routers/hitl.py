@@ -28,6 +28,8 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from ..services.llm import sse_guard
+
 router = APIRouter(prefix='/api/hitl', tags=['hitl'])
 log = logging.getLogger('agentic.hitl')
 
@@ -229,8 +231,7 @@ async def wait_for_decision(interrupt_id: str, timeout_seconds: str = '300'):
         decision = _decisions.pop(interrupt_id, {'decision': 'unknown'})  # FIX 8: pop to free memory
         yield f'data: {json.dumps({"type": "decided", "interrupt_id": interrupt_id, **decision})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 

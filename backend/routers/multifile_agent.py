@@ -26,6 +26,8 @@ router = APIRouter(prefix='/api/composer', tags=['composer'])
 log = logging.getLogger('agentic.composer')
 from backend.config import get_data_dir
 
+from ..services.llm import sse_guard
+
 ROOT = get_data_dir()
 PREV = ROOT / 'preview'
 
@@ -175,8 +177,7 @@ Rules:
         yield f'data: {json.dumps({"type": "done", "run_id": run_id, "files_written": written, "duration_ms": duration, "preview_url": "/preview/index.html"})}\n\n'
 
     if stream_out:
-        return StreamingResponse(
-            generate(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+        return StreamingResponse(sse_guard(generate()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
         )
 
     # Non-streaming: collect all

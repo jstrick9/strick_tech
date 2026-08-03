@@ -667,5 +667,75 @@
     "agent": "brain",
     "inputs": [],
     "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_572fdc",
+    "name": "Integration Test Skill it_572fdc93",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_3b5874",
+    "name": "Integration Test Skill it_3b587415",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_6d5124",
+    "name": "Integration Test Skill it_6d512407",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_012382",
+    "name": "Integration Test Skill it_0123821d",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_a14ce0",
+    "name": "Integration Test Skill it_a14ce0c7",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_5bc925",
+    "name": "Integration Test Skill it_5bc9259b",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_35aca4",
+    "name": "Integration Test Skill it_35aca4ac",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
   }
 ]

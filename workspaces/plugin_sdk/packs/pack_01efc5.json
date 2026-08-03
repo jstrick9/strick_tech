@@ -1,0 +1,40 @@
+{
+  "id": "pack_01efc5",
+  "name": "ExpPack_41241f42",
+  "version": "1.0.0",
+  "description": "What your plugin does",
+  "author": "Your Name",
+  "license": "MIT",
+  "tags": [
+    "utility",
+    "ai"
+  ],
+  "icon": "\ud83d\udd27",
+  "homepage": "",
+  "skills": [],
+  "hooks": {
+    "on_chat_send": null,
+    "on_file_save": null,
+    "on_pane_open": null,
+    "on_agent_run": null,
+    "on_deploy": null
+  },
+  "ui": {
+    "sidebar_item": null,
+    "settings_tab": null,
+    "pane": null
+  },
+  "permissions": [
+    "chat",
+    "memory",
+    "files"
+  ],
+  "min_version": "6.0.0",
+  "created_at": "2026-08-03T19:20:03Z",
+  "updated_at": "2026-08-03T19:20:03Z",
+  "provenance": {
+    "status": "unsigned",
+    "source": "local_sdk",
+    "manifest_sha256": "e33f7407673862b1ab312e275dd327c9ccbbad95e21eaa040c9f0870ad6ab4d6"
+  }
+}

@@ -268,7 +268,8 @@ async def _run_goal_loop(job_id: str, prompt: str, agent_id: str, target: str):
     if job_id in _jobs:
         _jobs[job_id]['run_count'] = _jobs[job_id].get('run_count', 0) + 1
     try:
-        from .llm import complete
+        from .llm import NO_PROVIDER_MESSAGE, complete
+        from .llm import is_stub as llm_is_stub
         from .memory_db import audit_log, memory_add
 
         messages = [
@@ -284,7 +285,14 @@ async def _run_goal_loop(job_id: str, prompt: str, agent_id: str, target: str):
                 f'continue working. Check current state and take the next step.',
             },
         ]
-        result = await complete(messages, agent_id=agent_id, max_tokens=512, inject_steering=False)
+        # Background loop: no HTTP response exists to carry a 503, so take the
+        # placeholder explicitly and record the iteration as an error rather
+        # than logging setup help as if it were the agent's work product.
+        result = await complete(
+            messages, agent_id=agent_id, max_tokens=512, inject_steering=False, allow_stub=True
+        )
+        if llm_is_stub(result):
+            raise RuntimeError(NO_PROVIDER_MESSAGE)
         output = result.get('text', '')
         if output:
             memory_add(f'loop:{job_id}', output[:600], f'loop,auto,{agent_id}')

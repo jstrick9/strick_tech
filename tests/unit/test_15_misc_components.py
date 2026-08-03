@@ -268,13 +268,24 @@ class TestBrowser:
         assert client.get("/api/browser/screenshots").status_code in (200, 404)
 
     def test_task_runs_ok(self, client):
+        # simulate=True is now required when Chromium is absent; without it the
+        # endpoint honestly reports 503 instead of inventing a browser session.
+        r = post_json(client, "/api/browser/task",
+                      {"url": "https://example.com", "task": "Unit test", "max_steps": 2,
+                       "simulate": True})
+        assert r.status_code in (200, 404)
+
+    def test_task_without_simulate_is_503_when_chromium_missing(self, client):
         r = post_json(client, "/api/browser/task",
                       {"url": "https://example.com", "task": "Unit test", "max_steps": 2})
-        assert r.status_code in (200, 404)
+        assert r.status_code in (200, 503)
+        if r.status_code == 503:
+            assert r.json()["code"] == "browser_unavailable"
 
     def test_task_is_sse_stream(self, client):
         r = post_json(client, "/api/browser/task",
-                      {"url": "https://example.com", "task": "test", "max_steps": 1})
+                      {"url": "https://example.com", "task": "test", "max_steps": 1,
+                       "simulate": True})
         if r.status_code == 200:
             # SSE streams contain data: lines
             assert "data:" in r.text or "session_start" in r.text or "done" in r.text

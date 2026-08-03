@@ -11,7 +11,7 @@ System assertions:
 from __future__ import annotations
 import asyncio, time
 import httpx, pytest
-from .conftest import BASE, uid, ts, GET, POST, PATCH, DELETE, must, check, no_server_error
+from .conftest import BASE, uid, ts, GET, POST, PATCH, DELETE, must, check, no_server_error, skip_if_no_provider_events
 
 
 class TestSysAgentMonitorSystem:
@@ -215,6 +215,7 @@ class TestSysEvalFrameworkSystem:
                 if len(results) > 20:
                     break
 
+        skip_if_no_provider_events(results, "eval run")
         done = next((e for e in results if e.get("type") == "done"), None)
         check("done event received", done is not None)
         if done:

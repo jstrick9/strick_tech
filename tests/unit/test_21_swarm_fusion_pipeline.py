@@ -39,7 +39,9 @@ class TestSwarm:
             "strategy": "judge",
             "max_tokens": 100
         })
-        assert r.status_code == 200
+        # 503 when no AI provider is reachable — a swarm in which every agent
+        # failed no longer reports ok:true with an empty winner.
+        assert r.status_code in (200, 503)
         d = r.json()
         assert "ok" in d
         if d["ok"]:
@@ -53,7 +55,7 @@ class TestSwarm:
             "strategy": "fanout",
             "max_tokens": 80
         })
-        assert r.status_code == 200
+        assert r.status_code in (200, 503)
 
     def test_swarm_history_stored(self, client):
         before = len(client.get("/api/swarm/history").json() if isinstance(client.get("/api/swarm/history").json(), list) else [])

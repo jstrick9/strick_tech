@@ -1,0 +1,67 @@
+{
+  "id": "pack_b2ad20",
+  "name": "sdk-get-test",
+  "version": "0.1.0",
+  "description": "What your plugin does",
+  "author": "Your Name",
+  "license": "MIT",
+  "tags": [
+    "utility",
+    "ai"
+  ],
+  "icon": "\ud83d\udd27",
+  "homepage": "",
+  "skills": [
+    {
+      "id": "my_skill",
+      "name": "My Skill",
+      "description": "What this skill does",
+      "prompt": "You are a helpful assistant. {{input}}",
+      "model": "auto",
+      "tags": [
+        "utility"
+      ],
+      "icon": "\u26a1",
+      "inputs": [
+        {
+          "name": "input",
+          "label": "Input",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "label": "Result",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "hooks": {
+    "on_chat_send": null,
+    "on_file_save": null,
+    "on_pane_open": null,
+    "on_agent_run": null,
+    "on_deploy": null
+  },
+  "ui": {
+    "sidebar_item": null,
+    "settings_tab": null,
+    "pane": null
+  },
+  "permissions": [
+    "chat",
+    "memory",
+    "files"
+  ],
+  "min_version": "6.0.0",
+  "created_at": "2026-08-03T17:55:00Z",
+  "updated_at": "2026-08-03T17:55:00Z",
+  "provenance": {
+    "status": "unsigned",
+    "source": "local_sdk",
+    "manifest_sha256": "a8168dde2391960e2c29915840e3cea8a5848d6fc42a593ca01e5c926c7b6b95"
+  }
+}

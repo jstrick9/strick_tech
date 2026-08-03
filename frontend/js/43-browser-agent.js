@@ -81,6 +81,10 @@ async function renderBrowserAgent() {
         <input id="ba-steps" type="number" min="1" max="20" value="10"
                style="width:55px;background:var(--bg-3);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 8px" title="Max steps">
         <button type="button" class="btn" data-ba-action="run" id="ba-run-btn">▶ Run</button>
+        <label title="Simulation mode does not open a browser or fetch anything — an AI narrates the steps a browser agent would take."
+               style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);white-space:nowrap">
+          <input type="checkbox" id="ba-simulate"${status.ready ? '' : ' checked'}> Simulate
+        </label>
         <button type="button" class="btn-sm" data-ba-action="screenshot" title="Quick screenshot of start URL">📸</button>
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
@@ -228,10 +232,16 @@ async function runTask() {
   try {
     const resp = await fetch('/api/browser/task', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({task, start_url:url, max_steps:steps})
+      body: JSON.stringify({task, start_url:url, max_steps:steps, simulate: !!$('ba-simulate')?.checked})
     });
     if (!resp.ok) {
-      if (result) result.innerHTML = `<span style="color:var(--danger)">Request failed (HTTP ${resp.status})</span>`;
+      // The backend now returns a real status code with an explanatory body
+      // (503 when there's no browser and simulation wasn't requested, 403 for
+      // a blocked start_url, 400 for a malformed one). Show the reason instead
+      // of a bare status number.
+      let detail = '';
+      try { detail = (await resp.json()).error || ''; } catch(e) { /* non-JSON error body */ }
+      if (result) result.innerHTML = `<span style="color:var(--danger)">❌ ${escHtml(detail || `Request failed (HTTP ${resp.status})`)}</span>`;
       if (btn) { btn.disabled = false; btn.textContent = '▶ Run'; }
       return;
     }
@@ -288,7 +298,7 @@ async function runTask() {
             if (d.simulated) {
               const note = document.createElement('div');
               note.style.cssText = 'margin-top:12px;font-size:11px;color:var(--text-3);border-top:1px solid var(--border);padding-top:8px';
-              note.textContent = '⚠️ Simulation mode — install Playwright for real browsing';
+              note.textContent = '⚠️ Simulated — no browser ran and nothing was fetched. Install Chromium for real browsing.';
               result?.appendChild(note);
             }
           } else if (d.type === 'error') {
