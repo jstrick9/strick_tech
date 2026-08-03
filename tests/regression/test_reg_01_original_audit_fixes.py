@@ -48,7 +48,10 @@ class TestRegressionU02_BulkUpdate:
     def test_bulk_update_non_list_returns_error(self, client):
         """Regression: bulk_update with non-list must return ok:False not {updated:0}."""
         r = client.post("/api/tasks/bulk_update", json={"updates": "not_a_list"})
-        assert r.status_code == 200
+        # Was pinned to 200. The endpoint now returns 400 for invalid input —
+        # the regression this guards (ok:False rather than a silent
+        # {updated: 0}) is unchanged and still asserted below.
+        assert r.status_code == 400
         d = r.json()
         assert d["ok"] is False, f"U-02 REGRESSION: got {d}"
         assert "error" in d
@@ -56,7 +59,7 @@ class TestRegressionU02_BulkUpdate:
     def test_bulk_update_dict_input_returns_error(self, client):
         """Regression: dict input also rejected."""
         r = client.post("/api/tasks/bulk_update", json={"updates": {"id": 1}})
-        assert r.status_code == 200
+        assert r.status_code == 400
         assert r.json()["ok"] is False
 
     def test_bulk_update_valid_list_works(self, client):

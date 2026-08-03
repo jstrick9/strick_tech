@@ -59,9 +59,19 @@ class TestTasksCRUD:
     def test_update_task_invalid_status_ignored(self, client):
         r = post_json(client, "/api/tasks", {"title": "InvalidStatusUpdate"})
         tid = r.json()["id"]
+        # An invalid status is dropped from the update. When it is the ONLY
+        # field supplied there is nothing left to apply, so the request is now
+        # rejected as a 400 ("no valid fields") instead of reporting a
+        # misleading 200 for an update that changed nothing.
         r2 = client.patch(f"/api/tasks/{tid}", json={"status": "flying"})
-        # Should succeed but status unchanged (flying not in valid list)
-        assert r2.status_code == 200
+        assert r2.status_code == 400
+        assert r2.json()["ok"] is False
+
+        # Alongside a valid field, the bad status is ignored and the rest applies.
+        r3 = client.patch(f"/api/tasks/{tid}", json={"status": "flying", "title": "Kept"})
+        assert r3.status_code == 200
+        assert r3.json()["task"]["title"] == "Kept"
+        assert r3.json()["task"]["status"] == "todo"
 
     def test_update_task_title(self, client):
         r = post_json(client, "/api/tasks", {"title": "Original"})
