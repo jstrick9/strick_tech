@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Todo App</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body{background:#08090e;color:#e8f0ff;font-family:Inter,system-ui,sans-serif}
+  .task{cursor:grab;transition:all .15s}
+  .task:hover{transform:translateY(-1px)}
+  input,textarea{outline:none}
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-thumb{background:#1a2040;border-radius:99px}
+</style>
+</head>
+<body class="p-6 min-h-screen">
+<div class="max-w-5xl mx-auto">
+  <div class="flex items-center justify-between mb-8">
+    <div><h1 class="text-3xl font-black">My Tasks</h1><p id="taskCount" class="text-gray-400 text-sm mt-1">0 tasks</p></div>
+    <button onclick="openAddTask()" class="bg-blue-500 hover:bg-blue-400 text-white font-bold px-5 py-2.5 rounded-xl transition">+ Add Task</button>
+  </div>
+  <div class="grid grid-cols-3 gap-4" id="board"></div>
+</div>
+<!-- Add task modal -->
+<div id="modal" class="fixed inset-0 bg-black/80 backdrop-blur hidden items-center justify-center z-50" onclick="if(event.target===this)closeModal()">
+  <div class="bg-[#0d1020] border border-white/20 rounded-2xl p-6 w-full max-w-md" onclick="event.stopPropagation()">
+    <h2 class="font-bold text-lg mb-4">New Task</h2>
+    <input id="taskTitle" placeholder="Task title…" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white mb-3" onkeydown="if(event.key==='Enter')addTask()">
+    <textarea id="taskDesc" placeholder="Description (optional)…" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white mb-3 resize-none h-20"></textarea>
+    <div class="flex gap-3 mb-4">
+      <select id="taskPriority" class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white"><option value="low">🟢 Low</option><option value="medium" selected>🟡 Medium</option><option value="high">🔴 High</option></select>
+      <select id="taskStatus" class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white"><option value="todo">📋 To Do</option><option value="doing">⚡ Doing</option><option value="done">✅ Done</option></select>
+    </div>
+    <div class="flex gap-3">
+      <button onclick="closeModal()" class="flex-1 border border-white/20 py-2.5 rounded-xl hover:bg-white/5 transition">Cancel</button>
+      <button onclick="addTask()" class="flex-1 bg-blue-500 text-white font-bold py-2.5 rounded-xl hover:bg-blue-400 transition">Add Task</button>
+    </div>
+  </div>
+</div>
+<script>
+const COLS=[{id:'todo',label:'📋 To Do',color:'#5b8af8'},{id:'doing',label:'⚡ Doing',color:'#f0c060'},{id:'done',label:'✅ Done',color:'#4cc98a'}];
+let tasks=JSON.parse(localStorage.getItem('agentic-tasks')||'[]');
+if(!tasks.length)tasks=[{id:1,title:'Welcome to Todo App',desc:'Add tasks, drag between columns, and mark done!',priority:'medium',status:'todo'},{id:2,title:'Try dragging this card',desc:'',priority:'high',status:'doing'},{id:3,title:'Completed example',desc:'',priority:'low',status:'done'}];
+
+function save(){localStorage.setItem('agentic-tasks',JSON.stringify(tasks));}
+function render(){
+  const board=document.getElementById('board');
+  board.innerHTML=COLS.map(col=>`
+    <div class="bg-[#0d1020] border border-white/10 rounded-xl overflow-hidden" ondragover="event.preventDefault()" ondrop="drop(event,'${col.id}')">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <span class="font-bold text-sm">${col.label}</span>
+        <span class="text-xs bg-white/10 px-2 py-0.5 rounded-full">${tasks.filter(t=>t.status===col.id).length}</span>
+      </div>
+      <div class="p-3 space-y-2 min-h-32">
+        ${tasks.filter(t=>t.status===col.id).map(t=>`
+          <div class="task bg-[#141830] border border-white/10 rounded-xl p-3" draggable="true" ondragstart="drag(event,${t.id})">
+            <div class="flex items-start justify-between gap-2 mb-1">
+              <span class="font-semibold text-sm">${t.title}</span>
+              <button onclick="deleteTask(${t.id})" class="text-gray-600 hover:text-red-400 text-xs flex-shrink-0">✕</button>
+            </div>
+            ${t.desc?`<p class="text-xs text-gray-400 mb-2">${t.desc}</p>`:''}
+            <span class="text-xs px-2 py-0.5 rounded-full ${t.priority==='high'?'bg-red-500/20 text-red-300':t.priority==='medium'?'bg-yellow-500/20 text-yellow-300':'bg-green-500/20 text-green-300'}">${t.priority}</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+  document.getElementById('taskCount').textContent=`${tasks.length} task${tasks.length!==1?'s':''}`;
+}
+let dragId=null;
+function drag(e,id){dragId=id;}
+function drop(e,status){
+  const t=tasks.find(t=>t.id===dragId);
+  if(t){t.status=status;save();render();}
+}
+function openAddTask(){document.getElementById('modal').classList.replace('hidden','flex');document.getElementById('taskTitle').focus();}
+function closeModal(){document.getElementById('modal').classList.replace('flex','hidden');}
+function addTask(){
+  const title=document.getElementById('taskTitle').value.trim();
+  if(!title)return;
+  tasks.push({id:Date.now(),title,desc:document.getElementById('taskDesc').value,priority:document.getElementById('taskPriority').value,status:document.getElementById('taskStatus').value});
+  save();render();closeModal();
+  document.getElementById('taskTitle').value='';document.getElementById('taskDesc').value='';
+}
+function deleteTask(id){if(confirm('Delete this task?')){tasks=tasks.filter(t=>t.id!==id);save();render();}}
+render();
+</script>
+</body></html>

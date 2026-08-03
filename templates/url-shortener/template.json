@@ -1,0 +1,18 @@
+{
+  "id": "url-shortener",
+  "name": "URL Shortener",
+  "category": "apps",
+  "emoji": "🔗",
+  "description": "URL shortener with copy button, link history, and QR code generation",
+  "prompt": "Create a URL shortener app with input field for long URLs, a list of shortened links with copy buttons, click analytics, and QR code generation.",
+  "tags": [
+    "utility",
+    "url",
+    "tool",
+    "qr"
+  ],
+  "preview_color": "#38c5d8",
+  "files": [
+    "index.html"
+  ]
+}

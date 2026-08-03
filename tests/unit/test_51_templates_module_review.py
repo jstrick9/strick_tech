@@ -37,9 +37,19 @@ class TestCatalogueIntegrity:
         ids = [t['id'] for t in TEMPLATES]
         assert len(ids) == len(set(ids))
 
-    def test_every_template_ships_an_html_entrypoint(self):
+    def test_every_template_ships_at_least_one_file(self):
+        # Originally asserted an .html entrypoint, which assumed every template
+        # is a web page. Backend starters (e.g. fastapi-service) legitimately
+        # ship no HTML at all, so the real invariant is that a template must
+        # deliver something.
         for t in TEMPLATES:
-            assert any(f.endswith('.html') for f in t['files']), f'{t["id"]} has no .html file'
+            assert t['files'], f'{t["id"]} ships no files'
+
+    def test_web_templates_have_an_html_entrypoint(self):
+        """Anything that claims to be previewable in a browser needs HTML."""
+        for t in TEMPLATES:
+            if t['category'] in ('saas', 'portfolio', 'marketing', 'ecommerce'):
+                assert any(f.endswith('.html') for f in t['files']), f'{t["id"]} has no .html file'
 
     def test_no_template_filename_escapes_the_preview_directory(self):
         for t in TEMPLATES:

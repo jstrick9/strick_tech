@@ -1,0 +1,17 @@
+{
+  "id": "pricing-page",
+  "name": "Pricing Page",
+  "category": "saas",
+  "emoji": "💰",
+  "description": "3-tier pricing with toggle (monthly/annual), feature comparison table",
+  "prompt": "Build a pricing page with 3 tiers (Basic, Pro, Enterprise), feature comparison table, toggle for monthly/annual billing, and FAQ section.",
+  "tags": [
+    "pricing",
+    "saas",
+    "conversion"
+  ],
+  "preview_color": "#9d74f5",
+  "files": [
+    "index.html"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "chat-app",
+  "name": "Chat Interface",
+  "category": "apps",
+  "emoji": "💬",
+  "description": "Real-time chat UI with message bubbles, typing indicator, emoji, file attach",
+  "prompt": "Build a chat interface with message bubbles, typing indicators, user avatars, message input with file attachment, and a sidebar with conversation list.",
+  "tags": [
+    "chat",
+    "messaging",
+    "realtime",
+    "ui"
+  ],
+  "preview_color": "#5b8af8",
+  "files": [
+    "index.html"
+  ]
+}

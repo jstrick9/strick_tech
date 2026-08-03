@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your Name — Developer</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body{background:#08090e;color:#e8f0ff;font-family:Inter,system-ui,sans-serif;scroll-behavior:smooth}
+.gradient-text{background:linear-gradient(135deg,#f08850,#9d74f5);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.card{background:#0d1020;border:1px solid rgba(255,255,255,0.08);border-radius:16px;transition:transform .2s,border-color .2s}
+.card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,0.15)}
+.skill-pill{background:rgba(240,136,80,0.12);border:1px solid rgba(240,136,80,0.25);color:#f4b896;border-radius:999px;padding:4px 14px;font-size:13px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.fade-up{animation:fadeUp .6s ease both}
+</style>
+</head>
+<body>
+<nav class="flex items-center justify-between px-8 py-4 border-b border-white/10 sticky top-0 bg-[#08090e]/90 backdrop-blur z-50">
+  <div class="font-bold text-lg gradient-text">YN.</div>
+  <div class="flex gap-6 text-sm text-gray-400">
+    <a href="#about" class="hover:text-white transition">About</a>
+    <a href="#projects" class="hover:text-white transition">Work</a>
+    <a href="#contact" class="hover:text-white transition">Contact</a>
+  </div>
+</nav>
+<section class="min-h-screen flex items-center px-8 py-20">
+  <div class="max-w-4xl fade-up">
+    <p class="text-orange-400 font-mono text-sm mb-4">👋 Hi, I'm</p>
+    <h1 class="text-6xl md:text-8xl font-black mb-4">Your Name</h1>
+    <h2 class="text-2xl md:text-4xl text-gray-300 mb-6 font-light">Full-stack developer & <span class="gradient-text font-bold">AI builder</span></h2>
+    <p class="text-gray-400 max-w-xl text-lg leading-relaxed mb-8">I build products people love — from idea to production. Specialising in React, Python, and AI-powered applications.</p>
+    <div class="flex gap-4 flex-wrap">
+      <a href="#projects" class="bg-orange-500 text-white font-bold px-6 py-3 rounded-2xl hover:bg-orange-400 transition">View my work</a>
+      <a href="#contact" class="border border-white/20 px-6 py-3 rounded-2xl hover:bg-white/5 transition">Let's talk</a>
+    </div>
+  </div>
+</section>
+<section id="about" class="px-8 py-20 max-w-5xl mx-auto">
+  <h2 class="text-3xl font-black mb-3">About me</h2>
+  <div class="w-16 h-1 bg-orange-500 rounded mb-8"></div>
+  <div class="grid md:grid-cols-2 gap-10">
+    <div><p class="text-gray-300 leading-relaxed mb-6">I'm a software engineer with 5+ years building web applications and AI tools. I love turning complex problems into elegant, simple solutions.</p><p class="text-gray-400 leading-relaxed">When I'm not coding, I'm writing about AI, contributing to open source, or hiking somewhere with no Wi-Fi.</p></div>
+    <div><div class="text-sm text-gray-400 mb-3 font-semibold uppercase tracking-wider">Skills</div><div class="flex flex-wrap gap-2">${['React','Next.js','TypeScript','Python','FastAPI','PostgreSQL','AI/ML','Docker','AWS','Tailwind'].map(s=>`<span class="skill-pill">${s}</span>`).join('')}</div></div>
+  </div>
+</section>
+<section id="projects" class="px-8 py-20 bg-[#0a0b12]">
+  <div class="max-w-5xl mx-auto">
+    <h2 class="text-3xl font-black mb-3">Selected work</h2>
+    <div class="w-16 h-1 bg-orange-500 rounded mb-10"></div>
+    <div class="grid md:grid-cols-2 gap-6">
+      ${[['🤖','Agentic OS','Local-first AI operating system. Multi-agent swarm, live preview, GitHub sync.','Python, FastAPI, JS','#5b8af8'],['📊','Analytics Dashboard','Real-time business dashboard with custom charts and team collaboration.','React, D3.js, Supabase','#9d74f5'],['🛒','E-commerce Platform','Full-stack store with inventory, payments, and fulfilment tracking.','Next.js, Stripe, Prisma','#4cc98a'],['🎯','AI Content Pipeline','Automated content generation and publishing across 12 platforms.','Python, LangChain, AWS','#f08850']].map(([e,n,d,t,c])=>`
+      <div class="card p-6 group cursor-pointer">
+        <div class="flex items-start justify-between mb-4">
+          <span class="text-4xl">${e}</span>
+          <span class="text-gray-600 group-hover:text-white transition">↗</span>
+        </div>
+        <h3 class="font-bold text-lg mb-2">${n}</h3>
+        <p class="text-gray-400 text-sm mb-4">${d}</p>
+        <div class="text-xs text-gray-500 font-mono">${t}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+</section>
+<section id="contact" class="px-8 py-20 max-w-2xl mx-auto text-center">
+  <h2 class="text-3xl font-black mb-3">Let's work together</h2>
+  <div class="w-16 h-1 bg-orange-500 rounded mx-auto mb-6"></div>
+  <p class="text-gray-400 mb-10">Have a project in mind? I'd love to hear about it. Let's build something great.</p>
+  <form class="text-left space-y-4" onsubmit="event.preventDefault();alert('Message sent! I will get back to you soon.')">
+    <input placeholder="Your name" class="w-full bg-[#0d1020] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-orange-500/50 transition">
+    <input type="email" placeholder="Email address" class="w-full bg-[#0d1020] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-orange-500/50 transition">
+    <textarea rows="5" placeholder="Tell me about your project…" class="w-full bg-[#0d1020] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-orange-500/50 transition resize-none"></textarea>
+    <button type="submit" class="w-full bg-orange-500 text-white font-bold py-4 rounded-xl hover:bg-orange-400 transition">Send message →</button>
+  </form>
+</section>
+<footer class="border-t border-white/10 px-8 py-6 text-center text-gray-500 text-sm">Built with Agentic OS · 2026</footer>
+</body></html>

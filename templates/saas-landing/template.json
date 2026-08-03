@@ -1,0 +1,18 @@
+{
+  "id": "saas-landing",
+  "name": "SaaS Landing Page",
+  "category": "saas",
+  "emoji": "🚀",
+  "description": "Hero, features, social proof, pricing tiers, FAQ, CTA — ready to customise",
+  "prompt": "Build a SaaS landing page with hero section, feature grid, social proof, pricing tiers, FAQ section, and call-to-action. Use a dark theme with gradient accents.",
+  "tags": [
+    "landing",
+    "saas",
+    "tailwind",
+    "dark"
+  ],
+  "preview_color": "#5b8af8",
+  "files": [
+    "index.html"
+  ]
+}

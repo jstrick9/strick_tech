@@ -1,0 +1,18 @@
+{
+  "id": "fastapi-service",
+  "name": "FastAPI Service",
+  "category": "apps",
+  "emoji": "🐍",
+  "description": "Multi-file Python REST API with routers, Pydantic models, health check and tests",
+  "prompt": "Build a FastAPI REST service with a clean package layout: separate routers, Pydantic schemas, an in-memory store, a health endpoint and pytest tests.",
+  "tags": ["python", "fastapi", "api", "backend", "multi-file"],
+  "preview_color": "#009688",
+  "files": [
+    "app/main.py",
+    "app/models.py",
+    "app/routes.py",
+    "requirements.txt",
+    "test_app.py",
+    "README.md"
+  ]
+}

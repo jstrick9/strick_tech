@@ -1,0 +1,18 @@
+{
+  "id": "agency-site",
+  "name": "Agency Website",
+  "category": "marketing",
+  "emoji": "🏢",
+  "description": "Creative agency homepage with case studies, team, services, contact",
+  "prompt": "Create a marketing agency website with hero, services section, case studies, team grid, testimonials carousel, and contact form.",
+  "tags": [
+    "agency",
+    "marketing",
+    "business",
+    "professional"
+  ],
+  "preview_color": "#9d74f5",
+  "files": [
+    "index.html"
+  ]
+}

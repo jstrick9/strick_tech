@@ -1,0 +1,18 @@
+{
+  "id": "portfolio",
+  "name": "Developer Portfolio",
+  "category": "portfolio",
+  "emoji": "🎨",
+  "description": "Clean dev portfolio: hero, about, projects grid, skills, contact form",
+  "prompt": "Create a developer portfolio with a hero section, project showcase grid with hover effects, skills section, about me, and contact form.",
+  "tags": [
+    "portfolio",
+    "personal",
+    "dark",
+    "animated"
+  ],
+  "preview_color": "#f08850",
+  "files": [
+    "index.html"
+  ]
+}

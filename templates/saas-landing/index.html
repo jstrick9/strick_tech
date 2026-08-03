@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YourSaaS — Build faster with AI</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body{background:#050810;color:#f0f4ff;font-family:Inter,system-ui,sans-serif}
+  .gradient{background:linear-gradient(135deg,#5b8af8,#9d74f5)}
+  .card{background:#0d1020;border:1px solid #1a2040;border-radius:16px}
+  .glow{box-shadow:0 0 60px rgba(91,138,248,.15)}
+</style>
+</head>
+<body>
+<!-- Nav -->
+<nav class="flex items-center justify-between px-8 py-4 border-b border-white/10 sticky top-0 bg-[#050810]/90 backdrop-blur z-50">
+  <div class="flex items-center gap-2 font-bold text-xl">
+    <span class="text-2xl">✨</span> YourSaaS
+  </div>
+  <div class="hidden md:flex items-center gap-6 text-sm text-gray-400">
+    <a href="#features" class="hover:text-white transition">Features</a>
+    <a href="#pricing" class="hover:text-white transition">Pricing</a>
+    <a href="#faq" class="hover:text-white transition">FAQ</a>
+  </div>
+  <div class="flex items-center gap-3">
+    <a href="#" class="text-sm text-gray-400 hover:text-white">Sign in</a>
+    <a href="#" class="gradient text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition">Get started free</a>
+  </div>
+</nav>
+<!-- Hero -->
+<section class="text-center px-4 pt-24 pb-20">
+  <div class="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-sm text-gray-300 mb-6">
+    🎉 <span>Now in public beta — <a href="#" class="text-blue-400">Join free →</a></span>
+  </div>
+  <h1 class="text-5xl md:text-7xl font-black mb-6 leading-tight">
+    Build faster<br><span class="gradient bg-clip-text text-transparent">with AI</span>
+  </h1>
+  <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10">
+    The platform that turns your ideas into working software in seconds. No boilerplate, no configuration, just results.
+  </p>
+  <div class="flex flex-col sm:flex-row gap-3 justify-center">
+    <a href="#" class="gradient text-white font-bold px-8 py-4 rounded-2xl text-lg hover:opacity-90 transition glow">Start building free</a>
+    <a href="#" class="border border-white/20 text-white px-8 py-4 rounded-2xl text-lg hover:bg-white/5 transition">Watch demo ▶</a>
+  </div>
+  <p class="text-sm text-gray-500 mt-4">No credit card required · Free forever plan</p>
+</section>
+<!-- Stats -->
+<section class="border-y border-white/10 py-10 px-4">
+  <div class="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+    <div><div class="text-4xl font-black gradient bg-clip-text text-transparent">50K+</div><div class="text-gray-400 text-sm">Builders</div></div>
+    <div><div class="text-4xl font-black gradient bg-clip-text text-transparent">2M+</div><div class="text-gray-400 text-sm">Apps built</div></div>
+    <div><div class="text-4xl font-black gradient bg-clip-text text-transparent">18s</div><div class="text-gray-400 text-sm">Avg deploy time</div></div>
+    <div><div class="text-4xl font-black gradient bg-clip-text text-transparent">99.9%</div><div class="text-gray-400 text-sm">Uptime SLA</div></div>
+  </div>
+</section>
+<!-- Features -->
+<section id="features" class="max-w-6xl mx-auto px-4 py-24">
+  <h2 class="text-4xl font-black text-center mb-4">Everything you need</h2>
+  <p class="text-gray-400 text-center mb-16">One platform to build, ship, and scale your idea.</p>
+  <div class="grid md:grid-cols-3 gap-6">
+    <div class="card p-6"><div class="text-3xl mb-3">⚡</div><h3 class="font-bold text-lg mb-2">Instant scaffold</h3><p class="text-gray-400 text-sm">Go from idea to working app in under 18 seconds. Any framework.</p></div>
+    <div class="card p-6"><div class="text-3xl mb-3">🤖</div><h3 class="font-bold text-lg mb-2">Multi-agent AI</h3><p class="text-gray-400 text-sm">Claude, GPT-4o, Gemini, Grok working together on your project.</p></div>
+    <div class="card p-6"><div class="text-3xl mb-3">🔒</div><h3 class="font-bold text-lg mb-2">100% private</h3><p class="text-gray-400 text-sm">Local-first. Your code never leaves your machine unless you deploy.</p></div>
+    <div class="card p-6"><div class="text-3xl mb-3">🌌</div><h3 class="font-bold text-lg mb-2">Memory Galaxy</h3><p class="text-gray-400 text-sm">Semantic memory of your entire project. Agents know your context.</p></div>
+    <div class="card p-6"><div class="text-3xl mb-3">🚀</div><h3 class="font-bold text-lg mb-2">One-click deploy</h3><p class="text-gray-400 text-sm">Vercel, Netlify, Railway, GitHub Pages — pick your platform.</p></div>
+    <div class="card p-6"><div class="text-3xl mb-3">🐙</div><h3 class="font-bold text-lg mb-2">GitHub sync</h3><p class="text-gray-400 text-sm">Bidirectional sync. Push, pull, branch, and create PRs from the UI.</p></div>
+  </div>
+</section>
+<!-- Pricing -->
+<section id="pricing" class="max-w-5xl mx-auto px-4 py-20">
+  <h2 class="text-4xl font-black text-center mb-4">Simple pricing</h2>
+  <p class="text-gray-400 text-center mb-12">Start free. Upgrade when you're ready.</p>
+  <div class="grid md:grid-cols-3 gap-6">
+    <div class="card p-8"><div class="text-2xl font-black mb-1">Free</div><div class="text-gray-400 text-sm mb-6">Forever</div><div class="text-4xl font-black mb-8">$0</div><ul class="text-sm text-gray-300 space-y-2 mb-8"><li>✓ 3 projects</li><li>✓ 100 AI messages/day</li><li>✓ Community support</li></ul><a href="#" class="block text-center border border-white/20 py-3 rounded-xl hover:bg-white/5 transition">Get started</a></div>
+    <div class="card p-8 border-blue-500/50 glow relative"><div class="absolute -top-3 left-1/2 -translate-x-1/2 gradient text-white text-xs font-bold px-3 py-1 rounded-full">Most popular</div><div class="text-2xl font-black mb-1">Pro</div><div class="text-gray-400 text-sm mb-6">Per month</div><div class="text-4xl font-black mb-8">$20</div><ul class="text-sm text-gray-300 space-y-2 mb-8"><li>✓ Unlimited projects</li><li>✓ Unlimited AI messages</li><li>✓ All deploy platforms</li><li>✓ Priority support</li></ul><a href="#" class="gradient block text-center text-white font-bold py-3 rounded-xl hover:opacity-90 transition">Start free trial</a></div>
+    <div class="card p-8"><div class="text-2xl font-black mb-1">Team</div><div class="text-gray-400 text-sm mb-6">Per seat/month</div><div class="text-4xl font-black mb-8">$50</div><ul class="text-sm text-gray-300 space-y-2 mb-8"><li>✓ Everything in Pro</li><li>✓ Team collaboration</li><li>✓ Custom agents</li><li>✓ Dedicated support</li></ul><a href="#" class="block text-center border border-white/20 py-3 rounded-xl hover:bg-white/5 transition">Contact sales</a></div>
+  </div>
+</section>
+<!-- FAQ -->
+<section id="faq" class="max-w-3xl mx-auto px-4 py-20">
+  <h2 class="text-4xl font-black text-center mb-12">FAQ</h2>
+  <div class="space-y-4">
+    <details class="card p-5 cursor-pointer"><summary class="font-semibold">Is my code private?</summary><p class="text-gray-400 mt-3 text-sm">Yes. Agentic OS is local-first — your code stays on your machine. Nothing is sent to our servers. You choose when and where to deploy.</p></details>
+    <details class="card p-5 cursor-pointer"><summary class="font-semibold">Which AI models are supported?</summary><p class="text-gray-400 mt-3 text-sm">Claude 4, GPT-4o, Gemini 2.5 Pro, Grok 3, Llama 3.3, and more via OpenRouter. You can also run local models with Ollama for complete privacy.</p></details>
+    <details class="card p-5 cursor-pointer"><summary class="font-semibold">Can I use my own API keys?</summary><p class="text-gray-400 mt-3 text-sm">Yes. Add your OpenRouter key and you only pay for what you use. The free tier of many models costs nothing.</p></details>
+  </div>
+</section>
+<!-- Footer -->
+<footer class="border-t border-white/10 px-8 py-10 text-center text-gray-500 text-sm">
+  <p>Built with ❤️ using Agentic OS · <a href="#" class="text-blue-400 hover:underline">Privacy</a> · <a href="#" class="text-blue-400 hover:underline">Terms</a></p>
+</footer>
+<script>
+// Smooth scroll for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) { e.preventDefault(); t.scrollIntoView({behavior:'smooth'}); }
+  });
+});
+</script>
+</body></html>

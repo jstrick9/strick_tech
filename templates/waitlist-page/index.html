@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Join the waitlist</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body{background:#08090e;color:#fff;font-family:Inter,system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.glow{position:absolute;width:600px;height:600px;border-radius:50%;filter:blur(120px);opacity:.3;pointer-events:none}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.float{animation:float 4s ease-in-out infinite}
+input:focus{outline:none;border-color:#38c5d8}
+</style>
+</head>
+<body class="relative overflow-hidden">
+  <div class="glow bg-teal-500 top-0 left-0 -translate-x-1/2 -translate-y-1/2"></div>
+  <div class="glow bg-purple-500 bottom-0 right-0 translate-x-1/2 translate-y-1/2"></div>
+  <div class="relative z-10 text-center px-4 max-w-xl mx-auto">
+    <div class="float text-5xl mb-6">🚀</div>
+    <div class="inline-flex items-center gap-2 bg-teal-500/20 border border-teal-500/30 rounded-full px-4 py-1.5 text-sm text-teal-300 mb-6">🔒 Early access — limited spots</div>
+    <h1 class="text-5xl font-black mb-4 leading-tight">The future of<br><span class="text-teal-400">building is here</span></h1>
+    <p class="text-gray-400 text-lg mb-8">We're launching something that will change how you build software. Be first to know.</p>
+    <form class="flex gap-3 max-w-md mx-auto mb-6" onsubmit="handleSubmit(event)">
+      <input id="emailInput" type="email" placeholder="your@email.com" class="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-500 transition" required>
+      <button type="submit" class="bg-teal-500 hover:bg-teal-400 text-[#08090e] font-bold px-6 py-3 rounded-xl transition whitespace-nowrap">Join waitlist</button>
+    </form>
+    <div id="successMsg" class="hidden text-teal-400 font-semibold mb-6 text-lg">✅ You're on the list! We'll be in touch soon.</div>
+    <div class="flex items-center justify-center gap-6 text-sm text-gray-400">
+      <div class="flex items-center gap-2"><div class="flex -space-x-2">${'<div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-[#08090e]"></div>'.repeat(4)}</div><span id="counter">2,847 already signed up</span></div>
+      <span>·</span><span>No spam, ever</span>
+    </div>
+  </div>
+<script>
+let count=2847;
+function handleSubmit(e){
+  e.preventDefault();
+  count++;
+  document.getElementById('successMsg').classList.remove('hidden');
+  document.getElementById('emailInput').value='';
+  document.getElementById('counter').textContent=count.toLocaleString()+' already signed up';
+}
+</script>
+</body></html>

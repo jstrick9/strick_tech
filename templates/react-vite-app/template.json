@@ -1,0 +1,19 @@
+{
+  "id": "react-vite-app",
+  "name": "React + Vite App",
+  "category": "apps",
+  "emoji": "⚛️",
+  "description": "Multi-file React 18 starter with Vite, component structure, and hooks — npm install && npm run dev",
+  "prompt": "Build a React application using Vite with a component-based structure, hooks for state management, and clean separation between App, components and styles.",
+  "tags": ["react", "vite", "spa", "multi-file", "javascript"],
+  "preview_color": "#61dafb",
+  "files": [
+    "index.html",
+    "package.json",
+    "vite.config.js",
+    "src/main.jsx",
+    "src/App.jsx",
+    "src/styles.css",
+    "README.md"
+  ]
+}
