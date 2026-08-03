@@ -142,11 +142,17 @@ window.initSidebarGroups = function() {
 // hand-maintained a second time in JS. Also drops 'steering' (folded into
 // 'hierarchy' as a tab — see the module-merge redirect in window.nav above).
 window.PANE_TO_GROUP = {
-  'chat':'core', 'studio':'core', 'templates':'core', 'galaxy':'core', 'kanban':'core', 'settings':'core',
-  'swarm':'build', 'hierarchy':'build', 'websearch':'build', 'browser':'build', 'imagegen':'build', 'prompts':'build', 'docs':'build', 'terminal':'build', 'skills':'build',
-  'composer':'ship', 'pipeline':'ship', 'workflow':'ship', 'github':'ship', 'deploy':'ship', 'specs':'ship', 'dbstudio':'ship', 'workspaces':'ship', 'plugins':'ship',
-  'supervisor':'tools', 'goals':'tools', 'connectors':'tools', 'mcp':'tools', 'mcp-gateway':'tools', 'a2a':'tools', 'agent-identity':'tools', 'hitl':'tools', 'fusion':'tools', 'arena':'tools', 'loops':'tools', 'replay':'tools', 'collabedit':'tools',
-  'dashboard':'enterprise', 'audit-log':'enterprise', 'leaderboard':'enterprise', 'agent-monitor':'enterprise', 'finops':'enterprise', 'eval-framework':'enterprise', 'observability':'enterprise', 'evals':'enterprise', 'health':'enterprise', 'profiler':'enterprise', 'secrets':'enterprise', 'pqc':'enterprise', 'obsidian':'enterprise', 'webhooks':'enterprise', 'integrations':'enterprise', 'knowledge-graph':'enterprise', 'rag':'enterprise', 'hooks':'enterprise', 'codeindex':'enterprise', 'codesearch':'enterprise', 'gitai':'enterprise', 'bugbot':'enterprise', 'testgen':'enterprise', 'marketplace':'enterprise', 'pluginsdk':'enterprise', 'multitab':'enterprise', 'control':'enterprise', 'system':'enterprise', 'ambient':'enterprise', 'finetune':'enterprise'
+  'chat':'core', 'studio':'core', 'galaxy':'core', 'kanban':'core', 'templates':'core', 'settings':'core',
+  'supervisor':'build', 'websearch':'build', 'browser':'build', 'imagegen':'build', 'prompts':'build', 'terminal':'build', 'hierarchy':'build', 'docs':'build',
+  'composer':'ship', 'workflow':'ship', 'github':'ship', 'dbstudio':'ship', 'workspaces':'ship', 'plugins':'ship',
+  'mcp':'tools',
+  'observability':'enterprise', 'evals':'enterprise', 'secrets':'enterprise',
+  // Absorbed panes resolve to their host workstation's group so nav() opens the right section.
+  'agent-monitor':'enterprise', 'profiler':'enterprise', 'health':'enterprise', 'system':'enterprise', 'audit-log':'enterprise', 'replay':'enterprise', 'finops':'enterprise', 'dashboard':'enterprise', 'leaderboard':'enterprise', 'eval-framework':'enterprise', 'arena':'enterprise', 'bugbot':'enterprise', 'testgen':'enterprise', 'e2e':'enterprise', 'pqc':'enterprise',
+  'codesearch':'core', 'codeindex':'core', 'multitab':'core', 'rag':'core', 'knowledge-graph':'core', 'obsidian':'core',
+  'mcp-gateway':'tools', 'connectors':'tools', 'integrations':'tools', 'webhooks':'tools', 'hooks':'tools',
+  'pipeline':'ship', 'loops':'ship', 'specs':'ship', 'ambient':'ship', 'pluginsdk':'ship', 'marketplace':'ship', 'skills':'ship', 'gitai':'ship', 'deploy':'ship', 'collabedit':'ship', 'control':'ship',
+  'a2a':'build', 'agent-identity':'build', 'hitl':'build', 'goals':'build', 'swarm':'build', 'fusion':'build', 'finetune':'build',
 };
 
 function setupSidebarResizer() {
@@ -225,6 +231,18 @@ window.nav = function(pane) {
     window.nav('studio');
     return;
   }
+  // WORKSTATION CONSOLIDATION: 44 panes were folded into 11 tabbed
+  // workstations (67 sidebar entries -> 24). Navigating to an absorbed pane
+  // by its original id — deep links (#/finops), the command palette, keyboard
+  // shortcuts, cross-pane nav() calls in other modules — opens its host
+  // workstation and selects the right tab, so every previous destination is
+  // still reachable and still addressable. See 00-workstations.js.
+  const wsHost = window.PANE_TO_WORKSTATION && window.PANE_TO_WORKSTATION[pane];
+  if (wsHost && wsHost !== pane) {
+    window.nav(wsHost);
+    if (typeof window.showWorkstationTab === 'function') window.showWorkstationTab(wsHost, pane);
+    return;
+  }
   if (window.NavigationState) window.NavigationState.set(pane);
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -252,6 +270,15 @@ window.nav = function(pane) {
   const renderer = window.MASTER_PANE_REGISTRY[pane];
   if (renderer) {
     try { renderer(); } catch(e) { console.warn('Master renderer error for ' + pane + ':', e); }
+  }
+
+  // If this pane hosts a workstation, build its tab strip (idempotent) and
+  // restore whichever tab was last open. Runs AFTER the host's own renderer so
+  // panes that rebuild their innerHTML don't wipe the tab strip.
+  if (window.WORKSTATIONS && window.WORKSTATIONS[pane] && typeof window.initWorkstation === 'function') {
+    window.initWorkstation(pane);
+    const last = (window._activeWorkstationTab || {})[pane] || pane;
+    window.showWorkstationTab(pane, last);
   }
 
   if (typeof window.showSmartSuggestionsForPane === 'function') {
