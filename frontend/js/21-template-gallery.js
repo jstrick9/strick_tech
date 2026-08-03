@@ -34,7 +34,15 @@
       + '<h2 style="font-size:22px;font-weight:900;margin-bottom:4px">🎨 Template Gallery</h2>'
       + '<p style="color:var(--text-2);font-size:13px">Production-ready templates. Insert into chat or scaffold into Studio.</p>'
       + '</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      // MISSING FEATURE: POST /api/templates/scaffold-custom existed and worked
+      // (it snapshots the current preview/index.html into preview/templates/)
+      // but no button anywhere in the UI ever called it — the only way to keep
+      // a design was the localStorage-only "New Template", which stores a
+      // prompt, not your actual code, and is lost if the browser is cleared.
+      + '<button onclick="saveWorkAsTemplate()" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-weight:700" title="Snapshot what you currently have in Studio as a reusable template file">💾 Save Current Work</button>'
       + '<button onclick="showCreateTemplateForm()" class="btn btn-primary btn-sm" style="padding:6px 14px;font-weight:700">＋ New Template</button>'
+      + '</div>'
       + '</div>'
       + '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap" id="tmpl-cats"></div>'
       + '</div>'
@@ -262,6 +270,32 @@
     return card;
   }
 
+  // ── Save current Studio work as a reusable template file ───────
+  // Wires up POST /api/templates/scaffold-custom, which shipped working but
+  // unreachable. Unlike "＋ New Template" (a localStorage prompt entry), this
+  // persists the actual HTML you have open, server-side, so it survives a
+  // browser reset and can be reopened from preview/templates/.
+  async function saveWorkAsTemplate() {
+    var name = await gmPrompt('Save current work as template',
+      'Name this snapshot of your current Studio preview:', '');
+    if (!name || !name.trim()) return;
+    try {
+      var r = await fetch('/api/templates/scaffold-custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() })
+      });
+      var j = await r.json().catch(function() { return null; });
+      if (!r.ok || !j || !j.ok) {
+        toast('❌ Could not save: ' + ((j && j.error) || 'HTTP ' + r.status), 'err', 3500);
+        return;
+      }
+      toast('💾 Saved as "' + j.name + '" → ' + j.saved_to, 'ok', 4000);
+    } catch (ex) {
+      toast('❌ Save failed: ' + ex.message, 'err', 3000);
+    }
+  }
+
   // ── Insert Template into Chat ──────────────────────────────────
   function insertTemplateIntoChat(t) {
     var prompt = t.prompt || t.description || ('Build a ' + t.name);
@@ -296,24 +330,55 @@
     var t = allTemplates.find(function(x) { return x.id === templateId; });
     if (!silent) toast('⚡ Scaffolding ' + (t?.name || templateId) + '…', 'ok', 2000);
 
-    try {
-      var r = await fetch('/api/templates/' + encodeURIComponent(templateId) + '/scaffold', {
+    // BUG FIX (data loss): scaffolding overwrote whatever was in preview/ with
+    // no warning. If you had unsaved work open in Studio it was destroyed and
+    // unrecoverable. The backend now refuses to clobber existing files unless
+    // overwrite:true is passed, so ask first and name exactly what is at risk.
+    async function postScaffold(overwrite) {
+      return fetch('/api/templates/' + encodeURIComponent(templateId) + '/scaffold', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project_name: projectName || (t?.name || templateId) })
+        body: JSON.stringify({
+          project_name: projectName || (t?.name || templateId),
+          overwrite: !!overwrite
+        })
       });
-      if (!r.ok) {
-        toast('❌ Scaffold failed: HTTP ' + r.status, 'err', 3000);
+    }
+
+    try {
+      var r = await postScaffold(false);
+      var j = await r.json().catch(function() { return null; });
+
+      if (j && j.needs_confirmation) {
+        var files = (j.conflicts || []).join(', ');
+        var proceed = await gmConfirm(
+          'Replace existing files?',
+          'Scaffolding <strong>' + escHtml(j.template || templateId) + '</strong> will replace ' +
+          (j.conflicts || []).length + ' file(s) already in your workspace:<br><br>' +
+          '<code style="font-family:monospace">' + escHtml(files) + '</code><br><br>' +
+          'A backup is saved to Studio\u2019s version history first, so this can be undone.'
+        );
+        if (!proceed) { toast('Scaffold cancelled — nothing changed', 'ok', 2000); return; }
+        r = await postScaffold(true);
+        j = await r.json().catch(function() { return null; });
+      }
+
+      if (!r.ok && !(j && j.ok)) {
+        toast('❌ Scaffold failed: ' + ((j && j.error) || 'HTTP ' + r.status), 'err', 3000);
         return;
       }
-      var j = await r.json();
-      if (j.ok) {
-        if (!silent) toast('✅ ' + (j.template || 'Template') + ' ready — opening Studio…', 'ok', 3000);
+      if (j && j.ok) {
+        if (!silent) {
+          var extra = (j.replaced && j.replaced.length)
+            ? ' (' + j.replaced.length + ' file(s) backed up)'
+            : '';
+          toast('✅ ' + (j.template || 'Template') + ' ready' + extra + ' — opening Studio…', 'ok', 3000);
+        }
         if (typeof studioLoadFileTree === 'function') studioLoadFileTree();
         if (typeof studioReloadPreview === 'function') studioReloadPreview();
         if (!silent) setTimeout(function() { if (typeof nav === 'function') nav('studio'); }, 600);
       } else {
-        toast('❌ Scaffold failed: ' + (j.error || 'Unknown'), 'err', 3000);
+        toast('❌ Scaffold failed: ' + ((j && j.error) || 'Unknown'), 'err', 3000);
       }
     } catch(ex) {
       toast('❌ Scaffold error: ' + ex.message, 'err', 3000);
@@ -454,6 +519,7 @@
   window.filterTemplates = filterTemplates;
   window.tmplChangeSort = tmplChangeSort;
   window.scaffoldTemplate = scaffoldTemplate;
+  window.saveWorkAsTemplate = saveWorkAsTemplate;
   window.previewTemplate = previewTemplate;
 
   // Add to command palette

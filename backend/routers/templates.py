@@ -11,11 +11,14 @@ Each template is a fully working HTML/CSS/JS app that scaffolds instantly.
 
 from __future__ import annotations
 
+import html
 import json
 import logging
 import re
+from pathlib import Path
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from ..services.memory_db import audit_log, get_conn
 
@@ -706,6 +709,51 @@ def _safe_name(name: str) -> str:
     return re.sub(r'[^\w\s\-]', '', (name or '').strip())[:80]
 
 
+def _within_preview(target: Path) -> bool:
+    """True only if target is inside PREV.
+
+    Uses path semantics rather than str.startswith(), which treats a sibling
+    directory sharing a name prefix (e.g. `preview_backup/`) as being inside
+    `preview/`.
+    """
+    try:
+        target.resolve().relative_to(PREV.resolve())
+        return True
+    except (ValueError, OSError):
+        return False
+
+
+# Placeholders that the built-in templates use for the product/brand name.
+_NAME_PLACEHOLDERS = ('YourSaaS', 'Your Name', 'Your Company', 'My App')
+
+
+def _apply_project_name(content: str, project_name: str) -> str:
+    """Substitute the user's project name into a template file.
+
+    BUG FIX: substitution only replaced the four literal placeholders above, but
+    just 3 of the 14 built-in templates actually contain one. For the other 11
+    (todo-app, notes-app, weather-app, chat-app, ...) the UI collected a project
+    name, sent it, and it silently did nothing — the scaffolded app still said
+    "Todo App". Falling back to rewriting the document <title> and the first
+    <h1> means naming a project has a visible effect for every template.
+    """
+    if not project_name:
+        return content
+
+    replaced_any = False
+    for placeholder in _NAME_PLACEHOLDERS:
+        if placeholder in content:
+            content = content.replace(placeholder, project_name)
+            replaced_any = True
+    if replaced_any:
+        return content
+
+    safe = html.escape(project_name)
+    content, n_title = re.subn(r'(<title>)(.*?)(</title>)', lambda m: m.group(1) + safe + m.group(3), content, count=1, flags=re.S)
+    content, _ = re.subn(r'(<h1\b[^>]*>)(.*?)(</h1>)', lambda m: m.group(1) + safe + m.group(3), content, count=1, flags=re.S)
+    return content
+
+
 def _current_workspace_id() -> str:
     """Resolve the active workspace without making workspace imports mandatory.
 
@@ -796,7 +844,9 @@ def get_template_preview(template_id: str):
     """Return the first HTML file content for in-pane preview."""
     t = next((t for t in TEMPLATES if t['id'] == template_id), None)
     if not t:
-        return {'ok': False, 'error': f"Template '{template_id}' not found"}
+        # Was a 200 with ok:false — a missing template is a 404, and returning
+        # 200 meant callers doing `if (r.ok)` treated it as success.
+        return JSONResponse({'ok': False, 'error': f"Template '{template_id}' not found"}, status_code=404)
     # Return the first html file
     files = t.get('files', {})
     for fname, fcontent in files.items():
@@ -810,42 +860,97 @@ def get_template(template_id: str):
     """Get full template details including file names (not content)."""
     t = next((t for t in TEMPLATES if t['id'] == template_id), None)
     if not t:
-        return {'ok': False, 'error': f"Template '{template_id}' not found"}
+        return JSONResponse({'ok': False, 'error': f"Template '{template_id}' not found"}, status_code=404)
     return {**_template_summary(t), 'ok': True}
 
 
 @router.post('/{template_id}/scaffold')
 async def scaffold_template(template_id: str, req: Request):
-    """Scaffold a template into preview/."""
+    """Scaffold a template into preview/.
+
+    Body: {project_name?, overwrite?}
+
+    BUG FIX (data loss): this used to overwrite preview/ unconditionally. If you
+    had unsaved work open in Studio, scaffolding any template destroyed it with
+    no warning, no confirmation and no way back — the template's NEW content was
+    written to file_versions, but the user's REPLACED content never was, so it
+    was genuinely unrecoverable. Reproduced live: hand-written index.html gone
+    after one scaffold call.
+
+    Now: any file that would be clobbered is first snapshotted into
+    file_versions (so Studio's version history can restore it), and if the
+    caller hasn't explicitly opted in with overwrite=true the request is
+    refused with the list of files at risk so the UI can ask first.
+    """
     try:
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
     t = next((t for t in TEMPLATES if t['id'] == template_id), None)
     if not t:
-        return {'ok': False, 'error': f"Template '{template_id}' not found"}
+        return JSONResponse({'ok': False, 'error': f"Template '{template_id}' not found"}, status_code=404)
 
     # Sanitised project name for substitution
     raw_name = body.get('project_name', '')
     custom_name = _safe_name(raw_name) if raw_name else ''
-    (body.get('description') or '').strip()[:200]
+    overwrite = bool(body.get('overwrite'))
 
     PREV.mkdir(parents=True, exist_ok=True)
+
+    # Which existing files would this scaffold replace?
+    at_risk = []
+    for filename in t['files']:
+        target = (PREV / filename).resolve()
+        if not _within_preview(target):
+            continue
+        if target.is_file() and target.read_text(encoding='utf-8', errors='replace').strip():
+            at_risk.append(filename)
+
+    if at_risk and not overwrite:
+        return {
+            'ok': False,
+            'needs_confirmation': True,
+            'error': 'This would replace existing files in your preview workspace.',
+            'conflicts': at_risk,
+            'template': t['name'],
+            'template_id': template_id,
+        }
+
     created: list = []
+    replaced: list = []
 
     con = get_conn()
     try:
         for filename, file_content in t['files'].items():
             # Substitute project name placeholders
             if custom_name:
-                for placeholder in ['YourSaaS', 'Your Name', 'Your Company', 'My App']:
-                    file_content = file_content.replace(placeholder, custom_name)
+                file_content = _apply_project_name(file_content, custom_name)
 
             # Path traversal guard
             target = (PREV / filename).resolve()
-            if not str(target).startswith(str(PREV.resolve())):
+            if not _within_preview(target):
                 log.warning('Blocked path traversal attempt in template: %s', filename)
                 continue
+
+            # Snapshot whatever is being replaced so it stays recoverable from
+            # Studio's version history.
+            if target.is_file():
+                try:
+                    previous = target.read_text(encoding='utf-8', errors='replace')
+                    if previous.strip():
+                        con.execute(
+                            'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
+                            (
+                                filename,
+                                previous,
+                                'template',
+                                f'Auto-backup before scaffolding: {t["name"]}',
+                                _current_workspace_id(),
+                            ),
+                        )
+                        replaced.append(filename)
+                except OSError as exc:
+                    log.warning('Could not snapshot %s before scaffold: %s', filename, exc)
 
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(file_content, encoding='utf-8')
@@ -872,13 +977,18 @@ async def scaffold_template(template_id: str, req: Request):
             preview_url = f'/preview/{fn}'
             break
 
+    message = f'✅ {t["name"]} scaffolded — {len(created)} file(s)'
+    if replaced:
+        message += f' — {len(replaced)} replaced file(s) backed up to version history'
+
     return {
         'ok': True,
         'template': t['name'],
         'template_id': template_id,
         'files': created,
+        'replaced': replaced,
         'preview_url': preview_url,
-        'message': f'✅ {t["name"]} scaffolded — {len(created)} file(s)',
+        'message': message,
     }
 
 
