@@ -549,3 +549,299 @@ class TestAgentPickerFrontend:
 
     def test_an_orphaned_pin_is_shown_rather_than_silently_cleared(self):
         assert 'no longer exists' in self._js()
+
+
+# ── 10. Versioning (follow-up 2) ───────────────────────────────────────────────
+
+
+class TestPromptVersioning:
+    """Editing overwrote in place with no history.
+
+    For a library whose entire value is iterating on wording, losing the
+    previous version on every save is a real data-loss path — the phrasing that
+    worked could not be recovered.
+    """
+
+    def test_a_new_prompt_starts_with_no_history(self, client, made):
+        pid, _ = made()
+        assert client.get(f'/api/prompts/{pid}/versions').json()['count'] == 0
+
+    def test_editing_snapshots_the_previous_state(self, client, made):
+        pid, _ = made(content='original wording')
+        client.patch(f'/api/prompts/{pid}', json={'content': 'revised wording'})
+        versions = client.get(f'/api/prompts/{pid}/versions').json()['versions']
+        assert len(versions) == 1
+        assert versions[0]['content'] == 'original wording', 'the OLD text must be kept'
+        assert client.get(f'/api/prompts/{pid}').json()['content'] == 'revised wording'
+
+    def test_versions_are_numbered_and_newest_first(self, client, made):
+        pid, _ = made(content='v1')
+        for text in ('v2', 'v3'):
+            client.patch(f'/api/prompts/{pid}', json={'content': text})
+        nos = [v['version_no'] for v in client.get(f'/api/prompts/{pid}/versions').json()['versions']]
+        assert nos == [2, 1]
+
+    def test_a_no_op_edit_does_not_create_a_version(self, client, made):
+        """Otherwise history fills with identical entries."""
+        pid, _ = made(content='same')
+        client.patch(f'/api/prompts/{pid}', json={'content': 'same'})
+        assert client.get(f'/api/prompts/{pid}/versions').json()['count'] == 0
+
+    def test_toggling_favorite_does_not_create_a_version(self, client, made):
+        pid, _ = made()
+        client.patch(f'/api/prompts/{pid}', json={'is_favorite': 1})
+        assert client.get(f'/api/prompts/{pid}/versions').json()['count'] == 0
+
+    def test_restore_brings_back_the_old_content(self, client, made):
+        pid, _ = made(content='the good wording')
+        client.patch(f'/api/prompts/{pid}', json={'content': 'the bad wording'})
+        r = client.post(f'/api/prompts/{pid}/versions/1/restore')
+        assert r.status_code == 200
+        assert client.get(f'/api/prompts/{pid}').json()['content'] == 'the good wording'
+
+    def test_restore_is_itself_undoable(self, client, made):
+        """Rolling back by mistake must not be the thing that loses work."""
+        pid, _ = made(content='v1')
+        client.patch(f'/api/prompts/{pid}', json={'content': 'v2'})
+        client.post(f'/api/prompts/{pid}/versions/1/restore')
+        versions = client.get(f'/api/prompts/{pid}/versions').json()['versions']
+        assert any(v['content'] == 'v2' and 'pre-restore' in v['reason'] for v in versions)
+
+    def test_restore_drops_a_category_that_no_longer_exists(self, client, made):
+        """Restoring must not reintroduce a reference the validator rejects."""
+        from backend.services.memory_db import get_conn
+
+        pid, _ = made(content='orig', category='general')
+        client.patch(f'/api/prompts/{pid}', json={'content': 'changed'})
+        con = get_conn()
+        try:
+            con.execute(
+                'UPDATE prompt_versions SET category=? WHERE prompt_id=?', ('gone-category', pid)
+            )
+            con.commit()
+        finally:
+            con.close()
+        body = client.post(f'/api/prompts/{pid}/versions/1/restore').json()
+        assert body['demoted_category'] is True
+        assert client.get(f'/api/prompts/{pid}').json()['category'] == 'general'
+
+    def test_history_is_bounded(self):
+        assert pr.MAX_VERSIONS == 50
+        assert 'DELETE FROM prompt_versions' in (
+            __import__('pathlib').Path(pr.__file__).read_text()
+        )
+
+    def test_versions_of_a_missing_prompt_are_404(self, client):
+        assert client.get('/api/prompts/no-such-id/versions').status_code == 404
+
+    def test_restoring_a_missing_version_is_404(self, client, made):
+        pid, _ = made()
+        assert client.post(f'/api/prompts/{pid}/versions/99/restore').status_code == 404
+
+    def test_deleting_a_prompt_removes_its_history(self, client):
+        from backend.services.memory_db import get_conn
+
+        pid = client.post('/api/prompts', json={'title': _title(), 'content': 'a'}).json()['id']
+        client.patch(f'/api/prompts/{pid}', json={'content': 'b'})
+        client.delete(f'/api/prompts/{pid}')
+        con = get_conn()
+        try:
+            left = con.execute(
+                'SELECT COUNT(*) FROM prompt_versions WHERE prompt_id=?', (pid,)
+            ).fetchone()[0]
+        finally:
+            con.close()
+        assert left == 0, 'orphaned history would re-attach if the id were reissued'
+
+
+# ── 11. Usage log (follow-up 3) ────────────────────────────────────────────────
+
+
+class TestUsageLog:
+    """use_count answers "how often" but never "when" or "in what context"."""
+
+    def test_render_is_logged_with_variable_detail(self, client, made):
+        pid, _ = made(content='Review {lang} in {repo}')
+        client.post(f'/api/prompts/{pid}/render', json={'values': {'lang': 'Go', 'repo': 'r'}})
+        uses = client.get(f'/api/prompts/{pid}/usage').json()['uses']
+        assert len(uses) == 1
+        assert uses[0]['variables_filled'] == 2
+        assert uses[0]['variables_missing'] == 0
+        assert uses[0]['rendered_chars'] > 0
+
+    def test_an_incomplete_render_is_recorded_as_such(self, client, made):
+        """A prompt whose variables are habitually unfilled isn't working."""
+        pid, _ = made(content='Review {lang} in {repo}')
+        client.post(f'/api/prompts/{pid}/render', json={'values': {'lang': 'Go'}})
+        assert client.get(f'/api/prompts/{pid}/usage').json()['uses'][0]['variables_missing'] == 1
+
+    def test_direct_use_is_logged_too(self, client, made):
+        pid, _ = made()
+        client.post(f'/api/prompts/{pid}/use')
+        uses = client.get(f'/api/prompts/{pid}/usage').json()['uses']
+        assert uses[0]['surface'] == 'direct'
+
+    def test_record_use_false_does_not_log(self, client, made):
+        pid, _ = made(content='Hi {name}')
+        client.post(
+            f'/api/prompts/{pid}/render', json={'values': {'name': 'x'}, 'record_use': False}
+        )
+        assert client.get(f'/api/prompts/{pid}/usage').json()['count'] == 0
+
+    def test_stats_rank_by_real_usage(self, client, made):
+        pid, body = made()
+        for _ in range(3):
+            client.post(f'/api/prompts/{pid}/use')
+        stats = client.get('/api/prompts/usage/stats', params={'days': 30, 'limit': 100}).json()
+        entry = next((t for t in stats['top'] if t['prompt_id'] == pid), None)
+        assert entry is not None
+        assert entry['uses'] == 3
+        assert entry['title'] == body['title']
+
+    def test_stats_report_never_used_prompts(self, client, made):
+        made()
+        assert client.get('/api/prompts/usage/stats').json()['never_used'] >= 1
+
+    def test_usage_of_a_missing_prompt_is_404(self, client):
+        assert client.get('/api/prompts/no-such-id/usage').status_code == 404
+
+    def test_deleting_a_prompt_removes_its_usage_log(self, client):
+        from backend.services.memory_db import get_conn
+
+        pid = client.post('/api/prompts', json={'title': _title(), 'content': 'a'}).json()['id']
+        client.post(f'/api/prompts/{pid}/use')
+        client.delete(f'/api/prompts/{pid}')
+        con = get_conn()
+        try:
+            left = con.execute(
+                'SELECT COUNT(*) FROM prompt_usage WHERE prompt_id=?', (pid,)
+            ).fetchone()[0]
+        finally:
+            con.close()
+        assert left == 0
+
+
+# ── 12. User-defined categories (follow-up 4) ──────────────────────────────────
+
+
+class TestUserDefinedCategories:
+    """Categories were a frozen set of 12.
+
+    Once unknown values were correctly rejected instead of silently rewritten,
+    that rigidity became a wall with no way around it.
+    """
+
+    def _drop(self, client, cid):
+        client.delete(f'/api/prompts/categories/{cid}')
+
+    def test_a_custom_category_can_be_created_and_used(self, client):
+        r = client.post('/api/prompts/categories', json={'name': 'Marketing Copy'})
+        assert r.status_code == 201
+        cid = r.json()['id']
+        try:
+            assert cid == 'marketing-copy', 'names are folded to an id form'
+            p = client.post(
+                '/api/prompts', json={'title': _title(), 'content': 'x', 'category': cid}
+            )
+            assert p.status_code == 201
+            client.delete(f"/api/prompts/{p.json()['id']}")
+        finally:
+            self._drop(client, cid)
+
+    def test_builtins_remain_valid(self):
+        assert pr.BUILTIN_CATEGORIES <= pr.valid_categories()
+
+    def test_duplicate_category_is_409(self, client):
+        client.post('/api/prompts/categories', json={'name': 'dupcat'})
+        try:
+            assert client.post('/api/prompts/categories', json={'name': 'dupcat'}).status_code == 409
+        finally:
+            self._drop(client, 'dupcat')
+
+    def test_creating_a_builtin_again_is_409(self, client):
+        assert client.post('/api/prompts/categories', json={'name': 'general'}).status_code == 409
+
+    @pytest.mark.parametrize('bad', ['', '!!!', '---', '   '])
+    def test_invalid_names_are_400(self, client, bad):
+        assert client.post('/api/prompts/categories', json={'name': bad}).status_code == 400
+
+    def test_a_builtin_cannot_be_deleted(self, client):
+        assert client.delete('/api/prompts/categories/general').status_code == 403
+
+    def test_a_category_in_use_cannot_be_deleted(self, client):
+        """Deleting it would orphan its prompts into a state the validator rejects."""
+        client.post('/api/prompts/categories', json={'name': 'inusecat'})
+        p = client.post(
+            '/api/prompts', json={'title': _title(), 'content': 'x', 'category': 'inusecat'}
+        ).json()
+        try:
+            r = client.delete('/api/prompts/categories/inusecat')
+            assert r.status_code == 409
+            assert r.json()['in_use'] == 1
+        finally:
+            client.delete(f"/api/prompts/{p['id']}")
+            self._drop(client, 'inusecat')
+
+    def test_an_unused_custom_category_can_be_deleted(self, client):
+        client.post('/api/prompts/categories', json={'name': 'tempcat'})
+        assert client.delete('/api/prompts/categories/tempcat').status_code == 200
+        assert 'tempcat' not in pr.valid_categories()
+
+    def test_deleting_a_missing_category_is_404(self, client):
+        assert client.delete('/api/prompts/categories/never-existed').status_code == 404
+
+    def test_an_empty_new_category_is_still_listed(self, client):
+        """It used to GROUP BY prompts, so a category with none was invisible —
+        making a just-created category look like it hadn't saved."""
+        client.post('/api/prompts/categories', json={'name': 'emptycat'})
+        try:
+            cats = client.get('/api/prompts/categories').json()['categories']
+            entry = next((c for c in cats if c['id'] == 'emptycat'), None)
+            assert entry is not None and entry['count'] == 0
+            assert entry['builtin'] is False
+        finally:
+            self._drop(client, 'emptycat')
+
+    def test_categories_endpoint_marks_builtins(self, client):
+        cats = client.get('/api/prompts/categories').json()['categories']
+        assert next(c for c in cats if c['id'] == 'general')['builtin'] is True
+
+    def test_orphaned_categories_are_surfaced(self, client):
+        from backend.services.memory_db import get_conn
+
+        pid = client.post('/api/prompts', json={'title': _title(), 'content': 'x'}).json()['id']
+        con = get_conn()
+        try:
+            con.execute('UPDATE prompt_library SET category=? WHERE id=?', ('ghost-cat', pid))
+            con.commit()
+        finally:
+            con.close()
+        try:
+            orphans = {o['id'] for o in client.get('/api/prompts/categories').json()['orphaned']}
+            assert 'ghost-cat' in orphans
+        finally:
+            client.delete(f'/api/prompts/{pid}')
+
+
+class TestFollowUpFrontend:
+    def _js(self):
+        from pathlib import Path
+
+        return (Path(__file__).resolve().parents[2] / 'frontend' / 'js' / '14-prompt-library.js').read_text()
+
+    def test_history_button_and_viewer_exist(self):
+        js = self._js()
+        assert 'showPromptHistory' in js
+        assert '/versions' in js and 'restore' in js
+
+    def test_restore_warns_when_it_could_not_restore_verbatim(self):
+        js = self._js()
+        assert 'demoted_category' in js and 'dropped_agent' in js
+
+    def test_category_creation_is_reachable(self):
+        js = self._js()
+        assert 'new-category' in js and 'async function createCategory' in js
+
+    def test_editor_dropdown_is_not_a_hardcoded_list(self):
+        js = self._js()
+        assert "['general','build','review','testing'" not in js, 'custom categories must be selectable'

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import sqlite3
 import time
 import uuid
 
@@ -133,7 +134,9 @@ def _clean_tags(raw) -> str:
             out.append(tag)
     return ','.join(out)[:MAX_TAGS]
 
-VALID_CATEGORIES = {
+# Categories that always exist. Users can add their own on top of these; these
+# cannot be deleted because seeded prompts and older exports reference them.
+BUILTIN_CATEGORIES = {
     'general',
     'build',
     'review',
@@ -148,6 +151,97 @@ VALID_CATEGORIES = {
     'quality',
 }
 VALID_SORTS = {'updated': 'updated_at DESC', 'used': 'use_count DESC', 'title': 'title ASC'}
+
+MAX_VERSIONS = 50  # per prompt; oldest are pruned beyond this
+_CATEGORY_RE = re.compile(r'^[a-z0-9][a-z0-9_-]{0,31}$')
+
+
+def valid_categories() -> set[str]:
+    """Built-in categories plus any the user has defined.
+
+    Was a hardcoded frozen set of 12. Once unknown categories started being
+    properly rejected (rather than silently rewritten to 'general'), that
+    rigidity became a wall — users had no way to add their own.
+    """
+    con = get_conn()
+    try:
+        rows = con.execute('SELECT id FROM prompt_categories').fetchall()
+    except sqlite3.Error:
+        return set(BUILTIN_CATEGORIES)
+    finally:
+        con.close()
+    return set(BUILTIN_CATEGORIES) | {r[0] for r in rows}
+
+
+def normalize_category(raw: str) -> str:
+    """Fold a user-supplied category to the id form: lowercase, dashed."""
+    return re.sub(r'[^a-z0-9_-]', '-', str(raw or '').strip().lower()).strip('-')[:32]
+
+
+def check_category(category: str) -> JSONResponse | None:
+    """Return a 400 response if `category` isn't known, else None."""
+    if category in valid_categories():
+        return None
+    return JSONResponse(
+        {
+            'ok': False,
+            'error': f'Unknown category: {category}',
+            'hint': 'Create it first with POST /api/prompts/categories.',
+            'valid_categories': sorted(valid_categories()),
+        },
+        status_code=400,
+    )
+
+
+def snapshot_version(con, prompt_id: str, row: dict, reason: str = 'edit') -> None:
+    """Record the CURRENT state of a prompt before it is overwritten.
+
+    Editing overwrote in place with no history. For a library whose entire
+    value is iterating on wording, losing the previous version on every save is
+    a real data-loss path — you could not get back the phrasing that worked.
+    """
+    next_no = (
+        con.execute(
+            'SELECT COALESCE(MAX(version_no), 0) + 1 FROM prompt_versions WHERE prompt_id=?',
+            (prompt_id,),
+        ).fetchone()[0]
+    )
+    con.execute(
+        'INSERT INTO prompt_versions(prompt_id,version_no,title,content,category,tags,agent_id,reason) '
+        'VALUES(?,?,?,?,?,?,?,?)',
+        (
+            prompt_id,
+            next_no,
+            row.get('title', ''),
+            row.get('content', ''),
+            row.get('category', ''),
+            row.get('tags', ''),
+            row.get('agent_id', ''),
+            reason,
+        ),
+    )
+    # Keep history bounded — a heavily edited prompt shouldn't grow without limit.
+    con.execute(
+        """DELETE FROM prompt_versions
+           WHERE prompt_id=? AND version_no <= (
+               SELECT MAX(version_no) - ? FROM prompt_versions WHERE prompt_id=?
+           )""",
+        (prompt_id, MAX_VERSIONS, prompt_id),
+    )
+
+
+def log_use(con, prompt_id: str, *, surface: str = '', rendered_chars: int = 0,
+            variables_filled: int = 0, missing: int = 0) -> None:
+    """Append to the usage log.
+
+    use_count alone answers "how often", never "when" or "in what context", so
+    "which prompts actually earn their place" was unanswerable.
+    """
+    con.execute(
+        'INSERT INTO prompt_usage(prompt_id,surface,rendered_chars,variables_filled,variables_missing) '
+        'VALUES(?,?,?,?,?)',
+        (prompt_id, str(surface or '')[:32], int(rendered_chars), int(variables_filled), int(missing)),
+    )
 
 
 def _ensure_table():
@@ -167,6 +261,43 @@ def _ensure_table():
                 updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        # Version history: a snapshot of the PREVIOUS state is written on every
+        # edit/restore, so a prompt's wording can be recovered.
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS prompt_versions (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                prompt_id   TEXT NOT NULL,
+                version_no  INTEGER NOT NULL,
+                title       TEXT DEFAULT '',
+                content     TEXT DEFAULT '',
+                category    TEXT DEFAULT '',
+                tags        TEXT DEFAULT '',
+                agent_id    TEXT DEFAULT '',
+                reason      TEXT DEFAULT 'edit',
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        # Usage log: use_count answers "how often" but never "when" or
+        # "in what context".
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS prompt_usage (
+                id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                prompt_id         TEXT NOT NULL,
+                surface           TEXT DEFAULT '',
+                rendered_chars    INTEGER DEFAULT 0,
+                variables_filled  INTEGER DEFAULT 0,
+                variables_missing INTEGER DEFAULT 0,
+                used_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        # User-defined categories, layered on top of BUILTIN_CATEGORIES.
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS prompt_categories (
+                id         TEXT PRIMARY KEY,
+                label      TEXT DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         # Indexes for the columns every list/filter/sort query touches. Without
         # them each request was a full table scan over the whole library.
         for ddl in (
@@ -175,6 +306,9 @@ def _ensure_table():
             'CREATE INDEX IF NOT EXISTS idx_prompt_use_count ON prompt_library(use_count DESC)',
             'CREATE INDEX IF NOT EXISTS idx_prompt_favorite ON prompt_library(is_favorite)',
             'CREATE INDEX IF NOT EXISTS idx_prompt_agent ON prompt_library(agent_id)',
+            'CREATE INDEX IF NOT EXISTS idx_prompt_versions ON prompt_versions(prompt_id, version_no DESC)',
+            'CREATE INDEX IF NOT EXISTS idx_prompt_usage_pid ON prompt_usage(prompt_id, used_at DESC)',
+            'CREATE INDEX IF NOT EXISTS idx_prompt_usage_time ON prompt_usage(used_at DESC)',
         ):
             con.execute(ddl)
         con.commit()
@@ -331,12 +465,12 @@ def list_prompts(
     # An unknown category used to be dropped from the WHERE clause, so a
     # filtered request quietly returned the ENTIRE library — the opposite of
     # what was asked for, with nothing to indicate the filter hadn't applied.
-    if category and category not in VALID_CATEGORIES:
+    if category and category not in valid_categories():
         return JSONResponse(
             {
                 'ok': False,
                 'error': f'Unknown category: {category}',
-                'valid_categories': sorted(VALID_CATEGORIES),
+                'valid_categories': sorted(valid_categories()),
             },
             status_code=400,
         )
@@ -387,17 +521,46 @@ def list_prompts(
 
 @router.get('/categories')
 def list_categories():
-    """Return all categories with prompt counts."""
+    """Return every known category with its prompt count.
+
+    This used to GROUP BY over prompt_library, so it only reported categories
+    that already had prompts. A category with none — including one the user had
+    just created — was invisible, which made a newly added category look like it
+    hadn't saved.
+    """
     con = get_conn()
     try:
-        rows = con.execute(
-            'SELECT category, COUNT(*) as cnt FROM prompt_library GROUP BY category ORDER BY cnt DESC'
-        ).fetchall()
+        counts = {
+            r[0]: r[1]
+            for r in con.execute(
+                'SELECT category, COUNT(*) FROM prompt_library GROUP BY category'
+            ).fetchall()
+        }
+        custom = {
+            r[0]: r[1]
+            for r in con.execute('SELECT id, label FROM prompt_categories').fetchall()
+        }
         total = con.execute('SELECT COUNT(*) FROM prompt_library').fetchone()[0]
     finally:
         con.close()
+
+    known = sorted(set(BUILTIN_CATEGORIES) | set(custom))
+    cats = [
+        {
+            'id': cid,
+            'label': custom.get(cid) or cid,
+            'count': counts.get(cid, 0),
+            'builtin': cid in BUILTIN_CATEGORIES,
+        }
+        for cid in known
+    ]
+    # Categories referenced by prompts but no longer defined (e.g. imported from
+    # elsewhere). Surfaced rather than hidden so they can be cleaned up.
+    orphaned = sorted(set(counts) - set(known))
+    cats.sort(key=lambda c: (-c['count'], c['id']))
     return {
-        'categories': [{'id': r[0], 'count': r[1]} for r in rows],
+        'categories': cats,
+        'orphaned': [{'id': c, 'count': counts[c]} for c in orphaned],
         'total': total,
     }
 
@@ -513,12 +676,12 @@ async def create_prompt(req: Request):
     # An unknown category used to be silently rewritten to 'general', so a typo
     # filed the prompt somewhere the user never chose and never found it again.
     category = (body.get('category') or 'general').strip()[:32]
-    if category not in VALID_CATEGORIES:
+    if category not in valid_categories():
         return JSONResponse(
             {
                 'ok': False,
                 'error': f'Unknown category: {category}',
-                'valid_categories': sorted(VALID_CATEGORIES),
+                'valid_categories': sorted(valid_categories()),
             },
             status_code=400,
         )
@@ -593,7 +756,7 @@ async def import_prompts(req: Request):
                 errors.append({'index': idx, 'error': 'title and content required'})
                 continue
             category = str(entry.get('category') or 'general').strip()[:32]
-            if category not in VALID_CATEGORIES:
+            if category not in valid_categories():
                 category = 'general'
 
             # BUG FIX: the docstring promised "skips duplicates by title", but
@@ -693,12 +856,12 @@ async def update_prompt(prompt_id: str, req: Request):
                     )
             elif k == 'category':
                 v = str(v).strip()[:32]
-                if v not in VALID_CATEGORIES:
+                if v not in valid_categories():
                     return JSONResponse(
                         {
                             'ok': False,
                             'error': f'Unknown category: {v}',
-                            'valid_categories': sorted(VALID_CATEGORIES),
+                            'valid_categories': sorted(valid_categories()),
                         },
                         status_code=400,
                     )
@@ -721,15 +884,31 @@ async def update_prompt(prompt_id: str, req: Request):
 
     con = get_conn()
     try:
+        # Snapshot the CURRENT state before overwriting it. Editing used to be
+        # destructive: the previous wording was simply gone.
+        before = con.execute('SELECT * FROM prompt_library WHERE id=?', (prompt_id,)).fetchone()
+        if not before:
+            return JSONResponse({'ok': False, 'error': 'Prompt not found'}, status_code=404)
+        before = dict(before)
+        content_changed = any(
+            k in body and str(body[k]) != str(before.get(k, ''))
+            for k in ('title', 'content', 'category', 'tags', 'agent_id')
+        )
+        if content_changed:
+            snapshot_version(con, prompt_id, before, reason='edit')
+
         cur = con.execute(f'UPDATE prompt_library SET {", ".join(sets)} WHERE id=?', vals)
         con.commit()
         updated = cur.rowcount > 0
+        version_count = con.execute(
+            'SELECT COUNT(*) FROM prompt_versions WHERE prompt_id=?', (prompt_id,)
+        ).fetchone()[0]
     finally:
         con.close()
 
     if not updated:
         return JSONResponse({'ok': False, 'error': 'Prompt not found'}, status_code=404)
-    return {'ok': True}
+    return {'ok': True, 'versions': version_count}
 
 
 # ── Delete ─────────────────────────────────────────────────────────────────────
@@ -741,6 +920,10 @@ def delete_prompt(prompt_id: str):
     con = get_conn()
     try:
         cur = con.execute('DELETE FROM prompt_library WHERE id=?', (prompt_id,))
+        # No FK cascade on these tables, so orphaned history/usage rows would
+        # accumulate and be re-attached if the same id were ever reissued.
+        con.execute('DELETE FROM prompt_versions WHERE prompt_id=?', (prompt_id,))
+        con.execute('DELETE FROM prompt_usage WHERE prompt_id=?', (prompt_id,))
         con.commit()
         deleted = cur.rowcount > 0
     finally:
@@ -762,8 +945,10 @@ def record_use(prompt_id: str):
         cur = con.execute(
             'UPDATE prompt_library SET use_count=use_count+1, updated_at=CURRENT_TIMESTAMP WHERE id=?', (prompt_id,)
         )
-        con.commit()
         updated = cur.rowcount > 0
+        if updated:
+            log_use(con, prompt_id, surface='direct')
+        con.commit()
     finally:
         con.close()
     if not updated:
@@ -863,6 +1048,14 @@ async def render_saved_prompt(prompt_id: str, req: Request):
                 'UPDATE prompt_library SET use_count=use_count+1, updated_at=CURRENT_TIMESTAMP WHERE id=?',
                 (prompt_id,),
             )
+            log_use(
+                con,
+                prompt_id,
+                surface=str(body.get('surface') or 'render')[:32],
+                rendered_chars=len(rendered),
+                variables_filled=len(values),
+                missing=len(missing),
+            )
             con.commit()
     finally:
         con.close()
@@ -890,3 +1083,222 @@ async def preview_variables(req: Request):
         body = {}
     content = str(body.get('content') or '')
     return {'ok': True, 'variables': extract_variables(content)}
+
+
+# ── Version history ────────────────────────────────────────────────────────────
+
+
+@router.get('/{prompt_id}/versions')
+def list_versions(prompt_id: str, limit: int = 50):
+    """Previous states of a prompt, newest first."""
+    limit = min(max(1, int(limit)), MAX_VERSIONS)
+    con = get_conn()
+    try:
+        if not con.execute('SELECT 1 FROM prompt_library WHERE id=?', (prompt_id,)).fetchone():
+            return JSONResponse({'ok': False, 'error': 'Prompt not found'}, status_code=404)
+        rows = con.execute(
+            'SELECT * FROM prompt_versions WHERE prompt_id=? ORDER BY version_no DESC LIMIT ?',
+            (prompt_id, limit),
+        ).fetchall()
+    finally:
+        con.close()
+    return {'ok': True, 'versions': [dict(r) for r in rows], 'count': len(rows)}
+
+
+@router.post('/{prompt_id}/versions/{version_no}/restore')
+def restore_version(prompt_id: str, version_no: int):
+    """Roll a prompt back to an earlier version.
+
+    The state being replaced is itself snapshotted first, so a restore is
+    undoable — rolling back by mistake shouldn't be the thing that loses work.
+    """
+    con = get_conn()
+    try:
+        current = con.execute('SELECT * FROM prompt_library WHERE id=?', (prompt_id,)).fetchone()
+        if not current:
+            return JSONResponse({'ok': False, 'error': 'Prompt not found'}, status_code=404)
+        target = con.execute(
+            'SELECT * FROM prompt_versions WHERE prompt_id=? AND version_no=?',
+            (prompt_id, version_no),
+        ).fetchone()
+        if not target:
+            return JSONResponse(
+                {'ok': False, 'error': f'Version {version_no} not found'}, status_code=404
+            )
+
+        snapshot_version(con, prompt_id, dict(current), reason=f'pre-restore-v{version_no}')
+        t = dict(target)
+        # A category or agent valid when the snapshot was taken may have been
+        # deleted since. Restore the wording regardless — that's the point —
+        # but don't reintroduce a dangling reference.
+        category = t['category'] if t['category'] in valid_categories() else 'general'
+        agent_id = t['agent_id'] if t['agent_id'] in valid_agent_ids() else ''
+        con.execute(
+            """UPDATE prompt_library
+               SET title=?, content=?, category=?, tags=?, agent_id=?, updated_at=CURRENT_TIMESTAMP
+               WHERE id=?""",
+            (t['title'], t['content'], category, t['tags'], agent_id, prompt_id),
+        )
+        con.commit()
+        audit_log('prompt_restore', f'{prompt_id} → v{version_no}')
+        restored = dict(con.execute('SELECT * FROM prompt_library WHERE id=?', (prompt_id,)).fetchone())
+    finally:
+        con.close()
+    return {
+        'ok': True,
+        'restored_from': version_no,
+        'prompt': _with_vars(restored),
+        'demoted_category': category != t['category'],
+        'dropped_agent': agent_id != t['agent_id'],
+    }
+
+
+# ── Usage analytics ────────────────────────────────────────────────────────────
+
+
+@router.get('/usage/stats')
+def usage_stats(days: int = 30, limit: int = 20):
+    """Which prompts actually get used, and how well they render.
+
+    use_count alone can't distinguish a prompt used 40 times last year from one
+    used 40 times this week, and says nothing about whether its variables were
+    ever filled in properly.
+    """
+    days = min(max(1, int(days)), 365)
+    limit = min(max(1, int(limit)), 100)
+    con = get_conn()
+    try:
+        rows = con.execute(
+            """SELECT u.prompt_id,
+                      p.title,
+                      p.category,
+                      COUNT(*)                        AS uses,
+                      MAX(u.used_at)                  AS last_used,
+                      SUM(u.variables_missing)        AS total_missing,
+                      AVG(u.rendered_chars)           AS avg_chars
+               FROM prompt_usage u
+               LEFT JOIN prompt_library p ON p.id = u.prompt_id
+               WHERE u.used_at >= datetime('now', ?)
+               GROUP BY u.prompt_id
+               ORDER BY uses DESC
+               LIMIT ?""",
+            (f'-{days} days', limit),
+        ).fetchall()
+        total = con.execute(
+            "SELECT COUNT(*) FROM prompt_usage WHERE used_at >= datetime('now', ?)",
+            (f'-{days} days',),
+        ).fetchone()[0]
+        # Prompts saved but never used: the library's dead weight.
+        unused = con.execute(
+            """SELECT COUNT(*) FROM prompt_library
+               WHERE id NOT IN (SELECT DISTINCT prompt_id FROM prompt_usage)"""
+        ).fetchone()[0]
+    finally:
+        con.close()
+    return {
+        'ok': True,
+        'window_days': days,
+        'total_uses': total,
+        'never_used': unused,
+        'top': [
+            {
+                **dict(r),
+                # A prompt whose variables are habitually left unfilled is a
+                # prompt whose design isn't working.
+                'incomplete_renders': int(r['total_missing'] or 0),
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.get('/{prompt_id}/usage')
+def prompt_usage(prompt_id: str, limit: int = 50):
+    """Recent uses of one prompt."""
+    limit = min(max(1, int(limit)), 200)
+    con = get_conn()
+    try:
+        if not con.execute('SELECT 1 FROM prompt_library WHERE id=?', (prompt_id,)).fetchone():
+            return JSONResponse({'ok': False, 'error': 'Prompt not found'}, status_code=404)
+        rows = con.execute(
+            'SELECT * FROM prompt_usage WHERE prompt_id=? ORDER BY used_at DESC LIMIT ?',
+            (prompt_id, limit),
+        ).fetchall()
+    finally:
+        con.close()
+    return {'ok': True, 'uses': [dict(r) for r in rows], 'count': len(rows)}
+
+
+# ── User-defined categories ────────────────────────────────────────────────────
+
+
+@router.post('/categories')
+async def create_category(req: Request):
+    """Add a user-defined category."""
+    try:
+        body = await req.json()
+    except (json.JSONDecodeError, TypeError, ValueError):
+        body = {}
+    raw = str(body.get('id') or body.get('name') or '')
+    cid = normalize_category(raw)
+    if not cid or not _CATEGORY_RE.match(cid):
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': 'Category must start with a letter or digit and use only '
+                'letters, digits, dashes or underscores (max 32 chars).',
+            },
+            status_code=400,
+        )
+    if cid in valid_categories():
+        return JSONResponse(
+            {'ok': False, 'error': f'Category already exists: {cid}'}, status_code=409
+        )
+    label = str(body.get('label') or raw).strip()[:64] or cid
+    con = get_conn()
+    try:
+        con.execute('INSERT INTO prompt_categories(id,label) VALUES(?,?)', (cid, label))
+        con.commit()
+        audit_log('prompt_category_create', cid)
+    finally:
+        con.close()
+    return JSONResponse({'ok': True, 'id': cid, 'label': label}, status_code=201)
+
+
+@router.delete('/categories/{category_id}')
+def delete_category(category_id: str):
+    """Remove a user-defined category.
+
+    Built-ins can't be removed, and a category still in use isn't silently
+    deleted out from under its prompts — that would orphan them into a state
+    the validator rejects.
+    """
+    cid = normalize_category(category_id)
+    if cid in BUILTIN_CATEGORIES:
+        return JSONResponse(
+            {'ok': False, 'error': f'{cid} is a built-in category and cannot be deleted'},
+            status_code=403,
+        )
+    con = get_conn()
+    try:
+        if not con.execute('SELECT 1 FROM prompt_categories WHERE id=?', (cid,)).fetchone():
+            return JSONResponse({'ok': False, 'error': 'Category not found'}, status_code=404)
+        in_use = con.execute(
+            'SELECT COUNT(*) FROM prompt_library WHERE category=?', (cid,)
+        ).fetchone()[0]
+        if in_use:
+            return JSONResponse(
+                {
+                    'ok': False,
+                    'error': f'{in_use} prompt(s) still use this category',
+                    'hint': 'Move them to another category first.',
+                    'in_use': in_use,
+                },
+                status_code=409,
+            )
+        con.execute('DELETE FROM prompt_categories WHERE id=?', (cid,))
+        con.commit()
+        audit_log('prompt_category_delete', cid)
+    finally:
+        con.close()
+    return {'ok': True, 'deleted': cid}

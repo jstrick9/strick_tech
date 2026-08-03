@@ -1,7 +1,7 @@
 {
-  "id": "provenance-test",
-  "name": "Provenance Test",
-  "version": "1.0.0",
+  "id": "pack_01727e",
+  "name": "sdk-get-test",
+  "version": "0.1.0",
   "description": "What your plugin does",
   "author": "Your Name",
   "license": "MIT",
@@ -57,11 +57,11 @@
     "files"
   ],
   "min_version": "6.0.0",
-  "created_at": "2026-08-03T21:42:09Z",
-  "updated_at": "2026-08-03T21:42:09Z",
+  "created_at": "2026-08-03T21:41:42Z",
+  "updated_at": "2026-08-03T21:41:42Z",
   "provenance": {
     "status": "unsigned",
     "source": "local_sdk",
-    "manifest_sha256": "9ac8915a6d6b8a046a7a535ecd77ea8cad551610c95d718d0fe84c782e9399d7"
+    "manifest_sha256": "a0bff4fe14bfb7ed4da2c5f9d88e80ffbad7194dea417a7789f5ca159ead2f14"
   }
 }
