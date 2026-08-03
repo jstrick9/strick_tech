@@ -1,0 +1,18 @@
+{
+  "id": "login-page",
+  "name": "Login & Signup",
+  "category": "saas",
+  "emoji": "🔐",
+  "description": "Auth pages with email/password and OAuth buttons, validation, dark theme",
+  "prompt": "Create a login and signup page with email/password fields, social login buttons, forgot password flow, and form validation.",
+  "tags": [
+    "auth",
+    "login",
+    "signup",
+    "form"
+  ],
+  "preview_color": "#4cc98a",
+  "files": [
+    "index.html"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "weather-app",
+  "name": "Weather App",
+  "category": "apps",
+  "emoji": "🌤️",
+  "description": "Beautiful weather card with animated icons, 5-day forecast, search by city",
+  "prompt": "Build a weather app with current conditions display, 5-day forecast, location search, temperature toggle (C/F), and weather icons.",
+  "tags": [
+    "weather",
+    "api",
+    "animation",
+    "cards"
+  ],
+  "preview_color": "#f0c060",
+  "files": [
+    "index.html"
+  ]
+}

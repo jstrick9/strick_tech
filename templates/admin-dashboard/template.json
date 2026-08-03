@@ -1,0 +1,18 @@
+{
+  "id": "admin-dashboard",
+  "name": "Admin Dashboard",
+  "category": "saas",
+  "emoji": "📊",
+  "description": "Dark sidebar, stat cards, charts (Chart.js), data table, user management",
+  "prompt": "Create an admin dashboard with sidebar navigation, data cards with stats, charts for analytics, a recent activity table, and user management section.",
+  "tags": [
+    "dashboard",
+    "admin",
+    "charts",
+    "table"
+  ],
+  "preview_color": "#9d74f5",
+  "files": [
+    "index.html"
+  ]
+}

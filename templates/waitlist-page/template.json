@@ -1,0 +1,18 @@
+{
+  "id": "waitlist-page",
+  "name": "Waitlist Landing",
+  "category": "marketing",
+  "emoji": "📬",
+  "description": "Email waitlist capture with counter, social proof, and animated gradient background",
+  "prompt": "Build a waitlist landing page with a compelling headline, email signup form, social proof counter, feature preview, and FAQ section.",
+  "tags": [
+    "waitlist",
+    "launch",
+    "email",
+    "marketing"
+  ],
+  "preview_color": "#38c5d8",
+  "files": [
+    "index.html"
+  ]
+}

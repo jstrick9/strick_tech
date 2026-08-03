@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>body{background:#070912;color:#e8f0ff;font-family:Inter,system-ui,sans-serif}</style>
+</head>
+<body class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-56 bg-[#0d1020] border-r border-white/10 flex flex-col p-4 flex-shrink-0">
+  <div class="font-bold text-lg mb-8 flex items-center gap-2"><span>🧠</span> Agentic OS</div>
+  <nav class="space-y-1 flex-1">
+    <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-500/20 text-blue-300 text-sm font-medium">📊 Dashboard</a>
+    <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5 text-sm">👥 Users</a>
+    <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5 text-sm">📦 Projects</a>
+    <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5 text-sm">💰 Revenue</a>
+    <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5 text-sm">⚙️ Settings</a>
+  </nav>
+  <div class="flex items-center gap-2 mt-4 pt-4 border-t border-white/10">
+    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-bold">A</div>
+    <div><div class="text-sm font-medium">Admin</div><div class="text-xs text-gray-500">admin@app.io</div></div>
+  </div>
+</aside>
+<!-- Main -->
+<main class="flex-1 overflow-auto p-6">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-xl font-bold">Dashboard</h1>
+    <button class="bg-blue-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-400 transition">+ New project</button>
+  </div>
+  <!-- Stats -->
+  <div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="bg-[#0d1020] border border-white/10 rounded-xl p-4"><div class="text-xs text-gray-400 mb-1">Total users</div><div class="text-2xl font-bold">12,847</div><div class="text-xs text-green-400 mt-1">↑ 18% this month</div></div>
+    <div class="bg-[#0d1020] border border-white/10 rounded-xl p-4"><div class="text-xs text-gray-400 mb-1">MRR</div><div class="text-2xl font-bold">$48,200</div><div class="text-xs text-green-400 mt-1">↑ 24% this month</div></div>
+    <div class="bg-[#0d1020] border border-white/10 rounded-xl p-4"><div class="text-xs text-gray-400 mb-1">Active projects</div><div class="text-2xl font-bold">3,491</div><div class="text-xs text-blue-400 mt-1">↑ 8% this month</div></div>
+    <div class="bg-[#0d1020] border border-white/10 rounded-xl p-4"><div class="text-xs text-gray-400 mb-1">Churn rate</div><div class="text-2xl font-bold">2.4%</div><div class="text-xs text-red-400 mt-1">↓ 0.3% this month</div></div>
+  </div>
+  <!-- Chart + Table -->
+  <div class="grid grid-cols-3 gap-4">
+    <div class="col-span-2 bg-[#0d1020] border border-white/10 rounded-xl p-4">
+      <div class="text-sm font-semibold mb-4">Revenue over time</div>
+      <canvas id="revenueChart" height="200"></canvas>
+    </div>
+    <div class="bg-[#0d1020] border border-white/10 rounded-xl p-4">
+      <div class="text-sm font-semibold mb-4">Traffic sources</div>
+      <canvas id="sourceChart" height="200"></canvas>
+    </div>
+  </div>
+  <!-- Recent users table -->
+  <div class="bg-[#0d1020] border border-white/10 rounded-xl p-4 mt-4">
+    <div class="flex items-center justify-between mb-4"><div class="text-sm font-semibold">Recent users</div><input placeholder="Search…" class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm outline-none w-48"></div>
+    <table class="w-full text-sm">
+      <thead><tr class="text-xs text-gray-400 border-b border-white/10"><th class="text-left pb-2">Name</th><th class="text-left pb-2">Email</th><th class="text-left pb-2">Plan</th><th class="text-left pb-2">Status</th><th class="text-left pb-2">Joined</th></tr></thead>
+      <tbody class="divide-y divide-white/5" id="usersTable"></tbody>
+    </table>
+  </div>
+</main>
+<script>
+const users=[{n:'Alice Johnson',e:'alice@startup.io',p:'Pro',s:'Active',j:'Jul 1'},{n:'Bob Chen',e:'bob@dev.co',p:'Free',s:'Active',j:'Jun 28'},{n:'Carol Kim',e:'carol@agency.ai',p:'Team',s:'Active',j:'Jun 25'},{n:'David Park',e:'david@solo.dev',p:'Pro',s:'Paused',j:'Jun 20'},{n:'Eva Smith',e:'eva@build.io',p:'Free',s:'Active',j:'Jun 18'}];
+const tb=document.getElementById('usersTable');
+users.forEach(u=>{const tr=document.createElement('tr');tr.innerHTML=`<td class="py-2.5 font-medium">${u.n}</td><td class="py-2.5 text-gray-400">${u.e}</td><td class="py-2.5"><span class="bg-blue-500/20 text-blue-300 text-xs px-2 py-0.5 rounded">${u.p}</span></td><td class="py-2.5"><span class="text-${u.s==='Active'?'green':'yellow'}-400 text-xs">● ${u.s}</span></td><td class="py-2.5 text-gray-500">${u.j}</td>`;tb.appendChild(tr);});
+const m=['Jan','Feb','Mar','Apr','May','Jun','Jul'];
+new Chart(document.getElementById('revenueChart'),{type:'line',data:{labels:m,datasets:[{label:'Revenue',data:[18000,22000,19500,28000,35000,42000,48200],borderColor:'#5b8af8',backgroundColor:'rgba(91,138,248,0.1)',fill:true,tension:0.4}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#6b7a99'}},y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#6b7a99',callback:v=>'$'+v.toLocaleString()}}}}});
+new Chart(document.getElementById('sourceChart'),{type:'doughnut',data:{labels:['Organic','Paid','Referral','Direct'],datasets:[{data:[45,25,20,10],backgroundColor:['#5b8af8','#9d74f5','#4cc98a','#f0c060'],borderWidth:0}]},options:{plugins:{legend:{position:'bottom',labels:{color:'#9aa7c7',padding:10,font:{size:11}}}}}});
+</script>
+</body></html>

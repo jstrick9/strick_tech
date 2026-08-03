@@ -1,0 +1,18 @@
+{
+  "id": "invoice-generator",
+  "name": "Invoice Generator",
+  "category": "saas",
+  "emoji": "🧾",
+  "description": "Professional invoice builder with line items, taxes, print/PDF export",
+  "prompt": "Create an invoice generator with company details, line items table, tax/discount calculations, PDF preview, and the ability to add/remove items.",
+  "tags": [
+    "invoice",
+    "billing",
+    "pdf",
+    "business"
+  ],
+  "preview_color": "#4cc98a",
+  "files": [
+    "index.html"
+  ]
+}

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notes</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+<style>
+body{background:#08090e;color:#e8f0ff;font-family:Inter,system-ui,sans-serif}
+textarea{resize:none;outline:none}
+input{outline:none}
+.note-item.active{background:rgba(240,192,96,0.12);border-color:rgba(240,192,96,0.3)}
+#preview h1,#preview h2,#preview h3{font-weight:800;margin:12px 0 6px}
+#preview code{background:#1a2040;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:13px}
+#preview pre{background:#1a2040;padding:12px;border-radius:8px;overflow-x:auto;margin:8px 0}
+#preview p{margin-bottom:8px;line-height:1.65;color:#c8d5f0}
+#preview ul,#preview ol{padding-left:20px;margin-bottom:8px;color:#c8d5f0}
+#preview strong{color:#fff}
+</style>
+</head>
+<body class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-60 bg-[#0d1020] border-r border-white/10 flex flex-col">
+  <div class="p-4 border-b border-white/10">
+    <div class="flex items-center justify-between mb-3"><span class="font-bold">📝 Notes</span><button onclick="newNote()" class="text-yellow-400 text-xl hover:scale-110 transition">+</button></div>
+    <input id="search" placeholder="Search…" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500" oninput="renderList()">
+  </div>
+  <div class="flex-1 overflow-y-auto p-2" id="noteList"></div>
+</aside>
+<!-- Editor + Preview -->
+<main class="flex-1 flex flex-col">
+  <div class="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#0a0b12]">
+    <input id="noteTitle" placeholder="Note title…" class="flex-1 font-bold text-lg bg-transparent text-white placeholder-gray-600 mr-4">
+    <div class="flex gap-2">
+      <button id="editBtn" onclick="setMode('edit')" class="text-xs px-3 py-1 rounded-lg bg-yellow-500/20 text-yellow-300">Edit</button>
+      <button id="previewBtn" onclick="setMode('preview')" class="text-xs px-3 py-1 rounded-lg text-gray-500 hover:bg-white/5">Preview</button>
+      <button onclick="deleteNote()" class="text-xs px-3 py-1 rounded-lg text-red-400 hover:bg-red-500/10">Delete</button>
+    </div>
+  </div>
+  <div class="flex-1 relative">
+    <textarea id="editor" class="absolute inset-0 w-full h-full bg-transparent text-gray-200 font-mono text-sm p-4 leading-relaxed" placeholder="Start writing in Markdown…" oninput="autoSave()"></textarea>
+    <div id="preview" class="absolute inset-0 overflow-auto p-4 text-sm hidden"></div>
+  </div>
+  <div class="px-4 py-2 border-t border-white/10 text-xs text-gray-600 flex items-center gap-4">
+    <span id="wordCount">0 words</span>
+    <span id="saveStatus">Saved</span>
+  </div>
+</main>
+<script>
+let notes=JSON.parse(localStorage.getItem('agentic-notes')||'[]');
+let currentId=null;
+if(!notes.length){notes=[{id:1,title:'Welcome to Notes',body:'# Welcome!
+
+This is a **Markdown** notes app.
+
+- Auto-saves to localStorage
+- Markdown preview mode
+- Search across all notes
+
+```js
+console.log("Hello, Agentic OS!");
+```',updated:Date.now()}];}
+function save(){localStorage.setItem('agentic-notes',JSON.stringify(notes));}
+function renderList(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const list=document.getElementById('noteList');
+  const filtered=notes.filter(n=>!q||n.title.toLowerCase().includes(q)||n.body.toLowerCase().includes(q))
+    .sort((a,b)=>b.updated-a.updated);
+  list.innerHTML=filtered.map(n=>`<div class="note-item border border-transparent rounded-xl p-3 cursor-pointer mb-1 ${n.id===currentId?'active':''}" onclick="openNote(${n.id})"><div class="font-semibold text-sm mb-0.5 truncate">${n.title||'Untitled'}</div><div class="text-xs text-gray-500 truncate">${n.body.slice(0,60)}</div></div>`).join('');
+}
+function openNote(id){
+  const n=notes.find(x=>x.id===id);if(!n)return;
+  currentId=id;
+  document.getElementById('noteTitle').value=n.title;
+  document.getElementById('editor').value=n.body;
+  updateWordCount();renderList();setMode('edit');
+}
+function newNote(){
+  const n={id:Date.now(),title:'New note',body:'',updated:Date.now()};
+  notes.unshift(n);save();openNote(n.id);
+}
+function deleteNote(){
+  if(!currentId)return;
+  notes=notes.filter(n=>n.id!==currentId);
+  currentId=null;document.getElementById('noteTitle').value='';document.getElementById('editor').value='';
+  save();renderList();
+}
+let saveTimer;
+function autoSave(){
+  if(!currentId)return;
+  const n=notes.find(x=>x.id===currentId);
+  if(!n)return;
+  n.title=document.getElementById('noteTitle').value||'Untitled';
+  n.body=document.getElementById('editor').value;
+  n.updated=Date.now();
+  updateWordCount();
+  document.getElementById('saveStatus').textContent='Saving…';
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{save();document.getElementById('saveStatus').textContent='Saved';renderList();},600);
+}
+document.getElementById('noteTitle').addEventListener('input',autoSave);
+function updateWordCount(){
+  const words=document.getElementById('editor').value.trim().split(/\s+/).filter(Boolean).length;
+  document.getElementById('wordCount').textContent=words+' word'+(words!==1?'s':'');
+}
+function setMode(m){
+  const ed=document.getElementById('editor'),pr=document.getElementById('preview');
+  if(m==='preview'){ed.classList.add('hidden');pr.classList.remove('hidden');pr.innerHTML=marked.parse(ed.value||'');}
+  else{ed.classList.remove('hidden');pr.classList.add('hidden');}
+  document.getElementById('editBtn').className='text-xs px-3 py-1 rounded-lg '+(m==='edit'?'bg-yellow-500/20 text-yellow-300':'text-gray-500 hover:bg-white/5');
+  document.getElementById('previewBtn').className='text-xs px-3 py-1 rounded-lg '+(m==='preview'?'bg-yellow-500/20 text-yellow-300':'text-gray-500 hover:bg-white/5');
+}
+if(notes.length)openNote(notes[0].id);
+renderList();
+</script>
+</body></html>

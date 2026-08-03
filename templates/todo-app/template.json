@@ -1,0 +1,18 @@
+{
+  "id": "todo-app",
+  "name": "Todo App",
+  "category": "apps",
+  "emoji": "✅",
+  "description": "Drag-drop kanban todo with priorities, due dates, local storage persistence",
+  "prompt": "Build a Kanban-style todo app with columns for To Do, In Progress, and Done. Support drag-and-drop between columns, adding new tasks, and marking tasks complete.",
+  "tags": [
+    "todo",
+    "productivity",
+    "kanban",
+    "dark"
+  ],
+  "preview_color": "#4cc98a",
+  "files": [
+    "index.html"
+  ]
+}

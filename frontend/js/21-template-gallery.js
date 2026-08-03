@@ -72,7 +72,35 @@
       var custom = getCustomTemplates();
       custom.forEach(function(t) { t._custom = true; });
 
-      allTemplates = builtIn.concat(custom);
+      // MISSING FEATURE: snapshots created by "Save Current Work" were written
+      // to preview/templates/ but were write-only — nothing listed them, so the
+      // only way back to your own saved design was to guess its slugged URL.
+      // They now appear in the gallery as a "saved" category with restore and
+      // delete actions.
+      var saved = [];
+      try {
+        var sr = await fetch('/api/templates/saved');
+        if (sr.ok) {
+          var sd = await sr.json();
+          saved = (sd.saved || []).map(function(s) {
+            return {
+              id: 'saved:' + s.filename,
+              name: s.name,
+              category: 'saved',
+              emoji: '💾',
+              description: 'Your saved snapshot — ' + Math.max(1, Math.round(s.bytes / 1024)) + ' KB, ' +
+                           new Date(s.saved_at).toLocaleString(),
+              tags: ['saved'],
+              file_count: 1,
+              _saved: true,
+              _filename: s.filename,
+              _url: s.url
+            };
+          });
+        }
+      } catch (e) { /* saved snapshots are optional — never block the gallery */ }
+
+      allTemplates = builtIn.concat(custom).concat(saved);
 
       // Category pills
       var cats = {};
@@ -215,6 +243,38 @@
     var actions = document.createElement('div');
     actions.style.cssText = 'display:flex;gap:6px';
 
+    // Saved snapshots get their own actions: restore into Studio, or delete.
+    // They are your own files, not a starter, so "Chat"/"Scaffold" don't apply.
+    if (t._saved) {
+      var restoreBtn = document.createElement('button');
+      restoreBtn.className = 'btn btn-primary btn-sm';
+      restoreBtn.style.cssText = 'flex:1;font-size:11px';
+      restoreBtn.textContent = '↩ Restore';
+      restoreBtn.title = 'Load this snapshot back into Studio';
+      restoreBtn.addEventListener('click', function() { restoreSavedTemplate(t._filename, t.name); });
+      actions.appendChild(restoreBtn);
+
+      var openBtn = document.createElement('button');
+      openBtn.className = 'btn btn-ghost btn-sm';
+      openBtn.style.cssText = 'font-size:11px;padding:4px 8px';
+      openBtn.textContent = '👁';
+      openBtn.title = 'Open snapshot in a new tab';
+      openBtn.addEventListener('click', function() { window.open(t._url, '_blank', 'noopener'); });
+      actions.appendChild(openBtn);
+
+      var delSavedBtn = document.createElement('button');
+      delSavedBtn.className = 'btn btn-ghost btn-sm';
+      delSavedBtn.style.cssText = 'font-size:11px;padding:4px 8px;color:var(--danger)';
+      delSavedBtn.textContent = '🗑';
+      delSavedBtn.title = 'Delete this snapshot';
+      delSavedBtn.addEventListener('click', function() { deleteSavedTemplate(t._filename, t.name); });
+      actions.appendChild(delSavedBtn);
+
+      body.appendChild(actions);
+      card.appendChild(body);
+      return card;
+    }
+
     // Insert into Chat
     var chatBtn = document.createElement('button');
     chatBtn.className = 'btn btn-ghost btn-sm';
@@ -290,9 +350,51 @@
         toast('❌ Could not save: ' + ((j && j.error) || 'HTTP ' + r.status), 'err', 3500);
         return;
       }
-      toast('💾 Saved as "' + j.name + '" → ' + j.saved_to, 'ok', 4000);
+      toast('💾 Saved as "' + j.name + '"', 'ok', 3000);
+      // Re-render so the new snapshot appears in the gallery immediately.
+      renderTemplates();
     } catch (ex) {
       toast('❌ Save failed: ' + ex.message, 'err', 3000);
+    }
+  }
+
+  // ── Saved snapshot actions ─────────────────────────────────────
+  async function restoreSavedTemplate(filename, displayName) {
+    var ok = await gmConfirm('Restore saved snapshot?',
+      'This replaces <strong>preview/index.html</strong> with “' + escHtml(displayName) + '”.<br><br>' +
+      'Your current file is backed up to Studio\u2019s version history first, so this can be undone.');
+    if (!ok) return;
+    try {
+      var r = await fetch('/api/templates/saved/' + encodeURIComponent(filename) + '/restore', { method: 'POST' });
+      var j = await r.json().catch(function() { return null; });
+      if (!r.ok || !j || !j.ok) {
+        toast('❌ Restore failed: ' + ((j && j.error) || 'HTTP ' + r.status), 'err', 3500);
+        return;
+      }
+      toast('↩ Restored “' + displayName + '” — opening Studio…', 'ok', 3000);
+      if (typeof studioLoadFileTree === 'function') studioLoadFileTree();
+      if (typeof studioReloadPreview === 'function') studioReloadPreview();
+      setTimeout(function() { if (typeof nav === 'function') nav('studio'); }, 600);
+    } catch (ex) {
+      toast('❌ Restore error: ' + ex.message, 'err', 3000);
+    }
+  }
+
+  async function deleteSavedTemplate(filename, displayName) {
+    var ok = await gmConfirm('Delete saved snapshot?',
+      'Permanently delete “' + escHtml(displayName) + '”? This cannot be undone.');
+    if (!ok) return;
+    try {
+      var r = await fetch('/api/templates/saved/' + encodeURIComponent(filename), { method: 'DELETE' });
+      var j = await r.json().catch(function() { return null; });
+      if (!r.ok || !j || !j.ok) {
+        toast('❌ Delete failed: ' + ((j && j.error) || 'HTTP ' + r.status), 'err', 3500);
+        return;
+      }
+      toast('🗑 Deleted “' + displayName + '”', 'ok', 2000);
+      renderTemplates();
+    } catch (ex) {
+      toast('❌ Delete error: ' + ex.message, 'err', 3000);
     }
   }
 
@@ -403,13 +505,18 @@
       if (!r.ok) { toast('❌ Preview failed: HTTP ' + r.status, 'err', 2000); return; }
       var j = await r.json();
       if (!j.ok) { toast('❌ Preview failed: ' + (j.error || 'Unknown'), 'err', 2000); return; }
-      showTemplatePreviewModal(j.template || templateId, j.content || '', templateId);
+      showTemplatePreviewModal(j.template || templateId, j.content || '', templateId, j);
     } catch(ex) {
       toast('❌ Preview error: ' + ex.message, 'err', 2000);
     }
   }
 
-  function showTemplatePreviewModal(name, html, templateId) {
+  function showTemplatePreviewModal(name, html, templateId, meta) {
+    // Backend/multi-file templates ship no HTML, so there is nothing to render
+    // in an iframe. The endpoint flags those with renderable:false and returns
+    // the primary source file instead — show it as code rather than failing.
+    meta = meta || {};
+    var renderable = meta.renderable !== false;
     var existing = document.getElementById('tmpl-preview-modal');
     if (existing) existing.remove();
     var overlay = document.createElement('div');
@@ -418,7 +525,10 @@
     overlay.innerHTML =
       '<div style="background:var(--bg-1);border:1px solid var(--border);border-radius:16px;width:100%;max-width:1000px;height:85vh;display:flex;flex-direction:column;overflow:hidden">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0">' +
-          '<span style="font-weight:800;font-size:14px">👁 ' + escHtml(name) + ' — read-only preview (nothing written to disk)</span>' +
+          '<span style="font-weight:800;font-size:14px">👁 ' + escHtml(name) +
+            (renderable ? ' — read-only preview (nothing written to disk)'
+                        : ' — ' + escHtml(meta.filename || 'source') +
+                          (meta.file_count ? ' (' + meta.file_count + ' files)' : '')) + '</span>' +
           '<div style="display:flex;gap:8px">' +
             '<button class="btn btn-primary btn-sm" id="tmpl-preview-scaffold-btn">⚡ Scaffold into Studio</button>' +
             '<button class="btn btn-ghost btn-sm" id="tmpl-preview-close-btn">✕ Close</button>' +
@@ -430,11 +540,19 @@
         // origin and any localStorage access throws a SecurityError,
         // breaking the very features being previewed. Matches the sandbox
         // flags already used by Studio's own preview iframes in index.html.
-        '<iframe id="tmpl-preview-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" style="flex:1;border:none;background:#fff"></iframe>' +
+        (renderable
+          ? '<iframe id="tmpl-preview-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" style="flex:1;border:none;background:#fff"></iframe>'
+          : '<pre id="tmpl-preview-code" style="flex:1;margin:0;overflow:auto;padding:16px;background:var(--bg-0);color:var(--text-1);font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6;white-space:pre-wrap"></pre>') +
       '</div>';
     document.body.appendChild(overlay);
-    var frame = document.getElementById('tmpl-preview-iframe');
-    if (frame) frame.srcdoc = html;
+    if (renderable) {
+      var frame = document.getElementById('tmpl-preview-iframe');
+      if (frame) frame.srcdoc = html;
+    } else {
+      var codeEl = document.getElementById('tmpl-preview-code');
+      // textContent, never innerHTML — template source must never execute here.
+      if (codeEl) codeEl.textContent = html;
+    }
     document.getElementById('tmpl-preview-close-btn').onclick = function() { overlay.remove(); };
     document.getElementById('tmpl-preview-scaffold-btn').onclick = function() {
       overlay.remove();
@@ -520,6 +638,8 @@
   window.tmplChangeSort = tmplChangeSort;
   window.scaffoldTemplate = scaffoldTemplate;
   window.saveWorkAsTemplate = saveWorkAsTemplate;
+  window.restoreSavedTemplate = restoreSavedTemplate;
+  window.deleteSavedTemplate = deleteSavedTemplate;
   window.previewTemplate = previewTemplate;
 
   // Add to command palette

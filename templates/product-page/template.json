@@ -1,0 +1,18 @@
+{
+  "id": "product-page",
+  "name": "Product Page",
+  "category": "ecommerce",
+  "emoji": "🛒",
+  "description": "E-commerce product page with image gallery, variants, add to cart, reviews",
+  "prompt": "Build an e-commerce product page with image gallery, product details, size/color selectors, add to cart button, reviews section, and related products.",
+  "tags": [
+    "ecommerce",
+    "product",
+    "shop",
+    "cart"
+  ],
+  "preview_color": "#f06080",
+  "files": [
+    "index.html"
+  ]
+}

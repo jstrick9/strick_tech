@@ -1,0 +1,18 @@
+{
+  "id": "notes-app",
+  "name": "Notes App",
+  "category": "apps",
+  "emoji": "📝",
+  "description": "Markdown notes with sidebar, search, auto-save to localStorage",
+  "prompt": "Create a notes app with a sidebar listing notes, a rich text editor, search functionality, and the ability to create, edit, and delete notes.",
+  "tags": [
+    "notes",
+    "markdown",
+    "editor",
+    "productivity"
+  ],
+  "preview_color": "#f0c060",
+  "files": [
+    "index.html"
+  ]
+}
