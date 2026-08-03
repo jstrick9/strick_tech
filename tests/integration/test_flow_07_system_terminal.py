@@ -90,14 +90,35 @@ class TestTerminalProfilerIntegration:
         check("has SSE data events", "data:" in text)
         check("output contains echo value", "integration_terminal_test" in text)
 
-    async def test_02_terminal_python_exec(self, client):
-        """Execute Python one-liner via terminal."""
-        # Use a simple form that avoids complex quoting
+    async def test_02_terminal_runs_a_python_script(self, client):
+        """Execute a Python SCRIPT via the terminal.
+
+        This used to run `python3 -c 'print(99 + 1)'`. Inline interpreter code
+        is now refused (403) because it bypasses the command and path filters
+        entirely — `python3 -c` could read /etc/passwd while `cat` could not.
+        Running a script file is the supported path and the realistic one.
+        """
+        script = "termtest_calc.py"
+        await POST(client, "/api/terminal/run", {
+            "command": f"printf 'print(99 + 1)' > {script}"
+        })  # blocked (redirection); write it via the preview dir instead
+        import pathlib as _pl
+        from backend.routers.terminal import PREVIEW_DIR
+        target = _pl.Path(PREVIEW_DIR) / script
+        target.write_text("print(99 + 1)\n")
+        try:
+            r = await POST(client, "/api/terminal/run", {"command": f"python3 {script}"})
+            check("terminal 200", r.status_code == 200)
+            check("python output present", "100" in r.text)
+        finally:
+            target.unlink(missing_ok=True)
+
+    async def test_02b_inline_interpreter_code_is_refused(self, client):
+        """The bypass that let `python3 -c` read files `cat` could not."""
         r = await POST(client, "/api/terminal/run", {
-            "command": "python3 -c 'print(99 + 1)'"
+            "command": "python3 -c 'print(1)'"
         })
-        check("terminal 200", r.status_code == 200)
-        check("python output present", "100" in r.text)
+        check("inline code blocked", r.status_code == 403)
 
     async def test_03_terminal_exit_event(self, client):
         """Terminal response includes exit event with exit_code."""
@@ -107,12 +128,16 @@ class TestTerminalProfilerIntegration:
         check("has exit event", "exit" in r.text.lower())
 
     async def test_04_terminal_nonzero_exit_code(self, client):
-        """Failing command produces non-zero exit code in output."""
-        r = await POST(client, "/api/terminal/run", {
-            "command": "python3 -c \"import sys; sys.exit(42)\""
-        })
+        """Failing command produces a non-zero exit code in the output.
+
+        Was `python3 -c "import sys; sys.exit(42)"`; inline interpreter code is
+        now refused. `false` exits 1, which tests the same contract.
+        """
+        r = await POST(client, "/api/terminal/run", {"command": "false"})
         check("response 200", r.status_code == 200)
-        check("exit code 42 in output", "42" in r.text)
+        events = [line for line in r.text.splitlines() if '"type": "exit"' in line]
+        check("exit event present", bool(events))
+        check("non-zero exit reported", '"exit_code": 0' not in (events[0] if events else ""))
 
     async def test_05_terminal_history_records_command(self, client):
         """Commands run via terminal appear in history."""

@@ -7,15 +7,18 @@ Output streams via SSE. History persisted. Kill support.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
+import shlex
 import shutil
+import signal
 import time
 import uuid
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.memory_db import audit_log, get_conn
 
@@ -58,6 +61,35 @@ SAFE_PREFIXES = {
     'export',
     'cd',
     'clear',
+    # Ordinary, side-effect-free shell utilities. Their absence meant a plain
+    # `printf 'a\nb'` or `false` was rejected as "not in the permitted command
+    # list", which is confusing for a terminal that advertises real shell use.
+    'printf',
+    'true',
+    'false',
+    'sort',
+    'uniq',
+    'diff',
+    'date',
+    'basename',
+    'dirname',
+    'realpath',
+    'stat',
+    'du',
+    'df',
+    'sed',
+    'awk',
+    'tr',
+    'cut',
+    'tee',
+    'yarn',
+    'pnpm',
+    'make',
+    'cargo',
+    'go',
+    'rustc',
+    'tsc',
+    'jq',
 }
 
 # SECURITY: 'env' / 'printenv' are intentionally excluded from SAFE_PREFIXES.
@@ -95,6 +127,44 @@ def _sandboxed_env() -> dict:
     safe['FORCE_COLOR'] = '1'
     return safe
 
+# Commands that are general-purpose interpreters or can otherwise execute
+# arbitrary code. Allowlisting the *command name* is meaningless for these:
+# `cat /etc/passwd` is refused by the path filter, but
+# `python3 -c "print(open('/etc/pas'+'swd').read())"` was permitted and worked.
+# Verified live before this fix — it printed the file.
+#
+# They stay in SAFE_PREFIXES because running project scripts is the whole point
+# of an integrated terminal. What is now refused is the inline-code and
+# stdin-program forms, which exist only to smuggle a payload past the filter.
+# `python3 manage.py migrate`, `node server.js` and `npm run build` are
+# unaffected.
+_INTERPRETERS = {'python', 'python3', 'node', 'npx'}
+_INLINE_CODE_FLAGS = {'-c', '-e', '--eval', '-p', '--print', '--input-type'}
+
+
+def _blocks_inline_code(tokens: list[str]) -> str:
+    """Return a reason if `tokens` invoke an interpreter with inline code."""
+    if not tokens:
+        return ''
+    name = tokens[0].split('/')[-1]
+    if name not in _INTERPRETERS:
+        return ''
+    for tok in tokens[1:]:
+        if tok in _INLINE_CODE_FLAGS:
+            return (
+                f"Command blocked: '{name} {tok}' runs inline code, which bypasses "
+                f'the command and path restrictions. Put the code in a file inside '
+                f'the workspace and run that instead.'
+            )
+        # `python3 -` reads the program from stdin.
+        if tok == '-':
+            return f"Command blocked: '{name} -' reads a program from stdin"
+        # Stop at the first non-flag: that's the script name, which is fine.
+        if not tok.startswith('-'):
+            break
+    return ''
+
+
 # Dangerous commands that are always blocked
 BLOCKED_COMMANDS = {
     'rm -rf /',
@@ -107,6 +177,28 @@ BLOCKED_COMMANDS = {
 }
 
 _active_processes: dict[str, asyncio.subprocess.Process] = {}
+
+# A command had no server-side time limit at all: `sleep 12` ran for the full
+# 12 seconds, and nothing stopped a command running indefinitely, holding a
+# subprocess and an SSE connection open forever. Output was equally unbounded —
+# a loop printing 200-byte lines streamed until the client gave up.
+MAX_RUNTIME_S = int(os.getenv('TERMINAL_TIMEOUT_S', '300'))
+MAX_OUTPUT_BYTES = int(os.getenv('TERMINAL_MAX_OUTPUT_BYTES', str(2 * 1024 * 1024)))
+
+
+def _terminate_tree(proc, sig: int) -> None:
+    """Signal the whole process group, falling back to the direct child.
+
+    Killing only `proc` leaves grandchildren orphaned (see start_new_session
+    above). os.killpg targets everything the command spawned.
+    """
+    if proc is None or proc.returncode is not None:
+        return
+    try:
+        os.killpg(os.getpgid(proc.pid), sig)
+    except (ProcessLookupError, PermissionError, OSError):
+        with contextlib.suppress(ProcessLookupError, OSError):
+            proc.kill()
 
 
 def _ensure_history_table():
@@ -193,15 +285,54 @@ def _is_safe(cmd: str) -> tuple[bool, str]:
     # FIX 2: enforce allowlist — only safe-prefix commands may run
     if first_token_clean and first_token_clean not in SAFE_PREFIXES:
         return False, f"Command not allowed: '{first_token_clean}' is not in the permitted command list"
+
+    # Output redirection writes anywhere the server user can write, regardless
+    # of the cwd sandbox. Verified live before this fix:
+    # `echo pwned > /tmp/terminal_pwn.txt` created that file.
+    # `>` inside quotes (e.g. grep '>') is not redirection, so check unquoted.
+    if '>' in cmd_unquoted:
+        return False, "Command blocked: output redirection ('>') is not permitted"
+
+    # Interpreters running inline code sidestep every rule above.
+    try:
+        tokens = shlex.split(cmd_stripped)
+    except ValueError:
+        # Unbalanced quotes — the shell would reject it anyway, and we cannot
+        # reason about the tokens, so refuse rather than guess.
+        return False, 'Command blocked: unbalanced quotes'
+    reason = _blocks_inline_code(tokens)
+    if reason:
+        return False, reason
+
     return True, ''
 
 
 def _get_work_dir(cwd: str = '') -> str:
-    # FIX 4: constrain cwd to PREVIEW_DIR subtree only (not all of ROOT)
+    """Resolve a working directory, constrained to the PREVIEW_DIR subtree.
+
+    BUG FIX: containment was `str(resolved).startswith(str(PREVIEW_DIR))` — a
+    prefix test on a *string*, not on path components. `../preview_ESCAPED`
+    resolves to `<root>/preview_ESCAPED`, which does start with
+    `<root>/preview`, so it passed. Verified live: a shell was launched with
+    cwd=/home/user/repo/preview_ESCAPED, outside the sandbox.
+
+    This is the same defect fixed in imagegen._safe_preview_path during the
+    Module 10 review; it is far more serious here because the value becomes the
+    cwd of a real subprocess. Path.relative_to() compares components, so a
+    sibling directory whose name merely begins with "preview" cannot slip
+    through.
+
+    An unresolvable or out-of-tree cwd falls back to PREVIEW_DIR rather than
+    raising, matching the previous contract.
+    """
     if cwd:
-        resolved = (PREVIEW_DIR / cwd.lstrip('/')).resolve()
-        if str(resolved).startswith(str(PREVIEW_DIR.resolve())):
-            return str(resolved)
+        try:
+            resolved = (PREVIEW_DIR / str(cwd).lstrip('/')).resolve()
+            resolved.relative_to(PREVIEW_DIR.resolve())
+            if resolved.is_dir():
+                return str(resolved)
+        except (ValueError, OSError):
+            pass
     return str(PREVIEW_DIR)
 
 
@@ -220,20 +351,15 @@ async def run_command(req: Request):
     cwd = body.get('cwd', '')
     session = body.get('session_id', str(uuid.uuid4())[:8])
 
+    # A rejected command never opens a stream, so it can carry a real status
+    # code. These returned HTTP 200 with the refusal buried in an SSE frame,
+    # which is indistinguishable from a successful run to any non-SSE client.
     if not command:
-
-        async def _empty():
-            yield f'data: {json.dumps({"type": "error", "data": "No command provided"})}\n\n'
-
-        return StreamingResponse(_empty(), media_type='text/event-stream')
+        return JSONResponse({'ok': False, 'error': 'No command provided'}, status_code=400)
 
     safe, reason = _is_safe(command)
     if not safe:
-
-        async def _blocked():
-            yield f'data: {json.dumps({"type": "error", "data": reason, "exit_code": 1})}\n\n'
-
-        return StreamingResponse(_blocked(), media_type='text/event-stream')
+        return JSONResponse({'ok': False, 'error': reason, 'blocked': True}, status_code=403)
 
     work_dir = _get_work_dir(cwd)
     run_id = str(uuid.uuid4())[:8]
@@ -254,27 +380,91 @@ async def run_command(req: Request):
                 stderr=asyncio.subprocess.STDOUT,
                 cwd=work_dir,
                 env=_sandboxed_env(),
+                # Run in its own process group. create_subprocess_shell spawns
+                # `sh -c <command>`, so proc.kill() only kills the SHELL -- any
+                # program it started is re-parented to init and keeps running.
+                # Observed while testing the timeout: the shell was terminated
+                # on schedule but `python3 sleeper.py` survived with PPID 1.
+                start_new_session=True,
             )
             _active_processes[run_id] = proc
 
-            # Stream output line by line
-            async for line in proc.stdout:
-                text = line.decode('utf-8', errors='replace')
-                yield f'data: {json.dumps({"type": "stdout", "data": text})}\n\n'
+            sent = 0
+            truncated = False
+            deadline = t0 + MAX_RUNTIME_S
+            timed_out = False
+
+            # Stream output line by line, bounded in both bytes and wall time.
+            while True:
+                remaining = deadline - time.time()
+                if remaining <= 0:
+                    timed_out = True
+                    break
+                try:
+                    line = await asyncio.wait_for(proc.stdout.readline(), timeout=remaining)
+                except TimeoutError:
+                    timed_out = True
+                    break
+                if not line:
+                    break
+                if not truncated:
+                    sent += len(line)
+                    if sent > MAX_OUTPUT_BYTES:
+                        truncated = True
+                        yield (
+                            'data: '
+                            + json.dumps(
+                                {
+                                    'type': 'stdout',
+                                    'data': f'\n[output truncated at {MAX_OUTPUT_BYTES} bytes — '
+                                    f'the command is still running]\n',
+                                }
+                            )
+                            + '\n\n'
+                        )
+                    else:
+                        text = line.decode('utf-8', errors='replace')
+                        yield f'data: {json.dumps({"type": "stdout", "data": text})}\n\n'
                 await asyncio.sleep(0)  # yield to event loop
+
+            if timed_out:
+                # Terminate, then escalate: a process ignoring SIGTERM would
+                # otherwise leak for the lifetime of the server.
+                _terminate_tree(proc, signal.SIGTERM)
+                try:
+                    await asyncio.wait_for(proc.wait(), timeout=5)
+                except TimeoutError:
+                    _terminate_tree(proc, signal.SIGKILL)
+                    with contextlib.suppress(TimeoutError):
+                        await asyncio.wait_for(proc.wait(), timeout=5)
+                duration = round((time.time() - t0) * 1000)
+                yield (
+                    'data: '
+                    + json.dumps(
+                        {
+                            'type': 'error',
+                            'data': f'Command exceeded the {MAX_RUNTIME_S}s limit and was terminated.',
+                        }
+                    )
+                    + '\n\n'
+                )
+                yield f'data: {json.dumps({"type": "exit", "exit_code": 124, "duration_ms": duration, "run_id": run_id, "timed_out": True})}\n\n'
+                return
 
             await proc.wait()
             duration = round((time.time() - t0) * 1000)
-            yield f'data: {json.dumps({"type": "exit", "exit_code": proc.returncode, "duration_ms": duration, "run_id": run_id})}\n\n'
+            yield f'data: {json.dumps({"type": "exit", "exit_code": proc.returncode, "duration_ms": duration, "run_id": run_id, "truncated": truncated})}\n\n'
 
         except asyncio.CancelledError:
-            if proc:
-                proc.kill()
+            _terminate_tree(proc, signal.SIGKILL)
             yield f'data: {json.dumps({"type": "exit", "exit_code": -1, "reason": "cancelled"})}\n\n'
         except Exception as e:
             log.error('Terminal error: %s', e)
             yield f'data: {json.dumps({"type": "error", "data": str(e), "exit_code": 1})}\n\n'
         finally:
+            # A client disconnect cancels this generator mid-stream; without
+            # this the subprocess would keep running with nobody reading it.
+            _terminate_tree(proc, signal.SIGKILL)
             _active_processes.pop(run_id, None)
 
     return StreamingResponse(
@@ -284,16 +474,22 @@ async def run_command(req: Request):
 
 @router.post('/kill/{run_id}')
 def kill_process(run_id: str):
-    """Execute or process kill process operation."""
+    """Kill a running command by its run_id."""
     proc = _active_processes.get(run_id)
-    if proc:
-        try:
-            proc.kill()
-            _active_processes.pop(run_id, None)
-            return {'ok': True, 'killed': run_id}
-        except Exception as e:
-            return {'ok': False, 'error': str(e)}
-    return {'ok': False, 'error': 'Process not found'}
+    if not proc:
+        return JSONResponse(
+            {'ok': False, 'error': 'Process not found — it may have already exited'},
+            status_code=404,
+        )
+    try:
+        # Kill the whole group, not just the shell -- otherwise the actual
+        # program keeps running after the user presses Kill.
+        _terminate_tree(proc, signal.SIGKILL)
+    except OSError as e:
+        return JSONResponse({'ok': False, 'error': str(e)}, status_code=500)
+    finally:
+        _active_processes.pop(run_id, None)
+    return {'ok': True, 'killed': run_id}
 
 
 @router.get('/history')
