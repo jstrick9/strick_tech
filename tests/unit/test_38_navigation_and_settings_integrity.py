@@ -38,23 +38,53 @@ class TestNavigationAndSettingsIntegrity:
         return all_js
 
     def test_all_sidebar_panes_exist_in_dom(self, html_soup):
-        """Verify that every single data-nav item in the sidebar has an exact #pane-<id> container inside index.html."""
-        # Pane count is 67, not 68: the standalone "Code Editor" (builder) pane
-        # was deliberately retired and folded into "Code Studio" (see commit
-        # "merge Code Editor (Builder) into Code Studio, retire standalone pane
-        # (68 -> 67 panes)"). This contract was left at the pre-merge 68 and so
-        # failed on a change that was intentional.
+        """Every sidebar nav item must have an exact #pane-<id> container."""
+        # The sidebar now lists 24 top-level entries, not 67. 43 panes were
+        # folded into 11 tabbed workstations (see frontend/js/00-workstations.js)
+        # because a flat 67-item list — including a 26-item catch-all
+        # "MONITORING" group — was past the point of being scannable. The
+        # consolidation is lossless: every absorbed pane still has its own
+        # #pane-<id> container, its own renderer, and remains reachable by its
+        # original id via the redirect in nav(). That losslessness is asserted
+        # by test_workstation_consolidation_is_lossless below.
         nav_els = html_soup.find_all(lambda e: e.has_attr("data-nav"))
         nav_ids = sorted(list(set(el["data-nav"] for el in nav_els)))
-        assert len(nav_ids) >= 67, f"Expected at least 67 distinct data-nav items in sidebar, found {len(nav_ids)}"
+        assert len(nav_ids) >= 24, f"Expected at least 24 distinct data-nav items in sidebar, found {len(nav_ids)}"
 
         missing_panes = []
         for nid in nav_ids:
             pane = html_soup.find(id=f"pane-{nid}")
             if not pane:
                 missing_panes.append(nid)
-        
+
         assert not missing_panes, f"Missing exact #pane-<id> containers in index.html for nav IDs: {missing_panes}"
+
+    def test_workstation_consolidation_is_lossless(self, html_soup):
+        """Absorbed panes must keep their container, renderer and reachability."""
+        ws_js = (JS_DIR / "00-workstations.js").read_text(encoding="utf-8")
+        block = re.search(r"window\.WORKSTATIONS = \{(.*?)\n\};", ws_js, re.DOTALL)
+        assert block, "WORKSTATIONS map must exist"
+
+        registry_js = (JS_DIR / "00-pane-registry.js").read_text(encoding="utf-8")
+        core_js = (JS_DIR / "01-app-core.js").read_text(encoding="utf-8")
+
+        absorbed = []
+        for host, children in re.findall(r"'([a-z0-9-]+)':\s*\[([^\]]*)\]", block.group(1)):
+            kids = re.findall(r"'([a-z0-9-]+)'", children)
+            assert host not in kids, f"{host} must not absorb itself"
+            absorbed.extend(kids)
+
+        assert len(absorbed) == len(set(absorbed)), "a pane may not be absorbed by two workstations"
+
+        for pane in absorbed:
+            # 1. container preserved
+            assert html_soup.find(id=f"pane-{pane}"), f"#pane-{pane} was deleted by consolidation"
+            # 2. renderer still registered
+            assert f"'{pane}':" in registry_js, f"{pane} lost its MASTER_PANE_REGISTRY entry"
+
+        # 3. nav() redirects absorbed ids to their host workstation tab
+        assert "window.PANE_TO_WORKSTATION[pane]" in core_js
+        assert "window.showWorkstationTab(wsHost, pane)" in core_js
 
     def test_master_pane_registry_maps_all_nav_keys(self, html_soup, app_core_js):
         """Verify that MASTER_PANE_REGISTRY authoritatively registers every sidebar nav key."""

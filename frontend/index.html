@@ -1330,9 +1330,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
       <!-- Navigation -->
       <div class="sidebar-scroll">
-        <!-- ═══ ESSENTIALS: Always visible, novice-friendly ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:var(--accent);font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> ESSENTIALS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
-        <div class="sidebar-group-content" id="group-core" style="display:block">
+                <!-- ═══ ESSENTIALS: daily drivers ═══ -->
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#a5b4fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> ESSENTIALS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
+        <div class="sidebar-group-content" id="group-core">
           <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI — start here" role="menuitem" aria-label="Chat">
             <span class="icon">💬</span><span class="label">Chat</span>
           </div>
@@ -1340,103 +1340,58 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <span class="icon">⚡</span><span class="label">Code Studio</span>
             <span class="badge badge-live" style="font-size:9px;padding:1px 6px">LIVE</span>
           </div>
-          <div class="nav-item" data-nav="templates" data-tier="core" onclick="nav('templates')" data-tooltip="Start from a template" role="menuitem" aria-label="Templates">
-            <span class="icon">📋</span><span class="label">Templates</span>
-          </div>
           <div class="nav-item" data-nav="galaxy" data-tier="core" onclick="nav('galaxy')" data-tooltip="Your saved knowledge & memories" role="menuitem" aria-label="Memory">
             <span class="icon">🧠</span><span class="label">Memory</span>
           </div>
           <div class="nav-item" data-nav="kanban" data-tier="core" onclick="nav('kanban')" data-tooltip="Track tasks and to-dos" role="menuitem" aria-label="Tasks">
             <span class="icon">✅</span><span class="label">Tasks</span>
           </div>
+          <div class="nav-item" data-nav="templates" data-tier="core" onclick="nav('templates')" data-tooltip="Start from a template" role="menuitem" aria-label="Templates">
+            <span class="icon">📋</span><span class="label">Templates</span>
+          </div>
           <div class="nav-item" data-nav="settings" data-tier="core" onclick="nav('settings')" data-tooltip="Connect AI & customize" role="menuitem" aria-label="Settings">
             <span class="icon">⚙</span><span class="label">Settings</span>
           </div>
         </div>
 
-        <!-- ═══ AI TOOLS: Core AI capabilities ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
-        <div class="sidebar-group-content" id="group-build" data-tier="advanced" style="display:none">
-          <div role="button" tabindex="0" class="nav-item" data-nav="swarm" data-tier="advanced" onclick="nav('swarm')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🌀</span><span class="label">Multi-Agent Swarm</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="hierarchy" data-tier="advanced" onclick="nav('hierarchy')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧭</span><span class="label">AI Context &amp; Guidelines</span></div>
+        <!-- ═══ AI TOOLS: agent capabilities ═══ -->
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">8</span></div>
+        <div class="sidebar-group-content" id="group-build" style="display:none">
+          <div role="button" tabindex="0" class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎯</span><span class="label">Supervisor</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="websearch" data-tier="advanced" onclick="nav('websearch')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔍</span><span class="label">Web Search</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="browser" data-tier="advanced" onclick="nav('browser')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🌐</span><span class="label">Browser Agent</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="imagegen" data-tier="advanced" onclick="nav('imagegen')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎨</span><span class="label">Image Generator</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="prompts" data-tier="advanced" onclick="nav('prompts')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">💡</span><span class="label">Prompt Library</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="docs" data-tier="advanced" onclick="nav('docs')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📖</span><span class="label">Docs & Help</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="terminal" data-tier="advanced" onclick="nav('terminal')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">💻</span><span class="label">Terminal</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="skills" data-tier="advanced" onclick="nav('skills')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⚡</span><span class="label">Skills</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="hierarchy" data-tier="advanced" onclick="nav('hierarchy')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧭</span><span class="label">AI Context &amp; Guidelines</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="docs" data-tier="advanced" onclick="nav('docs')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📖</span><span class="label">Docs & Help</span></div>
         </div>
 
-        <!-- ═══ BUILD: Ship your work ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#a855f7;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">9</span></div>
-        <div class="sidebar-group-content" id="group-ship" data-tier="advanced" style="display:none">
+        <!-- ═══ BUILD & SHIP: create and deliver ═══ -->
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#86efac;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD & SHIP  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
+        <div class="sidebar-group-content" id="group-ship" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">✍</span><span class="label">Composer</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="pipeline" data-tier="advanced" onclick="nav('pipeline')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⎈</span><span class="label">Pipelines</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="workflow" data-tier="advanced" onclick="nav('workflow')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⎈</span><span class="label">Workflows</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="github" data-tier="advanced" onclick="nav('github')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🐙</span><span class="label">GitHub</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="deploy" data-tier="advanced" onclick="nav('deploy')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🚀</span><span class="label">Deploy</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="specs" data-tier="advanced" onclick="nav('specs')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📐</span><span class="label">Spec Builder</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="dbstudio" data-tier="advanced" onclick="nav('dbstudio')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🗄</span><span class="label">Database</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="workspaces" data-tier="advanced" onclick="nav('workspaces')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📂</span><span class="label">Workspaces</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="plugins" data-tier="advanced" onclick="nav('plugins')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧩</span><span class="label">Plugins</span></div>
         </div>
 
-        <!-- ═══ AGENTS ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#34d399;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AGENTS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">13</span></div>
-        <div class="sidebar-group-content" id="group-tools" data-tier="advanced" style="display:none">
-          <div role="button" tabindex="0" class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎯</span><span class="label">Supervisor</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="goals" data-tier="advanced" onclick="nav('goals')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎯</span><span class="label">Goals</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="connectors" data-tier="advanced" onclick="nav('connectors')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔗</span><span class="label">Integrations</span></div>
+        <!-- ═══ CONNECT: outbound connections ═══ -->
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#fcd34d;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> CONNECT  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">1</span></div>
+        <div class="sidebar-group-content" id="group-tools" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="mcp" data-tier="advanced" onclick="nav('mcp')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔧</span><span class="label">Tool Connections</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="mcp-gateway" data-tier="advanced" onclick="nav('mcp-gateway')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🚪</span><span class="label">Gateway</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="a2a" data-tier="advanced" onclick="nav('a2a')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🌐</span><span class="label">Agent Network</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="agent-identity" data-tier="advanced" onclick="nav('agent-identity')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🪪</span><span class="label">Agent Identity</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="hitl" data-tier="advanced" onclick="nav('hitl')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">👁</span><span class="label">Review Queue</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="fusion" data-tier="advanced" onclick="nav('fusion')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔀</span><span class="label">Model Fusion</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="arena" data-tier="advanced" onclick="nav('arena')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⚔</span><span class="label">Model Arena</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="loops" data-tier="advanced" onclick="nav('loops')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">♾</span><span class="label">Autonomous Loops</span><span class="count" id="loop-count">0</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="replay" data-tier="advanced" onclick="nav('replay')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⟲</span><span class="label">Execution Replay</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="collabedit" data-tier="advanced" onclick="nav('collabedit')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">👥</span><span class="label">Collaborative Edit</span></div>
         </div>
 
-        <!-- ═══ MONITORING ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" data-tier="advanced" style="cursor:pointer;user-select:none;color:#f43f5e;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> MONITORING  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">26</span></div>
-        <div class="sidebar-group-content" id="group-enterprise" data-tier="advanced" style="display:none">
-          <div style="font-size:9.5px;color:var(--text-3);padding:8px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85">📊 Analytics</div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="dashboard" data-tier="advanced" onclick="nav('dashboard')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📊</span><span class="label">Dashboard</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="audit-log" data-tier="advanced" onclick="nav('audit-log')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📝</span><span class="label">Audit Log</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="leaderboard" data-tier="advanced" onclick="nav('leaderboard')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🏆</span><span class="label">Leaderboard</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="agent-monitor" data-tier="advanced" onclick="nav('agent-monitor')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📡</span><span class="label">Live Monitor</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="finops" data-tier="advanced" onclick="nav('finops')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">💰</span><span class="label">Cost Tracking</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="eval-framework" data-tier="advanced" onclick="nav('eval-framework')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧪</span><span class="label">Evaluation</span></div>
+        <!-- ═══ OPERATE: run and verify ═══ -->
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#f0abfc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> OPERATE  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">3</span></div>
+        <div class="sidebar-group-content" id="group-enterprise" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="observability" data-tier="advanced" onclick="nav('observability')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔭</span><span class="label">Observability</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="evals" data-tier="advanced" onclick="nav('evals')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧪</span><span class="label">Evals</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="health" data-tier="advanced" onclick="nav('health')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">💚</span><span class="label">Health</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="profiler" data-tier="advanced" onclick="nav('profiler')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📈</span><span class="label">Profiler</span></div>
-          <div style="font-size:9.5px;color:var(--text-3);padding:10px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85;border-top:1px solid var(--border)">🔒 Security & Secrets</div>
           <div role="button" tabindex="0" class="nav-item" data-nav="secrets" data-tier="advanced" onclick="nav('secrets')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔐</span><span class="label">Secrets Vault</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="pqc" data-tier="advanced" onclick="nav('pqc')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🛡</span><span class="label">Encryption</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="obsidian" data-tier="advanced" onclick="nav('obsidian')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📝</span><span class="label">Obsidian Sync</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="webhooks" data-tier="advanced" onclick="nav('webhooks')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔔</span><span class="label">Webhooks</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="integrations" data-tier="advanced" onclick="nav('integrations')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔗</span><span class="label">Docs & Integrations</span></div>
-          <div style="font-size:9.5px;color:var(--text-3);padding:10px 14px 4px;font-weight:800;letter-spacing:0.7px;text-transform:uppercase;opacity:0.85;border-top:1px solid var(--border)">📚 Knowledge & Code</div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="knowledge-graph" data-tier="advanced" onclick="nav('knowledge-graph')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🕸</span><span class="label">Knowledge Graph</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="rag" data-tier="advanced" onclick="nav('rag')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📚</span><span class="label">Knowledge Search</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="hooks" data-tier="advanced" onclick="nav('hooks')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⚡</span><span class="label">Event Hooks</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="codeindex" data-tier="advanced" onclick="nav('codeindex')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔍</span><span class="label">Code Index</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="codesearch" data-tier="advanced" onclick="nav('codesearch')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⌕</span><span class="label">Code Search</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="gitai" data-tier="advanced" onclick="nav('gitai')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⎇</span><span class="label">Git Assistant</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="bugbot" data-tier="advanced" onclick="nav('bugbot')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🐛</span><span class="label">Bug Finder</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="testgen" data-tier="advanced" onclick="nav('testgen')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧪</span><span class="label">Test Generator</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="marketplace" data-tier="advanced" onclick="nav('marketplace')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🛒</span><span class="label">Marketplace</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="pluginsdk" data-tier="advanced" onclick="nav('pluginsdk')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔧</span><span class="label">Plugin SDK</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="multitab" data-tier="advanced" onclick="nav('multitab')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">◫</span><span class="label">Multi-Preview</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="control" data-tier="advanced" onclick="nav('control')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎛</span><span class="label">Control Tower</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="system" data-tier="advanced" onclick="nav('system')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⚙</span><span class="label">System</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="ambient" data-tier="advanced" onclick="nav('ambient')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🌙</span><span class="label">Ambient Mode</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="finetune" data-tier="advanced" onclick="nav('finetune')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧪</span><span class="label">Fine-Tuning</span></div>
         </div>
+
       </div>
 
       <!-- Agents - Compact -->
@@ -3068,6 +3023,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 <script src="/static/js/00-api-client.js"></script>
 <script src="/static/js/00-navigation-state.js"></script>
 <script src="/static/js/00-pane-registry.js"></script>
+<script src="/static/js/00-workstations.js"></script>
 <script src="/static/js/00-errors.js"></script>
 
 <!-- Application modules (loaded in dependency order) -->
