@@ -117,13 +117,17 @@ class TestUATKnowledgeGraph:
         eid2 = accept(r2, "entity 2", 200).get("entity_id")
         
         if eid1 and eid2:
+            # Used from_entity/to_entity, which the API does not accept (it
+            # requires from_id/to_id). The relation was never created — the
+            # test only passed because the validation failure returned 200.
             r3 = await POST(U, "/api/knowledge-graph/relations", {
-                "from_entity": eid1,
+                "from_id": eid1,
                 "relation": "is_written_in",
-                "to_entity": eid2,
+                "to_id": eid2,
                 "weight": 1.0
             })
-            accept(r3, "create relation", 200, 404, 422)
+            d3 = accept(r3, "create relation", 200)
+            uat("relation created", d3.get("ok") is True)
 
     async def test_user_can_query_knowledge_graph(self, U):
         """AC: Search box finds entities by name or description."""

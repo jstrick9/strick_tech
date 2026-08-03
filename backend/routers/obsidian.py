@@ -18,6 +18,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/obsidian', tags=['obsidian'])
 log = logging.getLogger('agentic.obsidian')
@@ -38,6 +39,42 @@ def _vault_path() ->Path | None:
     if brain.exists():
         return brain
     return None
+
+
+#: Characters and sequences that must never appear in a caller-supplied note
+#: path. Percent-encoded traversal is included because callers post JSON (the
+#: value is NOT URL-decoded by the framework), so "..%2f.." would otherwise be
+#: written out as a literal filename — which is exactly what happened: the
+#: vault accumulated files such as "..%2f..%2fetc%2fpasswd.md" and a stray
+#: "etc/" directory from absolute-path payloads.
+_UNSAFE_PATH_MARKERS = ('..', '%2e', '%2f', '%5c', '\x00')
+
+
+def validate_note_path(raw: str) -> tuple[str | None, str | None]:
+    """Normalise a caller-supplied note path.
+
+    Returns (safe_relative_path, error). The path is always relative, always
+    ends in .md, and can never escape the notes directory. Containment was
+    already enforced downstream, but only AFTER a junk filename had been
+    accepted — this rejects the input up front so the vault stays clean.
+    """
+    path = (raw or '').strip().replace('\\', '/')
+    if not path:
+        return None, 'path required'
+    # Reject absolute paths outright rather than silently rebasing them.
+    if path.startswith('/'):
+        return None, 'path must be relative to the notes folder'
+    low = path.lower()
+    if any(marker in low for marker in _UNSAFE_PATH_MARKERS):
+        return None, 'Path traversal denied'
+    # Drop empty segments produced by things like "a//b".
+    parts = [p for p in path.split('/') if p not in ('', '.')]
+    if not parts:
+        return None, 'path required'
+    safe = '/'.join(parts)
+    if not safe.endswith('.md'):
+        safe += '.md'
+    return safe, None
 
 
 def _note_dir() -> Path:
@@ -218,7 +255,7 @@ async def export_to_vault(req: Request):
         mems = memory_list(limit=limit)
 
     if not mems:
-        return {'ok': False, 'error': 'No memories to export'}
+        return JSONResponse({'ok': False, 'error': 'No memories to export'}, status_code=404)
 
     lines = [
         f'# {title}',
@@ -357,19 +394,28 @@ def read_note(path: str):
     _ensure_brain()
     vp = _vault_path()
     if not vp:
-        return {'ok': False, 'error': 'No vault configured'}
+        return JSONResponse({'ok': False, 'error': 'No vault configured'}, status_code=400)
 
-    # Sanitise path: remove leading slashes and resolve
-    clean_path = path.lstrip('/').lstrip('\\')
+    # Reject encoded traversal before touching the filesystem. Reads are not
+    # restricted to .md (any vault file may be inspected), so this does not use
+    # validate_note_path(), but it applies the same marker rejection.
+    raw = (path or '').replace('\\', '/')
+    if any(marker in raw.lower() for marker in _UNSAFE_PATH_MARKERS):
+        return JSONResponse({'ok': False, 'error': 'Path traversal denied'}, status_code=403)
+    clean_path = raw.lstrip('/')
     f = (vp / clean_path).resolve()
 
-    # Strict bounds check
-    if not str(f).startswith(str(vp.resolve())):
-        return {'ok': False, 'error': 'Path traversal denied'}
+    # Containment via path semantics, not str.startswith() — a sibling
+    # directory sharing a name prefix (brain_backup/ vs brain/) would pass a
+    # prefix check while being outside the vault.
+    try:
+        f.relative_to(vp.resolve())
+    except ValueError:
+        return JSONResponse({'ok': False, 'error': 'Path traversal denied'}, status_code=403)
     if not f.exists():
-        return {'ok': False, 'error': 'Note not found'}
+        return JSONResponse({'ok': False, 'error': 'Note not found'}, status_code=404)
     if not f.is_file():
-        return {'ok': False, 'error': 'Not a file'}
+        return JSONResponse({'ok': False, 'error': 'Not a file'}, status_code=400)
 
     try:
         content = f.read_text(encoding='utf-8', errors='ignore')
@@ -381,7 +427,7 @@ def read_note(path: str):
             'modified': datetime.fromtimestamp(f.stat().st_mtime).isoformat()[:16],
         }
     except Exception as ex:
-        return {'ok': False, 'error': str(ex)}
+        return JSONResponse({'ok': False, 'error': str(ex)}, status_code=500)
 
 
 @router.post('/note')
@@ -391,20 +437,21 @@ async def write_note(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    path = (body.get('path') or '').strip().lstrip('/').lstrip('\\')
     content = body.get('content', '')
 
-    if not path:
-        return {'ok': False, 'error': 'path required'}
-    if not path.endswith('.md'):
-        path += '.md'
+    path, err = validate_note_path(body.get('path'))
+    if err:
+        status = 403 if 'traversal' in err.lower() else 400
+        return JSONResponse({'ok': False, 'error': err}, status_code=status)
 
     note_dir = _note_dir()
     f = (note_dir / path).resolve()
 
-    # Strict bounds check
-    if not str(f).startswith(str(note_dir.resolve())):
-        return {'ok': False, 'error': 'Path traversal denied'}
+    # Defence in depth — validate_note_path() should make this unreachable.
+    try:
+        f.relative_to(note_dir.resolve())
+    except ValueError:
+        return JSONResponse({'ok': False, 'error': 'Path traversal denied'}, status_code=403)
 
     try:
         f.parent.mkdir(parents=True, exist_ok=True)
@@ -417,7 +464,7 @@ async def write_note(req: Request):
         rel = str(f.relative_to(vp)) if vp and str(f).startswith(str(vp)) else str(f.relative_to(ROOT))
         return {'ok': True, 'path': rel, 'abs_path': str(f), 'size': len(content)}
     except Exception as ex:
-        return {'ok': False, 'error': str(ex)}
+        return JSONResponse({'ok': False, 'error': str(ex)}, status_code=500)
 
 
 @router.delete('/note')
@@ -427,17 +474,22 @@ async def delete_note(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    path = (body.get('path') or '').strip().lstrip('/')
-    if not path:
-        return {'ok': False, 'error': 'path required'}
+    path, err = validate_note_path(body.get('path'))
+    if err:
+        status = 403 if 'traversal' in err.lower() else 400
+        return JSONResponse({'ok': False, 'error': err}, status_code=status)
 
     note_dir = _note_dir()
     f = (note_dir / path).resolve()
 
-    if not str(f).startswith(str(note_dir.resolve())):
-        return {'ok': False, 'error': 'Path traversal denied — can only delete from agentic-os folder'}
+    try:
+        f.relative_to(note_dir.resolve())
+    except ValueError:
+        return JSONResponse({'ok': False, 'error': 'Path traversal denied — can only delete from agentic-os folder'}, status_code=403)
     if not f.exists():
-        return {'ok': False, 'error': 'Note not found'}
+        return JSONResponse({'ok': False, 'error': 'Note not found'}, status_code=404)
+    if f.is_dir():
+        return JSONResponse({'ok': False, 'error': 'Cannot delete a directory'}, status_code=400)
 
     try:
         f.unlink()
@@ -446,7 +498,7 @@ async def delete_note(req: Request):
         audit_log('obsidian_delete_note', path)
         return {'ok': True, 'deleted': path}
     except Exception as ex:
-        return {'ok': False, 'error': str(ex)}
+        return JSONResponse({'ok': False, 'error': str(ex)}, status_code=500)
 
 
 # ── File watcher (start/stop) ──────────────────────────────────────────────────
@@ -460,7 +512,7 @@ def start_watcher():
     _ensure_brain()
     vp = _vault_path()
     if not vp:
-        return {'ok': False, 'error': 'No vault configured. Set OBSIDIAN_VAULT_PATH or create brain/ folder.'}
+        return JSONResponse({'ok': False, 'error': 'No vault configured. Set OBSIDIAN_VAULT_PATH or create brain/ folder.'}, status_code=400)
 
     if _watcher_thread and getattr(_watcher_thread, 'is_alive', lambda: False)():
         return {'ok': True, 'status': 'already running', 'vault': str(vp)}
@@ -496,7 +548,7 @@ def start_watcher():
             'install_cmd': 'pip install watchdog',
         }
     except Exception as e:
-        return {'ok': False, 'error': str(e)}
+        return JSONResponse({'ok': False, 'error': str(e)}, status_code=500)
 
 
 @router.post('/watch/stop')
@@ -510,7 +562,7 @@ def stop_watcher():
             _watcher_thread = None
             return {'ok': True, 'status': 'stopped'}
         except Exception as e:
-            return {'ok': False, 'error': str(e)}
+            return JSONResponse({'ok': False, 'error': str(e)}, status_code=500)
     return {'ok': True, 'status': 'not running'}
 
 
@@ -533,7 +585,7 @@ def get_backlinks(note: str = ''):
     _ensure_brain()
     vp = _vault_path()
     if not vp:
-        return {'ok': False, 'error': 'No vault configured'}
+        return JSONResponse({'ok': False, 'error': 'No vault configured'}, status_code=400)
 
     notes = list(vp.rglob('*.md'))
     graph: dict = {}

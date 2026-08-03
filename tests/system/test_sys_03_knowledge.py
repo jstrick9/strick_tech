@@ -162,11 +162,15 @@ class TestSysKnowledgeBase:
         d2 = must(r2, 200)
         eid_b = d2.get("entity_id") or d2.get("id")
 
-        # Relate
+        # Relate. This used to send from_entity/to_entity, which the API does
+        # not accept (it requires from_id/to_id) — the relation was never
+        # created, and the test only passed because the validation failure came
+        # back as HTTP 200. Now sends the real field names and asserts success.
         r3 = await POST(C, "/api/knowledge-graph/relations", {
-            "from_entity": eid_a, "relation": "uses", "to_entity": eid_b
+            "from_id": eid_a, "relation": "uses", "to_id": eid_b
         })
-        must(r3, 200, 404, 422)
+        d3 = must(r3, 200)
+        check("relation created", d3.get("ok") is True)
 
         # Stats
         stats = must(await GET(C, "/api/knowledge-graph/stats"), 200)

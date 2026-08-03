@@ -287,19 +287,46 @@ def memory_list(limit: int = 500, offset: int = 0, source: str = '') -> list[dic
         con.close()
 
 
-def memory_stats() -> dict:
-    """Execute or process memory stats operation."""
+#: Default number of top sources returned by memory_stats(). The full list is
+#: unbounded — one source row per distinct ingest origin — and this payload is
+#: broadcast over the WebSocket to every connected client every 8 seconds.
+MEMORY_STATS_SOURCE_LIMIT = 15
+
+
+def memory_stats(source_limit: int = MEMORY_STATS_SOURCE_LIMIT) -> dict:
+    """Memory counters plus the top ingest sources.
+
+    PERF FIX: this used to return EVERY distinct source with no limit. On a
+    normal install that is one row per Obsidian note, per webhook, per test
+    fixture — measured at 160 sources / ~10 KB here — and the same payload is
+    pushed over the WebSocket to every client every 8 seconds, even though
+    neither consumer (the status bar and the Galaxy header) reads `sources` at
+    all. The list is now capped, with `source_count` reporting the true total
+    so callers can tell the list is truncated. Pass source_limit=0 for all.
+    """
     con = get_conn()
     try:
         total = con.execute('SELECT COUNT(*) FROM memory').fetchone()[0]
-        sources = con.execute('SELECT source, COUNT(*) as cnt FROM memory GROUP BY source ORDER BY cnt DESC').fetchall()
+        distinct_sources = con.execute('SELECT COUNT(DISTINCT source) FROM memory').fetchone()[0]
+        if source_limit and source_limit > 0:
+            sources = con.execute(
+                'SELECT source, COUNT(*) as cnt FROM memory GROUP BY source ORDER BY cnt DESC LIMIT ?',
+                (source_limit,),
+            ).fetchall()
+        else:
+            sources = con.execute(
+                'SELECT source, COUNT(*) as cnt FROM memory GROUP BY source ORDER BY cnt DESC'
+            ).fetchall()
         vec_count = con.execute('SELECT COUNT(*) FROM memory WHERE embedding_json IS NOT NULL').fetchone()[0]
+        source_rows = [dict(r) for r in sources]
         return {
             'sqlite_memories': total,
             'total': total,  # alias for consistency with other endpoints
             'count': total,  # another alias
             'vectors_sqlite': vec_count,
-            'sources': [dict(r) for r in sources],
+            'sources': source_rows,
+            'source_count': distinct_sources,
+            'sources_truncated': distinct_sources > len(source_rows),
             'status': 'active',
             'engine': 'sqlite-fts5 + in-db vectors',
         }

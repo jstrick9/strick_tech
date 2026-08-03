@@ -176,14 +176,18 @@ class TestKnowledgeGraph:
         assert r.status_code in (200, 404)
 
     def test_facts_200(self, client):
+        # These payloads use the wrong field names (the API requires
+        # subject_id/predicate/object), so a validation error is the CORRECT
+        # response. 400 was added to the allowed set when the endpoint stopped
+        # returning HTTP 200 with {"ok": false} for invalid input.
         r = post_json(client, "/api/knowledge-graph/facts",
                       {"subject": "Python", "predicate": "is_a", "object": "language"})
-        assert r.status_code in (200, 404, 422)
+        assert r.status_code in (200, 400, 404, 422)
 
     def test_relations_200(self, client):
         r = post_json(client, "/api/knowledge-graph/relations",
                       {"from_entity": "Python", "relation": "uses", "to_entity": "FastAPI"})
-        assert r.status_code in (200, 404, 422)
+        assert r.status_code in (200, 400, 404, 422)
 
 
 class TestRAG:
