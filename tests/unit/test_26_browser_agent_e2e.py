@@ -22,17 +22,20 @@ class TestBrowserAgent:
         assert r.status_code in (200, 400, 404, 422)
 
     def test_browser_screenshot_no_session(self, client):
+        # No "url" in the body, so this is a validation failure. It used to be
+        # returned as HTTP 200 with {"ok": false}; a rejected request is a 400.
         r = client.post("/api/browser/screenshot", json={"session_id": "nonexistent"})
-        assert r.status_code in (200, 404)
-        if r.status_code == 200:
-            assert r.json().get("ok") is False or "error" in r.json()
+        assert r.status_code == 400
+        assert r.json().get("ok") is False and "error" in r.json()
 
     def test_browser_extract_no_session(self, client):
+        # No "task" in the body — rejected as a 400 rather than a silent 200.
         r = client.post("/api/browser/task", json={
             "session_id": "nonexistent",
             "selector": "h1"
         })
-        assert r.status_code in (200, 404)
+        assert r.status_code == 400
+        assert r.json().get("ok") is False
 
     def test_browser_history(self, client):
         r = client.get("/api/browser/screenshots")
