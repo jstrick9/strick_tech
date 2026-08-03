@@ -23,10 +23,27 @@ def test_file_intake_has_clear_safety_limits_and_removable_chips():
 
 
 def test_attached_text_becomes_explicit_model_context():
-    assert 'const attachmentContext = attachments.map' in CORE
-    assert 'const messageForModel = msg + attachmentContext;' in CORE
+    # Text/code attachments are still inlined as fenced context, but images are
+    # now split out into OpenAI-format image_url parts (see the vision fix in
+    # sendChat), so the payload is built from textAttachments rather than the
+    # whole attachment list.
+    assert 'const attachmentContext = textAttachments.map' in CORE
+    assert 'const promptText = msg + attachmentContext + imageNote;' in CORE
     assert 'message:    messageForModel' in CORE
     assert '.chat-attachment-chip' in CSS
+
+
+def test_attached_images_are_sent_as_real_multimodal_parts():
+    """Images must reach the provider as image_url parts, not as truncated text.
+
+    Regression guard: attachments used to be flattened into the prompt as
+    "[image data: <first 80 chars>...]", which is just the data-URL header —
+    the image itself never reached the model, making vision impossible.
+    """
+    assert "type: 'image_url'" in CORE
+    assert 'image_url: { url: item.text }' in CORE
+    # The old lossy truncation must not come back.
+    assert '[image data: ${item.text.slice(0, 80)}...]' not in CORE
 
 
 def test_chat_routes_pdf_and_word_documents_to_local_extraction():

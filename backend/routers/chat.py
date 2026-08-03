@@ -6,7 +6,6 @@ Real LLM chat with streaming SSE, session history, slash command routing.
 from __future__ import annotations
 
 import json
-import time
 import uuid
 
 from fastapi import APIRouter, Request
@@ -45,6 +44,25 @@ def _bounded_max_tokens(value, default: int = 2048) -> int:
         return min(16384, max(1, int(value)))
     except (TypeError, ValueError):
         return default
+
+
+# Markers that identify platform-generated failure/placeholder text rather than
+# genuine model output. Used to keep the long-term memory store clean — see the
+# ingestion guard in chat_stream().
+_ERROR_TEXT_MARKERS = (
+    'no openrouter_api_key',
+    '[stream error]',
+    'openrouter disconnected',
+    'auto-falling back to local',
+    "i couldn't complete that request",
+    'no usable model is configured',
+)
+
+
+def _looks_like_error_text(text: str) -> bool:
+    """True if text is platform error/placeholder output, not a real completion."""
+    low = (text or '').lower()
+    return any(marker in low for marker in _ERROR_TEXT_MARKERS)
 
 
 def _parse_slash(message: str) -> tuple[str, str]:
@@ -94,7 +112,26 @@ async def chat_stream(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    message = (body.get('message') or '').strip()[:16000]
+    # `message` is normally a string, but Chat sends an OpenAI-format list of
+    # content parts when the user attaches images (see sendChat()). Keep the
+    # structured form for the provider call while deriving a plain-text view
+    # for logging, slash-command parsing and memory/RAG lookups — calling
+    # .strip() on a list would raise before any of that could run.
+    raw_message = body.get('message')
+    message_parts = None
+    if isinstance(raw_message, list):
+        message_parts = raw_message
+        message = ' '.join(
+            str(p.get('text', ''))
+            for p in raw_message
+            if isinstance(p, dict) and p.get('type') == 'text'
+        ).strip()[:16000]
+    else:
+        message = (raw_message or '').strip()[:16000]
+    has_images = bool(
+        message_parts
+        and any(isinstance(p, dict) and p.get('type') == 'image_url' for p in message_parts)
+    )
     agent_id = (body.get('agent_id') or 'default').lower()[:64]
     req_model = (body.get('model') or '').strip()[:200]
     session_id = str(body.get('session_id') or str(uuid.uuid4()))[:128]
@@ -102,7 +139,7 @@ async def chat_stream(req: Request):
     temperature = _bounded_temperature(body.get('temperature', 0.7))
     max_tokens = _bounded_max_tokens(body.get('max_tokens', 2048))
 
-    if not message:
+    if not message and not has_images:
 
         async def _empty():
             yield f'data: {json.dumps({"delta": "Please enter a message.", "done": True})}\n\n'
@@ -134,15 +171,76 @@ async def chat_stream(req: Request):
         return StreamingResponse(_help(), media_type='text/event-stream')
 
     if cmd == '/clear':
+        # BUG FIX: this used to report "✅ Chat history cleared." while doing
+        # nothing server-side — only the browser's DOM was wiped. The rows
+        # stayed in chat_log, so reloading the page (or reopening the session
+        # from the history drawer) brought the "cleared" conversation straight
+        # back, and the model kept receiving it as context. Now actually
+        # deletes this session's messages, and reports honestly if it can't.
+        deleted = 0
+        clear_error = None
+        try:
+            con = memory_db.get_conn()
+            try:
+                deleted = con.execute('DELETE FROM chat_log WHERE session_id=?', (session_id,)).rowcount
+                con.execute(
+                    'UPDATE chat_sessions SET message_count=0, updated_at=CURRENT_TIMESTAMP WHERE id=?',
+                    (session_id,),
+                )
+                con.commit()
+            finally:
+                con.close()
+            memory_db.audit_log('chat_clear', f'session:{session_id} deleted:{deleted}')
+        except Exception as e:  # noqa: BLE001 - surfaced to the user below
+            clear_error = str(e)
+
+        if clear_error:
+            clear_text = f'⚠️ Could not clear this conversation: {clear_error}'
+        elif deleted:
+            clear_text = f'✅ Cleared {deleted} message{"s" if deleted != 1 else ""} from this conversation.'
+        else:
+            clear_text = 'ℹ️ This conversation was already empty.'
 
         async def _clear():
-            yield f'data: {json.dumps({"delta": "✅ Chat history cleared.", "done": True, "action": "clear_history"})}\n\n'
+            payload = {'delta': clear_text, 'done': True}
+            # Only wipe the transcript in the UI if the server really did.
+            if not clear_error:
+                payload['action'] = 'clear_history'
+            yield f'data: {json.dumps(payload)}\n\n'
 
         return StreamingResponse(_clear(), media_type='text/event-stream')
 
     if cmd == '/models':
-        models = llm.OPENROUTER_MODELS
-        text = '**Available models:**\n\n' + '\n'.join(f'- `{k}` → `{v}`' for k, v in models.items())
+        # UX FIX: this only ever listed the hardcoded OpenRouter registry, so a
+        # user running entirely on local Ollama models was shown a list of
+        # cloud models they had no key for, and none of the models actually
+        # installed and usable on their machine. Local models are now listed
+        # first (they're the ones that will actually run), and the cloud
+        # registry is annotated with whether a key is configured at all.
+        text = ''
+        try:
+            health = await llm.ollama_health()
+        except Exception:
+            health = {'running': False, 'models': []}
+
+        local_models = health.get('models') or []
+        if health.get('running') and local_models:
+            text += '**Local models (Ollama — ready to use):**\n\n'
+            text += '\n'.join(f'- `{m}`' for m in local_models)
+            text += '\n\n'
+
+        has_key = bool(llm._or_key())
+        if has_key:
+            text += '**Cloud models (OpenRouter — key configured):**\n\n'
+        else:
+            text += '**Cloud models (OpenRouter — ⚠️ no API key set, these will not run):**\n\n'
+        text += '\n'.join(f'- `{k}` → `{v}`' for k, v in llm.OPENROUTER_MODELS.items())
+
+        if not has_key and not local_models:
+            text += (
+                '\n\n_No usable model is configured yet._ Add an OpenRouter key in '
+                '**Settings → Connect AI**, or install a local model with `ollama pull llama3.2:3b`.'
+            )
 
         async def _models():
             yield f'data: {json.dumps({"delta": text, "done": True})}\n\n'
@@ -236,9 +334,31 @@ async def chat_stream(req: Request):
     # memory-augment: search galaxy for relevant context if use_rag is True
     use_rag = bool(body.get('use_rag', True))
     if use_rag:
-        mem_results = memory_db.memory_search_fts(message[:200], limit=4)
+        # Over-fetch, then drop unusable rows before trimming to the budget —
+        # otherwise a few junk hits silently consume the whole context window.
+        mem_results = memory_db.memory_search_fts(message[:200], limit=12)
         if mem_results:
-            filtered = [r for r in mem_results if 'agentic os' not in r.get('content', '').lower() or agent_id not in ('default', 'direct ai chat', '')]
+            is_generic_agent = agent_id in ('default', 'direct ai chat', '')
+            filtered = []
+            for r in mem_results:
+                content = (r.get('content') or '').strip()
+                if not content:
+                    continue
+                # BUG FIX: retrieval could surface platform error text that was
+                # ingested from OTHER subsystems (e.g. source='webhook:…'
+                # rows holding "⚠️ No OPENROUTER_API_KEY set…"), which then got
+                # injected into the system prompt as if it were user knowledge.
+                # Guarding only at chat-ingest time was not enough, because the
+                # memory store is shared — so retrieval is filtered too.
+                if _looks_like_error_text(content):
+                    continue
+                # Keep self-referential "Agentic OS" chatter out of generic
+                # assistant conversations, where it derails unrelated answers.
+                if is_generic_agent and 'agentic os' in content.lower():
+                    continue
+                filtered.append(r)
+                if len(filtered) >= 4:
+                    break
             if filtered:
                 ctx = '\n'.join(f'- [{r["source"]}] {r["content"][:200]}' for r in filtered)
                 system_prompt += f'\n\n**Relevant memories:**\n{ctx}'
@@ -285,8 +405,11 @@ async def chat_stream(req: Request):
             content = str(h['content'])[:16000]
             if not messages or messages[-1].get('role') != h['role'] or messages[-1].get('content') != content:
                 messages.append({'role': h['role'], 'content': content})
-    if not messages or messages[-1].get('role') != 'user' or messages[-1].get('content') != message:
-        messages.append({'role': 'user', 'content': message})
+    # Send the structured multi-modal parts when images are attached, so the
+    # provider actually receives the image; otherwise send the plain string.
+    outgoing_content = message_parts if has_images else message
+    if not messages or messages[-1].get('role') != 'user' or messages[-1].get('content') != outgoing_content:
+        messages.append({'role': 'user', 'content': outgoing_content})
 
     # log user message
     _log_chat(session_id, agent_id, 'user', message, model=req_model or agent.get('model', ''))
@@ -294,10 +417,24 @@ async def chat_stream(req: Request):
     # update agent status
     _set_agent_status(agent_id, 'working')
 
+    # When the user turns the "⚡ Stream" toggle off, deltas are buffered and
+    # delivered as a single frame instead of token-by-token. The transport is
+    # still SSE so the client's parsing path is identical either way.
+    want_stream = body.get('stream', True) is not False
+
     async def generate():
         """Execute or process generate operation."""
         full_text = ''
-        time.time()
+        buffered: list[str] = []
+        # Real usage reported by the provider on the terminal SSE frame.
+        # BUG FIX: these were never captured, so _log_chat() always stored
+        # tokens=0/cost=0 and /api/cost, the status-bar spend readout and the
+        # FinOps analytics were structurally incapable of showing anything.
+        used_tokens = 0
+        used_cost = 0.0
+        resolved_model = req_model or agent.get('model', '')
+        # Only genuine model output is eligible for long-term memory ingestion.
+        is_real_completion = True
         try:
             async for chunk in llm.stream(
                 messages,
@@ -307,19 +444,61 @@ async def chat_stream(req: Request):
                 max_tokens=max_tokens,
                 inject_steering=False,
             ):
-                yield chunk
-                # accumulate text for logging
+                if want_stream:
+                    yield chunk
+                # accumulate text + usage for logging
                 try:
                     data = json.loads(chunk.split('data: ', 1)[1])
                     full_text += data.get('delta', '')
+                    if not want_stream and data.get('delta'):
+                        buffered.append(data['delta'])
+                    if data.get('done'):
+                        used_tokens = int(data.get('tokens', 0) or 0)
+                        used_cost = float(data.get('cost', 0.0) or 0.0)
+                        resolved_model = data.get('model') or resolved_model
+                        # llm.stream() flags placeholder replies (no API key
+                        # configured) with stub=True, and hard failures with
+                        # an 'error' key. Neither is real model output.
+                        if data.get('stub') or data.get('error'):
+                            is_real_completion = False
+                        if not want_stream:
+                            final_payload = {
+                                'delta': ''.join(buffered),
+                                'done': True,
+                                'model': resolved_model,
+                                'tokens': used_tokens,
+                                'cost': used_cost,
+                            }
+                            if data.get('stub'):
+                                final_payload['stub'] = True
+                            if data.get('error'):
+                                final_payload['error'] = data['error']
+                            yield f'data: {json.dumps(final_payload)}\n\n'
                 except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                     pass
         finally:
             # log assistant reply
-            _log_chat(session_id, agent_id, 'assistant', full_text, model=req_model or agent.get('model', ''))
+            _log_chat(
+                session_id,
+                agent_id,
+                'assistant',
+                full_text,
+                tokens=used_tokens,
+                cost=used_cost,
+                model=resolved_model,
+            )
             _set_agent_status(agent_id, 'idle')
-            # ingest to memory
-            if full_text and len(full_text) > 50:
+            # Ingest to long-term memory — but ONLY real model output.
+            #
+            # BUG FIX: the sole guard here used to be `len(full_text) > 50`, so
+            # every failure mode got permanently written into the memory store
+            # as if it were knowledge: "⚠️ No OPENROUTER_API_KEY set…" stubs,
+            # "[stream error]…" text, and provider fallback notices. Those
+            # memories were then retrieved by the use_rag lookup above and
+            # injected into the system prompt of later conversations — a
+            # self-poisoning loop. On this machine 18 of 19 stored chat
+            # memories were error text before this fix.
+            if full_text and len(full_text) > 50 and is_real_completion and not _looks_like_error_text(full_text):
                 memory_db.memory_add(
                     source=f'chat:{agent_id}',
                     content=full_text[:800],

@@ -270,7 +270,12 @@ async def stream(
         'temperature': temperature,
         'max_tokens': max_tokens,
         'stream': True,
+        # Ask OpenRouter to append a usage block to the final SSE chunk.
+        # Without this, streamed chats recorded tokens=0/cost=0 forever and
+        # the FinOps / cost surfaces had nothing to report.
+        'stream_options': {'include_usage': True},
     }
+    stream_usage: dict = {}
     try:
         async with (
             httpx.AsyncClient(timeout=timeout) as client,
@@ -287,13 +292,30 @@ async def stream(
                     continue
                 raw = line[5:].strip()
                 if raw == '[DONE]':
-                    yield f'data: {json.dumps({"delta": "", "done": True, "model": model_str})}\n\n'
+                    final = {'delta': '', 'done': True, 'model': model_str}
+                    if stream_usage:
+                        prompt_tokens = int(stream_usage.get('prompt_tokens', 0) or 0)
+                        completion_tokens = int(stream_usage.get('completion_tokens', 0) or 0)
+                        final['prompt_tokens'] = prompt_tokens
+                        final['completion_tokens'] = completion_tokens
+                        final['tokens'] = int(stream_usage.get('total_tokens', 0) or 0) or (
+                            prompt_tokens + completion_tokens
+                        )
+                        final['cost'] = _estimate_cost(model_str, stream_usage)
+                    yield f'data: {json.dumps(final)}\n\n'
                     break
                 try:
                     chunk = json.loads(raw)
-                    delta = chunk['choices'][0]['delta'].get('content', '')
-                    if delta:
-                        yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
+                    # The usage block arrives on its own trailing chunk, which
+                    # normally carries an empty choices[] — capture it before
+                    # the delta lookup so it survives to the [DONE] frame.
+                    if chunk.get('usage'):
+                        stream_usage = chunk['usage']
+                    choices = chunk.get('choices') or []
+                    if choices:
+                        delta = (choices[0].get('delta') or {}).get('content', '')
+                        if delta:
+                            yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
                 except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                     pass
     except Exception as e:
@@ -531,7 +553,23 @@ async def _ollama_stream(messages, model, temperature, max_tokens, timeout) -> A
                                 if delta:
                                     yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
                                 if done:
-                                    yield f'data: {json.dumps({"delta": "", "done": True, "model": clean_model})}\n\n'
+                                    # Ollama reports real token counts on the final
+                                    # chunk. These used to be discarded, so every
+                                    # streamed chat was persisted with tokens=0 and
+                                    # cost=0 and the cost/analytics surfaces were
+                                    # permanently empty. Local inference is free, so
+                                    # cost stays 0.0 while tokens are now truthful.
+                                    prompt_tokens = int(chunk.get('prompt_eval_count', 0) or 0)
+                                    completion_tokens = int(chunk.get('eval_count', 0) or 0)
+                                    yield 'data: ' + json.dumps({
+                                        'delta': '',
+                                        'done': True,
+                                        'model': clean_model,
+                                        'prompt_tokens': prompt_tokens,
+                                        'completion_tokens': completion_tokens,
+                                        'tokens': prompt_tokens + completion_tokens,
+                                        'cost': 0.0,
+                                    }) + '\n\n'
                             except Exception:
                                 pass
                         return
