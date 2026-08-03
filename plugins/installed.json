@@ -3269,5 +3269,45 @@
     "emoji": "\ud83e\uddea",
     "skill_count": 1,
     "installed_at": "2026-08-03"
+  },
+  "unit_test_eb927c": {
+    "id": "unit_test_eb927c",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-08-03"
+  },
+  "sysplugin_fdef4e634f": {
+    "id": "sysplugin_fdef4e634f",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-08-03"
+  },
+  "test_plugin_c253e5d0": {
+    "id": "test_plugin_c253e5d0",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-08-03"
+  },
+  "uat_plugin_d0f83a9b": {
+    "id": "uat_plugin_d0f83a9b",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-08-03"
   }
 }

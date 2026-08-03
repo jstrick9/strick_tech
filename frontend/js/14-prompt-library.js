@@ -86,7 +86,10 @@ async function renderPrompts() {
           <button type="button" data-prompt-cat="all" class="term-btn" id="pcat-all"
                   style="${promptCategory==='all'?'border-color:var(--accent);color:var(--accent-hi)':''}">All (${promptsData.length})</button>
           ${cats.map(c=>`<button type="button" data-prompt-cat="${escHtml(c.id)}" class="term-btn" id="pcat-${escHtml(c.id)}"
-            style="${promptCategory===c.id?'border-color:var(--accent);color:var(--accent-hi)':''}">${escHtml(c.id)} (${c.count})</button>`).join('')}
+            title="${c.builtin===false?'Custom category':'Built-in category'}"
+            style="${promptCategory===c.id?'border-color:var(--accent);color:var(--accent-hi)':''}">${escHtml(c.label||c.id)} (${c.count})</button>`).join('')}
+          <button type="button" data-prompt-action="new-category" class="term-btn"
+                  title="Create a custom category">＋ Category</button>
         </div>
       </div>
       <div id="prompt-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px">${renderPromptCards()}</div>
@@ -100,7 +103,9 @@ async function renderPrompts() {
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
             <div class="form-group" style="margin:0"><label class="form-label">Category</label>
               <select id="pm-category" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none">
-                ${['general','build','review','testing','refactor','debug','docs','auth','seo','database','ux','quality'].map(c=>`<option value="${c}">${c}</option>`).join('')}
+                <!-- Was a hardcoded list of the 12 built-ins, so a custom
+                     category could never be selected even once it existed. -->
+                ${cats.map(c=>`<option value="${escHtml(c.id)}">${escHtml(c.label||c.id)}</option>`).join('')}
               </select>
             </div>
             <div class="form-group" style="margin:0"><label class="form-label">Tags</label>
@@ -144,9 +149,25 @@ function wireCategoryFilterEvents() {
   const filterBar = document.getElementById('prompt-cat-filter');
   if (!filterBar) return;
   filterBar.addEventListener('click', (e) => {
+    if (e.target.closest('[data-prompt-action="new-category"]')) { createCategory(); return; }
     const btn = e.target.closest('[data-prompt-cat]');
     if (btn) setPromptCat(btn.dataset.promptCat);
   });
+}
+
+async function createCategory() {
+  const name = (window.prompt('New category name (e.g. "Marketing Copy"):') || '').trim();
+  if (!name) return;
+  try {
+    const r = await fetch('/api/prompts/categories', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name})
+    });
+    if (!r.ok) { toast('Could not create category: '+await promptError(r), 'err'); return; }
+    const j = await r.json();
+    toast(`✅ Category "${j.label}" created`, 'ok');
+    renderPrompts();
+  } catch (ex) { toast('Category error: '+ex?.message, 'err'); }
 }
 
 // Prompt card action buttons (Use/Edit/Duplicate/Favorite/Delete):
@@ -173,6 +194,7 @@ function wirePromptGridEvents() {
       case 'use':        if (p) usePrompt(pid, p.content); break;
       case 'edit':       editPrompt(pid); break;
       case 'duplicate':  duplicatePrompt(pid); break;
+      case 'history':    showPromptHistory(pid); break;
       case 'favorite':   toggleFavorite(pid, p?.is_favorite ? 1 : 0); break;
       case 'delete':     deletePrompt(pid); break;
       case 'create-first': openNewPromptModal(); break;
@@ -218,6 +240,7 @@ function renderPromptCards() {
         <button type="button" data-prompt-action="use" data-prompt-id="${escHtml(p.id)}" class="btn btn-primary btn-sm" style="flex:1" title="Load in chat">→ Use</button>
         <button type="button" data-prompt-action="edit" data-prompt-id="${escHtml(p.id)}" class="btn btn-ghost btn-sm" title="Edit">✏️</button>
         <button type="button" data-prompt-action="duplicate" data-prompt-id="${escHtml(p.id)}" class="btn btn-ghost btn-sm" title="Duplicate">⧉</button>
+        <button type="button" data-prompt-action="history" data-prompt-id="${escHtml(p.id)}" class="btn btn-ghost btn-sm" title="Version history">🕘</button>
         <button type="button" data-prompt-action="favorite" data-prompt-id="${escHtml(p.id)}" class="btn btn-ghost btn-sm" title="${p.is_favorite?'Remove from favorites':'Add to favorites'}">${p.is_favorite?'⭐':'☆'}</button>
         <button type="button" data-prompt-action="delete" data-prompt-id="${escHtml(p.id)}" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:3px 6px" title="Delete">🗑</button>
       </div>
@@ -1008,3 +1031,61 @@ if(typeof PALETTE_CMDS!=='undefined'){
   );
 }
 
+
+// ── Version history ────────────────────────────────────────────────────────
+// Editing used to overwrite in place with no history, so the phrasing that
+// worked was simply gone once you changed it.
+async function showPromptHistory(pid) {
+  let data;
+  try {
+    const r = await fetch(`/api/prompts/${encodeURIComponent(pid)}/versions`);
+    if (!r.ok) { toast('History failed: '+await promptError(r), 'err'); return; }
+    data = await r.json();
+  } catch (ex) { toast('History error: '+ex?.message, 'err'); return; }
+
+  const p = promptsData.find(x => x.id === pid);
+  const versions = data.versions || [];
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = `
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;max-width:640px;width:100%;max-height:80vh;overflow:auto;padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="margin:0;color:var(--text-0);font-size:15px">🕘 Version history — ${escHtml(p?.title || pid)}</h3>
+        <button type="button" class="btn btn-ghost btn-sm" data-ph="close">✕</button>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px;background:var(--bg-1)">
+        <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Current</div>
+        <div style="font-size:12px;color:var(--text-1);white-space:pre-wrap;word-break:break-word">${escHtml((p?.content || '').slice(0, 400))}</div>
+      </div>
+      ${versions.length ? versions.map(v => `
+        <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:11px;color:var(--text-3)">v${v.version_no} · ${escHtml(v.reason || 'edit')} · ${escHtml((v.created_at || '').replace('T',' ').slice(0,16))}</span>
+            <button type="button" class="btn btn-ghost btn-sm" data-ph="restore" data-v="${v.version_no}">↺ Restore</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-2);white-space:pre-wrap;word-break:break-word">${escHtml((v.content || '').slice(0, 400))}</div>
+        </div>`).join('')
+      : '<div style="color:var(--text-3);font-size:12px;padding:14px;text-align:center">No previous versions yet — history starts from your next edit.</div>'}
+    </div>`;
+  overlay.addEventListener('click', async (e) => {
+    const act = e.target.closest('[data-ph]')?.dataset.ph;
+    if (act === 'close' || e.target === overlay) { overlay.remove(); return; }
+    if (act === 'restore') {
+      const v = e.target.closest('[data-ph="restore"]').dataset.v;
+      try {
+        const r = await fetch(`/api/prompts/${encodeURIComponent(pid)}/versions/${v}/restore`, {method:'POST'});
+        if (!r.ok) { toast('Restore failed: '+await promptError(r), 'err'); return; }
+        const j = await r.json();
+        // Be explicit when a restore couldn't bring everything back verbatim.
+        if (j.demoted_category) toast('⚠️ That version\'s category no longer exists — set to general', 'warn');
+        if (j.dropped_agent)    toast('⚠️ That version\'s agent no longer exists — pin cleared', 'warn');
+        toast(`↺ Restored to v${v}`, 'ok');
+        overlay.remove();
+        renderPrompts();
+      } catch (ex) { toast('Restore error: '+ex?.message, 'err'); }
+    }
+  });
+  document.body.appendChild(overlay);
+}
+window.showPromptHistory = showPromptHistory;
+window.createCategory = createCategory;

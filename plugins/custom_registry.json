@@ -3305,5 +3305,48 @@
         "prompt": "Do test: {{input}}"
       }
     ]
+  },
+  {
+    "id": "unit_test_eb927c",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "sysplugin_fdef4e634f",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "test_plugin_c253e5d0",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "uat_plugin_d0f83a9b",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skills": [
+      {
+        "id": "test_skill",
+        "name": "Test Skill",
+        "trigger": "test",
+        "prompt": "Do test: {{input}}"
+      }
+    ]
   }
 ]
