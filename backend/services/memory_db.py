@@ -26,11 +26,37 @@ MEMORY_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = MEMORY_DIR / 'agentic.db'
 
 
+def db_path() -> Path:
+    """Resolve the database path at CALL time, honouring AGENTIC_TEST_DB.
+
+    tests/unit/conftest.py has always set AGENTIC_TEST_DB to a temp file in an
+    autouse session fixture whose docstring promises "unit tests never touch
+    production agentic.db". Nothing in the backend ever read that variable —
+    `grep -rn AGENTIC_TEST_DB backend/` returned zero hits — so every suite
+    wrote straight into memory/agentic.db while appearing to be sandboxed.
+
+    Proven before this fix: running tests/unit/test_08_sessions_prompts.py took
+    the production prompt_library from 503 rows to 511. Accumulated residue has
+    interfered with six module reviews and twice degraded a fix mid-write
+    (poisoned RAG memories, 44-way duplicate prompts, and agents literally named
+    "' OR '1'='1'; DROP TABLE agents; --" polluting a validation error message).
+
+    Resolving per call rather than at import is what makes this work: the env
+    var is set by a fixture that runs *after* backend modules are imported, so
+    a module-level constant is bound too early to ever see it.
+    """
+    test_db = os.environ.get('AGENTIC_TEST_DB')
+    if test_db:
+        return Path(test_db)
+    return DB_PATH
+
+
 # ── DB helpers ─────────────────────────────────────────────────────────────────
 def get_conn() -> sqlite3.Connection:
     """Retrieve and return get conn."""
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=10)
+    path = db_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(path, check_same_thread=False, timeout=10)
     con.row_factory = sqlite3.Row
     con.execute('PRAGMA journal_mode=WAL')
     con.execute('PRAGMA foreign_keys=ON')

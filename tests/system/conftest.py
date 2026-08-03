@@ -141,3 +141,46 @@ def _ensure_agent_identities_provisioned():
         except Exception:
             pass
     yield
+
+
+# ── Production-database guard ─────────────────────────────────────────────────
+# These suites talk to a SEPARATE server process, so a pytest fixture setting
+# AGENTIC_TEST_DB cannot redirect it — they have always written to whatever
+# database that server opened, which in practice is memory/agentic.db. The
+# accumulated residue has interfered with six module reviews.
+#
+# Set AGENTIC_REQUIRE_TEST_DB=1 to make that a hard failure instead of a silent
+# one. Start the server with AGENTIC_TEST_DB pointing at a scratch file to
+# satisfy it:
+#
+#   AGENTIC_TEST_DB=/tmp/agentic-test.db python run.py
+#   AGENTIC_REQUIRE_TEST_DB=1 pytest tests/system
+#
+# Default is a warning, not an error, so the existing workflow keeps working.
+def _assert_server_db_is_sandboxed() -> None:
+    import os as _os
+    import warnings
+
+    import httpx as _httpx
+
+    try:
+        info = _httpx.get(f'{BASE}/api/health', timeout=5).json()
+    except Exception:
+        return  # the "is the server up" check elsewhere reports this properly
+
+    if info.get('db_is_test_sandbox'):
+        return
+
+    message = (
+        f"Live-server suite is running against a NON-SANDBOXED database: "
+        f"{info.get('db_path') or 'unknown'}. Test data will be written to it. "
+        f"Restart the server with AGENTIC_TEST_DB=/tmp/agentic-test.db to isolate it."
+    )
+    if _os.environ.get('AGENTIC_REQUIRE_TEST_DB'):
+        raise RuntimeError(message)
+    warnings.warn(message, stacklevel=2)
+
+
+@pytest.fixture(scope='session', autouse=True)
+def _db_sandbox_check():
+    _assert_server_db_is_sandboxed()

@@ -736,6 +736,7 @@ async function ambientShowTask(taskId) {
 // ══════════════════════════════════════════════════════════════════
 (function patchNavSprint17() {
   const _base = window.nav || function(){};
+  // intentional-override: wraps core nav to refresh marketplace panes
   window.nav = function masterNav17(pane) {
     _base(pane);
     // MODULE MERGE: 'steering' is no longer a real pane — window.nav()

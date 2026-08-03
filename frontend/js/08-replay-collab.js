@@ -2058,6 +2058,7 @@ function showToast(msg, dur=3000) {
 // ══════════════════════════════════════════════════════════════════
 (function patchNavSprint15() {
   const _base = window.nav || function(){};
+  // intentional-override: wraps core nav to refresh replay/collab panes
   window.nav = function masterNav15(pane) {
     _base(pane);
     if (pane==='replay')      renderReplay?.();

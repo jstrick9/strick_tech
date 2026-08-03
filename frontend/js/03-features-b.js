@@ -1595,6 +1595,7 @@ document.addEventListener('keydown', (e) => {
 // ══════════════════════════════════════════════════════════════════
 (function patchNavSprint16() {
   const _base = window.nav || function(){};
+  // intentional-override: wraps core nav (Sprint 15 pane hooks)
   window.nav = function masterNav16(pane) {
     _base(pane);
     if (pane==='specs')     renderSpecs?.();

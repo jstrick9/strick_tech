@@ -42,8 +42,15 @@ def _connect() -> sqlite3.Connection:
     under real concurrent use" bug this session has repeatedly found and
     fixed elsewhere (see the Specs module's "database is locked" fix).
     Centralizing connection setup here matches get_conn()'s settings.
+
+    The path now comes from memory_db.db_path() rather than the module-level
+    DB constant, so AGENTIC_TEST_DB redirection applies here too — otherwise
+    this router would keep writing to the production database during tests
+    while every other module was correctly sandboxed.
     """
-    con = sqlite3.connect(DB, check_same_thread=False, timeout=10)
+    from ..services.memory_db import db_path
+
+    con = sqlite3.connect(db_path(), check_same_thread=False, timeout=10)
     con.execute('PRAGMA busy_timeout=10000')
     con.execute('PRAGMA journal_mode=WAL')
     con.execute('PRAGMA synchronous=NORMAL')

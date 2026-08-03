@@ -1720,6 +1720,7 @@ function updateNextActionBar(pane) {
 // ══════════════════════════════════════════════════════════════════
 (function patchNavSprint20() {
   const _base = window.nav || function(){};
+  // intentional-override: wraps core nav to refresh workflow/spec panes
   window.nav = async function masterNav20(pane) {
     // Update current pane for next-action bar
     _currentPane = pane;

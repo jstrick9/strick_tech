@@ -24,7 +24,7 @@ def _matches_contract(reference: str, contract: str) -> bool:
         return False
     return all(
         contract_part.startswith('{') and contract_part.endswith('}') or ref_part == contract_part
-        for ref_part, contract_part in zip(ref_parts, contract_parts)
+        for ref_part, contract_part in zip(ref_parts, contract_parts, strict=True)
     )
 
 

@@ -2454,6 +2454,7 @@ async function tauriDevStart() {
 // ══════════════════════════════════════════════════════════════════
 (function patchNavForSprint14() {
   const _base = window.nav || function(){};
+  // intentional-override: wraps core nav (Sprint 14 pane hooks)
   window.nav = function masterNav14(pane) {
     _base(pane);
     if (pane === 'workflow')  renderWorkflow?.();

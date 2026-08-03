@@ -230,6 +230,7 @@ setTimeout(addQuickActionBar, 500);
     return;
   }
   const patched = window.nav;
+  // intentional-override: wraps core nav to add Studio editor layout handling
   window.nav = function(pane) {
     patched(pane);
     setTimeout(() => showQuickActions(pane), 100);

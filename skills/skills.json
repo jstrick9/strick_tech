@@ -807,5 +807,35 @@
     "agent": "brain",
     "inputs": [],
     "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_204242",
+    "name": "Integration Test Skill it_204242e6",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_448b18",
+    "name": "Integration Test Skill it_448b18df",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_e26142",
+    "name": "Integration Test Skill it_e26142d8",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
   }
 ]
