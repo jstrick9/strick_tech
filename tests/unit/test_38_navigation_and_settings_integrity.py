@@ -198,7 +198,17 @@ class TestNavigationAndSettingsIntegrity:
         """Verify formal execution of Phase 1: URL deep linking, command palette dynamic search, and font/contrast scaling."""
         assert "window.initDeepLinkRouter =" in app_core_js, "initDeepLinkRouter must be defined in 01-app-core.js"
         assert "window.saveFontSize = async function(size)" in app_core_js, "saveFontSize must instantly scale font-size"
-        assert "const sizeMap = { sm: '13px', base: '14px', lg: '16px' };" in app_core_js, "Must map exact typography scales"
+        # The px map moved into a shared FONT_SCALE_PX constant so that
+        # saveFontSize() and applyPreferences() cannot drift apart (they
+        # previously kept private copies, and applyPreferences stamped a
+        # stale numeric preference over the user's chosen scale on startup).
+        # The contract is the exact scale VALUES, wherever they are declared.
+        assert "const FONT_SCALE_PX = { sm: '13px', base: '14px', lg: '16px' };" in app_core_js, (
+            "Must map exact typography scales"
+        )
+        assert "const sizeMap = FONT_SCALE_PX;" in app_core_js, (
+            "saveFontSize must reuse the shared scale tokens"
+        )
         assert "Object.keys(window.MASTER_PANE_REGISTRY).forEach" in app_core_js, (
             "filterPalette must dynamically merge all 68 panes from MASTER_PANE_REGISTRY"
         )

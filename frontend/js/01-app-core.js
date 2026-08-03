@@ -1287,41 +1287,54 @@ async function saveApiKey() {
   const resEl = document.getElementById('settings-key-test-result');
   const badge = document.getElementById('or-key-status-badge');
   if (!key) { toast('Enter your OpenRouter API key','warn'); return; }
-  if (resEl) { resEl.style.display = 'block'; resEl.innerHTML = '<span style="color:var(--accent)">⏳ Saving & testing OpenRouter API key connection...</span>'; }
+  if (resEl) { resEl.style.display = 'block'; resEl.innerHTML = '<span style="color:var(--accent)">⏳ Verifying your OpenRouter API key…</span>'; }
   if (badge) { badge.textContent = 'CHECKING...'; badge.style.color = 'var(--warning)'; }
-  
+
+  // UX FIX: this used to SAVE first and verify afterwards, so a typo'd or
+  // revoked key was written to the vault and injected into the process
+  // environment regardless — leaving the platform actively configured with a
+  // credential known to be broken, and every subsequent chat failing. Verify
+  // first, and only commit a key that OpenRouter actually accepts. (The
+  // verification itself was also meaningless until now: it called the PUBLIC
+  // /models endpoint, which returns 200 for any string — see the fix in
+  // backend/routers/secrets.py.)
+  try {
+    const vr = await fetch('/api/secrets/test-connection', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({provider: 'openrouter', key})
+    });
+    const vj = await vr.json().catch(() => ({}));
+    window._lastVerifiedModelCount = vj.models_count || 0;
+    if (!vj.ok) {
+      const why = vj.error || `HTTP ${vr.status}`;
+      if (badge) { badge.textContent = 'INVALID KEY'; badge.style.color = 'var(--danger)'; }
+      if (resEl) resEl.innerHTML = `<span style="color:var(--danger)">❌ ${escHtml(why)}<br><span style="color:var(--text-3)">Nothing was saved — your previous connection is unchanged.</span></span>`;
+      toast('❌ Key not saved — OpenRouter rejected it', 'err', 4000);
+      return;
+    }
+  } catch (e) {
+    if (badge) { badge.textContent = 'UNVERIFIED'; badge.style.color = 'var(--warning)'; }
+    if (resEl) resEl.innerHTML = `<span style="color:var(--warning)">⚠️ Could not reach OpenRouter to verify (${escHtml(e.message)}). Nothing was saved — check your network and try again.</span>`;
+    return;
+  }
+
   const r = await fetch('/api/secrets/set', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({key:'OPENROUTER_API_KEY', value:key, scope:'global'})
   });
   const j = await r.json();
   if (j.ok) {
-    toast('🔑 API key saved to encrypted vault! Testing live model catalog...','ok',2000);
+    // The key was verified above, so this is unambiguously a success — the old
+    // flow re-tested here and could report "SAVED / UNVERIFIED", leaving the
+    // user unsure whether their connection actually worked.
+    const count = window._lastVerifiedModelCount || 0;
+    toast(`✅ OpenRouter key verified and saved${count ? ` — ${count} models unlocked` : ''}.`, 'ok', 5000);
     updateKeyStatus(true);
     document.getElementById('or-key-input').value = '';
     if (window.markChecklistStep) markChecklistStep('api_key');
-    try {
-      const tr = await fetch('/api/secrets/test-connection', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({provider: 'openrouter', key: key})
-      });
-      const tj = await tr.json();
-      if (tj.ok) {
-        toast(`✅ OpenRouter verified! ${tj.models_count} models unlocked.`, 'ok', 5000);
-        if (badge) { badge.textContent = `ONLINE (${tj.models_count} MODELS)`; badge.style.color = 'var(--success)'; }
-        if (resEl) resEl.innerHTML = `<span style="color:var(--success)">✅ Verified connection! ${tj.models_count} AI models available (Claude 3.5 Sonnet, GPT-4o, Llama 3.3, Gemini 2.5 Pro).</span>`;
-        if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
-      } else {
-        toast(`⚠️ OpenRouter test note: ${tj.error}`, 'warn', 5000);
-        if (badge) { badge.textContent = 'SAVED / UNVERIFIED'; badge.style.color = 'var(--warning)'; }
-        if (resEl) resEl.innerHTML = `<span style="color:var(--warning)">🔑 Key saved in vault, but API test reported: ${escHtml(tj.error)}</span>`;
-        if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
-      }
-    } catch(e) {
-      if (badge) { badge.textContent = 'SAVED / TIMEOUT'; badge.style.color = 'var(--warning)'; }
-      if (resEl) resEl.innerHTML = `<span style="color:var(--warning)">🔑 Key saved in vault (network verification timed out).</span>`;
-      if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
-    }
+    if (badge) { badge.textContent = count ? `ONLINE (${count} MODELS)` : 'ONLINE'; badge.style.color = 'var(--success)'; }
+    if (resEl) resEl.innerHTML = `<span style="color:var(--success)">✅ Verified and saved to the encrypted vault${count ? ` — ${count} AI models available` : ''}.</span>`;
+    if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
   } else {
     toast('Failed to save key','err');
     if (badge) { badge.textContent = 'ERROR'; badge.style.color = 'var(--danger)'; }
@@ -5180,10 +5193,30 @@ nav = function(pane) {
 };
 
 // ── Preferences & Theme ───────────────────────────────────────────
+// Typography scale tokens, shared by applyPreferences() and saveFontSize().
+const FONT_SCALE_PX = { sm: '13px', base: '14px', lg: '16px' };
+
 function applyPreferences(prefs) {
   if (!prefs) return;
   if (prefs.theme)        applyTheme(prefs.theme, prefs.accent_color);
-  if (prefs.font_size)    document.documentElement.style.fontSize = prefs.font_size + 'px';
+  // BUG FIX: font size is stored in TWO incompatible places. saveFontSize()
+  // writes a scale name ('sm' | 'base' | 'lg') to /api/profile and to
+  // localStorage, but this line read the SEPARATE numeric font_size from
+  // /api/onboarding/preferences — a value nothing ever writes, so it was
+  // always the 14 default. On every startup applyPreferences() therefore
+  // stamped 14px over whatever scale the user had chosen, silently reverting
+  // the Appearance setting. Prefer the user's actual saved scale, and accept
+  // the numeric preference only as a fallback for installs that have one.
+  let scale = null;
+  try { scale = _safeLS.get('agentic_os_font_size'); } catch (e) { /* private mode */ }
+  if (!scale && typeof _UI !== 'undefined') scale = _UI.profile?.font_size;
+  if (scale && FONT_SCALE_PX[scale]) {
+    document.documentElement.style.fontSize = FONT_SCALE_PX[scale];
+    document.documentElement.style.setProperty('--text-base', FONT_SCALE_PX[scale]);
+  } else if (prefs.font_size) {
+    const px = typeof prefs.font_size === 'number' ? `${prefs.font_size}px` : String(prefs.font_size);
+    document.documentElement.style.fontSize = px;
+  }
   if (prefs.workspace_name) {
     const sb = document.getElementById('sb-version');
     if (sb && prefs.workspace_name) sb.textContent = `Agentic OS — ${prefs.workspace_name}`;
@@ -5321,10 +5354,12 @@ window.updateSettingsModeButtons = function() {
 };
 
 window.saveFontSize = async function(size) {
-  const sizeMap = { sm: '13px', base: '14px', lg: '16px' };
+  // Uses the shared FONT_SCALE_PX tokens so this and applyPreferences() can
+  // never drift apart again.
+  const sizeMap = FONT_SCALE_PX;
   const zoomMap = { sm: '0.90', base: '1.0', lg: '1.12' };
-  document.documentElement.style.fontSize = sizeMap[size] || '14px';
-  document.documentElement.style.setProperty('--text-base', sizeMap[size] || '14px');
+  document.documentElement.style.fontSize = sizeMap[size] || FONT_SCALE_PX.base;
+  document.documentElement.style.setProperty('--text-base', sizeMap[size] || FONT_SCALE_PX.base);
   if (document.body) document.body.style.zoom = zoomMap[size] || '1.0';
   try { try { _safeLS.set('agentic_os_font_size', size); } catch {} } catch(e) {}
   if (typeof _UI !== 'undefined') {
