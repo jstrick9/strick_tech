@@ -42,6 +42,8 @@ log = logging.getLogger('agentic.supervisor')
 
 from backend.config import get_data_dir
 
+from ..services.llm import sse_guard
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -251,7 +253,9 @@ async def _decompose_goal(goal_text: str, goal_id: str, run_id: str) -> list[dic
 
     messages = [{'role': 'system', 'content': DECOMPOSE_SYSTEM}, {'role': 'user', 'content': f'Goal: {goal_text}'}]
 
-    result = await complete(messages, agent_id='brain', max_tokens=1500, temperature=0.3, inject_steering=False)
+    result = await complete(
+        messages, agent_id='brain', max_tokens=1500, temperature=0.3, inject_steering=False, allow_stub=True
+    )
     text = result.get('text', '')
 
     # Parse JSON
@@ -314,6 +318,7 @@ Use Markdown for structure. Be practical, not vague."""
 async def _execute_task(task: dict, run_id: str, goal_text: str, context_so_far: list[dict]) -> dict:
     """Execute a single task with the assigned specialist agent."""
     from ..services.llm import complete
+    from ..services.llm import is_stub as llm_is_stub
 
     agent_id = task.get('agent_id', 'brain')
     task['task_id']
@@ -357,7 +362,12 @@ async def _execute_task(task: dict, run_id: str, goal_text: str, context_so_far:
     ]
 
     t0 = _epoch_ms()
-    result = await complete(messages, agent_id=agent_id, max_tokens=1200, temperature=0.5, inject_steering=False)
+    # Supervisor runs execute in a background task, where a raised LLMUnavailableError
+    # would have no HTTP response to become a 503. Opt into the placeholder and
+    # propagate the flag so the run is recorded as failed, not done.
+    result = await complete(
+        messages, agent_id=agent_id, max_tokens=1200, temperature=0.5, inject_steering=False, allow_stub=True
+    )
     duration = _epoch_ms() - t0
 
     return {
@@ -373,7 +383,7 @@ async def _execute_task(task: dict, run_id: str, goal_text: str, context_so_far:
         # evaluator still awarded 0.7 — a passing grade for a run in which no
         # model ever executed. Reproduced live: a 3-task run "succeeded" with
         # the API-key notice as each task's output. The flag is now propagated.
-        'is_stub': result.get('provider') == 'stub' or result.get('ok') is False,
+        'is_stub': llm_is_stub(result) or result.get('ok') is False,
     }
 
 
@@ -390,7 +400,9 @@ async def _evaluate_outcome(goal_text: str, final_output: str) -> dict:
         {'role': 'system', 'content': EVAL_SYSTEM},
         {'role': 'user', 'content': f'Goal: {goal_text}\n\nOutput:\n{final_output[:2000]}'},
     ]
-    result = await complete(messages, agent_id='reviewer', max_tokens=300, temperature=0.1, inject_steering=False)
+    result = await complete(
+        messages, agent_id='reviewer', max_tokens=300, temperature=0.1, inject_steering=False, allow_stub=True
+    )
     import re
 
     m = re.search(r'\{.*\}', result.get('text', ''), re.DOTALL)
@@ -420,7 +432,9 @@ async def _synthesize(goal_text: str, completed_tasks: list[dict]) -> str:
         {'role': 'system', 'content': SYNTH_SYSTEM},
         {'role': 'user', 'content': f'Goal: {goal_text}\n\nSpecialist Outputs:\n{combined}'},
     ]
-    result = await complete(messages, agent_id='orchestrator', max_tokens=1500, temperature=0.4, inject_steering=False)
+    result = await complete(
+        messages, agent_id='orchestrator', max_tokens=1500, temperature=0.4, inject_steering=False, allow_stub=True
+    )
     return result.get('text', combined[:1000])
 
 
@@ -1155,6 +1169,5 @@ async def stream_run_updates(run_id: str):
 
         yield 'data: {"type":"stream_end"}\n\n'
 
-    return StreamingResponse(
-        _gen(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_gen()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )

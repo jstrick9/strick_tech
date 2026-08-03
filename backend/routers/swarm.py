@@ -110,9 +110,22 @@ async def swarm_run(req: Request):
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     runs = []
-    for r in results:
+    # zip against agent_ids: gather() preserves order, and a failed agent that
+    # reports itself as '?' is useless for diagnosing which one broke.
+    for aid, r in zip(agent_ids, results, strict=False):
         if isinstance(r, Exception):
-            runs.append({'agent': '?', 'output': str(r), 'tokens': 0, 'latency_ms': 0, 'ok': False})
+            agent = all_agents.get(aid, {})
+            runs.append(
+                {
+                    'agent': aid,
+                    'name': agent.get('name', aid),
+                    'output': str(r),
+                    'tokens': 0,
+                    'latency_ms': 0,
+                    'ok': False,
+                    'error': type(r).__name__,
+                }
+            )
         else:
             runs.append(r)
 
@@ -228,6 +241,21 @@ async def swarm_run(req: Request):
         )
 
     winner_score = scores.get(winner_id, None) if scores else None
+
+    # A swarm in which every agent failed reported ok:true with a null winner,
+    # so the UI rendered an empty but "successful" run. If nothing succeeded,
+    # say so with the status code that matches the cause.
+    succeeded = [r for r in runs if r.get('ok')]
+    if not succeeded:
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': 'Every agent in the swarm failed — no output was produced.',
+                'run_id': run_id,
+                'runs': runs,
+            },
+            status_code=503,
+        )
 
     return {
         'ok': True,

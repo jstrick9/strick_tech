@@ -22,6 +22,8 @@ log = logging.getLogger('agentic.workflow')
 
 from backend.config import get_data_dir
 
+from ..services.llm import sse_guard
+
 ROOT = get_data_dir()
 WF_DIR = ROOT / 'workspaces' / 'workflows'
 WF_DIR.mkdir(parents=True, exist_ok=True)
@@ -573,8 +575,7 @@ async def run_workflow(wf_id: str, req: Request):
 
         yield f'data: {json.dumps({"type": "done", "run_id": run_id})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 

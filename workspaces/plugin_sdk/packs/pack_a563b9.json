@@ -1,0 +1,46 @@
+{
+  "id": "pack_a563b9",
+  "name": "RunPack_13e2d825",
+  "version": "1.0.0",
+  "description": "What your plugin does",
+  "author": "Your Name",
+  "license": "MIT",
+  "tags": [
+    "utility",
+    "ai"
+  ],
+  "icon": "\ud83d\udd27",
+  "homepage": "",
+  "skills": [
+    {
+      "name": "hello",
+      "description": "Says hello",
+      "code": "return 'hello'"
+    }
+  ],
+  "hooks": {
+    "on_chat_send": null,
+    "on_file_save": null,
+    "on_pane_open": null,
+    "on_agent_run": null,
+    "on_deploy": null
+  },
+  "ui": {
+    "sidebar_item": null,
+    "settings_tab": null,
+    "pane": null
+  },
+  "permissions": [
+    "chat",
+    "memory",
+    "files"
+  ],
+  "min_version": "6.0.0",
+  "created_at": "2026-08-03T14:36:06Z",
+  "updated_at": "2026-08-03T14:36:06Z",
+  "provenance": {
+    "status": "unsigned",
+    "source": "local_sdk",
+    "manifest_sha256": "117d79b3f97a948c79163872f1c1ad9ef5a5024e208306cf20a8d20cb9bdb3c4"
+  }
+}

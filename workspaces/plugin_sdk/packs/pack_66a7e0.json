@@ -1,0 +1,40 @@
+{
+  "id": "pack_66a7e0",
+  "name": "PubPack_cc8a970f",
+  "version": "1.0.0",
+  "description": "Publish test",
+  "author": "gap-tester",
+  "license": "MIT",
+  "tags": [
+    "utility",
+    "ai"
+  ],
+  "icon": "\ud83d\udd27",
+  "homepage": "",
+  "skills": [],
+  "hooks": {
+    "on_chat_send": null,
+    "on_file_save": null,
+    "on_pane_open": null,
+    "on_agent_run": null,
+    "on_deploy": null
+  },
+  "ui": {
+    "sidebar_item": null,
+    "settings_tab": null,
+    "pane": null
+  },
+  "permissions": [
+    "chat",
+    "memory",
+    "files"
+  ],
+  "min_version": "6.0.0",
+  "created_at": "2026-08-03T17:20:58Z",
+  "updated_at": "2026-08-03T17:20:58Z",
+  "provenance": {
+    "status": "unsigned",
+    "source": "local_sdk",
+    "manifest_sha256": "26a7423ec7e3ba510d1cd4c52f387620051f5b46ee99513849900293e5e7804a"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "id": "pack_a56b0c",
+  "name": "uat-developer-plugin-uat_9c079c95",
+  "version": "0.1.0",
+  "description": "UAT developer plugin pack",
+  "author": "Your Name",
+  "license": "MIT",
+  "tags": [
+    "utility",
+    "ai"
+  ],
+  "icon": "\ud83d\udd27",
+  "homepage": "",
+  "skills": [
+    {
+      "id": "my_skill",
+      "name": "My Skill",
+      "description": "What this skill does",
+      "prompt": "You are a helpful assistant. {{input}}",
+      "model": "auto",
+      "tags": [
+        "utility"
+      ],
+      "icon": "\u26a1",
+      "inputs": [
+        {
+          "name": "input",
+          "label": "Input",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "label": "Result",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "hooks": {
+    "on_chat_send": null,
+    "on_file_save": null,
+    "on_pane_open": null,
+    "on_agent_run": null,
+    "on_deploy": null
+  },
+  "ui": {
+    "sidebar_item": null,
+    "settings_tab": null,
+    "pane": null
+  },
+  "permissions": [
+    "chat",
+    "memory",
+    "files"
+  ],
+  "min_version": "6.0.0",
+  "created_at": "2026-08-03T20:38:57Z",
+  "updated_at": "2026-08-03T20:38:57Z",
+  "provenance": {
+    "status": "unsigned",
+    "source": "local_sdk",
+    "manifest_sha256": "f53ff46a3b01bd251e8fe41aacf7e02ebad81e279f952f4ce02b0ac667c64b84"
+  }
+}

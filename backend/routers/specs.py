@@ -38,6 +38,8 @@ def _parse_delta(chunk: str) -> str:
 
 from backend.config import get_data_dir
 
+from ..services.llm import sse_guard
+
 ROOT = get_data_dir()
 SPECS_DIR = ROOT / 'workspaces' / 'specs'
 SPECS_DIR.mkdir(parents=True, exist_ok=True)
@@ -295,8 +297,7 @@ Be specific, measurable, and unambiguous. Every requirement must be testable."""
 
         yield f'data: {json.dumps({"type": "phase_done", "phase": "requirements", "length": len(full_text)})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 
@@ -347,8 +348,7 @@ Be precise. Include actual field names, types, and method signatures."""
         _update_spec(spec_id, design=full_text[:500], phase='design')
         yield f'data: {json.dumps({"type": "phase_done", "phase": "design", "length": len(full_text)})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 
@@ -497,8 +497,7 @@ Rules:
         yield f'data: {json.dumps({"type": "tasks_ready", "tasks": tasks_json, "wave_count": len(waves)})}\n\n'
         yield f'data: {json.dumps({"type": "phase_done", "phase": "tasks", "task_count": len(tasks_json)})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 
@@ -615,8 +614,7 @@ async def execute_spec(spec_id: str, req: Request):
         _update_spec(spec_id, status='done', phase='code')
         yield f'data: {json.dumps({"type": "exec_done", "spec_id": spec_id, "total_completed": len(completed)})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 
@@ -852,8 +850,7 @@ Return ONLY a JSON array: [{"task_no":1,"title":"...","description":"...","wave"
 
         yield f'data: {json.dumps({"type": "pipeline_done", "spec_id": spec_id})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 

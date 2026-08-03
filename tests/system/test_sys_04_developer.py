@@ -299,6 +299,8 @@ class TestSysBugBot:
                 "+     return amount * rate\n")
         r = await POST(C, "/api/bugbot/review/diff",
                        {"diff": diff, "agent_id": "builder"})
+        # 503 llm_unavailable is an honest refusal, not a crash.
+        skip_if_no_provider(r, "bugbot diff review")
         check("not a crash", r.status_code < 500)
 
     async def test_review_file_schema_accepted(self, C):
@@ -307,6 +309,7 @@ class TestSysBugBot:
         r = await POST(C, "/api/bugbot/review/file", {
             "content": code, "filename": "math_utils.py", "agent_id": "builder"
         })
+        skip_if_no_provider(r, "bugbot file review")
         check("not a crash", r.status_code < 500)
 
     async def test_reviews_list_accessible(self, C):
@@ -356,7 +359,10 @@ class TestSysSSEStreaming:
             r = await fresh.post("/api/browser/task", json={
                 "url": "https://example.com",
                 "task": "System test: verify SSE stream works",
-                "max_steps": 2
+                "max_steps": 2,
+                # Simulation is opt-in now: without this the endpoint correctly
+                # returns 503 rather than inventing a browser session.
+                "simulate": True
             })
         must(r, 200)
         events = sse_events(r.text)

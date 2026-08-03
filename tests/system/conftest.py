@@ -41,12 +41,41 @@ async def PUT(c, path, j):      return await c.put(path,   json=j)
 async def DELETE(c, path, j=None):
     return await (c.request("DELETE", path, json=j) if j else c.delete(path))
 
+# ── No-AI-provider handling ───────────────────────────────────────────────────
+# llm.complete() raises LLMUnavailableError rather than returning placeholder
+# help text that callers mistook for a real reply; the app maps that to a 503
+# {"code": "llm_unavailable"}, and sse_guard() emits the same code as a final
+# frame on streams. With no API key and no local model that is the *correct*
+# response, not a defect in the endpoint under test.
+def _no_provider(r) -> bool:
+    if r.status_code != 503:
+        return False
+    try:
+        return r.json().get("code") == "llm_unavailable"
+    except Exception:
+        return False
+
+
+def skip_if_no_provider(r, label=""):
+    if _no_provider(r):
+        import pytest as _pt
+
+        _pt.skip(f"no AI provider configured{' for ' + label if label else ''} — endpoint correctly returned 503")
+
+
+def skip_if_no_provider_events(events, label=""):
+    """Same, for SSE runs that closed cleanly with an llm_unavailable frame."""
+    if any(e.get("code") == "llm_unavailable" for e in events):
+        import pytest as _pt
+
+        _pt.skip(f"no AI provider configured{' for ' + label if label else ''} — stream reported llm_unavailable")
+
+
 def must(r, *codes, label=""):
     codes = codes or (200,)
+    skip_if_no_provider(r, label)
     assert r.status_code in codes, \
         f"[{label}] Expected {codes}, got {r.status_code}: {r.text[:300]}"
-    if r.status_code != 200:
-        return {}
     ct = r.headers.get("content-type", "")
     if "event-stream" in ct or "text/plain" in ct:
         return {}  # SSE/text response - caller must use r.text directly

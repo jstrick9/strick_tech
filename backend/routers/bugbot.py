@@ -27,6 +27,8 @@ log = logging.getLogger('agentic.bugbot')
 
 from backend.config import get_data_dir
 
+from ..services.llm import sse_guard
+
 ROOT = get_data_dir()
 
 _SCHEMA = """
@@ -266,8 +268,7 @@ async def review_diff_stream(req: Request):
 
         yield f'data: {json.dumps({"type": "done", "review_id": review_id, "issues": issues, "score": score, "severity": severity, "summary": parsed.get("summary", "")})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 

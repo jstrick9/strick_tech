@@ -474,6 +474,31 @@ app.include_router(codesearch_router)
 app.include_router(workflow_router)
 app.include_router(profiler_router)
 
+# ── No-AI-provider handling ───────────────────────────────────────────────────
+# llm.complete() raises LLMUnavailableError rather than returning placeholder help
+# text that ~40 call sites were free to mistake for a real model reply (Chat,
+# Supervisor and Browser Agent each shipped that exact bug). Any endpoint that
+# doesn't explicitly opt into stubs now degrades to an honest 503 instead of
+# reporting fabricated success.
+from .services.llm import LLMUnavailableError as _LLMUnavailableError
+
+
+@app.exception_handler(_LLMUnavailableError)
+async def _llm_unavailable_handler(request: Request, exc: _LLMUnavailableError):
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(
+        {
+            'ok': False,
+            'error': exc.message,
+            'code': 'llm_unavailable',
+            'model': exc.model,
+            'setup_url': 'https://openrouter.ai/keys',
+        },
+        status_code=503,
+    )
+
+
 # FIX 1: Timing middleware to populate _endpoint_stats for the profiler
 from .routers.profiler import record_endpoint_latency as _record_latency
 

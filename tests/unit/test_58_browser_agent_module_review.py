@@ -56,7 +56,9 @@ class TestSimulationDoesNotFakeSuccess:
     """No browser AND no model must not look like a completed run."""
 
     def test_stub_replies_are_detected(self):
-        assert "result.get('provider') == 'stub'" in BROWSER_PY
+        # Detection is now the shared llm.is_stub() helper rather than a
+        # per-caller copy of the provider=='stub' literal.
+        assert 'llm_svc.is_stub(result)' in BROWSER_PY
         assert "result.get('ok') is False" in BROWSER_PY
 
     def test_failure_is_reported_with_actionable_guidance(self):
@@ -75,7 +77,7 @@ class TestSimulationDoesNotFakeSuccess:
         """The placeholder must never be split into numbered 'completed' steps."""
         idx = BROWSER_PY.index('async def _simulate_browser_task')
         body = BROWSER_PY[idx:idx + 3500]
-        stub_at = body.index("provider') == 'stub'")
+        stub_at = body.index('llm_svc.is_stub(result)')
         steps_at = body.index("for i, line in enumerate(lines")
         assert stub_at < steps_at, 'the stub guard must precede step emission'
 

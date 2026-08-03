@@ -20,6 +20,8 @@ log = logging.getLogger('agentic.system')
 from backend.config import get_data_dir
 from backend.version import VERSION
 
+from ..services.llm import sse_guard
+
 ROOT = get_data_dir()
 
 
@@ -160,8 +162,7 @@ async def hmr_stream(request: Request):
                 except ValueError:
                     pass
 
-    return StreamingResponse(
-        generate(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(generate()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 

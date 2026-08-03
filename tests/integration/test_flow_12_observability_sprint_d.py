@@ -8,7 +8,7 @@ Tests the complete observability lifecycle:
 from __future__ import annotations
 import asyncio, time
 import httpx, pytest
-from .conftest import BASE, TIMEOUT, uid, GET, POST, PATCH, DELETE, ok, ok_or, check
+from .conftest import BASE, TIMEOUT, uid, GET, POST, PATCH, DELETE, ok, ok_or, check, skip_if_no_provider_events
 
 
 class TestAgentMonitorLifecycle:
@@ -317,6 +317,7 @@ class TestEvaluationFramework:
                 if len(events) > 20:
                     break
 
+        skip_if_no_provider_events(events, "eval suite")
         event_types = {e.get("type") for e in events}
         check("start event present", "start" in event_types)
         check("case_done events present", "case_done" in event_types)
@@ -395,6 +396,7 @@ class TestEvaluationFramework:
         before = (await GET(client, "/api/audit-log/verify")).json()["verified"]
 
         # Run a quick eval
+        events = []
         async with client.stream("POST", "/api/eval-framework/run",
                                   json={"agent_id": "builder", "suite_id": "suite_general"}) as resp:
             async for line in resp.aiter_lines():
@@ -402,10 +404,12 @@ class TestEvaluationFramework:
                     try:
                         import json
                         ev = json.loads(line[5:])
+                        events.append(ev)
                         if ev.get("type") == "done":
                             break
                     except Exception:
                         pass
+        skip_if_no_provider_events(events, "eval suite")
 
         await asyncio.sleep(0.5)
         after = (await GET(client, "/api/audit-log/verify")).json()["verified"]

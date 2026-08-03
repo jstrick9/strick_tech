@@ -22,6 +22,8 @@ log = logging.getLogger('agentic.replay')
 
 from backend.config import get_data_dir
 
+from ..services.llm import sse_guard
+
 ROOT = get_data_dir()
 WF_DIR = ROOT / 'workspaces' / 'workflows'
 
@@ -380,8 +382,7 @@ async def recorded_run(wf_id: str, req: Request):
         _finish_run(run_id, 'done', total_ms, len(visited))
         yield f'data: {json.dumps({"type": "done", "run_id": run_id, "total_ms": total_ms, "frames": frame_no})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 
@@ -583,8 +584,7 @@ async def rerun_from_frame(run_id: str, frame_no: int, req: Request):
         _finish_run(new_run_id, 'done', total_ms, len(visited))
         yield f'data: {json.dumps({"type": "done", "run_id": new_run_id, "original_run_id": run_id})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 

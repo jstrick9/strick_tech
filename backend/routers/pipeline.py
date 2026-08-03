@@ -16,6 +16,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
 from ..services import llm, memory_db
+from ..services.llm import sse_guard
 
 router = APIRouter(prefix='/api/pipeline', tags=['pipeline'])
 log = logging.getLogger('agentic.pipeline')
@@ -152,8 +153,7 @@ async def pipeline_run(req: Request):
 
             yield f'data: {json.dumps({"type": "complete", "run_id": run_id, "ok": True, "results": all_results, "total_tokens": total_tokens, "total_cost": total_cost, "duration_ms": duration})}\n\n'
 
-        return StreamingResponse(
-            generate(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+        return StreamingResponse(sse_guard(generate()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
         )
 
     # Non-streaming fallback

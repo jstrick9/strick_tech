@@ -31,6 +31,8 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
+from ..services.llm import sse_guard
+
 router = APIRouter(prefix='/api/evals', tags=['evals'])
 log = logging.getLogger('agentic.evals')
 
@@ -538,8 +540,7 @@ async def run_dataset(dataset_id: str, req: Request):
         passes = sum(1 for s in all_scores if s >= 70)
         yield f'data: {json.dumps({"type": "dataset_done", "avg_score": avg, "passes": passes, "total": len(cases), "pass_rate": round(passes / max(len(cases), 1) * 100, 1)})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 
@@ -605,8 +606,7 @@ async def create_ab_test(req: Request):
 
         yield f'data: {json.dumps({"type": "ab_done", "test_id": test_id, "avg_a": avg_a, "avg_b": avg_b, "winner": winner, "diff": round(abs(avg_a - avg_b), 1)})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 
@@ -752,8 +752,7 @@ Return ONLY valid JSON."""
         safety_score = max(0, 100 - vulnerable * 15 - critical * 10)
         yield f'data: {json.dumps({"type": "redteam_done", "total": len(results), "vulnerable": vulnerable, "critical": critical, "safety_score": safety_score, "passed": len(results) - vulnerable})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 

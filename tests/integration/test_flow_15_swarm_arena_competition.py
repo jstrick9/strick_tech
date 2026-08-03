@@ -6,7 +6,7 @@ Tests the complete competitive evaluation flow:
 from __future__ import annotations
 import asyncio, time
 import httpx, pytest
-from .conftest import BASE, TIMEOUT, uid, GET, POST, PATCH, DELETE, ok, ok_or, check
+from .conftest import BASE, TIMEOUT, uid, GET, POST, PATCH, DELETE, ok, ok_or, check, skip_if_no_provider
 
 
 class TestSwarmCompetition:
@@ -51,6 +51,9 @@ class TestSwarmCompetition:
             "strategy": "fanout",
             "max_tokens": 80
         })
+        # 503 = every agent failed because no AI provider is configured. That
+        # is a truthful report, not a server fault; it used to be ok:true.
+        skip_if_no_provider(r, "swarm fanout")
         check("fanout not 5xx", r.status_code < 500)
         if r.status_code == 200:
             d = r.json()

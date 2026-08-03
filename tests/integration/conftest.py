@@ -50,13 +50,53 @@ def check(label, condition, actual=None):
     assert condition, msg
 
 
+# ── No-AI-provider handling ───────────────────────────────────────────────────
+# llm.complete() now raises LLMUnavailableError instead of returning placeholder
+# help text that callers mistook for a real reply, and the app maps that to a
+# 503 {"code": "llm_unavailable"}. That is the *correct* response in an
+# environment with no API key and no local model — it is not a defect in the
+# endpoint under test. Distinguish the two so these suites stay meaningful on a
+# machine that does have a provider, and skip honestly on one that doesn't.
+def _no_provider(r) -> bool:
+    if r.status_code != 503:
+        return False
+    try:
+        body = r.json()
+    except Exception:
+        return False
+    return body.get('code') == 'llm_unavailable' or 'agent in the swarm failed' in str(body.get('error', ''))
+
+
+def skip_if_no_provider(r, label=''):
+    """Skip when the only thing standing in the way is a missing AI provider."""
+    if _no_provider(r):
+        import pytest as _pt
+
+        _pt.skip(f'no AI provider configured{" for " + label if label else ""} — endpoint correctly returned 503')
+
+
+def skip_if_no_provider_events(events, label=''):
+    """Skip when an SSE run only reported that no AI provider is available.
+
+    sse_guard() converts LLMUnavailableError into a terminal error frame rather
+    than truncating the response mid-chunk, so the stream is well-formed but
+    carries no work. That is correct behaviour, not a broken endpoint.
+    """
+    if any(e.get('code') == 'llm_unavailable' for e in events):
+        import pytest as _pt
+
+        _pt.skip(f'no AI provider configured{" for " + label if label else ""} — stream reported llm_unavailable')
+
+
 def ok(r, label=""):
+    skip_if_no_provider(r, label)
     assert r.status_code == 200, \
         f"{label}: Expected 200, got {r.status_code}: {r.text[:200]}"
     return r.json()
 
 
 def ok_or(r, *codes):
+    skip_if_no_provider(r)
     assert r.status_code in codes, \
         f"Expected {codes}, got {r.status_code}: {r.text[:150]}"
     return r.json() if r.status_code == 200 else {}

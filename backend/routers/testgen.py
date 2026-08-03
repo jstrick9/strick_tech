@@ -20,6 +20,8 @@ log = logging.getLogger('agentic.testgen')
 
 from backend.config import get_data_dir
 
+from ..services.llm import sse_guard
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
@@ -96,7 +98,7 @@ File: {filepath}
             # After streaming, save the test file
             # (client saves it via /api/preview/save)
 
-        return StreamingResponse(generate(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache'})
+        return StreamingResponse(sse_guard(generate()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache'})
 
     # Non-streaming
     result = await llm.complete(

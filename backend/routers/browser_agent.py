@@ -27,6 +27,8 @@ log = logging.getLogger('agentic.browser')
 
 from backend.config import get_data_dir
 
+from ..services.llm import sse_guard
+
 ROOT = get_data_dir()
 SCREENSHOTS = ROOT / 'preview' / 'browser_screenshots'
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)
@@ -203,8 +205,7 @@ async def stream_browser_setup():
             yield f'data: {json.dumps({"progress": pct, "message": msg, "done": pct == 100})}\n\n'
             await asyncio.sleep(0.5)
 
-    return StreamingResponse(
-        event_generator(),
+    return StreamingResponse(sse_guard(event_generator()),
         media_type='text/event-stream',
         headers={'Cache-Control': 'no-cache', 'Connection': 'keep-alive'},
     )
@@ -228,6 +229,12 @@ async def run_browser_task(req: Request):
     except (TypeError, ValueError):
         max_steps = 15
     headless = bool(body.get('headless', True))
+    # Simulation mode is make-believe: an LLM narrates the steps a browser
+    # agent *would* take, and nothing is actually fetched. It used to be the
+    # silent fallback whenever Chromium was missing, so users who asked for a
+    # real browser run got an invented one unless they read the small print.
+    # It is now opt-in.
+    simulate = bool(body.get('simulate', False))
 
     if not task:
         return JSONResponse({'ok': False, 'error': 'task required'}, status_code=400)
@@ -250,6 +257,28 @@ async def run_browser_task(req: Request):
             {'ok': False, 'error': 'start_url must be a valid http:// or https:// address'},
             status_code=400,
         )
+    # Decide the execution mode before opening the stream, so "no browser and
+    # the caller didn't ask for simulation" is a real HTTP error rather than an
+    # SSE event buried inside a 200 response.
+    pw_ok = await _playwright_available()
+    cr_ok = await _chromium_installed() if pw_ok else False
+    if not (pw_ok and cr_ok) and not simulate:
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': (
+                    'Chromium is not installed, so no real browsing can happen. Install it with '
+                    '`python -m playwright install chromium`, or re-run with "simulate": true to get '
+                    'an AI-narrated walkthrough instead (nothing is actually fetched).'
+                ),
+                'code': 'browser_unavailable',
+                'playwright_available': pw_ok,
+                'chromium_installed': cr_ok,
+                'install_cmd': 'pip install playwright && python -m playwright install chromium',
+            },
+            status_code=503,
+        )
+
     session_id = f'br_{uuid.uuid4().hex[:8]}'
 
     from ..services.memory_db import get_conn
@@ -266,11 +295,8 @@ async def run_browser_task(req: Request):
     async def _stream():
         yield f'data: {json.dumps({"type": "session_start", "session_id": session_id, "task": task, "start_url": start_url, "max_steps": max_steps})}\n\n'
 
-        available = await _playwright_available()
-        cr_ok = await _chromium_installed() if available else False
-
-        if not available or not cr_ok:
-            yield f'data: {json.dumps({"type": "warning", "message": "Playwright/Chromium not installed. Running in simulation mode.", "install_cmd": "pip install playwright && python -m playwright install chromium"})}\n\n'
+        if not (pw_ok and cr_ok):
+            yield f'data: {json.dumps({"type": "warning", "message": "Simulation mode: no browser is running and nothing is actually being fetched. These steps are an AI narration of what a browser agent would do.", "simulated": True, "install_cmd": "pip install playwright && python -m playwright install chromium"})}\n\n'
             steps_done = []
             result_text = ''
             sim_failed = False
@@ -489,8 +515,7 @@ Return ONLY valid JSON."""
             _db_update_session(session_id, 'error', steps, '', str(ex))
             yield f'data: {json.dumps({"type": "error", "error": str(ex), "session_id": session_id})}\n\n'
 
-    return StreamingResponse(
-        _stream(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
 
 
@@ -510,8 +535,16 @@ Format as numbered steps like:
 
 Be realistic, specific, and complete the task fully."""
 
+    # allow_stub=True because this runs inside an SSE generator: the HTTP
+    # status is already committed, so an LLMUnavailableError exception could not be
+    # turned into a 503. We ask for the placeholder and report it as a stream
+    # error event instead (llm.is_stub is the shared check).
     result = await llm_svc.complete(
-        [{'role': 'user', 'content': prompt}], agent_id='browser', max_tokens=800, inject_steering=False
+        [{'role': 'user', 'content': prompt}],
+        agent_id='browser',
+        max_tokens=800,
+        inject_steering=False,
+        allow_stub=True,
     )
     text = result.get('text', 'Simulation complete.')
 
@@ -523,7 +556,7 @@ Be realistic, specific, and complete the task fully."""
     # OPENROUTER_API_KEY set.", "Step 2: To enable real AI responses:", …).
     # The session was then recorded status='done' with no error, so a run that
     # had neither a browser NOR a model looked like a success. Reproduced live.
-    if result.get('provider') == 'stub' or result.get('ok') is False:
+    if llm_svc.is_stub(result) or result.get('ok') is False:
         detail = (
             'Browser agent cannot run: Chromium is not installed, and simulation mode '
             'needs an AI provider. Install Chromium with '
