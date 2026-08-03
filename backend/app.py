@@ -401,6 +401,15 @@ async def _security_middleware(request: Request, call_next):
     for header, value in SECURITY_HEADERS.items():
         response.headers[str(header).strip()] = str(value).strip()
 
+    # SVG served from our own origin is executable XML, not an inert image: a
+    # <script> inside one runs with full same-origin privileges under the
+    # app's 'unsafe-inline' CSP. Uploaded and generated SVGs are sanitised at
+    # write time (imagegen.sanitize_svg); this is the second layer, for any
+    # SVG that reached the preview directory by another route.
+    if path.startswith('/preview/') and path.lower().endswith('.svg'):
+        response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+        response.headers['Content-Disposition'] = 'inline; filename="image.svg"'
+
     # Prevent aggressive caching of HTML/JS/CSS during development and updates
     if path == '/' or path.endswith(('.html', '.js', '.css')):
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
