@@ -3878,9 +3878,15 @@ async function studioFormatFile() {
     toast('⚠️ No AI provider configured — install a Monaco formatter or add an API key', 'warn', 3000);
     return;
   }
-  if (formatted.trim()) {
-    Studio.editor.setValue(formatted.trim().replace(/^```\w*\n?/, '').replace(/\n?```$/, ''));
+  // Use the shared fence extractor rather than a pair of anchored regexes,
+  // which left the closing fence and any trailing prose in the file when the
+  // model appended commentary after the code block.
+  const cleaned = window.extractCodeFromResponse(formatted);
+  if (cleaned) {
+    Studio.editor.setValue(cleaned);
     toast('✨ Formatted with AI', 'ok', 1500);
+  } else {
+    toast('⚠️ AI formatting returned nothing — file left unchanged', 'warn', 2500);
   }
 }
 
@@ -4777,6 +4783,39 @@ document.addEventListener('DOMContentLoaded', () => {});
   });
 })();
 
+// Extract the code payload from a model reply that may be wrapped in markdown
+// code fences.
+//
+// BUG FIX: the previous inline logic was `split('\n').slice(1)` — it assumed a
+// fence always spans multiple lines and that nothing follows the closing fence.
+// Two real failure modes resulted:
+//   • A single-line reply like ```Hello World``` lost EVERYTHING (slice(1) of a
+//     one-element array is []), so "Accept & Apply" would blank the user's file.
+//   • Trailing prose ("```html\n<h1>Hi</h1>\n```\nHope that helps!") kept both
+//     the closing fence and the chatter, writing them straight into the source.
+// This version takes the first fenced block when one exists, strips an optional
+// language tag, and otherwise returns the raw text unchanged.
+window.extractCodeFromResponse = function(raw) {
+  const text = String(raw == null ? '' : raw).trim();
+  if (!text) return '';
+  // Prefer a complete fenced block anywhere in the reply.
+  const fenced = text.match(/```[ \t]*([A-Za-z0-9_+-]*)[ \t]*\r?\n([\s\S]*?)```/);
+  if (fenced) return fenced[2].replace(/\s+$/, '');
+  // Single-line fence: ```code```
+  const inline = text.match(/^```[ \t]*(.*?)[ \t]*```$/s);
+  if (inline) {
+    const body = inline[1].trim();
+    // A lone language tag with no body carries no code.
+    return /^[A-Za-z0-9_+-]+$/.test(body) ? '' : body;
+  }
+  // Unterminated opening fence — drop the fence line, keep the remainder.
+  if (text.startsWith('```')) {
+    const nl = text.indexOf('\n');
+    return nl === -1 ? '' : text.slice(nl + 1).replace(/\s+$/, '');
+  }
+  return text;
+};
+
 // ── AI Edit with Diff-first ────────────────────────────────────────
 async function studioAIEdit() {
   const input = document.getElementById('studio-ai-input');
@@ -4844,15 +4883,21 @@ async function studioAIEdit() {
       return;
     }
 
-    // Clean up code fences if AI returned them
-    let proposed = fullText.trim();
-    if (proposed.startsWith('```')) {
-      proposed = proposed.split('\n').slice(1).join('\n');
-      if (proposed.endsWith('```')) proposed = proposed.slice(0, -3).trimEnd();
-    }
+    // Clean up code fences if the AI wrapped its answer in them.
+    const proposed = window.extractCodeFromResponse(fullText);
 
-    if (!proposed || proposed.length < 20) {
-      addStudioMsg('❌ AI returned empty response. Try rephrasing.', 'agent');
+    // BUG FIX: this used to reject anything under 20 characters as "empty",
+    // so legitimate small edits (e.g. changing a heading to "<h1>Hello</h1>",
+    // or a one-line CSS tweak) were silently discarded with a misleading
+    // "AI returned empty response" message. Only genuinely empty output is
+    // rejected now; an unchanged result is reported honestly instead of being
+    // shown as a no-op diff.
+    if (!proposed) {
+      addStudioMsg('❌ The AI returned no code. Try rephrasing your instruction.', 'agent');
+      return;
+    }
+    if (proposed.trim() === currentContent.trim()) {
+      addStudioMsg('ℹ️ The AI suggested no changes to this file.', 'agent');
       return;
     }
 

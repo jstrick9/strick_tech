@@ -826,17 +826,34 @@ window.logStudioConsole = function(tab, msg, isError = false) {
 };
 
 window.runStudioConsoleLint = async function() {
-  logStudioConsole('lint', 'Running comprehensive Python & JS syntax checks via backend...');
+  // BUG FIX: this used to POST with no body (so the backend silently linted
+  // Agentic OS's OWN source instead of the user's file) and its catch block
+  // logged "Syntax validation check green." even when the request FAILED —
+  // so the button was incapable of ever reporting a problem with your code.
+  // It now sends the open file's content and reports real results, including
+  // per-error detail and genuine failures.
+  const file = (window.Studio && window.Studio.currentFile) || '';
+  const content = (window.Studio && window.Studio.editor && typeof window.Studio.editor.getValue === 'function')
+    ? window.Studio.editor.getValue()
+    : null;
+
   switchStudioConsoleTab('lint');
+  if (!file || content === null) {
+    logStudioConsole('lint', 'Open a file in Studio first — nothing to check.', true);
+    return;
+  }
+  logStudioConsole('lint', `Checking syntax of ${file}…`);
+
   try {
-    const d = await AgenticAPI.post('/api/studio/lint');
-    if (d) {
-      logStudioConsole('lint', d.message || 'Linter completed. 0 fatal errors.');
-    } else {
-      logStudioConsole('lint', 'Local Python environment checks green (ruff & node --check passed).');
+    const d = await AgenticAPI.post('/api/studio/lint', { path: file, content });
+    if (!d) {
+      logStudioConsole('lint', 'Linter returned no response — check the server connection.', true);
+      return;
     }
-  } catch(e) {
-    logStudioConsole('lint', 'Syntax validation check green.');
+    logStudioConsole('lint', d.message || (d.ok ? 'Syntax OK.' : 'Syntax issues found.'), !d.ok);
+    (d.errors || []).forEach((err) => logStudioConsole('lint', `  • ${err}`, true));
+  } catch (e) {
+    logStudioConsole('lint', `Lint request failed: ${e && e.message ? e.message : e}`, true);
   }
 };
 
