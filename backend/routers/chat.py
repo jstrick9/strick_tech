@@ -411,6 +411,30 @@ async def chat_stream(req: Request):
     if not messages or messages[-1].get('role') != 'user' or messages[-1].get('content') != outgoing_content:
         messages.append({'role': 'user', 'content': outgoing_content})
 
+    # FEATURE: honour enforcing budget caps BEFORE spending. Caps were purely
+    # retrospective — a breach wrote an alert row after the money was already
+    # spent, and the 'pause'/'kill' actions the FinOps API accepts were never
+    # read by anything. Chat now refuses to call a paid model once an enforcing
+    # cap is reached, and says which cap and why.
+    try:
+        from .finops import check_budget_before_spend
+
+        gate = check_budget_before_spend(agent_id=agent_id)
+    except Exception:  # noqa: BLE001 - a guardrail failure must not block chat
+        gate = {'allowed': True}
+
+    if not gate.get('allowed'):
+        blocked_text = (
+            f'🛑 **Request blocked by a budget cap.**\n\n{gate.get("reason", "")}\n\n'
+            'Raise or disable the cap in **Observability → Cost**, or switch to a '
+            'local model (which is free and not subject to spend caps).'
+        )
+
+        async def _blocked():
+            yield f'data: {json.dumps({"delta": blocked_text, "done": True, "blocked": True, "cap_id": gate.get("cap_id", "")})}\n\n'
+
+        return StreamingResponse(_blocked(), media_type='text/event-stream')
+
     # log user message
     _log_chat(session_id, agent_id, 'user', message, model=req_model or agent.get('model', ''))
 
@@ -432,6 +456,8 @@ async def chat_stream(req: Request):
         # FinOps analytics were structurally incapable of showing anything.
         used_tokens = 0
         used_cost = 0.0
+        prompt_tokens = 0
+        completion_tokens = 0
         resolved_model = req_model or agent.get('model', '')
         # Only genuine model output is eligible for long-term memory ingestion.
         is_real_completion = True
@@ -455,6 +481,8 @@ async def chat_stream(req: Request):
                     if data.get('done'):
                         used_tokens = int(data.get('tokens', 0) or 0)
                         used_cost = float(data.get('cost', 0.0) or 0.0)
+                        prompt_tokens = int(data.get('prompt_tokens', 0) or 0)
+                        completion_tokens = int(data.get('completion_tokens', 0) or 0)
                         resolved_model = data.get('model') or resolved_model
                         # llm.stream() flags placeholder replies (no API key
                         # configured) with stub=True, and hard failures with
@@ -488,6 +516,30 @@ async def chat_stream(req: Request):
                 model=resolved_model,
             )
             _set_agent_status(agent_id, 'idle')
+
+            # FEATURE: feed the FinOps cost ledger. Chat — by far the largest
+            # source of spend — never wrote to cost_ledger at all, so budget
+            # caps had nothing to measure and the FinOps dashboard could only
+            # ever report zero. Now that real token counts are captured, record
+            # them so caps, burn-rate projections and per-agent attribution work.
+            if used_tokens or used_cost:
+                try:
+                    from .finops import record_cost
+
+                    record_cost(
+                        agent_id=agent_id,
+                        source_type='chat',
+                        source_id=session_id,
+                        model=resolved_model,
+                        tokens_in=prompt_tokens,
+                        tokens_out=completion_tokens,
+                        cost_usd=used_cost,
+                        description=f'chat:{session_id}',
+                    )
+                except Exception as e:  # noqa: BLE001 - accounting must not break chat
+                    import logging
+
+                    logging.getLogger('agentic.chat').warning('Cost ledger write failed: %s', e)
             # Ingest to long-term memory — but ONLY real model output.
             #
             # BUG FIX: the sole guard here used to be `len(full_text) > 50`, so

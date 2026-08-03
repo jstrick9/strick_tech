@@ -208,6 +208,83 @@ def record_cost(
     return ledger_id
 
 
+def check_budget_before_spend(agent_id: str = '', goal_id: str = '') -> dict:
+    """Pre-flight budget guardrail. Returns {'allowed': bool, 'reason': str, ...}.
+
+    FEATURE GAP: budget caps were purely retrospective. record_cost() ran
+    _check_budget_caps() AFTER a call had already been paid for, which wrote an
+    alert row and set breached=1 — but nothing anywhere read `on_breach`, so
+    the 'pause' and 'kill' actions the API accepts and stores were inert. A cap
+    could be breached without limit; the only consequence was a log line.
+
+    This is the enforcement half: callers ask BEFORE spending, and a breached
+    cap whose on_breach is 'pause' or 'kill' denies the request. Caps set to
+    'alert' (the default) keep the previous notify-only behaviour, so existing
+    installations are not suddenly hard-blocked by a cap they configured when
+    it had no teeth.
+    """
+    con = None
+    try:
+        # _get_conn() itself must be inside the guard: if the database is
+        # unavailable, a spend guardrail should fail OPEN (never silently
+        # bring down every AI call in the product), not raise into the caller.
+        con = _get_conn()
+        caps = con.execute(
+            "SELECT * FROM budget_caps WHERE enabled=1 AND on_breach IN ('pause','kill')"
+        ).fetchall()
+        for row in caps:
+            cap = dict(row)
+            stype, sid = cap['scope_type'], cap['scope_id']
+            if sid != '*':
+                if stype == 'agent' and agent_id != sid:
+                    continue
+                if stype == 'goal' and goal_id != sid:
+                    continue
+
+            period_sql = {'hour': '-1 hour', 'day': '-1 day', 'week': '-7 days', 'month': '-30 days'}.get(
+                cap['period'], '-1 day'
+            )
+            agg = con.execute(
+                """
+                SELECT SUM(cost_usd) AS c, SUM(total_tokens) AS t FROM cost_ledger
+                WHERE created_at > datetime('now', ?)
+                  AND (? = '*' OR agent_id = ?)
+                  AND (? = '*' OR goal_id = ?)
+            """,
+                (period_sql, sid, agent_id, sid if stype == 'goal' else '*', goal_id or '*'),
+            ).fetchone()
+            spent = agg['c'] or 0.0
+            used_tok = agg['t'] or 0
+
+            # A limit of 0 means "no limit set for this dimension" everywhere
+            # else in this module, and a negative limit is nonsensical. Neither
+            # may be treated as an instantly-breached cap, or a malformed row
+            # would silently block ALL spend platform-wide.
+            over_usd = cap['limit_usd'] > 0 and spent >= cap['limit_usd']
+            over_tok = cap['limit_tokens'] > 0 and used_tok >= cap['limit_tokens']
+            if over_usd or over_tok:
+                if over_usd:
+                    detail = f'${spent:.4f} of ${cap["limit_usd"]:.2f} per {cap["period"]}'
+                else:
+                    detail = f'{used_tok:,} of {cap["limit_tokens"]:,} tokens per {cap["period"]}'
+                return {
+                    'allowed': False,
+                    'reason': f'Budget cap “{cap["name"]}” reached — {detail}.',
+                    'cap_id': cap['cap_id'],
+                    'cap_name': cap['name'],
+                    'action': cap['on_breach'],
+                    'spent_usd': round(spent, 6),
+                    'limit_usd': cap['limit_usd'],
+                }
+        return {'allowed': True, 'reason': ''}
+    except Exception as e:  # noqa: BLE001 - guardrail must never break the caller
+        log.error('Budget pre-check failed (allowing request): %s', e)
+        return {'allowed': True, 'reason': ''}
+    finally:
+        if con is not None:
+            con.close()
+
+
 def _check_budget_caps(agent_id: str, cost: float, tokens: int, goal_id: str):
     """Check all applicable budget caps and trigger alerts/actions."""
     con = _get_conn()
@@ -446,6 +523,17 @@ def cost_by_goal(goal_id: str):
         'by_source': [dict(r) for r in by_src],
         'by_agent': [dict(r) for r in by_agent],
     }
+
+
+@router.get('/preflight')
+def budget_preflight(agent_id: str = '', goal_id: str = ''):
+    """Ask whether a spend is currently permitted by any enforcing budget cap.
+
+    Exposed so any surface (not just chat) can honour guardrails before calling
+    a paid model. Caps with on_breach='alert' never deny here — only 'pause'
+    and 'kill' do.
+    """
+    return check_budget_before_spend(agent_id=agent_id, goal_id=goal_id)
 
 
 @router.get('/caps')
