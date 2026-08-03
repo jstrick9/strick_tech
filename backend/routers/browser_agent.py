@@ -20,7 +20,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 router = APIRouter(prefix='/api/browser', tags=['browser'])
 log = logging.getLogger('agentic.browser')
@@ -230,9 +230,26 @@ async def run_browser_task(req: Request):
     headless = bool(body.get('headless', True))
 
     if not task:
-        return {'ok': False, 'error': 'task required'}
+        return JSONResponse({'ok': False, 'error': 'task required'}, status_code=400)
 
-    start_url = _validate_url(raw_url) or 'https://duckduckgo.com'
+    # BUG FIX: an unsafe or malformed start_url was silently swapped for
+    # duckduckgo.com. Asking the agent to visit an internal address produced a
+    # perfectly normal-looking run against a completely different site, with
+    # nothing in the response indicating the URL had been rejected. Say so.
+    start_url = _validate_url(raw_url)
+    if not start_url:
+        if raw_url.lower().startswith(('http://', 'https://')):
+            return JSONResponse(
+                {
+                    'ok': False,
+                    'error': 'That start_url is blocked: private, loopback and cloud-metadata targets are not allowed.',
+                },
+                status_code=403,
+            )
+        return JSONResponse(
+            {'ok': False, 'error': 'start_url must be a valid http:// or https:// address'},
+            status_code=400,
+        )
     session_id = f'br_{uuid.uuid4().hex[:8]}'
 
     from ..services.memory_db import get_conn
@@ -256,6 +273,7 @@ async def run_browser_task(req: Request):
             yield f'data: {json.dumps({"type": "warning", "message": "Playwright/Chromium not installed. Running in simulation mode.", "install_cmd": "pip install playwright && python -m playwright install chromium"})}\n\n'
             steps_done = []
             result_text = ''
+            sim_failed = False
             async for chunk in _simulate_browser_task(session_id, task, start_url, max_steps):
                 data = chunk
                 # Parse SSE to collect steps for DB
@@ -266,11 +284,17 @@ async def run_browser_task(req: Request):
                             steps_done.append(ev.get('step', {}))
                         elif ev.get('type') == 'done':
                             result_text = ev.get('result', '')
+                        elif ev.get('type') == 'error':
+                            # The simulation already recorded the failure with a
+                            # useful reason; don't overwrite it with 'done'.
+                            sim_failed = True
                     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                         pass
                 yield chunk
-            # Persist simulation result
-            _db_update_session(session_id, 'done', steps_done, result_text)
+            # BUG FIX: this wrote status='done' unconditionally, so a simulation
+            # that failed outright was still recorded as a successful session.
+            if not sim_failed:
+                _db_update_session(session_id, 'done', steps_done, result_text)
             return
 
         from playwright.async_api import async_playwright
@@ -491,6 +515,25 @@ Be realistic, specific, and complete the task fully."""
     )
     text = result.get('text', 'Simulation complete.')
 
+    # BUG FIX: simulation mode split whatever the LLM returned into "steps",
+    # one per line, with status 'done'. When no AI provider is configured
+    # llm.complete() returns a placeholder ("⚠️ No OPENROUTER_API_KEY set…")
+    # tagged provider='stub'/ok=False — and that help text was rendered as a
+    # numbered sequence of completed browser actions ("Step 1: ⚠️ No
+    # OPENROUTER_API_KEY set.", "Step 2: To enable real AI responses:", …).
+    # The session was then recorded status='done' with no error, so a run that
+    # had neither a browser NOR a model looked like a success. Reproduced live.
+    if result.get('provider') == 'stub' or result.get('ok') is False:
+        detail = (
+            'Browser agent cannot run: Chromium is not installed, and simulation mode '
+            'needs an AI provider. Install Chromium with '
+            '`python -m playwright install chromium`, or configure a model in '
+            'Settings → Connect AI (a local Ollama model works and is free).'
+        )
+        _db_update_session(session_id, 'error', [], '', detail)
+        yield f'data: {json.dumps({"type": "error", "error": detail, "session_id": session_id, "simulated": True})}\n\n'
+        return
+
     steps_emitted = []
     lines = [l for l in text.split('\n') if l.strip()]
     for i, line in enumerate(lines[:max_steps], 1):
@@ -529,7 +572,7 @@ def get_session(session_id: str):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Session not found'}
+        return JSONResponse({'ok': False, 'error': 'Session not found'}, status_code=404)
     d = dict(row)
     try:
         d['steps'] = json.loads(d.get('steps_json', '[]') or '[]')
@@ -552,10 +595,15 @@ def delete_session(session_id: str):
     finally:
         con.close()
     # Also clean up screenshots
+    # BUG FIX: returned HTTP 200 with {'ok': false, 'session_id': <id>} for a
+    # session that never existed — echoing back an id it had not deleted, with
+    # a success status code.
+    if not deleted:
+        return JSONResponse({'ok': False, 'error': 'Session not found'}, status_code=404)
     for f in SCREENSHOTS.glob(f'{session_id}_*.png'):
         with contextlib.suppress(Exception):
             f.unlink()
-    return {'ok': deleted, 'session_id': session_id}
+    return {'ok': True, 'session_id': session_id}
 
 
 @router.delete('/sessions')
@@ -582,11 +630,23 @@ async def quick_screenshot(req: Request):
         body = {}
     raw_url = (body.get('url') or '').strip()
     if not raw_url:
-        return {'ok': False, 'error': 'url required'}
+        return JSONResponse({'ok': False, 'error': 'url required'}, status_code=400)
 
     url = _validate_url(raw_url)
     if not url:
-        return {'ok': False, 'error': 'Invalid URL — must be http:// or https://'}
+        # The single message covered two very different failures: a malformed
+        # URL and a well-formed one rejected by the SSRF policy. A user
+        # screenshotting an internal dashboard got "must be http:// or
+        # https://" for a URL that already was.
+        if raw_url.lower().startswith(('http://', 'https://')):
+            return JSONResponse(
+                {
+                    'ok': False,
+                    'error': 'That address is blocked: private, loopback and cloud-metadata targets are not allowed.',
+                },
+                status_code=403,
+            )
+        return JSONResponse({'ok': False, 'error': 'Invalid URL — must be http:// or https://'}, status_code=400)
 
     available = await _playwright_available()
     cr_ok = await _chromium_installed() if available else False
@@ -619,7 +679,7 @@ async def quick_screenshot(req: Request):
             'size': len(png),
         }
     except Exception as ex:
-        return {'ok': False, 'error': str(ex)[:300]}
+        return JSONResponse({'ok': False, 'error': str(ex)[:300]}, status_code=500)
 
 
 @router.get('/screenshots')
