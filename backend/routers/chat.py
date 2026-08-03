@@ -209,7 +209,7 @@ async def chat_stream(req: Request):
             'swarm': 'Multi-Agent Swarm',
         }[target_pane]
         carried_prompt = rest.strip() or message.strip()
-        text = f'🚀 Opening **{pane_label}**' + (f' with your prompt ready to go.' if carried_prompt else '.')
+        text = f'🚀 Opening **{pane_label}**' + (' with your prompt ready to go.' if carried_prompt else '.')
 
         async def _route():
             yield f'data: {json.dumps({"delta": text, "done": True, "action": "navigate", "target": target_pane, "carry_prompt": carried_prompt})}\n\n'

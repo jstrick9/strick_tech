@@ -1542,167 +1542,15 @@ window.changeChatPage = function(delta) {
   loadChatSessions();
 };
 
-window.loadChatSessions = async function(q = '') {
-  q = String(q || '').trim();
-  // A new search is a new result set; always begin at its first page.
-  if (q !== window._chatLastQuery) {
-    window._chatLastQuery = q;
-    window._chatCurrentPage = 1;
-  }
-  const el = document.getElementById('chat-sessions-list');
-  if (!el) return;
-  try {
-    const r = await fetch(`/api/sessions?limit=200&q=${encodeURIComponent(q)}`);
-    const data = await r.json();
-    const sessions = data.sessions || [];
-    if (!sessions.length) {
-      el.innerHTML = `<div style="color:var(--text-3); font-size:12px; text-align:center; padding:20px">No saved conversations yet.<br><br><button id="btn-start-first" class="btn-3d btn-primary btn-sm">＋ Start First Chat</button></div>`;
-      const startBtn = document.getElementById('btn-start-first');
-      if (startBtn) startBtn.addEventListener('click', () => startNewChatSession());
-      return;
-    }
-    const folderFilter = window._activeChatFolder || 'All';
-    const filtered = folderFilter === 'All' ? sessions : sessions.filter(s => (s.description && s.description !== 'All' ? s.description : 'General') === folderFilter);
-
-    // Update folder sorting dropdown options visibility (only enabled when All folders is selected)
-    const optFAZ = document.getElementById('opt-sort-folder-az');
-    const optFZA = document.getElementById('opt-sort-folder-za');
-    if (optFAZ && optFZA) {
-      const showFolderSort = (folderFilter === 'All');
-      optFAZ.style.display = showFolderSort ? '' : 'none';
-      optFZA.style.display = showFolderSort ? '' : 'none';
-      if (!showFolderSort && (window._chatSortOrder === 'folder_az' || window._chatSortOrder === 'folder_za')) {
-        window._chatSortOrder = 'newest';
-        const sortSel = document.getElementById('chat-sort-select');
-        if (sortSel) sortSel.value = 'newest';
-      }
-    }
-
-    // Sort sessions
-    filtered.sort((a, b) => {
-      if (a.pinned !== b.pinned) return b.pinned - a.pinned;
-      const order = window._chatSortOrder || 'newest';
-      const nameA = (a.name || 'Chat').toLowerCase();
-      const nameB = (b.name || 'Chat').toLowerCase();
-      const folderA = (a.description && a.description !== 'All' ? a.description : 'General').toLowerCase();
-      const folderB = (b.description && b.description !== 'All' ? b.description : 'General').toLowerCase();
-      const timeA = new Date(a.updated_at || a.created_at || 0).getTime();
-      const timeB = new Date(b.updated_at || b.created_at || 0).getTime();
-
-      if (order === 'oldest') return timeA - timeB;
-      if (order === 'az') return nameA.localeCompare(nameB);
-      if (order === 'za') return nameB.localeCompare(nameA);
-      if (order === 'folder_az') return folderA.localeCompare(folderB) || nameA.localeCompare(nameB);
-      if (order === 'folder_za') return folderB.localeCompare(folderA) || nameA.localeCompare(nameB);
-      return timeB - timeA;
-    });
-
-    // Paginate
-    const pageSize = window._chatPageSize || 5;
-    const totalSessions = filtered.length;
-    const totalPages = Math.max(1, Math.ceil(totalSessions / pageSize));
-    if (window._chatCurrentPage > totalPages) window._chatCurrentPage = totalPages;
-    const curPage = window._chatCurrentPage || 1;
-    const startIdx = (curPage - 1) * pageSize;
-    const pageSessions = filtered.slice(startIdx, startIdx + pageSize);
-
-    // Update UI pagination indicators
-    const pagEl = document.getElementById('chat-sessions-pagination');
-    if (pagEl) {
-      pagEl.style.display = totalSessions > 0 ? 'flex' : 'none';
-      const ind = document.getElementById('chat-page-indicator');
-      if (ind) ind.textContent = `Page ${curPage} of ${totalPages} (${totalSessions} total)`;
-      const prevBtn = document.getElementById('chat-page-prev');
-      const nextBtn = document.getElementById('chat-page-next');
-      if (prevBtn) prevBtn.disabled = (curPage <= 1);
-      if (nextBtn) nextBtn.disabled = (curPage >= totalPages);
-    }
-
-    if (!pageSessions.length) {
-      el.innerHTML = `<div style="color:var(--text-3); font-size:12px; text-align:center; padding:20px">${totalSessions === 0 ? 'No saved conversations yet.' : 'No chats on this page.'}<br><br><button id="btn-start-here" class="btn-3d btn-primary btn-sm">＋ New Chat Here</button></div>`;
-      const hereBtn = document.getElementById('btn-start-here');
-      if (hereBtn) hereBtn.addEventListener('click', () => startNewChatSession());
-      return;
-    }
-
-    el.innerHTML = '';
-    pageSessions.forEach(s => {
-      const isCurrent = (s.id === S.sessionId);
-      const folder = (s.description && s.description !== 'All') ? s.description : 'General';
-      const folderIcon = folder === 'Engineering' ? '⚙️' : folder === 'Research' ? '🔬' : folder === 'Ideas' ? '💡' : '📁';
-      const snameSafe = (s.name || 'Chat').slice(0, 256);
-
-      const itemDiv = document.createElement('div');
-      itemDiv.className = `chat-session-item ${isCurrent ? 'active' : ''}`;
-      itemDiv.style.cssText = `display:flex; flex-direction:column; gap:4px; padding:8px 10px; border-radius:8px; background:${isCurrent ? 'var(--bg-3)' : 'transparent'}; border:1px solid ${isCurrent ? 'var(--accent)' : 'transparent'}; cursor:pointer; transition:all .15s`;
-      itemDiv.addEventListener('click', () => loadChatSession(s.id));
-
-      const topRow = document.createElement('div');
-      topRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:6px; flex-wrap:nowrap';
-
-      const titleSpan = document.createElement('span');
-      titleSpan.style.cssText = `font-size:12.5px; font-weight:${isCurrent ? '800' : '600'}; color:var(--text-0); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0`;
-      titleSpan.textContent = `${s.pinned ? '📌 ' : ''}${snameSafe}`;
-      topRow.appendChild(titleSpan);
-
-      const btnGroup = document.createElement('div');
-      btnGroup.style.cssText = 'display:flex; gap:4px; align-items:center; flex-shrink:0';
-      btnGroup.addEventListener('click', (e) => e.stopPropagation());
-
-      const pinBtn = document.createElement('button');
-      pinBtn.title = s.pinned ? 'Unpin' : 'Pin to top';
-      pinBtn.style.cssText = 'background:none; border:none; color:var(--text-2); font-size:12px; cursor:pointer; padding:2px';
-      pinBtn.textContent = '📌';
-      pinBtn.addEventListener('click', (e) => {
-        e.preventDefault(); e.stopPropagation();
-        pinChatSession(e, s.id, !s.pinned);
-      });
-      btnGroup.appendChild(pinBtn);
-
-      const renBtn = document.createElement('button');
-      renBtn.title = 'Rename or Change Folder';
-      renBtn.style.cssText = 'background:none; border:none; color:var(--text-2); font-size:12px; cursor:pointer; padding:2px';
-      renBtn.textContent = '✏️';
-      renBtn.addEventListener('click', (e) => {
-        e.preventDefault(); e.stopPropagation();
-        renameChatSessionModal(e, s.id, snameSafe, folder);
-      });
-      btnGroup.appendChild(renBtn);
-
-      const delBtn = document.createElement('button');
-      delBtn.title = 'Delete chat';
-      delBtn.style.cssText = 'background:none; border:none; color:var(--danger); font-size:12px; cursor:pointer; padding:2px';
-      delBtn.textContent = '🗑';
-      delBtn.addEventListener('click', (e) => {
-        e.preventDefault(); e.stopPropagation();
-        deleteChatSession(e, s.id);
-      });
-      btnGroup.appendChild(delBtn);
-
-      topRow.appendChild(btnGroup);
-      itemDiv.appendChild(topRow);
-
-      const bottomRow = document.createElement('div');
-      bottomRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-3)';
-
-      const folderSpan = document.createElement('span');
-      folderSpan.className = 'session-folder-badge';
-      folderSpan.style.cssText = 'background:var(--bg-2); padding:1px 6px; border-radius:4px; border:1px solid var(--border)';
-      folderSpan.textContent = `${folderIcon} ${folder}`;
-      bottomRow.appendChild(folderSpan);
-
-      const metaSpan = document.createElement('span');
-      metaSpan.textContent = `${s.message_count || 0} msgs · ${s.updated_at ? s.updated_at.slice(5, 16) : ''}`;
-      bottomRow.appendChild(metaSpan);
-
-      itemDiv.appendChild(bottomRow);
-      el.appendChild(itemDiv);
-    });
-  } catch(e) {
-    console.warn('Failed to load chat sessions:', e);
-  }
-};
-
+// NOTE: loadChatSessions / selectChatFolder / filterChatSessions /
+// toggleChatHistoryDrawer used to be defined here too. They were dead code:
+// 56-chat-history.js loads after this file and unconditionally reassigns all
+// four on window, so these copies never ran. They also still drove a UI that
+// no longer exists (#chat-folder-pills, #chat-sort-select, a page-size <select>),
+// which is why they silently rotted. Removed to leave exactly one owner of
+// chat-history rendering (56-chat-history.js). setChatPageSize/setChatSortOrder
+// above are likewise unused by any current markup but are kept as the public
+// API that module reads via window._chatPageSize / window._chatSortOrder.
 window.loadChatSession = async function(sid) {
   if (!sid) return;
   S.sessionId = sid;
@@ -1837,35 +1685,6 @@ window.renameChatSessionModal = async function(e, sid, oldName, oldFolder) {
   }
 };
 
-window.selectChatFolder = function(folder) {
-  window._activeChatFolder = folder;
-  window._chatCurrentPage = 1;
-  document.querySelectorAll('#chat-folder-pills button').forEach(btn => {
-    const isSel = (btn.textContent.trim().includes(folder) || (folder === 'All' && btn.textContent.trim() === 'All'));
-    btn.style.background = isSel ? 'var(--accent)' : 'var(--bg-2)';
-    btn.style.color = isSel ? '#fff' : 'var(--text-1)';
-  });
-  loadChatSessions();
-};
-
-window.filterChatSessions = function(val) {
-  if (window._chatSearchTimeout) clearTimeout(window._chatSearchTimeout);
-  window._chatSearchTimeout = setTimeout(() => {
-    loadChatSessions(val.trim());
-  }, 250);
-};
-
-window.toggleChatHistoryDrawer = function() {
-  const dr = document.getElementById('chat-history-drawer');
-  if (!dr) return;
-  if (dr.style.display === 'none' || dr.style.width === '0px') {
-    dr.style.display = 'flex';
-    dr.style.width = '280px';
-  } else {
-    dr.style.width = '0px';
-    setTimeout(() => { if (dr.style.width === '0px') dr.style.display = 'none'; }, 200);
-  }
-};
 
 window.renderConnectionReadiness = function(readiness = {}) {
   const localModels = Number(readiness.localModels || 0);

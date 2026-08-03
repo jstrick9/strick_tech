@@ -498,6 +498,7 @@ def export_session(session_id: str, fmt: str = 'markdown'):
 
     if fmt == 'json':
         import json as _json
+
         from fastapi.responses import Response
         content = _json.dumps({'session': info_dict, 'messages': [dict(m) for m in msgs]}, indent=2, default=str)
         return Response(

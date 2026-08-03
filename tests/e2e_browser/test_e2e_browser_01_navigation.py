@@ -108,7 +108,8 @@ class TestE2ENavigation:
         assert resp.status == 200
         data = resp.json()
         assert data.get("ok") is True
-        assert data.get("version") == "6.0"
+        from backend.version import VERSION
+        assert data.get("version") == VERSION
 
     def test_sprint_a_panes_in_dom(self, page):
         """All Sprint A panes are in the DOM."""

@@ -15,7 +15,8 @@ class TestSystemHealthCoherence:
         """API health check always returns ok:true."""
         d = ok(await GET(client, "/api/health"))
         check("ok is True", d["ok"] is True)
-        check("version is 6.0", d["version"] == "6.0")
+        from backend.version import VERSION
+        check("version matches VERSION", d["version"] == VERSION)
 
     async def test_02_system_health_accessible(self, client):
         """System health returns platform vitals."""

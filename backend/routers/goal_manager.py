@@ -75,7 +75,53 @@ CREATE TABLE IF NOT EXISTS goal_checkins (
     created_at  TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_checkins_goal ON goal_checkins(goal_id);
+
+-- BUG FIX: goal_decompositions and goal_score_history were read and written by
+-- /decompose, /score, /score/history and /score/latest, but were never created here.
+-- Every one of those endpoints raised sqlite3.OperationalError "no such table"
+-- and returned a bare HTTP 500 on a fresh database. Reproduced live against a
+-- running server before adding these two definitions.
+CREATE TABLE IF NOT EXISTS goal_decompositions (
+    id          TEXT PRIMARY KEY,
+    goal_id     TEXT NOT NULL,
+    seq         INTEGER NOT NULL DEFAULT 0,
+    title       TEXT NOT NULL DEFAULT '',
+    description TEXT NOT NULL DEFAULT '',
+    agent_hint  TEXT NOT NULL DEFAULT 'builder',
+    depends_on  TEXT NOT NULL DEFAULT '[]',
+    risk_level  TEXT NOT NULL DEFAULT 'low',
+    est_tokens  INTEGER NOT NULL DEFAULT 400,
+    status      TEXT NOT NULL DEFAULT 'pending',
+    created_at  TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_decomp_goal ON goal_decompositions(goal_id);
+
+CREATE TABLE IF NOT EXISTS goal_score_history (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    goal_id     TEXT NOT NULL,
+    iteration   INTEGER NOT NULL DEFAULT 0,
+    score       REAL NOT NULL DEFAULT 0.0,
+    breakdown   TEXT NOT NULL DEFAULT '{}',
+    notes       TEXT NOT NULL DEFAULT '',
+    scored_by   TEXT NOT NULL DEFAULT 'evaluator',
+    run_id      TEXT NOT NULL DEFAULT '',
+    created_at  TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_score_goal ON goal_score_history(goal_id);
 """
+
+# BUG FIX: the /score endpoint UPDATEs five goals_v2 columns that the original
+# CREATE TABLE never declared (outcome_score, score_breakdown, last_scored_at,
+# iteration, decomposition). CREATE TABLE IF NOT EXISTS will not add columns to
+# an already-existing table, so these are applied as idempotent migrations for
+# both fresh and pre-existing databases.
+_COLUMN_MIGRATIONS = [
+    ('goals_v2', 'outcome_score', "REAL NOT NULL DEFAULT 0.0"),
+    ('goals_v2', 'score_breakdown', "TEXT NOT NULL DEFAULT '{}'"),
+    ('goals_v2', 'last_scored_at', "TEXT NOT NULL DEFAULT ''"),
+    ('goals_v2', 'iteration', 'INTEGER NOT NULL DEFAULT 0'),
+    ('goals_v2', 'decomposition', "TEXT NOT NULL DEFAULT '[]'"),
+]
 
 DOMAINS = ['Work', 'Health', 'Finance', 'Learning', 'Home', 'Travel', 'Personal', 'Research']
 PRIORITIES = ['critical', 'high', 'medium', 'low']
@@ -92,6 +138,10 @@ def _ensure_schema():
     con = _get_conn()
     try:
         con.executescript(_SCHEMA)
+        for table, column, decl in _COLUMN_MIGRATIONS:
+            existing = {r[1] for r in con.execute(f'PRAGMA table_info({table})')}
+            if column not in existing:
+                con.execute(f'ALTER TABLE {table} ADD COLUMN {column} {decl}')
         con.commit()
     finally:
         con.close()

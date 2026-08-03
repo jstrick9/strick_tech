@@ -23,7 +23,7 @@ PREFS_FILE = ROOT / 'memory' / 'preferences.json'
 # ── Default preferences ────────────────────────────────────────────────────────
 DEFAULT_PREFS: dict = {
     'onboarding_complete': False,
-    'theme': 'light',  # 'light' (default) | 'dark' | 'auto' | optional visual palettes
+    'theme': 'dark',  # 'dark' (default) | 'light' | 'auto' | optional visual palettes
     'accent_color': '#5b8af8',
     'font_size': 14,  # integer px
     'font_family': 'Inter',
