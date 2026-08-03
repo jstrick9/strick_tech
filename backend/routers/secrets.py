@@ -13,6 +13,7 @@ import os
 import sqlite3
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from ..services.memory_db import audit_log, ensure_schema, get_conn
 
@@ -134,7 +135,7 @@ async def set_secret(req: Request):
     agent = body.get('agent') or ''
 
     if not key:
-        return {'ok': False, 'error': 'key required'}
+        return JSONResponse({'ok': False, 'error': 'key required'}, status_code=400)
     # FIX 6: validate key format — must be safe env-var name
     import re as _re
 
@@ -144,11 +145,14 @@ async def set_secret(req: Request):
             'error': 'key must be uppercase letters, digits, underscores, max 128 chars, start with a letter',
         }
     if not value:
-        return {'ok': False, 'error': 'value required'}
+        return JSONResponse({'ok': False, 'error': 'value required'}, status_code=400)
 
     enc, is_fernet = _encrypt(value)
     if not is_fernet:
-        return {'ok': False, 'error': 'Encrypted vault unavailable: install cryptography before storing secrets'}
+        return JSONResponse(
+            {'ok': False, 'error': 'Encrypted vault unavailable: install cryptography before storing secrets'},
+            status_code=503,
+        )
     fp = _fingerprint(value)
     length = len(value)
 
@@ -193,13 +197,68 @@ async def test_secret_connection(req: Request):
             return {'ok': False, 'error': 'No OpenRouter API key provided or found in vault.'}
         try:
             async with httpx.AsyncClient(timeout=6.0) as client:
-                r = await client.get('https://openrouter.ai/api/v1/models', headers={'Authorization': f'Bearer {key}'})
-                if r.status_code == 200:
-                    data = r.json()
-                    models = data.get('data', [])
-                    return {'ok': True, 'provider': 'openrouter', 'models_count': len(models), 'message': f'✅ Verified OpenRouter connection! {len(models)} models available.'}
-                else:
-                    return {'ok': False, 'error': f'OpenRouter returned HTTP {r.status_code}: check key permissions.'}
+                # BUG FIX: this used to call GET /api/v1/models, which is a
+                # PUBLIC endpoint on OpenRouter — it returns HTTP 200 with the
+                # full catalogue for an invalid key, a garbage string, or no
+                # Authorization header at all. So "Test Connection" reported
+                # "✅ Verified OpenRouter connection! 338 models available" for
+                # literally any input. A user who pasted a typo'd or revoked
+                # key got a green check here and then had every single chat
+                # request fail with no idea why.
+                #
+                # /api/v1/auth/key is the authenticated endpoint: it returns
+                # 401 for a bad or missing key and echoes the key's own
+                # metadata (label, usage, limit) when the key is real.
+                # Verified against the live API: bad key -> 401, absent -> 401.
+                auth = await client.get(
+                    'https://openrouter.ai/api/v1/auth/key',
+                    headers={'Authorization': f'Bearer {key}'},
+                )
+                if auth.status_code in (401, 403):
+                    return {
+                        'ok': False,
+                        'error': f'OpenRouter rejected this key (HTTP {auth.status_code}). '
+                        'Check that it is correct and still active.',
+                    }
+                if auth.status_code != 200:
+                    return {'ok': False, 'error': f'OpenRouter returned HTTP {auth.status_code} while verifying the key.'}
+
+                key_info = {}
+                try:
+                    key_info = (auth.json() or {}).get('data', {}) or {}
+                except (ValueError, AttributeError):
+                    key_info = {}
+
+                # The key is valid — now report how many models it can reach.
+                models_count = 0
+                try:
+                    r = await client.get(
+                        'https://openrouter.ai/api/v1/models', headers={'Authorization': f'Bearer {key}'}
+                    )
+                    if r.status_code == 200:
+                        models_count = len((r.json() or {}).get('data', []) or [])
+                except (httpx.RequestError, ValueError):
+                    pass  # key is verified; the catalogue is a nice-to-have
+
+                message = f'✅ Verified OpenRouter key! {models_count} models available.'
+                limit = key_info.get('limit')
+                usage = key_info.get('usage')
+                if limit is not None:
+                    remaining = round(float(limit) - float(usage or 0), 4)
+                    message += f' Credit remaining: ${remaining}.'
+                elif usage is not None:
+                    message += f' Usage to date: ${usage}.'
+
+                return {
+                    'ok': True,
+                    'provider': 'openrouter',
+                    'models_count': models_count,
+                    'label': key_info.get('label', ''),
+                    'usage': usage,
+                    'limit': limit,
+                    'is_free_tier': key_info.get('is_free_tier'),
+                    'message': message,
+                }
         except Exception as e:
             return {'ok': False, 'error': f'Network verification error: {e}'}
     elif provider == 'ollama':
@@ -250,7 +309,7 @@ async def get_secret(key: str, reveal: bool = False):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'not found'}
+        return JSONResponse({'ok': False, 'error': 'not found'}, status_code=404)
     if reveal:
         audit_log('vault_reveal', key)
         val = _decrypt(row['value_enc'])
@@ -272,6 +331,11 @@ def delete_secret_by_path(key: str):
         con.commit()
     finally:
         con.close()
+    # BUG FIX: returned HTTP 200 with {'ok': false, 'deleted': <key>} for a key
+    # that never existed — reporting a deletion that did not happen, with a
+    # success status code.
+    if cur.rowcount == 0:
+        return JSONResponse({'ok': False, 'error': f"Secret '{key}' not found"}, status_code=404)
     os.environ.pop(key, None)
     audit_log('vault_delete', key)
-    return {'ok': cur.rowcount > 0, 'deleted': key}
+    return {'ok': True, 'deleted': key}

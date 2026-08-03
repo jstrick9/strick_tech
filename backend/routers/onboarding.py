@@ -10,6 +10,7 @@ import os
 import time
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from ..services.memory_db import audit_log, get_conn, memory_add
 
@@ -52,6 +53,92 @@ DEFAULT_PREFS: dict = {
     'first_run_at': None,
     'version': '6.0',
 }
+
+
+# ── Preference validation ──────────────────────────────────────────────────────
+# BUG FIX: preference KEYS were allowlisted but VALUES were never checked, so
+# any type or magnitude was accepted and persisted — font_size:"enormous",
+# font_size:99999, sidebar_width:-1 and theme:"not-a-theme" all saved happily
+# and then corrupted the UI on the next load (an unusable 99999px font, a
+# negative sidebar, a theme with no stylesheet). Values are now coerced and
+# bounded, and anything unusable is rejected with a reason.
+
+#: Numeric preferences -> (minimum, maximum)
+_NUMERIC_RANGES: dict[str, tuple[int, int]] = {
+    'font_size': (10, 32),
+    'sidebar_width': (160, 600),
+    'auto_save_ms': (100, 60000),
+}
+
+#: Preferences restricted to a fixed set of values.
+_ENUM_VALUES: dict[str, set[str]] = {
+    # 'light'/'auto' are appearance modes; the rest are the visual palettes
+    # advertised by GET /api/onboarding/themes.
+    'theme': {'dark', 'light', 'auto', 'midnight', 'forest', 'ember', 'ocean'},
+    'ui_mode': {'simple', 'power'},
+    'default_framework': {'web', 'react', 'vue', 'svelte', 'static', 'node', 'python'},
+}
+
+#: Free-text preferences -> maximum length.
+_TEXT_LIMITS: dict[str, int] = {
+    'accent_color': 32,
+    'font_family': 80,
+    'editor_font': 80,
+    'tts_voice': 40,
+    'default_agent': 64,
+    'workspace_name': 120,
+}
+
+
+def validate_preference(key: str, value):
+    """Coerce and bound one preference value.
+
+    Returns (clean_value, error). `error` is None when the value is usable.
+    """
+    default = DEFAULT_PREFS.get(key)
+
+    # Booleans first — bool is a subclass of int, so check before the numerics.
+    if isinstance(default, bool):
+        if isinstance(value, bool):
+            return value, None
+        if isinstance(value, str) and value.lower() in ('true', 'false'):
+            return value.lower() == 'true', None
+        return None, f"'{key}' must be true or false"
+
+    if key in _NUMERIC_RANGES:
+        low, high = _NUMERIC_RANGES[key]
+        try:
+            num = int(value)
+        except (TypeError, ValueError):
+            return None, f"'{key}' must be a number between {low} and {high}"
+        # Clamp rather than reject: a slider overshooting its bounds should
+        # settle at the limit, not fail the whole save.
+        return max(low, min(high, num)), None
+
+    if key in _ENUM_VALUES:
+        text = str(value)
+        if text not in _ENUM_VALUES[key]:
+            allowed = ', '.join(sorted(_ENUM_VALUES[key]))
+            return None, f"'{key}' must be one of: {allowed}"
+        return text, None
+
+    if key in _TEXT_LIMITS:
+        if not isinstance(value, (str, int, float)):
+            return None, f"'{key}' must be text"
+        return str(value)[: _TEXT_LIMITS[key]], None
+
+    if key == 'shortcuts':
+        if not isinstance(value, dict):
+            return None, "'shortcuts' must be an object"
+        known = set(DEFAULT_PREFS['shortcuts'].keys())
+        cleaned = {k: str(v)[:40] for k, v in value.items() if k in known and isinstance(v, (str, int))}
+        if not cleaned:
+            return None, "'shortcuts' contained no recognised shortcut names"
+        return cleaned, None
+
+    # Anything else (first_run_at, version, onboarding_complete handled above)
+    # passes through unchanged.
+    return value, None
 
 
 def load_prefs() -> dict:
@@ -227,7 +314,7 @@ def get_preference_key(key: str):
     """Get a single preference value by key."""
     prefs = load_prefs()
     if key not in DEFAULT_PREFS:
-        return {'ok': False, 'error': f"Unknown preference key '{key}'"}
+        return JSONResponse({'ok': False, 'error': f"Unknown preference key '{key}'"}, status_code=404)
     return {'ok': True, 'key': key, 'value': prefs.get(key, DEFAULT_PREFS.get(key))}
 
 
@@ -239,18 +326,25 @@ async def update_preferences(req: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
     if not isinstance(body, dict):
-        return {'ok': False, 'error': 'body must be a JSON object'}
+        return JSONResponse({'ok': False, 'error': 'body must be a JSON object'}, status_code=400)
     prefs = load_prefs()
     allowed = set(DEFAULT_PREFS.keys())
-    updated = {}
+    updated: dict = {}
+    rejected: dict = {}
     for k, v in body.items():
-        if k in allowed:
-            prefs[k] = v
-            updated[k] = v
+        if k not in allowed:
+            continue
+        clean, err = validate_preference(k, v)
+        if err:
+            rejected[k] = err
+            continue
+        prefs[k] = clean
+        updated[k] = clean
     if not updated:
-        return {'ok': False, 'error': 'No valid preference keys provided'}
+        detail = '; '.join(rejected.values()) if rejected else 'No valid preference keys provided'
+        return JSONResponse({'ok': False, 'error': detail, 'rejected': rejected}, status_code=400)
     save_prefs(prefs)
-    return {'ok': True, 'updated': updated, 'preferences': prefs}
+    return {'ok': True, 'updated': updated, 'rejected': rejected, 'preferences': prefs}
 
 
 @router.put('/preferences')
@@ -261,16 +355,22 @@ async def replace_preferences(req: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
     if not isinstance(body, dict):
-        return {'ok': False, 'error': 'body must be a JSON object'}
-    # Merge with defaults — only allow known keys
+        return JSONResponse({'ok': False, 'error': 'body must be a JSON object'}, status_code=400)
+    # Merge with defaults — only allow known keys, and validate their values.
     allowed = set(DEFAULT_PREFS.keys())
     new_prefs = dict(DEFAULT_PREFS)
+    rejected: dict = {}
     for k, v in body.items():
-        if k in allowed:
-            new_prefs[k] = v
+        if k not in allowed:
+            continue
+        clean, err = validate_preference(k, v)
+        if err:
+            rejected[k] = err
+            continue
+        new_prefs[k] = clean
     save_prefs(new_prefs)
     audit_log('preferences_replace', f'{len(body)} keys')
-    return {'ok': True, 'preferences': new_prefs}
+    return {'ok': True, 'preferences': new_prefs, 'rejected': rejected}
 
 
 @router.delete('/preferences')
