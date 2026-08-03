@@ -5,7 +5,11 @@ Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
+import platform
+import shutil
+import subprocess
 import time
 import uuid
 from typing import Any
@@ -55,20 +59,84 @@ class AdapterExportRequest(BaseModel):
     export_format: str = "safetensors"  # safetensors, gguf, ggml
 
 
+def _detect_accelerator() -> dict[str, Any]:
+    """Best-effort local accelerator detection.
+
+    HONESTY FIX: this used to return a hardcoded
+    {"compute_backend": "Apple Silicon MLX / CUDA Hybrid",
+     "accelerator_detected": true, "available_vram_gb": 24}
+    on every machine, regardless of what hardware was actually present — a
+    Raspberry Pi and a GPU workstation both reported 24GB of VRAM. Nothing was
+    inspected. This performs real detection and reports what it finds.
+    """
+    backends: list[str] = []
+    vram_gb = 0
+
+    # NVIDIA — nvidia-smi is the least intrusive check and needs no ML deps.
+    nvidia_smi = shutil.which('nvidia-smi')
+    if nvidia_smi:
+        try:
+            out = subprocess.run(
+                [nvidia_smi, '--query-gpu=memory.total', '--format=csv,noheader,nounits'],
+                capture_output=True, text=True, timeout=5, check=False,
+            )
+            if out.returncode == 0 and out.stdout.strip():
+                mib = max(int(x) for x in out.stdout.split() if x.strip().isdigit())
+                vram_gb = round(mib / 1024)
+                backends.append('CUDA')
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass
+
+    # Apple Silicon — unified memory, so report total system RAM.
+    if platform.system() == 'Darwin' and platform.machine() == 'arm64':
+        backends.append('Apple Silicon (MPS)')
+        try:
+            out = subprocess.run(['sysctl', '-n', 'hw.memsize'], capture_output=True, text=True, timeout=5, check=False)
+            if out.returncode == 0 and out.stdout.strip().isdigit():
+                vram_gb = round(int(out.stdout.strip()) / (1024**3))
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass
+
+    return {
+        'compute_backend': ' + '.join(backends) if backends else 'CPU only',
+        'accelerator_detected': bool(backends),
+        'available_vram_gb': vram_gb,
+    }
+
+
+def _training_backend() -> dict[str, Any]:
+    """Which training libraries are actually importable here."""
+    available = []
+    for mod in ('torch', 'mlx', 'peft', 'transformers'):
+        if importlib.util.find_spec(mod) is not None:
+            available.append(mod)
+    return {
+        'training_libraries': available,
+        # LoRA needs a real training stack. Without one, nothing can train,
+        # and the endpoints below say so instead of pretending.
+        'training_available': bool({'torch', 'mlx'} & set(available)),
+    }
+
+
 @router.get("/hardware")
 def get_finetune_hardware() -> dict[str, Any]:
-    """Inspect local machine hardware acceleration capabilities (Apple Silicon MPS / NVIDIA CUDA)."""
-    return {
+    """Inspect local hardware acceleration and available training libraries."""
+    hw = _detect_accelerator()
+    backend = _training_backend()
+    payload = {
         "ok": True,
-        "compute_backend": "Apple Silicon MLX / CUDA Hybrid",
-        "accelerator_detected": True,
-        "available_vram_gb": 24,
+        **hw,
+        **backend,
         "supported_base_models": ["llama3.1:8b", "mistral:7b", "qwen2.5:14b", "phi3:3.8b"],
-        "lora_supported": True,
-        "quantization_supported": ["4-bit", "8-bit", "fp16"],
-        "creator": "Joshua Strickland and Strick Tech",
-        "editions_supported": ["Pro", "Enterprise"],
+        "lora_supported": backend['training_available'],
+        "quantization_supported": ["4-bit", "8-bit", "fp16"] if backend['training_available'] else [],
     }
+    if not backend['training_available']:
+        payload['notice'] = (
+            'No local training backend is installed (needs PyTorch or MLX, plus peft). '
+            'Fine-tuning is unavailable on this machine — datasets can still be prepared.'
+        )
+    return payload
 
 
 @router.post("/datasets/create")
@@ -123,6 +191,24 @@ def start_finetune_job(payload: JobStartRequest) -> dict[str, Any]:
     if not meta_file.exists():
         raise HTTPException(status_code=404, detail=f"Dataset '{payload.dataset_id}' not found")
 
+    # HONESTY FIX: this used to write a hardcoded result — step 150/150,
+    # train_loss 0.284, eval_loss 0.312, status "completed" — and return
+    # "LoRA fine-tuning job completed successfully". No training ran, no
+    # adapter was produced, and the losses were the same invented numbers on
+    # every call. There is no training library in the dependency set at all
+    # (no torch, no mlx, no peft), so this could not have trained anything.
+    # It now refuses honestly when no backend is present, instead of reporting
+    # a successful run the user might rely on.
+    backend = _training_backend()
+    if not backend['training_available']:
+        raise HTTPException(
+            status_code=501,
+            detail=(
+                'Local fine-tuning is not available on this machine: no training backend installed. '
+                'Install PyTorch (or MLX on Apple Silicon) plus peft to enable LoRA training.'
+            ),
+        )
+
     job_info = {
         "job_id": jid,
         "dataset_id": payload.dataset_id,
@@ -131,17 +217,17 @@ def start_finetune_job(payload: JobStartRequest) -> dict[str, Any]:
         "lora_alpha": payload.lora_alpha,
         "learning_rate": payload.learning_rate,
         "epochs": payload.epochs,
-        "current_epoch": payload.epochs,
-        "step": 150,
-        "total_steps": 150,
-        "train_loss": 0.284,
-        "eval_loss": 0.312,
-        "status": "completed",
-        "started_at": time.time() - 120,
-        "completed_at": time.time(),
+        "current_epoch": 0,
+        "step": 0,
+        "total_steps": 0,
+        "train_loss": None,
+        "eval_loss": None,
+        "status": "queued",
+        "started_at": time.time(),
+        "completed_at": None,
     }
     (JOBS_DIR / f"{jid}.json").write_text(json.dumps(job_info, indent=2), encoding="utf-8")
-    return {"ok": True, "job_id": jid, "job": job_info, "message": f"LoRA fine-tuning job '{jid}' completed successfully"}
+    return {"ok": True, "job_id": jid, "job": job_info, "message": f"LoRA fine-tuning job '{jid}' queued"}
 
 
 @router.get("/jobs/{job_id}")

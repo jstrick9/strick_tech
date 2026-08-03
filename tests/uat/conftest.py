@@ -45,9 +45,15 @@ async def DELETE(u, path, j=None):
     return await (u.request("DELETE", path, json=j) if j else u.delete(path))
 
 def j(r) -> dict:
-    """Parse JSON response — skip if event-stream."""
+    """Parse a JSON response — skip only if it is a stream.
+
+    This used to return {} for ANY non-200, which made every assertion about
+    an error BODY silently vacuous (and raised KeyError once endpoints started
+    returning real 4xx codes instead of HTTP 200 with {"ok": false}). Error
+    payloads are legitimate JSON and tests need to inspect them.
+    """
     ct = r.headers.get("content-type","")
-    if "event-stream" in ct or r.status_code != 200:
+    if "event-stream" in ct:
         return {}
     try: return r.json()
     except: return {}

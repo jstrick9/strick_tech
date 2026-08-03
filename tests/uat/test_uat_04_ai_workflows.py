@@ -293,7 +293,7 @@ class TestUATModelFusion:
 
     async def test_fusion_classify_suggests_best_preset(self, U):
         """AC: Classify endpoint suggests best model preset for a prompt."""
-        r = await GET(U, "/api/fusion/classify", prompt="Write a Python function")
+        r = await GET(U, "/api/fusion/classify", q="Write a Python function")
         accept(r, "fusion classify", 200, 404)
 
     async def test_fusion_history_accessible(self, U):

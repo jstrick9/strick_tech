@@ -20,14 +20,16 @@ class TestSwarm:
 
     def test_swarm_run_requires_prompt(self, client):
         r = client.post("/api/swarm/run", json={"agents": ["brain", "builder"]})
-        assert r.status_code == 200
+        assert r.status_code == 400
         assert r.json()["ok"] is False
 
     def test_swarm_run_requires_2_agents(self, client):
         r = client.post("/api/swarm/run", json={
             "prompt": "test", "agents": ["brain"]
         })
-        assert r.status_code == 200
+        # Was pinned to 200. A rejected payload is a 400; the contract this
+        # guards (the request must be REJECTED) is unchanged and still asserted.
+        assert r.status_code == 400
         assert r.json()["ok"] is False
 
     def test_swarm_run_judge_strategy(self, client):
@@ -71,9 +73,9 @@ class TestFusion:
 
     def test_fusion_run_requires_prompt(self, client):
         r = client.post("/api/fusion/route", json={})
-        assert r.status_code == 200
+        assert r.status_code == 400
         d = r.json()
-        assert "model" in d or "ok" in d or "error" in d or "route" in d
+        assert d.get("ok") is False and "error" in d
 
     def test_fusion_presets(self, client):
         r = client.get("/api/fusion/presets")
