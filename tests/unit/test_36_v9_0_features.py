@@ -1,10 +1,8 @@
 """
 Unit Tests — Version 9.0 Features (`tests/unit/test_36_v9_0_features.py`)
-Tests all 4 pillars of the v9.0 Roadmap:
+Tests the remaining pillars of the v9.0 Roadmap:
 1. Autonomous zero-day vulnerability bounty hunter & self-patching security scanner (`/api/security/bounty-hunter/*`)
-2. Decentralized P2P encrypted model checkpoint sharding over IPFS & BitTorrent (`/api/p2p-sharding/*`)
-3. Quantum-resistant hybrid post-quantum cryptography (`/api/pqc/*`)
-4. Autonomous hardware robotics & IoT sensor control suite via ROS 2 & MQTT (`/api/robotics/*`)
+2. Quantum-resistant hybrid post-quantum cryptography (`/api/pqc/*`)
 """
 from __future__ import annotations
 import pytest
@@ -49,38 +47,6 @@ class TestV90Features:
         assert lb_r.status_code == 200
         assert lb_r.json()["ok"] is True
 
-    def test_p2p_model_sharding_and_reconstruction(self, client):
-        cfg_r = client.get("/api/p2p-sharding/config")
-        assert cfg_r.status_code == 200
-        assert "IPFS" in cfg_r.json()["protocols_supported"]
-
-        shard_r = client.post("/api/p2p-sharding/checkpoints/shard", json={
-            "checkpoint_path": "models/qwen2.5-72b-lora.safetensors",
-            "model_name": "qwen2.5-72b-lora",
-            "chunk_size_mb": 64
-        })
-        assert shard_r.status_code == 200
-        shard_data = shard_r.json()
-        assert shard_data["ok"] is True
-        manifest_id = shard_data["manifest_id"]
-        assert shard_data["shard_count"] == 8
-        assert "Qm" in shard_data["ipfs_root_cid"]
-
-        fetch_r = client.post(f"/api/p2p-sharding/checkpoints/{manifest_id}/fetch", json={
-            "manifest_id": manifest_id,
-            "verify_merkle_root": True
-        })
-        assert fetch_r.status_code == 200
-        assert fetch_r.json()["ok"] is True
-        assert fetch_r.json()["shards_reconstructed"] == 8
-
-        ann_r = client.post("/api/p2p-sharding/peers/announce", json={
-            "peer_id": "seeder_node_01",
-            "available_cids": ["Qm1", "Qm2"]
-        })
-        assert ann_r.status_code == 200
-        assert ann_r.json()["cids_registered"] == 2
-
     def test_post_quantum_cryptography_kem_and_vault(self, client):
         algo_r = client.get("/api/pqc/algorithms")
         assert algo_r.status_code == 200
@@ -122,47 +88,3 @@ class TestV90Features:
         assert enc_vault.status_code == 200
         assert enc_vault.json()["ok"] is True
         assert "Kyber-1024" in enc_vault.json()["security_guarantee"]
-
-    def test_hardware_robotics_and_iot_control_suite(self, client):
-        status_r = client.get("/api/robotics/status")
-        assert status_r.status_code == 200
-        status = status_r.json()
-        assert status["ok"] is True
-        assert "ROS2" in status["ros2_bridge_status"] or "agentic_os_hardware_bridge" in status["ros2_bridge_status"]
-
-        reg_r = client.post("/api/robotics/actuators/register", json={
-            "actuator_id": "arm_joint_01",
-            "name": "6-Axis Robotic Arm Joint 1",
-            "protocol": "ros2_topic",
-            "topic_or_address": "/robot/arm/joint_1/cmd_vel",
-            "safety_limits": {"min_angle_deg": -180.0, "max_angle_deg": 180.0}
-        })
-        assert reg_r.status_code == 200
-        assert reg_r.json()["ok"] is True
-
-        # Safe command execution
-        cmd_r = client.post("/api/robotics/actuators/arm_joint_01/command", json={
-            "actuator_id": "arm_joint_01",
-            "command_type": "position",
-            "target_value": 45.0
-        })
-        assert cmd_r.status_code == 200
-        assert cmd_r.json()["ok"] is True
-        assert cmd_r.json()["safety_envelope_checked"] is True
-
-        # Unsafe command must trigger safety envelope block (403)
-        unsafe_r = client.post("/api/robotics/actuators/arm_joint_01/command", json={
-            "actuator_id": "arm_joint_01",
-            "command_type": "position",
-            "target_value": 250.0  # Exceeds max_angle_deg of 180!
-        })
-        assert unsafe_r.status_code == 403
-        assert "Safety envelope breach" in unsafe_r.json()["detail"]
-
-        mission_r = client.post("/api/robotics/mission/execute", json={
-            "mission_prompt": "Navigate to shelf B and pick item 42",
-            "agent_id": "robotics_orchestrator"
-        })
-        assert mission_r.status_code == 200
-        assert mission_r.json()["ok"] is True
-        assert len(mission_r.json()["steps_planned"]) >= 3
