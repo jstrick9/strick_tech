@@ -619,15 +619,32 @@ async function sendChat() {
   const typedMessage = input.value.trim();
   const attachments = [...(window._chatAttachments || [])];
   if (!typedMessage && !attachments.length) return;
-  const attachmentContext = attachments.map((item) => {
+  // BUG FIX: attached images were flattened into the prompt as
+  // "[image data: <first 80 chars>...]" — i.e. nothing but the truncated
+  // data-URL header ("data:image/png;base64,iVBORw0KGgo…"). The actual image
+  // never reached the model, so vision requests were silently impossible from
+  // Chat even on vision-capable models. Images are now carried as proper
+  // OpenAI-format image_url content parts, which llm._normalize_messages()
+  // already supports; text/code attachments keep their inline-fence form.
+  const imageAttachments = attachments.filter((item) => attachmentKind(item.file).label === 'image');
+  const textAttachments = attachments.filter((item) => attachmentKind(item.file).label !== 'image');
+
+  const attachmentContext = textAttachments.map((item) => {
     const kind = attachmentKind(item.file);
-    if (kind.label === 'image') {
-      return `\n\n[Attached image: ${item.file.name}]\n[image data: ${item.text.slice(0, 80)}...]`;
-    }
     return `\n\n[Attached ${kind.label}: ${item.file.name}]\n\`\`\`\n${item.text}\n\`\`\``;
   }).join('');
+  const imageNote = imageAttachments.length
+    ? `\n\n[Attached image${imageAttachments.length === 1 ? '' : 's'}: ${imageAttachments.map((i) => i.file.name).join(', ')}]`
+    : '';
   const msg = typedMessage || 'Please review the attached file(s) and tell me what is most important.';
-  const messageForModel = msg + attachmentContext;
+  const promptText = msg + attachmentContext + imageNote;
+  // Multi-modal payload when images are present, plain string otherwise.
+  const messageForModel = imageAttachments.length
+    ? [
+        { type: 'text', text: promptText },
+        ...imageAttachments.map((item) => ({ type: 'image_url', image_url: { url: item.text } })),
+      ]
+    : promptText;
   const displayMessage = attachments.length ? `${msg}\n\n📎 ${attachments.map((item) => item.file.name).join(', ')}` : msg;
   hideChatEmpty();
   input.value = '';
@@ -678,32 +695,25 @@ async function sendChat() {
   const thinkingId = 'thinking_' + Date.now();
   addThinking(thinkingId, agent);
 
-  document.getElementById('chat-send').disabled = true;
-
-  // Show stop button during streaming
+  // Switch the button into "stop" mode for the duration of the stream.
+  // BUG FIX: this used to attach a second `stopHandler` via addEventListener
+  // while index.html ALSO carried a hardcoded onclick="sendChat()" on the same
+  // button. Clicking it to stop fired both listeners — aborting the stream and
+  // instantly firing a duplicate chat request. There is now exactly one
+  // listener (window.onChatSendClick, bound once at init) which dispatches on
+  // streaming state, so send and stop can never both run for one click.
   const sendBtn = document.getElementById('chat-send');
   if (sendBtn) {
     sendBtn.innerHTML = '⏹';
     sendBtn.title = 'Stop generating';
     sendBtn.disabled = false;
+    sendBtn.setAttribute('aria-label', 'Stop generating');
   }
 
   const abortController = new AbortController();
   window._chatAbortController = abortController;
   let aborted = false;
-
-  // Wire stop button to abort
-  const stopHandler = () => {
-    aborted = true;
-    abortController.abort();
-    if (sendBtn) {
-      sendBtn.innerHTML = '➤';
-      sendBtn.title = 'Send message';
-      sendBtn.disabled = false;
-      sendBtn.removeEventListener('click', stopHandler);
-    }
-  };
-  if (sendBtn) sendBtn.addEventListener('click', stopHandler);
+  abortController.signal.addEventListener('abort', () => { aborted = true; });
 
   let fullText = '';
   let bubbleEl = null;
@@ -718,6 +728,11 @@ async function sendChat() {
         model:      selectedModel,
         agent_id:   selectedPersonaId,
         use_rag:    S.useRag,
+        // BUG FIX: the "⚡ Stream" toggle flipped S.useStream and popped a
+        // toast promising "responses appear all at once", but the flag was
+        // never sent — the backend always streamed regardless, so the control
+        // did nothing at all. It is now honored end to end.
+        stream:     S.useStream !== false,
         session_id: S.sessionId,
         history:    S.chatHistory.slice(0, -1).slice(-20),
       }),
@@ -800,12 +815,26 @@ async function sendChat() {
   } catch(err) {
     document.getElementById(thinkingId)?.remove();
     if (aborted && fullText) {
-      // User stopped — show partial response gracefully
+      // User stopped — keep the partial response, and keep it in history.
+      // BUG FIX: the partial text was rendered but never pushed to
+      // S.chatHistory, so the assistant turn the user could still see on
+      // screen was invisible to the model on the next message — the
+      // conversation silently desynchronised after any Stop.
       updateMessageBubble(bubbleEl, fullText + '\n\n⏹ *Stopped by user*');
-      if (sendBtn) sendBtn.removeEventListener('click', stopHandler);
-    } else if (bubbleEl && !aborted) {
+      S.chatHistory.push({ role: 'assistant', content: fullText });
+      const stoppedId = bubbleEl?.closest('.msg')?.id;
+      if (stoppedId) {
+        if (!window._msgContents) window._msgContents = {};
+        window._msgContents[stoppedId] = fullText;
+        addMessageActions(bubbleEl, 'agent', fullText, stoppedId);
+      }
+    } else if (aborted) {
+      // Stopped before any token arrived — remove the empty bubble entirely
+      // rather than leaving a blank agent message in the transcript.
+      bubbleEl?.closest('.msg')?.remove();
+    } else if (bubbleEl) {
       updateMessageBubble(bubbleEl, `❌ I couldn't complete that request.\n\n**What to try:**\n• Check that the server is running (port 8787)\n• Go to **Settings** → **Connect AI** to verify your connection\n• Try again in a few moments\n\nTechnical details: ${escHtml(err.message)}`);
-    } else if (!bubbleEl) {
+    } else {
       addMessage(`❌ Error: ${err.message}`, 'agent', '⚠️', 'System');
     }
   } finally {
@@ -814,11 +843,30 @@ async function sendChat() {
       sendBtn.innerHTML = '➤';
       sendBtn.title = 'Send message';
       sendBtn.disabled = false;
-      sendBtn.removeEventListener('click', stopHandler);
+      sendBtn.setAttribute('aria-label', 'Send message');
     }
     input.focus();
     updateCostBar();
   }
+}
+
+// Single click dispatcher for the chat send/stop button.
+// Bound exactly once (see initChatSendButton) so that "stop" can never also
+// trigger "send" — the defect that existed when an inline onclick and a
+// dynamically-added stop listener were both live on the same element.
+window.onChatSendClick = function() {
+  if (window._chatAbortController) {
+    try { window._chatAbortController.abort(); } catch (e) {}
+    return;
+  }
+  sendChat();
+};
+
+function initChatSendButton() {
+  const btn = document.getElementById('chat-send');
+  if (!btn || btn.dataset.sendBound === '1') return;
+  btn.dataset.sendBound = '1';
+  btn.addEventListener('click', window.onChatSendClick);
 }
 
 function addMessage(content, role, avatar, name, modelUsed = '') {
@@ -2235,7 +2283,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = _safeLS.get('agentic_os_theme') || 'dark';
     if (typeof applyTheme === 'function') applyTheme(savedTheme);
   } catch(e) {}
+  initChatSendButton();
 });
+// The chat pane markup is static in index.html, so if DOMContentLoaded has
+// already fired by the time this module evaluates, bind immediately.
+if (document.readyState !== 'loading') initChatSendButton();
 (function addVoiceBtn() {
   const tools = document.querySelector('.chat-tools');
   if (!tools) { setTimeout(addVoiceBtn, 500); return; }
