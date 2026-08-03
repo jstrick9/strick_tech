@@ -971,15 +971,33 @@ async def pm_search(q: str = '', size: int = 12):
 # ── Health ─────────────────────────────────────────────────────────────────────
 @router.get('/api/health')
 def health():
-    """Health check — validates API is running and database is accessible."""
+    """Health check — validates API is running and database is accessible.
+
+    Also reports which database file is in use and whether it is a test
+    sandbox. Live-server test suites talk to a SEPARATE process, so a pytest
+    fixture setting AGENTIC_TEST_DB cannot affect the server — those suites
+    were silently writing to production data with no way to notice. Exposing
+    the path lets conftest assert on it instead of guessing.
+    """
     db_ok = False
+    path = ''
     try:
-        from backend.services.memory_db import get_conn
+        from backend.services.memory_db import db_path, get_conn
+
         con = get_conn()
         con.execute('SELECT 1')
         con.close()
         db_ok = True
+        path = str(db_path())
     except Exception:
         pass
     from backend.version import VERSION
-    return {'ok': True, 'version': VERSION, 'service': 'Agentic OS', 'db': 'ok' if db_ok else 'error'}
+
+    return {
+        'ok': True,
+        'version': VERSION,
+        'service': 'Agentic OS',
+        'db': 'ok' if db_ok else 'error',
+        'db_path': path,
+        'db_is_test_sandbox': bool(os.environ.get('AGENTIC_TEST_DB')),
+    }

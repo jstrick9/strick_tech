@@ -61,6 +61,7 @@
   // ── Contextual Breadcrumb Hook ──────────────────────────────────────────────
   const origNav = window.nav;
   if (typeof origNav === 'function') {
+    // intentional-override: wraps core nav to add ergonomics behaviour
     window.nav = function(pane) {
       origNav.apply(this, arguments);
       updateBreadcrumbBar(pane);
@@ -99,6 +100,7 @@
   // Hook sub-tab changes inside Hierarchy for real-time breadcrumb updates
   const origSwitchTab = window.switchHierarchyTab;
   if (typeof origSwitchTab === 'function') {
+    // intentional-override: wraps switchHierarchyTab to persist the active tab
     window.switchHierarchyTab = function(tab) {
       origSwitchTab.apply(this, arguments);
       const subEl = document.getElementById('breadcrumb-sub-context');

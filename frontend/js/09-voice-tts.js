@@ -19,6 +19,7 @@
       _ttsAudio.pause();
       _ttsAudio = null;
       _ttsPlaying = null;
+      // intentional-override: shared TTS state, coordinated with 01-app-core.js
       window._ttsPlaying = null;
       updateSpeakButtons();
     }
@@ -90,6 +91,7 @@
     if (!_ttsPlaying && window._activeListenBtn) {
       window._activeListenBtn.innerHTML = '🔊 Listen';
       window._activeListenBtn.style.borderColor = 'var(--border)';
+      // intentional-override: shared TTS button state, coordinated with 01-app-core.js
       window._activeListenBtn = null;
     }
   }

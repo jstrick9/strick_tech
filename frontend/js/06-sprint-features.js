@@ -51,6 +51,7 @@
 // Nav patches for Sprint A-D features
 (function patchNavSprint18() {
   const _base = window.nav || function(){};
+  // intentional-override: wraps core nav (Sprint 18 pane hooks)
   window.nav = function masterNav18(pane) {
     _base(pane);
     // NOTE: renderFusion/renderHITL/etc. are defined in separate IIFE-wrapped

@@ -39,8 +39,14 @@ DB = ROOT / 'memory' / 'agentic.db'
 
 
 def get_conn() -> sqlite3.Connection:
-    """Retrieve and return get conn."""
-    con = sqlite3.connect(DB)
+    """Retrieve and return get conn.
+
+    Resolved through memory_db.db_path() so AGENTIC_TEST_DB redirection
+    applies; a hardcoded module constant bypassed test isolation entirely.
+    """
+    from ..services.memory_db import db_path
+
+    con = sqlite3.connect(db_path())
     con.row_factory = sqlite3.Row
     return con
 

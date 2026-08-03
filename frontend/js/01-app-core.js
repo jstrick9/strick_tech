@@ -2724,25 +2724,12 @@ window.openNewFileModal = async function() {
 // board's task list vs. this file's separate in-memory state).
 
 // openCreateSkill
-window.openCreateSkill = async function() {
-  const name = await gmPrompt('New Skill', 'Skill name (e.g. "LinkedIn Post Writer")');
-  if (!name) return;
-  const prompt_tmpl = await gmPrompt('Prompt Template', 'Use {placeholder} for inputs. e.g. "Write a {tone} post about {topic}"', '', true);
-  if (prompt_tmpl === null) return;
-  const agent = await gmPrompt('Agent ID', 'e.g. brain, builder, researcher', 'brain');
-  if (agent === null) return;
-  const r = await fetch('/api/skills', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      name, prompt_template: prompt_tmpl||'{prompt}',
-      agent: agent||'brain', category: 'custom', emoji: '⚡',
-      inputs: [{ id:'prompt', label:'Your input', type:'textarea', required:true }]
-    })
-  });
-  const j = await r.json();
-  if (j.ok) { toast(`✅ Skill "${name}" created`, 'ok'); loadSkills(); }
-  else toast('Error: ' + (j.error||''), 'err');
-};
+// openCreateSkill lives in 25-skills.js.
+// A duplicate definition here was dead code: 25-skills.js loads later and
+// silently overwrote it, so this copy never ran. The two had diverged — the
+// surviving one wraps its fetch in try/catch and checks response.ok, which
+// this one did not, so it would have thrown on a non-JSON error response.
+// Caught by scripts/lint_globals.py.
 
 // loadSwarmHistory (was alert)
 window.loadSwarmHistory = async function() {
@@ -3530,9 +3517,11 @@ window.listenToMsg = function(btn, msgId) {
   if (window._activeListenBtn === btn) {
     if (window.stopSpeaking) window.stopSpeaking();
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    // intentional-override: shared TTS state, coordinated with 09-voice-tts.js
     window._ttsPlaying = null;
     btn.innerHTML = '🔊 Listen';
     btn.style.borderColor = 'var(--border)';
+    // intentional-override: shared TTS button state, coordinated with 09-voice-tts.js
     window._activeListenBtn = null;
     toast('⏹ Stopped listening', 'ok', 1000);
     return;

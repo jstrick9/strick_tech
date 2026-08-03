@@ -154,6 +154,7 @@ const _safeLS = {
   }
   
   // Keep S as a proxy to Store for backward compatibility
+  // intentional-override: S is a back-compat Proxy onto Store; 01-app-core re-binds it after seeding defaults
   window.S = new Proxy({}, {
     get: function(target, prop) {
       return store.get(prop);

@@ -382,14 +382,22 @@ class TestEvaluationFramework:
         check("avg_score 0-1", 0 <= d["avg_score"] <= 1.0)
 
     async def test_07_platform_stats_after_runs(self, client):
-        """Platform stats reflect all completed eval runs."""
+        """Platform stats reflect all completed eval runs.
+
+        This asserted total_evals > 0 unconditionally, which only ever passed
+        because the shared production database already held eval history from
+        previous runs. Against a clean per-run database the eval-producing
+        sibling tests skip (no AI provider), so there is genuinely nothing to
+        count — the assertion was measuring leftover state, not behaviour.
+        Assert the contract always; assert the count only when evals exist.
+        """
         r = await GET(client, "/api/eval-framework/stats/platform")
         d = ok(r, "platform stats")
-        check("total_evals > 0", d["total_evals"] > 0)
+        check("total_evals is an int", isinstance(d["total_evals"], int))
         check("total_suites >= 3", d["total_suites"] >= 3)
         check("by_agent is list", isinstance(d["by_agent"], list))
-        # At least some agents have been evaluated
-        check("some agents evaluated", len(d["by_agent"]) > 0)
+        if d["total_evals"] > 0:
+            check("some agents evaluated", len(d["by_agent"]) > 0)
 
     async def test_08_eval_audit_trail(self, client):
         """Eval suite completions are recorded in the immutable audit chain."""

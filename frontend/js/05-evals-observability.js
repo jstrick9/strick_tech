@@ -943,6 +943,7 @@ async function ragDeleteDoc(pipelineId, docId) {
 // ══════════════════════════════════════════════════════════════════
 (function patchNavSprint19() {
   const _base = window.nav || function(){};
+  // intentional-override: wraps core nav to refresh observability panes
   window.nav = function masterNav19(pane) {
     _base(pane);
     if (pane==='evals')          renderEvals?.();

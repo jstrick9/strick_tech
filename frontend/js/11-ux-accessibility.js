@@ -29,6 +29,7 @@
   // Hook into window.nav to announce pane changes
   const origNav = window.nav;
   if (typeof origNav === 'function') {
+    // intentional-override: wraps core nav to add focus management + announcements
     window.nav = function(pane) {
       origNav.apply(this, arguments);
       const navEl = document.querySelector(`[data-nav="${pane}"]`);
@@ -45,6 +46,7 @@
   // Hook into toast to announce notifications
   const origToast = window.toast;
   if (typeof origToast === 'function') {
+    // intentional-override: wraps core toast to add ARIA live-region announcements
     window.toast = function(msg, type, duration) {
       origToast.apply(this, arguments);
       window.announceToScreenReader(`Alert: ${msg}`);

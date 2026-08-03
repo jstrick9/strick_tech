@@ -14,12 +14,33 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 # ── Isolated temp DB so unit tests never touch production agentic.db ─────────
+# This MUST happen at import time, before any `backend.*` module is imported.
+# Roughly 40 routers call _ensure_schema() at module scope, so their tables are
+# created against whichever database is resolved during import. A fixture — even
+# a session-scoped autouse one — runs too late: the schema would already have
+# been built in production agentic.db and the sandbox would be missing ~40
+# tables, which surfaces as mass HTTP 500 "no such table" errors.
+#
+# The previous version of this file set AGENTIC_TEST_DB in a fixture, and
+# nothing in the backend read that variable at all. The docstring promised
+# "unit tests never touch production agentic.db" while every run wrote straight
+# into it — proven by watching prompt_library go from 503 to 511 rows during a
+# single test file. Residue from that has interfered with six module reviews.
+_TEST_DB_DIR = Path(tempfile.mkdtemp(prefix="agentic-unit-db-"))
+os.environ["AGENTIC_TEST_DB"] = str(_TEST_DB_DIR / "test.db")
+
+
 @pytest.fixture(scope="session", autouse=True)
-def isolated_db(tmp_path_factory):
-    """Create a fresh in-memory-style SQLite DB for the test session."""
-    db_dir = tmp_path_factory.mktemp("memory")
-    db_path = db_dir / "test.db"
-    os.environ["AGENTIC_TEST_DB"] = str(db_path)
+def isolated_db():
+    """Expose the sandbox path and prove it is not the production database."""
+    db_path = Path(os.environ["AGENTIC_TEST_DB"])
+    from backend.services.memory_db import db_path as resolved
+
+    assert resolved() == db_path, (
+        f"backend resolved {resolved()} but the sandbox is {db_path} — "
+        "test isolation is not in effect"
+    )
+    assert "memory/agentic.db" not in str(resolved()), "refusing to run against production data"
     yield db_path
 
 @pytest.fixture(scope="session", autouse=True)
