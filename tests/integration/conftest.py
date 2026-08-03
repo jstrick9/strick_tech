@@ -96,10 +96,23 @@ def ok(r, label=""):
 
 
 def ok_or(r, *codes):
+    """Assert the status is one of `codes` and return the parsed body.
+
+    This used to return {} for anything other than 200 — including the other
+    codes the caller explicitly allowed — so `ok_or(r, 200, 201)["id"]` blew up
+    on a 201 and every assertion about a non-200 body was silently vacuous.
+    Same flaw already fixed in tests/uat/conftest.py's j() and
+    tests/system/conftest.py's must().
+    """
     skip_if_no_provider(r)
     assert r.status_code in codes, \
         f"Expected {codes}, got {r.status_code}: {r.text[:150]}"
-    return r.json() if r.status_code == 200 else {}
+    if "event-stream" in r.headers.get("content-type", ""):
+        return {}
+    try:
+        return r.json()
+    except Exception:
+        return {}
 
 
 # ── Core agent restoration (security tests may mutate names) ──────────────────

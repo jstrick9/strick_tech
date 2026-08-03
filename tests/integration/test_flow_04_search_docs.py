@@ -183,7 +183,7 @@ class TestPromptsExportSearch:
             "title": unique, "content": f"Search integration test {unique}",
             "category": "general", "tags": "integration,search"
         })
-        pid = ok(r)["id"]
+        pid = ok_or(r, 200, 201)["id"]
 
         # Search for it
         search = await GET(client, "/api/prompts/search", q=unique)
@@ -202,7 +202,7 @@ class TestPromptsExportSearch:
         r = await POST(client, "/api/prompts", {
             "title": uid("usecount"), "content": "Use me", "category": "general"
         })
-        pid = ok(r)["id"]
+        pid = ok_or(r, 200, 201)["id"]
 
         # Use it
         r2 = await POST(client, f"/api/prompts/{pid}/use", {})
@@ -223,7 +223,7 @@ class TestPromptsExportSearch:
         r = await POST(client, "/api/prompts", {
             "title": unique, "content": "Export test", "category": "general"
         })
-        pid = ok(r)["id"]
+        pid = ok_or(r, 200, 201)["id"]
 
         export_r = await GET(client, "/api/prompts/export")
         if export_r.status_code == 200:
@@ -240,10 +240,10 @@ class TestPromptsExportSearch:
         r = await POST(client, "/api/prompts", {
             "title": uid("orig"), "content": "Original content", "category": "general"
         })
-        pid = ok(r)["id"]
+        pid = ok_or(r, 200, 201)["id"]
 
         r2 = await POST(client, f"/api/prompts/{pid}/duplicate", {})
-        if r2.status_code == 200:
+        if r2.status_code in (200, 201):
             d2 = r2.json()
             new_pid = d2.get("id") or (d2.get("prompt") or {}).get("id")
             check("duplicate has different id", new_pid != pid)
