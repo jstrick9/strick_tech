@@ -77,7 +77,14 @@ async function termExecute(cmd) {
   try {
     const resp = await fetch('/api/terminal/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:cmd,session_id:Terminal.active})});
     // FIX 5: null guard + resp.ok check (FIX 12)
-    if (!resp.ok) { termAppend(`<span class="stderr">Server error: HTTP ${resp.status}</span>`); return; }
+    if (!resp.ok) {
+      // The endpoint now returns 400/403 with an explanatory body (blocked
+      // command, empty command) instead of burying the reason in an SSE frame.
+      let detail = '';
+      try { detail = (await resp.json()).error || ''; } catch (e) { /* non-JSON body */ }
+      termAppend(`<span class="stderr">${escHtml(detail || 'Server error: HTTP ' + resp.status)}</span><br>`);
+      return;
+    }
     if (!resp.body) { termAppend(`<span class="stderr">No response body — check server</span>`); return; }
     const reader = resp.body.getReader(); const decoder = new TextDecoder();
     Terminal.reader = reader;
@@ -100,7 +107,18 @@ async function termExecute(cmd) {
     const kb=document.getElementById('term-kill-btn'); if(kb) kb.style.display='none';
   }
 }
-function termAppend(h) { const o=document.getElementById('term-output'); if(o){o.innerHTML+=h;o.scrollTop=o.scrollHeight;} }
+// `innerHTML +=` re-serialises and re-parses the ENTIRE output buffer on every
+// single line. A command producing thousands of lines degrades quadratically
+// and locks the tab. insertAdjacentHTML appends without touching what is
+// already rendered, and a line cap keeps the DOM bounded on long runs.
+const TERM_MAX_LINES = 5000;
+function termAppend(h) {
+  const o = document.getElementById('term-output');
+  if (!o) return;
+  o.insertAdjacentHTML('beforeend', h);
+  while (o.childNodes.length > TERM_MAX_LINES) o.removeChild(o.firstChild);
+  o.scrollTop = o.scrollHeight;
+}
 function termClear() { const o=document.getElementById('term-output'); if(o) o.innerHTML=''; }
 async function termKill() {
   // FIX 6+7: Kill running process via API + abort reader

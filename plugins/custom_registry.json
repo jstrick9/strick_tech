@@ -3486,5 +3486,91 @@
         "prompt": "Do test: {{input}}"
       }
     ]
+  },
+  {
+    "id": "unit_test_23dc69",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "sysplugin_239380f52a",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "test_plugin_ad7316b8",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "uat_plugin_300a1c1b",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skills": [
+      {
+        "id": "test_skill",
+        "name": "Test Skill",
+        "trigger": "test",
+        "prompt": "Do test: {{input}}"
+      }
+    ]
+  },
+  {
+    "id": "unit_test_3b3636",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "sysplugin_1f607bff2b",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "test_plugin_0a1570fb",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "uat_plugin_756ac04b",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skills": [
+      {
+        "id": "test_skill",
+        "name": "Test Skill",
+        "trigger": "test",
+        "prompt": "Do test: {{input}}"
+      }
+    ]
   }
 ]
