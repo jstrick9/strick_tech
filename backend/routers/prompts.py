@@ -7,6 +7,7 @@ Like Claude's prompt library but integrated into the full OS.
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 import uuid
@@ -15,6 +16,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ..services.memory_db import audit_log, get_conn
+
+log = logging.getLogger('agentic.prompts')
 
 router = APIRouter(prefix='/api/prompts', tags=['prompts'])
 
@@ -66,6 +69,44 @@ def _like(term: str) -> str:
     Pair with ESCAPE '\\' in the SQL.
     """
     return '%' + (term or '').replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
+
+
+def valid_agent_ids() -> set[str]:
+    """Ids from the agent registry, for validating a prompt's agent pin."""
+    try:
+        from ..services.memory_db import agents_list
+
+        return {str(a['id']) for a in agents_list() if a.get('id')}
+    except (KeyError, TypeError, ValueError, OSError, AttributeError, RuntimeError) as exc:
+        log.warning('Could not load agents for validation: %s', exc)
+        return set()
+
+
+def check_agent_id(agent_id: str) -> JSONResponse | None:
+    """Return a 400 response if `agent_id` isn't a real agent, else None.
+
+    A prompt could be pinned to any string. 'not-a-real-agent-xyz' was accepted
+    happily, and since ?agent_id= filters on exact equality the prompt then sat
+    in the library permanently unreachable through the agent filter — a silent
+    dead end with no error at any point. Verified live before the fix.
+
+    An empty agent_id means "not pinned" and stays valid. If the registry can't
+    be read we allow the write rather than block on an unrelated failure.
+    """
+    if not agent_id:
+        return None
+    known = valid_agent_ids()
+    if not known or agent_id in known:
+        return None
+    return JSONResponse(
+        {
+            'ok': False,
+            'error': f'Unknown agent_id: {agent_id}',
+            'hint': 'Leave agent_id empty for a general-purpose prompt.',
+            'valid_agent_ids': sorted(known)[:25],
+        },
+        status_code=400,
+    )
 
 
 def _with_vars(row: dict) -> dict:
@@ -304,6 +345,10 @@ def list_prompts(
             {'ok': False, 'error': f'Unknown sort: {sort}', 'valid_sorts': sorted(VALID_SORTS)},
             status_code=400,
         )
+    # Filtering by an agent that doesn't exist returned an empty list, which is
+    # indistinguishable from "this agent has no prompts yet". Say which it is.
+    if agent_id and (bad := check_agent_id(agent_id)) is not None:
+        return bad
     con = get_conn()
     try:
         where, params = [], []
@@ -355,6 +400,39 @@ def list_categories():
         'categories': [{'id': r[0], 'count': r[1]} for r in rows],
         'total': total,
     }
+
+
+@router.get('/agents')
+def list_prompt_agents():
+    """Agents a prompt can be pinned to, with how many prompts each already has.
+
+    Exists so the editor can offer a picker instead of a free-text box, which is
+    what allowed unreachable agent pins in the first place.
+    """
+    con = get_conn()
+    try:
+        counts = {
+            r[0]: r[1]
+            for r in con.execute(
+                "SELECT agent_id, COUNT(*) FROM prompt_library WHERE agent_id != '' GROUP BY agent_id"
+            ).fetchall()
+        }
+    finally:
+        con.close()
+    try:
+        from ..services.memory_db import agents_list
+
+        agents = [
+            {'id': a['id'], 'name': a.get('name') or a['id'], 'count': counts.get(a['id'], 0)}
+            for a in agents_list()
+            if a.get('id')
+        ]
+    except (KeyError, TypeError, ValueError, OSError, AttributeError, RuntimeError) as exc:
+        log.warning('Could not list agents: %s', exc)
+        agents = []
+    # Pins left over from before validation, or from an agent since deleted.
+    orphaned = sorted(set(counts) - {a['id'] for a in agents})
+    return {'agents': agents, 'count': len(agents), 'orphaned': orphaned}
 
 
 @router.get('/search')
@@ -445,6 +523,10 @@ async def create_prompt(req: Request):
             status_code=400,
         )
 
+    agent_id = (body.get('agent_id') or '').strip()[:64]
+    if (bad := check_agent_id(agent_id)) is not None:
+        return bad
+
     pid = str(uuid.uuid4())[:8]
     con = get_conn()
     try:
@@ -456,7 +538,7 @@ async def create_prompt(req: Request):
                 content[:8000],
                 category,
                 _clean_tags(body.get('tags')),
-                (body.get('agent_id') or '')[:64],
+                agent_id,
                 int(bool(body.get('is_favorite', False))),
             ),
         )
@@ -493,6 +575,7 @@ async def import_prompts(req: Request):
 
     imported, skipped, replaced = 0, 0, 0
     errors: list[dict] = []
+    known_agents = valid_agent_ids()
     con = get_conn()
     try:
         for idx, entry in enumerate(prompts[:200]):
@@ -525,7 +608,15 @@ async def import_prompts(req: Request):
             # though create() explicitly accepts that shape — so a library
             # exported from this very API could fail to import.
             tags = _clean_tags(entry.get('tags'))
-            agent_id = str(entry.get('agent_id') or '')[:64]
+            agent_id = str(entry.get('agent_id') or '').strip()[:64]
+            # An import may come from another machine with different agents.
+            # Dropping the pin keeps the prompt (its content is the valuable
+            # part) and reports the change instead of failing the whole row.
+            if agent_id and agent_id not in known_agents:
+                errors.append(
+                    {'index': idx, 'warning': f'unknown agent_id {agent_id!r} — imported unpinned'}
+                )
+                agent_id = ''
             favorite = int(bool(entry.get('is_favorite', False)))
 
             if existing:
@@ -614,7 +705,9 @@ async def update_prompt(prompt_id: str, req: Request):
             elif k == 'tags':
                 v = _clean_tags(v)
             elif k == 'agent_id':
-                v = str(v)[:64]
+                v = str(v).strip()[:64]
+                if (bad := check_agent_id(v)) is not None:
+                    return bad
             elif k == 'is_favorite':
                 v = int(bool(v))
             sets.append(f'{k}=?')
