@@ -15,6 +15,7 @@ import os
 import shutil
 import socket
 import subprocess
+import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, Request
@@ -64,12 +65,124 @@ def _current_workspace_id() -> str:
 
 
 # ── Studio validation ─────────────────────────────────────────────────────────
-@router.post('/api/studio/lint')
-def studio_lint():
-    """Run bounded local syntax checks for the Studio console."""
+def _lint_source(content: str, filename: str) -> list[str]:
+    """Syntax-check one source string. Returns human-readable error strings."""
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
     errors: list[str] = []
+
+    if ext == 'py':
+        try:
+            ast.parse(content, filename=filename)
+        except SyntaxError as exc:
+            errors.append(f'{filename}:{exc.lineno or "?"}: {exc.msg}')
+        return errors
+
+    if ext in ('js', 'jsx', 'mjs', 'cjs'):
+        node = shutil.which('node')
+        if not node:
+            return []  # cannot check without a node runtime
+        with tempfile.TemporaryDirectory() as tmp:
+            # --check parses as a script; keep the real extension so node
+            # applies the right goal (module vs script) for .mjs/.cjs.
+            probe = Path(tmp) / f'probe.{"mjs" if ext == "mjs" else "js"}'
+            probe.write_text(content, encoding='utf-8')
+            try:
+                result = subprocess.run(
+                    [node, '--check', str(probe)],
+                    capture_output=True, text=True, timeout=10, check=False,
+                )
+            except subprocess.SubprocessError as exc:
+                return [f'{filename}: syntax check failed to run ({exc})']
+            if result.returncode:
+                # node --check prints the offending line, a caret, the
+                # SyntaxError, then a Node.js internal stack trace. The trace is
+                # noise in a user-facing editor console — keep only the parts
+                # that describe the user's own code.
+                raw = (result.stderr or '').replace(str(probe), filename)
+                kept = []
+                for line in raw.splitlines():
+                    if line.strip().startswith('at ') or line.startswith('Node.js v'):
+                        continue
+                    kept.append(line.rstrip())
+                detail = '\n'.join(x for x in kept if x.strip()).strip()
+                errors.append(detail[:500] or f'{filename}: syntax error')
+        return errors
+
+    if ext == 'json':
+        try:
+            json.loads(content)
+        except json.JSONDecodeError as exc:
+            errors.append(f'{filename}:{exc.lineno}: {exc.msg}')
+        return errors
+
+    return []
+
+
+@router.post('/api/studio/lint')
+async def studio_lint(req: Request):
+    """Syntax-check the file the user is editing in Studio.
+
+    BUG FIX: this endpoint used to ignore the request body entirely and instead
+    walk the PLATFORM'S OWN backend/*.py and frontend/js/*.js sources. A user
+    linting their own broken file in Studio therefore always got
+    "Syntax validation passed." — the button could not report a problem with
+    their code, only with Agentic OS's code. It now lints the submitted
+    content (or the named preview file), and falls back to the old
+    whole-platform self-check only when explicitly asked via {"scope":"platform"}.
+    """
+    try:
+        body = await req.json()
+    except (json.JSONDecodeError, TypeError, ValueError):
+        body = {}
+
+    scope = (body.get('scope') or '').strip().lower()
+
+    if scope != 'platform':
+        path = str(body.get('path') or '').strip()
+        content = body.get('content')
+
+        # Fall back to reading the named preview file when no content was sent.
+        if content is None and path:
+            target = (PREVIEW_DIR / path).resolve()
+            if not _is_within(target, PREVIEW_DIR.resolve()) or not target.is_file():
+                return {'ok': False, 'message': 'File not found.', 'errors': [f'{path}: not found']}
+            try:
+                content = target.read_text(encoding='utf-8')
+            except OSError as exc:
+                return {'ok': False, 'message': 'Could not read file.', 'errors': [f'{path}: {exc}']}
+
+        if content is None:
+            return {
+                'ok': True,
+                'message': 'Nothing to check — open a file in Studio first.',
+                'errors': [],
+                'checked': 0,
+            }
+
+        name = path or 'untitled.txt'
+        ext = name.rsplit('.', 1)[-1].lower() if '.' in name else ''
+        if ext not in ('py', 'js', 'jsx', 'mjs', 'cjs', 'json'):
+            return {
+                'ok': True,
+                'message': f'No syntax checker for .{ext or "txt"} files — nothing to report.',
+                'errors': [],
+                'checked': 0,
+            }
+
+        errors = _lint_source(str(content), name)
+        return {
+            'ok': not errors,
+            'message': f'{name}: syntax OK.' if not errors else f'{name}: {len(errors)} syntax issue(s) found.',
+            'errors': errors[:100],
+            'checked': 1,
+        }
+
+    # scope == 'platform' — self-check of the running installation.
+    errors: list[str] = []
+    checked = 0
     python_root = ROOT / 'backend'
     for source in python_root.rglob('*.py'):
+        checked += 1
         try:
             ast.parse(source.read_text(encoding='utf-8'), filename=str(source))
         except (OSError, SyntaxError) as exc:
@@ -78,6 +191,7 @@ def studio_lint():
     node = shutil.which('node')
     if node:
         for source in (ROOT / 'frontend' / 'js').glob('*.js'):
+            checked += 1
             result = subprocess.run(
                 [node, '--check', str(source)],
                 capture_output=True,
@@ -90,8 +204,11 @@ def studio_lint():
 
     return {
         'ok': not errors,
-        'message': 'Syntax validation passed.' if not errors else f'{len(errors)} syntax issue(s) found.',
+        'message': f'Platform self-check: {checked} files scanned, no syntax errors.'
+        if not errors
+        else f'Platform self-check: {len(errors)} syntax issue(s) found.',
         'errors': errors[:100],
+        'checked': checked,
     }
 
 
@@ -214,13 +331,27 @@ async def preview_delete(req: Request):
         d = await _request_json(req)
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         d = {}
-    path = (d.get('path') or '').lstrip('/')
+    # Accept the path from the JSON body or the query string — DELETE requests
+    # are commonly sent without a body, and callers do both.
+    path = (d.get('path') or req.query_params.get('path') or '').lstrip('/')
+    # BUG FIX: an empty path resolved to PREVIEW_DIR itself, which passed the
+    # containment check and then raised IsADirectoryError from unlink() — an
+    # unhandled HTTP 500 that was one missing guard away from attempting to
+    # remove the entire preview root. Reject empty paths and directories
+    # explicitly, and report cleanly instead of crashing.
+    if not path:
+        return {'ok': False, 'error': 'path required'}
     f = (PREVIEW_DIR / path).resolve()
-    if not _is_within(f, PREVIEW_DIR):
+    if not _is_within(f, PREVIEW_DIR) or f == PREVIEW_DIR.resolve():
         return {'ok': False, 'error': 'path traversal'}
     if not f.exists():
         return {'ok': False, 'error': 'not found'}
-    f.unlink()
+    if f.is_dir():
+        return {'ok': False, 'error': 'cannot delete a directory'}
+    try:
+        f.unlink()
+    except OSError as exc:
+        return {'ok': False, 'error': f'could not delete: {exc}'}
     memory_db.audit_log('preview_delete', path)
     return {'ok': True}
 
