@@ -82,14 +82,27 @@ class TestV80Features:
         assert disp["ok"] is True
         assert disp["dispatched_to_node"] == "edge_worker_m3"
 
-    def test_finetune_hardware_check_and_lora_job_start(self, client):
+    def test_finetune_reports_real_capability_not_fabricated_success(self, client):
+        """Fine-tuning must not claim to have trained a model it cannot train.
+
+        This test previously asserted the FABRICATED behaviour: lora_supported
+        always True, and a job returning status "completed" with hardcoded
+        metrics (step 150/150, train_loss 0.284) despite no training library
+        being installed anywhere in the dependency set. It now asserts the
+        endpoint is honest about what this machine can actually do.
+        """
         hw_r = client.get("/api/finetune/hardware")
         assert hw_r.status_code == 200
         hw = hw_r.json()
         assert hw["ok"] is True
-        assert hw["lora_supported"] is True
-        assert "Joshua Strickland" in hw["creator"]
+        # Capability is detected, not asserted.
+        assert isinstance(hw["training_available"], bool)
+        assert hw["lora_supported"] == hw["training_available"]
+        assert isinstance(hw["accelerator_detected"], bool)
+        if not hw["training_available"]:
+            assert "notice" in hw, "must explain why fine-tuning is unavailable"
 
+        # Dataset preparation works regardless of training capability.
         ds_r = client.post("/api/finetune/datasets/create", json={
             "dataset_id": "v8_lora_ds",
             "name": "Agentic OS Domain Set",
@@ -104,13 +117,11 @@ class TestV80Features:
             "base_model": "llama3.1:8b",
             "epochs": 2
         })
-        assert job_r.status_code == 200
-        assert job_r.json()["ok"] is True
-        assert job_r.json()["job"]["status"] == "completed"
-
-        export_r = client.post("/api/finetune/adapters/export", json={
-            "job_id": "v8_test_lora",
-            "export_format": "safetensors"
-        })
-        assert export_r.status_code == 200
-        assert export_r.json()["ok"] is True
+        if not hw["training_available"]:
+            # Refuse honestly rather than reporting a successful run.
+            assert job_r.status_code == 501
+            assert "training backend" in job_r.json()["detail"]
+        else:
+            assert job_r.status_code == 200
+            # A freshly started job has not finished yet.
+            assert job_r.json()["job"]["status"] in ("queued", "running")

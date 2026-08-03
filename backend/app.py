@@ -172,6 +172,17 @@ async def lifespan(app: FastAPI):
         log.info('Vault secrets injected into env')
     except Exception as e:
         log.warning('Vault inject failed: %s', e)
+    # Reconcile supervisor runs orphaned by the previous shutdown. These
+    # execute as in-process asyncio tasks, so anything in flight when the
+    # server stopped would otherwise stay 'running' in the database forever.
+    try:
+        from .routers.supervisor import reconcile_orphaned_runs
+
+        orphaned = reconcile_orphaned_runs()
+        if orphaned:
+            log.info('Reconciled %d supervisor run(s) orphaned by a restart', orphaned)
+    except Exception as e:
+        log.warning('Supervisor reconciliation failed: %s', e)
     # Start autonomous scheduler
     try:
         sched_svc.start()

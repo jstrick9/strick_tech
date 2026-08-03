@@ -116,6 +116,63 @@ def _ensure_schema():
 
 _ensure_schema()
 
+#: Run states that only exist while an in-process asyncio task is driving them.
+_IN_FLIGHT_STATUSES = ('decomposing', 'scheduled', 'running', 'synthesizing')
+
+
+def reconcile_orphaned_runs() -> int:
+    """Mark runs abandoned by a process restart as failed. Returns the count.
+
+    BUG FIX: supervisor runs execute as in-process asyncio tasks
+    (asyncio.create_task in start_run). Nothing owns them across a restart, and
+    there was no startup reconciliation — so any run in flight when the server
+    stopped stayed 'running' in the database *forever*. Found 4 such runs on
+    this machine, the oldest stranded for hours, all still advertised as active
+    in the Supervisor UI and in /api/supervisor/stats. A user watching one of
+    those would wait indefinitely for a run that no longer exists.
+
+    Called once at import (below) and again from the app lifespan, so the state
+    is honest the moment the server is reachable.
+    """
+    now = _now()
+    con = _get_conn()
+    try:
+        rows = con.execute(
+            f'SELECT run_id FROM supervisor_runs WHERE status IN ({",".join("?" * len(_IN_FLIGHT_STATUSES))})',
+            _IN_FLIGHT_STATUSES,
+        ).fetchall()
+        if not rows:
+            return 0
+        run_ids = [r['run_id'] for r in rows]
+        placeholders = ','.join('?' * len(run_ids))
+        con.execute(
+            f"""UPDATE supervisor_runs
+                   SET status='failed',
+                       eval_notes='Interrupted by a server restart — this run was not resumable.',
+                       updated_at=?,
+                       completed_at=?
+                 WHERE run_id IN ({placeholders})""",
+            [now, now, *run_ids],
+        )
+        # Tasks left mid-flight would otherwise keep reporting as active in the
+        # DAG view of a run that is already over.
+        con.execute(
+            f"""UPDATE supervisor_tasks
+                   SET status='failed',
+                       output='Interrupted by a server restart.'
+                 WHERE run_id IN ({placeholders})
+                   AND status IN ('running','awaiting_hitl','pending','scheduled')""",
+            run_ids,
+        )
+        con.commit()
+        log.warning('Reconciled %d supervisor run(s) orphaned by a restart: %s', len(run_ids), ', '.join(run_ids))
+        return len(run_ids)
+    except Exception as exc:  # noqa: BLE001 - never block startup on housekeeping
+        log.error('Supervisor run reconciliation failed: %s', exc)
+        return 0
+    finally:
+        con.close()
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -309,6 +366,14 @@ async def _execute_task(task: dict, run_id: str, goal_text: str, context_so_far:
         'cost': result.get('cost', 0.0),
         'duration_ms': duration,
         'model': result.get('model', ''),
+        # BUG FIX: llm.complete() returns a placeholder ("⚠️ No OPENROUTER_API_KEY
+        # set…") tagged provider='stub'/ok=False when no provider is configured.
+        # The supervisor ignored that flag entirely, so every task was recorded
+        # 'done', the run finished 'done' with failed_count=0, and the outcome
+        # evaluator still awarded 0.7 — a passing grade for a run in which no
+        # model ever executed. Reproduced live: a 3-task run "succeeded" with
+        # the API-key notice as each task's output. The flag is now propagated.
+        'is_stub': result.get('provider') == 'stub' or result.get('ok') is False,
     }
 
 
@@ -558,6 +623,22 @@ async def _run_supervisor(run_id: str, goal_id: str, goal_text: str):
                     cost = exec_result['cost']
                     dur = exec_result['duration_ms']
 
+                    # No provider configured — the "output" is a placeholder
+                    # telling the user to add an API key, not work product.
+                    # Recording it as 'done' produced runs that reported
+                    # complete success while achieving nothing.
+                    if exec_result.get('is_stub'):
+                        _update_task(
+                            task['task_id'],
+                            status='failed',
+                            output=output[:5000],
+                            duration_ms=dur,
+                            completed_at=_now(),
+                        )
+                        raise RuntimeError(
+                            'No AI provider configured — add an OpenRouter key in Settings, or start Ollama.'
+                        )
+
                     _update_task(
                         task['task_id'],
                         status='done',
@@ -645,9 +726,27 @@ async def _run_supervisor(run_id: str, goal_id: str, goal_text: str):
 
         duration_ms = _epoch_ms() - t_start
 
+        # BUG FIX: the run was hardcoded to status='done' no matter how many
+        # tasks failed, and failed_count was never written at all — so
+        # /api/supervisor/runs reported failed_count: 0 for runs where every
+        # single task errored. A run that accomplished nothing was
+        # indistinguishable from one that fully succeeded.
+        failed_count = max(0, len(completed_tasks) - done_count)
+        if failed_count and done_count == 0:
+            final_status = 'failed'
+        elif failed_count:
+            final_status = 'partial'
+        else:
+            final_status = 'done'
+
+        # An outcome score is only meaningful if something actually ran.
+        if done_count == 0:
+            eval_score = 0.0
+            eval_notes = eval_notes or 'No tasks completed successfully.'
+
         _update_run(
             run_id,
-            status='done',
+            status=final_status,
             final_output=final_output[:8000],
             eval_score=eval_score,
             eval_notes=eval_notes[:500],
@@ -655,6 +754,7 @@ async def _run_supervisor(run_id: str, goal_id: str, goal_text: str):
             total_cost=round(total_cost, 6),
             duration_ms=duration_ms,
             done_count=done_count,
+            failed_count=failed_count,
             completed_at=_now(),
         )
 
@@ -662,11 +762,14 @@ async def _run_supervisor(run_id: str, goal_id: str, goal_text: str):
             'supervisor',
             'Supervisor',
             'run_completed',
-            f"Goal '{goal_text[:80]}' done — score {eval_score:.0%}",
+            f"Goal '{goal_text[:80]}' {final_status} — score {eval_score:.0%} "
+            f"({done_count} done, {failed_count} failed)",
             reasoning=eval_notes[:200],
             authority='user',
             risk_level='low',
-            outcome='success',
+            # The audit log recorded outcome='success' unconditionally, so a
+            # run where every task failed was logged as a success.
+            outcome='success' if final_status == 'done' else 'failure',
             metadata={
                 'run_id': run_id,
                 'eval_score': eval_score,
@@ -679,6 +782,9 @@ async def _run_supervisor(run_id: str, goal_id: str, goal_text: str):
             {
                 'type': 'supervisor_done',
                 'run_id': run_id,
+                'status': final_status,
+                'done_count': done_count,
+                'failed_count': failed_count,
                 'eval_score': eval_score,
                 'eval_notes': eval_notes,
                 'final_output': final_output[:500],
@@ -687,7 +793,10 @@ async def _run_supervisor(run_id: str, goal_id: str, goal_text: str):
             }
         )
 
-        log.info('Supervisor run %s complete — score %.0f%% in %dms', run_id, eval_score * 100, duration_ms)
+        log.info(
+            'Supervisor run %s %s — %d done / %d failed, score %.0f%% in %dms',
+            run_id, final_status, done_count, failed_count, eval_score * 100, duration_ms,
+        )
 
     except Exception as e:
         err = str(e)[:500]

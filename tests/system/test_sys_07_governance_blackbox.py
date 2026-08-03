@@ -150,11 +150,18 @@ class TestSysAgentIdentitySystem:
                       label="validate as A")
         check("valid as A", val_a.get("ok") is True)
 
-        # Use as B — must fail
-        val_b = must(await POST(C, "/api/agent-identity/token/validate",
-                                  {"token_id": token_id, "agent_id": agent_b}),
-                      label="validate as B")
-        check("rejected as B", val_b.get("ok") is False)
+        # Use as B — must fail. This is an authorization failure, so the
+        # endpoint returns 403 (it previously returned HTTP 200 with
+        # {"ok": false} for every rejection). Assert the status directly:
+        # must() returns {} for a non-200, which would make a .get("ok")
+        # check pass vacuously whatever the server did.
+        r_b = await POST(C, "/api/agent-identity/token/validate",
+                         {"token_id": token_id, "agent_id": agent_b})
+        # 404 rather than 403: the lookup is scoped by (token_id, agent_id), so
+        # a cross-agent attempt simply finds nothing — which also avoids
+        # confirming to agent B that A's token exists.
+        check("rejected as B", r_b.status_code in (403, 404), got=r_b.status_code)
+        check("rejection body says so", r_b.json().get("ok") is False)
 
         # Cleanup
         await POST(C, f"/api/agent-identity/token/{token_id}/revoke", {})
@@ -169,10 +176,10 @@ class TestSysAgentIdentitySystem:
         token_id = issue["token_id"]
         await asyncio.sleep(2)  # Let it expire
 
-        val = must(await POST(C, "/api/agent-identity/token/validate",
-                               {"token_id": token_id, "agent_id": aid}),
-                    label="validate expired")
-        check("expired token rejected", val.get("ok") is False)
+        r_exp = await POST(C, "/api/agent-identity/token/validate",
+                           {"token_id": token_id, "agent_id": aid})
+        check("expired token rejected", r_exp.status_code == 403, got=r_exp.status_code)
+        check("rejection body says so", r_exp.json().get("ok") is False)
 
     async def test_key_rotation_system_wide(self, C):
         """Key rotation is safe: new tokens work, old tokens don't."""

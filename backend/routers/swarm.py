@@ -12,6 +12,7 @@ import time
 import uuid
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from ..services import llm, memory_db
 
@@ -62,9 +63,9 @@ async def swarm_run(req: Request):
     max_tokens = _bounded_int(body.get('max_tokens', 800), 800, 1, 4096)
 
     if not prompt:
-        return {'ok': False, 'error': 'prompt required'}
+        return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
     if len(agent_ids) < 2:
-        return {'ok': False, 'error': 'select at least 2 agents'}
+        return JSONResponse({'ok': False, 'error': 'select at least 2 agents'}, status_code=400)
 
     agent_ids = agent_ids[:16]  # cap at 16 for full multi-agent swarm teams
     all_agents = {a['id']: a for a in memory_db.agents_list()}

@@ -286,10 +286,10 @@ def issue_jit_token(
         ).fetchone()
         if not identity:
             con.close()
-            return {'ok': False, 'error': f'Agent identity not found: {agent_id}. Call /provision first.'}
+            return JSONResponse({'ok': False, 'error': f'Agent identity not found: {agent_id}. Call /provision first.'}, status_code=404)
         if identity['status'] != 'active':
             con.close()
-            return {'ok': False, 'error': f'Agent identity is {identity["status"]}, not active'}
+            return JSONResponse({'ok': False, 'error': f'Agent identity is {identity["status"]}, not active'}, status_code=409)
 
         scope_str = json.dumps(scope or [])
         con.execute(
@@ -336,17 +336,17 @@ def validate_jit_token(token_id: str, agent_id: str, required_action: str = '') 
             'SELECT * FROM agent_jit_tokens WHERE token_id=? AND agent_id=?', (token_id, agent_id)
         ).fetchone()
         if not row:
-            return {'ok': False, 'error': 'Token not found'}
+            return JSONResponse({'ok': False, 'error': 'Token not found'}, status_code=404)
         if row['revoked']:
-            return {'ok': False, 'error': 'Token has been revoked'}
+            return JSONResponse({'ok': False, 'error': 'Token has been revoked'}, status_code=403)
         if row['expires_at'] < now_epoch:
-            return {'ok': False, 'error': 'Token has expired'}
+            return JSONResponse({'ok': False, 'error': 'Token has expired'}, status_code=403)
         if row['used_count'] >= row['max_uses']:
-            return {'ok': False, 'error': 'Token max uses exceeded'}
+            return JSONResponse({'ok': False, 'error': 'Token max uses exceeded'}, status_code=403)
 
         scope = json.loads(row['scope'] or '[]')
         if required_action and scope and required_action not in scope:
-            return {'ok': False, 'error': f'Token scope does not include: {required_action}'}
+            return JSONResponse({'ok': False, 'error': f'Token scope does not include: {required_action}'}, status_code=403)
 
         # Increment use count
         con.execute('UPDATE agent_jit_tokens SET used_count=used_count+1 WHERE token_id=?', (token_id,))
@@ -371,7 +371,7 @@ def revoke_jit_token(token_id: str, reason: str = '') -> dict:
         row = con.execute('SELECT agent_id FROM agent_jit_tokens WHERE token_id=?', (token_id,)).fetchone()
         if not row:
             con.close()
-            return {'ok': False, 'error': 'Token not found'}
+            return JSONResponse({'ok': False, 'error': 'Token not found'}, status_code=404)
         con.execute('UPDATE agent_jit_tokens SET revoked=1, revoked_at=? WHERE token_id=?', (_now_iso(), token_id))
         _log_identity_event(con, row['agent_id'], 'jit_token_revoked', f'token={token_id} reason={reason}')
         con.commit()

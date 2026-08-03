@@ -193,8 +193,11 @@ class TestAgentIdentityAndJITFlow:
             "token_id": token_id,
             "agent_id": "builder"
         })
-        v2d = ok(val2_r, "validate revoked")
-        check("revoked token rejected", v2d["ok"] is False)
+        # A revoked token is an authorization failure: 403, not HTTP 200 with
+        # {"ok": false}. The contract this guards (rejected, and the reason
+        # says "revoked") is unchanged.
+        check("revoked token rejected", val2_r.status_code == 403, actual=val2_r.status_code)
+        v2d = val2_r.json()
         check("error mentions revoked", "revoked" in v2d.get("error", "").lower())
 
     async def test_05_wrong_agent_fails_validation(self, client):

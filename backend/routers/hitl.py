@@ -26,7 +26,7 @@ import sqlite3
 import uuid
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 router = APIRouter(prefix='/api/hitl', tags=['hitl'])
 log = logging.getLogger('agentic.hitl')
@@ -247,7 +247,7 @@ async def decide_interrupt(interrupt_id: str, req: Request):
     modified = body.get('modified_action_data')  # optional modified args
 
     if decision not in ('approve', 'reject', 'modify'):
-        return {'ok': False, 'error': 'decision must be approve/reject/modify'}
+        return JSONResponse({'ok': False, 'error': 'decision must be approve/reject/modify'}, status_code=400)
 
     from ..services.memory_db import get_conn
 
@@ -256,9 +256,9 @@ async def decide_interrupt(interrupt_id: str, req: Request):
         # FIX 2: verify interrupt exists
         existing = con.execute('SELECT status FROM hitl_queue WHERE id=?', (interrupt_id,)).fetchone()
         if not existing:
-            return {'ok': False, 'error': 'Interrupt not found'}
+            return JSONResponse({'ok': False, 'error': 'Interrupt not found'}, status_code=404)
         if existing['status'] != 'pending':
-            return {'ok': False, 'error': f'Interrupt already decided: {existing["status"]}'}
+            return JSONResponse({'ok': False, 'error': f'Interrupt already decided: {existing["status"]}'}, status_code=409)
         con.execute(
             """UPDATE hitl_queue SET status=?,reviewer=?,review_note=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'""",
             (decision, reviewer, note, interrupt_id),
@@ -338,7 +338,7 @@ async def execute_undo(snapshot_id: str, req: Request):
         con.close()
 
     if not row:
-        return {'ok': False, 'error': 'Snapshot not found'}
+        return JSONResponse({'ok': False, 'error': 'Snapshot not found'}, status_code=404)
 
     # FIX 9: columns are direct, not JSON-wrapped
     stype = row['state_type']
@@ -357,12 +357,12 @@ async def execute_undo(snapshot_id: str, req: Request):
                 try:
                     p.relative_to(allowed_root)
                 except ValueError:
-                    return {'ok': False, 'error': 'Path traversal denied — undo path must be inside project root'}
+                    return JSONResponse({'ok': False, 'error': 'Path traversal denied — undo path must be inside project root'}, status_code=403)
                 if p.parent.exists():
                     p.write_text(sdata, encoding='utf-8')
                     return {'ok': True, 'restored': 'file', 'path': str(p)}
         except OSError as ex:
-            return {'ok': False, 'error': str(ex)}
+            return JSONResponse({'ok': False, 'error': str(ex)}, status_code=500)
     elif stype == 'db':
         # Restore DB state — run SQL
         try:
@@ -374,7 +374,7 @@ async def execute_undo(snapshot_id: str, req: Request):
                 con2.close()
             return {'ok': True, 'restored': 'db'}
         except (OSError, sqlite3.Error) as ex:
-            return {'ok': False, 'error': str(ex)}
+            return JSONResponse({'ok': False, 'error': str(ex)}, status_code=500)
 
     return {'ok': True, 'restored': stype, 'note': 'Custom undo — application must handle'}
 
@@ -464,7 +464,7 @@ async def assess_confidence(req: Request):
     context = (_json.dumps(ctx_raw) if isinstance(ctx_raw, dict) else str(ctx_raw))[:1000]
 
     if not action:
-        return {'ok': False, 'error': 'action or task required'}
+        return JSONResponse({'ok': False, 'error': 'action or task required'}, status_code=400)
 
     from ..services import llm as llm_svc
 

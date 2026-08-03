@@ -79,16 +79,17 @@ class TestSwarmCompetition:
         r = await POST(client, "/api/swarm/run", {
             "prompt": "test", "agents": ["brain"]
         })
-        d = ok(r, "single agent swarm")
-        check("single agent rejected", d["ok"] is False)
+        # Rejections are 400 now (they were HTTP 200 with {"ok": false}).
+        check("single agent rejected", r.status_code == 400, actual=r.status_code)
+        check("error explains why", r.json().get("ok") is False)
 
     async def test_06_swarm_missing_prompt(self, client):
         """Swarm requires a prompt."""
         r = await POST(client, "/api/swarm/run", {
             "agents": ["brain", "builder"]
         })
-        d = ok(r, "no prompt swarm")
-        check("no prompt rejected", d["ok"] is False)
+        check("no prompt rejected", r.status_code == 400, actual=r.status_code)
+        check("error explains why", r.json().get("ok") is False)
 
 
 class TestArenaCompetition:

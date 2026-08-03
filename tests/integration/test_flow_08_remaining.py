@@ -275,7 +275,7 @@ class TestArenaFusionLeaderboard:
         assert r.status_code in (200, 404)
 
     async def test_06_fusion_classify(self, client):
-        r = await GET(client, "/api/fusion/classify", prompt="Write a Python function")
+        r = await GET(client, "/api/fusion/classify", q="Write a Python function")
         assert r.status_code in (200, 404)
 
     async def test_07_agent_leaderboard_discover(self, client):

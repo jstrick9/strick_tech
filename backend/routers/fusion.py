@@ -21,7 +21,7 @@ import re
 import time
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 router = APIRouter(prefix='/api/fusion', tags=['fusion'])
 log = logging.getLogger('agentic.fusion')
@@ -247,7 +247,7 @@ def get_history(limit: int = 20):
 def classify_prompt(q: str = ''):
     """Classify a prompt to its task type and recommended model."""
     if not q:
-        return {'ok': False, 'error': 'q parameter required'}
+        return JSONResponse({'ok': False, 'error': 'q parameter required'}, status_code=400)
     task_type = _classify_task(q)
     model, reason = TASK_ROUTER.get(task_type, ('google/gemini-2.0-flash-exp:free', 'default'))
     est_tokens = max(len(q.split()) * 2, 200)
@@ -338,7 +338,7 @@ async def fusion_simple(req: Request):
     max_tok = min(int(body.get('max_tokens', 512)), 4096)
 
     if not prompt:
-        return {'ok': False, 'error': 'prompt required'}
+        return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
 
     cfg = FUSION_PRESETS.get(preset, FUSION_PRESETS['budget'])
     panel = body.get('panel_models') or cfg['panel']
@@ -380,7 +380,7 @@ async def smart_route(req: Request):
     prompt = (body.get('prompt') or '').strip()
     max_tok = min(int(body.get('max_tokens', 1024)), 4096)
     if not prompt:
-        return {'ok': False, 'error': 'prompt required'}
+        return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
 
     task_type = _classify_task(prompt)
     model, reason = TASK_ROUTER.get(task_type, ('google/gemini-2.0-flash-exp:free', 'default fallback'))
@@ -517,7 +517,7 @@ async def subagent_delegate(req: Request):
     max_subtasks = max(1, min(int(body.get('max_subtasks', 5)), 8))
 
     if not task:
-        return {'ok': False, 'error': 'task required'}
+        return JSONResponse({'ok': False, 'error': 'task required'}, status_code=400)
 
     async def _stream():
         yield f'data: {json.dumps({"type": "subagent_start", "task": task[:100], "orchestrator": orchestrator, "worker": worker})}\n\n'
@@ -603,7 +603,7 @@ async def cost_optimize(req: Request):
     max_tok = int(body.get('max_tokens', 1024))
 
     if not prompt:
-        return {'ok': False, 'error': 'prompt required'}
+        return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
 
     task_type = _classify_task(prompt)
     model, reason = TASK_ROUTER.get(task_type, ('google/gemini-2.0-flash-exp:free', 'default'))
