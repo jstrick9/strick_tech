@@ -229,13 +229,74 @@ tests sharing the production database.**
 
 ---
 
-## Remaining follow-ups
-1. **No prompt versioning.** Editing overwrites in place with no history — for a
-   library whose whole value is iterating on wording, that's a real gap. The
-   platform already has a versioning pattern in Templates.
-2. **`use_count` is the only usage signal.** No record of *when* a prompt was used
-   or what it produced, so "which prompts actually work" is unanswerable. A
-   lightweight usage log would make the library measurably better.
-3. **Categories are a hardcoded set of 12.** Now that unknown values are properly
-   rejected, users can't add their own — the rejection makes the rigidity felt.
-   User-defined categories, or free-form tags promoted to first-class navigation.
+## Follow-ups 2–4 ✅ *done in `fba53fa`*
+
+### Version history
+
+Editing overwrote in place with no history — for a library whose value is
+iterating on wording, the phrasing that worked was gone the moment you changed
+it. `prompt_versions` now snapshots the current state before every substantive
+edit, with `GET /{id}/versions` and `POST /{id}/versions/{n}/restore`.
+
+Four decisions worth recording:
+
+- **A restore is itself snapshotted first** (`reason='pre-restore-vN'`), so
+  rolling back by mistake isn't the thing that loses your work.
+- **Only substantive edits create a version.** Toggling favourite, or saving
+  identical text, does not — otherwise history fills with noise and the real
+  revisions get buried.
+- **Restore repairs dangling references rather than reintroducing them.** If the
+  snapshot's category or agent was deleted since, the wording is restored (that's
+  the point) but the category falls back to `general` and the agent pin clears.
+  The response flags both, and the UI says so.
+- History is capped at 50 versions per prompt.
+
+### Usage analytics
+
+`use_count` answered "how often" but never "when" or "in what context".
+`prompt_usage` records surface, rendered length, and variables filled vs missing.
+`GET /usage/stats` ranks by real usage over a window and reports `never_used` —
+the library's dead weight.
+
+The `variables_missing` column is the interesting one: **a prompt whose
+placeholders are habitually left unfilled is a prompt whose design isn't
+working**, and that was previously invisible.
+
+### User-defined categories
+
+Once the previous commit started correctly *rejecting* unknown categories rather
+than silently rewriting them to `general`, the hardcoded set of 12 became a wall
+— the fix made the rigidity felt. `prompt_categories` layers user categories on
+top of the built-ins; names fold to an id (`"Marketing Copy"` →
+`marketing-copy`). Built-ins can't be deleted, and a category still in use
+returns 409 rather than orphaning its prompts into a state the validator rejects.
+
+**Found while wiring this up:** `GET /categories` did a `GROUP BY` over
+`prompt_library`, so it only reported categories that already had prompts. A
+category with none — *including one just created* — was invisible, making a new
+category look like it hadn't saved. It now lists every known category with
+`builtin`/`label`/`count`, plus `orphaned`. The editor's dropdown was a hardcoded
+list of the same 12, so a custom category could never be selected even once it
+existed.
+
+### Housekeeping
+
+`DELETE /{id}` now also clears that prompt's versions and usage rows. There are
+no FK cascades on these tables, so orphaned history would accumulate and
+re-attach if an id were ever reissued.
+
+39 new contracts (**104 total for this module**); 33 fail against the pre-change
+code.
+
+---
+
+## Module status
+
+All four follow-ups are complete. Remaining items are platform-wide rather than
+specific to this module:
+
+1. **Tests share the production database** (`memory/agentic.db`) — has now
+   interfered with six reviews and twice degraded a fix while I was writing it.
+   A per-run temp database remains my strongest standing recommendation.
+2. **Duplicate-global CI lint** — still the top structural recommendation from
+   the platform review.
