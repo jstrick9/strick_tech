@@ -7,9 +7,12 @@ INDEX = (ROOT / 'frontend' / 'index.html').read_text(encoding='utf-8')
 ONBOARDING = (ROOT / 'backend' / 'routers' / 'onboarding.py').read_text(encoding='utf-8')
 
 
-def test_light_is_the_product_default():
-    assert "'theme': 'light'" in ONBOARDING
-    assert "localStorage.getItem('agentic_os_theme') || 'light'" in INDEX
+def test_dark_is_the_product_default():
+    # The product default is dark: commit "fix: default theme to dark mode for
+    # HTML/localhost version" moved the frontend boot default to dark, but the
+    # backend DEFAULT_PREFS and this contract were left asserting light.
+    assert "'theme': 'dark'" in ONBOARDING
+    assert "localStorage.getItem('agentic_os_theme') || 'dark'" in INDEX
 
 
 def test_light_dark_and_auto_choices_are_exposed():

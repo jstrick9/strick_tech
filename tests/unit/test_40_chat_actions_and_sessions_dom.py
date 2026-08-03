@@ -51,11 +51,20 @@ def test_normalize_messages_merges_different_consecutive_user_prompts():
 
 
 def test_chat_sessions_onclick_attributes_use_html_safe_quotes():
-    """Verify that pin, rename, delete, and session items use direct addEventListener bindings without inline onclick."""
-    assert 'itemDiv.addEventListener(\'click\', () => loadChatSession(s.id));' in CORE_JS
-    assert 'pinBtn.addEventListener(\'click\', (e) => {' in CORE_JS
-    assert 'renBtn.addEventListener(\'click\', (e) => {' in CORE_JS
-    assert 'delBtn.addEventListener(\'click\', (e) => {' in CORE_JS
+    """Verify session-list rows bind handlers via addEventListener, never inline onclick.
+
+    Chat-history rendering now lives solely in 56-chat-history.js; the duplicate
+    01-app-core.js implementation this used to assert against was dead code
+    (overwritten at load time) and has been removed. The no-inline-onclick
+    guarantee is what actually matters, so it is asserted structurally below.
+    """
+    assert "div.addEventListener('click', function(e){if(e.target.closest('.session-actions'))return;window.loadChatSession(s.id);});" in CORE_JS
+    assert "delBtn.addEventListener('click',function(e){" in CORE_JS
+    assert "moreBtn.addEventListener('click',function(e){" in CORE_JS
+    # The rendered session row must never carry an inline onclick= attribute,
+    # which is the quote-collision class of bug this contract exists to prevent.
+    history_js = (ROOT / 'frontend' / 'js' / '56-chat-history.js').read_text(encoding='utf-8')
+    assert 'onclick=' not in history_js
 
 
 def test_message_actions_onclick_attributes_use_html_safe_quotes():
@@ -83,7 +92,7 @@ def test_model_used_badge_rendered_in_msg_meta():
 
 def test_session_title_length_increased_to_256():
     """Verify that chat conversation history titles support up to 256 characters across frontend and backend."""
-    assert 'snameSafe = (s.name || \'Chat\').slice(0, 256);' in CORE_JS
+    assert "var sname = (s.name || 'Chat').slice(0,256);" in CORE_JS
     assert 'msg.slice(0, 256)' in CORE_JS
     SESSIONS_PY = (ROOT / 'backend' / 'routers' / 'sessions.py').read_text(encoding='utf-8')
     assert 'title[:256]' in SESSIONS_PY

@@ -154,7 +154,7 @@ async def import_workspace(req: Request):
 
             count = 0
             for row in rows:
-                columns = [c for c in row.keys() if c in real_columns]
+                columns = [c for c in row.keys() if c in real_columns]  # noqa: SIM118 - sqlite3.Row iterates values, not keys
                 if not columns:
                     continue
                 placeholders = ','.join(['?' for _ in columns])

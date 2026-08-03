@@ -9,7 +9,19 @@ async function renderDashboard() {
   if (!pane) return;
   pane.innerHTML = `
     <div class="section-head">
-      <div><h2>📊 Dashboard</h2><p>Real-time analytics — cost, tasks, memory, agents, swarm, E2E</p></div>
+      <div>
+        <h2>📊 Dashboard</h2>
+        <p>Real-time analytics — cost, tasks, memory, agents, swarm, E2E</p>
+        <!-- BUG FIX: renderConnectionReadiness() has always written to both
+             'chat-connection-status' and 'mission-connection-status', but the
+             latter element existed nowhere in the app, so the Launchpad half of
+             that call was a permanent no-op and users only saw AI-connection
+             state from inside Chat. Rendered here so the dashboard surfaces it
+             too. -->
+        <button type="button" id="mission-connection-status" class="connection-status checking"
+                onclick="nav('settings');switchSettingsTab('api')"
+                title="Check or change your AI connection">Checking AI connection…</button>
+      </div>
       <div style="display:flex;gap:6px;align-items:center">
         <select id="dash-days" onchange="renderDashboard()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:12px;padding:4px 8px">
           <option value="7">7 days</option>

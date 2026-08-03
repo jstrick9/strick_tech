@@ -9,7 +9,12 @@ CSS = (ROOT / 'frontend' / 'styles.css').read_text(encoding='utf-8')
 
 def test_chat_and_launchpad_expose_connection_readiness():
     assert 'id="chat-connection-status"' in INDEX
-    assert 'id="mission-connection-status"' in INDEX
+    # The Launchpad/Dashboard pane is rendered by 36-dashboard.js (renderDashboard
+    # replaces #pane-dashboard's innerHTML), so its readiness button lives in the
+    # JS bundle rather than in index.html. It previously existed in neither, which
+    # made the 'mission-connection-status' half of renderConnectionReadiness a
+    # permanent no-op.
+    assert 'id="mission-connection-status"' in CORE
     assert "window.renderConnectionReadiness" in CORE
 
 

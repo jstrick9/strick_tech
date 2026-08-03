@@ -7,21 +7,27 @@ VOICE_JS = (ROOT / 'frontend' / 'js' / '09-voice-tts.js').read_text(encoding='ut
 INDEX_HTML = (ROOT / 'frontend' / 'index.html').read_text(encoding='utf-8')
 
 
-def test_history_defaults_to_five_and_offers_requested_page_sizes():
+def test_history_defaults_to_five_and_paginates_the_date_view():
+    # Chat-history rendering is owned by 56-chat-history.js. The older
+    # 01-app-core.js implementation these assertions were written against was
+    # dead code (56-chat-history.js loads later and reassigns the same window
+    # functions) and has been removed, along with the #chat-folder-pills /
+    # #chat-sort-select / page-size <select> markup it drove.
     assert "window._chatPageSize = window._chatPageSize || 5;" in CORE_JS
-    for size in (5, 10, 15, 20, 25):
-        assert f'<option value="{size}"' in INDEX_HTML
     assert 'id="chat-sessions-pagination"' in INDEX_HTML
-    assert 'const pageSessions = filtered.slice(startIdx, startIdx + pageSize);' in CORE_JS
-    assert 'Page ${curPage} of ${totalPages}' in CORE_JS
+    assert 'var pageSize=window._chatPageSize||5' in CORE_JS
+    assert "page=sessions.slice(start,start+pageSize)" in CORE_JS
+    assert "'Page '+cur+' of '+totalPages" in CORE_JS
 
 
-def test_history_sort_modes_and_all_chats_virtual_filter_are_present():
-    for mode in ('newest', 'oldest', 'az', 'za', 'folder_az', 'folder_za'):
-        assert f"'{mode}'" in CORE_JS
-    assert 'All Chats</button>' in INDEX_HTML
-    assert "const showFolderSort = (folderFilter === 'All');" in CORE_JS
-    assert "optFAZ.style.display = showFolderSort ? '' : 'none';" in CORE_JS
+def test_history_offers_folder_and_date_views():
+    # The folder-pill + sort-dropdown model was replaced by a two-view toggle
+    # (folder tree / date grouping) plus a per-folder collapsible tree.
+    assert 'id="view-folders-btn"' in INDEX_HTML
+    assert 'id="view-date-btn"' in INDEX_HTML
+    assert "window.switchChatView = function(view)" in CORE_JS
+    for group in ('Today', 'Yesterday', 'Previous 7 Days', 'Previous 30 Days', 'Older'):
+        assert f"'{group}'" in CORE_JS
 
 
 def test_history_messages_receive_a_synchronous_safe_id_for_webkit():

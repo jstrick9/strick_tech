@@ -1,8 +1,8 @@
 """
 Unit Tests — Navigation, Settings Workstation & Ergonomics Integrity (`tests/unit/test_38_navigation_and_settings_integrity.py`)
 Validates our 100% functional roadmap execution:
-1. All 68 categorized sidebar navigation panes have exact DOM containers (`#pane-<id>`) in index.html.
-2. MASTER_PANE_REGISTRY in 01-app-core.js registers all 68 navigation keys authoritatively.
+1. All categorized sidebar navigation panes have exact DOM containers (`#pane-<id>`) in index.html.
+2. MASTER_PANE_REGISTRY registers every navigation key authoritatively.
 3. No duplicate loadSettings() shadowing in 01-app-core.js and no inline window.nav overwrite in index.html.
 4. toggleSidebar() minimum width guard (260px fallback) against 56px collapsed width traps.
 5. 2-Column Settings Workstation layout and 6 tab navigation buttons (`#settings-nav-api`, etc.) in index.html.
@@ -22,7 +22,7 @@ BACKEND_DIR = ROOT / "backend"
 
 
 class TestNavigationAndSettingsIntegrity:
-    """Suite formally verifying exact DOM and JavaScript contract integrity across all 68 navigation panes and settings."""
+    """Suite formally verifying exact DOM and JavaScript contract integrity across all navigation panes and settings."""
 
     @pytest.fixture(scope="class")
     def html_soup(self):
@@ -37,11 +37,16 @@ class TestNavigationAndSettingsIntegrity:
         all_js = '\n'.join(f.read_text(encoding='utf-8') for f in sorted(JS_DIR.glob('*.js')))
         return all_js
 
-    def test_all_68_sidebar_panes_exist_in_dom(self, html_soup):
+    def test_all_sidebar_panes_exist_in_dom(self, html_soup):
         """Verify that every single data-nav item in the sidebar has an exact #pane-<id> container inside index.html."""
+        # Pane count is 67, not 68: the standalone "Code Editor" (builder) pane
+        # was deliberately retired and folded into "Code Studio" (see commit
+        # "merge Code Editor (Builder) into Code Studio, retire standalone pane
+        # (68 -> 67 panes)"). This contract was left at the pre-merge 68 and so
+        # failed on a change that was intentional.
         nav_els = html_soup.find_all(lambda e: e.has_attr("data-nav"))
         nav_ids = sorted(list(set(el["data-nav"] for el in nav_els)))
-        assert len(nav_ids) >= 68, f"Expected at least 68 distinct data-nav items in sidebar, found {len(nav_ids)}"
+        assert len(nav_ids) >= 67, f"Expected at least 67 distinct data-nav items in sidebar, found {len(nav_ids)}"
 
         missing_panes = []
         for nid in nav_ids:
@@ -51,8 +56,8 @@ class TestNavigationAndSettingsIntegrity:
         
         assert not missing_panes, f"Missing exact #pane-<id> containers in index.html for nav IDs: {missing_panes}"
 
-    def test_master_pane_registry_maps_all_68_keys(self, html_soup, app_core_js):
-        """Verify that MASTER_PANE_REGISTRY in 01-app-core.js authoritatively registers all 68 sidebar nav keys."""
+    def test_master_pane_registry_maps_all_nav_keys(self, html_soup, app_core_js):
+        """Verify that MASTER_PANE_REGISTRY authoritatively registers every sidebar nav key."""
         nav_els = html_soup.find_all(lambda e: e.has_attr("data-nav"))
         nav_ids = set(el["data-nav"] for el in nav_els)
 
@@ -65,7 +70,7 @@ class TestNavigationAndSettingsIntegrity:
         
         missing_in_registry = sorted(list(nav_ids - registered_keys))
         assert not missing_in_registry, f"MASTER_PANE_REGISTRY is missing mappings for keys: {missing_in_registry}"
-        assert len(registered_keys) >= 68, f"Expected at least 68 keys in MASTER_PANE_REGISTRY, found {len(registered_keys)}"
+        assert len(registered_keys) >= 67, f"Expected at least 67 keys in MASTER_PANE_REGISTRY, found {len(registered_keys)}"
 
     def test_no_duplicate_loadsettings_shadowing(self, app_core_js):
         """Verify that loadSettings is defined exactly once in 01-app-core.js without duplicate shadowing."""

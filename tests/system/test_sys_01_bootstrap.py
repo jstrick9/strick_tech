@@ -16,7 +16,10 @@ class TestSysBootstrap:
         r = await GET(C, "/api/health")
         d = must(r, 200, label="health")
         check("ok is True",      d["ok"] is True)
-        check("version is 6.0",  d["version"] == "6.0")
+        # Assert against the canonical VERSION file rather than a hardcoded
+        # "6.0", which was left behind when the app moved to 11.5.0.
+        from backend.version import VERSION
+        check("version matches VERSION", d["version"] == VERSION, got=d["version"])
         check("service name",    d["service"] == "Agentic OS")
 
     async def test_frontend_html_served(self, C):
