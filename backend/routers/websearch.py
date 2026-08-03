@@ -22,7 +22,7 @@ import re
 import sqlite3
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 router = APIRouter(prefix='/api/websearch', tags=['websearch'])
 log = logging.getLogger('agentic.websearch')
@@ -82,46 +82,114 @@ def _record_search(query: str, kind: str, results: int) -> None:
 # ── DuckDuckGo helpers ──────────────────────────────────────────────────────
 
 
+#: A real browser User-Agent is required. lite.duckduckgo.com now answers the
+#: previous 'AgenticOS/6.0' UA with HTTP 403 for every query.
+_SEARCH_UA = (
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
+    '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+)
+
+
+def _unwrap_ddg_url(href: str) -> str:
+    """Resolve DuckDuckGo's /l/?uddg=... redirect wrapper to the real target."""
+    import urllib.parse
+
+    if not href:
+        return ''
+    if href.startswith('//'):
+        href = 'https:' + href
+    try:
+        parsed = urllib.parse.urlparse(href)
+        if 'duckduckgo.com' in (parsed.hostname or '') and parsed.path.startswith('/l/'):
+            target = urllib.parse.parse_qs(parsed.query).get('uddg', [''])[0]
+            if target:
+                return urllib.parse.unquote(target)
+    except (ValueError, TypeError):
+        pass
+    return href
+
+
+def _clean_html_text(fragment: str) -> str:
+    """Strip tags and decode entities from a scraped HTML fragment."""
+    import html as _html
+
+    return _html.unescape(re.sub(r'<[^>]+>', '', fragment or '')).strip()
+
+
 async def _ddg_search(query: str, num_results: int = 5) -> list[dict]:
-    """Search DuckDuckGo — free, no API key needed."""
+    """Search DuckDuckGo — free, no API key needed.
+
+    BUG FIX: web search silently returned ZERO results for every query while
+    reporting {"ok": true}. Two independent causes, both verified live:
+
+      1. It scraped lite.duckduckgo.com with the User-Agent
+         'Mozilla/5.0 AgenticOS/6.0'. That endpoint now answers HTTP 403 to
+         non-browser agents, so the request never returned any HTML.
+      2. Its regex matched a generic <a href>…</a>, which does not correspond
+         to how DuckDuckGo marks up results — even on a 200 response it would
+         have picked up navigation chrome rather than search hits.
+
+    The documented fallback (api.duckduckgo.com instant answers) does not cover
+    ordinary queries either: for "python asyncio tutorial" it returns an empty
+    AbstractText and zero RelatedTopics. So every path produced nothing, and
+    the endpoint reported success anyway.
+
+    Now targets html.duckduckgo.com/html with a real browser UA and parses the
+    result__a / result__snippet markup that endpoint actually emits, unwrapping
+    DuckDuckGo's /l/?uddg= redirect so callers get real destination URLs.
+    Verified live: 10 results for the same query that previously returned 0.
+    """
     import urllib.parse
 
     import httpx
 
-    # clamp / sanitise
     num_results = max(1, min(int(num_results), 10))
     results: list[dict] = []
 
     try:
         encoded = urllib.parse.quote_plus(query)
-        url = f'https://lite.duckduckgo.com/lite/?q={encoded}'
+        url = f'https://html.duckduckgo.com/html/?q={encoded}'
 
-        async with httpx.AsyncClient(timeout=10, headers={'User-Agent': 'Mozilla/5.0 AgenticOS/6.0'}) as client:
+        async with httpx.AsyncClient(
+            timeout=12, headers={'User-Agent': _SEARCH_UA}, follow_redirects=True
+        ) as client:
             r = await client.get(url)
             if r.status_code == 200:
                 text = r.text
-                link_pattern = re.compile(r'<a[^>]+href="(https?://[^"]+)"[^>]*>([^<]+)</a>', re.IGNORECASE)
-                snippet_pattern = re.compile(
-                    r'<td[^>]*class="result-snippet"[^>]*>(.*?)</td>',
+                links = re.findall(
+                    r'<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>(.*?)</a>',
+                    text,
                     re.IGNORECASE | re.DOTALL,
                 )
-                links = link_pattern.findall(text)
-                snippets = snippet_pattern.findall(text)
-
+                snippets = re.findall(
+                    r'class="[^"]*result__snippet[^"]*"[^>]*>(.*?)</a>',
+                    text,
+                    re.IGNORECASE | re.DOTALL,
+                )
                 for i, (href, title) in enumerate(links[:num_results]):
-                    snippet = re.sub(r'<[^>]+>', '', snippets[i]).strip() if i < len(snippets) else ''
+                    target = _unwrap_ddg_url(href)
+                    # Defence in depth: only ever hand back http(s) URLs, and
+                    # never one pointing at internal infrastructure. Results are
+                    # scraped third-party content, so a hostile scheme
+                    # (javascript:, data:) must not reach the client at all.
+                    if not target or not target.lower().startswith(('http://', 'https://')):
+                        continue
+                    if _is_ssrf_blocked_url(target):
+                        continue
                     results.append(
                         {
-                            'rank': i + 1,
-                            'title': title.strip()[:200],
-                            'url': href,
-                            'snippet': snippet[:400],
+                            'rank': len(results) + 1,
+                            'title': _clean_html_text(title)[:200],
+                            'url': target,
+                            'snippet': _clean_html_text(snippets[i])[:400] if i < len(snippets) else '',
                         }
                     )
+            else:
+                log.warning('DDG html search returned HTTP %s', r.status_code)
     except Exception as ex:
         log.warning('DDG search failed: %s', ex)
 
-    # Fallback: instant answers API
+    # Fallback: instant answers API (covers definitional queries only).
     if not results:
         try:
             import urllib.parse
@@ -131,7 +199,7 @@ async def _ddg_search(query: str, num_results: int = 5) -> list[dict]:
             url = (
                 f'https://api.duckduckgo.com/?q={urllib.parse.quote_plus(query)}&format=json&no_html=1&skip_disambig=1'
             )
-            async with httpx.AsyncClient(timeout=8) as client:
+            async with httpx.AsyncClient(timeout=8, headers={'User-Agent': _SEARCH_UA}) as client:
                 r = await client.get(url)
                 if r.status_code == 200:
                     data = r.json()
@@ -194,7 +262,7 @@ async def web_search(req: Request):
     fetch = bool(body.get('fetch_content', False))
 
     if not query:
-        return {'ok': False, 'error': 'query required'}
+        return JSONResponse({'ok': False, 'error': 'query required'}, status_code=400)
 
     results = await _ddg_search(query, n)
 
@@ -272,12 +340,12 @@ async def fetch_content(req: Request):
     max_chars = max(500, min(int(body.get('max_chars', 3000) or 3000), 10000))
 
     if not url:
-        return {'ok': False, 'error': 'url required'}
+        return JSONResponse({'ok': False, 'error': 'url required'}, status_code=400)
     if not re.match(r'^https?://', url):
-        return {'ok': False, 'error': 'url must start with http:// or https://'}
+        return JSONResponse({'ok': False, 'error': 'url must start with http:// or https://'}, status_code=400)
     # SECURITY: Block SSRF — private IPs, cloud metadata endpoints, loopback
     if _is_ssrf_blocked_url(url):
-        return {'ok': False, 'error': 'URL not allowed: private/internal addresses are blocked'}
+        return JSONResponse({'ok': False, 'error': 'URL not allowed: private/internal addresses are blocked'}, status_code=403)
 
     content = await _fetch_page_text(url, max_chars)
     return {
@@ -304,7 +372,7 @@ async def grounded_completion(req: Request):
     fetch_full = bool(body.get('fetch_content', False))
 
     if not prompt:
-        return {'ok': False, 'error': 'prompt required'}
+        return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
 
     query = prompt[:200]
     results = await _ddg_search(query, num_results)
@@ -370,7 +438,7 @@ async def grounded_stream(req: Request):
     num_results = max(1, min(int(body.get('num_results', 4) or 4), 8))
 
     if not prompt:
-        return {'ok': False, 'error': 'prompt required'}
+        return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
 
     async def _stream():
         yield f'data: {json.dumps({"type": "searching", "query": prompt[:100]})}\n\n'
@@ -436,7 +504,7 @@ async def deep_research(req: Request):
         body = {}
     topic = (body.get('topic') or '').strip()
     if not topic:
-        return {'ok': False, 'error': 'topic required'}
+        return JSONResponse({'ok': False, 'error': 'topic required'}, status_code=400)
 
     async def _stream():
         yield f'data: {json.dumps({"type": "research_start", "topic": topic})}\n\n'
@@ -570,7 +638,7 @@ async def delete_history_entry(entry_id: int):
         cur = con.execute('DELETE FROM ws_search_history WHERE id=?', (entry_id,))
         con.commit()
         if cur.rowcount == 0:
-            return {'ok': False, 'error': 'not found'}
+            return JSONResponse({'ok': False, 'error': 'not found'}, status_code=404)
     finally:
         con.close()
     return {'ok': True}
