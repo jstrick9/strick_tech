@@ -35,6 +35,16 @@ let promptFavOnly  = false;
 let editingPromptId = null;
 let _promptSort    = 'updated';
 
+// The API returns real status codes with an explanatory body; showing only
+// the status number threw away the reason (e.g. which category was invalid).
+async function promptError(r, fallback) {
+  let body = {};
+  try { body = await r.json(); } catch (e) { /* non-JSON error body */ }
+  let msg = body.error || body.detail || fallback || ('HTTP ' + r.status);
+  if (Array.isArray(body.valid_categories)) msg += ` (valid: ${body.valid_categories.join(', ')})`;
+  return msg;
+}
+
 async function renderPrompts() {
   const pane = document.getElementById('pane-prompts');
   if (!pane) return;
@@ -182,6 +192,10 @@ function renderPromptCards() {
             <span style="font-size:10px;padding:1px 7px;border-radius:99px;background:var(--bg-3);color:var(--text-2)">${escHtml(p.category||'general')}</span>
             ${(p.tags||'').split(',').filter(t=>t.trim()).slice(0,2).map(t=>`<span style="font-size:10px;padding:1px 7px;border-radius:99px;background:var(--bg-3);color:var(--text-3)">${escHtml(t.trim())}</span>`).join('')}
             ${p.agent_id?`<span style="font-size:10px;padding:1px 7px;border-radius:99px;background:var(--bg-3);color:var(--accent)">🤖 ${escHtml(p.agent_id)}</span>`:''}
+            ${(() => { const v = promptVariables(p.content); return v.length
+              ? `<span style="font-size:10px;padding:1px 7px;border-radius:99px;background:var(--bg-3);color:var(--warning)"
+                       title="Fills in when you click Use: ${escHtml(v.join(', '))}">⚙ ${v.length} var${v.length>1?'s':''}</span>`
+              : ''; })()}
           </div>
         </div>
         ${p.is_favorite?'<span style="font-size:12px;flex-shrink:0">⭐</span>':''}
@@ -281,7 +295,7 @@ async function savePrompt() {
 
   try {
     const r = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
-    if (!r.ok) { toast('Save failed: HTTP '+r.status, 'err'); return; }
+    if (!r.ok) { toast('Save failed: '+await promptError(r), 'err'); return; }
     const j = await r.json();
     if (j.ok) {
       toast(editingPromptId ? '✅ Prompt updated' : '✅ Prompt saved', 'ok');
@@ -326,7 +340,7 @@ async function deletePrompt(pid) {
   if (!(await gmDanger('Delete Prompt', `Remove "${name}" from your library?`))) return;
   try {
     const r = await fetch(`/api/prompts/${encodeURIComponent(pid)}`, {method:'DELETE'});
-    if (!r.ok) { toast('Delete failed: HTTP '+r.status, 'err'); return; }
+    if (!r.ok) { toast('Delete failed: '+await promptError(r), 'err'); return; }
     const j = await r.json();
     if (j.ok) {
       promptsData = promptsData.filter(p => p.id !== pid);
@@ -346,7 +360,7 @@ async function toggleFavorite(pid, current) {
       method:'PATCH', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({is_favorite: current ? 0 : 1})
     });
-    if (!r.ok) { toast('Favorite toggle failed: HTTP '+r.status, 'err'); return; }
+    if (!r.ok) { toast('Favorite toggle failed: '+await promptError(r), 'err'); return; }
     const d = await r.json();
     if (d.ok) {
       const p = promptsData.find(x => x.id === pid);
@@ -361,13 +375,90 @@ async function toggleFavorite(pid, current) {
   }
 }
 
+// The editor tells users to "Use {placeholder} for variables", but nothing
+// ever substituted them — the literal braces were sent to the model. Ask for
+// the values, render server-side, then load the finished text into chat.
+function promptVariables(content) {
+  const names = [];
+  const re = /(?<!\{)\{([a-zA-Z][a-zA-Z0-9_ -]{0,48})\}(?!\})/g;
+  let m;
+  while ((m = re.exec(content || '')) !== null) {
+    const name = m[1].trim();
+    if (name && !names.includes(name)) names.push(name);
+  }
+  return names;
+}
+
+function askForVariables(title, names) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.innerHTML = `
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;max-width:460px;width:100%;padding:20px">
+        <h3 style="margin:0 0 4px;color:var(--text-0);font-size:15px">Fill in variables</h3>
+        <div style="font-size:11.5px;color:var(--text-3);margin-bottom:14px">${escHtml(title)}</div>
+        ${names.map((n, i) => `
+          <div class="form-group">
+            <label class="form-label">${escHtml(n)}</label>
+            <input class="input pv-input" data-var-name="${escHtml(n)}"${i === 0 ? ' autofocus' : ''}
+                   placeholder="Value for {${escHtml(n)}}">
+          </div>`).join('')}
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+          <button type="button" class="btn btn-ghost btn-sm" data-pv="cancel">Cancel</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-pv="skip" title="Send with the placeholders left in">Use as-is</button>
+          <button type="button" class="btn btn-primary btn-sm" data-pv="ok">→ Use prompt</button>
+        </div>
+      </div>`;
+    const finish = (result) => { overlay.remove(); resolve(result); };
+    overlay.addEventListener('click', (e) => {
+      const act = e.target.closest('[data-pv]')?.dataset.pv;
+      if (act === 'cancel' || e.target === overlay) return finish(null);
+      if (act === 'skip') return finish({});
+      if (act === 'ok') {
+        const values = {};
+        overlay.querySelectorAll('.pv-input').forEach(el => { values[el.dataset.varName] = el.value; });
+        finish(values);
+      }
+    });
+    overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') finish(null);
+      if (e.key === 'Enter' && e.target.classList.contains('pv-input')) {
+        overlay.querySelector('[data-pv="ok"]')?.click();
+      }
+    });
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.querySelector('.pv-input')?.focus(), 30);
+  });
+}
+
 async function usePrompt(pid, content) {
-  try {
-    fetch(`/api/prompts/${encodeURIComponent(pid)}/use`, {method:'POST'}).catch(()=>{});
-    // Update local use_count
-    const p = promptsData.find(x => x.id === pid);
-    if (p) p.use_count = (p.use_count||0) + 1;
-  } catch(e) {}
+  const names = promptVariables(content);
+  if (names.length) {
+    const values = await askForVariables(
+      promptsData.find(x => x.id === pid)?.title || 'Prompt', names);
+    if (values === null) return;  // cancelled
+    try {
+      const r = await fetch(`/api/prompts/${encodeURIComponent(pid)}/render`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({values})
+      });
+      if (r.ok) {
+        const j = await r.json();
+        content = j.rendered ?? content;
+        if (j.missing?.length) toast(`⚠️ Left unfilled: ${j.missing.join(', ')}`, 'warn');
+      } else {
+        toast('Render failed: '+await promptError(r), 'err');
+      }
+    } catch (ex) { toast('Render error: '+ex?.message, 'err'); }
+    const pLocal = promptsData.find(x => x.id === pid);
+    if (pLocal) pLocal.use_count = (pLocal.use_count||0) + 1;
+  } else {
+    try {
+      fetch(`/api/prompts/${encodeURIComponent(pid)}/use`, {method:'POST'}).catch(()=>{});
+      const p = promptsData.find(x => x.id === pid);
+      if (p) p.use_count = (p.use_count||0) + 1;
+    } catch(e) {}
+  }
   nav('chat');
   setTimeout(() => {
     const inp = document.getElementById('chat-input');
@@ -385,7 +476,7 @@ async function usePrompt(pid, content) {
 async function duplicatePrompt(pid) {
   try {
     const r = await fetch(`/api/prompts/${encodeURIComponent(pid)}/duplicate`, {method:'POST'});
-    if (!r.ok) { toast('Duplicate failed: HTTP '+r.status, 'err'); return; }
+    if (!r.ok) { toast('Duplicate failed: '+await promptError(r), 'err'); return; }
     const j = await r.json();
     if (j.ok) {
       toast('⧉ Prompt duplicated: '+escHtml(j.title||''), 'ok');
@@ -401,7 +492,7 @@ async function duplicatePrompt(pid) {
 async function exportPrompts() {
   try {
     const r = await fetch('/api/prompts/export');
-    if (!r.ok) { toast('Export failed: HTTP '+r.status, 'err'); return; }
+    if (!r.ok) { toast('Export failed: '+await promptError(r), 'err'); return; }
     const d = await r.json();
     const blob = new Blob([JSON.stringify(d.prompts, null, 2)], {type:'application/json'});
     const a = document.createElement('a');
@@ -431,10 +522,10 @@ async function importPrompts() {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({prompts})
       });
-      if (!r.ok) { toast('Import failed: HTTP '+r.status, 'err'); return; }
+      if (!r.ok) { toast('Import failed: '+await promptError(r), 'err'); return; }
       const j = await r.json();
       if (j.ok) {
-        toast(`✅ Imported ${j.imported} prompts (${j.skipped} skipped)`, 'ok');
+        toast(`✅ Imported ${j.imported}${j.replaced ? ', replaced '+j.replaced : ''} (${j.skipped} skipped)`, 'ok');
         renderPrompts();
       } else {
         toast('Import failed: '+(j.error||'Unknown'), 'err');
@@ -457,7 +548,7 @@ window.saveCurrentAsPrompt = async function() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({title:title.trim(), content, category:'general'})
     });
-    if (!r.ok) { toast('Save failed: HTTP '+r.status, 'err'); return; }
+    if (!r.ok) { toast('Save failed: '+await promptError(r), 'err'); return; }
     const j = await r.json();
     if (j.ok) toast('✅ Saved to Prompt Library', 'ok');
     else toast('Save failed: '+(j.error||'Unknown'), 'err');

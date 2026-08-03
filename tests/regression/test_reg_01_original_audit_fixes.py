@@ -220,7 +220,8 @@ class TestRegressionF06_PromptTags:
             "tags": ["productivity", "regression", "test"]
         })
         assert r.status_code != 500, f"F-06 REGRESSION: list tags caused 500"
-        assert r.status_code == 200
+        # 201 Created — the endpoint creates a resource.
+        assert r.status_code == 201
 
 
 class TestRegressionS01_SessionsBranch:

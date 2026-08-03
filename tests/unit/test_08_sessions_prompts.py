@@ -94,7 +94,8 @@ class TestPromptsLibrary:
                        "content": "Test prompt content {{input}}",
                        "category": "general",
                        "tags": "unit,test"})
-        assert r.status_code == 200
+        # POST /api/prompts returns 201 Created — it creates a resource.
+        assert r.status_code == 201
         d = r.json()
         assert d.get("ok") is True
         assert "id" in d
@@ -166,8 +167,8 @@ class TestPromptsLibrary:
                       {"title": "DuplicateSource", "content": "dup me", "category": "general"})
         pid = r.json()["id"]
         r2 = client.post(f"/api/prompts/{pid}/duplicate")
-        assert r2.status_code in (200, 404)
-        if r2.status_code == 200:
+        assert r2.status_code in (200, 201, 404)
+        if r2.status_code in (200, 201):
             assert r2.json()["ok"] is True
 
     def test_export_prompts(self, client):

@@ -193,7 +193,7 @@ class TestPromptsIntegration:
             "tags": ["integration", "test", "template"],
             "category": "general"
         })
-        d = ok(r, "create prompt")
+        d = ok_or(r, 200, 201)
         check("prompt ok", d.get("ok") is True or "id" in d)
 
     async def test_02_prompt_search_finds_by_title(self, client):

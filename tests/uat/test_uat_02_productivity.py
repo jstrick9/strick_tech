@@ -107,7 +107,7 @@ class TestUATPromptLibrary:
             "title": title, "content": content,
             "category": "debug", "tags": "fastapi,async,debug"
         })
-        d = accept(r, "create prompt", 200)
+        d = accept(r, "create prompt", 200, 201)
         pid = d.get("id")
         uat("prompt saved", bool(pid))
         uat("prompt ID string", isinstance(pid, str))
@@ -131,7 +131,7 @@ class TestUATPromptLibrary:
             "content": f"Content about {unique} - find me",
             "category": "general"
         })
-        pid = accept(r, "create prompt", 200).get("id")
+        pid = accept(r, "create prompt", 200, 201).get("id")
         
         r2 = await GET(U, "/api/prompts/search", q=unique)
         accept(r2, "search prompts", 200, 404)
@@ -143,7 +143,7 @@ class TestUATPromptLibrary:
         r = await POST(U, "/api/prompts", {
             "title": uid("TrackUsage"), "content": "Test content", "category": "general"
         })
-        pid = accept(r, "create prompt", 200).get("id")
+        pid = accept(r, "create prompt", 200, 201).get("id")
         
         # Use it twice
         for _ in range(2):
@@ -165,10 +165,10 @@ class TestUATPromptLibrary:
         r = await POST(U, "/api/prompts", {
             "title": uid("Original"), "content": "Original content", "category": "general"
         })
-        pid = accept(r, "create prompt", 200).get("id")
+        pid = accept(r, "create prompt", 200, 201).get("id")
         
         r2 = await POST(U, f"/api/prompts/{pid}/duplicate", {})
-        accept(r2, "duplicate prompt", 200, 404)
+        accept(r2, "duplicate prompt", 200, 201, 404)
         if r2.status_code == 200:
             d2 = r2.json()
             dup_id = d2.get("id") or (d2.get("prompt") or {}).get("id")

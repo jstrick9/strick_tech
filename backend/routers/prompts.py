@@ -7,14 +7,90 @@ Like Claude's prompt library but integrated into the full OS.
 from __future__ import annotations
 
 import json
+import re
 import time
 import uuid
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from ..services.memory_db import audit_log, get_conn
 
 router = APIRouter(prefix='/api/prompts', tags=['prompts'])
+
+MAX_CONTENT = 8000
+MAX_TITLE = 120
+MAX_TAGS = 200
+
+# {placeholder} tokens. The editor has always told users to write these
+# ("Use {placeholder} for variables") but nothing ever substituted them, so the
+# literal braces were sent to the model. Deliberately excludes {{…}} so JSON or
+# code samples inside a prompt aren't mistaken for variables.
+_VAR_RE = re.compile(r'(?<!\{)\{([a-zA-Z][a-zA-Z0-9_ -]{0,48})\}(?!\})')
+
+
+def extract_variables(content: str) -> list[str]:
+    """Return the distinct {placeholder} names in a prompt, in first-use order."""
+    seen, out = set(), []
+    for name in _VAR_RE.findall(content or ''):
+        key = name.strip()
+        if key and key not in seen:
+            seen.add(key)
+            out.append(key)
+    return out
+
+
+def render_prompt(content: str, values: dict) -> tuple[str, list[str]]:
+    """Substitute {placeholder} tokens. Returns (rendered, missing_names).
+
+    Unsupplied variables are left as-is rather than blanked, so a partially
+    filled prompt is still recognisable instead of silently losing meaning.
+    """
+    missing = []
+
+    def _sub(m):
+        name = m.group(1).strip()
+        if name in values and values[name] is not None:
+            return str(values[name])
+        missing.append(name)
+        return m.group(0)
+
+    return _VAR_RE.sub(_sub, content or ''), missing
+
+
+def _like(term: str) -> str:
+    """Escape LIKE wildcards so a search for '%' or '_' is a literal search.
+
+    Without this, searching '%' matched every row and '_' matched any single
+    character — the query silently meant something other than what was typed.
+    Pair with ESCAPE '\\' in the SQL.
+    """
+    return '%' + (term or '').replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
+
+
+def _with_vars(row: dict) -> dict:
+    """Attach the prompt's {placeholder} names so clients can prompt for them."""
+    row['variables'] = extract_variables(row.get('content', ''))
+    return row
+
+
+def _clean_tags(raw) -> str:
+    """Normalise tags to a comma-separated string, de-duped, no empties.
+
+    Accepts a list or a string. Import only handled strings and crashed with a
+    500 on the list form that create() explicitly supports.
+    """
+    if isinstance(raw, list):
+        parts = [str(t) for t in raw]
+    else:
+        parts = str(raw or '').split(',')
+    seen, out = set(), []
+    for t in parts:
+        tag = t.strip()[:40]
+        if tag and tag.lower() not in seen:
+            seen.add(tag.lower())
+            out.append(tag)
+    return ','.join(out)[:MAX_TAGS]
 
 VALID_CATEGORIES = {
     'general',
@@ -50,6 +126,16 @@ def _ensure_table():
                 updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        # Indexes for the columns every list/filter/sort query touches. Without
+        # them each request was a full table scan over the whole library.
+        for ddl in (
+            'CREATE INDEX IF NOT EXISTS idx_prompt_category ON prompt_library(category)',
+            'CREATE INDEX IF NOT EXISTS idx_prompt_updated ON prompt_library(updated_at DESC)',
+            'CREATE INDEX IF NOT EXISTS idx_prompt_use_count ON prompt_library(use_count DESC)',
+            'CREATE INDEX IF NOT EXISTS idx_prompt_favorite ON prompt_library(is_favorite)',
+            'CREATE INDEX IF NOT EXISTS idx_prompt_agent ON prompt_library(agent_id)',
+        ):
+            con.execute(ddl)
         con.commit()
         # Seed useful default prompts only if table is empty
         count = con.execute('SELECT COUNT(*) FROM prompt_library').fetchone()[0]
@@ -201,10 +287,27 @@ def list_prompts(
 ):
     """List prompts with optional filtering and sorting."""
     limit = min(max(1, int(limit)), 500)
+    # An unknown category used to be dropped from the WHERE clause, so a
+    # filtered request quietly returned the ENTIRE library — the opposite of
+    # what was asked for, with nothing to indicate the filter hadn't applied.
+    if category and category not in VALID_CATEGORIES:
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': f'Unknown category: {category}',
+                'valid_categories': sorted(VALID_CATEGORIES),
+            },
+            status_code=400,
+        )
+    if sort not in VALID_SORTS:
+        return JSONResponse(
+            {'ok': False, 'error': f'Unknown sort: {sort}', 'valid_sorts': sorted(VALID_SORTS)},
+            status_code=400,
+        )
     con = get_conn()
     try:
         where, params = [], []
-        if category and category in VALID_CATEGORIES:
+        if category:
             where.append('category=?')
             params.append(category)
         if favorites:
@@ -213,8 +316,8 @@ def list_prompts(
             where.append('agent_id=?')
             params.append(agent_id)
         if q:
-            where.append('(title LIKE ? OR content LIKE ? OR tags LIKE ?)')
-            params.extend([f'%{q}%', f'%{q}%', f'%{q}%'])
+            where.append("(title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\')")
+            params.extend([_like(q)] * 3)
 
         sql = 'SELECT * FROM prompt_library'
         if where:
@@ -228,7 +331,7 @@ def list_prompts(
         con.close()
 
     return {
-        'prompts': [dict(r) for r in rows],
+        'prompts': [_with_vars(dict(r)) for r in rows],
         'count': len(rows),
         'total': total,
     }
@@ -260,22 +363,25 @@ def search_prompts(q: str = '', limit: int = 10):
     if not q or not q.strip():
         return {'results': [], 'count': 0}
     limit = min(max(1, int(limit)), 50)
+    # LIKE wildcards in the user's query were passed straight through, so a
+    # search for '%' matched everything and '_' matched any character.
+    term = _like(q)
     con = get_conn()
     try:
         rows = con.execute(
             """SELECT *,
-               (CASE WHEN title LIKE ? THEN 3 ELSE 0 END +
-                CASE WHEN tags LIKE ? THEN 2 ELSE 0 END +
-                CASE WHEN content LIKE ? THEN 1 ELSE 0 END) as score
+               (CASE WHEN title LIKE ? ESCAPE '\\' THEN 3 ELSE 0 END +
+                CASE WHEN tags LIKE ? ESCAPE '\\' THEN 2 ELSE 0 END +
+                CASE WHEN content LIKE ? ESCAPE '\\' THEN 1 ELSE 0 END) as score
                FROM prompt_library
-               WHERE title LIKE ? OR content LIKE ? OR tags LIKE ?
+               WHERE title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\'
                ORDER BY score DESC, use_count DESC
                LIMIT ?""",
-            (f'%{q}%',) * 3 + (f'%{q}%',) * 3 + (limit,),
+            (term,) * 6 + (limit,),
         ).fetchall()
     finally:
         con.close()
-    return {'results': [dict(r) for r in rows], 'count': len(rows)}
+    return {'results': [_with_vars(dict(r)) for r in rows], 'count': len(rows)}
 
 
 @router.get('/export')
@@ -302,8 +408,8 @@ def get_prompt(prompt_id: str):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Prompt not found'}
-    return {**dict(row), 'ok': True}
+        return JSONResponse({'ok': False, 'error': 'Prompt not found'}, status_code=404)
+    return {**_with_vars(dict(row)), 'ok': True}
 
 
 # ── Create ─────────────────────────────────────────────────────────────────────
@@ -322,11 +428,22 @@ async def create_prompt(req: Request):
     title = (body.get('title') or '').strip()[:120]
     content = (body.get('content') or '').strip()
     if not title or not content:
-        return {'ok': False, 'error': 'title and content required'}
+        return JSONResponse(
+            {'ok': False, 'error': 'title and content required'}, status_code=400
+        )
 
+    # An unknown category used to be silently rewritten to 'general', so a typo
+    # filed the prompt somewhere the user never chose and never found it again.
     category = (body.get('category') or 'general').strip()[:32]
     if category not in VALID_CATEGORIES:
-        category = 'general'
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': f'Unknown category: {category}',
+                'valid_categories': sorted(VALID_CATEGORIES),
+            },
+            status_code=400,
+        )
 
     pid = str(uuid.uuid4())[:8]
     con = get_conn()
@@ -338,11 +455,7 @@ async def create_prompt(req: Request):
                 title,
                 content[:8000],
                 category,
-                (
-                    ','.join(str(t) for t in body['tags'])
-                    if isinstance(body.get('tags'), list)
-                    else (body.get('tags') or '')
-                )[:200],
+                _clean_tags(body.get('tags')),
                 (body.get('agent_id') or '')[:64],
                 int(bool(body.get('is_favorite', False))),
             ),
@@ -351,7 +464,10 @@ async def create_prompt(req: Request):
         audit_log('prompt_save', f'{pid}: {title[:60]}')
     finally:
         con.close()
-    return {'ok': True, 'id': pid, 'title': title}
+    return JSONResponse(
+        {'ok': True, 'id': pid, 'title': title, 'variables': extract_variables(content)},
+        status_code=201,
+    )
 
 
 # ── Import (bulk) ──────────────────────────────────────────────────────────────
@@ -359,53 +475,99 @@ async def create_prompt(req: Request):
 
 @router.post('/import')
 async def import_prompts(req: Request):
-    """Import multiple prompts from JSON (skips duplicates by title)."""
+    """Import multiple prompts from JSON.
+
+    Set replace_existing=true to overwrite a same-titled prompt instead of
+    skipping it.
+    """
     try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+        body = await req.json()
+    except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
+    if not isinstance(body, dict):
+        return JSONResponse({'ok': False, 'error': 'body must be a JSON object'}, status_code=400)
     prompts = body.get('prompts', [])
     if not isinstance(prompts, list):
-        return {'ok': False, 'error': 'prompts must be a list'}
+        return JSONResponse({'ok': False, 'error': 'prompts must be a list'}, status_code=400)
+    replace_existing = bool(body.get('replace_existing', False))
 
-    imported = 0
-    skipped = 0
+    imported, skipped, replaced = 0, 0, 0
+    errors: list[dict] = []
     con = get_conn()
     try:
-        for p in prompts[:200]:
-            title = (p.get('title') or '').strip()[:120]
-            content = (p.get('content') or '').strip()
+        for idx, entry in enumerate(prompts[:200]):
+            # BUG FIX: a non-dict entry (string, number, null) raised
+            # AttributeError on .get() and returned a bare HTTP 500, aborting
+            # the whole import. Verified live with ["juststring", 42, null].
+            if not isinstance(entry, dict):
+                skipped += 1
+                errors.append({'index': idx, 'error': 'entry must be an object'})
+                continue
+            title = str(entry.get('title') or '').strip()[:MAX_TITLE]
+            content = str(entry.get('content') or '').strip()
             if not title or not content:
                 skipped += 1
+                errors.append({'index': idx, 'error': 'title and content required'})
                 continue
-            category = (p.get('category') or 'general').strip()[:32]
+            category = str(entry.get('category') or 'general').strip()[:32]
             if category not in VALID_CATEGORIES:
                 category = 'general'
-            pid = str(uuid.uuid4())[:8]
-            try:
+
+            # BUG FIX: the docstring promised "skips duplicates by title", but
+            # the only guard was INSERT OR IGNORE against a freshly generated
+            # UUID primary key — which never collides. Verified live: importing
+            # the same title three times produced three rows. Re-importing an
+            # export therefore doubled the library every time.
+            existing = con.execute(
+                'SELECT id FROM prompt_library WHERE title=?', (title,)
+            ).fetchone()
+            # BUG FIX: import crashed with a 500 when tags was a list, even
+            # though create() explicitly accepts that shape — so a library
+            # exported from this very API could fail to import.
+            tags = _clean_tags(entry.get('tags'))
+            agent_id = str(entry.get('agent_id') or '')[:64]
+            favorite = int(bool(entry.get('is_favorite', False)))
+
+            if existing:
+                if not replace_existing:
+                    skipped += 1
+                    continue
                 con.execute(
-                    'INSERT OR IGNORE INTO prompt_library(id,title,content,category,tags,agent_id,is_favorite) VALUES(?,?,?,?,?,?,?)',
-                    (
-                        pid,
-                        title,
-                        content[:8000],
-                        category,
-                        (p.get('tags') or '')[:200],
-                        (p.get('agent_id') or '')[:64],
-                        int(bool(p.get('is_favorite', False))),
-                    ),
+                    """UPDATE prompt_library
+                       SET content=?, category=?, tags=?, agent_id=?, is_favorite=?,
+                           updated_at=CURRENT_TIMESTAMP
+                       WHERE id=?""",
+                    (content[:MAX_CONTENT], category, tags, agent_id, favorite, existing[0]),
                 )
-                imported += 1
-            except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-                skipped += 1
+                replaced += 1
+                continue
+
+            con.execute(
+                'INSERT INTO prompt_library(id,title,content,category,tags,agent_id,is_favorite) '
+                'VALUES(?,?,?,?,?,?,?)',
+                (
+                    str(uuid.uuid4())[:8],
+                    title,
+                    content[:MAX_CONTENT],
+                    category,
+                    tags,
+                    agent_id,
+                    favorite,
+                ),
+            )
+            imported += 1
         con.commit()
-        audit_log('prompts_import', f'{imported} imported, {skipped} skipped')
+        audit_log('prompts_import', f'{imported} imported, {replaced} replaced, {skipped} skipped')
     finally:
         con.close()
-    return {'ok': True, 'imported': imported, 'skipped': skipped}
+    return {
+        'ok': True,
+        'imported': imported,
+        'replaced': replaced,
+        'skipped': skipped,
+        'errors': errors[:50],
+        'truncated': len(prompts) > 200,
+    }
 
 
 # ── Update ─────────────────────────────────────────────────────────────────────
@@ -427,22 +589,39 @@ async def update_prompt(prompt_id: str, req: Request):
         if k in body:
             v = body[k]
             if k == 'title':
-                v = str(v).strip()[:120]
+                v = str(v).strip()[:MAX_TITLE]
+                if not v:
+                    return JSONResponse(
+                        {'ok': False, 'error': 'title cannot be empty'}, status_code=400
+                    )
             elif k == 'content':
-                v = str(v)[:8000]
+                v = str(v)[:MAX_CONTENT]
+                if not v.strip():
+                    return JSONResponse(
+                        {'ok': False, 'error': 'content cannot be empty'}, status_code=400
+                    )
             elif k == 'category':
                 v = str(v).strip()[:32]
                 if v not in VALID_CATEGORIES:
-                    v = 'general'
-            elif k in ('tags', 'agent_id'):
-                v = str(v)[:200]
+                    return JSONResponse(
+                        {
+                            'ok': False,
+                            'error': f'Unknown category: {v}',
+                            'valid_categories': sorted(VALID_CATEGORIES),
+                        },
+                        status_code=400,
+                    )
+            elif k == 'tags':
+                v = _clean_tags(v)
+            elif k == 'agent_id':
+                v = str(v)[:64]
             elif k == 'is_favorite':
                 v = int(bool(v))
             sets.append(f'{k}=?')
             vals.append(v)
 
     if not sets:
-        return {'ok': False, 'error': 'no fields to update'}
+        return JSONResponse({'ok': False, 'error': 'no fields to update'}, status_code=400)
 
     sets.append('updated_at=CURRENT_TIMESTAMP')
     vals.append(prompt_id)
@@ -456,7 +635,7 @@ async def update_prompt(prompt_id: str, req: Request):
         con.close()
 
     if not updated:
-        return {'ok': False, 'error': 'Prompt not found'}
+        return JSONResponse({'ok': False, 'error': 'Prompt not found'}, status_code=404)
     return {'ok': True}
 
 
@@ -474,7 +653,7 @@ def delete_prompt(prompt_id: str):
     finally:
         con.close()
     if not deleted:
-        return {'ok': False, 'error': 'Prompt not found'}
+        return JSONResponse({'ok': False, 'error': 'Prompt not found'}, status_code=404)
     audit_log('prompt_delete', prompt_id)
     return {'ok': True, 'deleted': prompt_id}
 
@@ -495,7 +674,7 @@ def record_use(prompt_id: str):
     finally:
         con.close()
     if not updated:
-        return {'ok': False, 'error': 'Prompt not found'}
+        return JSONResponse({'ok': False, 'error': 'Prompt not found'}, status_code=404)
     return {'ok': True}
 
 
@@ -504,22 +683,117 @@ def record_use(prompt_id: str):
 
 @router.post('/{prompt_id}/duplicate')
 def duplicate_prompt(prompt_id: str):
-    """Duplicate a prompt with 'Copy of' prefix."""
+    """Duplicate a prompt, numbering the copy so repeats stay distinguishable."""
     con = get_conn()
     try:
         row = con.execute('SELECT * FROM prompt_library WHERE id=?', (prompt_id,)).fetchone()
         if not row:
-            return {'ok': False, 'error': 'Prompt not found'}
+            return JSONResponse({'ok': False, 'error': 'Prompt not found'}, status_code=404)
 
         d = dict(row)
+        # BUG FIX: the title was always f'Copy of {title}' truncated to 120
+        # chars. Duplicating twice gave two prompts called "Copy of X", and for
+        # a title near the limit the prefix pushed the distinguishing end off
+        # the string — so copies were indistinguishable in the list. Strip any
+        # existing prefix and number the copy instead, within the length cap.
+        base = re.sub(r'^Copy of (?:\(\d+\) )?', '', d['title']).strip() or 'Untitled'
+        existing = {
+            r[0]
+            for r in con.execute(
+                "SELECT title FROM prompt_library WHERE title LIKE ? ESCAPE '\\'",
+                (_like('Copy of'),),
+            ).fetchall()
+        }
+        def _fit(prefix: str) -> str:
+            # Truncate the MIDDLE, not the tail: the end of a long title is
+            # usually what distinguishes it, and clipping the tail made copies
+            # of similar long titles identical.
+            room = MAX_TITLE - len(prefix)
+            if len(base) <= room:
+                return prefix + base
+            keep = max(room - 1, 0)
+            head, tail = keep // 2, keep - keep // 2
+            return prefix + base[:head] + '…' + base[len(base) - tail:]
+
+        candidate = _fit('Copy of ')
+        n = 2
+        while candidate in existing and n < 100:
+            candidate = _fit(f'Copy of ({n}) ')
+            n += 1
+
         new_id = str(uuid.uuid4())[:8]
-        new_title = f'Copy of {d["title"]}'[:120]
         con.execute(
-            'INSERT INTO prompt_library(id,title,content,category,tags,agent_id,is_favorite) VALUES(?,?,?,?,?,?,0)',
-            (new_id, new_title, d['content'], d['category'], d['tags'], d['agent_id']),
+            'INSERT INTO prompt_library(id,title,content,category,tags,agent_id,is_favorite) '
+            'VALUES(?,?,?,?,?,?,0)',
+            (new_id, candidate, d['content'], d['category'], d['tags'], d['agent_id']),
         )
         con.commit()
         audit_log('prompt_duplicate', f'{prompt_id} → {new_id}')
     finally:
         con.close()
-    return {'ok': True, 'id': new_id, 'title': new_title}
+    return JSONResponse({'ok': True, 'id': new_id, 'title': candidate}, status_code=201)
+
+
+# ── Variable rendering ─────────────────────────────────────────────────────────
+
+
+@router.post('/{prompt_id}/render')
+async def render_saved_prompt(prompt_id: str, req: Request):
+    """Fill a prompt's {placeholder} variables and return the finished text.
+
+    The editor has always instructed users to "Use {placeholder} for variables",
+    but nothing anywhere substituted them — clicking Use sent the literal braces
+    to the model. The feature was advertised in the UI and simply absent. This
+    is the missing half.
+
+    Body: {"values": {"name": "…"}, "record_use": true}
+    """
+    try:
+        body = await req.json()
+    except (json.JSONDecodeError, TypeError, ValueError):
+        body = {}
+    values = body.get('values') or {}
+    if not isinstance(values, dict):
+        return JSONResponse({'ok': False, 'error': 'values must be an object'}, status_code=400)
+    # Coerce to str here so a nested object can't be interpolated as a dict repr.
+    values = {str(k): ('' if v is None else str(v)) for k, v in values.items()}
+
+    con = get_conn()
+    try:
+        row = con.execute('SELECT * FROM prompt_library WHERE id=?', (prompt_id,)).fetchone()
+        if not row:
+            return JSONResponse({'ok': False, 'error': 'Prompt not found'}, status_code=404)
+        d = dict(row)
+        rendered, missing = render_prompt(d['content'], values)
+        if bool(body.get('record_use', True)):
+            con.execute(
+                'UPDATE prompt_library SET use_count=use_count+1, updated_at=CURRENT_TIMESTAMP WHERE id=?',
+                (prompt_id,),
+            )
+            con.commit()
+    finally:
+        con.close()
+
+    return {
+        'ok': True,
+        'id': prompt_id,
+        'title': d['title'],
+        'rendered': rendered,
+        'variables': extract_variables(d['content']),
+        # Unfilled variables are reported rather than blanked, so the caller can
+        # decide whether to prompt for them instead of silently sending a
+        # prompt with holes in it.
+        'missing': missing,
+        'complete': not missing,
+    }
+
+
+@router.post('/preview-variables')
+async def preview_variables(req: Request):
+    """Extract {placeholder} names from arbitrary text, for the editor's live hints."""
+    try:
+        body = await req.json()
+    except (json.JSONDecodeError, TypeError, ValueError):
+        body = {}
+    content = str(body.get('content') or '')
+    return {'ok': True, 'variables': extract_variables(content)}

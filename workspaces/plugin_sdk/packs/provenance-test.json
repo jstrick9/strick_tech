@@ -57,11 +57,11 @@
     "files"
   ],
   "min_version": "6.0.0",
-  "created_at": "2026-08-03T20:59:32Z",
-  "updated_at": "2026-08-03T20:59:32Z",
+  "created_at": "2026-08-03T21:21:50Z",
+  "updated_at": "2026-08-03T21:21:50Z",
   "provenance": {
     "status": "unsigned",
     "source": "local_sdk",
-    "manifest_sha256": "d29510a0bfd67bf85e6599a9df7af7a0090da57b70c41ab8c56e1da7668fc6a8"
+    "manifest_sha256": "0a0c843cb0b5e0efe139c8b6638ebae1d3ff9eec61732d80408e91248147d5df"
   }
 }
