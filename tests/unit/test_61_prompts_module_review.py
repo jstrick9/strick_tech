@@ -407,3 +407,145 @@ class TestFrontendContract:
         js = (Path(__file__).resolve().parents[2] / 'frontend' / 'js' / '14-prompt-library.js').read_text()
         assert 'async function promptError' in js
         assert "HTTP '+r.status" not in js, 'bare status numbers hide the reason'
+
+
+# ── 9. agent_id validation (follow-up 1) ───────────────────────────────────────
+
+
+class TestAgentIdIsValidated:
+    """A prompt could be pinned to any string.
+
+    'not-a-real-agent-xyz' was accepted happily, and because ?agent_id= filters
+    on exact equality the prompt then sat in the library permanently unreachable
+    through the agent filter — a silent dead end with no error at any point.
+    Reproduced live before the fix.
+    """
+
+    BOGUS = 'not-a-real-agent-xyz'
+
+    def test_registry_lookup_returns_the_real_agents(self):
+        known = pr.valid_agent_ids()
+        assert 'brain' in known and 'builder' in known
+
+    def test_empty_agent_id_means_unpinned_and_stays_valid(self):
+        assert pr.check_agent_id('') is None
+
+    def test_creating_with_an_unknown_agent_is_rejected(self, client):
+        r = client.post(
+            '/api/prompts', json={'title': _title(), 'content': 'x', 'agent_id': self.BOGUS}
+        )
+        assert r.status_code == 400
+        body = r.json()
+        assert self.BOGUS in body['error']
+        assert 'valid_agent_ids' in body
+
+    def test_creating_with_a_real_agent_still_works(self, client, made):
+        pid, _ = made(agent_id='builder')
+        assert client.get(f'/api/prompts/{pid}').json()['agent_id'] == 'builder'
+
+    def test_creating_without_an_agent_still_works(self, client, made):
+        pid, _ = made()
+        assert client.get(f'/api/prompts/{pid}').json()['agent_id'] == ''
+
+    def test_updating_to_an_unknown_agent_is_rejected(self, client, made):
+        pid, _ = made()
+        assert client.patch(f'/api/prompts/{pid}', json={'agent_id': self.BOGUS}).status_code == 400
+
+    def test_updating_to_a_real_agent_works(self, client, made):
+        pid, _ = made()
+        assert client.patch(f'/api/prompts/{pid}', json={'agent_id': 'brain'}).status_code == 200
+
+    def test_clearing_the_pin_is_allowed(self, client, made):
+        pid, _ = made(agent_id='brain')
+        assert client.patch(f'/api/prompts/{pid}', json={'agent_id': ''}).status_code == 200
+
+    def test_filtering_by_an_unknown_agent_is_400_not_an_empty_list(self, client):
+        """Empty was indistinguishable from 'this agent has no prompts yet'."""
+        assert client.get('/api/prompts', params={'agent_id': self.BOGUS}).status_code == 400
+
+    def test_filtering_by_a_real_agent_works(self, client, made):
+        pid, body = made(agent_id='builder')
+        titles = [
+            p['title']
+            for p in client.get(
+                '/api/prompts', params={'agent_id': 'builder', 'limit': 500}
+            ).json()['prompts']
+        ]
+        assert body['title'] in titles
+
+    def test_import_drops_an_unknown_pin_rather_than_failing_the_row(self, client):
+        """An export from another machine may name agents this one lacks."""
+        title = _title()
+        r = client.post(
+            '/api/prompts/import',
+            json={'prompts': [{'title': title, 'content': 'x', 'agent_id': self.BOGUS}]},
+        )
+        assert r.status_code == 200
+        assert r.json()['imported'] == 1
+        found = client.get('/api/prompts', params={'q': title}).json()['prompts']
+        try:
+            assert found[0]['agent_id'] == '', 'the bad pin must be dropped, not stored'
+            assert any('unknown agent_id' in str(e) for e in r.json()['errors'])
+        finally:
+            client.delete(f"/api/prompts/{found[0]['id']}")
+
+    def test_import_keeps_a_valid_pin(self, client):
+        title = _title()
+        client.post(
+            '/api/prompts/import',
+            json={'prompts': [{'title': title, 'content': 'x', 'agent_id': 'brain'}]},
+        )
+        found = client.get('/api/prompts', params={'q': title}).json()['prompts']
+        try:
+            assert found[0]['agent_id'] == 'brain'
+        finally:
+            client.delete(f"/api/prompts/{found[0]['id']}")
+
+    def test_agents_endpoint_feeds_the_picker(self, client):
+        body = client.get('/api/prompts/agents').json()
+        ids = {a['id'] for a in body['agents']}
+        assert 'brain' in ids
+        assert all({'id', 'name', 'count'} <= set(a) for a in body['agents'])
+        assert isinstance(body['orphaned'], list)
+
+    def test_agents_endpoint_reports_orphaned_pins(self, client):
+        """Pins predating validation, or agents deleted since."""
+        from backend.services.memory_db import get_conn
+
+        title = _title()
+        pid = client.post('/api/prompts', json={'title': title, 'content': 'x'}).json()['id']
+        con = get_conn()
+        try:
+            con.execute(
+                'UPDATE prompt_library SET agent_id=? WHERE id=?', ('ghost-agent-gone', pid)
+            )
+            con.commit()
+        finally:
+            con.close()
+        try:
+            assert 'ghost-agent-gone' in client.get('/api/prompts/agents').json()['orphaned']
+        finally:
+            client.delete(f'/api/prompts/{pid}')
+
+    def test_validation_fails_open_if_the_registry_is_unreadable(self, monkeypatch):
+        """A broken agents table must not block prompt writes."""
+        monkeypatch.setattr(pr, 'valid_agent_ids', lambda: set())
+        assert pr.check_agent_id('anything-at-all') is None
+
+
+class TestAgentPickerFrontend:
+    def _js(self):
+        from pathlib import Path
+
+        return (Path(__file__).resolve().parents[2] / 'frontend' / 'js' / '14-prompt-library.js').read_text()
+
+    def test_agent_field_is_a_picker_not_free_text(self):
+        js = self._js()
+        assert '<select id="pm-agent"' in js
+        assert '<input id="pm-agent"' not in js, 'free text is what allowed unreachable pins'
+
+    def test_picker_is_populated_from_the_api(self):
+        assert "fetch('/api/prompts/agents')" in self._js()
+
+    def test_an_orphaned_pin_is_shown_rather_than_silently_cleared(self):
+        assert 'no longer exists' in self._js()

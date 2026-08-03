@@ -42,6 +42,7 @@ async function promptError(r, fallback) {
   try { body = await r.json(); } catch (e) { /* non-JSON error body */ }
   let msg = body.error || body.detail || fallback || ('HTTP ' + r.status);
   if (Array.isArray(body.valid_categories)) msg += ` (valid: ${body.valid_categories.join(', ')})`;
+  if (body.hint) msg += ` — ${body.hint}`;
   return msg;
 }
 
@@ -50,14 +51,17 @@ async function renderPrompts() {
   if (!pane) return;
   pane.innerHTML = '<div style="padding:20px;color:var(--text-2)">Loading…</div>';
   try {
-    const [pr, cr] = await Promise.all([
+    const [pr, cr, ar] = await Promise.all([
       fetch('/api/prompts'),
       fetch('/api/prompts/categories'),
+      fetch('/api/prompts/agents'),
     ]);
     if (!pr.ok) throw new Error('Prompts API error: HTTP '+pr.status);
     if (!cr.ok) throw new Error('Categories API error: HTTP '+cr.status);
     const listData = await pr.json();
     const catData  = await cr.json();
+    // Non-fatal: without it the picker just falls back to "any agent".
+    const agents   = ar.ok ? await ar.json() : {agents: []};
     promptsData = listData.prompts || listData || [];  // handle both wrapped and raw
     const cats  = catData.categories || catData || [];
 
@@ -104,7 +108,15 @@ async function renderPrompts() {
             </div>
           </div>
           <div class="form-group"><label class="form-label">Agent (optional)</label>
-            <input id="pm-agent" class="input" placeholder="e.g. brain, builder, researcher">
+            <!-- Was a free-text input, which let a prompt be pinned to an agent
+                 that doesn't exist — the ?agent_id= filter then never matched it
+                 and the prompt was unreachable. A picker makes that impossible. -->
+            <select id="pm-agent" class="input">
+              <option value="">— Any agent —</option>
+              ${(agents.agents || []).map(a =>
+                `<option value="${escHtml(a.id)}">${escHtml(a.name)}${a.count ? ` (${a.count})` : ''}</option>`
+              ).join('')}
+            </select>
           </div>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:14px;font-size:13px">
             <input type="checkbox" id="pm-fav" style="accent-color:var(--accent)"> Mark as favorite
@@ -326,7 +338,18 @@ function editPrompt(pid) {
   if (contentEl)  contentEl.value  = p.content  || '';
   if (catEl)      catEl.value      = p.category || 'general';
   if (tagsEl)     tagsEl.value     = p.tags     || '';
-  if (agentEl)    agentEl.value    = p.agent_id || '';
+  if (agentEl) {
+    // A prompt saved before validation may point at an agent that no longer
+    // exists. Setting <select>.value to a missing option silently selects
+    // nothing, which would look like the pin had been cleared — show it.
+    if (p.agent_id && !Array.from(agentEl.options).some(o => o.value === p.agent_id)) {
+      const opt = document.createElement('option');
+      opt.value = p.agent_id;
+      opt.textContent = `${p.agent_id} (no longer exists)`;
+      agentEl.appendChild(opt);
+    }
+    agentEl.value = p.agent_id || '';
+  }
   if (favEl)      favEl.checked    = !!p.is_favorite;
   if (saveBtnEl)  saveBtnEl.textContent = 'Update';
   const modal = document.getElementById('prompt-modal');

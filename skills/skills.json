@@ -787,5 +787,15 @@
     "agent": "brain",
     "inputs": [],
     "prompt_template": "{prompt}"
+  },
+  {
+    "id": "integration_test_skill_it_d7c83b",
+    "name": "Integration Test Skill it_d7c83b94",
+    "emoji": "\u26a1",
+    "category": "utilities",
+    "description": "A simple test skill",
+    "agent": "brain",
+    "inputs": [],
+    "prompt_template": "{prompt}"
   }
 ]
