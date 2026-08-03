@@ -191,13 +191,16 @@ class TestKnowledgeGraphIntegration:
         eid_b = ok(r2).get("entity_id")
 
         if eid_a and eid_b:
+            # from_entity/to_entity are not the API's field names — it takes
+            # from_id/to_id. The relation was silently never created.
             r3 = await POST(client, "/api/knowledge-graph/relations", {
-                "from_entity": eid_a,
+                "from_id": eid_a,
                 "relation": "relates_to",
-                "to_entity": eid_b,
+                "to_id": eid_b,
                 "weight": 1.0
             })
-            assert r3.status_code in (200, 404, 422)
+            assert r3.status_code == 200
+            assert r3.json().get("ok") is True
 
     async def test_04_stats_reflect_additions(self, client):
         """Stats endpoint shows entities count."""
@@ -221,12 +224,18 @@ class TestKnowledgeGraphIntegration:
 
     async def test_06_facts_endpoint(self, client):
         """Add a fact to knowledge graph."""
+        # The endpoint requires subject_id (an entity id), not a subject name.
+        ent = await POST(client, "/api/knowledge-graph/entities", {
+            "name": uid("FactSubject"), "type": "concept"
+        })
+        subject_id = ok(ent).get("entity_id")
         r = await POST(client, "/api/knowledge-graph/facts", {
-            "subject": "Python",
+            "subject_id": subject_id,
             "predicate": "is_language",
             "object": "programming"
         })
-        assert r.status_code in (200, 201, 404, 422)
+        assert r.status_code == 200
+        assert r.json().get("ok") is True
 
     async def test_07_traverse_entity(self, client):
         """Traverse entity graph from a starting entity."""

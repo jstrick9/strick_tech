@@ -27,6 +27,7 @@ import sqlite3
 import uuid
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/knowledge-graph', tags=['knowledge_graph'])
 log = logging.getLogger('agentic.kg')
@@ -97,7 +98,7 @@ async def add_entity(req: Request):
         body = {}
     name = (body.get('name') or '').strip()
     if not name:
-        return {'ok': False, 'error': 'name required'}
+        return JSONResponse({'ok': False, 'error': 'name required'}, status_code=400)
     from ..services.memory_db import get_conn
 
     con = get_conn()
@@ -149,7 +150,7 @@ async def add_relation(req: Request):
     to_id = body.get('to_id', '')
     relation = (body.get('relation') or 'RELATES_TO').upper().replace(' ', '_')
     if not from_id or not to_id:
-        return {'ok': False, 'error': 'from_id and to_id required'}
+        return JSONResponse({'ok': False, 'error': 'from_id and to_id required'}, status_code=400)
     rid = f'rel_{uuid.uuid4().hex[:8]}'
     from ..services.memory_db import get_conn
 
@@ -158,7 +159,7 @@ async def add_relation(req: Request):
         fe = con.execute('SELECT id FROM kg_entities WHERE id=?', (from_id,)).fetchone()
         te = con.execute('SELECT id FROM kg_entities WHERE id=?', (to_id,)).fetchone()
         if not fe or not te:
-            return {'ok': False, 'error': 'from_id or to_id not found'}
+            return JSONResponse({'ok': False, 'error': 'from_id or to_id not found'}, status_code=404)
         con.execute(
             'INSERT INTO kg_relations(id,from_id,to_id,relation,properties,confidence,source) VALUES (?,?,?,?,?,?,?)',
             (
@@ -188,7 +189,7 @@ async def add_fact(req: Request):
     predicate = (body.get('predicate') or '').strip()
     object_text = (body.get('object') or '').strip()
     if not all([subject_id, predicate, object_text]):
-        return {'ok': False, 'error': 'subject_id, predicate, object required'}
+        return JSONResponse({'ok': False, 'error': 'subject_id, predicate, object required'}, status_code=400)
     fid = f'fct_{uuid.uuid4().hex[:8]}'
     from ..services.memory_db import get_conn
 
@@ -262,7 +263,7 @@ def get_entity(entity_id: str):
     finally:
         con.close()
     if not ent:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     d = dict(ent)
     d['properties'] = json.loads(d.get('properties', '{}') or '{}')
     d['outgoing_relations'] = [dict(r) for r in rels]
@@ -324,7 +325,7 @@ async def extract_from_text(req: Request):
     text = (body.get('text') or '').strip()[:5000]
     source = body.get('source', 'text_extraction')
     if not text:
-        return {'ok': False, 'error': 'text required'}
+        return JSONResponse({'ok': False, 'error': 'text required'}, status_code=400)
 
     from ..services import llm as llm_svc
 
@@ -361,7 +362,7 @@ Only extract clear, factual information. Return ONLY valid JSON."""
             extracted = json.loads(m.group(0))
 
     if not extracted:
-        return {'ok': False, 'error': 'Could not extract entities from text'}
+        return JSONResponse({'ok': False, 'error': 'Could not extract entities from text'}, status_code=422)
 
     # Persist extracted entities — call DB logic directly, no fake Request
     from ..services.memory_db import get_conn as _get_conn
@@ -457,7 +458,7 @@ async def natural_language_query(req: Request):
         body = {}
     query = (body.get('query') or '').strip()
     if not query:
-        return {'ok': False, 'error': 'query required'}
+        return JSONResponse({'ok': False, 'error': 'query required'}, status_code=400)
 
     # Find relevant entities
     from ..services.memory_db import get_conn

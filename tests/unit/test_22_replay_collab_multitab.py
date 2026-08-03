@@ -152,13 +152,23 @@ class TestObsidian:
         assert r.status_code == 200
 
     def test_obsidian_create_note(self, client):
+        # This used to send {"title": ...}, but the endpoint requires "path".
+        # It only appeared to pass because the validation failure was returned
+        # as HTTP 200 with {"ok": false} — so the test asserted a 200 while the
+        # note was never created. Now sends a valid payload and checks the
+        # write actually succeeded.
         r = client.post("/api/obsidian/note", json={
-            "title": "Unit Test Note",
+            "path": "unit-test-note",
             "content": "# Unit Test\n\nThis is a test note."
         })
         assert r.status_code == 200
         d = r.json()
-        assert "ok" in d
+        assert d.get("ok") is True
+        assert d.get("path", "").endswith("unit-test-note.md")
+
+        # A payload missing "path" must be rejected, not silently 200.
+        bad = client.post("/api/obsidian/note", json={"title": "no path here"})
+        assert bad.status_code == 400
 
     def test_obsidian_graph(self, client):
         r = client.get("/api/obsidian/index")

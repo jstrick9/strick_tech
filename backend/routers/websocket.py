@@ -224,10 +224,26 @@ async def _get_agent_statuses() -> list[dict]:
 
 
 async def _get_memory_stats() -> dict:
+    """Counters only — this is pushed to every client every 8 seconds.
+
+    PERF FIX: this broadcast the full memory_stats() payload including the
+    complete per-source breakdown (~10 KB with 160 sources here), which no
+    WebSocket consumer reads. Only the counters are sent now; anything needing
+    the source list can call GET /api/memory/stats directly.
+    """
     try:
         from ..services.memory_db import memory_stats
 
-        return memory_stats()
+        full = memory_stats(source_limit=5)
+        return {
+            'sqlite_memories': full.get('sqlite_memories', 0),
+            'total': full.get('total', 0),
+            'count': full.get('count', 0),
+            'vectors_sqlite': full.get('vectors_sqlite', 0),
+            'source_count': full.get('source_count', 0),
+            'status': full.get('status', 'active'),
+            'engine': full.get('engine', ''),
+        }
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         return {}
 

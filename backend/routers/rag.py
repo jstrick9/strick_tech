@@ -24,6 +24,7 @@ import sqlite3
 import uuid
 
 from fastapi import APIRouter, File, Request, UploadFile
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/rag', tags=['rag'])
 log = logging.getLogger('agentic.rag')
@@ -239,7 +240,7 @@ def get_pipeline(pipeline_id: str):
     finally:
         con.close()
     if not pipe:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     return {**dict(pipe), 'documents': [dict(d) for d in docs]}
 
 
@@ -270,7 +271,7 @@ async def add_document(pipeline_id: str, req: Request):
     filename = str(body.get('filename', 'document.txt'))[:255]
     content = str(body.get('content', ''))[:1_000_000]
     if not content.strip():
-        return {'ok': False, 'error': 'content required'}
+        return JSONResponse({'ok': False, 'error': 'content required'}, status_code=400)
 
     from ..services.memory_db import get_conn
 
@@ -280,7 +281,7 @@ async def add_document(pipeline_id: str, req: Request):
     finally:
         con.close()
     if not pipe:
-        return {'ok': False, 'error': 'Pipeline not found'}
+        return JSONResponse({'ok': False, 'error': 'Pipeline not found'}, status_code=404)
     p = dict(pipe)
 
     # Chunk the document
@@ -345,7 +346,7 @@ async def retrieve(pipeline_id: str, req: Request):
     query = (body.get('query') or '').strip()
     k = _safe_rag_int(body.get('k', 5), 5, 1, 20)
     if not query:
-        return {'ok': False, 'error': 'query required'}
+        return JSONResponse({'ok': False, 'error': 'query required'}, status_code=400)
     chunks = _retrieve_chunks(pipeline_id, query[:4000], k)
     return {'ok': True, 'query': query, 'chunks': chunks, 'count': len(chunks)}
 
@@ -361,7 +362,7 @@ async def rag_query(pipeline_id: str, req: Request):
     k = _safe_rag_int(body.get('k', 5), 5, 1, 20)
     agent_id = str(body.get('agent_id', 'builder'))[:64]
     if not query:
-        return {'ok': False, 'error': 'query required'}
+        return JSONResponse({'ok': False, 'error': 'query required'}, status_code=400)
 
     # Retrieve — call helper directly (no fake Request needed)
     chunks = _retrieve_chunks(pipeline_id, query[:4000], k)
@@ -419,7 +420,7 @@ async def eval_rag(pipeline_id: str, req: Request):
     body.get('ground_truth', '')  # optional expected answer
 
     if not query or not answer:
-        return {'ok': False, 'error': 'query and answer required'}
+        return JSONResponse({'ok': False, 'error': 'query and answer required'}, status_code=400)
 
     from ..services import llm as llm_svc
 
@@ -501,6 +502,13 @@ def list_documents(pipeline_id: str):
 
     con = get_conn()
     try:
+        # BUG FIX: this never verified the pipeline exists, so a typo'd or
+        # deleted pipeline id returned 200 with an empty list — making "this
+        # pipeline has no documents yet" and "this pipeline does not exist"
+        # indistinguishable to the caller.
+        exists = con.execute('SELECT 1 FROM rag_pipelines WHERE id=?', (pipeline_id,)).fetchone()
+        if not exists:
+            return JSONResponse({'ok': False, 'error': 'Pipeline not found'}, status_code=404)
         rows = con.execute(
             'SELECT * FROM rag_documents WHERE pipeline_id=? ORDER BY created_at', (pipeline_id,)
         ).fetchall()

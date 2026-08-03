@@ -11,6 +11,7 @@ import contextlib
 import json
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from ..services.memory_db import (
     audit_log,
@@ -27,9 +28,17 @@ router = APIRouter(prefix='/api/memory', tags=['memory'])
 
 # ── Stats & meta ───────────────────────────────────────────────────────────────
 @router.get('/stats')
-def stats():
-    """Execute or process stats operation."""
-    return memory_stats()
+def stats(source_limit: int = 15):
+    """Memory counters plus the top ingest sources.
+
+    `source_limit` caps the `sources` list (0 = all). It is capped by default
+    because this response is also pushed over the WebSocket every 8 seconds.
+    """
+    try:
+        limit = max(0, min(1000, int(source_limit)))
+    except (TypeError, ValueError):
+        limit = 15
+    return memory_stats(source_limit=limit)
 
 
 @router.get('/galaxy')
@@ -328,7 +337,9 @@ def get_memory(memory_id: int):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Memory not found'}
+        # Was a 200 with ok:false. A missing row is a 404 — returning 200 meant
+        # any caller branching on response.ok treated "not found" as success.
+        return JSONResponse({'ok': False, 'error': 'Memory not found'}, status_code=404)
     return dict(row)
 
 
@@ -350,7 +361,7 @@ async def update_memory(memory_id: int, req: Request):
     try:
         cur = con.execute('UPDATE memory SET content=?, tags=? WHERE id=?', (content[:4000], tags, memory_id))
         if cur.rowcount == 0:
-            return {'ok': False, 'error': 'Memory not found'}
+            return JSONResponse({'ok': False, 'error': 'Memory not found'}, status_code=404)
         # Update FTS
         try:
             con.execute('DELETE FROM memory_fts WHERE rowid=?', (memory_id,))
@@ -370,12 +381,18 @@ def delete(memory_id: int):
     con = get_conn()
     try:
         cur = con.execute('DELETE FROM memory WHERE id=?', (memory_id,))
+        deleted_rows = cur.rowcount
         # update FTS
         with contextlib.suppress(Exception):
             con.execute('DELETE FROM memory_fts WHERE rowid=?', (memory_id,))
         con.commit()
     finally:
         con.close()
+
+    if deleted_rows == 0:
+        # Was a 200 reporting {'ok': false, 'deleted': <id>} — claiming to have
+        # deleted a row that never existed, with a success status code.
+        return JSONResponse({'ok': False, 'error': 'Memory not found'}, status_code=404)
     # Also remove from Qdrant if available
     try:
         from ..services.memory_db import _QDRANT_AVAILABLE
@@ -386,4 +403,4 @@ def delete(memory_id: int):
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         pass
     audit_log('memory_delete', str(memory_id))
-    return {'ok': cur.rowcount > 0, 'deleted': memory_id}
+    return {'ok': True, 'deleted': memory_id}
