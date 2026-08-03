@@ -193,17 +193,49 @@ re-verified that they still fail against the unescaped code.
 
 ---
 
-## Recommended follow-ups
+## Follow-up 1 — `agent_id` validation ✅ *done in `33dd786`*
 
-1. **`agent_id` is never validated.** You can pin a prompt to `not-a-real-agent-xyz`
-   and the filter will simply never match anything. Should validate against the
-   agent registry, or offer a picker.
-2. **No prompt versioning.** Editing overwrites in place with no history — for a
+A prompt could be pinned to any string. Verified live:
+`POST /api/prompts {"agent_id": "not-a-real-agent-xyz"}` → **201 Created**. Since
+`?agent_id=` filters on exact equality, the prompt then sat in the library
+permanently unreachable through the agent filter — no error at write time, none
+at read time. A typo in the free-text box silently lost the prompt.
+
+Fixed with `check_agent_id()` on create, update and the list filter (400 with the
+valid ids), plus `GET /api/prompts/agents` feeding a **picker** that replaces the
+free-text input which caused the problem.
+
+Two deliberate calls:
+
+- **Validation fails open.** If the agents table can't be read, writes proceed
+  rather than blocking on an unrelated failure — a validation helper that
+  hard-fails is worse than the gap it closes. There's a test pinning this.
+- **Import drops an unknown pin** rather than rejecting the row. An export from
+  another machine will legitimately name agents this one lacks; the content is
+  the valuable part, so it imports unpinned with a warning.
+
+The endpoint also reports `orphaned` pins — agent_ids referenced by prompts whose
+agent no longer exists. Setting `<select>.value` to a missing option silently
+selects nothing, so the editor adds an explicit *"(no longer exists)"* option
+rather than letting an orphaned pin look cleared.
+
+**Also found:** the `agents` table had grown to 242 rows, 230 of them test
+residue — including agents named `' OR '1'='1'; DROP TABLE agents; --` and
+`<script>alert(document.cookie)</script>`. The core 12 were intact, but the
+payloads made the new error message useless. Pruned. **Sixth review affected by
+tests sharing the production database.**
+
+18 new contracts (65 total for this module); 12 fail against the pre-fix code.
+
+---
+
+## Remaining follow-ups
+1. **No prompt versioning.** Editing overwrites in place with no history — for a
    library whose whole value is iterating on wording, that's a real gap. The
    platform already has a versioning pattern in Templates.
-3. **`use_count` is the only usage signal.** No record of *when* a prompt was used
+2. **`use_count` is the only usage signal.** No record of *when* a prompt was used
    or what it produced, so "which prompts actually work" is unanswerable. A
    lightweight usage log would make the library measurably better.
-4. **Categories are a hardcoded set of 12.** Now that unknown values are properly
+3. **Categories are a hardcoded set of 12.** Now that unknown values are properly
    rejected, users can't add their own — the rejection makes the rigidity felt.
    User-defined categories, or free-form tags promoted to first-class navigation.
