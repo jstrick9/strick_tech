@@ -1,20 +1,30 @@
 """
 Agentic OS — Image Generation + Figma Import Router
-Generate images via OpenRouter vision models (Flux, DALL-E, Stable Diffusion).
-Import Figma designs and reconstruct as working code.
+
+Generates images through OpenRouter's image-capable models and imports Figma
+designs as code.
+
+Image generation goes through POST /api/v1/chat/completions with
+modalities=['image', 'text'] — OpenRouter's actual contract. The images come
+back as base64 data URLs in `choices[0].message.images`.
 """
 
 from __future__ import annotations
 
+import asyncio
 import base64
+import binascii
+import html
 import json
 import logging
 import os
 import re
+import time
 from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, File, Request, UploadFile
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/imagegen', tags=['imagegen'])
 log = logging.getLogger('agentic.imagegen')
@@ -26,9 +36,57 @@ PREVIEW_DIR = ROOT / 'preview'
 ASSETS_DIR = PREVIEW_DIR / 'assets' / 'images'
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
+
+def _assets_dir() -> Path:
+    """The gallery directory, (re)created on demand.
+
+    CROSS-MODULE BUG: this directory was created exactly once at import time.
+    POST /api/workspaces/{id}/activate does `shutil.rmtree(PREVIEW_DIR)` to swap
+    in another workspace's files, which deletes assets/images along with it.
+    After any workspace switch, every upload failed with a bare HTTP 500
+    (FileNotFoundError on the write) and the gallery silently listed nothing.
+    Reproduced live: upload → activate → upload = 500. Because the path is
+    stable, re-creating it lazily is enough; the gallery is workspace-agnostic
+    by design, so it simply starts empty after a switch.
+    """
+    ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+    return ASSETS_DIR
+
 OR_BASE = 'https://openrouter.ai/api/v1'
 
 VALID_SIZES = {'256x256', '512x512', '1024x1024', '1024x1792', '1792x1024'}
+
+# Aspect ratios OpenRouter accepts via image_config, mapped from our size strings.
+_SIZE_TO_ASPECT = {
+    '256x256': '1:1',
+    '512x512': '1:1',
+    '1024x1024': '1:1',
+    '1024x1792': '9:16',
+    '1792x1024': '16:9',
+}
+
+# Models that can actually output images on OpenRouter. Used when the live
+# catalogue can't be fetched (no key / offline). Verified present in
+# /api/v1/models with 'image' in architecture.output_modalities.
+FALLBACK_IMAGE_MODELS = [
+    {'id': 'google/gemini-2.5-flash-image', 'name': 'Gemini 2.5 Flash Image', 'provider': 'google'},
+    {'id': 'google/gemini-3-pro-image', 'name': 'Gemini 3 Pro Image', 'provider': 'google'},
+    {'id': 'openai/gpt-5-image-mini', 'name': 'GPT-5 Image Mini', 'provider': 'openai'},
+    {'id': 'openai/gpt-5-image', 'name': 'GPT-5 Image', 'provider': 'openai'},
+]
+DEFAULT_IMAGE_MODEL = os.getenv('IMAGEGEN_MODEL', 'google/gemini-2.5-flash-image')
+
+IMAGE_EXTS = ('.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg')
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+# Magic-byte signatures. An extension is a claim; these are evidence.
+_MAGIC = {
+    '.png': [b'\x89PNG\r\n\x1a\n'],
+    '.jpg': [b'\xff\xd8\xff'],
+    '.jpeg': [b'\xff\xd8\xff'],
+    '.gif': [b'GIF87a', b'GIF89a'],
+    '.webp': [b'RIFF'],  # plus 'WEBP' at offset 8, checked separately
+}
 
 
 def _or_headers() -> dict:
@@ -40,115 +98,312 @@ def _or_headers() -> dict:
     }
 
 
-def _safe_preview_path(relative: str) ->Path | None:
-    """Resolve a relative path within PREVIEW_DIR, blocking traversal."""
-    target = (PREVIEW_DIR / relative.lstrip('/')).resolve()
-    if str(target).startswith(str(PREVIEW_DIR.resolve())):
-        return target
-    return None
+def _safe_preview_path(relative: str) -> Path | None:
+    """Resolve a relative path within PREVIEW_DIR, blocking traversal.
+
+    BUG FIX: containment was tested with str.startswith() on the resolved path,
+    which is a prefix test on a *string*, not on a path. `../preview_evil/x`
+    resolves to `<root>/preview_evil/x`, which starts with `<root>/preview` and
+    was therefore accepted. Verified live: save_to='../preview_ESCAPED/pwned.svg'
+    wrote outside PREVIEW_DIR. Path.relative_to() compares path components, so a
+    sibling directory whose name merely begins with 'preview' can't slip through.
+    """
+    if not relative or not isinstance(relative, str):
+        return None
+    # Reject NUL and absolute paths outright rather than normalising them away.
+    if '\x00' in relative:
+        return None
+    try:
+        target = (PREVIEW_DIR / relative.lstrip('/')).resolve()
+        target.relative_to(PREVIEW_DIR.resolve())
+    except (ValueError, OSError):
+        return None
+    return target
 
 
-async def _do_generate(prompt: str, size: str = '1024x1024', style: str = '', save_to: str = '') -> dict:
-    """Core image generation logic (no FastAPI Request dependency)."""
+def _sniff_image(content: bytes, ext: str) -> bool:
+    """Verify the bytes actually look like the image type the extension claims."""
+    if ext == '.svg':
+        head = content[:1024].lstrip()
+        return head.startswith(b'<?xml') or head.startswith(b'<svg') or b'<svg' in content[:2048].lower()
+    sigs = _MAGIC.get(ext, [])
+    if not sigs:
+        return False
+    if not any(content.startswith(sig) for sig in sigs):
+        return False
+    if ext == '.webp':
+        return content[8:12] == b'WEBP'
+    return True
+
+
+# ── SVG sanitisation ───────────────────────────────────────────────────────────
+# SVG is not an inert image format: it is XML that can carry <script>, event
+# handlers and external references, and the preview server returns it as
+# image/svg+xml from the app's own origin. Anything we write into the gallery
+# has to be scrubbed first.
+_SVG_DANGEROUS_TAGS = re.compile(
+    rb'<\s*(script|foreignObject|iframe|embed|object|animate|set|handler)\b[^>]*>.*?<\s*/\s*\1\s*>',
+    re.IGNORECASE | re.DOTALL,
+)
+_SVG_SELF_CLOSING = re.compile(
+    rb'<\s*(script|foreignObject|iframe|embed|object|animate|set|handler)\b[^>]*/?>',
+    re.IGNORECASE,
+)
+_SVG_EVENT_ATTR = re.compile(rb'\son\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)', re.IGNORECASE)
+# Match the whole attribute including its closing quote, otherwise stripping
+# href="javascript:…" leaves a dangling quote and malformed XML.
+_SVG_JS_URI = re.compile(
+    rb'\s(?:href|xlink:href|src)\s*=\s*'
+    rb'(?:"\s*(?:javascript|vbscript|data:text/html)[^"]*"'
+    rb"|'\s*(?:javascript|vbscript|data:text/html)[^']*'"
+    rb'|(?:javascript|vbscript|data:text/html)[^\s>]*)',
+    re.IGNORECASE,
+)
+
+
+def sanitize_svg(svg: str | bytes) -> bytes:
+    """Strip script tags, event handlers and javascript: URIs from an SVG.
+
+    Defence in depth alongside the CSP and Content-Disposition headers: a
+    sanitised file is safe even if it is later served or opened by something
+    that doesn't apply those headers.
+    """
+    data = svg.encode('utf-8') if isinstance(svg, str) else svg
+    for _ in range(3):  # re-run: removing a wrapper can expose a nested one
+        before = data
+        data = _SVG_DANGEROUS_TAGS.sub(b'', data)
+        data = _SVG_SELF_CLOSING.sub(b'', data)
+        data = _SVG_EVENT_ATTR.sub(b'', data)
+        data = _SVG_JS_URI.sub(b'', data)
+        if data == before:
+            break
+    return data
+
+
+def _unique_path(directory: Path, name: str) -> Path:
+    """Return a non-colliding path, appending -1, -2 … rather than overwriting."""
+    dest = directory / name
+    if not dest.exists():
+        return dest
+    stem, ext = Path(name).stem, Path(name).suffix
+    for i in range(1, 1000):
+        candidate = directory / f'{stem}-{i}{ext}'
+        if not candidate.exists():
+            return candidate
+    return directory / f'{stem}-{int(time.time())}{ext}'
+
+
+class ImageGenError(Exception):
+    """Image generation failed for a reason the user needs to hear about."""
+
+    def __init__(self, message: str, status: int = 502, hint: str = ''):
+        super().__init__(message)
+        self.message = message
+        self.status = status
+        self.hint = hint
+
+
+def _placeholder_result(prompt: str, size: str, save_to: str, note: str) -> dict:
+    """Build an explicitly-labelled placeholder response.
+
+    `ok` is False and `placeholder` is True. This used to return ok=True, which
+    made "no API key" and "here is your image" indistinguishable to every caller.
+    """
+    svg = _make_placeholder_svg(prompt, size)
+    saved_path = ''
+    if save_to:
+        svg_name = save_to if save_to.endswith('.svg') else save_to.rsplit('.', 1)[0] + '.svg'
+        sp = _safe_preview_path(svg_name)
+        if sp:
+            sp.parent.mkdir(parents=True, exist_ok=True)
+            sp.write_bytes(sanitize_svg(svg))
+            saved_path = svg_name
+    return {
+        'ok': False,
+        'placeholder': True,
+        'type': 'svg_placeholder',
+        'url': None,
+        'b64': None,
+        'svg': svg,
+        'prompt': prompt,
+        'saved_to': saved_path,
+        'note': note,
+    }
+
+
+def _extract_images(message: dict) -> list[str]:
+    """Pull data URLs out of an OpenRouter assistant message.
+
+    Images arrive as `message.images[].image_url.url` (base64 data URLs).
+    """
+    out = []
+    for item in message.get('images') or []:
+        if not isinstance(item, dict):
+            continue
+        url = (item.get('image_url') or {}).get('url') or item.get('url')
+        if isinstance(url, str) and url:
+            out.append(url)
+    return out
+
+
+def _decode_data_url(data_url: str) -> tuple[bytes, str]:
+    """Split a data: URL into raw bytes and a file extension."""
+    m = re.match(r'^data:image/([a-zA-Z0-9.+-]+);base64,(.+)$', data_url, re.DOTALL)
+    if not m:
+        raise ImageGenError('Model returned an image in an unrecognised format', status=502)
+    subtype = m.group(1).lower()
+    ext = {'jpeg': '.jpg', 'svg+xml': '.svg'}.get(subtype, f'.{subtype}')
+    if ext not in IMAGE_EXTS:
+        raise ImageGenError(f'Model returned an unsupported image type: {subtype}', status=502)
+    try:
+        return base64.b64decode(m.group(2), validate=True), ext
+    except (binascii.Error, ValueError) as exc:
+        raise ImageGenError('Model returned corrupt base64 image data', status=502) from exc
+
+
+async def _do_generate(
+    prompt: str,
+    size: str = '1024x1024',
+    style: str = '',
+    save_to: str = '',
+    model: str = '',
+) -> dict:
+    """Core image generation.
+
+    Raises ImageGenError when generation genuinely fails. Returns a placeholder
+    (ok=False, placeholder=True) only when there is no API key at all — that is a
+    configuration state, not a failure, and the UI renders it as guidance.
+    """
     if not prompt or not prompt.strip():
-        return {'ok': False, 'error': 'prompt required'}
+        raise ImageGenError('prompt required', status=400)
 
     size = size if size in VALID_SIZES else '1024x1024'
     full_prompt = f'{prompt}. {style}' if style else prompt
     key = os.getenv('OPENROUTER_API_KEY', '')
 
     if not key:
-        placeholder = _make_placeholder_svg(prompt, size)
-        saved_path = ''
-        if save_to:
-            sp = _safe_preview_path(save_to)
-            if sp:
-                sp.parent.mkdir(parents=True, exist_ok=True)
-                sp.write_text(placeholder, encoding='utf-8')
-                saved_path = save_to
-        return {
-            'ok': True,
-            'type': 'svg_placeholder',
-            'url': None,
-            'b64': None,
-            'svg': placeholder,
-            'prompt': prompt,
-            'saved_to': saved_path,
-            'note': 'Set OPENROUTER_API_KEY to generate real images',
-        }
+        return _placeholder_result(
+            prompt,
+            size,
+            save_to,
+            'No OPENROUTER_API_KEY set — showing a placeholder. Add a key in Settings → '
+            'Connect AI to generate real images.',
+        )
 
-    # Try OpenRouter image generation
+    model = (model or DEFAULT_IMAGE_MODEL).strip()
+
+    # BUG FIX: this called POST /images/generations with
+    # 'black-forest-labs/FLUX.1-schnell:free'. Neither exists on OpenRouter —
+    # the model is absent from the catalogue entirely (verified against
+    # /api/v1/models: 0 of 338 ids match flux/dall-e/sdxl), and image generation
+    # goes through /chat/completions with modalities=['image','text'], returning
+    # base64 data URLs in choices[0].message.images. Every call 404'd, and the
+    # bare `except` below swallowed it and returned ok:true with a placeholder.
+    payload = {
+        'model': model,
+        'messages': [{'role': 'user', 'content': full_prompt}],
+        'modalities': ['image', 'text'],
+    }
+    aspect = _SIZE_TO_ASPECT.get(size)
+    if aspect:
+        payload['image_config'] = {'aspect_ratio': aspect}
+
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(
-                f'{OR_BASE}/images/generations',
-                headers=_or_headers(),
-                json={
-                    'model': 'black-forest-labs/FLUX.1-schnell:free',
-                    'prompt': full_prompt,
-                    'n': 1,
-                    'size': size,
-                },
+                f'{OR_BASE}/chat/completions', headers=_or_headers(), json=payload
             )
-            if resp.status_code == 200:
-                data = resp.json()
-                img_url = data['data'][0].get('url') if data.get('data') else None
-                img_b64 = data['data'][0].get('b64_json') if data.get('data') else None
+    except httpx.TimeoutException as exc:
+        raise ImageGenError(
+            'Image generation timed out. Image models can be slow — try again, or pick a faster model.',
+            status=504,
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise ImageGenError(f'Could not reach OpenRouter: {exc}', status=502) from exc
 
-                saved_path = ''
-                if save_to and (img_url or img_b64):
-                    fname = save_to if save_to.endswith(('.png', '.jpg', '.webp')) else save_to + '.png'
-                    sp = _safe_preview_path(fname)
-                    if sp:
-                        sp.parent.mkdir(parents=True, exist_ok=True)
-                        if img_b64:
-                            sp.write_bytes(base64.b64decode(img_b64))
-                        elif img_url:
-                            img_resp = await client.get(img_url)
-                            sp.write_bytes(img_resp.content)
-                        saved_path = fname
+    if resp.status_code == 401:
+        raise ImageGenError(
+            'OpenRouter rejected the API key. Check OPENROUTER_API_KEY in Settings → Connect AI.',
+            status=401,
+        )
+    if resp.status_code == 402:
+        raise ImageGenError(
+            f'Insufficient OpenRouter credit for {model}. Add credit or choose a free model.',
+            status=402,
+        )
+    if resp.status_code == 429:
+        raise ImageGenError('Rate limited by OpenRouter. Wait a moment and try again.', status=429)
+    if resp.status_code != 200:
+        detail = resp.text[:300]
+        log.warning('Image gen failed %d: %s', resp.status_code, detail)
+        raise ImageGenError(f'OpenRouter returned HTTP {resp.status_code}: {detail}', status=502)
 
-                from ..services.memory_db import audit_log
+    try:
+        data = resp.json()
+    except ValueError as exc:
+        raise ImageGenError('OpenRouter returned a non-JSON response', status=502) from exc
 
-                audit_log('image_gen', prompt[:80])
-                return {
-                    'ok': True,
-                    'url': img_url,
-                    'b64': img_b64,
-                    'saved_to': saved_path,
-                    'prompt': prompt,
-                    'type': 'generated',
-                }
-            else:
-                err = resp.text[:200]
-                log.warning('Image gen failed %d: %s', resp.status_code, err)
-    except Exception as e:
-        log.error('Image gen error: %s', e)
+    choices = data.get('choices') or []
+    if not choices:
+        raise ImageGenError('OpenRouter returned no choices', status=502)
+    message = choices[0].get('message') or {}
+    images = _extract_images(message)
+    if not images:
+        # The model answered in text instead of producing an image — usually a
+        # refusal or a model that doesn't actually support image output.
+        text = (message.get('content') or '').strip()
+        raise ImageGenError(
+            f'{model} did not return an image'
+            + (f': {text[:200]}' if text else '. It may not support image output.'),
+            status=502,
+            hint='Check GET /api/imagegen/models for models that can output images.',
+        )
 
-    # Fallback to SVG placeholder when API call fails
-    svg = _make_placeholder_svg(prompt, size)
-    # Save placeholder if save_to was requested
+    raw, ext = _decode_data_url(images[0])
+    if ext == '.svg':
+        raw = sanitize_svg(raw)
+
     saved_path = ''
     if save_to:
-        svg_path = save_to if save_to.endswith('.svg') else save_to.rsplit('.', 1)[0] + '.svg'
-        sp = _safe_preview_path(svg_path)
-        if sp:
-            sp.parent.mkdir(parents=True, exist_ok=True)
-            sp.write_text(svg, encoding='utf-8')
-            saved_path = svg_path
+        fname = save_to if save_to.lower().endswith(IMAGE_EXTS) else save_to + ext
+        # Keep the extension honest: the bytes decide, not the requested name.
+        if not fname.lower().endswith(ext):
+            fname = fname.rsplit('.', 1)[0] + ext
+        sp = _safe_preview_path(fname)
+        if sp is None:
+            raise ImageGenError('save_to must stay inside the preview directory', status=403)
+        sp.parent.mkdir(parents=True, exist_ok=True)
+        sp = _unique_path(sp.parent, sp.name)
+        sp.write_bytes(raw)
+        saved_path = str(sp.relative_to(PREVIEW_DIR))
+
+    from ..services.memory_db import audit_log
+
+    audit_log('image_gen', prompt[:80])
+    usage = data.get('usage') or {}
     return {
         'ok': True,
-        'type': 'svg_placeholder',
-        'svg': svg,
-        'prompt': prompt,
-        'url': None,
-        'b64': None,
+        'placeholder': False,
+        'type': 'generated',
+        'url': images[0],
+        'b64': base64.b64encode(raw).decode('ascii'),
         'saved_to': saved_path,
-        'note': 'Image generation failed — showing placeholder. Check API key and model availability.',
+        'prompt': prompt,
+        'model': model,
+        'size': size,
+        'tokens': usage.get('total_tokens', 0),
+        'cost': usage.get('cost', 0.0),
     }
 
 
 # ── Image generation ──────────────────────────────────────────────────────────
+
+
+def _err(exc: ImageGenError) -> JSONResponse:
+    body = {'ok': False, 'error': exc.message}
+    if exc.hint:
+        body['hint'] = exc.hint
+    return JSONResponse(body, status_code=exc.status)
 
 
 @router.post('/generate')
@@ -162,11 +417,15 @@ async def generate_image(req: Request):
     size = body.get('size', '1024x1024')
     style = (body.get('style') or '').strip()
     save_to = (body.get('save_to') or '').strip()
+    model = (body.get('model') or '').strip()
 
     if not prompt:
-        return {'ok': False, 'error': 'prompt required'}
+        return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
 
-    return await _do_generate(prompt, size, style, save_to)
+    try:
+        return await _do_generate(prompt, size, style, save_to, model)
+    except ImageGenError as exc:
+        return _err(exc)
 
 
 # ── Gallery ────────────────────────────────────────────────────────────────────
@@ -176,8 +435,9 @@ async def generate_image(req: Request):
 def image_gallery():
     """List all generated images in preview/assets/images."""
     images = []
-    if ASSETS_DIR.exists():
-        for f in sorted(ASSETS_DIR.iterdir(), key=lambda x: -x.stat().st_mtime):
+    assets = _assets_dir()
+    if assets.exists():
+        for f in sorted(assets.iterdir(), key=lambda x: -x.stat().st_mtime):
             if f.is_file() and f.suffix.lower() in ('.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'):
                 images.append(
                     {
@@ -196,12 +456,12 @@ def delete_gallery_image(filename: str):
     """Delete an image from the gallery."""
     # Safety: only allow simple filenames with valid image extensions
     if '/' in filename or '\\' in filename or '..' in filename:
-        return {'ok': False, 'error': 'Invalid filename'}
-    target = ASSETS_DIR / filename
+        return JSONResponse({'ok': False, 'error': 'Invalid filename'}, status_code=400)
+    target = _assets_dir() / filename
     if not target.exists() or not target.is_file():
-        return {'ok': False, 'error': 'Image not found'}
-    if target.suffix.lower() not in ('.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'):
-        return {'ok': False, 'error': 'Not an image file'}
+        return JSONResponse({'ok': False, 'error': 'Image not found'}, status_code=404)
+    if target.suffix.lower() not in IMAGE_EXTS:
+        return JSONResponse({'ok': False, 'error': 'Not an image file'}, status_code=400)
     target.unlink()
     return {'ok': True, 'deleted': filename}
 
@@ -210,25 +470,55 @@ def delete_gallery_image(filename: str):
 async def upload_to_gallery(file: UploadFile = File(...)):
     """Upload an image to the gallery."""
     if not file.filename:
-        return {'ok': False, 'error': 'No file provided'}
+        return JSONResponse({'ok': False, 'error': 'No file provided'}, status_code=400)
     ext = Path(file.filename).suffix.lower()
-    if ext not in ('.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'):
-        return {'ok': False, 'error': f'Unsupported file type: {ext}'}
-    # Generate safe filename
+    if ext not in IMAGE_EXTS:
+        return JSONResponse({'ok': False, 'error': f'Unsupported file type: {ext}'}, status_code=415)
+
+    # BUG FIX: the size limit was enforced *after* await file.read(), so a
+    # multi-gigabyte upload was fully buffered into memory before being
+    # rejected. Read in bounded chunks and stop as soon as the cap is passed.
+    chunks, total = [], 0
+    while True:
+        chunk = await file.read(64 * 1024)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > MAX_UPLOAD_BYTES:
+            return JSONResponse(
+                {'ok': False, 'error': 'File too large (max 10 MB)'}, status_code=413
+            )
+        chunks.append(chunk)
+    content = b''.join(chunks)
+    if not content:
+        return JSONResponse({'ok': False, 'error': 'File is empty'}, status_code=400)
+
+    # BUG FIX: the extension was the only check, so any bytes could be stored
+    # under an image name — verified live by uploading an HTML/script payload as
+    # fake.png, which the preview server then served as image/png.
+    if not _sniff_image(content, ext):
+        return JSONResponse(
+            {'ok': False, 'error': f'File content does not look like a valid {ext} image'},
+            status_code=415,
+        )
+
+    # SVG is executable XML; scrub it before it can be served same-origin.
+    if ext == '.svg':
+        content = sanitize_svg(content)
+
     safe_name = re.sub(r'[^\w\-.]', '_', Path(file.filename).stem)[:60] + ext
-    dest = ASSETS_DIR / safe_name
-    content = await file.read()
-    if len(content) > 10 * 1024 * 1024:  # 10 MB limit
-        return {'ok': False, 'error': 'File too large (max 10 MB)'}
+    # BUG FIX: identical names silently overwrote existing gallery images.
+    dest = _unique_path(_assets_dir(), safe_name)
     dest.write_bytes(content)
     from ..services.memory_db import audit_log
 
-    audit_log('image_upload', safe_name)
+    audit_log('image_upload', dest.name)
     return {
         'ok': True,
-        'name': safe_name,
-        'url': f'/preview/assets/images/{safe_name}',
+        'name': dest.name,
+        'url': f'/preview/assets/images/{dest.name}',
         'size': len(content),
+        'renamed': dest.name != safe_name,
     }
 
 
@@ -236,35 +526,58 @@ async def upload_to_gallery(file: UploadFile = File(...)):
 
 
 @router.get('/models')
-def list_models():
-    """List available image generation models."""
+async def list_models():
+    """List image-capable models, live from OpenRouter where possible.
+
+    BUG FIX: this returned a hardcoded list of four models — FLUX.1-schnell:free,
+    FLUX.1-pro, dall-e-3 and sdxl — none of which exist on OpenRouter. Verified
+    against /api/v1/models: zero of 338 catalogue ids match flux, dall-e or sdxl.
+    Every one of them was unusable, and the first was the router's default.
+    """
+    fallback = [dict(m) for m in FALLBACK_IMAGE_MODELS]
+    key = os.getenv('OPENROUTER_API_KEY', '')
+    models = fallback
+    source = 'builtin'
+
+    if key:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(f'{OR_BASE}/models', headers=_or_headers())
+            if resp.status_code == 200:
+                live = []
+                for m in resp.json().get('data', []):
+                    arch = m.get('architecture') or {}
+                    if 'image' not in (arch.get('output_modalities') or []):
+                        continue
+                    mid = m.get('id', '')
+                    if mid.startswith('openrouter/auto'):
+                        continue  # a router, not a concrete image model
+                    pricing = m.get('pricing') or {}
+                    try:
+                        img_price = float(pricing.get('image', 0) or 0)
+                    except (TypeError, ValueError):
+                        img_price = 0.0
+                    live.append(
+                        {
+                            'id': mid,
+                            'name': m.get('name', mid),
+                            'provider': mid.split('/')[0] if '/' in mid else 'OpenRouter',
+                            'free': img_price == 0.0,
+                            'price_per_image': img_price,
+                        }
+                    )
+                if live:
+                    models, source = live, 'openrouter'
+        except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
+            log.warning('Could not fetch live image models: %s', exc)
+
+    available = {m['id'] for m in models}
+    default = DEFAULT_IMAGE_MODEL if DEFAULT_IMAGE_MODEL in available else (models[0]['id'] if models else '')
     return {
-        'models': [
-            {
-                'id': 'black-forest-labs/FLUX.1-schnell:free',
-                'name': 'Flux Schnell (Free)',
-                'provider': 'OpenRouter',
-                'free': True,
-                'quality': 'fast',
-            },
-            {
-                'id': 'black-forest-labs/FLUX.1-pro',
-                'name': 'Flux Pro',
-                'provider': 'OpenRouter',
-                'free': False,
-                'quality': 'high',
-            },
-            {'id': 'openai/dall-e-3', 'name': 'DALL-E 3', 'provider': 'OpenAI', 'free': False, 'quality': 'high'},
-            {
-                'id': 'stability-ai/sdxl',
-                'name': 'Stable Diffusion XL',
-                'provider': 'Stability',
-                'free': False,
-                'quality': 'medium',
-            },
-        ],
-        'default': 'black-forest-labs/FLUX.1-schnell:free',
-        'api_key_set': bool(os.getenv('OPENROUTER_API_KEY')),
+        'models': models,
+        'default': default,
+        'source': source,
+        'api_key_set': bool(key),
     }
 
 
@@ -281,33 +594,65 @@ async def inject_image_into_code(req: Request):
     filepath = (body.get('filepath') or 'index.html').lstrip('/')
 
     target = _safe_preview_path(filepath)
-    if not target or not target.exists():
-        return {'ok': False, 'error': 'File not found'}
+    if target is None:
+        return JSONResponse(
+            {'ok': False, 'error': 'filepath must stay inside the preview directory'},
+            status_code=403,
+        )
+    if not target.exists() or not target.is_file():
+        return JSONResponse({'ok': False, 'error': 'File not found'}, status_code=404)
 
     content = target.read_text(encoding='utf-8', errors='ignore')
-    placeholders = re.findall(r'<!--\s*IMAGE:\s*([^>]+)\s*-->', content)
+    placeholders = re.findall(r'<!--\s*IMAGE:\s*([^>]+?)\s*-->', content)
 
     if not placeholders:
-        return {'ok': False, 'error': 'No IMAGE: placeholders found. Add <!-- IMAGE: description --> to your HTML'}
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': 'No IMAGE: placeholders found. Add <!-- IMAGE: description --> to your HTML',
+            },
+            status_code=422,
+        )
 
-    injected = 0
+    injected, failures = 0, []
     for desc in placeholders:
         desc = desc.strip()
-        safe_name = re.sub(r'[^a-z0-9]', '_', desc.lower())[:30]
-        result = await _do_generate(prompt=desc, save_to=f'assets/images/{safe_name}.svg')
-        if result.get('ok'):
-            placeholder = f'<!-- IMAGE: {desc} -->'
-            img_src = result.get('url') or (f'/preview/assets/images/{safe_name}.svg' if result.get('saved_to') else '')
-            if img_src:
-                content = content.replace(
-                    placeholder, f'<img src="{img_src}" alt="{desc}" style="max-width:100%;border-radius:8px">', 1
-                )
-                injected += 1
+        safe_name = re.sub(r'[^a-z0-9]', '_', desc.lower())[:30] or 'image'
+        try:
+            result = await _do_generate(prompt=desc, save_to=f'assets/images/{safe_name}')
+        except ImageGenError as exc:
+            failures.append({'placeholder': desc, 'error': exc.message})
+            continue
+        if not result.get('saved_to'):
+            failures.append({'placeholder': desc, 'error': result.get('note') or 'no image produced'})
+            continue
 
-    if injected > 0:
+        img_src = '/preview/' + result['saved_to'].replace('\\', '/')
+        # BUG FIX: `desc` came straight from the file and was interpolated into
+        # an alt="" attribute unescaped, so a placeholder like
+        # <!-- IMAGE: cat" onerror="alert(1) --> wrote a live event handler into
+        # the user's own HTML. Reproduced live. Both attributes are escaped now.
+        tag = (
+            f'<img src="{html.escape(img_src, quote=True)}" '
+            f'alt="{html.escape(desc, quote=True)}" '
+            f'style="max-width:100%;border-radius:8px">'
+        )
+        content = content.replace(f'<!-- IMAGE: {desc} -->', tag, 1)
+        injected += 1
+
+    if injected:
         target.write_text(content, encoding='utf-8')
 
-    return {'ok': True, 'injected': injected, 'placeholders_found': len(placeholders)}
+    # Partial success is still partial: report what didn't work.
+    return JSONResponse(
+        {
+            'ok': injected > 0,
+            'injected': injected,
+            'placeholders_found': len(placeholders),
+            'failures': failures,
+        },
+        status_code=200 if injected else 502,
+    )
 
 
 # ── Figma Import ───────────────────────────────────────────────────────────────
@@ -324,7 +669,10 @@ async def figma_import(req: Request):
     framework = (body.get('framework') or 'html').strip()
 
     if not figma_url or not re.search(r'(?:^|[./])figma\.com(?:/|$)', figma_url):
-        return {'ok': False, 'error': 'Valid Figma URL required (e.g. https://www.figma.com/design/...)'}
+        return JSONResponse(
+            {'ok': False, 'error': 'Valid Figma URL required (e.g. https://www.figma.com/design/...)'},
+            status_code=400,
+        )
 
     if framework not in ('html', 'react', 'vue'):
         framework = 'html'
@@ -361,12 +709,24 @@ async def figma_import(req: Request):
 
         audit_log('figma_import', figma_url[:80])
 
+    if not code:
+        return JSONResponse(
+            {'ok': False, 'error': 'The model returned no code for this Figma URL.'},
+            status_code=502,
+        )
     return {
-        'ok': bool(code),
+        'ok': True,
         'code': code,
         'file': saved_file,
         'framework': framework,
-        'note': 'Design reconstructed from URL context. For pixel-perfect import, use the Figma API token.',
+        # Be honest about what this actually does: it reads the URL slug and asks
+        # an LLM to invent a matching design. It never contacts Figma.
+        'note': (
+            'Reconstructed from the URL text only — the Figma file was not read. '
+            'This is an AI approximation, not an import. A Figma API token would be '
+            'required for a real import.'
+        ),
+        'approximation': True,
     }
 
 
@@ -424,7 +784,9 @@ async def style_transfer(req: Request):
     size = body.get('size', '1024x1024')
 
     if not source_prompt:
-        return {'ok': False, 'error': 'source_prompt (or prompt) required'}
+        return JSONResponse(
+            {'ok': False, 'error': 'source_prompt (or prompt) required'}, status_code=400
+        )
 
     STYLE_ENHANCERS = {
         'cinematic': 'cinematic lighting, film grain, anamorphic lens, dramatic shadows, movie still',
@@ -466,7 +828,10 @@ async def style_transfer(req: Request):
         except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
             pass
 
-    result = await _do_generate(enhanced_prompt, size)
+    try:
+        result = await _do_generate(enhanced_prompt, size)
+    except ImageGenError as exc:
+        return _err(exc)
     result['original_prompt'] = source_prompt
     result['enhanced_prompt'] = enhanced_prompt
     result['style'] = style_id
@@ -490,11 +855,14 @@ async def inpaint_image(req: Request):
     size = body.get('size', '1024x1024')
 
     if not prompt:
-        return {'ok': False, 'error': 'prompt required'}
+        return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
 
     inpaint_prompt = f'{prompt}. In {mask_desc}, replace with: {fill_with}. Seamless, realistic, coherent.'
 
-    result = await _do_generate(inpaint_prompt, size)
+    try:
+        result = await _do_generate(inpaint_prompt, size)
+    except ImageGenError as exc:
+        return _err(exc)
     result['inpaint_prompt'] = inpaint_prompt
     result['mask_description'] = mask_desc
     result['fill_with'] = fill_with
@@ -516,7 +884,7 @@ async def enhance_prompt(req: Request):
     goal = (body.get('goal') or 'general').strip()
 
     if not prompt:
-        return {'ok': False, 'error': 'prompt required'}
+        return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
 
     GOAL_CONTEXT = {
         'portrait': "Focus on subject's face, expression, lighting, background blur (bokeh), professional photography",
@@ -579,11 +947,18 @@ async def generate_variations(req: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
     prompt = (body.get('prompt') or '').strip()
-    count = min(max(1, int(body.get('count', 4))), 6)
+    # BUG FIX: int(body.get('count')) raised ValueError on any non-numeric
+    # input, surfacing as a bare HTTP 500. Verified live with count="abc".
+    try:
+        count = min(max(1, int(body.get('count', 4))), 6)
+    except (TypeError, ValueError):
+        return JSONResponse(
+            {'ok': False, 'error': 'count must be an integer between 1 and 6'}, status_code=400
+        )
     size = body.get('size', '512x512')
 
     if not prompt:
-        return {'ok': False, 'error': 'prompt required'}
+        return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
 
     MODIFIERS = [
         'dramatic lighting',
@@ -594,22 +969,52 @@ async def generate_variations(req: Request):
         'vibrant saturated colors',
     ]
 
-    results = []
-    for i in range(count):
+    # Variations are independent; run them concurrently rather than serially.
+    # Six sequential image calls at ~10-20s each timed out the browser.
+    async def _one(i: int) -> dict:
         mod = MODIFIERS[i % len(MODIFIERS)]
-        vprompt = f'{prompt}, {mod}'
-        r = await _do_generate(vprompt, size)
-        results.append({**r, 'modifier': mod, 'variation_index': i})
+        try:
+            r = await _do_generate(f'{prompt}, {mod}', size)
+        except ImageGenError as exc:
+            return {'ok': False, 'error': exc.message, 'modifier': mod, 'variation_index': i}
+        return {**r, 'modifier': mod, 'variation_index': i}
 
-    return {'ok': True, 'variations': results, 'count': count}
+    results = await asyncio.gather(*(_one(i) for i in range(count)))
+    succeeded = [r for r in results if r.get('ok')]
+
+    # One failure shouldn't discard the others, but "all failed" isn't a success.
+    if not succeeded:
+        first_error = next((r.get('error') for r in results if r.get('error')), 'generation failed')
+        return JSONResponse(
+            {'ok': False, 'error': f'All {count} variations failed: {first_error}',
+             'variations': list(results), 'count': 0},
+            status_code=502,
+        )
+
+    return {
+        'ok': True,
+        'variations': list(results),
+        'count': len(succeeded),
+        'requested': count,
+        'failed': count - len(succeeded),
+    }
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────────
 
 
 def _make_placeholder_svg(prompt: str, size: str = '1024x1024') -> str:
-    w, h = size.split('x') if 'x' in size else ('1024', '1024')
+    # BUG FIX: `prompt` was interpolated into the SVG body unescaped, so
+    # a prompt of `</text><script>alert(1)</script><text>` produced an SVG
+    # carrying a live script tag. With save_to it was written into the gallery
+    # and served from the app's own origin as image/svg+xml — stored XSS.
+    # Reproduced live, then re-verified fixed. Escape the text, and clamp the
+    # dimensions so they can't be injected either.
+    if size not in VALID_SIZES:
+        size = '1024x1024'
+    w, h = size.split('x')
     words = ' '.join(prompt.split()[:8]) + ('…' if len(prompt.split()) > 8 else '')
+    words = html.escape(words, quote=True)
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">
   <defs>
     <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">

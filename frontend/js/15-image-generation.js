@@ -34,6 +34,15 @@
 let selectedImageStyle = '';
 let _imgLastPrompt     = '';
 
+// The imagegen API returns real status codes with an explanatory JSON body.
+// Reading only response.status threw away the reason the server gave us, so
+// every failure looked like "HTTP 502" to the user.
+async function igError(r, fallback) {
+  let body = {};
+  try { body = await r.json(); } catch (e) { /* non-JSON error body */ }
+  return body.error || body.detail || fallback || ('HTTP ' + r.status);
+}
+
 async function renderImageGen() {
   const pane = document.getElementById('pane-imagegen');
   if (!pane) return;
@@ -59,8 +68,11 @@ async function renderImageGen() {
         <div class="card">
           <h3 style="margin-bottom:10px">✨ Generate Image</h3>
           ${!models.api_key_set ? `<div style="background:rgba(232,162,55,.1);border:1px solid var(--warning);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--warning);margin-bottom:10px">
-            ⚠️ No API key — generating placeholders. Set <code>OPENROUTER_API_KEY</code> in Settings for real images.
+            ⚠️ No API key — you'll get a labelled placeholder, not a real image. Set <code>OPENROUTER_API_KEY</code> in Settings → Connect AI.
           </div>` : ''}
+          ${models.models?.length ? `<select id="img-model" class="input" style="margin-bottom:8px;font-size:12px" title="Image model">
+            ${models.models.map(m=>`<option value="${escHtml(m.id)}"${m.id===models.default?' selected':''}>${escHtml(m.name)}${m.free?' · free':''}</option>`).join('')}
+          </select>` : ''}
           <textarea id="img-prompt" class="input" style="min-height:70px;margin-bottom:8px;font-size:13px" placeholder="A dark SaaS dashboard with charts, clean and modern…" oninput="_imgLastPrompt=this.value"></textarea>
           <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px" id="style-picker">
             ${styles.map(s=>`<button type="button" class="term-btn" id="style-${escHtml(s.id)}" data-style-id="${escHtml(s.id)}" title="${escHtml(s.prompt)}">${escHtml(s.label)}</button>`).join('')}
@@ -218,24 +230,35 @@ async function generateImage() {
       body: JSON.stringify({
         prompt, size,
         style:   selectedImageStyle,
+        model:   document.getElementById('img-model')?.value || '',
         save_to: saveTo ? `assets/images/${saveTo}` : '',
       })
     });
-    if (!r.ok) { if(st) st.textContent='✗ HTTP '+r.status; return; }
-    const j = await r.json();
+    const j = await r.json().catch(()=>({}));
+    // The backend now returns real status codes with an explanatory body
+    // (400 validation, 401 bad key, 402 no credit, 429 rate limit, 502
+    // upstream, 504 timeout) instead of HTTP 200 + a placeholder for
+    // everything. Surface the reason rather than a bare status number.
+    if (!r.ok && !j.placeholder) {
+      const msg = j.error || ('HTTP '+r.status);
+      if (st) st.textContent = '✗ '+msg;
+      toast('Image generation failed: '+msg, 'err');
+      return;
+    }
 
-    if (j.ok) {
+    if (j.ok || j.placeholder) {
       const res    = document.getElementById('img-result');
       const prev   = document.getElementById('img-preview');
       const urlEl  = document.getElementById('img-url');
       if (res) res.style.display = 'block';
 
-      if (j.svg) {
+      if (j.placeholder && j.svg) {
         const blob = new Blob([j.svg], {type:'image/svg+xml'});
         const url  = URL.createObjectURL(blob);
         if (prev)  prev.src  = url;
         if (urlEl) urlEl.value = url;
-        if (st) st.innerHTML = '⚠️ Placeholder — set <code>OPENROUTER_API_KEY</code> for real images';
+        if (st) st.innerHTML = '⚠️ Placeholder — no image was generated. '
+          + escHtml(j.note || 'Set OPENROUTER_API_KEY for real images.');
       } else if (j.url || j.b64) {
         const src = j.url || `data:image/png;base64,${j.b64}`;
         if (prev)  prev.src   = src;
@@ -266,7 +289,7 @@ async function importFigma() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({url, framework: fw})
     });
-    if (!r.ok) { if(st) st.textContent='✗ HTTP '+r.status; return; }
+    if (!r.ok) { const m = await igError(r); if(st) st.textContent='✗ '+m; toast(m,'err'); return; }
     const j = await r.json();
     if (j.ok) {
       if (st) st.textContent = `✅ Imported → ${j.file}`;
@@ -293,7 +316,7 @@ async function igStyleTransfer() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({source_prompt: prompt, style: styleId})
     });
-    if (!r.ok) { if(st) st.textContent='✗ HTTP '+r.status; return; }
+    if (!r.ok) { const m = await igError(r); if(st) st.textContent='✗ '+m; toast(m,'err'); return; }
     const j = await r.json();
     if (j.ok) {
       if (st) st.textContent = '✅ Style applied';
@@ -330,7 +353,7 @@ async function igEnhancePrompt() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({prompt, style: selectedImageStyle})
     });
-    if (!r.ok) { toast('Enhance failed: HTTP '+r.status, 'err'); return; }
+    if (!r.ok) { toast('Enhance failed: '+await igError(r), 'err'); return; }
     const j = await r.json();
     if (j.ok && j.enhanced) {
       const inp = document.getElementById('img-prompt');
@@ -353,14 +376,19 @@ async function igVariations() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({prompt, count: 4, size: '512x512'})
     });
-    if (!r.ok) { toast('Variations failed: HTTP '+r.status, 'err'); return; }
+    if (!r.ok) { toast('Variations failed: '+await igError(r), 'err'); return; }
     const j = await r.json();
     if (!j.ok) { toast('Variations failed: '+(j.error||'Unknown'), 'err'); return; }
 
-    const variations = (j.variations || []).map(v => ({
-      src: v.svg ? URL.createObjectURL(new Blob([v.svg], {type:'image/svg+xml'})) : (v.url || ''),
+    // Only render variations that actually produced an image. Failed ones
+    // carry an error instead of a src; showing them as empty tiles implied
+    // they had succeeded.
+    const variations = (j.variations || []).filter(v => v.ok && v.url).map(v => ({
+      src: v.url,
       modifier: v.modifier || '',
     }));
+    if (j.failed) toast(`⚠️ ${j.failed} of ${j.requested} variations failed`, 'warn');
+    if (!variations.length) { toast('No variations were generated', 'err'); return; }
 
     // Show variations in a modal
     const overlay = document.createElement('div');
@@ -432,7 +460,7 @@ async function igSaveToGallery() {
     const fd   = new FormData();
     fd.append('file', blob, fname + ext);
     const r = await fetch('/api/imagegen/gallery/upload', {method:'POST', body:fd});
-    if (!r.ok) { toast('Save failed: HTTP '+r.status, 'err'); return; }
+    if (!r.ok) { toast('Save failed: '+await igError(r), 'err'); return; }
     const j = await r.json();
     if (j.ok) { toast('💾 Saved to gallery: '+j.name, 'ok'); }
     else toast('Save failed: '+(j.error||'Unknown'), 'err');
@@ -446,7 +474,7 @@ async function igDeleteImage(filename) {
   if (!ok) return;
   try {
     const r = await fetch(`/api/imagegen/gallery/${encodeURIComponent(filename)}`, {method:'DELETE'});
-    if (!r.ok) { toast('Delete failed: HTTP '+r.status, 'err'); return; }
+    if (!r.ok) { toast('Delete failed: '+await igError(r), 'err'); return; }
     const j = await r.json();
     if (j.ok) { toast('🗑 Deleted', 'ok'); renderImageGen(); }
     else toast('Delete failed: '+(j.error||'Unknown'), 'err');
@@ -494,7 +522,7 @@ function igUpload() {
     toast('⬆ Uploading…', 'ok');
     try {
       const r = await fetch('/api/imagegen/gallery/upload', {method:'POST', body:fd});
-      if (!r.ok) { toast('Upload failed: HTTP '+r.status, 'err'); return; }
+      if (!r.ok) { toast('Upload failed: '+await igError(r), 'err'); return; }
       const j = await r.json();
       if (j.ok) { toast(`✅ Uploaded: ${j.name}`, 'ok'); renderImageGen(); }
       else toast('Upload failed: '+(j.error||'Unknown'), 'err');
