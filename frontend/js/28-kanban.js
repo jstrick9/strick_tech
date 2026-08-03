@@ -102,7 +102,21 @@ function kanbanRenderBoard() {
   }
 
   board.innerHTML = KANBAN_COLUMNS.map(col => {
-    const columnTasks = filteredTasks.filter(t => t.status === col.id);
+    // MISSING FEATURE: cards rendered in whatever order the API happened to
+    // return and `sort_order` was never read, so dragging a card to a specific
+    // position within a column had no effect — it only ever changed status.
+    // The board now honours sort_order (falling back to id, which preserves
+    // the previous newest-last behaviour for tasks that have never been
+    // reordered), and kanbanOnDrop persists new positions via bulk_update.
+    const columnTasks = filteredTasks
+      .filter(t => t.status === col.id)
+      .slice()
+      .sort((a, b) => {
+        const ao = Number.isFinite(Number(a.sort_order)) ? Number(a.sort_order) : Number(a.id);
+        const bo = Number.isFinite(Number(b.sort_order)) ? Number(b.sort_order) : Number(b.id);
+        if (ao !== bo) return ao - bo;
+        return Number(a.id) - Number(b.id);
+      });
     return `
       <div class="kanban-column" data-column="${col.id}">
         <div class="kanban-column-header" style="border-top: 3px solid ${col.color}">
@@ -134,7 +148,19 @@ function kanbanRenderBoard() {
 // ── Render Card ───────────────────────────────────────────────────
 function kanbanRenderCard(task) {
   const priority = KANBAN_PRIORITIES[task.priority] || KANBAN_PRIORITIES.medium;
-  const agent = KANBAN_AGENTS[task.agent] || { label: task.agent || 'Unassigned', icon: '👤' };
+  // SECURITY FIX (stored XSS): an unrecognised agent fell through to
+  // `label: task.agent`, and that label was then interpolated into BOTH the
+  // title="" attribute and the card body WITHOUT escaping — while title and
+  // description right beside it were correctly escaped. `agent` is fully
+  // user-controlled (POST /api/tasks accepts any string), so a task created
+  // with agent='"><img src=x onerror=...>' stored the payload and rendered it
+  // as live DOM on every board load. Reproduced in jsdom: the payload produced
+  // two real <img onerror> elements. Both interpolations are now escaped.
+  const known = KANBAN_AGENTS[task.agent];
+  const agent = known || { label: task.agent || 'Unassigned', icon: '👤' };
+  const agentLabel = kanbanEscapeHtml(agent.label);
+  const agentLabelAttr = kanbanEscapeAttr(String(agent.label || ''));
+  const agentIcon = known ? agent.icon : kanbanEscapeHtml(agent.icon);
   const taskId = task.id;
 
   return `
@@ -156,7 +182,7 @@ function kanbanRenderCard(task) {
       ${task.description ? `<div class="kanban-card-desc">${kanbanEscapeHtml(task.description)}</div>` : ''}
       <div class="kanban-card-bottom">
         <span class="kanban-card-id">#${taskId}</span>
-        <span class="kanban-card-agent" title="${agent.label}">${agent.icon} ${agent.label}</span>
+        <span class="kanban-card-agent" title="${agentLabelAttr}">${agentIcon} ${agentLabel}</span>
       </div>
     </div>
   `;
@@ -235,35 +261,130 @@ async function kanbanOnDrop(event, targetColumn) {
     console.warn('Kanban: Task not found:', taskId);
     return;
   }
-  
+
+  // Where in the column was the card dropped? Compare the pointer against the
+  // vertical midpoint of each existing card so a drop lands above or below it.
+  const dropIndex = kanbanDropIndex(event, targetColumn, taskId);
+
   if (task.status === targetColumn) {
-    console.debug('Kanban: Task already in this column');
+    // Same column: this is a REORDER, which used to be ignored entirely
+    // ("Task already in this column" and an early return).
+    await kanbanPersistOrder(targetColumn, taskId, dropIndex);
     return;
   }
   
   console.debug('Kanban: Moving task', taskId, 'from', task.status, 'to', targetColumn);
-  
-  // Update local state
+
+  // Optimistic update — the card moves immediately so the drag feels
+  // responsive, but the previous column is remembered so a failed save can be
+  // rolled back rather than left showing a move that never persisted.
+  const previousStatus = task.status;
   task.status = targetColumn;
-  
-  // Re-render board
   kanbanRenderBoard();
-  
-  // Save to API
+
+  // BUG FIX: a failed save only did console.warn(). The card stayed in its new
+  // column and the user was never told, so the board silently disagreed with
+  // the database until the next reload — at which point the card snapped back
+  // with no explanation. (The backend made this worse by returning HTTP 200
+  // for a task that no longer existed; that is fixed too, so response.ok is
+  // now meaningful.) The move is reverted and surfaced on any failure.
   try {
     const response = await fetch(`/api/tasks/${taskId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: targetColumn })
     });
-    
+
     if (response.ok) {
+      // Persist the position within the destination column as well, so a drop
+      // between two specific cards survives a reload.
+      await kanbanPersistOrder(targetColumn, taskId, dropIndex, { silent: true });
       kanbanShowToast('Task moved', 'success');
+      return;
+    }
+
+    let reason = `HTTP ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body && body.error) reason = body.error;
+    } catch (e) { /* non-JSON error body — keep the status code */ }
+
+    task.status = previousStatus;
+    kanbanRenderBoard();
+    if (response.status === 404) {
+      // The task is gone (deleted in another tab/session) — resync rather than
+      // leaving a phantom card on the board.
+      kanbanShowToast('That task no longer exists — refreshing board', 'error');
+      await kanbanFetchTasks();
+      kanbanRenderBoard();
     } else {
-      console.warn('Kanban: API returned error');
+      kanbanShowToast(`Could not move task: ${reason}`, 'error');
     }
   } catch (err) {
-    console.warn('Kanban: API error:', err.message);
+    task.status = previousStatus;
+    kanbanRenderBoard();
+    kanbanShowToast(`Could not move task: ${err.message}`, 'error');
+  }
+}
+
+// ── Ordering helpers ──────────────────────────────────────────────
+
+// Determine the index a card was dropped at, by comparing the pointer's Y
+// position against the midpoint of each card already in the target column.
+function kanbanDropIndex(event, targetColumn, draggedId) {
+  const body = document.getElementById(`kanban-col-${targetColumn}`);
+  if (!body) return null;
+  const cards = Array.from(body.querySelectorAll('.kanban-card'))
+    .filter(el => String(el.dataset.taskId) !== String(draggedId));
+  for (let i = 0; i < cards.length; i++) {
+    const box = cards[i].getBoundingClientRect();
+    if (event.clientY < box.top + box.height / 2) return i;
+  }
+  return cards.length;
+}
+
+// Write the new ordering for a column back to the server. Uses the existing
+// POST /api/tasks/bulk_update endpoint, which already accepted sort_order but
+// which nothing in the UI had ever called.
+async function kanbanPersistOrder(columnId, movedId, dropIndex, opts = {}) {
+  if (dropIndex === null || dropIndex === undefined) return;
+
+  const inColumn = kanbanTasks
+    .filter(t => t.status === columnId && String(t.id) !== String(movedId))
+    .sort((a, b) => {
+      const ao = Number.isFinite(Number(a.sort_order)) ? Number(a.sort_order) : Number(a.id);
+      const bo = Number.isFinite(Number(b.sort_order)) ? Number(b.sort_order) : Number(b.id);
+      return ao - bo || Number(a.id) - Number(b.id);
+    });
+
+  const moved = kanbanTasks.find(t => String(t.id) === String(movedId));
+  if (!moved) return;
+
+  const ordered = inColumn.slice();
+  ordered.splice(Math.max(0, Math.min(dropIndex, ordered.length)), 0, moved);
+
+  // Renumber from 1 so ordering is stable and independent of task ids.
+  const updates = ordered.map((t, i) => ({ id: t.id, sort_order: i + 1 }));
+  ordered.forEach((t, i) => { t.sort_order = i + 1; });
+  kanbanRenderBoard();
+
+  try {
+    const r = await fetch('/api/tasks/bulk_update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates })
+    });
+    if (!r.ok) {
+      kanbanShowToast('Order not saved — reloading board', 'error');
+      await kanbanFetchTasks();
+      kanbanRenderBoard();
+      return;
+    }
+    if (!opts.silent) kanbanShowToast('Order updated', 'success');
+  } catch (e) {
+    kanbanShowToast(`Order not saved: ${e.message}`, 'error');
+    await kanbanFetchTasks();
+    kanbanRenderBoard();
   }
 }
 
@@ -359,6 +480,15 @@ async function kanbanSubmitCreate(event) {
     agent: document.getElementById('kb-agent')?.value || 'builder'
   };
 
+  // BUG FIX: two failure modes here reported success for a task that was never
+  // saved.
+  //   1. POST /api/tasks returns HTTP 200 with {"ok": false, "error": ...} for
+  //      a rejected payload, so `response.ok` alone was not enough — a rejected
+  //      task was added to the board with `id: undefined`, and every later
+  //      edit/delete on it hit /api/tasks/undefined.
+  //   2. The catch block invented a local task with `id: Date.now()` and
+  //      toasted "Task created (local)". Nothing syncs those, so the card
+  //      vanished on reload and its id could never match a real row.
   try {
     const response = await fetch('/api/tasks', {
       method: 'POST',
@@ -366,22 +496,26 @@ async function kanbanSubmitCreate(event) {
       body: JSON.stringify(taskData)
     });
 
-    if (response.ok) {
-      const result = await response.json();
-      taskData.id = result.id;
-      kanbanTasks.push(taskData);
-      kanbanCloseModal();
-      kanbanRenderBoard();
-      kanbanShowToast('Task created', 'success');
-    } else {
-      kanbanShowToast('Failed to create task', 'error');
+    let result = null;
+    try {
+      result = await response.json();
+    } catch (e) { /* non-JSON response handled below */ }
+
+    if (!response.ok || !result || result.ok === false || !result.id) {
+      const reason = (result && result.error) || `HTTP ${response.status}`;
+      kanbanShowToast(`Could not create task: ${reason}`, 'error');
+      return;
     }
-  } catch (e) {
-    taskData.id = Date.now();
+
+    taskData.id = result.id;
     kanbanTasks.push(taskData);
     kanbanCloseModal();
     kanbanRenderBoard();
-    kanbanShowToast('Task created (local)', 'success');
+    kanbanShowToast('Task created', 'success');
+  } catch (e) {
+    // Keep the modal open with the user's input intact so they can retry
+    // rather than silently losing it to a phantom local-only card.
+    kanbanShowToast(`Could not create task: ${e.message}`, 'error');
   }
 }
 
@@ -485,9 +619,20 @@ async function kanbanSubmitEdit(event, taskId) {
     status: document.getElementById('kb-edit-status')?.value || task.status
   };
 
+  // Same optimistic-update contract as drag-and-drop: keep a snapshot so a
+  // failed save can be rolled back. Previously the edit stayed on screen after
+  // an error (and a thrown request only did console.warn), so the board showed
+  // changes the database never received.
+  const snapshot = { ...task };
   Object.assign(task, updates);
   kanbanCloseModal();
   kanbanRenderBoard();
+
+  const revert = (message) => {
+    Object.assign(task, snapshot);
+    kanbanRenderBoard();
+    kanbanShowToast(message, 'error');
+  };
 
   try {
     const response = await fetch(`/api/tasks/${taskId}`, {
@@ -498,11 +643,24 @@ async function kanbanSubmitEdit(event, taskId) {
 
     if (response.ok) {
       kanbanShowToast('Task updated', 'success');
-    } else {
-      kanbanShowToast('Failed to save changes', 'error');
+      return;
     }
+
+    if (response.status === 404) {
+      revert('That task no longer exists — refreshing board');
+      await kanbanFetchTasks();
+      kanbanRenderBoard();
+      return;
+    }
+
+    let reason = `HTTP ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body && body.error) reason = body.error;
+    } catch (e) { /* non-JSON error body — keep the status code */ }
+    revert(`Could not save changes: ${reason}`);
   } catch (e) {
-    console.warn('Kanban: API error:', e.message);
+    revert(`Could not save changes: ${e.message}`);
   }
 }
 
@@ -521,14 +679,41 @@ async function kanbanDeleteTask(taskId) {
   const ok = await gmDanger('Delete Task', 'Delete this task? This cannot be undone.', 'Delete');
   if (!ok) return;
 
+  // BUG FIX: the response was never inspected — `await fetch(...)` was followed
+  // unconditionally by a "Task deleted" success toast, so a 500 (or any server
+  // failure) still removed the card from the board and told the user it had
+  // worked. The task reappeared on the next reload with no explanation. A
+  // thrown request only did console.warn, with the same outcome.
+  const removed = kanbanTasks.filter(t => String(t.id) === String(taskId));
   kanbanTasks = kanbanTasks.filter(t => String(t.id) !== String(taskId));
   kanbanRenderBoard();
 
+  const restore = (message) => {
+    kanbanTasks = kanbanTasks.concat(removed);
+    kanbanRenderBoard();
+    kanbanShowToast(message, 'error');
+  };
+
   try {
-    await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
-    kanbanShowToast('Task deleted', 'success');
+    const response = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+    if (response.ok) {
+      kanbanShowToast('Task deleted', 'success');
+      return;
+    }
+    if (response.status === 404) {
+      // Already gone server-side — the board was stale, so leaving it removed
+      // is correct. Say so rather than claiming we deleted it.
+      kanbanShowToast('That task was already deleted', 'success');
+      return;
+    }
+    let reason = `HTTP ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body && body.error) reason = body.error;
+    } catch (e) { /* non-JSON error body — keep the status code */ }
+    restore(`Could not delete task: ${reason}`);
   } catch (e) {
-    console.warn('Kanban: API error:', e.message);
+    restore(`Could not delete task: ${e.message}`);
   }
 }
 
