@@ -43,7 +43,7 @@ async function renderIntegrations() {
             </div>
             <p style="font-size:12px;color:var(--text-2);margin-bottom:8px;line-height:1.5;min-height:28px">${escHtml(i.description)}</p>
             <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">${i.env_vars.slice(0,2).map(v=>`<code style="font-size:10px;background:var(--bg-0);padding:1px 5px;border-radius:3px;color:var(--text-2)">${v}</code>`).join('')}${i.env_vars.length>2?`<span style="font-size:10px;color:var(--text-3)">+${i.env_vars.length-2}</span>`:''}</div>
-            <div style="display:flex;gap:5px"><button onclick="scaffoldIntegration(${JSON.stringify(i.id)})" class="btn btn-primary btn-sm" style="flex:1">⚡ Scaffold</button><a href="${escHtml(i.docs_url)}" target="_blank" class="btn btn-ghost btn-sm">Docs ↗</a></div>
+            <div style="display:flex;gap:5px"><button onclick="scaffoldIntegration(${JSON.stringify(i.id)})" class="btn btn-primary btn-sm" style="flex:1">⚡ Scaffold</button><a href="${safeUrl(i.docs_url)}" target="_blank" class="btn btn-ghost btn-sm">Docs ↗</a></div>
             <div id="int-status-${i.id}" style="font-size:11px;color:var(--text-2);margin-top:5px;display:none"></div>
           </div>`).join('')}
       </div>

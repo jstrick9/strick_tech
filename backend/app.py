@@ -281,6 +281,43 @@ app.add_middleware(
 
 # Rate limiting: track requests per IP
 _rate_limit_store: dict[str, list[float]] = defaultdict(list)
+
+# Cap on distinct client IPs tracked. The store was an unbounded defaultdict, so
+# every new source address added a permanent entry -- a scan across a /16, or
+# ordinary traffic on a public deployment, grows it without limit and the
+# process never gives the memory back. Rate limiting is meant to protect
+# against abuse, not become the thing that fails under it.
+_RATE_LIMIT_MAX_CLIENTS = 10_000
+_rate_limit_last_sweep = 0.0
+
+
+def _sweep_rate_limit_store(now: float) -> None:
+    """Drop clients with no requests inside the current window.
+
+    Called opportunistically rather than on a timer: no background task, no
+    lock, and the cost is paid by whoever happens to arrive after the interval.
+    """
+    global _rate_limit_last_sweep
+    if now - _rate_limit_last_sweep < _RATE_LIMIT_WINDOW:
+        return
+    _rate_limit_last_sweep = now
+    stale = [
+        ip for ip, hits in _rate_limit_store.items()
+        if not hits or now - hits[-1] >= _RATE_LIMIT_WINDOW
+    ]
+    for ip in stale:
+        _rate_limit_store.pop(ip, None)
+    if len(_rate_limit_store) > _RATE_LIMIT_MAX_CLIENTS:
+        # Still oversized after the sweep: drop the least recently seen. Better
+        # to under-limit a few clients than to exhaust memory.
+        by_recency = sorted(_rate_limit_store.items(), key=lambda kv: kv[1][-1] if kv[1] else 0)
+        for ip, _ in by_recency[: len(_rate_limit_store) - _RATE_LIMIT_MAX_CLIENTS]:
+            _rate_limit_store.pop(ip, None)
+        log.warning(
+            'Rate-limit store exceeded %d clients; evicted the least recent. '
+            'A shared store (Redis) is needed for multi-process deployments.',
+            _RATE_LIMIT_MAX_CLIENTS,
+        )
 # Keep middleware behavior aligned with the validated configuration surface so
 # local deployments and test environments can tune the limit without changing
 # application code. Invalid values fall back to the documented defaults.
@@ -288,6 +325,23 @@ try:
     _RATE_LIMIT_WINDOW = max(10, int(os.getenv('RATE_LIMIT_WINDOW', '60')))
 except (TypeError, ValueError):
     _RATE_LIMIT_WINDOW = 60
+# ── CSRF configuration ─────────────────────────────────────────────────────────
+# Opt-in enforcement. Off by default so upgrading does not break scripted API
+# clients; a missing token is logged either way so operators can see the impact
+# before switching it on.
+_CSRF_STRICT = os.getenv('AGENTIC_CSRF_STRICT', '').strip().lower() in ('1', 'true', 'yes')
+
+# Endpoints that legitimately receive cross-origin POSTs and authenticate by
+# other means. Webhook deliveries carry an HMAC signature (see routers/
+# webhooks.py) and come from GitHub/Stripe/CI, which cannot know a CSRF token;
+# requiring one would break every inbound integration. The token endpoint
+# itself must be reachable to bootstrap.
+_CSRF_EXEMPT = frozenset({
+    '/api/security/csrf-token',
+    '/api/health',
+})
+
+
 try:
     _RATE_LIMIT_MAX = max(10, int(os.getenv('RATE_LIMIT_MAX', '300')))
 except (TypeError, ValueError):
@@ -309,8 +363,31 @@ SECURITY_HEADERS = {
     'X-XSS-Protection': '1; mode=block',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    # CSP — 'unsafe-inline' on script-src is a KNOWN, DOCUMENTED weakness.
+    #
+    # It cannot simply be dropped: the frontend renders 772 inline `onclick=`
+    # handlers plus 5 inline <script> blocks, all of which stop working the
+    # moment it is removed. A CSP that breaks the product would be reverted
+    # within a day, so tightening it means removing those handlers first --
+    # tracked as a dedicated refactor, not something to slip into a security
+    # commit.
+    #
+    # What this DOES mean, stated plainly rather than left implicit: the
+    # platform's ~714 innerHTML assignments are not protected by CSP. XSS
+    # defence rests entirely on escHtml() at each call site. Modules 10 and 17
+    # each found a stored-XSS hole of exactly that shape, which is the evidence
+    # that per-call-site escaping does not hold on its own.
+    #
+    # object-src and base-uri ARE tightened here; both are free (nothing uses
+    # them) and each closes a real injection vector: <object>/<embed> can load
+    # plugin content, and a injected <base> tag silently reroutes every
+    # relative URL on the page, including script sources.
     'Content-Security-Policy': (
         "default-src 'self'; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "frame-ancestors 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://cdn.monaco-editor.net; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; "
@@ -366,6 +443,7 @@ async def _security_middleware(request: Request, call_next):
     # Rate limiting (skip exempt paths and static files during normal traffic, bypass in automated tests)
     if not path.startswith('/static/') and not path.startswith('/preview/') and path not in _RATE_LIMIT_EXEMPT and not os.environ.get('PYTEST_CURRENT_TEST'):
         # Clean old entries
+        _sweep_rate_limit_store(now)
         _rate_limit_store[client_ip] = [t for t in _rate_limit_store[client_ip] if now - t < _RATE_LIMIT_WINDOW]
 
         if len(_rate_limit_store[client_ip]) >= _RATE_LIMIT_MAX:
@@ -379,19 +457,58 @@ async def _security_middleware(request: Request, call_next):
 
         _rate_limit_store[client_ip].append(now)
 
-    # CSRF Token validation check when strictly enforced or provided via headers
+    # CSRF validation.
+    #
+    # This read `if csrf_token and csrf_token not in _CSRF_TOKENS`, so a request
+    # that OMITTED the header skipped validation entirely. Verified against the
+    # running server:
+    #     POST /api/tasks (no header)            -> 200
+    #     POST /api/tasks (X-CSRF-Token: bogus)  -> 403
+    # An attacker's forged cross-site request simply does not send the header,
+    # so the control rejected only honest mistakes.
+    #
+    # It was written that way for a reason: the frontend never sent a token
+    # across any of its 282 POST call sites, so requiring one would have broken
+    # the whole app. frontend/js/00-csrf.js now attaches it in a fetch wrapper,
+    # which is why this can be tightened in the same commit.
+    #
+    # ROLLOUT: enforcement is opt-in via AGENTIC_CSRF_STRICT so an existing
+    # deployment with scripted API clients is not broken by an upgrade. When
+    # off, a missing token is allowed but LOGGED, giving operators a way to see
+    # what would break before switching it on. A bad token is always rejected.
     if request.method in ('POST', 'PUT', 'PATCH', 'DELETE') and not os.environ.get('PYTEST_CURRENT_TEST'):
         from .routers.security import _CSRF_TOKENS
 
         csrf_token = request.headers.get('X-CSRF-Token')
-        if csrf_token and csrf_token not in _CSRF_TOKENS:
-            from fastapi.responses import JSONResponse
+        csrf_exempt = path in _CSRF_EXEMPT or path.startswith('/api/webhooks/')
 
-            return JSONResponse(
-                {'ok': False, 'error': 'Invalid CSRF token provided.'},
-                status_code=403,
-                headers={'X-Request-ID': request_id},
-            )
+        if not csrf_exempt:
+            if csrf_token:
+                if csrf_token not in _CSRF_TOKENS:
+                    from fastapi.responses import JSONResponse
+
+                    return JSONResponse(
+                        {'ok': False, 'error': 'Invalid CSRF token provided.'},
+                        status_code=403,
+                        headers={'X-Request-ID': request_id},
+                    )
+            elif _CSRF_STRICT:
+                from fastapi.responses import JSONResponse
+
+                return JSONResponse(
+                    {
+                        'ok': False,
+                        'error': 'CSRF token required.',
+                        'hint': 'GET /api/security/csrf-token and send it as X-CSRF-Token.',
+                    },
+                    status_code=403,
+                    headers={'X-Request-ID': request_id},
+                )
+            else:
+                log.warning(
+                    'CSRF: %s %s accepted WITHOUT a token (set AGENTIC_CSRF_STRICT=1 to enforce)',
+                    request.method, path,
+                )
 
     # Process request
     response = await call_next(request)

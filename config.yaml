@@ -26,4 +26,9 @@ features:
   vault: true
   e2e: false                    # set true if playwright is installed
 
-version: "6.0"
+# The canonical version lives in the VERSION file at the repo root and is read
+# by backend/version.py. This key is documentation only -- nothing parses it --
+# and it had drifted five major versions behind (6.0 vs 11.5.0), which is worse
+# than omitting it: a reader checking the config would have been told the wrong
+# thing with no indication it was stale.
+version: "11.5.0"   # keep in sync with ./VERSION

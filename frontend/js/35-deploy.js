@@ -49,7 +49,7 @@ async function renderDeploy() {
       </div>
       ${!ready ? `<div style="background:var(--bg-1);border-radius:var(--radius-sm);padding:10px;font-size:12px;margin-bottom:10px;color:var(--text-2)">
         Save <code style="background:var(--bg-0);padding:1px 5px;border-radius:3px">${token_key}</code> via the 🔐 Vault tab (takes effect immediately), or add it to your .env file (requires an app restart).
-        <a href="${docs_url}" target="_blank" style="color:var(--accent);display:block;margin-top:4px">→ Get token</a>
+        <a href="${safeUrl(docs_url)}" target="_blank" style="color:var(--accent);display:block;margin-top:4px">→ Get token</a>
       </div>` : ''}
       <button onclick="doDeploy('${escHtml(id)}')" class="btn ${ready?'btn-primary':'btn-ghost'}" style="width:100%" id="deploy-btn-${id}">${btnLabel}</button>
       <div id="deploy-result-${id}" style="margin-top:10px;display:none"></div>
@@ -117,7 +117,7 @@ async function doDeploy(provider) {
         <div style="font-size:12px;color:var(--text-2);margin-top:4px">${escHtml(j.tip||'')}</div>`;
       toast(`🔑 ${providerLabel} key confirmed — manual GitHub connect still required`, 'ok', 5000);
     } else if (j.ok) {
-      const urlLink = j.url ? `<a href="${j.url}" target="_blank" style="color:var(--accent);font-size:13px;display:block;margin-top:4px">${j.url}</a>` : '';
+      const urlLink = j.url ? `<a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent);font-size:13px;display:block;margin-top:4px">${j.url}</a>` : '';
       const output  = j.output ? `<div style="font-size:11px;color:var(--text-2);margin-top:4px;font-family:monospace;white-space:pre-wrap">${escHtml(j.output.slice(0,200))}</div>` : '';
       res.innerHTML = `<div style="color:var(--green);font-weight:700">✅ Deployed!</div>
         ${urlLink}
@@ -151,7 +151,7 @@ async function startTunnel() {
     const j = await r.json();
     if (j.ok) {
       res.innerHTML = `<div style="color:var(--green);font-weight:700">✅ Tunnel active!</div>
-        <a href="${j.url}" target="_blank" style="color:var(--accent);font-size:14px;display:block;margin-top:4px;font-weight:700">${j.url}</a>
+        <a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent);font-size:14px;display:block;margin-top:4px;font-weight:700">${j.url}</a>
         <div style="font-size:11.5px;color:var(--text-2);margin-top:4px">${escHtml(j.note||'')}</div>
         ${j.qr?`<img src="${j.qr}" style="margin-top:10px;border-radius:8px;width:120px">`:''} 
         <button onclick="stopTunnel()" class="btn btn-ghost btn-sm" style="margin-top:8px;color:var(--danger)">⛔ Stop Tunnel</button>`;

@@ -223,7 +223,7 @@ async function renderSupabaseTab(el) {
       <p>PostgreSQL + Auth + Storage — the same stack Lovable uses.</p>
       <div style="background:var(--bg-1);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.8;margin-bottom:14px">
         ${(s.setup?.steps||[]).map(s=>escHtml(s)).join('<br>')}
-        <a href="${s.setup?.url||'https://supabase.com'}" target="_blank" style="color:var(--accent);display:block;margin-top:8px">→ Create Supabase project ↗</a>
+        <a href="${safeUrl(s.setup?.url||'https://supabase.com')}" target="_blank" style="color:var(--accent);display:block;margin-top:8px">→ Create Supabase project ↗</a>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px">
         <div>

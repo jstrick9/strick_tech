@@ -191,7 +191,7 @@ function connectSetupHtml(id, s) {
     ${(s.needs||[]).length ? `<div style="font-size:12px;color:var(--text-2)">You'll need: <b>${(s.needs||[]).map(escHtml).join(', ')}</b></div>` : ''}
     ${s.where ? `<div style="font-size:12px;color:var(--text-2);margin-top:5px">Where: ${escHtml(s.where)}</div>` : ''}
     ${s.scopes ? `<div style="font-size:12px;color:var(--text-2);margin-top:5px">Scopes: ${escHtml(s.scopes)}</div>` : ''}
-    ${s.docs ? `<div style="font-size:12px;margin-top:6px"><a href="${escHtml(s.docs)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Provider docs ↗</a></div>` : ''}
+    ${s.docs ? `<div style="font-size:12px;margin-top:6px"><a href="${safeUrl(s.docs)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Provider docs ↗</a></div>` : ''}
     ${(s.needs||[]).length ? `<button data-item="${escHtml(id)}" onclick="connectShowSetup(this.dataset.item)" class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Enter credentials</button>` : ''}
   </div>`;
 }

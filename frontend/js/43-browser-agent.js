@@ -287,7 +287,7 @@ async function runTask() {
             el.innerHTML = `
               <span class="ba-num">#${d.step_no||stepCount}</span>
               <span class="ba-act">${escHtml(s.action||'?')}</span>
-              <span class="ba-desc">${escHtml(desc.slice(0,100))}${screenPath?`<br><a href="${escHtml(screenPath)}" target="_blank" rel="noopener" style="color:var(--accent);font-size:10px">📷 screenshot</a>`:''}</span>`;
+              <span class="ba-desc">${escHtml(desc.slice(0,100))}${screenPath?`<br><a href="${safeUrl(screenPath)}" target="_blank" rel="noopener" style="color:var(--accent);font-size:10px">📷 screenshot</a>`:''}</span>`;
             stepsList?.appendChild(el);
             if (stepsList) stepsList.scrollTop = stepsList.scrollHeight;
             if (cntEl) cntEl.textContent = stepCount + ' steps';

@@ -54,15 +54,10 @@ const TABS = ['grounded', 'search', 'research', 'history'];
 // Verified in jsdom: `href="${escHtml('javascript:alert(document.cookie)')}"`
 // produced an anchor whose href was still the javascript: payload.
 // safeUrl() allows only http/https and returns '#' for anything else.
-function safeUrl(url) {
-  const raw = String(url == null ? '' : url).trim();
-  if (!raw) return '#';
-  // Strip control characters that can be used to smuggle a scheme past a
-  // naive prefix check (e.g. "java\tscript:").
-  const normalised = raw.replace(/[\u0000-\u001F\u007F]/g, '').toLowerCase();
-  if (normalised.startsWith('http://') || normalised.startsWith('https://')) return raw;
-  return '#';
-}
+// safeUrl() moved to 01-app-core.js so all eight files that build hrefs from
+// data can use it. Kept as a comment marker rather than a duplicate definition:
+// two copies of a sanitiser drift, and the one that drifts is the one nobody
+// is looking at.
 const KIND_ICONS = { search: '🔍', grounded: '🤖', grounded_stream: '⚡', research: '📚' };
 
 function $(id) { return document.getElementById(id); }

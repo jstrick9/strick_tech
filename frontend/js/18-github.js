@@ -41,7 +41,7 @@ function renderGitHubBody(s) {
       <p>A GitHub token unlocks: repo create, push/pull code, branch management, PRs, and GitHub Pages deploy.</p>
       <div style="background:var(--bg-1);border-radius:var(--radius-sm);padding:14px;font-size:13px;line-height:1.9;margin-bottom:16px">
         ${(s.setup?.steps||[]).map(step => `<div>${escHtml(step)}</div>`).join('')}
-        <a href="${s.setup?.token_url||'https://github.com/settings/tokens'}" target="_blank" style="color:var(--accent);display:block;margin-top:8px;font-weight:700">→ Generate Token on GitHub ↗</a>
+        <a href="${safeUrl(s.setup?.token_url||'https://github.com/settings/tokens')}" target="_blank" style="color:var(--accent);display:block;margin-top:8px;font-weight:700">→ Generate Token on GitHub ↗</a>
       </div>
       <div class="key-input-row">
         <input id="gh-token-input" type="password" class="key-input" placeholder="ghp_…" autocomplete="off">
@@ -61,7 +61,7 @@ function renderGitHubBody(s) {
         <img src="${u.avatar_url||''}" style="width:48px;height:48px;border-radius:50%;border:2px solid var(--border)">
         <div>
           <div style="font-weight:800;font-size:15px">${escHtml(u.name||u.login||'')}</div>
-          <a href="${u.html_url||''}" target="_blank" style="font-size:12px;color:var(--accent)">@${escHtml(u.login||'')}</a>
+          <a href="${safeUrl(u.html_url)}" target="_blank" style="font-size:12px;color:var(--accent)">@${escHtml(u.login||'')}</a>
           <div style="font-size:11px;color:var(--text-2)">${u.public_repos||0} repos · ${escHtml(u.plan||'free')} plan</div>
         </div>
         <span class="tag green" style="margin-left:auto">✅ Connected</span>
@@ -166,7 +166,7 @@ async function createGHRepo() {
     ghSelectedRepo = j.repo;
     if (res) res.innerHTML = `<div class="settings-card">
       <h3>✅ Repository Created!</h3>
-      <p><a href="${j.url}" target="_blank" style="color:var(--accent)">${j.repo} ↗</a></p>
+      <p><a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent)">${j.repo} ↗</a></p>
       <div style="font-size:12.5px;color:var(--text-2)">Clone URL: <code style="font-size:11px">${escHtml(j.clone_url)}</code></div>
       <button onclick="showGHPush()" class="btn btn-primary btn-sm" style="margin-top:10px">⬆ Push code now</button>
     </div>`;
@@ -288,7 +288,7 @@ async function showGHPush() {
     if (j.ok) {
       if (res) res.innerHTML = `<div class="settings-card">
         <h3>✅ Pushed to GitHub!</h3>
-        <p>${j.files_pushed} files pushed to <a href="${escHtml(j.url||'')}" target="_blank" rel="noopener" style="color:var(--accent)">${escHtml(j.repo)} ↗</a></p>
+        <p>${j.files_pushed} files pushed to <a href="${safeUrl(j.url)}" target="_blank" rel="noopener" style="color:var(--accent)">${escHtml(j.repo)} ↗</a></p>
         ${j.held_back_count ? `<div style="color:var(--yellow);font-size:12px">🔒 ${j.held_back_count} credential-like file(s) were not uploaded</div>` : ''}
         ${j.errors?.length ? `<div style="color:var(--yellow);font-size:12px">⚠ ${j.errors.length} errors: ${escHtml(j.errors.join(', '))}</div>` : ''}
       </div>`;
@@ -353,7 +353,7 @@ async function showGHPages() {
     if (j.ok) {
     if (res) res.innerHTML = `<div class="settings-card">
       <h3>🌐 Deployed to GitHub Pages!</h3>
-      <a href="${j.url}" target="_blank" style="color:var(--accent);font-size:15px;font-weight:700">${j.url} ↗</a>
+      <a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent);font-size:15px;font-weight:700">${j.url} ↗</a>
       <div style="font-size:12px;color:var(--text-2);margin-top:6px">${j.tip}</div>
     </div>`;
     toast(`🌐 GitHub Pages live: ${j.url}`, 'ok', 6000);
