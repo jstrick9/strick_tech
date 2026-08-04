@@ -12,6 +12,7 @@ import time
 import uuid
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 
 from ..security_auth import require_websocket_auth
 
@@ -137,7 +138,15 @@ def get_session(session_id: str):
 
 @router.delete('/sessions/{session_id}')
 def close_session(session_id: str):
-    """Execute or process close session operation."""
+    """Close a collaboration session. 404 if there is no such session.
+
+    dict.pop(k, None) never fails, so this answered {"ok": true} for session
+    ids that never existed -- verified live. "I closed it" and "there was
+    nothing to close" are different answers, and a client cleaning up after a
+    dropped websocket cannot tell them apart.
+    """
+    if session_id not in _sessions:
+        return JSONResponse({'ok': False, 'error': 'Session not found'}, status_code=404)
     _sessions.pop(session_id, None)
     return {'ok': True}
 

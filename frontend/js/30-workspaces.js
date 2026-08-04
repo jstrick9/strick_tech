@@ -125,7 +125,16 @@ function importFullBackupDialog() {
   input.click();
 }
 
+// Guards against a double-click issuing two overlapping switches. The server
+// now serialises activation anyway (a lock in workspaces.py), but the button
+// staying live during an await is what generated the pair in the first place,
+// and a second request that can only ever be a no-op should not be sent.
+let _wsSwitching = false;
+
 async function activateWorkspace(wsId, name) {
+  if (_wsSwitching) return;
+  _wsSwitching = true;
+  document.querySelectorAll('[data-workspace-id]').forEach(b => { b.disabled = true; });
   toast(`⚡ Switching to ${name}…`, 'ok', 2000);
   try {
     const r = await fetch(`/api/workspaces/${encodeURIComponent(wsId)}/activate`, {method:'POST'});
@@ -134,6 +143,10 @@ async function activateWorkspace(wsId, name) {
     if (j.ok) { toast(`✅ Switched to ${name}`, 'ok', 2000); studioLoadFileTree?.(); studioReloadPreview?.(); renderWorkspaces(); }
     else toast('Switch failed: ' + (j.error||''), 'err');
   } catch(ex) { toast('Switch error: ' + ex.message, 'err'); }
+  finally {
+    _wsSwitching = false;
+    document.querySelectorAll('[data-workspace-id]').forEach(b => { b.disabled = false; });
+  }
 }
 async function createNewWorkspace() {
   const name = await gmPrompt('New Project', 'Project name (e.g. Client A, My SaaS)','');
