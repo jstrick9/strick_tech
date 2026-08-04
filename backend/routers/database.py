@@ -17,6 +17,7 @@ import sqlite3
 
 import httpx
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/db', tags=['database'])
 log = logging.getLogger('agentic.db')
@@ -57,6 +58,128 @@ def _connect() -> sqlite3.Connection:
     return con
 
 
+# Statements that modify data or schema. Detected by scanning the whole
+# statement rather than matching a prefix — see classify_sql().
+_WRITE_KEYWORDS = frozenset({
+    'INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER', 'REPLACE',
+    'TRUNCATE', 'VACUUM', 'REINDEX', 'ANALYZE',
+})
+
+# Never permitted, with or without allow_write. These reach outside the
+# database file or corrupt its internals, so "the user opted in to writes" is
+# not consent to them:
+#   ATTACH   — opens or CREATES an arbitrary file on disk, and lets a query
+#              copy rows out of agentic.db into it. Verified live: an ATTACH
+#              with allow_write=false created /tmp/evil_attached.db.
+#   PRAGMA writable_schema — allows direct edits to sqlite_master, i.e. silent
+#              schema corruption that survives every other guard.
+_FORBIDDEN_STATEMENTS = frozenset({'ATTACH', 'DETACH'})
+_FORBIDDEN_PRAGMAS = ('WRITABLE_SCHEMA', 'JOURNAL_MODE', 'SYNCHRONOUS', 'TEMP_STORE')
+
+
+def strip_sql_comments(sql: str) -> str:
+    """Remove -- line comments and /* */ block comments from anywhere in `sql`.
+
+    The previous implementation only stripped comments from the START of the
+    statement, which was enough for the bypass it was written for but leaves
+    `SELECT 1 /* */ ; DROP ...` and similar untouched. Strings are respected so
+    a literal containing `--` is not mangled.
+    """
+    out = []
+    i, n = 0, len(sql)
+    quote = None
+    while i < n:
+        ch = sql[i]
+        if quote:
+            out.append(ch)
+            if ch == quote:
+                # Doubled quote inside a string is an escaped quote.
+                if i + 1 < n and sql[i + 1] == quote:
+                    out.append(sql[i + 1])
+                    i += 2
+                    continue
+                quote = None
+            i += 1
+            continue
+        if ch in ('\'', '"', '`'):
+            quote = ch
+            out.append(ch)
+            i += 1
+            continue
+        if ch == '-' and i + 1 < n and sql[i + 1] == '-':
+            nl = sql.find('\n', i)
+            i = n if nl == -1 else nl + 1
+            out.append(' ')
+            continue
+        if ch == '/' and i + 1 < n and sql[i + 1] == '*':
+            end = sql.find('*/', i + 2)
+            i = n if end == -1 else end + 2
+            out.append(' ')
+            continue
+        out.append(ch)
+        i += 1
+    return ''.join(out)
+
+
+def classify_sql(sql: str) -> tuple[bool, str]:
+    """Classify a statement. Returns (is_write, refusal_reason_or_empty).
+
+    SECURITY FIX: write detection matched a KEYWORD PREFIX on the statement.
+    Any construct that puts something else first slipped through as a "read",
+    executed anyway, and was reported back as {"type": "select"}. Verified live
+    against a real table with allow_write=false:
+
+        WITH t AS (SELECT 1) DELETE FROM dbstudio_victim
+          -> {"ok": true, "type": "select", "count": 0}   and the row was GONE
+
+        ATTACH DATABASE '/tmp/evil_attached.db' AS evil
+          -> reported as a select; the file was created on disk
+
+        PRAGMA writable_schema=1
+          -> reported as a select; schema protection disabled
+
+    A prefix check cannot express "does this statement modify anything" — SQL
+    is not prefix-structured. Scanning for the keywords as whole WORDS anywhere
+    in the comment-stripped statement is conservative in the right direction:
+    it may over-report a read as a write (the user sets allow_write and
+    proceeds), but it will not under-report a write as a read.
+    """
+    import re as _re
+
+    cleaned = strip_sql_comments(sql).strip()
+    if not cleaned:
+        return False, 'statement is empty after removing comments'
+
+    upper = cleaned.upper()
+
+    # Leading token, ignoring wrapping parens/whitespace.
+    lead_match = _re.match(r'^[\s(]*([A-Z_]+)', upper)
+    lead = lead_match.group(1) if lead_match else ''
+
+    if lead in _FORBIDDEN_STATEMENTS:
+        return True, (
+            f'{lead} is not permitted: it can create or read files outside the '
+            f'application database.'
+        )
+    if lead == 'PRAGMA':
+        for bad in _FORBIDDEN_PRAGMAS:
+            if bad in upper:
+                return True, (
+                    f'PRAGMA {bad.lower()} is not permitted: it can corrupt the '
+                    f'database or alter its durability guarantees.'
+                )
+
+    # Whole-word scan of the comment-stripped statement, outside string
+    # literals (already normalised by strip_sql_comments keeping them intact,
+    # so mask them here before matching).
+    masked = _re.sub(r"'[^']*'", "''", upper)
+    masked = _re.sub(r'"[^"]*"', '""', masked)
+    for kw in _WRITE_KEYWORDS:
+        if _re.search(rf'\b{kw}\b', masked):
+            return True, ''
+    return False, ''
+
+
 # ── SQLite Studio ──────────────────────────────────────────────────────────────
 @router.get('/sqlite/tables')
 def sqlite_tables():
@@ -94,7 +217,7 @@ def sqlite_table_data(table: str, limit: int = 100, offset: int = 0, q: str = ''
     """Read rows from a table with optional search."""
     # Validate table name
     if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table):
-        return {'ok': False, 'error': 'Invalid table name'}
+        return JSONResponse({'ok': False, 'error': 'Invalid table name'}, status_code=400)
     con = _connect()
     con.row_factory = sqlite3.Row
     try:
@@ -136,39 +259,20 @@ async def sqlite_query(req: Request):
     allow_write = bool(body.get('allow_write', False))
 
     if not sql:
-        return {'ok': False, 'error': 'SQL required'}
+        return JSONResponse({'ok': False, 'error': 'SQL required'}, status_code=400)
 
-    # SECURITY FIX: the write-detection below used to check
-    # `sql.upper().lstrip()` for a write-keyword PREFIX, but never stripped
-    # SQL comments first. A query like "/* x */ DROP TABLE foo" starts with
-    # "/*", not "DROP", so `is_write` evaluated False and the DROP executed
-    # even with allow_write=False — trivially bypassing the entire
-    # write-protection safeguard. Confirmed live: created a real table via
-    # allow_write=true, then dropped it with allow_write=false disguised
-    # behind a leading comment — the table was actually gone afterward
-    # (verified via GET /sqlite/tables), while the API response even
-    # falsely reported `{"type": "select", "count": 0}` as if nothing
-    # destructive had happened. Fixed by stripping ALL leading `--` line
-    # comments and `/* */` block comments (repeatedly, since more than one
-    # can precede the real statement) before checking the keyword prefix.
-    check_sql = sql
-    while True:
-        stripped = check_sql.lstrip()
-        if stripped.startswith('--'):
-            nl = stripped.find('\n')
-            stripped = stripped[nl + 1 :] if nl != -1 else ''
-        elif stripped.startswith('/*'):
-            end = stripped.find('*/')
-            stripped = stripped[end + 2 :] if end != -1 else ''
-        if stripped == check_sql:
-            break
-        check_sql = stripped
-    sql_upper = check_sql.upper().lstrip()
-    is_write = any(
-        sql_upper.startswith(kw) for kw in ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER', 'REPLACE']
-    )
+    is_write, refusal = classify_sql(sql)
+    if refusal:
+        return JSONResponse({'ok': False, 'error': refusal, 'forbidden': True}, status_code=403)
     if is_write and not allow_write:
-        return {'ok': False, 'error': 'Write queries disabled. Set allow_write=true to enable.', 'is_write': True}
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': 'Write queries disabled. Set allow_write=true to enable.',
+                'is_write': True,
+            },
+            status_code=403,
+        )
 
     con = _connect()
     con.row_factory = sqlite3.Row
@@ -190,14 +294,14 @@ async def sqlite_query(req: Request):
         }
     except Exception as e:
         con.close()
-        return {'ok': False, 'error': str(e)}
+        return JSONResponse({'ok': False, 'error': str(e)}, status_code=400)
 
 
 @router.post('/sqlite/table/{table}/insert')
 async def sqlite_insert(table: str, req: Request):
     """Insert a row into a table."""
     if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table):
-        return {'ok': False, 'error': 'Invalid table name'}
+        return JSONResponse({'ok': False, 'error': 'Invalid table name'}, status_code=400)
     try:
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
@@ -225,7 +329,7 @@ async def sqlite_insert(table: str, req: Request):
 async def sqlite_delete_row(table: str, req: Request):
     """Delete rows matching a condition."""
     if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table):
-        return {'ok': False, 'error': 'Invalid table name'}
+        return JSONResponse({'ok': False, 'error': 'Invalid table name'}, status_code=400)
     try:
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
@@ -434,7 +538,7 @@ async def supabase_query(req: Request):
 
     # Validate table name (prevent path injection)
     if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table):
-        return {'ok': False, 'error': 'Invalid table name'}
+        return JSONResponse({'ok': False, 'error': 'Invalid table name'}, status_code=400)
 
     try:
         params = {'select': select, 'limit': limit}
