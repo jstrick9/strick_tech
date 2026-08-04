@@ -1,6 +1,7 @@
 # Module 13 — AI Context & Guidelines (Steering + Hierarchy)
 
-**Commit:** `3586880` · **Suite:** 2806 passed / 17 skipped / 0 failed · ruff clean
+**Commits:** `3586880` (steering) · `5970939` (hierarchy)
+**Suite:** 2848 passed / 17 skipped / 0 failed · ruff clean
 **Surface:** `backend/routers/steering.py` (616 lines) ·
 `backend/routers/hierarchy.py` (405) · `frontend/js/12-information-hierarchy.js` (751)
 
@@ -187,3 +188,118 @@ Six existing tests asserted 200 on create and were updated to 201.
 4. **`hierarchy` and `steering` are one pane but two unrelated backends.** The
    tab works, but the pairing looks incidental; worth revisiting during any
    further consolidation.
+
+---
+
+# Part 2 — The Hierarchy half (`5970939`)
+
+The first pass covered `steering.py`. The `hierarchy.py` side of the same pane
+had its own defects, and they share a root cause with the steering findings:
+**this pane's output is concatenated into the LLM system prompt by `chat.py`**,
+so its inputs are a file-read and prompt-injection surface, not just stored text.
+
+## 🔴 1. Path traversal, with the result fed to the model
+
+`project_id` went straight into a filesystem path with no validation anywhere:
+
+```python
+pdir = PROJECTS_DIR / project_id     # no check, no normalisation
+```
+
+Verified live:
+
+```
+POST /projects/create {"project_id": "../../../tmp/hier_escape"}
+  → 200 OK, created /home/user/repo/tmp/hier_escape
+
+GET /compiled-context?project_id=../secretdir
+  → read files outside the projects tree, and injected their contents
+    into the LLM system prompt
+```
+
+The second is the serious one. `compiled-context` output is concatenated into
+the system prompt, so traversal here is an **arbitrary-file-read whose results
+are handed to the model** — the read doesn't even need to return to the
+attacker to do damage.
+
+Fixed with `normalize_project_id()` + `project_dir()`, using
+`Path.relative_to()` rather than a string prefix — the same defect found in
+Modules 10 and 12, now on its third appearance. Normalisation strips path
+characters *before* validation, so traversal fails the check rather than
+silently becoming a different valid-looking id.
+
+I left the traversal artefact in place long enough to confirm the fix: the
+directory `tmp/escape_probe` was created at 02:46 by the pre-fix code and was
+**not** recreated afterwards.
+
+## 🔴 2. Every user's AI was told it worked for someone else
+
+The four Tier 1 templates shipped the author's real details as the default for
+every install:
+
+```
+- **Name:** Joshua Strickland
+- **Company Name:** Strick Tech
+- **Free Version:** … **Pro Version:** … **Enterprise Version:** …
+```
+
+Because `compiled-context` feeds the system prompt, a fresh install silently
+told its AI it was working for Strick Tech — with that company's product tiers
+and pricing, phrased confidently enough that the model would **cite it as
+fact**. A user would have to discover and rewrite four files they were never
+told existed.
+
+Replaced with neutral fill-in prompts carrying an explicit unfilled marker.
+`POST /tier1/reset` clears an existing install, since those files are already on
+disk and nothing short of deleting them by hand would help.
+
+## 🔴 3. Unfilled templates are no longer injected as fact
+
+A page of `_(your name)_` prompts teaches the model nothing and wastes context.
+Only filled files are injected now; when none are, the block says so:
+
+> The user has not set up their profile yet. Do not invent details about them,
+> their business, their voice, or their pricing. If such a detail is needed, ask.
+
+An empty context block invites confabulation. Stating that nothing is known is
+strictly better than stating nothing at all.
+
+## 🟡 4. `initialized` was structurally always true
+
+`_ensure_tier1_init()` creates all four files on first read, and `/status` only
+checked existence — so nothing could distinguish a configured profile from an
+untouched one. Added `configured` and `tier1_unfilled`, detected by **marker**
+rather than by comparing against the default text, so editing one line clears
+the flag and reformatting the templates later won't silently break detection.
+
+## 🟡 5. Project lifecycle
+
+- **No delete.** `DELETE` returned 405; a mistaken project stayed in every
+  listing forever. Added `DELETE /projects/{id}`.
+- **Re-creating silently overwrote `meta.json`** — name, audience and
+  `created_at` replaced with no warning while the IVREN content stayed, leaving
+  a project whose metadata described something else. Now 409.
+
+## 🟡 6. Frontend
+
+`pid` was interpolated into `onclick="selectTier2Project('${pid}')"`. The server
+now rejects ids outside `[a-z0-9_]` so a quote can't reach it, but building
+inline handlers from data is the pattern that has already caused breakage in
+this codebase — switched to event delegation, added the delete affordance with
+confirmation, and surfaced the server's error detail.
+
+## Tests
+
+`tests/unit/test_66_hierarchy_module_review.py` — **42 contracts**, including
+nine traversal payloads and a canary-file test proving `compiled-context` can no
+longer read outside its tree. **36 of 42 fail against the pre-fix code.**
+
+`test_32` asserted `"Joshua Strickland" in about_me` — updated to assert the
+template's *shape* instead, and made idempotent since projects persist on disk
+and re-creation is now a conflict.
+
+## Note on concurrent work
+
+The steering fix (`3586880`) landed on `main` while this was in progress. No
+file overlap; rebased cleanly. Both test files were numbered `test_65_`, so mine
+was renamed to `test_66_`.
