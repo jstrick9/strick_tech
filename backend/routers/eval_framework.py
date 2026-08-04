@@ -457,6 +457,30 @@ async def run_eval(req: Request):
     suite_id = (body.get('suite_id') or 'suite_general').strip()
     run_id = f'erun_{uuid.uuid4().hex[:8]}'
 
+    # Validate BEFORE opening the stream. A nonexistent suite previously
+    # returned HTTP 200 with an SSE body carrying {"error": ...}, so a client
+    # checking the status code saw success and a caller piping the stream to a
+    # dashboard recorded an eval run that never happened. The message was
+    # honest; the status code was not.
+    _con = _get_conn()
+    try:
+        _suite = _con.execute('SELECT 1 FROM eval_suites WHERE suite_id=?', (suite_id,)).fetchone()
+        _n_cases = _con.execute(
+            'SELECT COUNT(*) FROM eval_cases WHERE suite_id=?', (suite_id,)
+        ).fetchone()[0]
+    finally:
+        _con.close()
+
+    if not _suite:
+        return JSONResponse(
+            {'ok': False, 'error': f"Eval suite '{suite_id}' not found"}, status_code=404
+        )
+    if not _n_cases:
+        return JSONResponse(
+            {'ok': False, 'error': f"Eval suite '{suite_id}' has no cases to run"},
+            status_code=409,
+        )
+
     async def _stream():
         con = _get_conn()
         try:
