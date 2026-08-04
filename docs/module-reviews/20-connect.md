@@ -157,3 +157,110 @@ Full suite: **3362 passed / 18 skipped / 0 failed** (was 3317).
 4. **Webhooks have no signature verification** on inbound calls.
 5. **No rate limiting on connector execution** — an agent loop could exhaust a
    third-party API quota with no local backstop.
+
+---
+
+# Follow-up 1 — Per-agent tool permissions (`6a24ffe`)
+
+The top follow-up, and the one with the widest blast radius.
+
+## The gap
+
+`agent_permissions` has existed since Sprint A. It is populated on
+provisioning, displayed on agent cards, and counted in the identity UI.
+**Nothing has ever consulted it to authorise anything.** Both readers in the
+codebase use it for display.
+
+Verified live, with an agent holding neither `write_files` nor `delete_files`:
+
+| Call | Result |
+|---|---|
+| `fs.write` as `probe_readonly` | **200 — file written** |
+| `fs.delete` as `probe_readonly` | **200 — file deleted** |
+| `fs.write` as `i_do_not_exist` | **200 — file written** |
+
+The last one is the worst. A **fictional agent id** wrote a file, and the audit
+chain recorded it as that agent's action.
+
+An identity field that is accepted, logged, echoed back in the response and
+written to the immutable audit chain — but never used to make a decision — is
+**worse than no field at all**. The trail reads as though authorisation
+happened. Every governance surface built in this review (Module 17's ledger,
+the agent cards, the receipts) was describing a control that did not exist.
+
+## The design
+
+`backend/services/tool_policy.py` maps each tool to the coarse permission verb
+it needs, matching how grants are already expressed. Enforced in
+`/api/mcp/call`, which the gateway dispatches through — so one guard covers
+both doors, asserted by a test rather than assumed, since "second door" gaps
+have now appeared three times in this review.
+
+Two decisions that look inconsistent and are not:
+
+* **Unknown *agent* → deny.** An unauthenticated caller gives no basis for any
+  decision.
+* **Unmapped *tool* → allow.** Failing closed here would break every caller the
+  moment someone adds a tool. Instead, a test enumerates the map against the
+  live `TOOLS` dict, so the gap is caught at review time.
+
+That test earned itself immediately: it found **`code.run` — which executes
+arbitrary Python — entirely absent from the map**. Allow-by-default would have
+handed Python execution to every agent, including unknown ones.
+
+Also: `system` (and a missing `agent_id`) stays unrestricted because it is the
+platform, not an agent; `expires_at` is now honoured; denials are audited and
+name the missing permission; and `GET /api/connect/permissions/{agent_id}`
+answers the operator's actual question — *given these grants, what can this
+agent do?*
+
+## Self-correction
+
+My first version left `fs.write` out of `HIGH_RISK`. The standard authority
+level grants `use_tools` but not `write_files`, so **the wildcard silently
+re-opened the exact bypass this module was written to close** — an agent with
+no write permission wrote a file and got HTTP 200.
+
+Caught by re-running the original reproduction against the fix rather than
+assuming it worked. The rule that came out of it: `use_tools` is a convenience
+grant for *read-shaped* tools; anything that mutates state on disk, in the
+repo, or on another system needs its own permission. A test now asserts that
+every tool mapped to a mutating action is in `HIGH_RISK`.
+
+## A correction to the record
+
+A workspace snapshot rollback wiped uncommitted work mid-session. Commit
+`da6b3e4`'s **message** describes the full Module 19 follow-up set, but
+`git show --stat da6b3e4` is a **single file rename** — the code was lost
+before staging, and that commit message overstates what landed.
+
+I am stating this plainly rather than quietly backfilling, because a commit
+message that describes work not in the diff is exactly the kind of misleading
+record this review keeps flagging in the code itself.
+
+Recovered and verified by the 44 tests in `test_79` that were failing against
+`origin/main`:
+
+* `plugin_safety` wiring in `skills.py` (the second door for template execution)
+* `/api/hub/provenance`, `/api/hub/updates`, `/api/hub/review`
+* shared-skill-aware uninstall in `marketplace.py`
+
+## Tests
+
+`tests/unit/test_81_agent_tool_permissions.py` — **27 cases**.
+**Proven to catch the bug: with `mcp.py` stashed, 8 of 27 fail.**
+
+Two worth calling out: one asserts a denied call **does not perform the action
+anyway** (a 403 that still writes the file would be worse than no check), and
+one asserts that **granting the permission restores access** — proving
+enforcement is table-driven rather than hardcoded.
+
+Full suite: **3389 passed / 18 skipped / 0 failed**.
+
+## Remaining CONNECT follow-ups
+
+2. `mcp_gateway.tool_count` is `null` for all six servers.
+3. `shell.run`'s allow-list is command-name based (`git` can run arbitrary code
+   via `-c core.pager`).
+4. Webhooks have no inbound signature verification.
+5. No rate limiting on connector execution.
