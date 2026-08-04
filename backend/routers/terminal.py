@@ -17,7 +17,7 @@ import signal
 import time
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.memory_db import audit_log, get_conn
@@ -257,8 +257,23 @@ def _auth_required() -> bool:
     return not _bound_to_loopback()
 
 
+class TerminalAccessDeniedError(Exception):
+    """Raised when a caller may not use the terminal at all.
+
+    Carries the response body so app.py can render it verbatim, keeping the
+    {'ok': false, 'error': ..., 'code': ...} shape every other refusal in
+    this platform uses, rather than FastAPI's default {"detail": ...}.
+    """
+
+    def __init__(self, status: int, error: str, code: str):
+        super().__init__(error)
+        self.status = status
+        self.error = error
+        self.code = code
+
+
 async def _check_terminal_access(req: Request) -> JSONResponse | None:
-    """Return a refusal response if this caller may not run commands."""
+    """Return a refusal response if this caller may not use the terminal."""
     if os.getenv('TERMINAL_DISABLED', '').strip() in {'1', 'true', 'yes'}:
         return JSONResponse(
             {
@@ -316,6 +331,42 @@ async def _check_terminal_access(req: Request) -> JSONResponse | None:
             status_code=503,
         )
     return None
+
+
+async def require_terminal_access(request: Request) -> None:
+    """Router-level dependency: gate EVERY terminal endpoint.
+
+    The first version of this gate covered POST /run only, on the reasoning
+    that /run is the endpoint that executes commands. That was wrong; the other
+    six were left open. Verified live with TERMINAL_REQUIRE_AUTH=1 and no key:
+
+      GET    /history      -> 200, returned every command ever run
+      DELETE /history      -> 200, wiped the audit trail
+      GET    /env          -> 200, disclosed toolchain versions and host paths
+      POST   /env/refresh  -> 200, forced four blocking subprocesses on demand
+      POST   /kill/{id}    -> reachable; terminates someone else's running command
+
+    Command history is not incidental data: it routinely holds repository URLs,
+    hostnames, absolute paths, and sometimes embedded credentials
+    (`git clone https://user:token@host/...`). Being able to erase it removes
+    the record of what was run.
+
+    Attaching this to the APIRouter rather than to individual endpoints is the
+    real fix. A hand-maintained per-endpoint list is precisely what failed
+    here, and it would fail again the next time a route is added.
+    """
+    denied = await _check_terminal_access(request)
+    if denied is not None:
+        body = json.loads(bytes(denied.body).decode('utf-8'))
+        raise TerminalAccessDeniedError(
+            denied.status_code,
+            body.get('error', 'Forbidden'),
+            body.get('code', 'forbidden'),
+        )
+
+
+# Applied to every route on this router, including any added later.
+router.dependencies.append(Depends(require_terminal_access))
 
 
 # ── OS-level resource limits ──────────────────────────────────────────────────
@@ -537,10 +588,6 @@ async def run_command(req: Request):
     command = (body.get('command') or '').strip()
     cwd = body.get('cwd', '')
     session = body.get('session_id', str(uuid.uuid4())[:8])
-
-    denied = await _check_terminal_access(req)
-    if denied is not None:
-        return denied
 
     # A rejected command never opens a stream, so it can carry a real status
     # code. These returned HTTP 200 with the refusal buried in an SSE frame,

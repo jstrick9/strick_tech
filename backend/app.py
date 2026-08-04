@@ -508,6 +508,24 @@ async def _llm_unavailable_handler(request: Request, exc: _LLMUnavailableError):
     )
 
 
+# ── Terminal access refusals ──────────────────────────────────────────────────
+# The terminal router gates every one of its endpoints with a dependency. A
+# dependency can only raise, so it raises TerminalAccessDeniedError and this renders
+# it in the same {ok, error, code} shape as every other refusal in the platform
+# instead of FastAPI's default {"detail": ...}.
+from .routers.terminal import TerminalAccessDeniedError as _TerminalAccessDeniedError
+
+
+@app.exception_handler(_TerminalAccessDeniedError)
+async def _terminal_access_denied_handler(request: Request, exc: _TerminalAccessDeniedError):
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(
+        {'ok': False, 'error': exc.error, 'code': exc.code},
+        status_code=exc.status,
+    )
+
+
 # FIX 1: Timing middleware to populate _endpoint_stats for the profiler
 from .routers.profiler import record_endpoint_latency as _record_latency
 

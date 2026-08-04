@@ -80,13 +80,20 @@ class TestAuthorisationGate:
         assert 'terminal_auth_unavailable' in SRC
         assert 'status_code=503' in SRC
 
-    def test_the_gate_runs_before_anything_else(self):
-        """Otherwise a command could be executed before access is checked."""
-        idx = SRC.index('async def run_command')
-        body = SRC[idx : idx + 2500]
-        gate = body.index('_check_terminal_access')
-        exec_at = body.index('create_subprocess_shell') if 'create_subprocess_shell' in body else len(body)
-        assert gate < exec_at
+    def test_the_gate_runs_before_the_handler(self):
+        """Originally an inline check at the top of run_command.
+
+        Now a router-level dependency, which FastAPI resolves before the
+        handler is entered at all — a stronger guarantee than ordering
+        statements inside the function, and one that cannot be forgotten when
+        a new endpoint is added.
+        """
+        from backend.routers.terminal import require_terminal_access, router
+
+        run_routes = [r for r in router.routes if getattr(r, 'path', '') == '/api/terminal/run']
+        assert run_routes, '/run route not found'
+        dependant = run_routes[0].dependant
+        assert require_terminal_access in [sub.call for sub in dependant.dependencies]
 
     def test_loopback_default_still_executes(self, client, monkeypatch):
         monkeypatch.setenv('AGENTIC_OS_HOST', '127.0.0.1')
@@ -285,3 +292,87 @@ class TestEarlierFixesStillHold:
     def test_secrets_still_stripped_from_env(self, monkeypatch):
         monkeypatch.setenv('OPENROUTER_API_KEY', 'sk-or-x')
         assert 'OPENROUTER_API_KEY' not in term._sandboxed_env()
+
+
+# ── Follow-up correction: the gate must cover EVERY endpoint ───────────────────
+
+
+class TestEveryEndpointIsGated:
+    """The first version of the gate protected POST /run only.
+
+    That was a real gap, not a theoretical one. Verified live with
+    TERMINAL_REQUIRE_AUTH=1 and no API key, before this correction:
+
+      GET    /history      -> 200, returned every command ever run
+      DELETE /history      -> 200, wiped the audit trail
+      GET    /env          -> 200, disclosed toolchain versions and host paths
+      POST   /env/refresh  -> 200, forced four blocking subprocesses on demand
+      POST   /kill/{id}    -> reachable; kills someone else's running command
+
+    Command history routinely holds repository URLs, hostnames, absolute paths
+    and sometimes embedded credentials, so read access is not harmless, and
+    delete access destroys the record of what was run.
+    """
+
+    def test_the_gate_is_attached_to_the_router_not_per_endpoint(self):
+        """A hand-maintained per-endpoint list is exactly what failed here."""
+        assert 'router.dependencies.append(Depends(require_terminal_access))' in SRC
+
+    def test_no_endpoint_carries_its_own_ad_hoc_check(self):
+        """Belt-and-braces per route would drift out of sync again."""
+        assert SRC.count('await _check_terminal_access(') == 1
+
+    def test_every_route_resolves_the_dependency(self):
+        """Enumerate the live routes rather than trusting the source text.
+
+        This is the test that fails if someone adds a terminal endpoint later
+        and the gate is not applied to it.
+        """
+        from backend.routers.terminal import require_terminal_access, router
+
+        assert router.routes, 'no routes registered'
+        for route in router.routes:
+            names = [d.dependency for d in getattr(route, 'dependencies', [])]
+            deps = getattr(route, 'dependant', None)
+            resolved = names + [
+                sub.call for sub in (deps.dependencies if deps else [])
+            ]
+            assert require_terminal_access in resolved, (
+                f'{route.path} is not gated'
+            )
+
+    @pytest.mark.parametrize(
+        'method,path',
+        [
+            ('post', '/api/terminal/run'),
+            ('get', '/api/terminal/history'),
+            ('delete', '/api/terminal/history'),
+            ('get', '/api/terminal/env'),
+            ('post', '/api/terminal/env/refresh'),
+            ('post', '/api/terminal/kill/abc'),
+            ('get', '/api/terminal/suggestions'),
+        ],
+    )
+    def test_disabled_blocks_reads_as_well_as_execution(self, client, monkeypatch, method, path):
+        """TERMINAL_DISABLED must turn the whole feature off, not just /run."""
+        monkeypatch.setenv('TERMINAL_DISABLED', '1')
+        r = getattr(client, method)(path)
+        assert r.status_code == 403
+        assert r.json()['code'] == 'terminal_disabled'
+
+    def test_refusals_keep_the_platform_error_shape(self, client, monkeypatch):
+        """A dependency can only raise; without a handler FastAPI emits
+        {"detail": ...}, which no other refusal in this platform uses."""
+        monkeypatch.setenv('TERMINAL_DISABLED', '1')
+        body = client.get('/api/terminal/env').json()
+        assert body['ok'] is False
+        assert 'error' in body and 'code' in body
+        assert 'detail' not in body
+
+    def test_loopback_default_leaves_everything_open(self, client, monkeypatch):
+        """Existing single-user installs must not need a key."""
+        monkeypatch.setenv('AGENTIC_OS_HOST', '127.0.0.1')
+        monkeypatch.delenv('TERMINAL_REQUIRE_AUTH', raising=False)
+        monkeypatch.delenv('TERMINAL_DISABLED', raising=False)
+        assert client.get('/api/terminal/env').status_code == 200
+        assert client.get('/api/terminal/history').status_code == 200
