@@ -207,6 +207,38 @@ a network-reachable shell. Verified live — `TERMINAL_REQUIRE_AUTH=1` with an
 empty user table ran `echo hi` and returned **200**. Now 401 with instructions.
 The gate also fails **closed** (503) if the auth backend itself errors.
 
+**Correction — the first version of this gate was incomplete** (`361b1c9`).
+
+I applied it to `POST /run` only, reasoning that `/run` is the endpoint that
+executes commands. The other six were left open. Verified live with
+`TERMINAL_REQUIRE_AUTH=1` and no key:
+
+| Endpoint | Was | Exposure |
+|---|---|---|
+| `POST /run` | 401 | the only one I had covered |
+| `GET /history` | **200** | every command ever run |
+| `DELETE /history` | **200** | wipes the audit trail |
+| `GET /env` | **200** | toolchain versions, host paths |
+| `POST /env/refresh` | **200** | forces four blocking subprocesses on demand |
+| `POST /kill/{id}` | reachable | terminates someone else's command |
+
+Command history is not incidental data — it routinely holds repository URLs,
+hostnames, absolute paths and sometimes embedded credentials
+(`git clone https://user:token@host/...`). Gating the executor while leaving its
+audit log world-readable and world-erasable is not a gate.
+
+The fix is a **router-level dependency** rather than a check inside one handler:
+
+```python
+router.dependencies.append(Depends(require_terminal_access))
+```
+
+That's the real correction. A hand-maintained per-endpoint list is precisely what
+failed here, and it would fail again the next time a route is added. The
+accompanying test enumerates the router's live routes and asserts each resolves
+the dependency — proven by injecting a `/leaky` endpoint and watching it fail with
+*"/api/terminal/leaky is not gated"*.
+
 ### 2. Kernel-enforced resource limits
 
 The filter can only enumerate badness; it cannot bound what an *allowed* command
