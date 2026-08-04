@@ -149,6 +149,17 @@ async function runComposer() {
             if (existing) existing.innerHTML = `<span style="font-family:monospace;color:var(--green)">${escHtml(ev.path)}</span> <span style="color:var(--green)">✅ ${ev.bytes}B</span>`;
           }
 
+          // The backend now refuses paths that escape the project directory or
+          // target protected filenames. Nothing rendered file_error, so a
+          // refused file just stayed on "⏳" forever with no explanation.
+          if (ev.type === 'file_error') {
+            const id = `comp-file-${btoa(ev.path).slice(0,8)}`;
+            const existing = document.getElementById(id);
+            const msg = `<span style="font-family:monospace;color:var(--red)">${escHtml(ev.path)}</span> <span style="color:var(--red)">✕ ${escHtml(ev.error||'failed')}</span>`;
+            if (existing) { existing.innerHTML = msg; }
+            else { const d = document.createElement('div'); d.innerHTML = msg; results.appendChild(d); }
+          }
+
           if (ev.type === 'done') {
             const written = ev.files_written || [];
             status.innerHTML = `✅ Done in ${ev.duration_ms}ms — ${written.length} files written`;
@@ -220,10 +231,16 @@ async function runScreenshotToCode() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({image_b64: screenshotB64.split(',')[1], framework: fw, filename:'index.html'})
     });
-    if (!r.ok) { throw new Error(`HTTP ${r.status}`); }
+    if (!r.ok) {
+      let detail = '';
+      try { detail = (await r.json()).error || ''; } catch (e) { /* non-JSON body */ }
+      throw new Error(detail || `HTTP ${r.status}`);
+    }
     const j = await r.json();
     if (j.ok) {
-      if (st) st.innerHTML = `✅ Converted! ${j.tokens} tokens · <a href="${j.preview_url}" target="_blank" style="color:var(--accent)">Preview ↗</a>`;
+      // preview_url went into an href unescaped; keep it same-origin and escaped.
+      const safeUrl = /^\/[^\s"'<>]*$/.test(j.preview_url || '') ? j.preview_url : '/preview/index.html';
+      if (st) st.innerHTML = `✅ Converted! ${escHtml(String(j.tokens ?? 0))} tokens · <a href="${escHtml(safeUrl)}" target="_blank" rel="noopener" style="color:var(--accent)">Preview ↗</a>`;
       studioLoadFileTree?.();
       studioReloadPreview?.();
       toast('📷 Screenshot converted to code!', 'ok', 4000);

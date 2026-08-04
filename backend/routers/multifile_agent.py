@@ -18,7 +18,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services import llm, memory_db
 
@@ -30,6 +30,50 @@ from ..services.llm import sse_guard
 
 ROOT = get_data_dir()
 PREV = ROOT / 'preview'
+
+# Filenames that must never be written by generated code, regardless of where
+# they land: they change how the surrounding tooling behaves rather than being
+# project content.
+_FORBIDDEN_NAMES = {
+    '.env', '.env.local', '.git', '.gitignore', '.npmrc', '.netrc',
+    'id_rsa', 'authorized_keys', '.bashrc', '.profile', '.ssh',
+}
+
+
+def safe_preview_path(relative: str, *, base: Path | None = None) -> Path | None:
+    """Resolve a path inside PREVIEW_DIR, or None if it escapes.
+
+    BUG FIX: every write site here used
+        str(target).startswith(str(PREV.resolve()))
+    which is a prefix test on a STRING, not on path components. A sibling
+    directory whose name merely begins with "preview" passed it:
+
+        '../preview_ESCAPED/pwn.html' -> <root>/preview_ESCAPED/pwn.html  ACCEPTED
+
+    This is the fourth appearance of the same defect (imagegen Module 10,
+    terminal Module 12, hierarchy Module 13). It matters more here than
+    anywhere else so far, because in composer_run() the paths come from the
+    LLM's own output — a prompt-injected instruction, a poisoned RAG memory, or
+    simply a confused model can choose where files are written. Path.relative_to()
+    compares components, so the sibling trick cannot work.
+    """
+    root = (base or PREV).resolve()
+    if not relative or not isinstance(relative, str):
+        return None
+    if '\x00' in relative:
+        return None
+    try:
+        target = (root / relative.lstrip('/')).resolve()
+        target.relative_to(root)
+    except (ValueError, OSError):
+        return None
+    # Reject dotfile/config names anywhere in the path, not just the leaf: an
+    # LLM writing ".env" or ".git/config" into the preview tree would alter how
+    # the workspace itself behaves.
+    parts = {part.lower() for part in target.parts}
+    if parts & _FORBIDDEN_NAMES:
+        return None
+    return target
 
 
 # ── Multi-file agent run ───────────────────────────────────────────────────────
@@ -52,7 +96,7 @@ async def composer_run(req: Request):
     extra_ctx = body.get('context', '')
 
     if not instruction:
-        return {'ok': False, 'error': 'instruction required'}
+        return JSONResponse({'ok': False, 'error': 'instruction required'}, status_code=400)
 
     run_id = f'comp_{uuid.uuid4().hex[:8]}'
 
@@ -147,8 +191,24 @@ Rules:
             yield f'data: {json.dumps({"type": "file_start", "path": path, "bytes": len(content)})}\n\n'
 
             try:
-                target = (PREV / path).resolve()
-                if not str(target).startswith(str(PREV.resolve())):
+                # These paths come from the MODEL, not the user, so this is the
+                # boundary that stops a generated plan writing outside the
+                # workspace. Report the rejection instead of silently skipping:
+                # a `continue` here left the user with a "done" run and a
+                # missing file and no explanation.
+                target = safe_preview_path(path)
+                if target is None:
+                    yield (
+                        'data: '
+                        + json.dumps(
+                            {
+                                'type': 'file_error',
+                                'path': path,
+                                'error': 'refused: path escapes the project directory or is a protected filename',
+                            }
+                        )
+                        + '\n\n'
+                    )
                     continue
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_text(content, encoding='utf-8')
@@ -212,7 +272,9 @@ async def screenshot_to_code(req: Request):
     style = body.get('style', 'dark')
 
     if not image_b64 and not image_url:
-        return {'ok': False, 'error': 'image_b64 or image_url required'}
+        return JSONResponse(
+            {'ok': False, 'error': 'image_b64 or image_url required'}, status_code=400
+        )
 
     # Build prompt with image
     image_content = []
@@ -281,8 +343,9 @@ Return ONLY the complete code file, no explanation."""
 
     if code:
         # Save to preview
-        target = (PREV / filename).resolve()
-        if str(target).startswith(str(PREV.resolve())):
+        target = safe_preview_path(filename)
+        if target is not None:
+            target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(code, encoding='utf-8')
             con = memory_db.get_conn()
             try:
@@ -309,6 +372,15 @@ Return ONLY the complete code file, no explanation."""
 _branch_previews: dict[str, dict] = {}  # branch_name → {url, files, created_at}
 
 
+_BRANCH_RE = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$')
+
+
+def normalize_branch(raw: str) -> str:
+    """Fold a branch name to the safe form, or '' if nothing usable remains."""
+    cleaned = re.sub(r'[^a-zA-Z0-9_-]', '-', str(raw or '')).strip('-')[:64]
+    return cleaned if _BRANCH_RE.match(cleaned) else ''
+
+
 @router.post('/preview/branch')
 async def create_branch_preview(req: Request):
     """
@@ -320,7 +392,15 @@ async def create_branch_preview(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    branch_name = re.sub(r'[^a-zA-Z0-9_-]', '-', body.get('name', f'preview-{int(time.time())}'))
+    branch_name = normalize_branch(body.get('name') or f'preview-{int(time.time())}')
+    if not branch_name:
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': 'Branch name must contain letters or digits (a-z, 0-9, - and _).',
+            },
+            status_code=400,
+        )
     title = body.get('title', branch_name)
     description = body.get('description', '')
 
@@ -399,11 +479,30 @@ def delete_branch_preview(branch_name: str):
     """Delete or remove specified branch preview."""
     import shutil
 
-    branch_dir = PREV / 'branches' / re.sub(r'[^a-zA-Z0-9_-]', '', branch_name)
-    if branch_dir.exists():
-        shutil.rmtree(branch_dir)
-    _branch_previews.pop(branch_name, None)
-    return {'ok': True}
+    # BUG FIX: this STRIPPED unsafe characters instead of rejecting the name.
+    # A name of '..', '...' or '////' reduced to '', so the path became
+    # PREV/'branches'/'' — the branches ROOT — and rmtree deleted EVERY branch
+    # plus the directory itself. Verified live: two branches existed,
+    # `DELETE /preview/branches/...` returned 200 and both were gone.
+    safe_name = normalize_branch(branch_name)
+    if not safe_name:
+        return JSONResponse(
+            {'ok': False, 'error': f'Invalid branch name: {branch_name!r}'},
+            status_code=400,
+        )
+    branch_dir = safe_preview_path(f'branches/{safe_name}')
+    if branch_dir is None or branch_dir.resolve() == (PREV / 'branches').resolve():
+        return JSONResponse(
+            {'ok': False, 'error': f'Invalid branch name: {branch_name!r}'},
+            status_code=400,
+        )
+    if not branch_dir.is_dir():
+        return JSONResponse(
+            {'ok': False, 'error': f"Branch '{safe_name}' not found"}, status_code=404
+        )
+    shutil.rmtree(branch_dir)
+    _branch_previews.pop(safe_name, None)
+    return {'ok': True, 'deleted': safe_name}
 
 
 # ── Project context ────────────────────────────────────────────────────────────
