@@ -364,3 +364,67 @@ The honest summary: **phase 2 is blocked on verification capability, not on
 effort or understanding.** I have removed every part of that blocker I can —
 the shim is proven, the tooling exists, the remaining work is enumerated, and
 the measurement infrastructure is live and collecting.
+
+
+---
+
+# Phase 2 unblocker — the desktop install now provisions a browser (`baebaf2`)
+
+The blocker I documented above was *verification capability*, not effort. This
+removes it for anyone running the app locally.
+
+## Where the hook goes, and why it matters
+
+`run.py` — **not** just `start.sh`. The Tauri desktop shell
+(`src-tauri/src/main.rs`) launches `run.py` **directly** and never touches the
+shell scripts. Hooking only `start.sh` would have missed the exact install this
+was asked for. A test asserts that relationship, so a future refactor cannot
+quietly move the hook somewhere the desktop app never reaches.
+
+`start.sh` and `start.bat` are wired too, for the non-desktop paths.
+
+## Safety properties
+
+A ~120MB download on a desktop startup path needs care:
+
+| Property | Why | Verified |
+|---|---|---|
+| Non-blocking | The window must appear immediately | Server ready in **2s** with the hook live |
+| Never fatal | An optional test dep must not stop the product | Every path logs and continues |
+| Not repeated | A long download retried every launch is its own bug | Second run returns in **0.4s**, no download |
+| `--with-deps` opt-in | It needs root and would prompt mid-launch | Default install does not use it |
+
+## A bug in my first version, caught by testing it here
+
+`browser_available()` originally checked only that the executable **file**
+existed. On this machine the 425MB binary downloaded fine and
+`executable_path` pointed at a real file — so it reported **"available"** while
+every launch failed with *"Host system is missing dependencies to run
+browsers"*.
+
+That is exactly the **"looks present, does nothing"** shape this review has
+spent 22 modules removing. It would have let the bootstrap claim success while
+leaving phase 2 just as blocked. It now **actually launches** the browser to
+decide, and distinguishes *"not downloaded"* from *"downloaded but
+unlaunchable"* — those have different remedies, and collapsing them sends the
+user to the wrong fix.
+
+## The e2e suite degrades honestly now
+
+`tests/e2e_browser/conftest.py` imported playwright at module scope with no
+guard, so all 31 tests **errored**. An error says *"the suite is broken"*; a
+skip says *"this needs a browser"* — and that distinction is what tells a
+developer whether they have a problem to fix.
+
+Now 31 clean skips with an actionable message, and the suite is included in the
+standard full run rather than quarantined.
+
+## What this means for phase 2
+
+On a developer machine that runs the desktop app or `start.sh`, Chromium
+installs itself and `tests/e2e_browser` runs for real. The migration can then
+proceed the way it should have all along: convert a file with
+`scripts/migrate_inline_handlers.py`, run the browser suite, move on.
+
+The remaining work is unchanged — **313 hand-written listeners and 5 inline
+`<script>` blocks** — but it is no longer gated on infrastructure.
