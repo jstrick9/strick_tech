@@ -283,11 +283,63 @@ applies the limits and reads them back rather than trusting the source text.
 
 ---
 
+## Follow-up 5 — OS-level isolation ✅ *done in `af1e32e`*
+
+The recommendation I closed the review with, on the grounds that a filter "can
+only ever enumerate badness". Done — and it turned out not to need the
+infrastructure I assumed.
+
+**I probed the host rather than assuming.** `bwrap`, `nsjail`, `firejail`,
+`docker` and `podman` are all absent and there is no root — but `unshare(2)` and
+`pivot_root(2)` are available and unprivileged user namespaces are permitted.
+So the sandbox is built from namespaces directly: no daemon, no dependency, no
+privilege.
+
+Each command runs in fresh user/mount/pid/ipc/uts/net namespaces, `pivot_root`ed
+into an ephemeral scratch root. The workspace is bind-mounted read-write at
+`/work`; system directories are bind-mounted **read-only**; the host filesystem
+is not hidden but *unreachable*.
+
+Measured on this host:
+
+| probe | unsandboxed | sandboxed |
+|---|---|---|
+| read `backend/routers/secrets.py` | readable | No such file or directory |
+| stat `memory/agentic.db` | readable | No such file or directory |
+| host processes visible | 96 | **1** |
+| outbound HTTP | reachable | URLError |
+| workspace read/write | works | works |
+| python3 / node / git | work | work |
+
+### Two things found while building it
+
+1. **`/dev/null` is not optional.** Without it `git --version` fails outright.
+   An isolation layer that breaks the toolchain isn't a fix, so the jail mounts
+   a minimal `/dev`.
+2. **`wrap_command()` didn't scrub the environment.** `terminal.py` passes
+   `env=_sandboxed_env()` so production was never exposed — but a canary test
+   proved a caller who forgot would leak `OPENROUTER_API_KEY` straight into the
+   jail. The sandbox now drops the environment at the boundary with `env -i`.
+   *A sandbox that only isolates when the caller remembers to scrub is a sandbox
+   with a footgun.*
+
+### Deliberately not overclaimed
+
+This is defence in depth, **not** a containment guarantee. No seccomp, no
+cgroups, and user namespaces have their own CVE history — a kernel exploit
+defeats it. What it stops is the entire class of *"the filter didn't think of
+that"*.
+
+Where namespaces are unavailable the platform degrades to the filter + RLIMIT
+path and **says so**: every `/run` response carries `sandboxed: true|false` with
+a note, and `/env` reports the mechanism. A user who believes they are isolated
+when they are not is worse off than one who knows they aren't.
+
+34 contracts; namespace-dependent ones skip off-Linux rather than failing, since
+a red suite on macOS teaches nothing.
+
+---
+
 ## Module status
 
-All four follow-ups complete. The one thing I could not do here remains the
-honest long-term answer for arbitrary shell execution: **OS-level isolation**
-(a container or `nsjail`). The RLIMITs bound resource consumption, and the filter
-bounds obvious misuse, but neither is a substitute for a real sandbox. That is an
-infrastructure decision rather than a code fix, and it needs a host this
-environment cannot provide.
+All five follow-ups complete.
