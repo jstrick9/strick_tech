@@ -43,6 +43,13 @@ if %ERRORLEVEL% NEQ 0 (
     python -m pip install -r requirements.txt -q
 )
 
+REM ── Test browser (optional, one-time) ───────────────────────
+REM Downloads Playwright's Chromium so the browser E2E suite can run.
+REM Never fatal: the app runs fine without it.
+if not "%AGENTIC_SKIP_BROWSER_SETUP%"=="1" (
+    python scripts\ensure_browser.py --quiet
+)
+
 REM ── Run ──────────────────────────────────────────────────────
 echo.
 echo   🚀 Starting Agentic OS...

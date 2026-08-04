@@ -3,7 +3,17 @@ import pytest
 import multiprocessing
 import time
 import urllib.request
-from playwright.sync_api import sync_playwright
+
+# Import at module scope with no guard meant ALL 31 tests ERRORED rather than
+# skipped wherever no browser was installed — which is every fresh machine, and
+# was this sandbox for the whole review. An error says "the suite is broken";
+# a skip says "this needs a browser". The distinction matters because phase 2
+# of the CSP work is gated on someone being able to run these.
+#
+# scripts/ensure_browser.py now installs Chromium on first launch (see run.py
+# and start.sh), so on a normal desktop install these run for real.
+pytest.importorskip('playwright', reason='playwright not installed')
+from playwright.sync_api import sync_playwright  # noqa: E402
 
 BASE = "http://127.0.0.1:8787"
 
@@ -30,10 +40,22 @@ def live_server():
 
 @pytest.fixture(scope="session")
 def browser():
-    with sync_playwright() as p:
-        b = p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"])
-        yield b
-        b.close()
+    # A downloaded-but-unlaunchable Chromium is a real state: the 425MB binary
+    # installs fine while the host lacks libnss3 etc. Skipping with the actual
+    # reason is more useful than a stack trace repeated 31 times.
+    try:
+        with sync_playwright() as p:
+            b = p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"])
+            yield b
+            b.close()
+    except Exception as exc:
+        msg = str(exc)
+        if "missing dependencies" in msg or "libnss3" in msg or "Executable doesn" in msg:
+            pytest.skip(
+                "Chromium is not launchable on this host. Run: "
+                "python -m playwright install --with-deps chromium"
+            )
+        raise
 
 @pytest.fixture
 def page(browser):
