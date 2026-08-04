@@ -295,3 +295,50 @@ def test_unsafe_inline_is_documented_not_silently_shipped():
     is the honest position; pretending the CSP is strict is not."""
     assert 'KNOWN, DOCUMENTED weakness' in APP_PY
     assert 'escHtml() at each call site' in APP_PY
+
+
+# ══ 6. chat_log truncation ════════════════════════════════════════════════════
+def test_chat_log_stores_what_the_api_accepts(client):
+    """The API caps messages at 16000 but chat_log stored message[:4000], so a
+    long prompt or reply lost 12000 characters SILENTLY. The user saw the full
+    reply in the stream and a truncated one on reload, with nothing explaining
+    the difference. SQLite TEXT has no fixed width, so the cap bought nothing.
+    """
+    import uuid as _uuid
+
+    from backend.routers.chat import _log_chat
+    from backend.services.memory_db import get_conn
+
+    session = 'trunc_' + _uuid.uuid4().hex[:8]
+    body = 'A' * 9000
+    _log_chat(session, 'brain', 'user', body)
+
+    con = get_conn()
+    try:
+        stored = con.execute(
+            'SELECT LENGTH(message) FROM chat_log WHERE session_id=?', (session,)
+        ).fetchone()[0]
+    finally:
+        con.close()
+    assert stored == 9000, f'message truncated to {stored} characters'
+
+
+def test_chat_log_cap_matches_the_api_cap():
+    """Both numbers must move together; a mismatch is the bug.
+
+    Checked against a COMMENT-STRIPPED copy: my first version matched
+    '[:4000]' against the raw source and failed on the explanatory comment
+    describing the old value. That is the "assertion matching its own fix
+    comment" trap this review has hit in six modules; the fix is to strip
+    comments before asserting, not to reword the comment.
+    """
+    src_path = ROOT / 'backend' / 'routers' / 'chat.py'
+    # Line-wise comment strip: joining tokens with spaces would break
+    # '[:16000]' into '[ : 16000 ]' and the assertion would never match.
+    executable = '\n'.join(
+        line.split('#', 1)[0] if line.lstrip().startswith('#') else line
+        for line in src_path.read_text(encoding='utf-8').split('\n')
+    )
+
+    assert '[:4000]' not in executable, 'the 4000-char storage cap is back'
+    assert '[:16000]' in executable
