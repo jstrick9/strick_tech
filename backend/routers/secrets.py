@@ -9,6 +9,7 @@ import base64
 import contextlib
 import hashlib
 import json
+import logging
 import os
 import sqlite3
 
@@ -16,6 +17,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ..services.memory_db import audit_log, ensure_schema, get_conn
+
+log = logging.getLogger('agentic.secrets')
 
 router = APIRouter(prefix='/api/secrets', tags=['secrets'])
 from backend.config import get_data_dir
@@ -32,6 +35,26 @@ def _get_fernet():
         if not KEY_PATH.exists():
             KEY_PATH.write_bytes(Fernet.generate_key())
             KEY_PATH.chmod(0o600)
+        else:
+            # Tighten permissions on an EXISTING key too. chmod ran only in the
+            # creation branch, so any vault created before that line was added
+            # kept whatever the umask gave it -- and stayed that way forever.
+            # Found in this repo: memory/.vault_key was mode 644, world-readable.
+            #
+            # That key decrypts every stored credential, so its file mode is the
+            # whole of the vault's at-rest protection. Module 17 refused to let
+            # Database Studio read the secrets table for exactly this reason;
+            # leaving the master key readable by any local process undoes it.
+            try:
+                mode = KEY_PATH.stat().st_mode & 0o777
+                if mode & 0o077:
+                    KEY_PATH.chmod(0o600)
+                    log.warning(
+                        'Vault key %s was mode %o (group/other readable) — tightened to 600',
+                        KEY_PATH, mode,
+                    )
+            except OSError as e:  # pragma: no cover - non-POSIX or permission denied
+                log.error('Could not secure vault key permissions: %s', e)
         key = KEY_PATH.read_bytes()
         return Fernet(key)
     except ImportError:
