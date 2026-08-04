@@ -59,13 +59,33 @@ class TestFinOpsAdvanced:
             assert d["ok"] is True
 
     def test_budget_cap_on_breach_actions(self, client):
-        for action in ("alert", "pause", "kill"):
-            r = client.post("/api/finops/caps", json={
-                "name": f"Unit {action} breach",
-                "limit_usd": 0.01,
-                "on_breach": action
-            })
-            assert r.json()["ok"] is True
+        # These are WILDCARD caps (no scope_id), and 'pause'/'kill' are now
+        # enforced platform-wide at the LLM layer (Module 21). Left behind, a
+        # $0.01 global cap blocks every subsequent LLM call in the session --
+        # which is exactly what happened: test_59's provider-contract tests
+        # started failing because this test's residue denied the call before
+        # the provider check ran.
+        #
+        # The residue was always there (29 copies of "Unit pause breach" are
+        # sitting in the production database from past runs); it was only
+        # harmless while nothing read on_breach. Cleaning up is correct
+        # regardless, and the production rows are a real latent hazard now.
+        created = []
+        try:
+            for action in ("alert", "pause", "kill"):
+                r = client.post("/api/finops/caps", json={
+                    "name": f"Unit {action} breach",
+                    "limit_usd": 0.01,
+                    "on_breach": action
+                })
+                body = r.json()
+                assert body["ok"] is True
+                cap_id = body.get("cap_id") or (body.get("cap") or {}).get("cap_id")
+                if cap_id:
+                    created.append(cap_id)
+        finally:
+            for cap_id in created:
+                client.delete(f"/api/finops/caps/{cap_id}")
 
     def test_alert_resolve(self, client):
         alerts = client.get("/api/finops/alerts").json()
