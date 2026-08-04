@@ -35,7 +35,10 @@ import pathlib
 import re
 import sys
 
-ATTR = re.compile(r'\bon[a-z]+\s*=\s*"([^"]*)"')
+# on*= (legacy inline) AND data-act= (delegated via 00-delegate.js). Both end
+# up executing, so both need the same protection — migrating a handler from one
+# to the other must not move it out from under this guard.
+ATTR = re.compile(r'\b(?:on[a-z]+|data-act)\s*=\s*"([^"]*)"')
 INTERP = re.compile(r'\$\{([^}]*)\}')
 MARKER = 'inline-handler-ok'
 
@@ -75,9 +78,7 @@ def is_safe(expr: str) -> bool:
         return True
     if NUMERIC_TERNARY.match(expr):
         return True
-    if BOOL_OR_COUNTER.match(expr):
-        return True
-    return False
+    return bool(BOOL_OR_COUNTER.match(expr))
 
 
 def main() -> int:
