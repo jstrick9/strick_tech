@@ -12,6 +12,7 @@ async function renderDBStudio() {
       <button onclick="dbSetTab('supabase')" class="btn ${dbActiveTab==='supabase'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-supabase">☁️ Supabase</button>
       <button onclick="dbSetTab('sql')" class="btn ${dbActiveTab==='sql'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-sql">💻 SQL Editor</button>
       <button onclick="dbSetTab('designer')" class="btn ${dbActiveTab==='designer'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-designer">🏗️ Schema Designer</button>
+      <button onclick="dbSetTab('audit')" class="btn ${dbActiveTab==='audit'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-audit">📜 Audit Trail</button>
     </div>
   </div>
   <div id="db-body"></div>`;
@@ -20,7 +21,7 @@ async function renderDBStudio() {
 
 async function dbSetTab(tab) {
   dbActiveTab = tab;
-  ['sqlite','supabase','sql','designer'].forEach(t => {
+  ['sqlite','supabase','sql','designer','audit'].forEach(t => {
     const btn = document.getElementById('db-tab-' + t);
     if (btn) { btn.className = btn.className.replace('btn-primary','btn-ghost'); }
     if (t === tab && btn) { btn.className = btn.className.replace('btn-ghost','btn-primary'); }
@@ -32,6 +33,7 @@ async function dbSetTab(tab) {
   else if (tab === 'supabase') await renderSupabaseTab(el);
   else if (tab === 'sql') renderSQLEditorTab(el);
   else if (tab === 'designer') renderSchemaDesignerTab(el);
+  else if (tab === 'audit') await renderDBAuditTab(el);
 }
 
 async function renderSQLiteTab(el) {
@@ -311,10 +313,32 @@ function renderSQLEditorTab(el) {
   });
 }
 
+// Mirror of the server's _sql_risk(): purely a UX affordance so the user gets a
+// confirmation dialog before a DROP. It is NOT a security control — the server
+// classifies and records independently and never trusts anything sent from here.
+function dbSqlLooksDestructive(sql) {
+  const u = String(sql || '')
+    .replace(/--[^\n]*/g, ' ')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/'[^']*'/g, "''")
+    .toUpperCase();
+  if (/\b(DROP|TRUNCATE)\b/.test(u)) return true;
+  if (/\b(DELETE|UPDATE)\b/.test(u) && !/\bWHERE\b/.test(u)) return true;
+  return false;
+}
+
 async function runSQL() {
   const sql         = document.getElementById('sql-editor')?.value.trim();
   const allowWrite  = document.getElementById('sql-allow-write')?.checked;
   if (!sql) return;
+
+  if (allowWrite && dbSqlLooksDestructive(sql)) {
+    const ok = await gmDanger(
+      'Run destructive SQL?',
+      'This statement can drop a table or empty it entirely. It will be recorded in the immutable audit trail. Continue?'
+    );
+    if (!ok) return;
+  }
   const res = document.getElementById('sql-results');
   if (res) res.innerHTML = '<div style="color:var(--text-2)">Running…</div>';
 
@@ -330,7 +354,8 @@ async function runSQL() {
     return;
   }
   if (j.type === 'write') {
-    res.innerHTML = `<div style="color:var(--green)">✅ ${j.rows_affected} rows affected</div>`;
+    res.innerHTML = `<div style="color:var(--green)">✅ ${j.rows_affected} rows affected</div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:6px">📜 Recorded in the audit trail</div>`;
     return;
   }
   const cols = j.columns || [];
@@ -410,3 +435,69 @@ async function runGeneratedSchema(sql) {
   } catch(ex) { toast('Error: ' + ex.message, 'err'); }
 }
 
+
+// ── Audit Trail ──────────────────────────────────────────────────────────────
+// Reads the immutable hash-chained ledger, filtered to Database Studio actions.
+// Before this existed, a DROP TABLE through the SQL editor left no trace at all.
+const DB_AUDIT_ACTIONS = [
+  'db_sql_write', 'db_sql_attempt', 'db_sql_refused',
+  'db_schema_change', 'db_schema_refused',
+  'db_row_insert', 'db_row_delete',
+];
+
+async function renderDBAuditTab(el) {
+  el.innerHTML = '<div style="color:var(--text-2);padding:16px">Loading audit trail…</div>';
+  let entries = [];
+  let verified = null;
+  try {
+    const results = await Promise.all(
+      DB_AUDIT_ACTIONS.map(a =>
+        fetch(`/api/audit-log?action_type=${encodeURIComponent(a)}&limit=100`)
+          .then(r => r.ok ? r.json() : {entries: []})
+          .catch(() => ({entries: []}))
+      )
+    );
+    entries = results.flatMap(r => r.entries || []).sort((a, b) => (b.epoch_ms || 0) - (a.epoch_ms || 0)).slice(0, 200);
+    const v = await fetch('/api/audit-log/verify').then(r => r.ok ? r.json() : null).catch(() => null);
+    verified = v;
+  } catch (ex) {
+    el.innerHTML = `<div style="color:var(--red);padding:16px">Error loading audit trail: ${escHtml(ex.message)}</div>`;
+    return;
+  }
+
+  const riskColor = r => r === 'critical' ? 'var(--red)' : r === 'high' ? 'var(--orange, #e0821c)' : 'var(--text-2)';
+  const chainOk = verified && (verified.valid ?? verified.ok);
+
+  el.innerHTML = `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div>
+        <div style="font-weight:700">📜 Database Audit Trail</div>
+        <div style="font-size:12px;color:var(--text-2)">Every write, schema change, and refused statement, append-only and hash-chained.</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:12px;color:${chainOk ? 'var(--green)' : 'var(--red)'}">
+          ${verified ? (chainOk ? '🔒 Chain verified' : '⚠️ Chain integrity FAILED') : ''}
+        </span>
+        <button onclick="dbSetTab('audit')" class="btn btn-ghost btn-sm">↻ Refresh</button>
+      </div>
+    </div>
+    ${entries.length ? `<div style="overflow:auto;max-height:520px">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr>${['When','Action','Risk','Outcome','Statement'].map(h =>
+          `<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);color:var(--text-2);font-weight:700">${h}</th>`).join('')}</tr></thead>
+        <tbody>${entries.map(e => {
+          let sqlText = '';
+          try { sqlText = (JSON.parse(e.metadata || '{}').sql) || e.action_detail || ''; }
+          catch (_) { sqlText = e.action_detail || ''; }
+          return `<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:6px 8px;color:var(--text-2);white-space:nowrap">${escHtml(String(e.created_at || '').slice(0, 19).replace('T', ' '))}</td>
+            <td style="padding:6px 8px;color:var(--text-1)">${escHtml(e.action_type || '')}</td>
+            <td style="padding:6px 8px;color:${riskColor(e.risk_level)};font-weight:600">${escHtml(e.risk_level || '')}</td>
+            <td style="padding:6px 8px;color:${e.outcome === 'success' ? 'var(--green)' : e.outcome === 'blocked' ? 'var(--red)' : 'var(--text-2)'}">${escHtml(e.outcome || '')}</td>
+            <td style="padding:6px 8px;color:var(--text-1);font-family:monospace;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(sqlText)}">${escHtml(sqlText.slice(0, 160))}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>` : '<div style="color:var(--text-3);font-size:13px;padding:12px 0">No database actions recorded yet.</div>'}
+  </div>`;
+}
