@@ -198,3 +198,82 @@ what could not be done, and in two of the three cases that framing hid
 something that could.** "We can't enable the mitigation" is not the same
 statement as "the risk is accepted", and separating them is what turned item 1
 from a backlog entry into a verified exploit.
+
+
+---
+
+# Phase 1 — Executed (`18f6364`)
+
+Done. The live exploit is closed, and the invariant is in CI.
+
+## What the analysis got wrong, corrected
+
+Two things were worse than the recommendation above stated:
+
+1. **64 handlers, not 58.** My original grep undercounted; a proper AST-shaped
+   scan across all 28 files found 64.
+2. **The `escHtml()` handlers were not "mostly safe" — they were vulnerable.**
+   ~24 of the 64 wrapped values in `escHtml()`, which *reads* like protection
+   and is not. The browser HTML-decodes an attribute before the JS parser runs,
+   so `&#39;` becomes `'` again:
+
+   ```
+   escHtml("a'),alert(1),('")  ->  a&#39;),alert(1),(&#39;
+   rendered : onclick="f('a&#39;),alert(1),(&#39;')"
+   decoded  : f('a'),alert(1),('')      <- executes
+   ```
+
+   This is the more dangerous shape, because a reviewer skimming the code sees
+   an escaper and moves on.
+
+## What shipped
+
+**`jsArg()`** — `JSON.stringify` for the JS context, then HTML-encoding for the
+attribute context. Both halves are required: stringify alone leaves double
+quotes that close the attribute; HTML-encoding alone is undone by the decode.
+Applied to 58 sites.
+
+**8 left deliberately**, each verified: `${v.id}`/`${f.id}` are INTEGER primary
+keys (checked against the schema), and `${a.action}` is developer-authored JS
+by design — its only dynamic call site interpolates an internal pane id.
+
+**Server-side validation** on agent names, rejecting with 400 rather than
+silently stripping. Non-ASCII names still work.
+
+**`scripts/lint_inline_handlers.py` in CI.** It classifies by *shape* rather
+than a name allowlist, which would go stale. It skips comment lines — several
+files document a previously-fixed handler bug by quoting the old code, and
+flagging that prose would push people to delete the explanation.
+
+The lint earned itself immediately: **it found 7 sites my rewriter's regex had
+missed**, one a genuine `escHtml()`-in-JS-context vulnerability in
+`openCodeInStudio`.
+
+## Verification
+
+```
+POST /api/agents {"name": "X'),alert(document.cookie),('"}
+  -> 400 "Agent name cannot contain quotes, angle brackets, ..."
+
+even if such a name existed, the handler now receives:
+  "@X'),alert(document.cookie),('"    <- inert string, not code
+```
+
+Both layers were tested independently, so neither is load-bearing alone.
+
+24 tests, **9 fail with the fix reverted**. One asserts the *lint itself* fails
+on a bad handler and passes a good one — a guard nobody has seen fail is not
+evidence of anything.
+
+Full suite: **3536 passed / 19 skipped / 0 failed**.
+
+## Still open
+
+Phases 2 and 3 are unchanged and now genuinely are refactors rather than
+security work, because the exploitable surface is closed and CI prevents its
+return:
+
+- **Phase 2:** migrate the 772 handlers to delegated listeners (300 are trivial
+  no-argument calls).
+- **Phase 3:** `Content-Security-Policy-Report-Only` with the strict policy for
+  a week, then drop `unsafe-inline`.
