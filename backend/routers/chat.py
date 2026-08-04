@@ -655,7 +655,14 @@ def _log_chat(session_id: str, agent: str, role: str, message: str, tokens: int 
         try:
             con.execute(
                 'INSERT INTO chat_log(session_id, agent, role, message, tokens, cost, model) VALUES (?,?,?,?,?,?,?)',
-                (session_id, agent, role, message[:4000], tokens, cost, model),
+                # 16000, matching what the API accepts. This was [:4000] while
+                # both the inbound message and the replayed history are capped
+                # at 16000, so a long prompt or a long model reply lost 12000
+                # characters SILENTLY on the way into chat_log. The user saw
+                # the full reply in the stream and a truncated one on reload,
+                # with nothing to explain the difference; SQLite TEXT has no
+                # fixed width, so the cap bought nothing.
+                (session_id, agent, role, (message or '')[:16000], tokens, cost, model),
             )
             con.execute('UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_log WHERE session_id=?), updated_at = CURRENT_TIMESTAMP WHERE id=?', (session_id, session_id))
             con.commit()
