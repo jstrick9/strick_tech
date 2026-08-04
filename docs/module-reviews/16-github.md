@@ -145,13 +145,37 @@ Four existing tests asserted 200 for a missing token; updated to accept 401.
 
 ## Recommended follow-ups
 
-1. **Push has no confirmation step.** It uploads up to 100 files to a remote
-   repository with no preview of *what* will be sent. Now that files can be held
-   back by screening, a dry-run returning the file list (and the skipped ones)
-   would let a user check before publishing rather than after.
-2. **`skipped_secrets` is collected but not surfaced in the response.** The
-   files are correctly held back; the caller should be told which and why,
-   otherwise a missing file looks like a bug.
+1. ~~**Push has no confirmation step.**~~ ✅ **Done in `b63997d`**
+2. ~~**`skipped_secrets` is collected but not surfaced.**~~ ✅ **Done in `b63997d`**
+
+   `POST /api/github/push {"dry_run": true}` returns, without touching the
+   network: `would_push` (with byte counts), `held_back` (each with a reason),
+   `oversize`, `truncated` and `total_bytes`. The real push now reports
+   `held_back` too — they were being collected and dropped on the floor.
+
+   **The design decision that matters:** `plan_push()` is the *same* routine the
+   real push iterates. The dry-run does not compute its own file list. A preview
+   derived separately from the action can drift from it, and a preview that lies
+   is worse than none — it converts "I should check" into false confidence.
+   There's a test asserting the planner is called exactly once in the module, and
+   another that diffs the previewed set against the paths actually `PUT` to the
+   API.
+
+   `dry_run` defaults to **false**: defaulting to true would turn every existing
+   push into a silent no-op, a worse failure than the one being fixed.
+
+   Verified against a probe directory of 2 publishable files and 4 credentials,
+   with the HTTP client instrumented:
+
+   ```
+   dry-run network calls made      : 0
+   preview == actual uploaded set  : True
+   no credential uploaded          : True
+   ```
+
+   The Push button now previews and requires confirmation, showing the file list,
+   the held-back files with reasons, and any truncation. 24 contracts; 21 fail
+   without the feature.
 3. **GitAI has no audit trail.** `nl-git` can modify the repository with
    `allow_unsafe=true`, and nothing records what ran. The platform has
    `audit_log()` — this is a natural caller.
