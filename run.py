@@ -44,6 +44,55 @@ def check_requirements():
         sys.exit(1)
 
 
+def ensure_test_browser():
+    """Download Playwright's Chromium on first run, in the background.
+
+    Phase 2 of the CSP work -- migrating 859 inline event handlers off
+    `script-src 'unsafe-inline'` -- is blocked on VERIFICATION, not effort. A
+    bad conversion produces "button does nothing, no error anywhere", and
+    tests/e2e_browser is the only thing that catches it. Those 31 tests error
+    out wherever no browser is installed, which is every fresh machine.
+
+    Hooking it here rather than only in start.sh covers the DESKTOP app too:
+    the Tauri shell (src-tauri/src/main.rs) launches run.py directly and never
+    touches the shell scripts, so a hook there alone would miss the exact case
+    this is meant to serve.
+
+    Three properties this must have, because it runs on every launch of a
+    desktop application:
+
+      * NON-BLOCKING. A ~120MB download must never delay the window appearing.
+        It runs on a daemon thread; the server starts immediately.
+      * NEVER FATAL. Failure is logged and ignored -- an optional test
+        dependency must not stop the product from starting.
+      * NOT REPEATED. scripts/ensure_browser.py records failures and defers for
+        a week, so a machine that genuinely cannot install (missing system
+        libraries, offline, proxied) is not re-attempting a long download at
+        every startup.
+    """
+    if os.getenv("AGENTIC_SKIP_BROWSER_SETUP", "").strip() in ("1", "true", "yes"):
+        return
+    # Absent in a plain runtime install: playwright lives in
+    # requirements-test.txt. Nothing to do, and nothing worth saying about it.
+    try:
+        import playwright  # noqa: F401
+    except ImportError:
+        return
+
+    def _worker():
+        try:
+            sys.path.insert(0, str(ROOT / "scripts"))
+            from ensure_browser import ensure
+
+            result = ensure(quiet=True)
+            if result.get("status") == "installed":
+                print("  ✅ Test browser ready — browser E2E tests are now runnable.")
+        except Exception as exc:  # noqa: BLE001 - optional setup, never fatal
+            print(f"  ⚠️  Test browser setup skipped: {str(exc)[:120]}")
+
+    threading.Thread(target=_worker, name="browser-bootstrap", daemon=True).start()
+
+
 def seed_db():
     """Seed initial data if DB is empty."""
     _data_dir = os.environ.get("AGENTIC_OS_DATA_DIR")
@@ -219,6 +268,7 @@ def reclaim_port(port: int):
 
 if __name__ == "__main__":
     check_requirements()
+    ensure_test_browser()
     seed_data_dir()
     seed_db()
     reclaim_port(PORT)

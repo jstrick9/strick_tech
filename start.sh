@@ -58,6 +58,16 @@ if [ ! -d ".venv" ] && [ ! -d "venv" ]; then
   }
 fi
 
+# ── Test browser (optional, one-time) ─────────────────────────
+# Downloads Playwright's Chromium so the browser E2E suite can run. Phase 2 of
+# the CSP work (migrating inline handlers) is verifiable only with a real
+# browser, so making the local install provide one turns a blocker into a
+# solved problem. Never fatal: the app runs fine without it, and the script
+# records failures so it does not retry on every launch.
+if [ "${AGENTIC_SKIP_BROWSER_SETUP:-0}" != "1" ]; then
+  $PYTHON scripts/ensure_browser.py --quiet || true
+fi
+
 # ── Run ────────────────────────────────────────────────────────
 echo ""
 echo "  🚀 Starting Agentic OS..."
