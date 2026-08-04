@@ -392,7 +392,26 @@ def finops_dashboard():
     finally:
         con.close()
 
+    # Flag models whose cost is a fallback GUESS rather than a known rate.
+    # Presenting an estimate and an invoice with identical styling is how a
+    # burn-rate projection gets mistaken for a bill.
+    try:
+        from ..services.llm import is_estimated_model
+
+        estimated = sorted({
+            r['model'] for r in by_model
+            if r['model'] and is_estimated_model(r['model'])
+        })
+    except Exception:  # pragma: no cover
+        estimated = []
+
     return {
+        'cost_basis': 'estimated',
+        'cost_basis_note': (
+            'Costs are estimated from a static rate card, not provider-reported '
+            'billing. Cached-token and batch discounts are not modelled.'
+        ),
+        'unpriced_models': estimated,
         'total_cost_usd': round(total['c'] or 0, 6),
         'total_tokens': total['t'] or 0,
         'total_events': total['n'] or 0,

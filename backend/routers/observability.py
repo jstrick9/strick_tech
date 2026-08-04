@@ -204,6 +204,74 @@ async def create_span(req: Request):
 
 
 # ── Query traces ───────────────────────────────────────────────────────────────
+# ── Trace emission ─────────────────────────────────────────────────────────────
+def record_llm_trace(
+    agent_id: str,
+    name: str,
+    prompt: str,
+    output: str,
+    *,
+    tokens: int = 0,
+    cost: float = 0.0,
+    latency_ms: int = 0,
+    model: str = '',
+    status: str = 'success',
+    session_id: str = '',
+) -> str:
+    """Write one completed LLM interaction as a trace.
+
+    Module 21 follow-up. This module had a full tracing backend -- schema,
+    create_trace, create_span, analytics, DORA metrics, an EU AI Act compliance
+    report -- and NOTHING IN THE PLATFORM EVER CALLED IT. `grep -rl obs_traces
+    backend/` returned this file alone. /api/observability/traces answered
+    {"traces": [], "count": 0} on every request, so the pane rendered an empty
+    list indistinguishable from "you have not run anything yet".
+
+    A permanently empty observability view is worse than an absent one: it
+    tells the operator their agents did nothing, which is a false statement
+    about the system rather than a missing feature.
+
+    Emitting from the LLM layer for the same reason cost recording moved there
+    (Module 21): 30 routers make these calls, and asking each to remember is
+    what produced a 1-in-30 hit rate for the ledger.
+
+    Never raises -- observability must not break inference.
+    """
+    from ..services.memory_db import get_conn
+
+    tid = f'tr_{uuid.uuid4().hex[:10]}'
+    try:
+        con = get_conn()
+        try:
+            con.execute(
+                """INSERT INTO obs_traces
+                     (id, session_id, agent_id, name, input, output,
+                      total_latency_ms, total_tokens, total_cost, span_count,
+                      status, metadata_json, ended_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,1,?,?,CURRENT_TIMESTAMP)""",
+                (
+                    tid,
+                    session_id,
+                    agent_id or 'default',
+                    name[:200],
+                    (prompt or '')[:4000],
+                    (output or '')[:4000],
+                    int(latency_ms or 0),
+                    int(tokens or 0),
+                    float(cost or 0.0),
+                    status,
+                    json.dumps({'model': model}),
+                ),
+            )
+            con.commit()
+        finally:
+            con.close()
+    except Exception as e:  # pragma: no cover - tracing must never break a call
+        log.warning('Trace not recorded for %s: %s', agent_id, e)
+        return ''
+    return tid
+
+
 @router.get('/traces')
 def list_traces(agent_id: str = '', session_id: str = '', status: str = '', limit: int = 50, q: str = ''):
     """Retrieve and return list traces."""
