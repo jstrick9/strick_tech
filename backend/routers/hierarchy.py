@@ -19,6 +19,8 @@ router = APIRouter(prefix="/api/hierarchy", tags=["hierarchy"])
 
 from backend.config import get_data_dir
 
+from ..services.safe_paths import safe_path
+
 ROOT = get_data_dir()
 HIERARCHY_DIR = ROOT / "memory" / "hierarchy"
 TIER1_DIR = HIERARCHY_DIR / "tier1"
@@ -144,32 +146,16 @@ def normalize_project_id(raw: str) -> str:
 def project_dir(project_id: str) -> pathlib.Path | None:
     """Resolve a project directory, or None if the id escapes PROJECTS_DIR.
 
-    SECURITY: project_id was interpolated straight into a path with no
-    validation at all — `PROJECTS_DIR / project_id`. Verified live before this
-    fix:
+    The id must first pass _PROJECT_ID_RE, so path separators and dots never
+    reach the filesystem call at all; safe_path() is the second layer.
 
-      POST /projects/create {"project_id": "../../../tmp/hier_escape"}
-        -> 200 OK, created /home/user/repo/tmp/hier_escape
-
-      GET /compiled-context?project_id=../secretdir
-        -> read files from outside the projects tree AND injected their
-           contents into the LLM system prompt
-
-    That second one is the serious case: compiled-context output is
-    concatenated into the system prompt by chat.py, so traversal here is an
-    arbitrary-file-read whose results are handed to the model.
-
-    relative_to() compares path components, so a sibling directory whose name
-    merely starts with the same characters cannot slip through either.
+    Both matter here: compiled-context output is concatenated into the LLM
+    system prompt by chat.py, so traversal is an arbitrary-file-read whose
+    results are handed to the model.
     """
     if not project_id or not _PROJECT_ID_RE.match(str(project_id)):
         return None
-    try:
-        candidate = (PROJECTS_DIR / project_id).resolve()
-        candidate.relative_to(PROJECTS_DIR.resolve())
-    except (ValueError, OSError):
-        return None
-    return candidate
+    return safe_path(project_id, base=PROJECTS_DIR)
 
 
 def _require_project(project_id: str) -> pathlib.Path:

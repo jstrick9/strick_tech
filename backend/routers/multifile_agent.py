@@ -27,6 +27,7 @@ log = logging.getLogger('agentic.composer')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.safe_paths import safe_path
 
 ROOT = get_data_dir()
 PREV = ROOT / 'preview'
@@ -43,37 +44,12 @@ _FORBIDDEN_NAMES = {
 def safe_preview_path(relative: str, *, base: Path | None = None) -> Path | None:
     """Resolve a path inside PREVIEW_DIR, or None if it escapes.
 
-    BUG FIX: every write site here used
-        str(target).startswith(str(PREV.resolve()))
-    which is a prefix test on a STRING, not on path components. A sibling
-    directory whose name merely begins with "preview" passed it:
-
-        '../preview_ESCAPED/pwn.html' -> <root>/preview_ESCAPED/pwn.html  ACCEPTED
-
-    This is the fourth appearance of the same defect (imagegen Module 10,
-    terminal Module 12, hierarchy Module 13). It matters more here than
-    anywhere else so far, because in composer_run() the paths come from the
-    LLM's own output — a prompt-injected instruction, a poisoned RAG memory, or
-    simply a confused model can choose where files are written. Path.relative_to()
-    compares components, so the sibling trick cannot work.
+    Thin wrapper over services.safe_paths.safe_path. The containment rule now
+    lives in exactly one place; see that module for why str.startswith() was
+    wrong. protect_dotfiles is always on here because composer_run() takes its
+    paths from the LLM's own output.
     """
-    root = (base or PREV).resolve()
-    if not relative or not isinstance(relative, str):
-        return None
-    if '\x00' in relative:
-        return None
-    try:
-        target = (root / relative.lstrip('/')).resolve()
-        target.relative_to(root)
-    except (ValueError, OSError):
-        return None
-    # Reject dotfile/config names anywhere in the path, not just the leaf: an
-    # LLM writing ".env" or ".git/config" into the preview tree would alter how
-    # the workspace itself behaves.
-    parts = {part.lower() for part in target.parts}
-    if parts & _FORBIDDEN_NAMES:
-        return None
-    return target
+    return safe_path(relative, base=base or PREV, protect_dotfiles=True)
 
 
 # ── Multi-file agent run ───────────────────────────────────────────────────────

@@ -21,6 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.memory_db import audit_log, get_conn
+from ..services.safe_paths import safe_path
 
 router = APIRouter(prefix='/api/terminal', tags=['terminal'])
 log = logging.getLogger('agentic.terminal')
@@ -564,13 +565,9 @@ def _get_work_dir(cwd: str = '') -> str:
     raising, matching the previous contract.
     """
     if cwd:
-        try:
-            resolved = (PREVIEW_DIR / str(cwd).lstrip('/')).resolve()
-            resolved.relative_to(PREVIEW_DIR.resolve())
-            if resolved.is_dir():
-                return str(resolved)
-        except (ValueError, OSError):
-            pass
+        resolved = safe_path(str(cwd), base=PREVIEW_DIR)
+        if resolved is not None and resolved.is_dir():
+            return str(resolved)
     return str(PREVIEW_DIR)
 
 

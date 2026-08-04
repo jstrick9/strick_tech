@@ -18,6 +18,8 @@ log = logging.getLogger('agentic.multitab')
 
 from backend.config import get_data_dir
 
+from ..services.safe_paths import is_within
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
@@ -265,7 +267,7 @@ async def snapshot_tab(req: Request):
     file = tab.get('file', 'index.html')
     src = (PREVIEW_DIR / file).resolve()
     # Security: ensure resolved path stays inside PREVIEW_DIR
-    if not str(src).startswith(str(PREVIEW_DIR.resolve())):
+    if not is_within(src, PREVIEW_DIR):
         return {'ok': False, 'error': 'Invalid file path'}
     if not src.exists():
         return {'ok': False, 'error': 'Preview file not found'}

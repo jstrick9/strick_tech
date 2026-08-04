@@ -24,6 +24,8 @@ log = logging.getLogger('agentic.project')
 
 from backend.config import get_data_dir
 
+from ..services.safe_paths import is_within
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
@@ -447,7 +449,8 @@ async def review_code(req: Request):
         return {'ok': False, 'error': 'filepath required'}
 
     fpath = (PREVIEW_DIR / filepath).resolve()
-    if not str(fpath).startswith(str(PREVIEW_DIR.resolve())) or not fpath.exists():
+    # is_within(): str.startswith() accepted <preview>_ESCAPED as inside.
+    if not is_within(fpath, PREVIEW_DIR) or not fpath.exists():
         return {'ok': False, 'error': 'File not found'}
 
     content = fpath.read_text(encoding='utf-8', errors='ignore')

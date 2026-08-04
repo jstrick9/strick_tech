@@ -21,6 +21,7 @@ log = logging.getLogger('agentic.testgen')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
@@ -55,7 +56,7 @@ async def generate_tests(req: Request):
 
     # Read the source file
     source_path = (PREVIEW_DIR / filepath).resolve()
-    if not str(source_path).startswith(str(PREVIEW_DIR.resolve())):
+    if not is_within(source_path, PREVIEW_DIR):
         return {'ok': False, 'error': 'path traversal denied'}
     if not source_path.exists():
         return {'ok': False, 'error': f'File not found: {filepath}'}
@@ -112,7 +113,7 @@ File: {filepath}
     name = filepath.rsplit('.', 1)[0]
     test_name = name + cfg['ext']
     test_path = (PREVIEW_DIR / test_name).resolve()
-    if str(test_path).startswith(str(PREVIEW_DIR.resolve())):
+    if is_within(test_path, PREVIEW_DIR):
         test_path.parent.mkdir(parents=True, exist_ok=True)
         test_path.write_text(test_code, encoding='utf-8')
 

@@ -25,6 +25,8 @@ log = logging.getLogger('agentic.obsidian')
 
 from backend.config import get_data_dir
 
+from ..services.safe_paths import is_within
+
 ROOT = get_data_dir()
 
 
@@ -461,7 +463,10 @@ async def write_note(req: Request):
         audit_log('obsidian_write_note', path)
         # Return path relative to vault root for easy reading back
         vp = _vault_path()
-        rel = str(f.relative_to(vp)) if vp and str(f).startswith(str(vp)) else str(f.relative_to(ROOT))
+        # Not a security gate (the write already happened via a validated
+        # path) — it guards the relative_to() call below from ValueError.
+        # is_within() is still the correct comparison.
+        rel = str(f.relative_to(vp)) if vp and is_within(f, vp) else str(f.relative_to(ROOT))
         return {'ok': True, 'path': rel, 'abs_path': str(f), 'size': len(content)}
     except Exception as ex:
         return JSONResponse({'ok': False, 'error': str(ex)}, status_code=500)
