@@ -30,7 +30,7 @@ async function renderComposer() {
             'Dashboard with charts and sidebar',
             'Mobile-first portfolio site',
             'E-commerce product page with cart',
-          ].map(p => `<button onclick="document.getElementById('comp-instruction').value='${p}'" class="chat-tool" style="font-size:11px">${p.slice(0,30)}…</button>`).join('')}
+          ].map(p => `<button onclick="document.getElementById('comp-instruction').value=${jsArg(p)}" class="chat-tool" style="font-size:11px">${p.slice(0,30)}…</button>`).join('')}
         </div>
         <button onclick="runComposer()" class="btn btn-primary" style="width:100%" id="comp-run-btn">🪄 Build with AI</button>
         <div id="comp-status" style="font-size:12px;color:var(--text-2);margin-top:8px;min-height:18px"></div>
@@ -280,7 +280,7 @@ async function loadBranchPreviews() {
           <div style="font-size:11px;color:var(--text-3)">${b.files} files · ${(b.created_at||'').slice(0,16)}</div>
         </div>
         <a href="${safeUrl(b.url)}" target="_blank" class="btn btn-ghost btn-sm">View ↗</a>
-        <button onclick="deleteBranchPreview('${escHtml(b.name)}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button>
+        <button onclick="deleteBranchPreview(${jsArg(b.name)})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button>
       </div>`).join('');
   } catch(e) {}
 }

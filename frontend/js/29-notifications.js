@@ -154,10 +154,10 @@ async function refreshNotifications() {
       : (n.created_at || '').slice(5, 16);
 
     return `
-      <div onclick="handleNotifClick('${n.id}', '${n.link || ''}')" 
+      <div onclick="handleNotifClick(${jsArg(n.id)}, ${jsArg(n.link || '')})" 
            style="padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;background:${unread ? 'rgba(99,102,241,0.06)' : 'transparent'};transition:background 0.15s"
            onmouseover="this.style.background='var(--bg-2)'"
-           onmouseout="this.style.background='${unread ? 'rgba(99,102,241,0.06)' : 'transparent'}'">
+           onmouseout="this.style.background=${jsArg(unread ? 'rgba(99,102,241,0.06)' : 'transparent')}">
         <div style="display:flex;gap:10px">
           <span style="font-size:16px;flex-shrink:0;margin-top:2px">${icons[n.type] || '🔔'}</span>
           <div style="flex:1;min-width:0">

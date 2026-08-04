@@ -11,8 +11,12 @@ import re
 import uuid
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from ..services import llm, memory_db
+
+# Characters that can terminate a JS string literal or an HTML attribute.
+_UNSAFE_NAME_CHARS = re.compile(r'[\'"<>\\\x00-\x1f\x7f]')
 
 router = APIRouter(prefix='/api/agents', tags=['agents'])
 
@@ -44,6 +48,32 @@ async def create_agent(req: Request):
     name = (body.get('name') or '').strip()
     if not name:
         return {'ok': False, 'error': 'name is required'}
+
+    # DEFENCE IN DEPTH. An agent name reaches at least five UI surfaces,
+    # including an inline event handler. A name of
+    #     X'),alert(document.cookie),('
+    # rendered as onclick="selectMention('@<name>')" produced valid, executing
+    # JavaScript -- stored XSS, verified live before this fix. The frontend now
+    # interpolates through jsArg() so that instance is closed; this stops the
+    # whole class at the point of entry, so a renderer that forgets is not a
+    # vulnerability on its own.
+    #
+    # Quotes, angle brackets, backslashes and control characters have no place
+    # in a display name and are the exact characters that break out of a JS
+    # string or an HTML attribute. Rejecting rather than silently stripping:
+    # a user who typed a quote should be told, not have their name quietly
+    # altered.
+    if _UNSAFE_NAME_CHARS.search(name):
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': (
+                    'Agent name cannot contain quotes, angle brackets, '
+                    'backslashes or control characters.'
+                ),
+            },
+            status_code=400,
+        )
 
     # auto-generate id from name
     agent_id = body.get('id') or re.sub(r'[^a-z0-9_-]', '_', name.lower())[:32]

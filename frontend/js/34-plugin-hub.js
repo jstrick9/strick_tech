@@ -122,7 +122,7 @@ function hubRenderBody() {
   const cats = [...new Set(hubCatalog.map(p => p.category))].filter(Boolean).sort();
   const catBar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
       <span onclick="hubSetCategory('')" class="tag" style="cursor:pointer;padding:4px 11px;${!hubCategory?'background:var(--accent-glow);color:var(--accent-hi)':''}">All</span>
-      ${cats.map(c => `<span onclick="hubSetCategory('${escHtml(c)}')" class="tag" style="cursor:pointer;padding:4px 11px;${hubCategory===c?'background:var(--accent-glow);color:var(--accent-hi)':''}">${escHtml(c)}</span>`).join('')}
+      ${cats.map(c => `<span onclick="hubSetCategory(${jsArg(c)})" class="tag" style="cursor:pointer;padding:4px 11px;${hubCategory===c?'background:var(--accent-glow);color:var(--accent-hi)':''}">${escHtml(c)}</span>`).join('')}
     </div>`;
 
   el.innerHTML = `

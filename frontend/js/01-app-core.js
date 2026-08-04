@@ -2163,6 +2163,34 @@ function escHtml(s) {
   return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// Safe interpolation of a value into an inline event handler.
+//
+// escHtml() DOES NOT protect a JavaScript string context. The browser
+// HTML-decodes an attribute value BEFORE the JS parser sees it, so
+// `onclick="f(${jsArg(v)})"` with v = "a'),alert(1),('" renders as
+//     onclick="f('a&#39;),alert(1),(&#39;')"
+// which the browser decodes back to
+//     f('a'),alert(1),('')
+// and executes. Verified in node. ~24 handlers in this codebase used exactly
+// that pattern and were not protected by it.
+//
+// jsArg() emits a complete, quoted JS literal via JSON.stringify (which escapes
+// quotes, backslashes and newlines for the JS context) and then encodes the
+// characters that would terminate the HTML attribute. Both layers are needed:
+// JSON.stringify alone still contains double quotes that close the attribute,
+// and HTML-encoding alone is undone by the decode step above.
+//
+// Usage — note there are NO surrounding quotes, jsArg supplies them:
+//     `<button onclick="doThing(${jsArg(user.name)})">`
+function jsArg(value) {
+  return JSON.stringify(value === undefined ? null : value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 // Shared URL sanitiser. escHtml() does NOT make a URL safe: it escapes quotes
 // and angle brackets, so `javascript:alert(1)` survives it intact and still
 // executes when the link is clicked. Any href/src built from server, model or
@@ -2619,7 +2647,7 @@ function _gm_show({ title='', body='', input=false, textarea=false, placeholder=
 
     const btns = document.getElementById('gm-btns');
     btns.innerHTML = buttons.map((b,i) =>
-      `<button class="btn ${b.primary?'btn-primary':b.danger?'btn-danger':'btn-ghost'}" onclick="_gm_click('${b.id||i}')">${b.label}</button>`
+      `<button class="btn ${b.primary?'btn-primary':b.danger?'btn-danger':'btn-ghost'}" onclick="_gm_click(${jsArg(b.id||i)})">${b.label}</button>`
     ).join('');
 
     document.getElementById('gmodal').style.display = 'flex';
@@ -3355,7 +3383,7 @@ function renderMarkdownEnhanced(text) {
       <div style="display:flex;align-items:center;justify-content:space-between;background:#04060f;padding:6px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px">
         <span style="font-size:11px;font-weight:800;color:var(--accent);font-family:monospace">${escHtml(langLabel)}</span>
         <div style="display:flex;gap:6px;align-items:center">
-          <button onclick="openCodeInStudio(${JSON.stringify(id)}, '${escHtml(lang||'js')}')" class="btn-3d btn-primary btn-sm" style="padding:2px 8px;font-size:10.5px" title="Load directly into primary Monaco editor buffer">⚡ Open in Studio ↗</button>
+          <button onclick="openCodeInStudio(${JSON.stringify(id)}, ${jsArg(lang||'js')})" class="btn-3d btn-primary btn-sm" style="padding:2px 8px;font-size:10.5px" title="Load directly into primary Monaco editor buffer">⚡ Open in Studio ↗</button>
           <button onclick="copyCodeBlock(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:10.5px">📋 Copy</button>
           <button onclick="runCodeInTerminal(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:10.5px" title="Send snippet to System Terminal input">＞_ Terminal</button>
         </div>
@@ -3780,7 +3808,7 @@ function showMentionDropdown(query, atIdx) {
   dd.innerHTML = [
     '<div style="padding:5px 10px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase">Agents</div>',
     ...agentMatches.slice(0, 6).map(a =>
-      `<div class="mention-item" onclick="selectMention('@${a.name}')" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:var(--transition)" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
+      `<div class="mention-item" onclick="selectMention(${jsArg('@' + (a.name) + '')})" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:var(--transition)" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
         <span style="font-size:16px">${a.avatar||'🤖'}</span>
         <div><div style="font-size:13px;font-weight:600">${escHtml(a.name)}</div><div style="font-size:10.5px;color:var(--text-3)">${escHtml(a.role||'')}</div></div>
       </div>`),
@@ -4299,11 +4327,11 @@ async function studioLoadFileTree() {
       // file" existed). Added a hover-revealed 🗑 button per row (stops
       // propagation so it doesn't also trigger studioOpenFile on the row).
       return `<div class="file-row ${f.path===Studio.currentFile?'active':''}" data-path="${escHtml(f.path)}"
-               onclick="studioOpenFile('${escHtml(f.path)}')" title="${escHtml(f.path)}" style="display:flex;align-items:center;gap:0">
+               onclick="studioOpenFile(${jsArg(f.path)})" title="${escHtml(f.path)}" style="display:flex;align-items:center;gap:0">
         <span style="font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;background:${c}22;color:${c};flex-shrink:0">${ext}</span>
         <span style="flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">${escHtml(name)}</span>
         <span style="font-size:10px;color:var(--text-3)">${formatBytes(f.size)}</span>
-        <button type="button" class="file-row-delete-btn" title="Delete file" onclick="event.stopPropagation();studioDeleteFile('${escHtml(f.path)}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:2px 4px;margin-left:2px;opacity:0;transition:opacity .15s">🗑</button>
+        <button type="button" class="file-row-delete-btn" title="Delete file" onclick="event.stopPropagation();studioDeleteFile(${jsArg(f.path)})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:2px 4px;margin-left:2px;opacity:0;transition:opacity .15s">🗑</button>
       </div>`;
     }).join('') + `<div class="new-file-btn" onclick="openNewFileModal()">＋ New file</div>`;
     // Reveal the delete button only on row hover, via JS (avoids adding a

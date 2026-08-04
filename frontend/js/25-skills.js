@@ -24,7 +24,7 @@
 // same way, via a real button + addEventListener capturing the actual
 // (unescaped) output text and agent id in closure.
 //
-// The category filter pills' onclick="filterSkills('${escHtml(c.id)}')"
+// The category filter pills' onclick="filterSkills(${jsArg(c.id)})"
 // pattern (single-quoted JS string literal + escHtml, which converts an
 // embedded quote to its HTML entity before the browser ever parses the
 // attribute) is a CORRECT escaping pattern and was left as-is.
@@ -69,7 +69,7 @@ async function loadSkills() {
     const catEl = document.getElementById('skill-cats');
     if (catEl) catEl.innerHTML =
       `<span class="tag ${skillCategory==='all'?'blue':''}" data-cat="all" style="cursor:pointer;padding:5px 12px" onclick="filterSkills('all')">All (${allSkills.length})</span>` +
-      cats.map(c => `<span class="tag ${skillCategory===c.id?'blue':''}" data-cat="${c.id}" style="cursor:pointer;padding:5px 12px" onclick="filterSkills('${escHtml(c.id)}')">${escHtml(c.id)} (${c.count})</span>`).join('');
+      cats.map(c => `<span class="tag ${skillCategory===c.id?'blue':''}" data-cat="${c.id}" style="cursor:pointer;padding:5px 12px" onclick="filterSkills(${jsArg(c.id)})">${escHtml(c.id)} (${c.count})</span>`).join('');
     renderSkillGrid();
   } catch(e) { console.warn('Failed to load skills:', e); toast('Loaded offline skills', 'ok'); }
 }

@@ -125,12 +125,12 @@ function kanbanRenderBoard() {
             <span>${col.label}</span>
             <span class="kanban-column-count">${columnTasks.length}</span>
           </div>
-          <button type="button" class="kanban-column-add" onclick="kanbanOpenCreateModal('${col.id}')">+</button>
+          <button type="button" class="kanban-column-add" onclick="kanbanOpenCreateModal(${jsArg(col.id)})">+</button>
         </div>
         <div class="kanban-column-body" 
              id="kanban-col-${col.id}"
              ondragover="kanbanOnDragOver(event)"
-             ondrop="kanbanOnDrop(event, '${col.id}')"
+             ondrop="kanbanOnDrop(event, ${jsArg(col.id)})"
              ondragleave="kanbanOnDragLeave(event)">
           ${columnTasks.length > 0 
             ? columnTasks.map(task => kanbanRenderCard(task)).join('')
@@ -167,15 +167,15 @@ function kanbanRenderCard(task) {
     <div class="kanban-card" 
          draggable="true"
          data-task-id="${taskId}"
-         ondragstart="kanbanOnDragStart(event, '${taskId}')"
+         ondragstart="kanbanOnDragStart(event, ${jsArg(taskId)})"
          ondragend="kanbanOnDragEnd(event)">
       <div class="kanban-card-top">
         <span class="kanban-card-priority" style="background:${priority.bg};color:${priority.color}">
           ${priority.label}
         </span>
         <div class="kanban-card-actions">
-          <button type="button" class="kanban-card-action" onclick="event.stopPropagation();kanbanOpenEditModal('${taskId}')">✏️</button>
-          <button type="button" class="kanban-card-action" onclick="event.stopPropagation();kanbanDeleteTask('${taskId}')">🗑️</button>
+          <button type="button" class="kanban-card-action" onclick="event.stopPropagation();kanbanOpenEditModal(${jsArg(taskId)})">✏️</button>
+          <button type="button" class="kanban-card-action" onclick="event.stopPropagation();kanbanDeleteTask(${jsArg(taskId)})">🗑️</button>
         </div>
       </div>
       <div class="kanban-card-title">${kanbanEscapeHtml(task.title)}</div>

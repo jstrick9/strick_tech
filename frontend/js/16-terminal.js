@@ -186,7 +186,7 @@ function termNewSession(){const id='s'+Date.now().toString(36);
 //  organization. Out of scope for this Terminal review pass; queued for
 //  its own individual review later per the no-batching instruction. Spot
 //  -checked while here: vaultReveal/vaultEdit/vaultDelete/vaultShowAdd's
-//  onclick="...('${escHtml(item.key)}')" pattern is NOT an active
+//  onclick="...(${jsArg(item.key)})" pattern is NOT an active
 //  quote-collision bug today because backend/routers/secrets.py's
 //  set_secret() validates key format server-side
 //  (^[A-Z][A-Z0-9_]{0,127}$ -- uppercase letters/digits/underscores
@@ -294,9 +294,9 @@ async function renderSecretsVault() {
             <div style="color:var(--text-3);font-size:11px">${item.length||0} chars</div>
             <div style="color:var(--text-3);font-size:11px;white-space:nowrap">${escHtml((item.updated_at||'').slice(0,16))}</div>
             <div style="display:flex;gap:5px">
-              <button class="btn btn-ghost btn-sm" onclick="vaultReveal('${escHtml(item.key)}')" title="Reveal value">👁</button>
-              <button class="btn btn-ghost btn-sm" onclick="vaultEdit('${escHtml(item.key)}')" title="Update value">✏️</button>
-              <button class="btn btn-sm" onclick="vaultDelete('${escHtml(item.key)}')" style="color:var(--danger)" title="Delete">🗑</button>
+              <button class="btn btn-ghost btn-sm" onclick="vaultReveal(${jsArg(item.key)})" title="Reveal value">👁</button>
+              <button class="btn btn-ghost btn-sm" onclick="vaultEdit(${jsArg(item.key)})" title="Update value">✏️</button>
+              <button class="btn btn-sm" onclick="vaultDelete(${jsArg(item.key)})" style="color:var(--danger)" title="Delete">🗑</button>
             </div>
           </div>
         `).join('')}
@@ -308,7 +308,7 @@ async function renderSecretsVault() {
       ${helpPanel({title:'Common API Keys',body:'Click a key name to pre-fill the form.',steps:[]})}
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
         ${['OPENROUTER_API_KEY','GITHUB_TOKEN','VERCEL_TOKEN','NETLIFY_TOKEN','SUPABASE_URL','SUPABASE_ANON_KEY','STRIPE_SECRET_KEY','ANTHROPIC_API_KEY','OPENAI_API_KEY'].map(k=>
-          `<button class="btn btn-ghost btn-sm" onclick="vaultShowAdd('${k}')">${escHtml(k)}</button>`
+          `<button class="btn btn-ghost btn-sm" onclick="vaultShowAdd(${jsArg(k)})">${escHtml(k)}</button>`
         ).join('')}
       </div>
     </div>

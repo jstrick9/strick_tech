@@ -24,7 +24,7 @@ async function renderFusion() {
     <!-- Preset selector -->
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
       ${Object.entries(presets.presets||{}).map(([id,p])=>`
-        <button class="fusion-preset-btn ${id==='budget'?'active':''}" id="fp-${id}" onclick="fusionSelectPreset('${id}')">
+        <button class="fusion-preset-btn ${id==='budget'?'active':''}" id="fp-${id}" onclick="fusionSelectPreset(${jsArg(id)})">
           ${id==='quality'?'⭐':id==='budget'?'💰':id==='code'?'💻':'🔬'} ${id.charAt(0).toUpperCase()+id.slice(1)}
           <div style="font-size:9px;color:var(--text-3);font-weight:400">${(p.desc||'').slice(0,40)}</div>
         </button>

@@ -586,7 +586,7 @@ function dagNodeHTML(t) {
 
   return `<div class="dag-node ${stCls} ${_dagSelectedTask===t.task_id?'n-selected':''}" id="dagn-${t.task_id}"
               style="left:${t.x||0}px;top:${t.y||0}px"
-              onclick="dagClickTask(event,'${escHtml(t.task_id)}')">
+              onclick="dagClickTask(event,${jsArg(t.task_id)})">
     <div class="dag-node-hdr">
       <div class="dag-node-seq" style="background:${col}">${t.seq}</div>
       <span class="dag-node-label" title="${escHtml(t.title)}">${escHtml(t.title)}</span>
@@ -729,7 +729,7 @@ function dagShowTaskDetail(taskId) {
   if (titleEl) titleEl.textContent = `Task #${task.seq} — ${task.title}`;
 
   const copy = (txt) =>
-    `<button class="dag-copy-btn" onclick="navigator.clipboard.writeText('${escHtml(txt)}').then(()=>toast('Copied!'))">Copy</button>`;
+    `<button class="dag-copy-btn" onclick="navigator.clipboard.writeText(${jsArg(txt)}).then(()=>toast('Copied!'))">Copy</button>`;
 
   body.innerHTML = `
     <!-- Header -->
@@ -1033,7 +1033,7 @@ function dagOpenLaunch() {
       <p>The Brain agent will decompose your goal into a task DAG, assign specialist agents, and execute waves in parallel. Watch the graph light up in real time.</p>
       <textarea id="dag-goal-ta" placeholder="Describe your goal in detail…&#10;&#10;Be specific about deliverables, constraints, and desired output format." rows="4"></textarea>
       <div class="dag-modal-examples">
-        ${examples.map(ex => `<div class="dag-modal-example" onclick="document.getElementById('dag-goal-ta').value='${escHtml(ex)}'">${escHtml(ex)}</div>`).join('')}
+        ${examples.map(ex => `<div class="dag-modal-example" onclick="document.getElementById('dag-goal-ta').value=${jsArg(ex)}">${escHtml(ex)}</div>`).join('')}
       </div>
       <div class="dag-modal-row">
         <button class="dag-toolbar-btn" onclick="document.getElementById('dag-launch-modal').remove()">Cancel</button>

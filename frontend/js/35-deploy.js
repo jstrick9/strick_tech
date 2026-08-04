@@ -51,7 +51,7 @@ async function renderDeploy() {
         Save <code style="background:var(--bg-0);padding:1px 5px;border-radius:3px">${token_key}</code> via the 🔐 Vault tab (takes effect immediately), or add it to your .env file (requires an app restart).
         <a href="${safeUrl(docs_url)}" target="_blank" style="color:var(--accent);display:block;margin-top:4px">→ Get token</a>
       </div>` : ''}
-      <button onclick="doDeploy('${escHtml(id)}')" class="btn ${ready?'btn-primary':'btn-ghost'}" style="width:100%" id="deploy-btn-${id}">${btnLabel}</button>
+      <button onclick="doDeploy(${jsArg(id)})" class="btn ${ready?'btn-primary':'btn-ghost'}" style="width:100%" id="deploy-btn-${id}">${btnLabel}</button>
       <div id="deploy-result-${id}" style="margin-top:10px;display:none"></div>
     </div>`;
   };

@@ -54,7 +54,7 @@ async function renderSQLiteTab(el) {
       ${tables.map((t, idx) => `
         <div data-table-idx="${idx}" title="${t.restricted ? 'Protected — holds credential material' : (t.sensitive_columns||[]).length ? 'Contains masked columns: ' + escHtml((t.sensitive_columns||[]).join(', ')) : ''}"
              style="padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;margin-bottom:2px;${dbActiveTable===t.name?'background:var(--accent-glow);color:var(--accent-hi)':''}"
-             onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background='${dbActiveTable===t.name?'var(--accent-glow)':''}'"
+             onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=${jsArg(dbActiveTable===t.name?'var(--accent-glow)':'')}"
         >
           <div style="font-weight:600">${t.restricted ? '🔒 ' : ''}${escHtml(t.name)}${(t.sensitive_columns||[]).length ? ' <span style="color:var(--orange,#e0821c);font-size:10px">🔒</span>' : ''}</div>
           <div style="font-size:10.5px;color:var(--text-3)">${t.row_count} rows</div>
@@ -110,7 +110,7 @@ async function dbLoadTable(name) {
         <span style="font-weight:700;font-size:13px">${escHtml(name)}</span>
         <span style="font-size:11px;color:var(--text-2)">${total} rows · ${columns.length} columns</span>
         <div style="margin-left:auto;display:flex;gap:6px">
-          <button onclick="dbInsertRow('${escHtml(name)}')" class="btn btn-primary btn-sm">+ Row</button>
+          <button onclick="dbInsertRow(${jsArg(name)})" class="btn btn-primary btn-sm">+ Row</button>
           <button onclick="dbSetTab('sql')" class="btn btn-ghost btn-sm">SQL</button>
         </div>
       </div>
@@ -249,9 +249,9 @@ async function renderSupabaseTab(el) {
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <button onclick="supaGenerateSchema()" class="btn btn-primary">🤖 AI Schema Designer</button>
-      <button onclick="openExternalLink('${escHtml(s.url?.replace('.supabase.co','')||'')}.supabase.co/project/default/editor')" class="btn btn-ghost">SQL Editor ↗</button>
-      <button onclick="openExternalLink('${escHtml(s.url?.replace('.supabase.co','')||'')}.supabase.co/project/default/auth/users')" class="btn btn-ghost">Auth Users ↗</button>
-      <button onclick="openExternalLink('${escHtml(s.url?.replace('.supabase.co','')||'')}.supabase.co/project/default/storage/buckets')" class="btn btn-ghost">Storage ↗</button>
+      <button onclick="openExternalLink(${jsArg('' + (s.url?.replace('.supabase.co','')||'') + '.supabase.co/project/default/editor')})" class="btn btn-ghost">SQL Editor ↗</button>
+      <button onclick="openExternalLink(${jsArg('' + (s.url?.replace('.supabase.co','')||'') + '.supabase.co/project/default/auth/users')})" class="btn btn-ghost">Auth Users ↗</button>
+      <button onclick="openExternalLink(${jsArg('' + (s.url?.replace('.supabase.co','')||'') + '.supabase.co/project/default/storage/buckets')})" class="btn btn-ghost">Storage ↗</button>
     </div>
   </div>`;
 }
