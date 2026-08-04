@@ -215,3 +215,120 @@ Full suite: **3227 passed / 18 skipped / 0 failed** (was 3193).
 5. **`_save_preview_to_workspace()` copies the entire tree on every switch.**
    An rsync-style diff, or leaving files in place and swapping a symlink, would
    remove most of the window this module's locking now has to protect.
+
+---
+
+# Follow-up 1 — Test isolation: the filesystem half (`1b07a0f`)
+
+The top platform-wide follow-up, outstanding since Module 15 and made
+impossible to ignore by Module 18: the user's real workspace list was buried in
+test output.
+
+## Root cause
+
+`50cc986` sandboxed the test **database** via `AGENTIC_TEST_DB`. It did nothing
+for the **filesystem**. `get_data_dir()` returns the repo root unless
+`AGENTIC_OS_DATA_DIR` is set, and ~20 routers derive write paths from it.
+**Nothing ever set it.**
+
+Half the problem was fixed and the other half went unnoticed for months,
+because the symptom looks like clutter rather than like a bug.
+
+Measured, not estimated:
+
+| | Count |
+|---|---|
+| `workspaces/` directories on disk | **1158** |
+| Files tracked by git | **3135** |
+| Rows in the `workspaces` table | **618** |
+| Genuine user projects among them | **1** |
+
+The other 617 were `UnitWS_*`, `ActivateWS_*`, `SysWS_*`, `Regress WS
+Activate` — and injection payloads. Workspaces literally named `' OR '1'='1';
+DROP TABLE agents; --` and `<script>alert(document.cookie)</script>` were
+rendering in the user's UI.
+
+## Why the sandbox has an unusual shape
+
+An empty temp dir would not work: the app legitimately **reads** repo content
+from the same root — `frontend/js/*.js`, `backend/`, `requirements.txt`,
+`templates/`. That is presumably why this was never done.
+
+So the sandbox **symlinks read-only repo paths** back to the real thing and
+provides **real empty directories** for everything written to. Reads resolve to
+live files; writes land in the temp tree and are discarded.
+
+`templates/` and `docs/` are **copied**, not symlinked. `safe_path()` resolves
+symlinks *before* its containment check — correctly, since that is exactly how
+a symlink is used to escape a sandbox — so a symlinked `templates/` resolves
+outside the root, fails `relative_to()`, and `safe_path()` returns `None`.
+`github.py`'s allowlist started rejecting `templates` and `docs` as invalid.
+
+**That was the sandbox being wrong, not the security control.** Worth stating
+plainly: the instinct when a security check starts failing is to loosen it. The
+check was right.
+
+## The live-server half
+
+`_assert_server_db_is_sandboxed()` checked only the database, so a
+correctly-DB-sandboxed server still wrote every workspace, preview file and
+export into the repo. `/api/health` now reports `data_dir` and
+`data_dir_is_test_sandbox`, and the guard in all five live conftests asserts on
+both halves.
+
+## A test that depended on the leak
+
+`test_flow_07`'s `test_02_terminal_runs_a_python_script` imported `PREVIEW_DIR`
+from `backend.routers.terminal` **inside the test process** to place a script
+for the **server** to execute. Two processes, two different resolutions of the
+same constant:
+
+```
+test process : /home/user/repo/preview
+server       : /tmp/agentic-test-data/preview
+```
+
+It only ever passed because both were writing into the real repo — **the test
+depended on the very leak being fixed.** It now asks the server where its data
+dir is via `/api/health`.
+
+This is the argument for verifying a sandbox by *running the suite* rather than
+by reading the diff. I initially dismissed this failure twice as "stale
+server", and it was real both times.
+
+## Clearing the backlog
+
+`scripts/clean_test_residue.py`. Deletion is **opt-in** (`--apply`; default is
+a dry run), anything not confidently identified as test output is **kept**, the
+active workspace is never deleted, and containment is verified before every
+`rmtree` rather than trusted from the DB. The asymmetry is deliberate: leaving
+a stray test workspace is cosmetic; deleting a real project is not.
+
+Applied: **617 DB rows and 1156 directories** removed, **2689 files
+untracked**. `.gitignore` gains `workspaces/*/preview/` as a last line of
+defence.
+
+## Verification
+
+The measurement that matters, before and after a **full suite run**:
+
+| | Before | After |
+|---|---|---|
+| `workspaces` DB rows | 2 | **2** |
+| `workspaces/` directories | 8 | **8** |
+
+The UI now lists exactly one workspace — *My Project*, 8 files intact,
+switching and exporting verified working.
+
+`tests/unit/test_77_test_isolation_guard.py` — 8 cases asserting the sandbox is
+**in effect**, not merely configured. That distinction is the whole lesson of
+`50cc986`, where the docstring promised isolation while nothing read the
+variable. Disabling the env var fails all 8.
+
+Full suite: **3235 passed / 18 skipped / 0 failed** (was 3227).
+
+## Status
+
+Follow-up 1 of Module 18 is closed, and with it the longest-standing
+platform-wide gap in this review. Follow-ups 2–5 (collab/Control Tower
+durability, workspace quotas, copy-on-switch cost) remain open.
