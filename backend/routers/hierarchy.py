@@ -7,6 +7,8 @@ Tier 2: Project folders with 5 IVREN subfolders (instructions, voice, references
 from __future__ import annotations
 
 import json
+import pathlib
+import re
 import time
 from typing import Any
 
@@ -26,36 +28,78 @@ PROJECTS_DIR = HIERARCHY_DIR / "projects"
 TIER1_DIR.mkdir(parents=True, exist_ok=True)
 PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Default Tier 1 templates
+# Default Tier 1 templates.
+#
+# These are PROMPTS, not content. They previously shipped the author's own
+# name, company, product tiers and pricing as the default for every install:
+#
+#   - **Name:** Joshua Strickland
+#   - **Company Name:** Strick Tech
+#   - **Free Version:** ... **Pro Version:** ... **Enterprise Version:** ...
+#
+# Because /compiled-context is concatenated into the system prompt by chat.py,
+# every user's AI was silently told it was working for someone else's business
+# until they happened to find and rewrite these four files. Worse, the content
+# is confidently phrased, so the model has no way to tell placeholder text from
+# real user context — it would cite another company's pricing as fact.
+#
+# A template that is obviously unfilled is far more useful than a plausible
+# wrong answer: the model can say "your profile isn't set up yet", and
+# /status can detect it (see _is_placeholder).
+PLACEHOLDER_MARKER = '<!-- agentic-os:unfilled -->'
+
 DEFAULT_TIER1 = {
-    "about_me": """# About Me
-- **Name:** Joshua Strickland
-- **Role:** Founder & Creator of Agentic OS
-- **Company:** Strick Tech
-- **One-Line Intro:** I build local-first AI operating systems and scalable autonomous workflows.
-- **Background:** Software creator and product strategist focused on multi-agent collaboration and high-leverage tools for individuals and organizations.
+    "about_me": f"""# About Me
+{PLACEHOLDER_MARKER}
+> Not filled in yet. Replace the prompts below with your own details, or use
+> the guided interview in AI Context & Guidelines.
+
+- **Name:** _(your name)_
+- **Role:** _(what you do)_
+- **Company / Project:** _(where you do it)_
+- **One-Line Intro:** _(how you'd describe yourself in a sentence)_
+- **Background:** _(experience and focus that an assistant should know about)_
 """,
-    "about_my_business": """# About My Business
-- **Company Name:** Strick Tech
-- **What We Do:** Create Agentic OS Platform — software for individuals and organizations to build, run, and scale autonomous AI agents.
-- **Target Audience / ICP:** Individuals, organizations, developers, and enterprise leaders seeking full local control with compounding AI memory.
-- **Unique Value Proposition:** Swarm fan-out with judge synthesis, 3D Memory Galaxy, spec-driven development, and compounding information hierarchy.
+    "about_my_business": f"""# About My Business
+{PLACEHOLDER_MARKER}
+> Not filled in yet.
+
+- **Company Name:** _(name)_
+- **What We Do:** _(the product or service, in plain terms)_
+- **Target Audience / ICP:** _(who it is for)_
+- **Unique Value Proposition:** _(why someone chooses you)_
 """,
-    "about_my_voice": """# About My Voice & Tone
-- **Writing Style:** Clear, crisp, punchy, action-oriented, and deeply informative.
-- **Tone:** Professional yet enthusiastic, approachable, authoritative, and direct.
-- **Words & Phrases I Love:** High-leverage, compounding, clear-cut, robust, autonomous, systematic, 10/10.
-- **Words & Phrases to Avoid:** Delve, tapestry, game-changer, revolutionary, synergy, unpack, endeavor, bespoke.
-- **Formatting Rules:** Use bullet points, bold key concepts, keep paragraphs shorter than 4 lines, and always include concrete examples or code.
+    "about_my_voice": f"""# About My Voice & Tone
+{PLACEHOLDER_MARKER}
+> Not filled in yet. This one has the largest effect on output quality —
+> being specific about words to avoid is usually worth more than the rest.
+
+- **Writing Style:** _(e.g. concise and direct, or warm and discursive)_
+- **Tone:** _(e.g. professional, playful, academic)_
+- **Words & Phrases I Like:** _(terms that sound like you)_
+- **Words & Phrases to Avoid:** _(pet hates — the model will genuinely avoid them)_
+- **Formatting Rules:** _(bullets vs prose, paragraph length, code examples)_
 """,
-    "about_my_offers": """# About My Offers & Pricing
-- **Core Product:** Agentic OS Platform by Strick Tech
-- **Editions / Versions:** Free, Pro, and Enterprise tiers.
-  - **Free Version:** Essential local-first multi-agent chat, basic studio builder, SQLite memory, and core 2-tier information hierarchy.
-  - **Pro Version:** Advanced swarm orchestration, 12 neural voice TTS agents, autonomous browser automation, full CRDT collaboration, and unlimited project IVREN hierarchies.
-  - **Enterprise Version:** Dedicated Governance Control Tower, HITL approval gates, custom MCP tool routing, SLA monitoring, anomaly detection, and priority enterprise support by Strick Tech.
+    "about_my_offers": f"""# About My Offers & Pricing
+{PLACEHOLDER_MARKER}
+> Not filled in yet.
+
+- **Core Product / Service:** _(what you sell or deliver)_
+- **Tiers / Packages:** _(names and what each includes)_
+- **Pricing:** _(or "not public" if you would rather the assistant not quote it)_
 """,
 }
+
+
+def _is_placeholder(text: str) -> bool:
+    """True when a Tier 1 file is still the unedited template.
+
+    Detected by an explicit marker rather than by comparing against the default
+    text, so a user who edits one line doesn't stay flagged as unconfigured
+    forever, and reformatting the templates later doesn't break detection.
+    """
+    return PLACEHOLDER_MARKER in (text or '')
+
 
 # Default IVREN project templates
 DEFAULT_IVREN = {
@@ -83,6 +127,65 @@ DEFAULT_IVREN = {
 - [{date}] Tip: Always include concrete data points and bulleted executive summaries.
 """,
 }
+
+
+_PROJECT_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_]{0,63}$')
+
+
+def normalize_project_id(raw: str) -> str:
+    """Fold a caller-supplied project id into the safe id form."""
+    pid = str(raw or '').strip().lower().replace(' ', '_').replace('-', '_')
+    # Strip anything that could carry path meaning. Doing this BEFORE the
+    # regex check means a traversal attempt fails validation rather than
+    # silently becoming a different, valid-looking id.
+    return re.sub(r'[^a-z0-9_]', '', pid)[:64]
+
+
+def project_dir(project_id: str) -> pathlib.Path | None:
+    """Resolve a project directory, or None if the id escapes PROJECTS_DIR.
+
+    SECURITY: project_id was interpolated straight into a path with no
+    validation at all — `PROJECTS_DIR / project_id`. Verified live before this
+    fix:
+
+      POST /projects/create {"project_id": "../../../tmp/hier_escape"}
+        -> 200 OK, created /home/user/repo/tmp/hier_escape
+
+      GET /compiled-context?project_id=../secretdir
+        -> read files from outside the projects tree AND injected their
+           contents into the LLM system prompt
+
+    That second one is the serious case: compiled-context output is
+    concatenated into the system prompt by chat.py, so traversal here is an
+    arbitrary-file-read whose results are handed to the model.
+
+    relative_to() compares path components, so a sibling directory whose name
+    merely starts with the same characters cannot slip through either.
+    """
+    if not project_id or not _PROJECT_ID_RE.match(str(project_id)):
+        return None
+    try:
+        candidate = (PROJECTS_DIR / project_id).resolve()
+        candidate.relative_to(PROJECTS_DIR.resolve())
+    except (ValueError, OSError):
+        return None
+    return candidate
+
+
+def _require_project(project_id: str) -> pathlib.Path:
+    """Return an existing project directory or raise the right HTTP error."""
+    pdir = project_dir(project_id)
+    if pdir is None:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid project_id '{project_id}': use lowercase letters, "
+                f'digits and underscores only.'
+            ),
+        )
+    if not pdir.is_dir():
+        raise HTTPException(status_code=404, detail=f"Project hierarchy '{project_id}' not found")
+    return pdir
 
 
 def _ensure_tier1_init() -> None:
@@ -136,12 +239,16 @@ class NoteAppendRequest(BaseModel):
 def get_hierarchy_status() -> dict[str, Any]:
     """Retrieve the overall health and file counts of the 2-Tier Information Hierarchy."""
     _ensure_tier1_init()
-    tier1_files = {
-        "about_me": (TIER1_DIR / "about_me.md").exists(),
-        "about_my_business": (TIER1_DIR / "about_my_business.md").exists(),
-        "about_my_voice": (TIER1_DIR / "about_my_voice.md").exists(),
-        "about_my_offers": (TIER1_DIR / "about_my_offers.md").exists(),
-    }
+    tier1_files = {}
+    tier1_unfilled = []
+    for key in ("about_me", "about_my_business", "about_my_voice", "about_my_offers"):
+        path = TIER1_DIR / f"{key}.md"
+        tier1_files[key] = path.exists()
+        # "The file exists" was the only signal, and _ensure_tier1_init()
+        # creates all four on first read — so `initialized` was ALWAYS true and
+        # the UI could never tell a configured profile from an untouched one.
+        if path.exists() and _is_placeholder(path.read_text(encoding="utf-8")):
+            tier1_unfilled.append(key)
     projects = []
     if PROJECTS_DIR.exists():
         for p in sorted(PROJECTS_DIR.iterdir()):
@@ -160,7 +267,11 @@ def get_hierarchy_status() -> dict[str, Any]:
     return {
         "ok": True,
         "initialized": all(tier1_files.values()),
+        # `initialized` only means the files exist. `configured` means the user
+        # has actually replaced the templates — which is what callers care about.
+        "configured": not tier1_unfilled,
         "tier1": tier1_files,
+        "tier1_unfilled": tier1_unfilled,
         "project_count": len(projects),
         "projects": projects,
         "timestamp": time.time(),
@@ -239,7 +350,10 @@ def interview_generate_tier1(payload: InterviewAnswerRequest) -> dict[str, Any]:
 
 def _get_project_meta(project_id: str) -> dict[str, Any]:
     """Retrieve metadata for a specific Tier 2 project folder."""
-    meta_path = PROJECTS_DIR / project_id / "meta.json"
+    pdir = project_dir(project_id)
+    if pdir is None:
+        return {"project_id": project_id, "name": project_id, "audience": "General audience"}
+    meta_path = pdir / "meta.json"
     if meta_path.exists():
         try:
             return json.loads(meta_path.read_text(encoding="utf-8"))
@@ -262,10 +376,27 @@ def list_projects() -> dict[str, Any]:
 @router.post("/projects/create")
 def create_project(payload: ProjectCreateRequest) -> dict[str, Any]:
     """Create a new Tier 2 Project folder with standardized IVREN structure."""
-    pid = payload.project_id.strip().lower().replace(" ", "_").replace("-", "_")
+    pid = normalize_project_id(payload.project_id)
     if not pid:
         raise HTTPException(status_code=400, detail="project_id cannot be empty")
-    pdir = PROJECTS_DIR / pid
+    pdir = project_dir(pid)
+    if pdir is None:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid project_id '{payload.project_id}': use lowercase letters, "
+                f"digits and underscores only."
+            ),
+        )
+    # Re-creating an existing project silently overwrote meta.json — the name,
+    # audience and created_at were replaced with no warning while the IVREN
+    # content stayed, leaving a project whose metadata described something
+    # else. Report the conflict instead.
+    if pdir.exists():
+        raise HTTPException(
+            status_code=409,
+            detail=f"Project '{pid}' already exists. Use /projects/{pid}/save to update it.",
+        )
     pdir.mkdir(parents=True, exist_ok=True)
 
     meta = {
@@ -293,9 +424,7 @@ def create_project(payload: ProjectCreateRequest) -> dict[str, Any]:
 @router.get("/projects/{project_id}")
 def get_project(project_id: str) -> dict[str, Any]:
     """Retrieve the content of all 5 IVREN sections for a specific project hierarchy."""
-    pdir = PROJECTS_DIR / project_id
-    if not pdir.exists():
-        raise HTTPException(status_code=404, detail=f"Project hierarchy '{project_id}' not found")
+    pdir = _require_project(project_id)
     meta = _get_project_meta(project_id)
     return {
         "ok": True,
@@ -313,9 +442,7 @@ def get_project(project_id: str) -> dict[str, Any]:
 @router.post("/projects/{project_id}/save")
 def save_project(project_id: str, payload: ProjectSaveRequest) -> dict[str, Any]:
     """Save or update any of the 5 IVREN sections for a specific project."""
-    pdir = PROJECTS_DIR / project_id
-    if not pdir.exists():
-        raise HTTPException(status_code=404, detail=f"Project hierarchy '{project_id}' not found")
+    pdir = _require_project(project_id)
 
     if payload.instructions is not None:
         (pdir / "instructions").mkdir(exist_ok=True)
@@ -339,9 +466,7 @@ def save_project(project_id: str, payload: ProjectSaveRequest) -> dict[str, Any]
 @router.post("/projects/{project_id}/notes/append")
 def append_project_note(project_id: str, payload: NoteAppendRequest) -> dict[str, Any]:
     """Append a new feedback or metric note to a project's notes.md file."""
-    pdir = PROJECTS_DIR / project_id
-    if not pdir.exists():
-        raise HTTPException(status_code=404, detail=f"Project hierarchy '{project_id}' not found")
+    pdir = _require_project(project_id)
     notes_file = pdir / "notes" / "notes.md"
     (pdir / "notes").mkdir(exist_ok=True)
     existing = notes_file.read_text(encoding="utf-8") if notes_file.exists() else "# Feedback Loop & Compounding Notes\n"
@@ -351,29 +476,76 @@ def append_project_note(project_id: str, payload: NoteAppendRequest) -> dict[str
     return {"ok": True, "message": "Note appended to project hierarchy", "notes_content": notes_file.read_text(encoding="utf-8")}
 
 
+@router.delete("/projects/{project_id}")
+def delete_project(project_id: str) -> dict[str, Any]:
+    """Delete a Tier 2 project hierarchy and all five IVREN files.
+
+    The lifecycle was create-and-save only: a project made by mistake, or one
+    no longer relevant, could never be removed through the API. DELETE returned
+    405 and the folder stayed in every /status and /projects listing forever.
+    """
+    pdir = _require_project(project_id)
+    import shutil
+
+    shutil.rmtree(pdir)
+    return {"ok": True, "deleted": project_id}
+
+
+@router.post("/tier1/reset")
+def reset_tier1() -> dict[str, Any]:
+    """Restore the four Tier 1 files to blank templates.
+
+    Needed because the originals shipped with another person's details baked
+    in: an existing install has those on disk already, and nothing short of
+    manually deleting four files would clear them.
+    """
+    for key, content in DEFAULT_TIER1.items():
+        (TIER1_DIR / f"{key}.md").write_text(content, encoding="utf-8")
+    return {"ok": True, "message": "Tier 1 reset to blank templates", "reset": sorted(DEFAULT_TIER1)}
+
+
 @router.get("/compiled-context")
 def get_compiled_context(project_id:str | None = Query(None, description="Optional project ID to merge with Tier 1")) -> dict[str, Any]:
     """Generate the full, compiled Information Hierarchy context block ready for system prompt injection."""
     _ensure_tier1_init()
-    tier1_text = (
-        (TIER1_DIR / "about_me.md").read_text(encoding="utf-8") + "\n\n" +
-        (TIER1_DIR / "about_my_business.md").read_text(encoding="utf-8") + "\n\n" +
-        (TIER1_DIR / "about_my_voice.md").read_text(encoding="utf-8") + "\n\n" +
-        (TIER1_DIR / "about_my_offers.md").read_text(encoding="utf-8")
-    )
+    # Only inject files the user has actually filled in. An unedited template
+    # is a page of "_(your name)_" prompts; injecting it teaches the model
+    # nothing and actively wastes context, and injecting the OLD defaults
+    # taught it a different person's business as fact.
+    filled, unfilled = [], []
+    for key in ("about_me", "about_my_business", "about_my_voice", "about_my_offers"):
+        text = (TIER1_DIR / f"{key}.md").read_text(encoding="utf-8")
+        (unfilled if _is_placeholder(text) else filled).append((key, text))
+    tier1_text = "\n\n".join(t for _, t in filled)
 
     project_text = ""
     if project_id:
-        pdir = PROJECTS_DIR / project_id
-        if pdir.exists():
+        # This text is concatenated into the LLM system prompt by chat.py, so an
+        # unvalidated id here is an arbitrary-file-read that feeds the model.
+        pdir = project_dir(project_id)
+        if pdir is None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid project_id '{project_id}'",
+            )
+        if pdir.is_dir():
             for sub in ["instructions", "voice", "references", "examples", "notes"]:
                 f = pdir / sub / f"{sub}.md"
                 if f.exists():
                     project_text += f"\n\n--- TIER 2 PROJECT DELTA ({sub.upper()}) ---\n" + f.read_text(encoding="utf-8")
 
-    compiled = f"""<information-hierarchy>
+    if filled:
+        compiled = f"""<information-hierarchy>
 === TIER 1: UNIVERSAL BUSINESS CONTEXT ===
 {tier1_text.strip()}
+"""
+    else:
+        # Say so explicitly rather than emitting an empty section: a model given
+        # a blank context block will often invent details to fill the gap.
+        compiled = """<information-hierarchy>
+=== TIER 1: UNIVERSAL BUSINESS CONTEXT ===
+The user has not set up their profile yet. Do not invent details about them,
+their business, their voice, or their pricing. If such a detail is needed, ask.
 """
     if project_text:
         compiled += f"\n=== TIER 2: PROJECT-SPECIFIC DELTAS & IVREN ==={project_text}"
@@ -402,4 +574,8 @@ def get_compiled_context(project_id:str | None = Query(None, description="Option
         "compiled_context": compiled,
         "char_count": len(compiled),
         "estimated_tokens": len(compiled) // 4,
+        # Surfaced so the preview UI can show what is missing instead of
+        # implying the injected block is complete.
+        "tier1_filled": [k for k, _ in filled],
+        "tier1_unfilled": [k for k, _ in unfilled],
     }

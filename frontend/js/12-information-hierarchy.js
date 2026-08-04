@@ -137,14 +137,51 @@
   function renderProjectList(projects) {
     const listEl = document.getElementById('t2-project-list');
     if (!listEl) return;
+    // `pid` went into onclick="selectTier2Project('${pid}')" unescaped. The
+    // server now rejects ids outside [a-z0-9_], so a quote can no longer reach
+    // here — but building an inline handler from data is the pattern that has
+    // already caused breakage elsewhere in this codebase, so use delegation.
     listEl.innerHTML = projects.map(p => {
       const pid = p.project_id || p.name;
       const name = p.meta?.name || pid;
       const isSelected = currentTier2Project === pid;
-      return `<div onclick="selectTier2Project('${pid}')" id="t2-proj-item-${pid}" style="padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;background:${isSelected ? 'rgba(91,138,248,.1)' : 'transparent'};border:1px solid ${isSelected ? 'var(--border-hi)' : 'transparent'};font-size:13px;font-weight:${isSelected ? 700 : 500};display:flex;align-items:center;justify-content:space-between">
+      return `<div data-h-project="${escHtml(pid)}" style="padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;background:${isSelected ? 'rgba(91,138,248,.1)' : 'transparent'};border:1px solid ${isSelected ? 'var(--border-hi)' : 'transparent'};font-size:13px;font-weight:${isSelected ? 700 : 500};display:flex;align-items:center;justify-content:space-between;gap:8px">
         <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📁 ${escHtml(name)}</span>
+        <button type="button" data-h-delete="${escHtml(pid)}" title="Delete this project hierarchy"
+                style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:12px;padding:0 2px;flex-shrink:0">🗑</button>
       </div>`;
     }).join('');
+    wireProjectListEvents(listEl);
+  }
+
+  function wireProjectListEvents(listEl) {
+    if (listEl.dataset.wired) return;
+    listEl.dataset.wired = '1';
+    listEl.addEventListener('click', async (e) => {
+      const del = e.target.closest('[data-h-delete]');
+      if (del) {
+        e.stopPropagation();
+        const pid = del.dataset.hDelete;
+        const confirmFn = window.gmDanger || (async (t, m) => window.confirm(m));
+        if (!(await confirmFn('Delete Project Hierarchy',
+              `Delete "${pid}" and all five IVREN files? This cannot be undone.`))) return;
+        try {
+          const r = await fetch('/api/hierarchy/projects/' + encodeURIComponent(pid), {method:'DELETE'});
+          if (!r.ok) {
+            let detail = '';
+            try { detail = (await r.json()).detail || ''; } catch (err) { /* non-JSON */ }
+            window.toast?.('Delete failed: ' + (detail || 'HTTP ' + r.status), 'err');
+            return;
+          }
+          window.toast?.('🗑 Deleted ' + pid, 'ok');
+          if (currentTier2Project === pid) currentTier2Project = null;
+          renderHierarchyPane();
+        } catch (ex) { window.toast?.('Delete error: ' + ex?.message, 'err'); }
+        return;
+      }
+      const item = e.target.closest('[data-h-project]');
+      if (item) selectTier2Project(item.dataset.hProject);
+    });
   }
 
   window.selectTier2Project = async function(pid) {
@@ -154,7 +191,7 @@
       el.style.border = '1px solid transparent';
       el.style.fontWeight = '500';
     });
-    const activeEl = document.getElementById('t2-proj-item-' + pid);
+    const activeEl = document.querySelector(`[data-h-project="${CSS.escape(pid)}"]`);
     if (activeEl) {
       activeEl.style.background = 'rgba(91,138,248,.1)';
       activeEl.style.border = '1px solid var(--border-hi)';
