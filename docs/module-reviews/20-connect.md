@@ -264,3 +264,115 @@ Full suite: **3389 passed / 18 skipped / 0 failed**.
    via `-c core.pager`).
 4. Webhooks have no inbound signature verification.
 5. No rate limiting on connector execution.
+
+---
+
+# Follow-ups 2–5 (`abeed39`)
+
+All four closed. Module 20 has nothing outstanding.
+
+## 3. `shell.run` was a full sandbox escape
+
+The guard was `command.strip().split()[0] not in ALLOWED_CMDS`, then the whole
+string went to `create_subprocess_shell()`. **Only the first token was checked
+while `/bin/sh` interpreted the rest.**
+
+```
+"ls | id"                            → uid=1000(user) gid=1000(user)...
+"echo $(whoami)"                     → user
+"echo x | cat /etc/passwd"           → root:x:0:0:root:/root:/bin/bash...
+"echo pwned > /tmp/shell_escape.txt" → WROTE OUTSIDE THE SANDBOX
+```
+
+This is the **Module 12 terminal finding reproduced exactly**, in a tool an
+agent can call. Module 12 fixed it in `terminal.py` *and* built
+`services/sandbox.py` for OS-level isolation — this tool adopted neither, so an
+escape through the filter had the whole filesystem.
+
+Two changes, because either alone is insufficient:
+
+1. **Refuse shell metacharacters.** There is no legitimate `| ; & $( \` > <` in
+   a tool whose contract is "run one allow-listed command". This loses
+   `ls | grep x`; that is the right trade, and an agent can call two tools.
+2. **Execute via `create_subprocess_exec` on an argv list** — no shell exists
+   to interpret anything — wrapped in the Module 12 namespace jail.
+
+Also refused: absolute paths, and arguments that turn an allow-listed binary
+into an execution primitive — `git -c core.pager=<cmd>`, `git -c alias.x=!<cmd>`,
+`find -exec`, `npx --call`, `npm --script-shell`. **The allow-list is on the
+binary name, so every one of those passed it.**
+
+### Two self-corrections
+
+Both caught because legitimate commands returned `ok: true` with **empty
+output** — the "success while doing nothing" shape this review keeps finding,
+and invisible to a test that only checks `ok`:
+
+* I passed `cwd=work_dir` while sandboxed. `wrap_command()` re-enters
+  `python -c "from backend.services.sandbox import ..."` behind `env -i`, which
+  drops `PYTHONPATH`, so the import only resolves from the repo root. Every
+  command failed with `ModuleNotFoundError`. `terminal.py` passes `cwd=None`
+  because the jail chdirs to `/work` itself.
+* I passed a bare command name. The bootstrap ends in `os.execv(argv[0], argv)`,
+  which needs an **absolute path** — `terminal.py` happens to pass `/bin/sh`, so
+  this never surfaced there.
+
+Verified after: `echo hello world` → `hello world`, `pwd` → `/work`.
+
+## 4. Webhook authentication answered HTTP 200
+
+Missing secret, wrong secret, forged signature and unknown webhook id **all
+returned 200** with an error body. A sender — GitHub, Stripe, CI — saw success
+and never retried or alerted. Delivery dashboards showed green for calls that
+did nothing. Now 401/404.
+
+The `X-Webhook-Secret` branch also compared with `!=`, which short-circuits on
+the first differing byte and **leaks the secret to timing**. The HMAC branch
+directly above already used `compare_digest`; this one did not.
+
+> **Correction to my own Module 20 write-up.** I listed this as *"webhooks have
+> no signature verification"*. They do, and it is correct HMAC-SHA256. The
+> defects were the status codes and the *other* branch. I found my earlier
+> claim overstated by reading the code before writing the fix.
+
+## 2. Gateway `tool_count`
+
+Not null — **the field was never in the response at all**, so every server
+rendered as "tools: null". The data was already in `tools_schema`; it simply
+was not counted. Now 1/4/2/2/1/3 across the six servers.
+
+## 5. Connector rate limiting
+
+Connector calls reach third-party APIs **with the user's own credentials**, and
+an agent loop can run one in a tight cycle — burning a Slack or Notion quota,
+or tripping abuse detection against the user's account.
+
+Fixed window per `(connector, agent)`, enforced **before** credentials are
+loaded or any request leaves the process (with a test asserting the provider is
+not called on refusal). Per-agent, so one runaway agent cannot lock out the
+others, and disableable via `CONNECTOR_RATE_LIMIT=0`.
+
+In-memory **on purpose and documented as such**: a local backstop against a
+runaway loop, not a distributed quota system. A multi-process deployment needs
+a shared store.
+
+## Tests
+
+`tests/unit/test_82_connect_followups.py` — **41 cases**.
+**Proven to catch the bugs: with the four routers stashed, 33 of 41 fail.**
+
+Includes a test that `echo` actually produces **stdout**, because "ok:true with
+empty output" satisfied every other assertion while the jail was silently
+broken.
+
+`tests/system/test_sys_05_platform.py` created a webhook **with** a secret,
+triggered it **without** one, and accepted `(200, 404)` — accommodating the bug.
+It now sends the credential *and* separately asserts a missing one is refused,
+which is a stronger test than it was before. This is the fourth time this
+review has found a test holding a bug in place.
+
+Full suite: **3430 passed / 18 skipped / 0 failed**.
+
+## Module 20 status
+
+All five follow-ups closed. Nothing outstanding for CONNECT.
