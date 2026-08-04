@@ -295,6 +295,58 @@ def resolve_push_dir(directory: str):
     return resolved, ''
 
 
+# Directories skipped wholesale — build artefacts and VCS internals that are
+# never useful in a published snapshot.
+PUSH_SKIP_DIRS = {'.git', '__pycache__', 'branches', 'node_modules', '.next', 'dist', 'build'}
+PUSH_FILE_LIMIT = 100
+PUSH_MAX_FILE_BYTES = 5_000_000  # GitHub Contents API practical ceiling
+
+
+def plan_push(source_dir, limit: int = PUSH_FILE_LIMIT) -> dict:
+    """Decide exactly which files a push would upload.
+
+    Shared by the dry-run and the real push so the preview cannot drift from
+    the action — a dry-run that reports a different file set than the push
+    performs is worse than no dry-run at all.
+
+    Returns include/skipped/oversize lists plus totals. Nothing here touches
+    the network.
+    """
+    candidates = [
+        f for f in source_dir.rglob('*')
+        if f.is_file() and not any(skip in f.parts for skip in PUSH_SKIP_DIRS)
+    ]
+    candidates.sort(key=lambda f: f.as_posix())
+
+    include, skipped, oversize = [], [], []
+    for file_path in candidates[:limit]:
+        rel_path = file_path.relative_to(source_dir).as_posix()
+        publishable, why = is_publishable_file(rel_path)
+        if not publishable:
+            skipped.append({'path': rel_path, 'reason': why})
+            continue
+        try:
+            size = file_path.stat().st_size
+        except OSError as exc:
+            skipped.append({'path': rel_path, 'reason': f'unreadable: {exc}'})
+            continue
+        if size > PUSH_MAX_FILE_BYTES:
+            oversize.append({'path': rel_path, 'bytes': size,
+                             'reason': f'exceeds the {PUSH_MAX_FILE_BYTES // 1_000_000} MB API limit'})
+            continue
+        include.append({'path': rel_path, 'bytes': size})
+
+    return {
+        'include': include,
+        'skipped': skipped,
+        'oversize': oversize,
+        'total_candidates': len(candidates),
+        'truncated': len(candidates) > limit,
+        'limit': limit,
+        'total_bytes': sum(f['bytes'] for f in include),
+    }
+
+
 @router.post('/push')
 async def push_to_github(req: Request):
     """
@@ -309,6 +361,9 @@ async def push_to_github(req: Request):
     branch = body.get('branch', 'main').strip()
     message = body.get('message', 'Agentic OS push').strip()
     directory = body.get('directory', 'preview')  # which local dir to push
+    # Default FALSE: a push that silently became a no-op would be its own bug.
+    # Callers opt in to the preview.
+    dry_run = bool(body.get('dry_run', False))
 
     if not _gh_token():
         return JSONResponse(
@@ -328,26 +383,41 @@ async def push_to_github(req: Request):
     if source_dir is None:
         return JSONResponse({'ok': False, 'error': why}, status_code=403)
 
+    plan = plan_push(source_dir)
+
+    if dry_run:
+        # No network call at all. Nothing has been uploaded.
+        return {
+            'ok': True,
+            'dry_run': True,
+            'repo': repo_name,
+            'branch': branch,
+            'directory': directory,
+            'would_push': plan['include'],
+            'would_push_count': len(plan['include']),
+            'total_bytes': plan['total_bytes'],
+            'held_back': plan['skipped'],
+            'held_back_count': len(plan['skipped']),
+            'oversize': plan['oversize'],
+            'total_candidates': plan['total_candidates'],
+            'truncated': plan['truncated'],
+            'limit': plan['limit'],
+            'note': (
+                'Nothing was uploaded. Files under "held_back" were excluded because they '
+                'look like credentials; review the list, then re-send with dry_run=false.'
+            ),
+        }
+
     files_pushed = 0
     errors = []
+    skipped_secrets = plan['skipped']
+    total_files = plan['total_candidates']
+    truncated = plan['truncated']
 
     async with httpx.AsyncClient(timeout=20.0) as client:
-        # Collect all files
-        _SKIP_DIRS = {'.git', '__pycache__', 'branches', 'node_modules', '.next', 'dist', 'build'}
-        _MAX_PUSH_SIZE = 5_000_000  # 5 MB per file limit for GitHub API
-        file_paths = [
-            f for f in source_dir.rglob('*') if f.is_file() and not any(skip in f.parts for skip in _SKIP_DIRS)
-        ]
-        total_files = len(file_paths)
-        truncated = total_files > 100
-
-        skipped_secrets = []
-        for file_path in file_paths[:100]:  # limit to 100 files
-            rel_path = file_path.relative_to(source_dir).as_posix()
-            publishable, why = is_publishable_file(rel_path)
-            if not publishable:
-                skipped_secrets.append({'path': rel_path, 'reason': why})
-                continue
+        for entry in plan['include']:
+            rel_path = entry['path']
+            file_path = source_dir / rel_path
             try:
                 content = file_path.read_bytes()
                 content_b64 = base64.b64encode(content).decode()
@@ -382,12 +452,19 @@ async def push_to_github(req: Request):
 
     return {
         'ok': files_pushed > 0,
+        'dry_run': False,
         'repo': repo_name,
         'branch': branch,
         'files_pushed': files_pushed,
-        'total_files': total_files if 'total_files' in dir() else files_pushed,
-        'truncated': truncated if 'truncated' in dir() else False,
+        'total_files': total_files,
+        'truncated': truncated,
         'errors': errors[:5],
+        # Previously collected and then dropped on the floor: a file held back
+        # by secret screening simply never appeared in the repo, which reads as
+        # a bug rather than a protection. Report it either way.
+        'held_back': skipped_secrets,
+        'held_back_count': len(skipped_secrets),
+        'oversize': plan['oversize'],
         'url': f'https://github.com/{repo_name}/tree/{branch}',
         'message': message,
     }
