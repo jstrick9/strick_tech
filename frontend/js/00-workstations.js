@@ -33,7 +33,12 @@ window.WORKSTATIONS = {
   // Code intelligence belongs with the editor, not three sidebar entries away.
   'studio': ['codesearch', 'codeindex', 'multitab'],
   // Every outbound connection: tools, gateways, third-party services, events.
-  'mcp': ['mcp-gateway', 'connectors', 'integrations', 'webhooks', 'hooks'],
+  // Connectors and the MCP gateway fold into the Connect hub ('mcp' pane):
+  // they were separate panes over separate registries showing the same
+  // question -- "what can my agent reach?". Integrations, webhooks and hooks
+  // remain: inbound triggers and event automations are a different job from
+  // outbound capability, not a duplicate catalog.
+  'mcp': ['integrations', 'webhooks', 'hooks'],
   // Every knowledge store the agents can read from.
   'galaxy': ['rag', 'knowledge-graph', 'obsidian'],
   // Every "run this automatically" surface.
@@ -73,7 +78,7 @@ window.WORKSTATION_LABELS = {
   'bugbot': '🐛 Bug Finder', 'testgen': '🧾 Test Generator',
   'studio': '⚡ Editor', 'codesearch': '⌕ Code Search', 'codeindex': '🔍 Code Index',
   'multitab': '◫ Multi-Preview',
-  'mcp': '🔧 Tools', 'mcp-gateway': '🚪 Gateway', 'connectors': '🔗 Connectors',
+  'mcp': '🔌 Connect', 'mcp-gateway': '🚪 Gateway', 'connectors': '🔗 Connectors',
   'integrations': '🧩 Integrations', 'webhooks': '🔔 Webhooks', 'hooks': '⚡ Event Hooks',
   'galaxy': '🧠 Memory', 'rag': '📚 Knowledge Search', 'knowledge-graph': '🕸 Knowledge Graph',
   'obsidian': '📝 Obsidian Sync',

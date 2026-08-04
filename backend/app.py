@@ -80,6 +80,7 @@ from .routers.codeindex import router as codeindex_router
 from .routers.codesearch import router as codesearch_router
 from .routers.collab import router as collab_router
 from .routers.compliance import router as compliance_router
+from .routers.connect_hub import router as connect_hub_router
 from .routers.control_tower import router as control_tower_router
 from .routers.crdt import router as crdt_router
 from .routers.database import router as database_router
@@ -453,6 +454,7 @@ app.include_router(agents_router)
 app.include_router(secrets_router)
 app.include_router(builder_router)
 app.include_router(mcp_router)
+app.include_router(connect_hub_router)
 app.include_router(loops_router)
 app.include_router(ws_router)
 app.include_router(tts_router)

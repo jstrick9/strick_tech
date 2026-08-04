@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/mcp', tags=['mcp'])
 from backend.config import get_data_dir
@@ -97,7 +98,16 @@ async def call_tool(req: Request):
     agent_id = body.get('agent_id', 'system')
 
     if tool not in TOOLS:
-        return {'ok': False, 'error': f"Unknown tool '{tool}'. Available: {list(TOOLS.keys())}"}
+        # 404, not 200. An agent retrying a typo'd tool name against a 200
+        # response has no signal that the name itself is the problem.
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': f"Unknown tool '{tool}'",
+                'available': sorted(TOOLS.keys()),
+            },
+            status_code=404,
+        )
 
     t0 = time.time()
     try:
@@ -322,10 +332,41 @@ def _fs_read(path: str) -> dict:
 
 
 def _fs_write(path: str, content: str) -> dict:
+    """Write inside the sandbox, reporting where the file ACTUALLY went.
+
+    _safe_path() clamps an absolute path into the sandbox, which is correct --
+    but the response echoed back the path the caller ASKED for. Verified:
+
+        fs.write {"path": "/tmp/mcp_escape.txt"}
+        -> {"ok": true, "path": "/tmp/mcp_escape.txt", "bytes_written": 5}
+        and /tmp/mcp_escape.txt did not exist; the file was written to
+        <sandbox>/preview/tmp/mcp_escape.txt
+
+    An agent told it wrote to /tmp/x will read back /tmp/x, get nothing, and
+    have no way to discover why. Reporting a location the write did not happen
+    at is the same class of dishonesty as the "success while doing nothing"
+    results found in Modules 15 and 19.
+    """
     f = _safe_path(path)
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_text(content, encoding='utf-8')
-    return {'ok': True, 'path': path, 'bytes_written': len(content.encode())}
+
+    try:
+        relative = str(f.relative_to(SANDBOXED_DIR))
+    except ValueError:  # pragma: no cover - _safe_path guarantees containment
+        relative = f.name
+
+    result = {'ok': True, 'path': relative, 'bytes_written': len(content.encode())}
+    # Compare against the normalised request: '/tmp/x' clamps to 'tmp/x', which
+    # differs from the raw input only by the leading slash. Comparing raw
+    # strings marked every absolute path as "relocated" while missing none, but
+    # comparing normalised ones silently marked NOTHING -- my first version got
+    # this backwards and the test caught it. The user needs telling whenever
+    # the path they asked for is not the path used.
+    if relative != str(path):
+        result['requested_path'] = path
+        result['note'] = f'Paths are relative to the workspace; written to {relative}'
+    return result
 
 
 def _fs_list(path: str) -> dict:
@@ -529,31 +570,48 @@ async def _browser_extract_text(selector: str = '', session_id: str = 'default')
 
 
 async def _http_get(url: str, headers: dict = None) -> dict:
-    if not url.startswith(('http://', 'https://')):
-        raise ToolError('URL must start with http:// or https://')
-    import httpx
+    """HTTP GET, refusing internal addresses.
+
+    This is an AGENT-CALLABLE tool, which makes it the most dangerous of the
+    three SSRF sites found in this module. Verified before the fix:
+
+        {"tool":"http.get","args":{"url":"http://localhost:8787/api/connectors"}}
+        -> {"ok": true, ..., "body": "{\"connectors\":[..."}
+
+    The full internal API response, returned to the caller. It also reached
+    169.254.169.254 (HTTP 401 — a response, therefore a successful connection).
+    Everything this review has said about prompt injection gets materially
+    worse when the model holds a primitive that reads arbitrary internal URLs.
+
+    follow_redirects was True, so even a host check on the original URL would
+    have been walked past by a 302; safe_request() disables them.
+    """
+    from ..services.safe_fetch import UnsafeURLError, safe_request
 
     try:
-        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-            resp = await client.get(url, headers=headers or {})
-            ct = resp.headers.get('content-type', '')
-            body = resp.text[:8000] if 'text' in ct or 'json' in ct else f'[binary {len(resp.content)} bytes]'
-            return {'url': url, 'status': resp.status_code, 'content_type': ct, 'body': body}
+        resp = await safe_request('GET', url, headers=headers or {}, timeout=10.0)
+    except UnsafeURLError as e:
+        raise ToolError(str(e)) from e
     except Exception as e:
         raise ToolError(str(e)) from e
+
+    ct = resp.headers.get('content-type', '')
+    body = resp.text[:8000] if 'text' in ct or 'json' in ct else f'[binary {len(resp.content)} bytes]'
+    return {'url': url, 'status': resp.status_code, 'content_type': ct, 'body': body}
 
 
 async def _http_post(url: str, body: Any = None, headers: dict = None) -> dict:
-    if not url.startswith(('http://', 'https://')):
-        raise ToolError('URL must start with http:// or https://')
-    import httpx
+    """HTTP POST, refusing internal addresses. See _http_get()."""
+    from ..services.safe_fetch import UnsafeURLError, safe_request
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(url, json=body, headers=headers or {})
-            return {'url': url, 'status': resp.status_code, 'body': resp.text[:4000]}
+        resp = await safe_request('POST', url, json=body, headers=headers or {}, timeout=10.0)
+    except UnsafeURLError as e:
+        raise ToolError(str(e)) from e
     except Exception as e:
         raise ToolError(str(e)) from e
+
+    return {'url': url, 'status': resp.status_code, 'body': resp.text[:4000]}
 
 
 async def _web_search(query: str, limit: int = 5) -> dict:

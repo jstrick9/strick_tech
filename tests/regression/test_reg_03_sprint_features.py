@@ -264,8 +264,18 @@ class TestRegressionSprintC_Connectors:
             "action": "post_webhook",
             "payload": {"url": "http://127.0.0.1:8787/api/docs/feedback", "data": {"regress": True}}
         })
+        # Module 20: the outbound-webhook connector now refuses internal
+        # addresses (SSRF fix — it previously reached 169.254.169.254 and
+        # returned the body). This test posted to 127.0.0.1 and asserted
+        # success, so it encoded the vulnerability as expected behaviour.
+        # The connector's job here is "does the action dispatch and return the
+        # right shape", which a blocked-but-well-formed response proves just as
+        # well as a delivered one.
         d = r.json()
-        assert d["ok"] is True, f"SPRINT-C REGRESSION: webhook failed: {d}"
+        assert "exec_id" in d, f"SPRINT-C REGRESSION: webhook did not dispatch: {d}"
+        assert d.get("blocked") is True, (
+            f"loopback URL should be refused by the SSRF guard: {d}"
+        )
 
     def test_all_8_connectors_present(self, client):
         """Regression: All 8 built-in connectors still seeded."""
