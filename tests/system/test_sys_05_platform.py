@@ -119,8 +119,9 @@ class TestSysHooksWebhooks:
     async def test_full_webhook_lifecycle(self, C):
         """Create → events list → test → delete webhook."""
         name = uid("SysWebhook")
+        secret = uid("whsec")
         r = await POST(C, "/api/webhooks", {
-            "name": name, "secret": uid("whsec"),
+            "name": name, "secret": secret,
             "agent_id": "builder", "prompt_template": "Handle: {{payload}}"
         })
         d = must(r, 200)
@@ -135,10 +136,20 @@ class TestSysHooksWebhooks:
         r3 = await POST(C, f"/api/webhooks/{whid}/test", {})
         must(r3, 200, 404)
 
-        # Trigger
+        # Trigger. Module 20 follow-up: unauthenticated triggers are now 401
+        # instead of 200 — this webhook was created WITH a secret and the
+        # trigger sent none, so the old (200, 404) expectation was accommodating
+        # the bug. Sending the credential is also the stronger assertion: it
+        # proves a valid call still succeeds, which a 404-tolerant check did not.
         r4 = await POST(C, f"/api/webhooks/{whid}/trigger",
-                        {"payload": {"event": "sys_test", "ts": ts()}})
-        must(r4, 200, 404)
+                        {"payload": {"event": "sys_test", "ts": ts()}},
+                        headers={"X-Webhook-Secret": secret})
+        must(r4, 200)
+
+        # And that a missing credential is refused.
+        r4b = await POST(C, f"/api/webhooks/{whid}/trigger",
+                         {"payload": {"event": "sys_test_noauth"}})
+        must(r4b, 401)
 
         # Delete
         await DELETE(C, f"/api/webhooks/{whid}")

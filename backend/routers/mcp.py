@@ -427,18 +427,157 @@ def _fs_delete(path: str) -> dict:
     return {'ok': True, 'deleted': path}
 
 
-async def _shell_run(command: str, cwd: str = '') -> dict:
-    """Run a sandboxed shell command — only whitelisted commands."""
-    if not command.strip():
+# ── Shell command validation ───────────────────────────────────────────────────
+# The old check was `command.strip().split()[0] not in ALLOWED_CMDS`, then the
+# whole string went to asyncio.create_subprocess_shell(). Only the FIRST TOKEN
+# was validated while /bin/sh interpreted the rest, so every shell
+# metacharacter was a bypass. Verified live against the running server:
+#
+#   "ls | id"                    -> uid=1000(user) gid=1000(user) groups=...
+#   "echo $(whoami)"             -> user
+#   "echo x | cat /etc/passwd"   -> root:x:0:0:root:/root:/bin/bash...
+#   "echo pwned > /tmp/shell_escape.txt"  -> wrote OUTSIDE the sandbox
+#
+# This is the Module 12 terminal finding reproduced exactly: a name-based filter
+# in front of a shell is not a control, because shell syntax is not
+# prefix-structured. That module fixed it in terminal.py and built
+# services/sandbox.py for OS-level isolation; this tool never adopted either.
+#
+# Two changes:
+#   1. Parse with shlex and REFUSE shell metacharacters outright. There is no
+#      legitimate use of `|`, `;`, `$(`, backticks or redirection in a tool
+#      whose contract is "run one allow-listed command".
+#   2. Execute with create_subprocess_EXEC on an argv list, so no shell is
+#      involved at all, wrapped in the namespace sandbox when available.
+#
+# Refusing metacharacters loses `ls | grep x`. That is the correct trade: the
+# tool's contract is one allow-listed command, and an agent that needs a
+# pipeline can call the two tools in sequence.
+_SHELL_METACHARACTERS = ('|', ';', '&', '$(', '`', '>', '<', '\n', '\r', '$((')
+
+
+def _validate_shell_command(command: str) -> list[str]:
+    """Return argv for a permitted command, or raise ToolError.
+
+    Returns a token LIST rather than a string so the caller can exec directly
+    without a shell.
+    """
+    import shlex
+
+    raw = (command or '').strip()
+    if not raw:
         raise ToolError('Empty command')
-    cmd_name = command.strip().split()[0]
+
+    for meta in _SHELL_METACHARACTERS:
+        if meta in raw:
+            raise ToolError(
+                f'Shell metacharacter {meta!r} is not permitted. This tool runs a single '
+                f'allow-listed command with arguments; chaining, pipes, substitution and '
+                f'redirection are refused.'
+            )
+
+    try:
+        argv = shlex.split(raw)
+    except ValueError as e:
+        raise ToolError(f'Could not parse command: {e}') from e
+
+    if not argv:
+        raise ToolError('Empty command')
+
+    cmd_name = argv[0]
+    if '/' in cmd_name:
+        raise ToolError(
+            f"Command must be a bare name, not a path: {cmd_name!r}. "
+            f'Allowed: {sorted(ALLOWED_CMDS)}'
+        )
     if cmd_name not in ALLOWED_CMDS:
         raise ToolError(f"Command '{cmd_name}' not allowed. Allowed: {sorted(ALLOWED_CMDS)}")
-    work_dir = str(SANDBOXED_DIR) if not cwd else str(_safe_path(cwd))
+
+    # `git -c <anything>=<cmd>` turns an allow-listed binary into an arbitrary
+    # execution primitive (core.pager, alias.*, diff.external, ssh commands).
+    # The same shape applies to find -exec and grep's process options.
+    _reject_argument_escapes(cmd_name, argv[1:])
+    return argv
+
+
+# Arguments that let an allow-listed binary execute something else.
+_ARG_ESCAPES: dict[str, tuple[str, ...]] = {
+    'git': ('-c', '--exec-path', '--upload-pack', '--receive-pack', '--config-env'),
+    'find': ('-exec', '-execdir', '-ok', '-okdir', '-fprintf', '-fprint'),
+    'grep': ('--devices', '-D'),
+    'npm': ('--node-options', '--script-shell'),
+    'npx': ('-c', '--call', '--shell'),
+    'pip': ('--proxy',),
+}
+
+
+def _reject_argument_escapes(cmd_name: str, args: list[str]) -> None:
+    """Refuse arguments that turn a permitted binary into arbitrary execution."""
+    bad = _ARG_ESCAPES.get(cmd_name)
+    if not bad:
+        return
+    for arg in args:
+        head = arg.split('=', 1)[0]
+        if head in bad:
+            raise ToolError(
+                f"'{cmd_name} {head}' is not permitted: it can execute arbitrary commands "
+                f'through an allow-listed binary.'
+            )
+
+
+def _shell_exec_argv(argv: list[str], work_dir: str) -> tuple[list[str], str | None, bool]:
+    """Wrap argv in the namespace sandbox when the host supports it.
+
+    Module 12 built services/sandbox.py for exactly this and terminal.py uses
+    it; this tool never did, so an escape through the filter had the full
+    filesystem. Degrades to plain exec where namespaces are unavailable, and
+    the caller reports which happened rather than implying isolation.
+    """
+    import shutil as _shutil
+
     try:
-        proc = await asyncio.create_subprocess_shell(
-            command,
-            cwd=work_dir,
+        from ..services import sandbox as sandbox_svc
+
+        available, _reason = sandbox_svc.sandbox_available()
+        if not available:
+            return argv, None, False
+
+        # The jail bootstrap ends in os.execv(argv[0], argv), which requires an
+        # ABSOLUTE path -- terminal.py happens to pass '/bin/sh' so this never
+        # surfaced there. Passing a bare name like 'echo' failed inside the
+        # namespace with FileNotFoundError while the endpoint still reported
+        # ok:true, which is the "success while doing nothing" shape this review
+        # keeps finding. Resolve on the host before entering the jail.
+        resolved = _shutil.which(argv[0])
+        if not resolved:
+            raise ToolError(f"Command not found on this host: {argv[0]!r}")
+
+        wrapped, scratch = sandbox_svc.wrap_command(
+            [resolved, *argv[1:]], work_dir, allow_network=False
+        )
+        return wrapped, scratch, True
+    except Exception as e:  # pragma: no cover - isolation is best-effort
+        log.warning('mcp shell: sandbox unavailable (%s); running unsandboxed', e)
+        return argv, None, False
+
+
+async def _shell_run(command: str, cwd: str = '') -> dict:
+    """Run a single allow-listed command. No shell is involved."""
+    argv = _validate_shell_command(command)
+    work_dir = str(SANDBOXED_DIR) if not cwd else str(_safe_path(cwd))
+    run_argv, scratch, sandboxed = _shell_exec_argv(argv, work_dir)
+    # When sandboxed the jail mounts the workspace at /work and chdirs there
+    # itself, so cwd must be left alone. Passing work_dir broke the bootstrap:
+    # wrap_command() re-enters `python -c "from backend.services.sandbox ..."`
+    # behind `env -i`, which drops PYTHONPATH, so the import only resolves from
+    # the repo root. Setting cwd to the sandbox dir made EVERY command fail with
+    # ModuleNotFoundError while still reporting ok:true — caught because
+    # `echo hello world` returned empty stdout, not because the tests were red.
+    exec_cwd = None if sandboxed else work_dir
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *run_argv,
+            cwd=exec_cwd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -448,6 +587,9 @@ async def _shell_run(command: str, cwd: str = '') -> dict:
             'stderr': stderr.decode('utf-8', errors='ignore')[:1000],
             'returncode': proc.returncode,
             'command': command,
+            # Reported rather than implied: on a host without namespace support
+            # this is the filter alone, which the caller deserves to know.
+            'sandboxed': sandboxed,
         }
     except asyncio.TimeoutError:
         raise ToolError('Command timed out (15s)') from None
@@ -489,20 +631,25 @@ def _git_log(path: str = '') -> dict:
 
 
 async def _shell_run_background(command: str, cwd: str = '') -> dict:
-    """Run a background shell job."""
-    if not command.strip():
-        raise ToolError('Empty command')
-    cmd_name = command.strip().split()[0]
-    if cmd_name not in ALLOWED_CMDS:
-        raise ToolError(f"Command '{cmd_name}' not allowed.")
+    """Run a background job. Same validation as _shell_run — see there.
+
+    This path had the SAME first-token-only bypass and, being background, was
+    the easier one to overlook. Guarding one and not the other would have left
+    the primitive fully reachable.
+    """
+    argv = _validate_shell_command(command)
     work_dir = str(SANDBOXED_DIR) if not cwd else str(_safe_path(cwd))
-    proc = await asyncio.create_subprocess_shell(
-        command,
-        cwd=work_dir,
+    run_argv, _scratch, sandboxed = _shell_exec_argv(argv, work_dir)
+    proc = await asyncio.create_subprocess_exec(
+        *run_argv,
+        cwd=None if sandboxed else work_dir,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    return {'ok': True, 'pid': proc.pid, 'command': command, 'status': 'background_running'}
+    return {
+        'ok': True, 'pid': proc.pid, 'command': command,
+        'status': 'background_running', 'sandboxed': sandboxed,
+    }
 
 
 def _git_diff(path: str = '') -> dict:
