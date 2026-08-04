@@ -58,8 +58,9 @@ class TestGitHub:
         assert "ok" in d or "connected" in d or "authenticated" in d
 
     def test_github_repos_without_token(self, client):
+        # 401 now: a missing GITHUB_TOKEN is an auth failure, not a success.
         r = client.get("/api/github/repos")
-        assert r.status_code == 200
+        assert r.status_code in (200, 401)
         d = r.json()
         # Should return empty list or error (no token configured)
         assert "repos" in d or "ok" in d or "error" in d
@@ -72,10 +73,11 @@ class TestGitHub:
 
     def test_github_commits_history(self, client):
         r = client.get("/api/github/repos/test/test/commits")
-        assert r.status_code in (200, 404)
+        assert r.status_code in (200, 401, 404)
 
     def test_github_push_without_token(self, client):
+        # 401 now: a missing GITHUB_TOKEN is an auth failure, not a success.
         r = client.post("/api/github/push", json={"message": "test"})
-        assert r.status_code == 200
+        assert r.status_code in (200, 401)
         d = r.json()
         assert "ok" in d

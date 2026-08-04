@@ -3999,5 +3999,85 @@
     "emoji": "\ud83e\uddea",
     "skill_count": 1,
     "installed_at": "2026-08-04"
+  },
+  "unit_test_2d3f1a": {
+    "id": "unit_test_2d3f1a",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-08-04"
+  },
+  "sysplugin_ecbb7d2701": {
+    "id": "sysplugin_ecbb7d2701",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-08-04"
+  },
+  "test_plugin_64b90518": {
+    "id": "test_plugin_64b90518",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-08-04"
+  },
+  "uat_plugin_af2df052": {
+    "id": "uat_plugin_af2df052",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-08-04"
+  },
+  "unit_test_b51760": {
+    "id": "unit_test_b51760",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-08-04"
+  },
+  "sysplugin_414955c581": {
+    "id": "sysplugin_414955c581",
+    "name": "System Test Plugin",
+    "version": "1.0.0",
+    "author": "SystemTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-08-04"
+  },
+  "test_plugin_4357a530": {
+    "id": "test_plugin_4357a530",
+    "name": "Integration Test Plugin",
+    "version": "1.0.0",
+    "author": "IntegrationTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 0,
+    "installed_at": "2026-08-04"
+  },
+  "uat_plugin_39c36de1": {
+    "id": "uat_plugin_39c36de1",
+    "name": "UAT Test Plugin",
+    "version": "1.0.0",
+    "author": "UAT",
+    "category": "productivity",
+    "emoji": "\ud83e\uddea",
+    "skill_count": 1,
+    "installed_at": "2026-08-04"
   }
 }

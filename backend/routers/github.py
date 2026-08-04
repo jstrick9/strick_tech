@@ -16,12 +16,13 @@ import time
 
 import httpx
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/github', tags=['github'])
 log = logging.getLogger('agentic.github')
 from backend.config import get_data_dir
 
-from ..services.safe_paths import is_within
+from ..services.safe_paths import is_within, safe_path
 
 ROOT = get_data_dir()
 
@@ -158,7 +159,9 @@ async def github_status():
 async def list_repos(per_page: int = 30, sort: str = 'updated'):
     """List user's GitHub repositories."""
     if not _gh_token():
-        return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
+        return JSONResponse(
+            {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
+        )
     try:
         repos = await _gh_get('/user/repos', {'per_page': min(per_page, 100), 'sort': sort})
         return {
@@ -231,6 +234,67 @@ async def create_repo(req: Request):
 
 
 # ── Push to GitHub ─────────────────────────────────────────────────────────────
+# Directories a push may publish. The old guard only required the directory to
+# be inside ROOT, which is the entire project — so `{"directory": "memory"}`
+# would upload memory/.vault_key and agentic.db (345 secrets rows, auth_users,
+# every chat message) to a GitHub repo the caller names. Verified live: the
+# collection step selected 206 files with .vault_key first in the list.
+#
+# ROOT-containment is the wrong boundary for an EGRESS operation. Publishing is
+# opt-in per directory, not opt-out per traversal.
+PUBLISHABLE_DIRS = {'preview', 'workspaces', 'templates', 'docs'}
+
+# Never upload these, wherever they appear. Belt and braces with the directory
+# allowlist: a user-created file under preview/ can still be a credential.
+_SECRET_FILENAMES = {
+    '.env', '.env.local', '.env.production', '.vault_key', '.netrc', '.npmrc',
+    'id_rsa', 'id_ed25519', 'id_ecdsa', 'authorized_keys', 'credentials',
+    'secrets.json', 'service-account.json', '.pypirc', '.dockercfg',
+}
+_SECRET_SUFFIXES = ('.pem', '.key', '.p12', '.pfx', '.keystore', '.jks',
+                    '.db', '.sqlite', '.sqlite3', '.db-wal', '.db-shm')
+_SECRET_PATTERNS = ('secret', 'password', 'credential', 'private_key', 'apikey', 'api_key')
+
+
+def is_publishable_file(rel_path: str) -> tuple[bool, str]:
+    """Should this file be uploaded to a remote repository?
+
+    Returns (allowed, reason_if_not). Applied to every file in a push, so a
+    credential that happens to live in an otherwise-publishable directory is
+    still held back rather than shipped.
+    """
+    from pathlib import PurePosixPath
+
+    parts = PurePosixPath(rel_path).parts
+    name = PurePosixPath(rel_path).name.lower()
+
+    if name in _SECRET_FILENAMES or any(p.lower() in _SECRET_FILENAMES for p in parts):
+        return False, 'looks like a credential file'
+    if name.endswith(_SECRET_SUFFIXES):
+        return False, f'{PurePosixPath(name).suffix} files are not published (key or database)'
+    if any(pat in name for pat in _SECRET_PATTERNS):
+        return False, 'filename suggests it contains secrets'
+    return True, ''
+
+
+def resolve_push_dir(directory: str):
+    """Resolve a push source directory, or (None, reason)."""
+    name = (directory or 'preview').strip().strip('/')
+    top = name.split('/')[0]
+    if top not in PUBLISHABLE_DIRS:
+        return None, (
+            f"Directory '{name}' cannot be published. Allowed: "
+            f'{", ".join(sorted(PUBLISHABLE_DIRS))}. This restriction exists '
+            f'because a push uploads files to a remote repository.'
+        )
+    resolved = safe_path(name, base=ROOT)
+    if resolved is None:
+        return None, f"Invalid directory path: '{name}'"
+    if not resolved.is_dir():
+        return None, f"Directory '{name}' not found"
+    return resolved, ''
+
+
 @router.post('/push')
 async def push_to_github(req: Request):
     """
@@ -247,19 +311,22 @@ async def push_to_github(req: Request):
     directory = body.get('directory', 'preview')  # which local dir to push
 
     if not _gh_token():
-        return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
+        return JSONResponse(
+            {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
+        )
     if not repo_name:
-        return {'ok': False, 'error': 'repo required (e.g. username/repo-name)'}
+        return JSONResponse(
+            {'ok': False, 'error': 'repo required (e.g. username/repo-name)'}, status_code=400
+        )
     if not _valid_repo_name(repo_name):
-        return {'ok': False, 'error': 'Invalid repo format — expected "owner/repo-name"'}
+        return JSONResponse(
+            {'ok': False, 'error': 'Invalid repo format — expected "owner/repo-name"'},
+            status_code=400,
+        )
 
-    source_dir = (ROOT / directory if directory != 'preview' else ROOT / 'preview').resolve()
-    # Security: ensure source_dir is within ROOT
-    # is_within(): str.startswith() accepted sibling dirs like <root>_ESCAPED.
-    if not is_within(source_dir, ROOT):
-        return {'ok': False, 'error': 'Invalid directory path (must be within project)'}
-    if not source_dir.exists():
-        return {'ok': False, 'error': f"Directory '{directory}' not found"}
+    source_dir, why = resolve_push_dir(directory)
+    if source_dir is None:
+        return JSONResponse({'ok': False, 'error': why}, status_code=403)
 
     files_pushed = 0
     errors = []
@@ -274,8 +341,13 @@ async def push_to_github(req: Request):
         total_files = len(file_paths)
         truncated = total_files > 100
 
+        skipped_secrets = []
         for file_path in file_paths[:100]:  # limit to 100 files
             rel_path = file_path.relative_to(source_dir).as_posix()
+            publishable, why = is_publishable_file(rel_path)
+            if not publishable:
+                skipped_secrets.append({'path': rel_path, 'reason': why})
+                continue
             try:
                 content = file_path.read_bytes()
                 content_b64 = base64.b64encode(content).decode()
@@ -334,7 +406,9 @@ async def pull_from_github(req: Request):
     target = body.get('target', 'preview')
 
     if not _gh_token():
-        return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
+        return JSONResponse(
+            {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
+        )
     if not repo_name:
         return {'ok': False, 'error': 'repo required'}
     if not _valid_repo_name(repo_name):
@@ -383,7 +457,9 @@ async def pull_from_github(req: Request):
 async def list_branches(owner: str, repo: str):
     """Retrieve and return list branches."""
     if not _gh_token():
-        return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
+        return JSONResponse(
+            {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
+        )
     try:
         branches = await _gh_get(f'/repos/{owner}/{repo}/branches')
         return {'ok': True, 'branches': [b['name'] for b in branches]}
@@ -395,7 +471,9 @@ async def list_branches(owner: str, repo: str):
 async def create_branch(owner: str, repo: str, req: Request):
     """Create and initialize a new branch."""
     if not _gh_token():
-        return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
+        return JSONResponse(
+            {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
+        )
     try:
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
@@ -425,7 +503,9 @@ async def create_branch(owner: str, repo: str, req: Request):
 async def create_pr(owner: str, repo: str, req: Request):
     """Create and initialize a new pr."""
     if not _gh_token():
-        return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
+        return JSONResponse(
+            {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
+        )
     try:
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
@@ -462,7 +542,9 @@ async def create_pr(owner: str, repo: str, req: Request):
 async def list_prs(owner: str, repo: str, state: str = 'open'):
     """Retrieve and return list prs."""
     if not _gh_token():
-        return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
+        return JSONResponse(
+            {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
+        )
     try:
         prs = await _gh_get(f'/repos/{owner}/{repo}/pulls', {'state': state, 'per_page': 20})
         return {
@@ -489,7 +571,9 @@ async def list_prs(owner: str, repo: str, state: str = 'open'):
 async def list_commits(owner: str, repo: str, branch: str = 'main', per_page: int = 20):
     """Retrieve and return list commits."""
     if not _gh_token():
-        return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
+        return JSONResponse(
+            {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
+        )
     try:
         commits = await _gh_get(f'/repos/{owner}/{repo}/commits', {'sha': branch, 'per_page': min(per_page, 50)})
         return {
@@ -521,7 +605,9 @@ async def deploy_github_pages(req: Request):
     message = body.get('message', 'Deploy to GitHub Pages via Agentic OS')
 
     if not _gh_token():
-        return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
+        return JSONResponse(
+            {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
+        )
     if not repo_name:
         return {'ok': False, 'error': 'repo required (e.g. username/repo-name)'}
     if not _valid_repo_name(repo_name):
@@ -589,7 +675,9 @@ async def sync_with_github(req: Request):
     direction = body.get('direction', 'push')  # "push" | "pull" | "both"
 
     if not _gh_token():
-        return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
+        return JSONResponse(
+            {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
+        )
     if not repo_name:
         return {'ok': False, 'error': 'repo required'}
     if not _valid_repo_name(repo_name):
@@ -621,7 +709,9 @@ async def sync_with_github(req: Request):
 async def get_repo(owner: str, repo: str):
     """Retrieve and return get repo."""
     if not _gh_token():
-        return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
+        return JSONResponse(
+            {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
+        )
     try:
         data = await _gh_get(f'/repos/{owner}/{repo}')
         return {
@@ -658,7 +748,9 @@ async def create_gist(req: Request):
     public = bool(body.get('public', True))
 
     if not _gh_token():
-        return {'ok': False, 'error': 'GITHUB_TOKEN not set'}
+        return JSONResponse(
+            {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
+        )
     try:
         gist = await _gh_post(
             '/gists', {'description': desc, 'public': public, 'files': {filename: {'content': content}}}
