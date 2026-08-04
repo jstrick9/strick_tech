@@ -2163,6 +2163,25 @@ function escHtml(s) {
   return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// Shared URL sanitiser. escHtml() does NOT make a URL safe: it escapes quotes
+// and angle brackets, so `javascript:alert(1)` survives it intact and still
+// executes when the link is clicked. Any href/src built from server, model or
+// user data must go through safeUrl(), not just escHtml().
+//
+// This lived only in 44-websearch.js while eight other files build hrefs from
+// data — the same "one local copy of a control" shape that let SSRF recur in
+// three modules (see services/safe_fetch.py).
+function safeUrl(url) {
+  const raw = String(url == null ? '' : url).trim();
+  if (!raw) return '#';
+  // Strip control characters that smuggle a scheme past a naive prefix check
+  // (e.g. "java\tscript:" — the tab is ignored by the URL parser).
+  const normalised = raw.replace(/[\u0000-\u001F\u007F]/g, '').toLowerCase();
+  if (normalised.startsWith('http://') || normalised.startsWith('https://')) return raw;
+  if (normalised.startsWith('/') && !normalised.startsWith('//')) return raw; // same-origin relative
+  return '#';
+}
+
 function formatBytes(b) {
   if (b < 1024) return b + 'B';
   if (b < 1024*1024) return (b/1024).toFixed(1) + 'K';

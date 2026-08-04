@@ -52,9 +52,15 @@ class TestTasksExtractedToRouter:
         assert 'from .routers.tasks import router as tasks_router' in APP_PY
         assert 'app.include_router(tasks_router)' in APP_PY
 
-    def test_app_py_is_smaller(self):
-        # Was 988 lines with the task CRUD inline.
-        assert len(APP_PY.splitlines()) < 800
+    def test_app_py_no_longer_contains_task_crud(self):
+        # Was 988 lines with the task CRUD inline. The line-count proxy broke
+        # when cross-cutting hardening (CSRF enforcement, rate-limit eviction)
+        # legitimately ADDED lines to app.py — a size threshold measures the
+        # wrong thing. Assert the actual property: the task CRUD lives in its
+        # own router and is not back in app.py.
+        assert "@app.get('/api/tasks')" not in APP_PY
+        assert "@app.post('/api/tasks')" not in APP_PY
+        assert 'tasks_router' in APP_PY, 'the extracted router must still be mounted' 
 
     def test_relative_import_is_correct_for_router_depth(self):
         """`from .routers.websocket` was valid in app.py but wrong one level

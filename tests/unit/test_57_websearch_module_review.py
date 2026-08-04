@@ -134,7 +134,12 @@ class TestFrontendUrlSafety:
     """escHtml() makes text safe, not URLs."""
 
     def test_safe_url_helper_exists(self):
-        assert 'function safeUrl(' in WEBSEARCH_JS
+        # Defined in the shared core now, not here — see
+        # test_safe_url_helper_lives_in_the_shared_core below. This file must
+        # still USE it, which is what actually protects the rendered links.
+        core = (ROOT / 'frontend' / 'js' / '01-app-core.js').read_text(encoding='utf-8')
+        assert 'function safeUrl(' in core
+        assert 'safeUrl(' in WEBSEARCH_JS, 'websearch no longer sanitises its hrefs'
 
     def test_every_href_is_routed_through_it(self):
         # No href may interpolate a raw URL any more.
@@ -142,11 +147,21 @@ class TestFrontendUrlSafety:
         assert "href=\"${escHtml(res.url||'')}\"" not in WEBSEARCH_JS
         assert WEBSEARCH_JS.count('escHtml(safeUrl(') >= 4
 
+    def test_safe_url_helper_lives_in_the_shared_core(self):
+        """safeUrl() was defined only here while eight other files build hrefs
+        from data. Moved to 01-app-core.js so every file gets the same one;
+        a second copy would drift, and the copy that drifts is the one nobody
+        is looking at."""
+        core = (ROOT / 'frontend' / 'js' / '01-app-core.js').read_text(encoding='utf-8')
+        assert 'function safeUrl(url)' in core
+        assert 'function safeUrl(url)' not in WEBSEARCH_JS, 'duplicate definition'
+
     def test_helper_rejects_dangerous_schemes(self):
         """Mirrors the shipped implementation's contract."""
         import re as _re
 
-        m = _re.search(r'function safeUrl\(url\) \{[\s\S]*?\n\}', WEBSEARCH_JS)
+        core = (ROOT / 'frontend' / 'js' / '01-app-core.js').read_text(encoding='utf-8')
+        m = _re.search(r'function safeUrl\(url\) \{[\s\S]*?\n\}', core)
         assert m, 'safeUrl must be defined'
         body = m.group(0)
         assert "startsWith('http://')" in body and "startsWith('https://')" in body

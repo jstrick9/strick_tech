@@ -238,9 +238,14 @@ async function runScreenshotToCode() {
     }
     const j = await r.json();
     if (j.ok) {
-      // preview_url went into an href unescaped; keep it same-origin and escaped.
-      const safeUrl = /^\/[^\s"'<>]*$/.test(j.preview_url || '') ? j.preview_url : '/preview/index.html';
-      if (st) st.innerHTML = `✅ Converted! ${escHtml(String(j.tokens ?? 0))} tokens · <a href="${escHtml(safeUrl)}" target="_blank" rel="noopener" style="color:var(--accent)">Preview ↗</a>`;
+      // preview_url went into an href unescaped; keep it same-origin.
+      // Renamed from `safeUrl` — a local of that name SHADOWS the global
+      // sanitiser in 01-app-core.js, so any later edit in this scope that
+      // reached for safeUrl() would silently get a string instead of the
+      // function. The value itself was already restricted to same-origin
+      // paths by the regex; the hazard was the name.
+      const previewPath = /^\/[^\s"'<>]*$/.test(j.preview_url || '') ? j.preview_url : '/preview/index.html';
+      if (st) st.innerHTML = `✅ Converted! ${escHtml(String(j.tokens ?? 0))} tokens · <a href="${safeUrl(previewPath)}" target="_blank" rel="noopener" style="color:var(--accent)">Preview ↗</a>`;
       studioLoadFileTree?.();
       studioReloadPreview?.();
       toast('📷 Screenshot converted to code!', 'ok', 4000);
@@ -274,7 +279,7 @@ async function loadBranchPreviews() {
           <div style="font-size:12.5px;font-weight:600">${escHtml(b.title||b.name)}</div>
           <div style="font-size:11px;color:var(--text-3)">${b.files} files · ${(b.created_at||'').slice(0,16)}</div>
         </div>
-        <a href="${b.url}" target="_blank" class="btn btn-ghost btn-sm">View ↗</a>
+        <a href="${safeUrl(b.url)}" target="_blank" class="btn btn-ghost btn-sm">View ↗</a>
         <button onclick="deleteBranchPreview('${escHtml(b.name)}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button>
       </div>`).join('');
   } catch(e) {}

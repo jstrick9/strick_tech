@@ -104,6 +104,51 @@ def _ensure_traces_table():
 
 _ensure_traces_table()
 
+def reconcile_orphaned_runs() -> int:
+    """Mark agent_traces rows abandoned by a restart as failed. Returns count.
+
+    `_active_runs` is an in-memory dict and agent_traces.status DEFAULTS to
+    'running', so a run in flight when the process stopped stayed 'running' in
+    the database forever -- nothing owned it across the restart and nothing
+    swept it afterwards. Reproduced: start_run() then discarding the process
+    leaves a permanently-'running' row the Control Tower still shows as active.
+
+    Same fix and same reasoning as supervisor.reconcile_orphaned_runs(): a run
+    the UI reports as in-progress, for a process that no longer exists, makes
+    an operator wait indefinitely for something that will never finish.
+
+    Never raises -- housekeeping must not block startup.
+    """
+    try:
+        con = get_conn()
+        try:
+            rows = con.execute(
+                "SELECT run_id FROM agent_traces WHERE status='running'"
+            ).fetchall()
+            if not rows:
+                return 0
+            run_ids = [r['run_id'] for r in rows]
+            con.execute(
+                """UPDATE agent_traces
+                      SET status='failed',
+                          error='Interrupted by a server restart - not resumable.'
+                    WHERE status='running'"""
+            )
+            con.commit()
+        finally:
+            con.close()
+        log.warning(
+            'Reconciled %d Control Tower run(s) orphaned by a restart: %s',
+            len(run_ids), ', '.join(run_ids[:10]),
+        )
+        return len(run_ids)
+    except Exception as exc:  # noqa: BLE001 - never block startup on housekeeping
+        log.error('Control Tower run reconciliation failed: %s', exc)
+        return 0
+
+
+reconcile_orphaned_runs()
+
 
 # ── Run lifecycle ──────────────────────────────────────────────────────────────
 def start_run(agent_id: str, agent_name: str, prompt: str, budget: float = 0) -> str:
