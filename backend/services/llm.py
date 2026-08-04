@@ -205,6 +205,7 @@ async def complete(
         allow_stub=allow_stub,
     )
     _record_llm_cost(agent_id, result)
+    _record_llm_trace(agent_id, messages, result)
     return result
 
 
@@ -233,6 +234,34 @@ def _check_budget(agent_id: str) -> dict | None:
         'code': 'budget_exceeded',
         'budget': gate,
     }
+
+
+def _record_llm_trace(agent_id: str, messages: list, result: dict, latency_ms: int = 0) -> None:
+    """Emit an observability trace for a completed call. Never raises."""
+    if not isinstance(result, dict):
+        return
+    try:
+        from ..routers.observability import record_llm_trace
+
+        prompt = ''
+        for m in reversed(messages or []):
+            if isinstance(m, dict) and m.get('role') == 'user':
+                prompt = str(m.get('content', ''))
+                break
+
+        record_llm_trace(
+            agent_id=agent_id or 'default',
+            name=f"llm:{result.get('model') or 'unknown'}",
+            prompt=prompt,
+            output=str(result.get('text') or result.get('error') or ''),
+            tokens=int(result.get('tokens') or 0),
+            cost=float(result.get('cost') or 0.0),
+            latency_ms=int(result.get('latency_ms') or latency_ms or 0),
+            model=str(result.get('model') or ''),
+            status='success' if result.get('ok') else 'error',
+        )
+    except Exception as e:  # pragma: no cover
+        log.debug('trace emit failed: %s', e)
 
 
 def _record_llm_cost(agent_id: str, result: dict) -> None:
@@ -403,6 +432,88 @@ def _normalize_messages(messages: list[dict]) -> list[dict]:
 
 # ── Streaming completion ────────────────────────────────────────────────────────
 async def stream(
+    messages: list[dict],
+    agent_id: str = 'default',
+    model: str = '',
+    temperature: float = 0.7,
+    max_tokens: int = 4096,
+    timeout: float = 120.0,
+    inject_steering: bool = True,
+) -> AsyncGenerator[str, None]:
+    """Streaming completion that RECORDS ITS COST and honours budget caps.
+
+    Module 21 follow-up. complete() was wrapped for cost and budget; stream()
+    was not. There was no gap at the time because chat.py recorded its own
+    streamed spend -- but that is the same per-call-site arrangement that
+    produced the original 1-in-30 miss rate, and it would silently repeat the
+    bug for the next streaming caller.
+
+    Recording here makes chat.py's own record_cost() a DOUBLE count, so it is
+    removed in the same commit. That coupling is why the two changes cannot be
+    made independently.
+
+    The final SSE frame already carries cost/tokens (added when streamed chats
+    were recording zeroes), so this reads what the stream computed rather than
+    recalculating it.
+    """
+    gate = _check_budget(agent_id)
+    if gate is not None:
+        # Budget refusals must arrive in the stream's own shape; a caller
+        # iterating SSE frames cannot inspect a returned dict.
+        payload = {
+            'delta': '', 'done': True,
+            'error': gate['error'], 'code': 'budget_exceeded',
+        }
+        yield f'data: {json.dumps(payload)}\n\n'
+        return
+
+    final_frame: dict = {}
+    async for chunk in _stream_impl(
+        messages,
+        agent_id=agent_id,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        timeout=timeout,
+        inject_steering=inject_steering,
+    ):
+        # Capture the terminal frame's usage WITHOUT buffering: every chunk is
+        # yielded straight through as it arrives, so streaming latency is
+        # unchanged.
+        if '"done": true' in chunk.lower():
+            try:
+                final_frame = json.loads(chunk[5:].strip())
+            except (ValueError, IndexError):
+                final_frame = {}
+        yield chunk
+
+    if final_frame:
+        _record_llm_trace(
+            agent_id,
+            messages,
+            {
+                'ok': not final_frame.get('stub') and not final_frame.get('error'),
+                'text': '[streamed]',
+                'tokens': final_frame.get('tokens', 0),
+                'cost': final_frame.get('cost', 0.0),
+                'model': final_frame.get('model', ''),
+            },
+        )
+        _record_llm_cost(
+            agent_id,
+            {
+                'ok': not final_frame.get('stub') and not final_frame.get('error'),
+                'cost': final_frame.get('cost', 0.0),
+                'tokens': final_frame.get('tokens', 0),
+                'prompt_tokens': final_frame.get('prompt_tokens', 0),
+                'completion_tokens': final_frame.get('completion_tokens', 0),
+                'model': final_frame.get('model', ''),
+                'provider': final_frame.get('provider', ''),
+            },
+        )
+
+
+async def _stream_impl(
     messages: list[dict],
     agent_id: str = 'default',
     model: str = '',
@@ -950,10 +1061,44 @@ _COST_PER_1K = {
 
 
 def _estimate_cost(model: str, usage: dict) -> float:
-    rates = _COST_PER_1K.get(model, {'in': 0.001, 'out': 0.003})
+    """ESTIMATE from a static rate card. Not provider-reported billing.
+
+    Module 21 follow-up: this is fine for burn-rate projection and relative
+    comparison, and misleading if presented as an invoice. Two specific limits
+    worth stating rather than leaving implicit:
+
+      * An UNKNOWN model silently falls back to $0.001/$0.003 per 1K. That
+        guess can be off by an order of magnitude in either direction -- Haiku
+        is ~4x cheaper, Opus ~25x dearer. It is now logged once per model so an
+        operator can see which figures are guesses.
+      * Cached-token and batch discounts are not modelled, so real bills for
+        prompt-cache-heavy workloads come in BELOW these numbers.
+
+    The FinOps UI labels these as estimates; see is_estimated_model().
+    """
+    rates = _COST_PER_1K.get(model)
+    if rates is None:
+        if model and model not in _UNPRICED_MODELS_SEEN:
+            _UNPRICED_MODELS_SEEN.add(model)
+            log.warning(
+                'No rate card for model %r — costs are a GUESS at $0.001/$0.003 per 1K. '
+                'Add it to _COST_PER_1K for accurate figures.',
+                model,
+            )
+        rates = {'in': 0.001, 'out': 0.003}
     inp = usage.get('prompt_tokens', 0) / 1000 * rates['in']
     out = usage.get('completion_tokens', 0) / 1000 * rates['out']
     return round(inp + out, 6)
+
+
+# Models already warned about, so the log records each unknown model once
+# rather than on every single call.
+_UNPRICED_MODELS_SEEN: set[str] = set()
+
+
+def is_estimated_model(model: str) -> bool:
+    """True when this model's cost is a fallback guess rather than a known rate."""
+    return model not in _COST_PER_1K
 
 
 # ── Stub (no key) ──────────────────────────────────────────────────────────────

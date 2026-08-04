@@ -50,6 +50,9 @@ class TestV90Features:
     def test_post_quantum_cryptography_kem_and_vault(self, client):
         algo_r = client.get("/api/pqc/algorithms")
         assert algo_r.status_code == 200
+        # The algorithm list still NAMES these (the UI shows what a real
+        # implementation would offer), but every operational response now
+        # declares itself simulated — see test_85.
         assert any("Kyber-1024" in a for a in algo_r.json()["kem_algorithms"])
 
         gen_r = client.post("/api/pqc/keypair/generate", json={
@@ -79,12 +82,19 @@ class TestV90Features:
         assert decap_r.json()["ok"] is True
         assert decap_r.json()["shared_secret_b64"] == shared_secret
 
-        # Vault PQC encrypt
+        # Vault PQC encrypt — Module 21: this is now REFUSED by default.
+        #
+        # This assertion used to require "Kyber-1024" in security_guarantee,
+        # i.e. the test was ENFORCING a false cryptographic claim. The module
+        # implements SHA3 and an XOR mask; a stored value is recoverable from
+        # the public keypair_id alone (demonstrated in test_85). Vault
+        # operations therefore refuse unless AGENTIC_PQC_DEMO=1, so an operator
+        # cannot put a live credential through a function offering no
+        # protection.
         enc_vault = client.post("/api/pqc/vault/encrypt", json={
             "keypair_id": kid,
             "secret_name": "PQC_TEST_SECRET",
             "secret_payload": "super_secret_post_quantum_value"
         })
-        assert enc_vault.status_code == 200
-        assert enc_vault.json()["ok"] is True
-        assert "Kyber-1024" in enc_vault.json()["security_guarantee"]
+        assert enc_vault.status_code == 501, "PQC vault encryption should be gated"
+        assert "SIMULATION" in enc_vault.json()["detail"]

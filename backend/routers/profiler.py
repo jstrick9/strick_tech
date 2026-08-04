@@ -209,7 +209,23 @@ def flamegraph_data():
             }
         )
 
-    return {'flamegraph': nodes, 'generated_at': time.time()}
+    # Say so in the RESPONSE, not just the docstring. The tree above is a
+    # hand-written illustration of a typical request path; only the
+    # 'real_endpoints' subtree (added when _endpoint_stats has data) reflects
+    # this process. A flamegraph is read as measurement, so an unlabelled
+    # synthetic one invites an operator to optimise a call path that was never
+    # profiled. Same failure mode as the PQC module: the source said
+    # "simulate", the API did not.
+    return {
+        'flamegraph': nodes,
+        'generated_at': time.time(),
+        'synthetic': True,
+        'note': (
+            'The base tree is illustrative sample data, not a measurement of this '
+            'process. Only the "real_endpoints" subtree reflects observed latency.'
+        ),
+        'has_real_data': bool(_endpoint_stats),
+    }
 
 
 @router.get('/memory/snapshot')

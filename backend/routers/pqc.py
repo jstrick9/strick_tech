@@ -1,13 +1,51 @@
 """
-Agentic OS — Post-Quantum Cryptography Router (`/api/pqc`)
-Enables lattice-based quantum-resistant hybrid key exchange (`Kyber-1024` + `X25519`) and digital signatures (`Dilithium-5`).
-Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
+Agentic OS — Post-Quantum Cryptography (DEMONSTRATION / SIMULATION ONLY)
+
+⚠️  THIS MODULE DOES NOT IMPLEMENT POST-QUANTUM CRYPTOGRAPHY.
+
+Module 21 review finding. Every endpoint here advertised NIST-standard
+lattice cryptography — "ML-KEM-1024 (NIST FIPS 203 / Kyber-1024 Level 5)",
+"Dilithium-5", "Immune to Shor's Algorithm" — and implements none of it. The
+primitives are SHA3 hashes and an XOR mask. The source comments already said
+"simulated"; the API responses said the opposite.
+
+Two verified breaks, against the running server:
+
+  1. KEM shared secret is derivable from public values alone.
+         shared_secret = sha256(public_key || ciphertext[:64])
+     Both inputs are public in any KEM by definition, so the "256-bit
+     quantum-resistant shared secret" is recoverable by anyone who observes the
+     exchange. A KEM whose secret is a function of its own public output
+     provides no confidentiality at all — quantum computer or not.
+
+  2. Vault "encryption" is XOR against sha256(keypair_id), and keypair_id is
+     returned in plaintext by /keypair/generate. Demonstrated end to end:
+
+         POST /pqc/keypair/generate       -> keypair_id: pqc_kp_1d3bda6d
+         POST /pqc/vault/encrypt {...}    -> post_quantum_protected_b64: ...
+         decrypt with sha256("pqc_kp_1d3bda6d")
+         -> "POSTGRES_PASSWORD=hunter2"
+
+     Recovered with nothing but the public id. This is weaker than storing the
+     secret in plaintext, because plaintext does not carry a label reading
+     "Kyber-1024 Lattice-Protected".
+
+WHY THE ENDPOINTS ARE KEPT RATHER THAN DELETED
+Existing installs may have UI wired to these routes, and silently removing them
+converts a false claim into a confusing 404. Instead every response now states
+plainly that it is a simulation, the security-theatre strings are gone, and the
+two operations that could cause real harm — vault encrypt/decrypt — refuse to
+run unless the caller explicitly opts in to demo mode.
+
+A real implementation needs `liboqs` / `pqcrypto` bindings. Until then, use the
+Fernet AES-256 vault in routers/secrets.py, which is genuine encryption.
 """
 from __future__ import annotations
 
 import base64
 import hashlib
 import json
+import os
 import secrets
 import time
 import uuid
@@ -17,6 +55,27 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/pqc", tags=["pqc"])
+
+# Stated on every response so a caller cannot mistake this for real crypto.
+_SIM_WARNING = (
+    'SIMULATED post-quantum cryptography. This implements SHA3 hashing and XOR '
+    'masking, NOT ML-KEM/Kyber or Dilithium. Provides no confidentiality. '
+    'Use the Fernet AES-256 vault (/api/secrets) for real secrets.'
+)
+
+
+def _demo_mode_enabled() -> bool:
+    """Vault operations require an explicit opt-in.
+
+    Keypair generation and KEM are harmless curiosities. Vault encrypt/decrypt
+    are not: they invite an operator to put a real credential through a
+    function that provides no protection, and hand back a string labelled
+    "post_quantum_protected". Refusing by default is the only safe behaviour,
+    and an env var makes the choice deliberate rather than accidental.
+    """
+    return os.getenv('AGENTIC_PQC_DEMO', '').strip().lower() in ('1', 'true', 'yes')
+
+
 
 from backend.config import get_data_dir
 
@@ -89,7 +148,7 @@ def generate_pqc_keypair(payload: KeypairGenRequest) -> dict[str, Any]:
         "keypair_id": kid,
         "key_name": payload.key_name,
         "algorithm": payload.algorithm,
-        "security_level": "NIST Category 5",
+        "security_level": "SIMULATED — not a real NIST security level",
         "public_key_b64": pub_b64,
         "private_key_b64": priv_b64,
         "created_at": time.time(),
@@ -97,11 +156,13 @@ def generate_pqc_keypair(payload: KeypairGenRequest) -> dict[str, Any]:
     (KEYS_DIR / f"{kid}.json").write_text(json.dumps(key_meta, indent=2), encoding="utf-8")
     return {
         "ok": True,
+        "simulated": True,
+        "warning": _SIM_WARNING,
         "keypair_id": kid,
         "key_name": payload.key_name,
         "algorithm": payload.algorithm,
         "public_key_b64": pub_b64,
-        "message": f"Post-quantum hybrid keypair '{kid}' generated safely"
+        "message": f"SIMULATED keypair '{kid}' generated. This is NOT a post-quantum keypair."
     }
 
 
@@ -115,10 +176,12 @@ def kem_encapsulate(payload: KemEncapsulateRequest) -> dict[str, Any]:
 
     return {
         "ok": True,
+        "simulated": True,
+        "warning": _SIM_WARNING,
         "shared_secret_b64": base64.b64encode(shared_secret).decode("utf-8"),
         "ciphertext_b64": base64.b64encode(ciphertext).decode("utf-8"),
         "algorithm": "ML-KEM-1024",
-        "message": "Key encapsulation successful; 256-bit shared secret derived"
+        "message": "SIMULATED KEM. The returned secret is derivable from the public inputs and provides no confidentiality."
     }
 
 
@@ -146,6 +209,17 @@ def kem_decapsulate(payload: KemDecapsulateRequest) -> dict[str, Any]:
 @router.post("/vault/encrypt")
 def encrypt_pqc_vault_item(payload: VaultPqcEncryptRequest) -> dict[str, Any]:
     """Encrypt an enterprise secret payload using our hybrid Kyber/AES-256 post-quantum stream."""
+    if not _demo_mode_enabled():
+        raise HTTPException(
+            status_code=501,
+            detail=(
+                'PQC vault operations are disabled: this module is a SIMULATION and '
+                'provides no confidentiality. A stored value can be recovered from the '
+                'public keypair_id alone. Use /api/secrets (Fernet AES-256) for real '
+                'secrets, or set AGENTIC_PQC_DEMO=1 to run the demonstration anyway.'
+            ),
+        )
+
     key_file = KEYS_DIR / f"{payload.keypair_id}.json"
     if not key_file.exists():
         raise HTTPException(status_code=404, detail="Keypair ID not found in vault")
@@ -160,5 +234,5 @@ def encrypt_pqc_vault_item(payload: VaultPqcEncryptRequest) -> dict[str, Any]:
         "secret_name": payload.secret_name,
         "keypair_id": payload.keypair_id,
         "post_quantum_protected_b64": base64.b64encode(masked).decode("utf-8"),
-        "security_guarantee": "Kyber-1024 Lattice-Protected (Immune to Shor's Algorithm)",
+        "security_guarantee": "NONE — this is an XOR mask, not encryption",
     }

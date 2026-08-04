@@ -20,7 +20,11 @@ from pathlib import Path
 
 import pytest
 
+# Captured at IMPORT time, before any fixture can patch it.
+import backend.services.llm as _llm_svc  # noqa: E402
 from backend.routers.finops import _get_conn, check_budget_before_spend, record_cost
+
+_REAL_STREAM = _llm_svc.stream
 
 ROOT = Path(__file__).resolve().parents[2]
 CHAT_PY = (ROOT / 'backend' / 'routers' / 'chat.py').read_text(encoding='utf-8')
@@ -173,10 +177,65 @@ class TestChatIsWiredToTheGuardrail:
         assert 'Request blocked by a budget cap' in CHAT_PY
         assert 'local model' in CHAT_PY  # offers the free alternative
 
-    def test_chat_records_real_spend_to_the_ledger(self):
-        assert 'record_cost(' in CHAT_PY
-        assert 'tokens_in=prompt_tokens' in CHAT_PY
-        assert 'tokens_out=completion_tokens' in CHAT_PY
+    # Module 21 follow-up: cost recording MOVED from chat.py to llm.stream().
+    # These two tests asserted on chat.py's SOURCE TEXT, so they broke when the
+    # behaviour was centralised even though the property they protect still
+    # holds -- and holds for all 30 callers now, not just chat.
+    #
+    # Rewritten to assert the BEHAVIOUR rather than its location. A source-text
+    # assertion pins an implementation; that is what made these fail for the
+    # wrong reason.
+    def test_streamed_spend_reaches_the_ledger(self):
+        """Recording happens at the LLM layer, covering every streaming caller."""
+        import asyncio
+        import json as _json
+        from unittest.mock import patch
 
-    def test_accounting_failure_cannot_break_chat(self):
-        assert 'Cost ledger write failed' in CHAT_PY
+        import backend.services.llm as llm_svc
+
+        # The session `client` fixture replaces llm_svc.stream with an
+        # AsyncMock, so reading the attribute HERE grabs the mock once any
+        # earlier test has used `client`. Import the module fresh and pull the
+        # underlying function off it -- same trap documented in test_83, which
+        # I walked straight into again by capturing at call time instead of
+        # import time.
+        real_stream = getattr(llm_svc.stream, '__wrapped__', None) or _REAL_STREAM
+
+        async def _impl(*a, **k):
+            final = {
+                'delta': '', 'done': True, 'model': 'gpt-4o', 'tokens': 300,
+                'prompt_tokens': 200, 'completion_tokens': 100, 'cost': 0.005,
+            }
+            yield 'data: ' + _json.dumps(final) + '\n\n'
+
+        def _count():
+            con = _get_conn()
+            try:
+                return con.execute('SELECT COUNT(*) FROM cost_ledger').fetchone()[0]
+            finally:
+                con.close()
+
+        async def _run():
+            async for _ in real_stream([{'role': 'user', 'content': 'x'}],
+                                       agent_id='reg50_probe'):
+                pass
+
+        with patch.object(llm_svc, '_stream_impl', new=_impl):
+            before = _count()
+            asyncio.run(_run())
+            assert _count() == before + 1, 'streamed spend did not reach the ledger'
+
+    def test_chat_does_not_double_record(self):
+        """The other half: leaving chat's own record_cost() in place would
+        double every chat cost once stream() records."""
+        assert "source_type='chat'" not in CHAT_PY
+
+    def test_accounting_failure_cannot_break_the_call(self):
+        """Moved to the LLM layer along with the recording itself."""
+        import inspect
+
+        import backend.services.llm as llm_svc
+
+        src = inspect.getsource(llm_svc._record_llm_cost)
+        assert 'COST NOT RECORDED' in src, 'no loud log on ledger failure'
+        assert 'except Exception' in src, 'a ledger failure could break inference'

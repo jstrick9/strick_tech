@@ -457,8 +457,6 @@ async def chat_stream(req: Request):
         # FinOps analytics were structurally incapable of showing anything.
         used_tokens = 0
         used_cost = 0.0
-        prompt_tokens = 0
-        completion_tokens = 0
         resolved_model = req_model or agent.get('model', '')
         # Only genuine model output is eligible for long-term memory ingestion.
         is_real_completion = True
@@ -482,8 +480,6 @@ async def chat_stream(req: Request):
                     if data.get('done'):
                         used_tokens = int(data.get('tokens', 0) or 0)
                         used_cost = float(data.get('cost', 0.0) or 0.0)
-                        prompt_tokens = int(data.get('prompt_tokens', 0) or 0)
-                        completion_tokens = int(data.get('completion_tokens', 0) or 0)
                         resolved_model = data.get('model') or resolved_model
                         # llm.stream() flags placeholder replies (no API key
                         # configured) with stub=True, and hard failures with
@@ -523,24 +519,16 @@ async def chat_stream(req: Request):
             # caps had nothing to measure and the FinOps dashboard could only
             # ever report zero. Now that real token counts are captured, record
             # them so caps, burn-rate projections and per-agent attribution work.
-            if used_tokens or used_cost:
-                try:
-                    from .finops import record_cost
-
-                    record_cost(
-                        agent_id=agent_id,
-                        source_type='chat',
-                        source_id=session_id,
-                        model=resolved_model,
-                        tokens_in=prompt_tokens,
-                        tokens_out=completion_tokens,
-                        cost_usd=used_cost,
-                        description=f'chat:{session_id}',
-                    )
-                except Exception as e:  # noqa: BLE001 - accounting must not break chat
-                    import logging
-
-                    logging.getLogger('agentic.chat').warning('Cost ledger write failed: %s', e)
+            # Cost is now recorded by llm.stream() itself (Module 21
+            # follow-up), covering every streaming caller rather than only this
+            # one. The explicit record_cost() that used to live here would now
+            # be a DOUBLE count -- the two changes are inseparable, which is
+            # why they land in the same commit.
+            #
+            # What changes for the user: source_type is uniformly 'llm' rather
+            # than 'chat'. A per-caller label that only 1 of 30 callers ever set
+            # was never a usable dimension, and session attribution remains
+            # available from chat_log.
             # Ingest to long-term memory — but ONLY real model output.
             #
             # BUG FIX: the sole guard here used to be `len(full_text) > 50`, so

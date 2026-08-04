@@ -245,7 +245,7 @@ app = FastAPI(
         {'name': 'cluster', 'description': 'Distributed multi-node edge device compute grid & task dispatch'},
         {'name': 'finetune', 'description': 'Local zero-shot LoRA fine-tuning engine (MLX / CUDA)'},
         {'name': 'bounty-hunter', 'description': 'Autonomous zero-day security scanner & self-patching loop'},
-        {'name': 'pqc', 'description': 'Lattice-based post-quantum cryptography (ML-KEM-1024 / Kyber / Dilithium)'},
+        {'name': 'pqc', 'description': 'SIMULATED post-quantum cryptography (demonstration only — SHA3/XOR, not ML-KEM or Dilithium; provides no confidentiality)'},
         {'name': 'system', 'description': 'System health and monitoring'},
     ],
 )
