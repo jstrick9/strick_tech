@@ -1,8 +1,0 @@
-{
-  "_________etc_profile.html": "../../../etc/profile",
-  "__or__1___1___drop_table_agents__--.html": "' OR '1'='1'; DROP TABLE agents; --",
-  "_script_alert_document_cookie___script_.html": "<script>alert(document.cookie)</script>",
-  "__whoami__id_.html": "$(whoami)`id`",
-  "______etc_passwd.html": "../../etc/passwd",
-  "customtemplate_e7ede3e9.html": "CustomTemplate_e7ede3e9"
-}

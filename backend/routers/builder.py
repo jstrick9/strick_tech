@@ -1000,4 +1000,11 @@ def health():
         'db': 'ok' if db_ok else 'error',
         'db_path': path,
         'db_is_test_sandbox': bool(os.environ.get('AGENTIC_TEST_DB')),
+        # The DB sandbox flag above says nothing about where the server WRITES
+        # FILES. Live-server suites were checking only the database while every
+        # workspace, preview file and export landed in the real repo — 1158
+        # stray directories and 3135 files committed to git before this was
+        # noticed. Both halves are now reportable.
+        'data_dir': str(get_data_dir()),
+        'data_dir_is_test_sandbox': bool(os.environ.get('AGENTIC_OS_DATA_DIR')),
     }

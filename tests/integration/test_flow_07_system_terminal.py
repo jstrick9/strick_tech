@@ -102,9 +102,21 @@ class TestTerminalProfilerIntegration:
         await POST(client, "/api/terminal/run", {
             "command": f"printf 'print(99 + 1)' > {script}"
         })  # blocked (redirection); write it via the preview dir instead
+        # Resolve the SERVER's preview dir, not this process's. Importing
+        # backend.routers.terminal here computes PREVIEW_DIR from the test
+        # process's own environment, which is a different directory once the
+        # server is sandboxed via AGENTIC_OS_DATA_DIR. The test then wrote the
+        # script somewhere the server could not see it and asserted on output
+        # that could never appear. It only ever passed because BOTH processes
+        # were writing into the real repo — i.e. it depended on the test-isolation
+        # leak that produced 1158 stray workspace directories.
         import pathlib as _pl
-        from backend.routers.terminal import PREVIEW_DIR
-        target = _pl.Path(PREVIEW_DIR) / script
+
+        import httpx as _httpx
+
+        _health = _httpx.get(f'{BASE}/api/health', timeout=5).json()
+        target = _pl.Path(_health['data_dir']) / 'preview' / script
+        target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text("print(99 + 1)\n")
         try:
             r = await POST(client, "/api/terminal/run", {"command": f"python3 {script}"})
