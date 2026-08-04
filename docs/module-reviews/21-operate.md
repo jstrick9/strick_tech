@@ -163,3 +163,131 @@ Full suite: **3454 passed / 19 skipped / 0 failed**.
 4. **`profiler` has no cost attribution** despite being an LLM caller itself.
 5. **PQC module is scaffold** — `/api/pqc` mounts, but the "ML-KEM-1024" claim
    in the OpenAPI description deserves verification against what it implements.
+
+---
+
+# Follow-ups 1–5 (`5161805`)
+
+All five closed. The last one turned out to be the most serious finding in the
+module.
+
+## 5. PQC claimed cryptography it does not implement
+
+Every endpoint advertised NIST-standard lattice cryptography — *"ML-KEM-1024
+(NIST FIPS 203 / Kyber-1024 Level 5)"*, *"Dilithium-5"*, *"NIST Category 5"*,
+*"Immune to Shor's Algorithm"*. The primitives are **SHA3 hashes and an XOR
+mask**. The source comments already said `# simulated`; the API responses said
+the opposite.
+
+Two breaks, both verified against the running server:
+
+**1. The KEM shared secret is public.**
+```
+shared_secret = sha256(public_key || ciphertext[:64])
+```
+Both inputs are public in any KEM by definition, so the "256-bit
+quantum-resistant shared secret" is recoverable by anyone observing the
+exchange.
+
+**2. Vault encryption is XOR against a public value.**
+```
+POST /pqc/keypair/generate    → keypair_id: pqc_kp_1d3bda6d
+POST /pqc/vault/encrypt {...} → post_quantum_protected_b64: dz/lwJ3F...
+decrypt with sha256("pqc_kp_1d3bda6d")
+→ "POSTGRES_PASSWORD=hunter2"
+```
+
+I recovered a stored secret using **only the public keypair id**. That is
+**weaker than plaintext** — plaintext does not carry a label reading
+*"Kyber-1024 Lattice-Protected"* encouraging you to trust it.
+
+### Why the endpoints stay
+
+Existing UI may call these routes, and a silent 404 converts a false claim into
+a confusing one. Instead: every response declares `simulated: true`, the
+security-theatre strings are gone, the OpenAPI tag is corrected, and **vault
+encrypt/decrypt return 501** unless `AGENTIC_PQC_DEMO=1`. Keypair generation
+and KEM are harmless curiosities; the vault operations are the ones that invite
+an operator to put a live credential through a function offering no protection.
+
+A test asserts the XOR break **still reproduces** under demo mode — so if the
+primitive ever changes, the warning cannot silently become overstated.
+
+## 1. `llm.stream()` was not wrapped
+
+No gap existed at the time, because `chat.py` recorded its own streamed spend.
+But that is the same per-call-site arrangement that produced the original
+1-in-30 miss rate, and the next streaming caller would silently repeat it.
+
+`stream()` now applies the budget gate — yielding the refusal **as an SSE
+frame**, since a caller iterating frames cannot inspect a returned dict — and
+records from the terminal frame. Chunks pass straight through; a test asserts
+streaming is not buffered.
+
+**This makes chat's own `record_cost()` a double count**, so it is removed in
+the same commit. The two changes are inseparable, which is why they are not
+split.
+
+## 3. Traces were permanently empty
+
+A complete tracing backend — schema, `create_trace`, `create_span`, analytics,
+DORA metrics, an EU AI Act compliance report — and
+`grep -rl obs_traces backend/` returned `observability.py` **alone**. Nothing
+ever emitted a trace.
+
+> A permanently empty observability view is worse than an absent one: it tells
+> the operator their agents did nothing, which is a false statement about the
+> system rather than a missing feature.
+
+Now emitted from the LLM layer for both `complete()` and `stream()`. Traces
+populate with real prompt/output/tokens/cost, and `/analytics` reports non-zero
+totals.
+
+## 2. Costs are estimates presented like invoices
+
+An **unknown model silently fell back** to $0.001/$0.003 per 1K — off by an
+order of magnitude either way (Haiku ~4× cheaper, Opus ~25× dearer). The
+dashboard now returns `cost_basis: "estimated"`, a note that cached/batch
+discounts are not modelled, and `unpriced_models` naming exactly which figures
+are guesses.
+
+That immediately surfaced **`gpt-4o` has no rate-card entry** — those numbers
+were guesses all along.
+
+## 4. Profiler flamegraph — *and a correction*
+
+> **My original follow-up was wrong.** I wrote *"profiler has no cost
+> attribution despite being an LLM caller"*. It makes **no LLM calls at all**;
+> the `llm.complete()` node is a string in a hand-written tree.
+
+The real defect: the flamegraph is illustrative sample data with only the
+`real_endpoints` subtree reflecting this process, and the response never said
+so. A flamegraph is read as measurement, so an unlabelled synthetic one invites
+optimising a call path that was never profiled. Now returns `synthetic: true`.
+
+## Tests
+
+`tests/unit/test_85_operate_followups.py` — **22 cases**.
+**Proven to catch the bugs: with the six files stashed, 19 of 22 fail.**
+
+Two existing tests updated because they pinned the old behaviour:
+
+* `test_36` asserted `"Kyber-1024" in security_guarantee` — **the test was
+  enforcing the false cryptographic claim.** Fifth instance in this review of a
+  test holding a bug in place, and the most consequential.
+* `test_50` asserted `chat.py`'s **source text** contained `record_cost(...)`.
+  The property still holds and now holds for all 30 callers; a source-text
+  assertion pins an implementation, which is why it broke for the wrong reason.
+  Rewritten to assert behaviour.
+
+### Self-correction
+
+My replacement `test_50` case captured `llm_svc.stream` at **call** time, so in
+a full run it grabbed conftest's `AsyncMock` — **the exact trap I documented in
+`test_83` and then walked into again.** Now captured at import time.
+
+Full suite: **3477 passed / 19 skipped / 0 failed**.
+
+## Module 21 status
+
+All five follow-ups closed. Nothing outstanding for OPERATE.
