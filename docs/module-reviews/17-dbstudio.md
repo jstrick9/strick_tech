@@ -134,3 +134,142 @@ Two self-corrections worth recording:
 4. **`/sqlite/ai-schema` generates DDL from a prompt** and the response feeds
    straight into the query box — LLM-authored SQL against the live database is
    worth a confirmation step of its own, like the push dry-run.
+
+---
+
+# Follow-up 1 — Audit trail for destructive SQL (`486239d`)
+
+Recommendation 1 above, implemented.
+
+## The gap, restated precisely
+
+Module 17 hardened **what** Database Studio would execute. It never touched
+**whether it was observable**. Those are separate concerns and only the first
+had been done.
+
+Reproduced live against a running server before writing any code:
+
+```
+POST /api/db/sqlite/query {"sql":"DROP TABLE audit_victim","allow_write":true}
+  -> {"ok": true, "rows_affected": -1, "type": "write"}
+
+GET  /api/audit-log?limit=20
+  -> not one row referencing the statement, the table, or Database Studio
+```
+
+The most destructive operation the platform exposes was also its least
+observable one. Every other privileged subsystem already appends hash-chained
+receipts — `mcp_tool_call`, `connector_exec`, `goal_created`, A2A messages —
+while the SQL editor, both row endpoints and the table-create endpoint appended
+nothing at all.
+
+The information needed for a receipt was already computed: `classify_sql()`
+knows a statement is a write. That knowledge was discarded immediately after
+the `allow_write` check instead of being carried into a record.
+
+## What was built
+
+`audit_sql()` in `backend/routers/database.py`, appending to `audit_log_chain`
+through `routers/audit_log.append_entry()`, wired into all four mutating paths.
+
+| Endpoint | Action type |
+|---|---|
+| `POST /sqlite/query` (write) | `db_sql_write`, preceded by `db_sql_attempt` when critical |
+| `POST /sqlite/query` (refused) | `db_sql_refused` |
+| `POST /sqlite/table/{t}/insert` | `db_row_insert` |
+| `DELETE /sqlite/table/{t}/row` | `db_row_delete` |
+| `POST /sqlite/table/create` | `db_schema_change` / `db_schema_refused` |
+
+Five design decisions worth stating, because each rules out a simpler version
+that would have looked equivalent:
+
+1. **Two entries for critical statements, not one.** The chain is append-only —
+   an "in flight" row can never be updated with its outcome. Writing a
+   `pending` entry *before* execution means a statement that hangs, kills the
+   process or corrupts the file still leaves a trace. That is exactly the case
+   where the completion entry never lands, and exactly the case you most want
+   a record of.
+2. **Refusals are recorded.** A rejected `ATTACH` is a security signal. A ledger
+   that holds only successes cannot show that someone tried.
+3. **Failures are recorded**, not just successes.
+4. **Risk by blast radius, not keyword presence.** `DROP`/`TRUNCATE` and
+   *unqualified* `DELETE`/`UPDATE` are `critical`; qualified destructive
+   statements `high`; `INSERT`/`CREATE` `medium`. The checks are ordered rather
+   than iterating the keyword frozenset — set iteration order is not stable, so
+   `DROP TABLE a; ALTER TABLE b ...` would have graded `high` on one run and
+   `critical` on the next. There is a test that runs the classifier 50 times.
+5. **Reads are deliberately not audited.** Auditing every `SELECT` would bury
+   the destructive events in noise and make the trail useless in practice.
+
+`audit_sql()` can never raise into the request path — a ledger outage logs at
+ERROR but must not swallow the user's query result. There is a test for that.
+
+## A second bug, found while wiring this up
+
+`POST /api/db/sqlite/table/create` executed raw SQL with **no `classify_sql()`
+call at all**. The AI Schema Designer posts LLM-authored DDL straight to it, so
+the `ATTACH` refusal that Module 17 added to the SQL editor was sidestepped
+simply by choosing the other endpoint. Verified live: an `ATTACH` posted to
+`/table/create` created a file on disk. It now runs the same guard and returns
+403 with a ledger entry.
+
+This is the same shape as the Module 12 terminal finding: a guard applied to
+the obvious entrance while a second door stood open beside it. **When a check
+is added, enumerate every endpoint that reaches the primitive** — not just the
+one where the bug was found.
+
+## Frontend
+
+* New **Audit Trail** tab: the ledger filtered to `db_*` actions, risk and
+  outcome colour-coded, with a live chain-integrity badge from
+  `/api/audit-log/verify`.
+* A confirmation dialog before running a statement that looks destructive, and
+  a "Recorded in the audit trail" note on the write result.
+
+`dbSqlLooksDestructive()` mirrors the server rule, and the comment above it says
+plainly that it is a UX affordance and **not** a security control. The server
+classifies and records independently and trusts nothing the client sends. This
+repeats the Module 16 lesson: *the model may suggest; the server decides* — the
+same applies to the browser.
+
+## Verification
+
+Live server, before and after:
+
+| Statement | Ledger |
+|---|---|
+| `DROP TABLE t` | `db_sql_attempt/critical/pending` then `db_sql_write/critical/success` |
+| `DELETE FROM t` | `critical` |
+| `DELETE FROM t WHERE id=1` | `high` |
+| `INSERT INTO t ...` | `medium` |
+| `DROP` without `allow_write` | `db_sql_refused/blocked` |
+| `ATTACH ...` | `db_sql_refused/high` |
+| `ATTACH` via `/table/create` | `db_schema_refused/high`, no file created |
+
+`/api/audit-log/verify` → 884 entries, `broken_at: null`. Database Studio's
+entries do not break the hash chain.
+
+## Tests
+
+`tests/unit/test_74_dbstudio_audit_trail.py` — **20 cases**. They assert on the
+**contents of the ledger** after each operation, never on the presence of a call
+in the source, so they cannot be satisfied by a comment. (The `_executable()`
+docstring/comment-stripping helper is used for the one structural guard, per the
+lesson from Modules 10, 12, 14, 15 and 16.)
+
+**Proven to catch the bug: with `backend/routers/database.py` stashed, 17 of 20
+fail. With the fix, 20/20 pass.**
+
+Full suite: **3163 passed / 17 skipped / 0 failed** (was 3143).
+
+## Remaining Database Studio follow-ups
+
+Recommendations 2–4 are still open:
+
+2. The `secrets` table is still browsable.
+3. Still no transaction boundary or undo — every statement auto-commits. The
+   audit trail now tells you *what* was destroyed, which makes the absence of an
+   undo more conspicuous, not less.
+4. `/sqlite/ai-schema` DDL now passes the statement guard and is recorded when
+   executed, but there is still no explicit confirmation step comparing the
+   LLM's DDL against the current schema before it runs.
