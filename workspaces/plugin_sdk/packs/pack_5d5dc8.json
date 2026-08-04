@@ -1,8 +1,8 @@
 {
-  "id": "provenance-test",
-  "name": "Provenance Test",
-  "version": "1.0.0",
-  "description": "What your plugin does",
+  "id": "pack_5d5dc8",
+  "name": "uat-developer-plugin-uat_e8de8e18",
+  "version": "0.1.0",
+  "description": "UAT developer plugin pack",
   "author": "Your Name",
   "license": "MIT",
   "tags": [
@@ -57,11 +57,11 @@
     "files"
   ],
   "min_version": "6.0.0",
-  "created_at": "2026-08-04T00:29:31Z",
-  "updated_at": "2026-08-04T00:29:31Z",
+  "created_at": "2026-08-04T00:30:59Z",
+  "updated_at": "2026-08-04T00:30:59Z",
   "provenance": {
     "status": "unsigned",
     "source": "local_sdk",
-    "manifest_sha256": "156867abfb2f1c480a43d6efa0bfb677bdba5eac3978853f198f6bd802e2b50d"
+    "manifest_sha256": "799744f1c48255339910850b20f35ce6f0c2ed34e21a88410b11ecd792ad6e26"
   }
 }

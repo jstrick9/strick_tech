@@ -17,7 +17,7 @@ import signal
 import time
 import uuid
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.memory_db import audit_log, get_conn
@@ -165,6 +165,57 @@ def _blocks_inline_code(tokens: list[str]) -> str:
     return ''
 
 
+# Commands that read from stdin and will simply hang. stdin is /dev/null for
+# these subprocesses, so an interactive prompt waits forever and is then killed
+# by the runtime cap — the user sees a timeout with no explanation of why.
+# Naming the non-interactive flag is far more useful than a generic failure.
+_INTERACTIVE_HINTS = {
+    ('npm', 'init'): 'npm init -y',
+    ('yarn', 'init'): 'yarn init -y',
+    ('pnpm', 'init'): 'pnpm init',
+    ('npm', 'login'): None,
+    ('npm', 'adduser'): None,
+    ('git', 'rebase'): 'git rebase --no-editor, or avoid -i',
+    ('git', 'commit'): 'git commit -m "message"',
+    ('git', 'tag'): 'git tag -m "message" <name>',
+    ('git', 'merge'): 'git merge --no-edit',
+    ('git', 'add'): 'git add <paths> (without -p/--patch)',
+}
+_INTERACTIVE_FLAGS = {'-i', '--interactive', '-p', '--patch', '-e', '--edit'}
+
+
+def _blocks_interactive(tokens: list[str]) -> str:
+    """Return a reason if `tokens` would block waiting for input."""
+    if len(tokens) < 2:
+        return ''
+    cmd = tokens[0].split('/')[-1]
+    sub_cmd = tokens[1]
+    key = (cmd, sub_cmd)
+    rest = tokens[2:]
+
+    if key in {('git', 'rebase'), ('git', 'add')}:
+        if not any(f in rest for f in _INTERACTIVE_FLAGS):
+            return ''
+    elif key in {('git', 'commit'), ('git', 'tag'), ('git', 'merge')}:
+        # These only prompt when no message/flag is supplied.
+        if any(f.startswith(('-m', '--message', '--no-edit', '-F', '--file')) for f in rest):
+            return ''
+    elif key in {('npm', 'init'), ('yarn', 'init'), ('pnpm', 'init')}:
+        if any(f in {'-y', '--yes'} for f in rest):
+            return ''
+    elif key not in _INTERACTIVE_HINTS:
+        return ''
+
+    if key not in _INTERACTIVE_HINTS:
+        return ''
+    hint = _INTERACTIVE_HINTS[key]
+    base = (
+        f"Command blocked: '{cmd} {sub_cmd}' waits for interactive input, and this "
+        f'terminal has no stdin — it would hang until the {MAX_RUNTIME_S}s timeout.'
+    )
+    return f'{base} Try: {hint}' if hint else base
+
+
 # Dangerous commands that are always blocked
 BLOCKED_COMMANDS = {
     'rm -rf /',
@@ -177,6 +228,138 @@ BLOCKED_COMMANDS = {
 }
 
 _active_processes: dict[str, asyncio.subprocess.Process] = {}
+
+# ── Authorisation ─────────────────────────────────────────────────────────────
+# This endpoint runs shell commands as the server user. There was no
+# authorisation on it at all: anyone who could reach the API had a shell.
+#
+# That is defensible for a single-user desktop OS bound to 127.0.0.1, so the
+# default preserves it rather than breaking every existing install. What is NOT
+# defensible is the same behaviour when the server is reachable from the
+# network, which is exactly the case nobody notices until it matters.
+#
+#   * bound to loopback  -> allowed, as before
+#   * bound to 0.0.0.0   -> an API key is REQUIRED (401 without one)
+#   * TERMINAL_REQUIRE_AUTH=1 -> always require a key
+#   * TERMINAL_DISABLED=1     -> refuse outright (403)
+_LOOPBACK_HOSTS = {'127.0.0.1', '::1', 'localhost', ''}
+
+
+def _bound_to_loopback() -> bool:
+    """True when the server is only reachable from this machine."""
+    host = os.getenv('AGENTIC_OS_HOST', '127.0.0.1').strip()
+    return host in _LOOPBACK_HOSTS
+
+
+def _auth_required() -> bool:
+    if os.getenv('TERMINAL_REQUIRE_AUTH', '').strip() in {'1', 'true', 'yes'}:
+        return True
+    return not _bound_to_loopback()
+
+
+async def _check_terminal_access(req: Request) -> JSONResponse | None:
+    """Return a refusal response if this caller may not run commands."""
+    if os.getenv('TERMINAL_DISABLED', '').strip() in {'1', 'true', 'yes'}:
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': 'The terminal is disabled on this server (TERMINAL_DISABLED=1).',
+                'code': 'terminal_disabled',
+            },
+            status_code=403,
+        )
+    if not _auth_required():
+        return None
+    try:
+        from .auth import require_api_key
+
+        # require_api_key() returns None when NO users are registered, treating
+        # "auth not configured yet" as "auth not needed". For most endpoints
+        # that is a reasonable first-run convenience; for a shell reachable
+        # from the network it is a fail-open hole. Verified live: with
+        # TERMINAL_REQUIRE_AUTH=1 and an empty user table, `echo hi` ran.
+        # Here, no users configured means nobody is authorised.
+        user_id = await require_api_key(req)
+        if user_id is None:
+            return JSONResponse(
+                {
+                    'ok': False,
+                    'error': (
+                        'The terminal requires authentication when the server is not bound '
+                        'to loopback, but no users are registered. Create one via '
+                        'POST /api/auth/register, or bind the server to 127.0.0.1.'
+                    ),
+                    'code': 'terminal_no_users',
+                },
+                status_code=401,
+            )
+    except HTTPException as exc:
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': (
+                    f'{exc.detail}. The terminal executes shell commands, so it requires '
+                    f'authentication when the server is not bound to loopback.'
+                ),
+                'code': 'terminal_auth_required',
+            },
+            status_code=exc.status_code,
+        )
+    except Exception as exc:  # auth backend unavailable — fail CLOSED here
+        log.error('Terminal auth check failed: %s', exc)
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': 'Authorisation could not be verified; refusing to run a command.',
+                'code': 'terminal_auth_unavailable',
+            },
+            status_code=503,
+        )
+    return None
+
+
+# ── OS-level resource limits ──────────────────────────────────────────────────
+# The command filter can only ever enumerate badness. These caps are enforced by
+# the kernel and apply no matter what the command turns out to be: a fork bomb,
+# a memory hog, or a script that writes until the disk fills.
+TERMINAL_CPU_SECONDS = int(os.getenv('TERMINAL_CPU_SECONDS', '60'))
+TERMINAL_MEMORY_MB = int(os.getenv('TERMINAL_MEMORY_MB', '2048'))
+TERMINAL_MAX_FILE_MB = int(os.getenv('TERMINAL_MAX_FILE_MB', '512'))
+TERMINAL_MAX_PROCS = int(os.getenv('TERMINAL_MAX_PROCS', '256'))
+
+
+def _apply_rlimits() -> None:
+    """preexec_fn for the subprocess: cap CPU, memory, file size and forks.
+
+    Runs in the forked child before exec. Failures are swallowed deliberately —
+    a platform that lacks a given limit should still run the command, just
+    without that particular cap.
+    """
+    try:
+        import resource
+    except ImportError:  # non-POSIX
+        return
+
+    def _set(what, soft):
+        try:
+            hard = resource.getrlimit(what)[1]
+            if hard != resource.RLIM_INFINITY:
+                soft = min(soft, hard)
+            resource.setrlimit(what, (soft, hard))
+        except (ValueError, OSError):
+            pass
+
+    if TERMINAL_CPU_SECONDS > 0:
+        _set(resource.RLIMIT_CPU, TERMINAL_CPU_SECONDS)
+    if TERMINAL_MEMORY_MB > 0 and hasattr(resource, 'RLIMIT_AS'):
+        _set(resource.RLIMIT_AS, TERMINAL_MEMORY_MB * 1024 * 1024)
+    if TERMINAL_MAX_FILE_MB > 0:
+        _set(resource.RLIMIT_FSIZE, TERMINAL_MAX_FILE_MB * 1024 * 1024)
+    if TERMINAL_MAX_PROCS > 0 and hasattr(resource, 'RLIMIT_NPROC'):
+        _set(resource.RLIMIT_NPROC, TERMINAL_MAX_PROCS)
+    # Never leave a core dump behind from a killed command.
+    with contextlib.suppress(Exception):
+        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
 
 # A command had no server-side time limit at all: `sleep 12` ran for the full
 # 12 seconds, and nothing stopped a command running indefinitely, holding a
@@ -304,6 +487,10 @@ def _is_safe(cmd: str) -> tuple[bool, str]:
     if reason:
         return False, reason
 
+    reason = _blocks_interactive(tokens)
+    if reason:
+        return False, reason
+
     return True, ''
 
 
@@ -351,6 +538,10 @@ async def run_command(req: Request):
     cwd = body.get('cwd', '')
     session = body.get('session_id', str(uuid.uuid4())[:8])
 
+    denied = await _check_terminal_access(req)
+    if denied is not None:
+        return denied
+
     # A rejected command never opens a stream, so it can carry a real status
     # code. These returned HTTP 200 with the refusal buried in an SSE frame,
     # which is indistinguishable from a successful run to any non-SSE client.
@@ -380,6 +571,10 @@ async def run_command(req: Request):
                 stderr=asyncio.subprocess.STDOUT,
                 cwd=work_dir,
                 env=_sandboxed_env(),
+                # No stdin: a command that prompts must fail fast rather than
+                # hold a subprocess and an SSE connection until the timeout.
+                stdin=asyncio.subprocess.DEVNULL,
+                preexec_fn=_apply_rlimits,
                 # Run in its own process group. create_subprocess_shell spawns
                 # `sh -c <command>`, so proc.kill() only kills the SHELL -- any
                 # program it started is re-parented to init and keeps running.
@@ -560,9 +755,32 @@ def command_suggestions(q: str = ''):
     return suggestions[:10]
 
 
+_ENV_CACHE: dict = {}
+_ENV_CACHE_TTL_S = 300
+
+
 @router.get('/env')
 def get_environment():
-    """Return safe environment info."""
+    """Return safe environment info.
+
+    Cached: this ran four blocking subprocesses on every call, each with a 2s
+    timeout, so a cold or slow toolchain could block the event loop for up to
+    8 seconds — on an endpoint the UI hits on every render of the pane.
+    Installed tool versions do not change between requests.
+    """
+    now = time.time()
+    cached = _ENV_CACHE.get('data')
+    if cached and now - _ENV_CACHE.get('at', 0) < _ENV_CACHE_TTL_S:
+        return {**cached, 'cached': True}
+
+    data = _probe_environment()
+    _ENV_CACHE['data'] = data
+    _ENV_CACHE['at'] = now
+    return {**data, 'cached': False}
+
+
+def _probe_environment() -> dict:
+    """Actually run the version probes (uncached)."""
     return {
         'cwd': str(PREVIEW_DIR),
         'node': _which_version('node'),
@@ -574,6 +792,13 @@ def get_environment():
         'has_git': bool(shutil.which('git')),
         'has_python': bool(shutil.which('python3')),
     }
+
+
+@router.post('/env/refresh')
+def refresh_environment():
+    """Force the environment probe to re-run (e.g. after installing a tool)."""
+    _ENV_CACHE.clear()
+    return {'ok': True, **_probe_environment(), 'cached': False}
 
 
 def _which_version(cmd: str) -> str:
