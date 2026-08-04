@@ -17,6 +17,7 @@ import time
 
 import httpx
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/plugins', tags=['plugins'])
 log = logging.getLogger('agentic.plugins')
@@ -445,6 +446,65 @@ def _save_installed(data: dict) -> bool:
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
+# ── SSRF guard for /install/url ────────────────────────────────────────────────
+# Verified live before this fix: the server fetched
+#   http://localhost:8787/api/health          -> reached its own API
+#   http://169.254.169.254/latest/meta-data/  -> reached cloud metadata (HTTP 401,
+#                                                i.e. the connection SUCCEEDED)
+# "Install a plugin from a URL" is a server-side fetch of a user-supplied
+# address, which is the textbook SSRF primitive. On a hosted deployment the
+# metadata endpoint hands out cloud credentials, and the error message returned
+# the response body straight back to the caller, making it a read primitive
+# rather than just a blind one.
+_BLOCKED_HOST_PATTERNS = (
+    'localhost', '127.', '0.0.0.0', '::1', '169.254.', '10.',
+    '192.168.', 'metadata', '.internal', '.local',
+)
+
+
+def _url_is_safe(url: str) -> tuple[bool, str]:
+    """Return (ok, reason). Refuses non-HTTP schemes and private/link-local hosts."""
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False, 'Malformed URL'
+
+    if parsed.scheme not in ('http', 'https'):
+        return False, f'Only http and https URLs are allowed (got {parsed.scheme or "none"})'
+
+    host = (parsed.hostname or '').lower()
+    if not host:
+        return False, 'URL has no host'
+
+    for pat in _BLOCKED_HOST_PATTERNS:
+        if host == pat.rstrip('.') or host.startswith(pat) or host.endswith(pat):
+            return False, f'Refusing to fetch from internal address: {host}'
+
+    # Resolve and check the ACTUAL address. A public hostname can resolve to a
+    # private IP (DNS rebinding), so string matching on the host alone is not
+    # enough -- the same "check the thing, not its label" lesson as the SQL and
+    # path guards earlier in this review.
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False, f'Could not resolve host: {host}'
+
+    for info in infos:
+        addr = info[4][0]
+        try:
+            ip = ipaddress.ip_address(addr)
+        except ValueError:
+            continue
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            return False, f'Host {host} resolves to a non-public address ({addr})'
+
+    return True, ''
+
+
 @router.get('/registry')
 def list_registry():
     """Return the curated plugin registry."""
@@ -471,18 +531,40 @@ async def install_from_url(req: Request):
         body = {}
     url = (body.get('url') or '').strip()
     if not url:
-        return {'ok': False, 'error': 'url required'}
+        return JSONResponse({'ok': False, 'error': 'url required'}, status_code=400)
 
     # Convert GitHub blob URL to raw
     url = re.sub(r'github\.com/([^/]+/[^/]+)/blob/', r'raw.githubusercontent.com/\1/', url)
 
+    ok, reason = _url_is_safe(url)
+    if not ok:
+        log.warning('Refused plugin fetch from %s: %s', url, reason)
+        return JSONResponse({'ok': False, 'error': reason, 'blocked': True}, status_code=400)
+
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
             resp = await client.get(url, headers={'User-Agent': 'AgenticOS/6.0'})
+            # Redirects are NOT followed: a public URL that 302s to
+            # 169.254.169.254 would otherwise walk straight past the check above.
+            if resp.is_redirect:
+                return JSONResponse(
+                    {'ok': False, 'error': 'Refusing to follow redirects when fetching a plugin.'},
+                    status_code=400,
+                )
             resp.raise_for_status()
+            if len(resp.content) > 2_000_000:
+                return JSONResponse(
+                    {'ok': False, 'error': 'Plugin file too large (limit 2 MB).'}, status_code=413
+                )
             data = resp.json()
     except Exception as e:
-        return {'ok': False, 'error': f'Failed to fetch: {e}'}
+        # The upstream response body is deliberately NOT echoed back: doing so
+        # turned a blind SSRF into a read primitive.
+        log.warning('Plugin fetch failed for %s: %s', url, e)
+        return JSONResponse(
+            {'ok': False, 'error': 'Could not fetch or parse a plugin from that URL.'},
+            status_code=400,
+        )
 
     return await _install_plugin_data(data)
 
@@ -506,9 +588,11 @@ async def install_from_json(req: Request):
 async def _install_plugin_data(data: dict) -> dict:
     """Validate and install plugin from dict."""
     if not isinstance(data, dict):
-        return {'ok': False, 'error': 'Plugin must be a JSON object'}
-    if 'skills' not in data:
-        return {'ok': False, 'error': "Plugin must have a 'skills' array"}
+        return JSONResponse({'ok': False, 'error': 'Plugin must be a JSON object'}, status_code=400)
+    if not isinstance(data.get('skills'), list):
+        return JSONResponse(
+            {'ok': False, 'error': "Plugin must have a 'skills' array"}, status_code=400
+        )
 
     plugin_id = data.get('id') or hashlib.sha256(str(data).encode()).hexdigest()[:12]
     data['id'] = plugin_id
@@ -533,11 +617,15 @@ async def install_plugin(plugin_id: str, req: Request):
     """Install a plugin from the registry."""
     plugin = next((p for p in BUILTIN_REGISTRY if p['id'] == plugin_id), None)
     if not plugin:
-        return {'ok': False, 'error': f"Plugin '{plugin_id}' not found in registry"}
+        return JSONResponse(
+            {'ok': False, 'error': f"Plugin '{plugin_id}' not found in registry"}, status_code=404
+        )
 
     installed = _load_installed()
     if plugin_id in installed:
-        return {'ok': False, 'error': 'Already installed', 'installed': True}
+        return JSONResponse(
+            {'ok': False, 'error': 'Already installed', 'installed': True}, status_code=409
+        )
 
     # Install skills into the skills system
     from .skills import load_skills, save_skills
@@ -587,7 +675,7 @@ def uninstall_plugin(plugin_id: str):
     """Uninstall a plugin (removes its skills)."""
     plugin = next((p for p in BUILTIN_REGISTRY if p['id'] == plugin_id), None)
     if not plugin:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
 
     from .skills import load_skills, save_skills
 

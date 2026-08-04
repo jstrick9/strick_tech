@@ -27,7 +27,12 @@ window.MASTER_PANE_REGISTRY = {
   'loops':          () => typeof window.renderLoops === 'function' && window.renderLoops(),
   'github':         () => typeof window.renderGitHub === 'function' && window.renderGitHub(),
   'dbstudio':       () => typeof window.renderDBStudio === 'function' && window.renderDBStudio(),
-  'plugins':        () => typeof window.renderPlugins === 'function' && window.renderPlugins(),
+  // Plugin Hub supersedes the old two-system split (renderPlugins over
+  // /api/plugins + renderMarketplace over /api/marketplace). Falls back to the
+  // legacy renderer if the hub script failed to load.
+  'plugins':        () => typeof window.renderPluginHub === 'function'
+                            ? window.renderPluginHub()
+                            : (typeof window.renderPlugins === 'function' && window.renderPlugins()),
   'control':        () => typeof window.renderControlTower === 'function' && window.renderControlTower(),
   'webhooks':       () => typeof window.renderWebhooks === 'function' && window.renderWebhooks(),
   'testgen':        () => typeof window.renderTestGen === 'function' && window.renderTestGen(),

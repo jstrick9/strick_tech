@@ -489,14 +489,31 @@ def _ensure_schema_and_seed():
         con.commit()
         # Seed curated packs
         for pack in CURATED_PACKS:
-            row = con.execute('SELECT id FROM mkt_packs WHERE id=?', (pack['id'],)).fetchone()
+            row = con.execute(
+                'SELECT id, skills_json FROM mkt_packs WHERE id=?', (pack['id'],)
+            ).fetchone()
+            if row is not None:
+                # BACKFILL. Fixing the INSERT below only helps a database that
+                # has never been seeded — and the seeder skips rows that already
+                # exist, so every deployment created before the fix would keep
+                # showing "0 skills" forever. Repair the column in place when it
+                # is empty but the curated pack has skills to offer.
+                try:
+                    stored = json.loads(row['skills_json'] or '[]')
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    stored = []
+                if not stored and pack.get('skills'):
+                    con.execute(
+                        'UPDATE mkt_packs SET skills_json=? WHERE id=?',
+                        (json.dumps(pack['skills']), pack['id']),
+                    )
             if not row:
                 con.execute(
                     """
                     INSERT INTO mkt_packs(id,name,description,icon,author,category,tags,
                                           latest_ver,downloads,featured,verified,
-                                          rating_sum,rating_count,published)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1)
+                                          rating_sum,rating_count,skills_json,published)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)
                 """,
                     (
                         pack['id'],
@@ -512,6 +529,16 @@ def _ensure_schema_and_seed():
                         pack.get('verified', 0),
                         pack.get('rating_sum', 0),
                         pack.get('rating_count', 0),
+                        # The seeder wrote skills only to a manifest FILE and left
+                        # skills_json at its '[]' default. _pack_row_to_dict()
+                        # prefers the manifest, so this went unnoticed on the
+                        # machine that first seeded it -- but any deployment whose
+                        # data dir differs from the one holding the manifests
+                        # (a fresh install, a container, a moved AGENTIC_OS_DATA_DIR)
+                        # showed every curated pack with ZERO skills while still
+                        # advertising "12,493 downloads, 4.7 stars". Verified:
+                        # SELECT skills_json FROM mkt_packs -> '[]' for every row.
+                        json.dumps(pack.get('skills', [])),
                     ),
                 )
                 # Save skills manifest
@@ -536,6 +563,9 @@ def _pack_row_to_dict(row) -> dict:
     d = dict(row)
     d['rating'] = round(d['rating_sum'] / max(d['rating_count'], 1), 1) if d.get('rating_count') else 0
     d['tags_list'] = [t.strip() for t in (d.get('tags', '')).split(',') if t.strip()]
+    # Prefer the on-disk manifest (it is what an updated pack rewrites), but fall
+    # back to the skills_json column rather than reporting an empty pack.
+    d['skills'] = []
     manifest_path = PACKS_DIR / d['id'] / 'manifest.json'
     if manifest_path.exists():
         try:
@@ -543,11 +573,12 @@ def _pack_row_to_dict(row) -> dict:
             d['skills'] = m.get('skills', [])
         except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
             d['skills'] = []
-    else:
+    if not d['skills']:
         try:
             d['skills'] = json.loads(d.get('skills_json') or '[]')
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+        except (TypeError, ValueError, json.JSONDecodeError):
             d['skills'] = []
+    d['skill_count'] = len(d['skills'])
     return d
 
 
@@ -758,12 +789,20 @@ async def install_pack(pack_id: str, req: Request):
     (sdk_dir / f'{pack_id}.json').write_text(json.dumps(sdk_pack, indent=2))
 
     # Sync installed skills into the active Skills Hub (skills.json)
+    # `skills_added` counts what was ACTUALLY added. The response used to report
+    # len(skills) — the pack's total — while this loop silently skips any skill
+    # whose id already exists. Installing a pack that overlaps one you already
+    # have said "6 skills added" when 5 arrived. Small, but it is the same
+    # "report what you did, not what you attempted" rule applied throughout this
+    # review, and it is the number the UI shows the user.
+    skills_added = 0
     with contextlib.suppress(Exception):
         from .skills import load_skills, save_skills
         active_skills = load_skills()
         existing_ids = {s['id'] for s in active_skills}
         for sk in skills:
             if sk.get('id') not in existing_ids:
+                skills_added += 1
                 active_skills.append({
                     **sk,
                     'source_plugin': pack_id,
@@ -779,12 +818,20 @@ async def install_pack(pack_id: str, req: Request):
         p_inst[pack_id] = {**sdk_pack, 'installed': True}
         _save_installed(p_inst)
 
+    _name = dict(pack)['name'] if pack else pack_id
+    _dupes = len(skills) - skills_added
     return {
         'ok': True,
         'pack_id': pack_id,
         'version': version,
-        'skills': len(skills),
-        'message': f'✅ Installed {dict(pack)["name"] if pack else pack_id} v{version} with {len(skills)} skills',
+        'skills': skills_added,
+        'skills_added': skills_added,
+        'skills_in_pack': len(skills),
+        'skills_already_present': _dupes,
+        'message': (
+            f'✅ Installed {_name} v{version} — {skills_added} skill(s) added'
+            + (f' ({_dupes} already present)' if _dupes else '')
+        ),
     }
 
 
