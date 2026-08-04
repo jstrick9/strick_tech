@@ -410,6 +410,52 @@ SECURITY_HEADERS = {
     ),
 }
 
+
+# ── CSP phase 3: report-only ───────────────────────────────────────────────────
+# The enforcing policy above still carries script-src 'unsafe-inline' because
+# 859 inline event handlers and 5 inline <script> blocks depend on it. Removing
+# it before those are migrated would break the product, and a CSP that breaks
+# the product gets reverted within a day — which is worse than not shipping it,
+# because it burns the option.
+#
+# This is the intermediate step: send the STRICT policy in Report-Only mode
+# alongside the permissive enforcing one. Browsers evaluate both, enforce the
+# first and only report on the second. Nothing breaks, and every violation the
+# strict policy WOULD have caused is posted to /api/security/csp-report.
+#
+# That turns "we think 313 handlers still need work" into a measured list taken
+# from real usage, which is the evidence needed to decide when the switch is
+# safe. Enabled by default precisely because it cannot break anything; set
+# AGENTIC_CSP_REPORT_ONLY=0 to silence it.
+_CSP_REPORT_ONLY_ENABLED = os.getenv('AGENTIC_CSP_REPORT_ONLY', '1').strip().lower() not in (
+    '0', 'false', 'no', 'off',
+)
+
+CSP_REPORT_ONLY = (
+    "default-src 'self'; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "frame-ancestors 'self'; "
+    # The whole point: no 'unsafe-inline' on script-src.
+    "script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
+    "https://cdn.tailwindcss.com https://unpkg.com https://cdn.monaco-editor.net; "
+    # style-src keeps 'unsafe-inline': the codebase sets element.style
+    # extensively and inline style attributes are a far smaller risk than
+    # inline script. Tightening it is a separate exercise with its own
+    # cost/benefit, and bundling the two would stall both.
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com "
+    "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+    "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net "
+    "https://cdnjs.cloudflare.com data:; "
+    "img-src 'self' data: blob: https:; "
+    "connect-src 'self' blob: ws: wss: http://127.0.0.1:* http://localhost:* "
+    "https://api.github.com https://openrouter.ai; "
+    "worker-src 'self' blob:; "
+    "frame-src 'self' blob: data:; "
+    "report-uri /api/security/csp-report"
+)
+
 # Paths exempt from rate limiting (static files, health checks)
 _RATE_LIMIT_EXEMPT = {'/api/system/stats', '/api/system/health', '/manifest.json', '/sw.js'}
 
@@ -517,6 +563,12 @@ async def _security_middleware(request: Request, call_next):
     response.headers['X-Request-ID'] = str(request_id).strip()
 
     # Add security headers
+    if _CSP_REPORT_ONLY_ENABLED and not path.startswith('/preview/'):
+        # Not on /preview/: that route serves user- and agent-generated pages
+        # which legitimately carry inline script, and reporting on them would
+        # bury the signal from the application's own violations.
+        response.headers['Content-Security-Policy-Report-Only'] = CSP_REPORT_ONLY
+
     for header, value in SECURITY_HEADERS.items():
         response.headers[str(header).strip()] = str(value).strip()
 
