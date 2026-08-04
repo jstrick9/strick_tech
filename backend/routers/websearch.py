@@ -293,48 +293,19 @@ async def web_search(req: Request):
 def _is_ssrf_blocked_url(url: str) -> bool:
     """
     SECURITY: Block SSRF targets — private/link-local/metadata IP ranges
-    and cloud metadata endpoints.
-    Returns True if the URL should be blocked.
-    """
-    import ipaddress
-    import urllib.parse
+    and cloud metadata endpoints. Returns True if the URL should be blocked.
 
-    try:
-        parsed = urllib.parse.urlparse(url)
-        if parsed.scheme not in {'http', 'https'} or not parsed.hostname:
-            return True
-        host = parsed.hostname
-        # Block cloud metadata endpoints by hostname
-        blocked_hosts = {
-            '169.254.169.254',
-            'metadata.google.internal',
-            '100.100.100.200',
-            'metadata.internal',
-        }
-        if host in blocked_hosts:
-            return True
-        # Block by IP range (private/loopback/link-local)
-        try:
-            ip = ipaddress.ip_address(host)
-            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-                return True
-        except ValueError:
-            # Python's ipaddress does not parse alternate integer/hex forms
-            # such as 2130706433 or 0x7f000001, both of which represent
-            # 127.0.0.1 and are common SSRF bypasses.
-            try:
-                if host.isdigit() or host.lower().startswith('0x'):
-                    ip = ipaddress.ip_address(int(host, 0))
-                    if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-                        return True
-            except (ValueError, OverflowError):
-                pass  # ordinary hostname; continue with hostname checks
-        # Block localhost variants
-        if host in ('localhost', '0.0.0.0', '::1', '[::1]'):
-            return True
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return True  # block on parse error
-    return False
+    Delegates to services/safe_fetch.py. This function's own implementation was
+    the platform's FOURTH hand-rolled copy of this control, found by the
+    repo-wide guard in tests/unit/test_80. It was also the best of them — it
+    handled integer and hex IP encodings (2130706433, 0x7f000001) that the
+    others missed — so those checks were merged INTO the shared helper rather
+    than lost. Consolidation should keep the strongest version, not the newest.
+    """
+    from ..services.safe_fetch import url_is_safe
+
+    ok, _reason = url_is_safe(url)
+    return not ok
 
 
 @router.post('/fetch-content')

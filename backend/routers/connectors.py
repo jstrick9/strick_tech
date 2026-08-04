@@ -1723,9 +1723,29 @@ async def _exec_webhook(action: str, payload: dict, creds: dict) -> dict:
     headers = payload.get('headers', {})
     if not url:
         return {'ok': False, 'error': 'url required'}
+
+    # SSRF guard. Verified before this fix:
+    #   {"action":"post","payload":{"url":"http://169.254.169.254/..."}}
+    #   -> {"ok": false, "status_code": 501, "response": "..."}
+    # A 501 is a RESPONSE, not a refusal -- the request reached the cloud
+    # metadata service, and the body came back to the caller. Same primitive as
+    # the plugin installer (Module 19) and the http.get MCP tool, now sharing
+    # one guard in services/safe_fetch.py.
+    # A pre-existing test-only stub short-circuits loopback URLs so the suite
+    # can exercise this path without a live listener. It is checked BEFORE the
+    # SSRF guard on purpose: those tests assert the connector's success shape,
+    # not its network behaviour, and putting the guard first turned four of
+    # them red for the right reason but in the wrong place. The stub is gated
+    # on PYTEST_CURRENT_TEST, so it cannot weaken production.
+    if os.environ.get('PYTEST_CURRENT_TEST') and ('127.0.0.1' in url or 'localhost' in url):
+        return {'ok': True, 'status_code': 200, 'response': '{"ok": True}'}
+
+    from ..services.safe_fetch import url_is_safe
+
+    _ok, _reason = url_is_safe(url)
+    if not _ok:
+        return {'ok': False, 'error': _reason, 'blocked': True}
     try:
-        if os.environ.get('PYTEST_CURRENT_TEST') and ('127.0.0.1' in url or 'localhost' in url):
-            return {'ok': True, 'status_code': 200, 'response': '{"ok": True}'}
         async with httpx.AsyncClient(timeout=15) as client:
             r = await client.post(url, json=data, headers=headers)
         return {'ok': r.status_code < 400, 'status_code': r.status_code, 'response': r.text[:500]}

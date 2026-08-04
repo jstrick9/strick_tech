@@ -166,9 +166,14 @@ class TestSysConnectorSystem:
             d = r.json()
             results.append(d)
 
-        # All should succeed
-        check("all 3 webhook calls succeed",
-              all(r.get("ok") is True for r in results), results)
+        # Module 20: the webhook connector now refuses internal addresses
+        # (SSRF fix). These loopback posts are refused, which still exercises
+        # dispatch, exec_id allocation and idempotency — the properties this
+        # test is actually about.
+        check("all 3 webhook calls dispatched",
+              all("exec_id" in r for r in results), results)
+        check("loopback refused by the SSRF guard",
+              all(r.get("blocked") is True for r in results), results)
         # Each gets a unique exec_id
         exec_ids = [r.get("exec_id") for r in results]
         check("unique exec_ids", len(set(exec_ids)) == 3, exec_ids)

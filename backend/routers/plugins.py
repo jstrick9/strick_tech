@@ -407,6 +407,14 @@ BUILTIN_REGISTRY = [
 ]
 
 
+# Ids in the SHIPPED registry, captured before custom plugins are appended.
+# Must be taken here: _load_custom_registry() and _install_plugin_data() both
+# append to BUILTIN_REGISTRY, so a membership test taken any later would label
+# every custom plugin "builtin" -- which is precisely the distinction the
+# provenance record exists to make.
+_BUILTIN_IDS: frozenset[str] = frozenset(p['id'] for p in BUILTIN_REGISTRY if p.get('id'))
+
+
 # ── Load custom plugins on startup ───────────────────────────────────────────
 def _load_custom_registry():
     """Load custom plugins persisted from URL/JSON installs."""
@@ -426,6 +434,29 @@ _load_custom_registry()
 
 
 # ── Installed plugins store ────────────────────────────────────────────────────
+def _is_builtin(plugin_id: str) -> bool:
+    return plugin_id in _BUILTIN_IDS
+
+
+def _content_hash(plugin: dict) -> str:
+    """Stable hash of a pack's functional content (ignores presentation)."""
+    payload = json.dumps(
+        {
+            'id': plugin.get('id'),
+            'skills': [
+                {
+                    'id': sk.get('id'),
+                    'prompt_template': sk.get('prompt_template'),
+                }
+                for sk in (plugin.get('skills') or [])
+                if isinstance(sk, dict)
+            ],
+        },
+        sort_keys=True,
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()[:16]
+
+
 def _load_installed() -> dict:
     f = PLUGIN_DIR / 'installed.json'
     if f.exists():
@@ -456,53 +487,17 @@ def _save_installed(data: dict) -> bool:
 # metadata endpoint hands out cloud credentials, and the error message returned
 # the response body straight back to the caller, making it a read primitive
 # rather than just a blind one.
-_BLOCKED_HOST_PATTERNS = (
-    'localhost', '127.', '0.0.0.0', '::1', '169.254.', '10.',
-    '192.168.', 'metadata', '.internal', '.local',
-)
+# The SSRF guard this module introduced now lives in services/safe_fetch.py.
+# Module 20 found the identical primitive unguarded in two MORE places (the
+# http.get MCP tool and the outbound-webhook connector) precisely because this
+# copy was local to a router and could not be reused. One implementation, one
+# place, with a repo-wide test that fails when a new outbound call skips it.
+from ..services.safe_fetch import url_is_safe as _shared_url_is_safe
 
 
 def _url_is_safe(url: str) -> tuple[bool, str]:
-    """Return (ok, reason). Refuses non-HTTP schemes and private/link-local hosts."""
-    import ipaddress
-    import socket
-    from urllib.parse import urlparse
-
-    try:
-        parsed = urlparse(url)
-    except ValueError:
-        return False, 'Malformed URL'
-
-    if parsed.scheme not in ('http', 'https'):
-        return False, f'Only http and https URLs are allowed (got {parsed.scheme or "none"})'
-
-    host = (parsed.hostname or '').lower()
-    if not host:
-        return False, 'URL has no host'
-
-    for pat in _BLOCKED_HOST_PATTERNS:
-        if host == pat.rstrip('.') or host.startswith(pat) or host.endswith(pat):
-            return False, f'Refusing to fetch from internal address: {host}'
-
-    # Resolve and check the ACTUAL address. A public hostname can resolve to a
-    # private IP (DNS rebinding), so string matching on the host alone is not
-    # enough -- the same "check the thing, not its label" lesson as the SQL and
-    # path guards earlier in this review.
-    try:
-        infos = socket.getaddrinfo(host, None)
-    except socket.gaierror:
-        return False, f'Could not resolve host: {host}'
-
-    for info in infos:
-        addr = info[4][0]
-        try:
-            ip = ipaddress.ip_address(addr)
-        except ValueError:
-            continue
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-            return False, f'Host {host} resolves to a non-public address ({addr})'
-
-    return True, ''
+    """Kept as a thin alias: existing tests and call sites reference this name."""
+    return _shared_url_is_safe(url)
 
 
 @router.get('/registry')
@@ -566,6 +561,9 @@ async def install_from_url(req: Request):
             status_code=400,
         )
 
+    if isinstance(data, dict):
+        data['_origin'] = 'url'
+        data['_origin_url'] = url[:400]
     return await _install_plugin_data(data)
 
 
@@ -594,6 +592,33 @@ async def _install_plugin_data(data: dict) -> dict:
             {'ok': False, 'error': "Plugin must have a 'skills' array"}, status_code=400
         )
 
+    # Static safety review. skills.run_skill() renders templates with
+    # `template.format(**inputs)`, and Python's format mini-language evaluates
+    # attribute access -- so a plugin-supplied template is executable to a
+    # degree. Verified live against an installed skill:
+    #     template : "Value: {topic.__class__.__mro__}"
+    #     rendered : "Value: (<class 'str'>, <class 'object'>)"
+    # Refused outright: a template has no legitimate reason to reach through an
+    # attribute. Injection-shaped text is only WARNED about -- see
+    # services/plugin_safety.py for why the two are treated differently.
+    from ..services.plugin_safety import review_pack
+
+    review = review_pack(data)
+    if not review['safe']:
+        log.warning('Refused unsafe plugin %s: %s', data.get('id'), review['errors'])
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': 'Plugin rejected by the safety check.',
+                'problems': review['errors'],
+                'warnings': review['warnings'],
+                'unsafe': True,
+            },
+            status_code=400,
+        )
+    if review['warnings']:
+        log.warning('Plugin %s installed with warnings: %s', data.get('id'), review['warnings'])
+
     plugin_id = data.get('id') or hashlib.sha256(str(data).encode()).hexdigest()[:12]
     data['id'] = plugin_id
 
@@ -606,6 +631,9 @@ async def _install_plugin_data(data: dict) -> dict:
             custom_reg_file.write_text(json.dumps(custom_reg, indent=2))
     except Exception as e:
         log.warning('Failed to persist custom plugin: %s', e)
+
+    data.setdefault('_origin', 'json')
+    data['_warnings'] = review['warnings']
 
     if not any(p.get('id') == plugin_id for p in BUILTIN_REGISTRY):
         BUILTIN_REGISTRY.append(data)
@@ -645,15 +673,30 @@ async def install_plugin(plugin_id: str, req: Request):
             added += 1
 
     save_skills(skills)
+    # Bracket access here assumed every field the BUILTIN_REGISTRY entries
+    # happen to define. A custom plugin installed via /install/json or
+    # /install/url legitimately omits them, and the endpoint crashed with
+    # KeyError: 'version' -> HTTP 500. Reproduced live with a minimal
+    # {id, name, skills} plugin, which is exactly what the documented
+    # "paste your JSON" flow produces. Defaults applied instead.
     installed[plugin_id] = {
         'id': plugin['id'],
-        'name': plugin['name'],
-        'version': plugin['version'],
-        'author': plugin['author'],
-        'category': plugin['category'],
-        'emoji': plugin['emoji'],
+        'name': plugin.get('name') or plugin_id,
+        'version': plugin.get('version') or '1.0.0',
+        'author': plugin.get('author') or 'Community',
+        'category': plugin.get('category') or 'community',
+        'emoji': plugin.get('emoji') or '🧩',
         'skill_count': len(plugin.get('skills', [])),
         'installed_at': time.strftime('%Y-%m-%d'),
+        # Provenance. Custom plugins arrive from an arbitrary URL or a paste and
+        # were previously indistinguishable from curated content once installed:
+        # nothing recorded where a pack came from, so a user could not audit
+        # what they had trusted. `content_hash` also makes tampering detectable
+        # -- if a pack's contents change, the recorded hash no longer matches.
+        'origin': plugin.get('_origin') or ('builtin' if _is_builtin(plugin_id) else 'custom'),
+        'origin_url': plugin.get('_origin_url', ''),
+        'content_hash': _content_hash(plugin),
+        'warnings': (plugin.get('_warnings') or [])[:20],
     }
     _save_installed(installed)
 
@@ -661,11 +704,16 @@ async def install_plugin(plugin_id: str, req: Request):
 
     audit_log('plugin_install', f'{plugin_id}: {added} skills added')
 
+    from ..services.plugin_safety import review_pack
+
+    _review = review_pack(plugin)
+    _name = plugin.get('name') or plugin_id
     return {
         'ok': True,
-        'plugin': plugin['name'],
+        'plugin': _name,
         'skills_added': added,
-        'message': f'✅ Installed {plugin["name"]} — {added} skills added to Skills Hub',
+        'warnings': _review['warnings'],
+        'message': f'✅ Installed {_name} — {added} skills added to Skills Hub',
     }
 
 
@@ -679,18 +727,76 @@ def uninstall_plugin(plugin_id: str):
 
     from .skills import load_skills, save_skills
 
-    skill_ids = {s['id'] for s in plugin.get('skills', [])}
-    skills = [s for s in load_skills() if s['id'] not in skill_ids]
-    save_skills(skills)
-
     installed = _load_installed()
+
+    # Skills can be owned by MORE THAN ONE pack. Removing every id this pack
+    # declares therefore breaks packs the user still has installed. Reproduced
+    # live: dev-toolkit and devops-toolkit both ship `dockerfile`; uninstalling
+    # dev-toolkit deleted it while devops-toolkit remained listed as installed
+    # and silently lost a skill. linkedin_post (social-media-pack /
+    # content-creator) has the same overlap.
+    #
+    # Only remove a skill when no OTHER still-installed pack claims it.
+    retained_by_others: set[str] = set()
+    for other_id in installed:
+        if other_id == plugin_id:
+            continue
+        other = _find_pack_skills(other_id)
+        retained_by_others |= {sk.get('id') for sk in other if isinstance(sk, dict)}
+
+    pack_skill_ids = {sk['id'] for sk in plugin.get('skills', []) if isinstance(sk, dict) and sk.get('id')}
+    to_remove = pack_skill_ids - retained_by_others
+    kept_shared = sorted(pack_skill_ids & retained_by_others)
+
+    # A skill the user has since edited is preserved rather than deleted. The
+    # editor saves under a `_custom` id so the original is usually untouched,
+    # but a skill carrying explicit user modification must never be removed by
+    # an unrelated uninstall.
+    survivors, removed = [], 0
+    for sk in load_skills():
+        sid = sk.get('id')
+        if sid in to_remove and not sk.get('user_modified'):
+            removed += 1
+            continue
+        survivors.append(sk)
+    save_skills(survivors)
+
     installed.pop(plugin_id, None)
     _save_installed(installed)
 
     from ..services.memory_db import audit_log
 
-    audit_log('plugin_uninstall', plugin_id)
-    return {'ok': True, 'removed_skills': len(skill_ids)}
+    audit_log('plugin_uninstall', f'{plugin_id}: {removed} skills removed')
+    return {
+        'ok': True,
+        'removed_skills': removed,
+        'kept_shared_skills': kept_shared,
+        'message': (
+            f'Removed {removed} skill(s)'
+            + (f'; kept {len(kept_shared)} still used by other plugins' if kept_shared else '')
+        ),
+    }
+
+
+def _find_pack_skills(pack_id: str) -> list[dict]:
+    """Skills declared by `pack_id` in EITHER backend.
+
+    Ownership has to span both registries: the plugins backend and the
+    marketplace both install into the same skills.json, so a plugins-side
+    uninstall must respect a marketplace pack's claim and vice versa.
+    """
+    for pack in BUILTIN_REGISTRY:
+        if pack.get('id') == pack_id:
+            return pack.get('skills') or []
+    try:
+        from .marketplace import CURATED_PACKS
+
+        for pack in CURATED_PACKS:
+            if pack.get('id') == pack_id:
+                return pack.get('skills') or []
+    except Exception:  # pragma: no cover - marketplace optional
+        pass
+    return []
 
 
 @router.get('/categories')

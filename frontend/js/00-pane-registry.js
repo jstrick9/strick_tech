@@ -23,7 +23,12 @@ window.MASTER_PANE_REGISTRY = {
   'obsidian':       () => typeof window.renderObsidian === 'function' && window.renderObsidian(),
   'system':         () => typeof window.renderSystem === 'function' && window.renderSystem(),
   'workspaces':     () => typeof window.renderWorkspaces === 'function' && window.renderWorkspaces(),
-  'mcp':            () => typeof window.renderMCP === 'function' && window.renderMCP(),
+  // Connect Hub supersedes the raw MCP tool list: one surface over tools,
+  // connectors and gateway servers. Falls back to renderMCP if the hub script
+  // failed to load.
+  'mcp':            () => typeof window.renderConnectHub === 'function'
+                            ? window.renderConnectHub()
+                            : (typeof window.renderMCP === 'function' && window.renderMCP()),
   'loops':          () => typeof window.renderLoops === 'function' && window.renderLoops(),
   'github':         () => typeof window.renderGitHub === 'function' && window.renderGitHub(),
   'dbstudio':       () => typeof window.renderDBStudio === 'function' && window.renderDBStudio(),

@@ -220,8 +220,11 @@ class TestConnectorsSDK:
             },
             "agent_id": "orchestrator"
         })
-        d = ok(r, "webhook execute")
-        check("execution ok", d["ok"] is True)
+        d = r.json()
+        # Module 20: loopback targets are refused by the SSRF guard.
+        # Dispatch + exec_id are what this flow verifies.
+        check("webhook dispatched", "exec_id" in d, d)
+        check("loopback refused", d.get("blocked") is True, d)
         check("has exec_id", "exec_id" in d)
         check("exec_id format", d["exec_id"].startswith("cex_"))
         check("has duration_ms", d["duration_ms"] >= 0)
