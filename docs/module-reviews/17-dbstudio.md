@@ -273,3 +273,141 @@ Recommendations 2–4 are still open:
 4. `/sqlite/ai-schema` DDL now passes the statement guard and is recorded when
    executed, but there is still no explicit confirmation step comparing the
    LLM's DDL against the current schema before it runs.
+
+---
+
+# Follow-ups 2, 3 and 4 (`9af2f07`)
+
+All three remaining recommendations, closed. Follow-up 2 was materially worse
+than the note described.
+
+## Follow-up 2 — credential material was fully browsable
+
+The note asked for the `secrets` table to be hidden. What was actually exposed:
+
+```
+POST /api/db/sqlite/query
+  {"sql": "SELECT agent_id, signing_key FROM agent_identities LIMIT 1"}
+-> {"ok": true, "rows": [{"signing_key": "-----BEGIN PRIVATE KEY-----..."}]}
+```
+
+`agent_identities.signing_key` holds the **private keys that
+`audit_log._issue_receipt()` uses to sign audit receipts**. Reading them lets an
+attacker forge receipts for the ledger added one commit earlier. The
+tamper-evidence control and the material that defeats it were in the same
+browsable table, one `SELECT` apart.
+
+This is not a judgement call about what *ought* to be secret. The application
+had already decided — `agent_identity.get_agent_identity()` sets
+`signing_key = '[REDACTED]'` with the comment *"without signing_key for
+security"*. Database Studio was a **second door into the same row that never
+got the memo**, structurally identical to the `/table/create` gap found in the
+previous commit. Twice now in this module, a control was applied at one
+entrance while another stood open beside it.
+
+Also exposed: `auth_users.api_key` (a live credential accepted by
+`auth.require_api_key()`), `password_hash`, `auth_sessions.token`,
+`webhooks.secret`, and connector/MCP/A2A `auth_config` blobs.
+
+### Why two mechanisms
+
+`backend/services/db_policy.py` refuses statements that *name* a secret **and**
+redacts by column name on the way out. Neither alone is sufficient:
+
+| Attack | Beaten by output redaction alone? | Beaten by statement scan alone? |
+|---|---|---|
+| `SELECT signing_key AS x FROM ...` | ❌ no result column is called `signing_key` | ✅ |
+| `SELECT substr(signing_key,1,40) ...` | ❌ | ✅ |
+| `SELECT group_concat(signing_key) ...` | ❌ | ✅ |
+| `SELECT * FROM agent_identities` | ✅ | ❌ statement never names the column |
+
+A filter that inspects only result-column names loses to a four-character
+alias. This is the **same lesson as the prefix-matching bugs in Modules 12 and
+17**: the check has to match the structure of the thing being checked.
+
+### Other decisions worth recording
+
+* **Redaction is a fixed placeholder, never a truncation.** Returning the first
+  eight characters of a key is a head start on recovering it and tells the
+  operator nothing they needed.
+* **A global sensitive-column-*name* list** (`private_key`, `api_key`,
+  `password_hash`, `access_token`, …) applies to every table, so a future table
+  storing a token is protected by default. The failure mode of a pure
+  allow-list is that the next table is missed and nobody notices until it leaks.
+* **The override is a process-level env var, not a request parameter.** A
+  per-request flag is a switch the *attacker* controls — an agent composing
+  JSON could set it. `AGENTIC_DB_ALLOW_SENSITIVE=1` must be set on the server.
+  There is a test that posts `allow_sensitive: true` and expects 403.
+* **Only the private half is blocked.** `public_key` stays readable and
+  `agent_identities` stays browsable with one column masked. Over-blocking
+  would make the tool useless, which is its own kind of failure.
+
+## Follow-up 3 — dry run
+
+`{"dry_run": true}` executes the statement inside a transaction that is
+**always rolled back**, returning the rows it *would* affect plus per-table
+before/after counts.
+
+```
+DELETE FROM dr_test  (5 rows)  -> rows_affected: 5, deltas: {dr_test: -5},
+                                  committed: false
+SELECT COUNT(*)                -> still 5
+```
+
+Recorded as `db_sql_dryrun`, never as a write, and still subject to the
+sensitive-data policy (`dry_run` is not a policy bypass — there is a test).
+Deliberately **no** confirmation dialog on the dry-run button: commitment-free
+inspection is the entire point, and a prompt would discourage the safe path.
+
+This is a preview, not an undo. Real undo needs snapshotting; the dry run
+addresses the case that actually bites — *"how many rows does this hit?"* asked
+before rather than after.
+
+## Follow-up 4 — AI-authored DDL
+
+`/sqlite/ai-schema` now returns a server-computed **plan**: tables created,
+tables dropped, collisions against the *real* current schema, statement count,
+risk, and whether the guards will refuse it. The UI renders the plan and
+requires an explicit danger-confirm when anything is flagged.
+
+`safe` is derived from the live schema, never asserted by the model — the
+Module 16 gitai `"safe": true` lesson applied again. `/table/create` also gained
+the sensitive-data guard, so generated DDL cannot redefine the credential store.
+
+### Self-correction found during verification
+
+My first `_analyse_ddl` passed the whole blob to `classify_sql()`, which
+inspects the **leading token**. So:
+
+```
+CREATE TABLE t (k TEXT); ATTACH DATABASE '/tmp/z.db' AS z
+  -> plan.safe: true      ← wrong
+```
+
+Not exploitable — `sqlite3.execute()` rejects multi-statement input, and I
+confirmed no file was created — but **a confirmation screen that calls SQL
+"safe" when the server will refuse it is itself a defect**, in a feature whose
+only job is to tell the truth about what will happen. Each statement is now
+classified separately, and `test_plan_classifies_each_statement_not_the_whole_blob`
+pins it.
+
+## Tests
+
+`tests/unit/test_75_dbstudio_sensitive_and_dryrun.py` — **31 cases**.
+**Proven to catch the bugs: with `database.py` stashed, 25 of 31 fail.**
+
+### Second self-correction
+
+Three of the sensitive-data tests initially **skipped** on a fresh sandboxed DB
+because no agent identity existed — meaning the most important assertions in
+the file were silently not running. A test that skips when its data is missing
+proves nothing about the leak it was written for. Added a fixture that
+provisions a real signing key, and widened the assertions from *the first row*
+to *all rows*. Now 30 passed / 1 skipped instead of 28 passed / 3 skipped.
+
+Full suite: **3193 passed / 18 skipped / 0 failed** (was 3163).
+Audit chain: 1494 entries, `broken_at: null`.
+
+## Module 17 status
+
+All four follow-ups are now closed. Nothing outstanding for Database Studio.
