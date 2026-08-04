@@ -36,8 +36,12 @@ def test_workspace_create_normalizes_non_string_fields(client):
 
 
 def test_workspace_save_missing_workspace_is_rejected(client):
+    # Updated in Module 18. This test's NAME said "is_rejected" while its
+    # assertion pinned HTTP 200 — codifying the platform-wide "200 on failure"
+    # pattern this review has been removing. Saving to a workspace that does
+    # not exist is a 404; the body still carries ok:False for older clients.
     response = client.post('/api/workspaces/not-a-real-workspace/save')
-    assert response.status_code == 200
+    assert response.status_code == 404
     assert response.json().get('ok') is False
 
 

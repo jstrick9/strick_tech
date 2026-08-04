@@ -10,16 +10,19 @@ import contextlib
 import io
 import json
 import logging
+import re
 import shutil
+import threading
 import time
 import uuid
 import zipfile
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.memory_db import audit_log, get_conn
+from ..services.safe_paths import safe_path
 
 router = APIRouter(prefix='/api/workspaces', tags=['workspaces'])
 log = logging.getLogger('agentic.workspaces')
@@ -69,6 +72,95 @@ try:
     _ensure_table()
 except Exception as _e:
     log.error('workspaces: DB init failed — %s', _e)
+
+
+# Workspace ids are generated as uuid4[:8] and are the ONLY thing standing
+# between a request and a filesystem path: delete_workspace() previously did
+#     shutil.rmtree(WS_DIR / ws_id)
+# with no validation whatsoever. Proven by direct call with the data dir
+# redirected to /tmp: `delete_workspace('../precious')` removed
+# /tmp/wsdata/precious entirely. Reaching it over HTTP is currently blocked by
+# ASGI path normalisation, which is a property of the server in front of the
+# code rather than of the code -- an internal caller, a future CLI, or a
+# different ASGI server is not protected by it. The guard belongs here.
+_WS_ID_RE = re.compile(r'^[A-Za-z0-9_-]{1,64}$')
+
+
+def _valid_ws_id(ws_id: str) -> bool:
+    """True if `ws_id` can be safely used as a single directory name."""
+    return bool(_WS_ID_RE.match(ws_id or ''))
+
+
+def _ws_root(ws_id: str) -> Path:
+    """Resolve a workspace directory, refusing anything that escapes WS_DIR.
+
+    Belt and braces: the character class already forbids '/' and '.', and
+    safe_path() re-checks containment after resolution so a symlinked
+    workspace directory cannot redirect a delete either.
+    """
+    if not _valid_ws_id(ws_id):
+        raise ValueError(f'invalid workspace id: {ws_id!r}')
+    resolved = safe_path(ws_id, base=WS_DIR)
+    if resolved is None:
+        raise ValueError(f'workspace id escapes WS_DIR: {ws_id!r}')
+    return resolved
+
+
+# Directories under preview/ that belong to OTHER modules, not to the user's
+# project files. activate_workspace() wipes preview/ wholesale, which destroyed
+# every one of these on a workspace switch -- the cross-module bug first seen in
+# Module 10, where the image gallery broke permanently after switching
+# workspaces. They are preserved across the swap instead of being copied into
+# (and duplicated across) every workspace.
+SHARED_PREVIEW_DIRS = ('browser_screenshots', 'assets/images', 'branches')
+
+
+def _stash_shared(preview: Path, stash: Path) -> list[str]:
+    """Move shared, non-project artefacts out of preview/ before it is wiped."""
+    moved = []
+    for rel in SHARED_PREVIEW_DIRS:
+        src = preview / rel
+        if src.is_dir():
+            dst = stash / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(src), str(dst))
+            moved.append(rel)
+    return moved
+
+
+def _restore_shared(stash: Path, preview: Path, moved: list[str]) -> None:
+    """Put the shared artefacts back after the new workspace has been laid down."""
+    for rel in moved:
+        src = stash / rel
+        if not src.exists():
+            continue
+        dst = preview / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if dst.exists():
+            # The incoming workspace shipped its own copy; merge rather than
+            # discard either side.
+            shutil.copytree(str(src), str(dst), dirs_exist_ok=True)
+            shutil.rmtree(str(src), ignore_errors=True)
+        else:
+            shutil.move(str(src), str(dst))
+
+
+# DATA-LOSS FIX 2 -- concurrency. activate_workspace() is a read-modify-write
+# over a directory tree: save preview/ -> wipe preview/ -> repopulate. Two
+# overlapping calls interleave those phases and unsaved work is destroyed.
+#
+# Reproduced 3 times out of 3 against the live server: with an unsaved file in
+# preview/, two simultaneous activations of the same target workspace lost it
+# permanently, while the identical sequence run SEQUENTIALLY preserved it.
+# That isolates the cause as concurrency rather than the same-workspace path
+# fixed above. The trigger is mundane -- the UI's "Switch" button is not
+# disabled while its await is in flight, so an impatient double-click issues
+# exactly this pair of requests.
+#
+# A threading.Lock is the right tool here: these are sync (def, not async def)
+# endpoints, so FastAPI runs them in a threadpool where a real lock applies,
+# and the critical section is filesystem I/O rather than anything awaitable.
+_activate_lock = threading.Lock()
 
 
 def _current_ws_id() -> str:
@@ -176,25 +268,80 @@ def current_workspace():
 @router.post('/{ws_id}/activate')
 def activate_workspace(ws_id: str):
     """Switch to a workspace — copies its files to preview/."""
+    # Serialised: see _activate_lock.
+    with _activate_lock:
+        return _activate_workspace_locked(ws_id)
+
+
+def _activate_workspace_locked(ws_id: str):
+    """Body of activate_workspace(). Callers must hold _activate_lock."""
+    if not _valid_ws_id(ws_id):
+        return JSONResponse({'ok': False, 'error': 'Invalid workspace id'}, status_code=400)
+
     con = get_conn()
     try:
         ws = con.execute('SELECT * FROM workspaces WHERE id=?', (ws_id,)).fetchone()
         if not ws:
-            return {'ok': False, 'error': 'Workspace not found'}
+            return JSONResponse({'ok': False, 'error': 'Workspace not found'}, status_code=404)
     finally:
         con.close()
 
-    # Save current preview/ to current workspace
     current_id = _current_ws_id()
-    if current_id and current_id != ws_id:
+
+    # DATA-LOSS FIX 1. The save was guarded by `current_id != ws_id`, but the
+    # rmtree below was NOT. Activating the workspace you are ALREADY on
+    # skipped the save and then wiped preview/ anyway, restoring the
+    # last-saved copy over the top.
+    #
+    # CORRECTION to an earlier draft of this comment: the Workspaces pane does
+    # NOT render a "Switch" button on the active card, so this is not reachable
+    # by a single click there. It is reachable through the API directly, and
+    # through any second caller that activates by id without first checking
+    # which workspace is current. The guard belongs in the endpoint either way
+    # -- an endpoint that destroys unsaved work for one class of caller is a
+    # bug regardless of what today's UI happens to render.
+    #
+    # Reproduced live:
+    #   echo "UNSAVED WORK" > preview/unsaved_edit.html
+    #   POST /api/workspaces/537b5b7d/activate   (537b5b7d was already current)
+    #   -> {"ok": true}   and unsaved_edit.html was GONE, unrecoverably.
+    #
+    # Switching to a DIFFERENT workspace was survivable because the outgoing
+    # one got saved first and switching back restored it. This case had no
+    # such recovery: the only copy of the work was the one that was deleted.
+    #
+    # The save now happens whenever there is a current workspace, full stop.
+    if current_id:
         _save_preview_to_workspace(current_id)
+
+    # Re-activating the current workspace is now a no-op for the filesystem.
+    # Its files were just saved and are already in preview/; tearing the
+    # directory down and rebuilding it identically only creates a window in
+    # which preview/ does not exist for the other 20 modules that read it.
+    if current_id == ws_id:
+        con2 = get_conn()
+        try:
+            con2.execute('UPDATE workspaces SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (ws_id,))
+            con2.commit()
+        finally:
+            con2.close()
+        audit_log('workspace_activate', f'{ws_id} (already active — saved, no swap)')
+        return {'ok': True, 'id': ws_id, 'name': dict(ws)['name'], 'already_active': True}
 
     # Load new workspace's files into preview/ atomically
     ws_preview = _ws_preview_dir(ws_id)
     if PREVIEW_DIR.exists() and ws_preview != PREVIEW_DIR:
         # Copy new workspace files to a temp dir first, then swap atomically
         tmp_dir = ROOT / f'.preview_tmp_{ws_id}'
+        stash_dir = ROOT / f'.preview_shared_{ws_id}'
+        shutil.rmtree(str(stash_dir), ignore_errors=True)
+        stash_dir.mkdir(parents=True, exist_ok=True)
+        moved: list[str] = []
         try:
+            # Preserve artefacts that belong to other modules, not to this
+            # project. See SHARED_PREVIEW_DIRS.
+            moved = _stash_shared(PREVIEW_DIR, stash_dir)
+
             if ws_preview.exists():
                 shutil.copytree(str(ws_preview), str(tmp_dir), dirs_exist_ok=False)
             else:
@@ -210,7 +357,15 @@ def activate_workspace(ws_id: str):
                 PREVIEW_DIR.mkdir(exist_ok=True)
                 shutil.copytree(str(tmp_dir), str(PREVIEW_DIR), dirs_exist_ok=True)
         finally:
+            # Shared artefacts go back even if the swap failed -- they must
+            # never be collateral damage of a copy error.
+            try:
+                PREVIEW_DIR.mkdir(exist_ok=True)
+                _restore_shared(stash_dir, PREVIEW_DIR, moved)
+            except Exception as _e2:
+                log.error('activate_workspace: shared artefact restore failed: %s', _e2)
             shutil.rmtree(str(tmp_dir), ignore_errors=True)
+            shutil.rmtree(str(stash_dir), ignore_errors=True)
 
     # Update DB — need a fresh connection (previous was closed in try/finally above)
     con2 = get_conn()
@@ -249,15 +404,27 @@ def _save_preview_to_workspace(ws_id: str) -> bool:
 @router.post('/{ws_id}/save')
 def save_workspace(ws_id: str):
     """Manually save current preview/ to workspace storage."""
+    # Shares the preview/ tree with activate_workspace(); same lock, or a save
+    # landing mid-swap writes a half-built directory into workspace storage.
+    with _activate_lock:
+        return _save_workspace_locked(ws_id)
+
+
+def _save_workspace_locked(ws_id: str):
+    """Body of save_workspace(). Callers must hold _activate_lock."""
+    if not _valid_ws_id(ws_id):
+        return JSONResponse({'ok': False, 'error': 'Invalid workspace id'}, status_code=400)
     con = get_conn()
     try:
         exists = con.execute('SELECT 1 FROM workspaces WHERE id=?', (ws_id,)).fetchone()
     finally:
         con.close()
     if not exists:
-        return {'ok': False, 'error': 'Workspace not found'}
+        return JSONResponse({'ok': False, 'error': 'Workspace not found'}, status_code=404)
     if not _save_preview_to_workspace(ws_id):
-        return {'ok': False, 'error': 'Could not save workspace files'}
+        return JSONResponse(
+            {'ok': False, 'error': 'Could not save workspace files'}, status_code=500
+        )
     con = get_conn()
     try:
         con.execute('UPDATE workspaces SET updated_at=CURRENT_TIMESTAMP WHERE id=?', (ws_id,))
@@ -274,6 +441,8 @@ async def update_workspace(ws_id: str, req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
+    if not _valid_ws_id(ws_id):
+        return JSONResponse({'ok': False, 'error': 'Invalid workspace id'}, status_code=400)
     allowed = {'name', 'description', 'color', 'emoji', 'framework', 'github_repo'}
     sets, vals = [], []
     _limits = {'name': 80, 'description': 500, 'color': 20, 'emoji': 8, 'framework': 50, 'github_repo': 200}
@@ -283,13 +452,20 @@ async def update_workspace(ws_id: str, req: Request):
             sets.append(f'{k}=?')
             vals.append(str(body[k])[:limit])
     if not sets:
-        return {'ok': False}
+        return JSONResponse({'ok': False, 'error': 'No updatable fields supplied'}, status_code=400)
     sets.append('updated_at=CURRENT_TIMESTAMP')
     vals.append(ws_id)
     con = get_conn()
     try:
-        con.execute(f'UPDATE workspaces SET {", ".join(sets)} WHERE id=?', vals)
+        # UPDATE ... WHERE id=? on a missing row affects 0 rows and raises
+        # nothing, so this endpoint answered {"ok": true} for workspaces that
+        # do not exist. Verified live: PATCH /api/workspaces/nope123 -> 200
+        # {"ok": true}. A rename that silently succeeded against nothing is
+        # indistinguishable from one that worked.
+        cur = con.execute(f'UPDATE workspaces SET {", ".join(sets)} WHERE id=?', vals)
         con.commit()
+        if cur.rowcount == 0:
+            return JSONResponse({'ok': False, 'error': 'Workspace not found'}, status_code=404)
     finally:
         con.close()
     return {'ok': True}
@@ -298,17 +474,30 @@ async def update_workspace(ws_id: str, req: Request):
 @router.delete('/{ws_id}')
 def delete_workspace(ws_id: str):
     """Delete or remove specified workspace."""
+    # `ws_id` reaches shutil.rmtree(). Validate before anything else.
+    if not _valid_ws_id(ws_id):
+        return JSONResponse({'ok': False, 'error': 'Invalid workspace id'}, status_code=400)
+
     current = _current_ws_id()
     if ws_id == current:
-        return {'ok': False, 'error': 'Cannot delete active workspace'}
+        return JSONResponse(
+            {'ok': False, 'error': 'Cannot delete active workspace'}, status_code=409
+        )
+
     con = get_conn()
     try:
+        row = con.execute('SELECT 1 FROM workspaces WHERE id=?', (ws_id,)).fetchone()
+        if not row:
+            return JSONResponse({'ok': False, 'error': 'Workspace not found'}, status_code=404)
         con.execute('DELETE FROM workspaces WHERE id=?', (ws_id,))
         con.commit()
     finally:
         con.close()
-    ws_dir = WS_DIR / ws_id
-    shutil.rmtree(str(ws_dir), ignore_errors=True)
+
+    try:
+        shutil.rmtree(str(_ws_root(ws_id)), ignore_errors=True)
+    except ValueError as e:
+        log.error('delete_workspace refused unsafe path: %s', e)
     audit_log('workspace_delete', ws_id)
     return {'ok': True}
 
@@ -317,18 +506,42 @@ def delete_workspace(ws_id: str):
 @router.get('/{ws_id}/export')
 def export_workspace_zip(ws_id: str):
     """Download the workspace as a ZIP file."""
-    # Only sync if this is the currently active workspace
-    if ws_id == _current_ws_id():
-        _save_preview_to_workspace(ws_id)
-    ws_preview = _ws_preview_dir(ws_id)
+    if not _valid_ws_id(ws_id):
+        return JSONResponse({'ok': False, 'error': 'Invalid workspace id'}, status_code=400)
 
     con = get_conn()
     try:
         ws = con.execute('SELECT name FROM workspaces WHERE id=?', (ws_id,)).fetchone()
     finally:
         con.close()
-    name = dict(ws)['name'] if ws else ws_id
-    safe_name = ''.join(c for c in name if c.isalnum() or c in ' -_').strip().replace(' ', '_')
+    # Previously an unknown id fell through to _ws_preview_dir(), which CREATES
+    # the directory, so exporting a typo'd id both left a stray workspace
+    # directory on disk and returned a valid-looking zip containing only the
+    # placeholder index.html. A download that looks like a successful backup
+    # but contains none of the user's work is worse than an error.
+    if not ws:
+        return JSONResponse({'ok': False, 'error': 'Workspace not found'}, status_code=404)
+
+    # Only sync if this is the currently active workspace
+    if ws_id == _current_ws_id():
+        _save_preview_to_workspace(ws_id)
+    ws_preview = _ws_preview_dir(ws_id)
+
+    name = dict(ws)['name']
+    # str.isalnum() is True for CJK and most non-Latin scripts, so the original
+    # filter passed them straight through into a Content-Disposition header --
+    # which Starlette encodes as latin-1. Exporting a workspace named "日本語"
+    # therefore crashed with UnicodeEncodeError and returned HTTP 500. Verified
+    # live before this fix; found by a test written for the adjacent
+    # empty-filename case.
+    #
+    # Restricted to ASCII alphanumerics, with an id-based fallback so a name
+    # that reduces to nothing still yields a real filename rather than ".zip"
+    # (which browsers save as a hidden, extensionless file).
+    safe_name = ''.join(
+        c for c in name if (c.isalnum() and c.isascii()) or c in ' -_'
+    ).strip().replace(' ', '_')
+    safe_name = safe_name or f'workspace_{ws_id}'
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:

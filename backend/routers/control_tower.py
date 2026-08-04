@@ -18,7 +18,7 @@ import time
 import uuid
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.memory_db import audit_log, get_conn
 
@@ -419,11 +419,45 @@ async def stream_run(run_id: str, request: Request):
 
 @router.post('/runs/{run_id}/kill')
 async def kill_run(run_id: str, req: Request):
-    """Execute or process kill run operation."""
-    _kill_flags.add(run_id)
+    """Stop an active run. Refuses ids that are not currently running.
+
+    TWO BUGS, both verified:
+
+    1. Reported success for a run that never existed:
+           POST /api/control/runs/nonexistent_run/kill
+           -> {"ok": true, "run_id": "nonexistent_run", "status": "killed"}
+       Nothing was killed. This is the Module 15 "reporting success while doing
+       nothing" pattern -- an operator hitting the kill switch on a runaway
+       agent gets the same green answer whether or not anything stopped, which
+       is exactly the moment they most need the truth.
+
+    2. Worse, the flag LEAKED PERMANENTLY. `_kill_flags.add(run_id)` ran
+       unconditionally, but `finish_run()` -- the only place that discards the
+       flag -- returns immediately when the run is not in `_active_runs`. So an
+       unknown id left a tombstone in an unbounded in-memory set forever.
+       Proven: after killing 'run_ghost', creating a real run with that id and
+       calling record_step() returned False -- dead on arrival, because
+       record_step() checks `run_id in _kill_flags` before doing anything.
+       Run ids are `run_<uuid4[:12]>` so a natural collision is remote, but a
+       replayed or user-supplied id is not, and the set grows without bound
+       from typos and stale UI retries regardless.
+
+    The flag is now only set for a run that is actually active, so it is always
+    paired with the finish_run() that clears it.
+    """
     run = _active_runs.get(run_id)
-    if run:
-        finish_run(run_id, 'killed', 'Killed by user')
+    if not run:
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': 'No active run with that id — it may have already finished.',
+                'run_id': run_id,
+            },
+            status_code=404,
+        )
+
+    _kill_flags.add(run_id)
+    finish_run(run_id, 'killed', 'Killed by user')
     audit_log('kill_run', run_id)
     log.warning('Run %s killed by user', run_id)
     _push_notification('system', '🛑 Run killed', f'Run {run_id} was stopped by user', run_id)
