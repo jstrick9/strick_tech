@@ -417,7 +417,7 @@ async function renderGitAI() {
         <button class="btn" onclick="gitaiNLRun()">Ask</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-        ${['show last 10 commits','what changed today?','create branch feature/payments','stage all changes','show diff of HEAD~1','revert last commit'].map(s=>`<button class="btn-sm" onclick="document.getElementById('gitai-nl-input').value='${s}';gitaiNLRun()" style="font-size:11px">${s}</button>`).join('')}
+        ${['show last 10 commits','what changed today?','create branch feature/payments','stage all changes','show diff of HEAD~1','revert last commit'].map(s=>`<button class="btn-sm" onclick="document.getElementById('gitai-nl-input').value=${jsArg(s)};gitaiNLRun()" style="font-size:11px">${s}</button>`).join('')}
       </div>
       <div id="gitai-nl-result"></div>
     </div>

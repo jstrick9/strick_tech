@@ -928,7 +928,7 @@ async function ciSearch(q) {
     const el = document.getElementById('ci-sym-list');
     if (!el) return;
     el.innerHTML = (d.symbols||[]).map((s) => `
-      <div class="ci-sym-row" onclick="ciShowReferences('${escHtml(s.symbol_name)}')">
+      <div class="ci-sym-row" onclick="ciShowReferences(${jsArg(s.symbol_name)})">
         <span class="ci-type-badge ${s.symbol_type}">${s.symbol_type.slice(0,3)}</span>
         <span style="color:var(--text-0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.symbol_name)}</span>
         <span style="font-size:9px;color:var(--text-3)">L${s.line_no}</span>
@@ -944,7 +944,7 @@ async function ciSearchDefault() {
     const el = document.getElementById('ci-sym-list');
     if (!el) return;
     el.innerHTML = (d.symbols||[]).map((s) => `
-      <div class="ci-sym-row" onclick="ciShowReferences('${escHtml(s.symbol_name)}')">
+      <div class="ci-sym-row" onclick="ciShowReferences(${jsArg(s.symbol_name)})">
         <span class="ci-type-badge ${s.symbol_type}">${s.symbol_type.slice(0,3)}</span>
         <span style="color:var(--text-0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.symbol_name)}</span>
         <span style="font-size:9px;color:var(--text-3)">L${s.line_no}</span>

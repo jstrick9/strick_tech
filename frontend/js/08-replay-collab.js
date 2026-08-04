@@ -1719,7 +1719,7 @@ async function renderMarketplace() {
           🏠 All <span class="mkt-cat-count">${stats.total_packs||0}</span>
         </button>
         ${(cats.categories||[]).map((c) => `
-          <button class="mkt-cat-btn" onclick="mktFilterCat('${c.category}')" id="mkt-cat-${c.category}">
+          <button class="mkt-cat-btn" onclick="mktFilterCat(${jsArg(c.category)})" id="mkt-cat-${c.category}">
             ${catIcon(c.category)} ${capitalize(c.category)}
             <span class="mkt-cat-count">${c.count}</span>
           </button>

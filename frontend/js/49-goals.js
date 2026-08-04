@@ -297,7 +297,7 @@ function gmTabOverview() {
       ${ms.length ? `
       <div class="gm-milestone-list">
         ${ms.map(m=>`
-        <div class="gm-milestone-item ${m.completed?'done':''}" data-ms-id="${escHtml(m.id)}" data-ms-done="${m.completed ? 1 : 0}" onclick="gmCompleteMilestone('${escHtml(m.id)}', ${m.completed ? 1 : 0})">
+        <div class="gm-milestone-item ${m.completed?'done':''}" data-ms-id="${escHtml(m.id)}" data-ms-done="${m.completed ? 1 : 0}" onclick="gmCompleteMilestone(${jsArg(m.id)}, ${m.completed ? 1 : 0})">
           <span class="gm-milestone-check">${m.completed?'✅':'⬜'}</span>
           <span class="gm-milestone-title ${m.completed?'done':''}">${escHtml(m.title)}</span>
           ${m.due_date ? `<span style="font-size:10px;color:var(--text-3)">${m.due_date}</span>` : ''}
@@ -387,7 +387,7 @@ function gmTabDecompose() {
     const icon = GOAL_AGENT_ICONS[t.agent_hint] || '🤖';
     return `<div class="gm-decomp-task" id="gdt-${t.id}"
       style="left:${t._x}px;top:${t._y}px;border-color:${col}33"
-      data-decomp-id="${escHtml(t.id)}" onclick="gmSelectDecompTask('${escHtml(t.id)}')">
+      data-decomp-id="${escHtml(t.id)}" onclick="gmSelectDecompTask(${jsArg(t.id)})">
       <div class="gm-decomp-task-hdr">
         <div class="gm-decomp-seq" style="background:${col}">${t.seq}</div>
         <span class="gm-decomp-label">${escHtml(t.title)}</span>

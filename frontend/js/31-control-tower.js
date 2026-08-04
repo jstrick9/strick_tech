@@ -41,7 +41,7 @@ async function refreshControlTower() {
             ${runs.length === 0 ? emptyState({icon:'📊',title:'No runs yet',body:'Agent runs appear here with full traces and cost breakdown.'}) :
             runs.slice(0,10).map(r=>{
               const sCol = {running:'var(--warning)',done:'var(--success)',error:'var(--danger)',killed:'var(--text-3)'}[r.status]||'var(--text-2)';
-              return `<div class="card card-interactive" onclick="showRunTrace('${r.run_id}')" style="padding:9px 12px">
+              return `<div class="card card-interactive" onclick="showRunTrace(${jsArg(r.run_id)})" style="padding:9px 12px">
                 <div style="display:flex;align-items:center;gap:9px">
                   <span style="color:${sCol};font-size:9px">●</span>
                   <div style="flex:1;min-width:0">
@@ -52,7 +52,7 @@ async function refreshControlTower() {
                     <div style="font-size:11px;color:${sCol};font-weight:700">${r.status}</div>
                     <div style="font-size:10px;color:var(--text-3)">$${(r.total_cost||0).toFixed(4)}</div>
                   </div>
-                  ${r.status==='running'?`<button onclick="event.stopPropagation();killRun('${r.run_id}')" class="btn btn-danger btn-sm">🛑</button>`:''}
+                  ${r.status==='running'?`<button onclick="event.stopPropagation();killRun(${jsArg(r.run_id)})" class="btn btn-danger btn-sm">🛑</button>`:''}
                 </div>
               </div>`;}).join('')}
           </div>

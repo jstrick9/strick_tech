@@ -690,13 +690,13 @@ async function kgShowEntity(entityId) {
       ${d.outgoing_relations?.length?`
         <div style="margin-bottom:12px">
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Outgoing Relations</div>
-          ${d.outgoing_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)">→ <strong>${escHtml(r.relation||'')}</strong> → <span style="color:var(--accent);cursor:pointer" onclick="kgShowEntity('${r.to_id}')">${escHtml(r.to_name||'')}</span></div>`).join('')}
+          ${d.outgoing_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)">→ <strong>${escHtml(r.relation||'')}</strong> → <span style="color:var(--accent);cursor:pointer" onclick="kgShowEntity(${jsArg(r.to_id)})">${escHtml(r.to_name||'')}</span></div>`).join('')}
         </div>`:''}
 
       ${d.incoming_relations?.length?`
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Incoming Relations</div>
-          ${d.incoming_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--accent);cursor:pointer" onclick="kgShowEntity('${r.from_id}')">${escHtml(r.from_name||'')}</span> → <strong>${escHtml(r.relation||'')}</strong> → this</div>`).join('')}
+          ${d.incoming_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--accent);cursor:pointer" onclick="kgShowEntity(${jsArg(r.from_id)})">${escHtml(r.from_name||'')}</span> → <strong>${escHtml(r.relation||'')}</strong> → this</div>`).join('')}
         </div>`:''}
 
       <div style="display:flex;gap:6px;margin-top:12px">
@@ -879,7 +879,7 @@ async function ragOpenPipeline(pipelineId, name) {
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
       <div style="font-size:13px;font-weight:700;margin-bottom:10px">🔍 Query</div>
       <div style="display:flex;gap:8px">
-        <input id="rag-query" placeholder="Ask your documents…" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:9px 12px" onkeydown="if(event.key==='Enter')ragQuery('${pipelineId}')">
+        <input id="rag-query" placeholder="Ask your documents…" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:9px 12px" onkeydown="if(event.key==='Enter')ragQuery(${jsArg(pipelineId)})">
         <button class="btn" onclick="ragQuery(${JSON.stringify(pipelineId)})">Ask</button>
       </div>
       <div id="rag-answer" style="margin-top:12px"></div>

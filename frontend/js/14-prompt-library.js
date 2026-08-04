@@ -644,7 +644,7 @@ async function runCodeSearch(){
     res.innerHTML=`<div style="margin-bottom:12px;font-size:13px;color:var(--text-1);font-weight:600">${j.total} match${j.total!==1?'es':''} in ${Object.keys(byFile).length} file${Object.keys(byFile).length!==1?'s':''}${j.summary?` — ${escHtml(j.summary)}`:''}
     </div>${Object.entries(byFile).map(([file,hits])=>`
       <div style="margin-bottom:10px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
-        <div style="padding:7px 12px;background:var(--bg-3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="studioOpenFile?.('${escHtml(file)}');nav('studio')">
+        <div style="padding:7px 12px;background:var(--bg-3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="studioOpenFile?.(${jsArg(file)});nav('studio')">
           <span style="font-size:11.5px;font-family:monospace;color:var(--accent);font-weight:600">${escHtml(file)}</span>
           <span style="font-size:10.5px;color:var(--text-3);margin-left:auto">${hits.length} match${hits.length!==1?'es':''} · open →</span>
         </div>
@@ -659,7 +659,7 @@ async function runCodeSearch(){
               <span style="font-family:monospace;font-size:12px;color:${isMatch?'var(--text-0)':'var(--text-3)'};white-space:pre-wrap">${escHtml(l)}</span>
             </div>`;
           }).join('');
-          return `<div style="padding:6px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:var(--transition)" onclick="studioOpenFile?.('${escHtml(file)}');nav('studio')" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
+          return `<div style="padding:6px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:var(--transition)" onclick="studioOpenFile?.(${jsArg(file)});nav('studio')" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
             ${ctxHtml}
           </div>`;
         }).join('')}

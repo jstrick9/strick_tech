@@ -137,7 +137,7 @@
   function renderProjectList(projects) {
     const listEl = document.getElementById('t2-project-list');
     if (!listEl) return;
-    // `pid` went into onclick="selectTier2Project('${pid}')" unescaped. The
+    // `pid` went into onclick="selectTier2Project(${jsArg(pid)})" unescaped. The
     // server now rejects ids outside [a-z0-9_], so a quote can no longer reach
     // here — but building an inline handler from data is the pattern that has
     // already caused breakage elsewhere in this codebase, so use delegation.

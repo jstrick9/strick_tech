@@ -69,6 +69,15 @@ jobs:
         # explicit `// intentional-override:` marker.
         run: python scripts/lint_globals.py
 
+      - name: Lint inline event handlers (XSS guard)
+        # escHtml() does NOT protect a JavaScript string context: the browser
+        # HTML-decodes an attribute value before the JS parser sees it, so an
+        # escaped quote comes straight back. That shipped a real stored XSS
+        # (agent names rendered into onclick="selectMention('@<name>')").
+        # Values must go through jsArg(), which supplies its own quotes and
+        # HTML-encodes them.
+        run: python scripts/lint_inline_handlers.py
+
       - name: Verify committed OpenAPI contract
         run: |
           python scripts/export_openapi.py

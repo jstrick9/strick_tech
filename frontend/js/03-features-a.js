@@ -1718,7 +1718,7 @@ async function renderPluginSDK() {
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Your Packs (${packs.count||0})</div>
           <div id="sdk-pack-list">
             ${(packs.packs||[]).map(p => `
-              <div class="sdk-pack-card" onclick="sdkSelectPack('${escHtml(p.id)}')" style="
+              <div class="sdk-pack-card" onclick="sdkSelectPack(${jsArg(p.id)})" style="
                 background:var(--bg-2);border:1px solid var(--border);border-radius:10px;
                 padding:12px;margin-bottom:8px;cursor:pointer;transition:all .12s;
               " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
@@ -2325,7 +2325,7 @@ async function renderTauriStatus() {
           <button class="btn btn-primary btn-3d" onclick="tauriBuildStart()" ${!rustOk||!tauriOk?'disabled title="Install prerequisites first"':''}>🔨 Build Desktop App (.app / .dmg)</button>
           <button class="btn-sm btn-ghost btn-3d" onclick="tauriDevStart()" ${!rustOk||!tauriOk?'disabled':''}>▶ Dev Mode</button>
           ${!rustOk||!tauriOk?`<button class="btn-sm btn-primary btn-3d" style="background:#10b981;border:none;color:#fff" onclick="if(typeof installTauriPrerequisites==='function')installTauriPrerequisites()">⚡ Auto-Install Rust & Tauri CLI</button>`:''}
-          <button class="btn-sm btn-ghost btn-3d" onclick="window.open('/api/tauri/build/log?_=${Date.now()}','_blank')">📋 Build Log</button>
+          <button class="btn-sm btn-ghost btn-3d" onclick="window.open(${jsArg('/api/tauri/build/log?_=' + (Date.now()) + '')},'_blank')">📋 Build Log</button>
         </div>
         <div style="margin-top:8px;font-size:11px;color:var(--text-3)">
           Or run in terminal: <code style="background:var(--bg-3);padding:2px 6px;border-radius:4px">./scripts/tauri-build.sh --bundle-python</code>
@@ -2810,7 +2810,7 @@ window.renderFinetuneWorkstation = async function() {
               </div>
               <div style="display:flex;gap:8px;align-items:center">
                 <span style="font-size:11px;font-weight:800;color:var(--success);background:var(--bg-2);padding:4px 10px;border-radius:6px;border:1px solid var(--border)">${escHtml(d.status || 'READY')}</span>
-                <button onclick="finetuneStartJob('${escHtml(d.id)}')" class="btn-3d btn-ghost btn-sm" style="padding:6px 12px">Train Adapter</button>
+                <button onclick="finetuneStartJob(${jsArg(d.id)})" class="btn-3d btn-ghost btn-sm" style="padding:6px 12px">Train Adapter</button>
               </div>
             </div>
           `).join('')}
