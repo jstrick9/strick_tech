@@ -604,6 +604,12 @@ def list_servers(status: str = ''):
             }
         except (json.JSONDecodeError, TypeError, ValueError):
             pass
+        # tool_count was never populated: the field simply did not exist in the
+        # response, so every server rendered as "tools: null" in the UI. The
+        # data was already present in tools_schema -- nothing needed fetching,
+        # it just was not counted.
+        schema = d.get('tools_schema')
+        d['tool_count'] = len(schema) if isinstance(schema, list) else 0
         servers.append(d)
     return {'servers': servers, 'count': len(servers)}
 

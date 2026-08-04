@@ -19,6 +19,7 @@ import time
 import uuid
 
 from fastapi import APIRouter, Header, Request
+from fastapi.responses import JSONResponse
 
 from ..services.memory_db import audit_log, get_conn, memory_add
 
@@ -198,7 +199,15 @@ async def trigger_webhook(
         con.close()
 
     if not wh:
-        return {'ok': False, 'error': 'Webhook not found or disabled'}
+        # 404, not 200. Every rejection below was answered with HTTP 200 and an
+        # error body, so a sender -- GitHub, Stripe, a CI system -- saw success
+        # and never retried or alerted. Verified before this fix: a missing
+        # secret, a wrong secret, a forged signature and a nonexistent webhook
+        # id all returned 200. Delivery dashboards showed green for calls that
+        # did nothing.
+        return JSONResponse(
+            {'ok': False, 'error': 'Webhook not found or disabled'}, status_code=404
+        )
     wh = dict(wh)
 
     # Validate secret
@@ -210,13 +219,26 @@ async def trigger_webhook(
         if x_hub_signature_256:
             expected = 'sha256=' + hmac.new(secret.encode(), body_bytes, hashlib.sha256).hexdigest()
             if not hmac.compare_digest(expected, x_hub_signature_256):
-                return {'ok': False, 'error': 'Invalid signature'}
-        elif x_webhook_secret and x_webhook_secret != secret:
-            return {'ok': False, 'error': 'Invalid secret'}
-        elif not x_webhook_secret and not x_hub_signature_256:
-            # No auth header at all — still accept if no secret set
-            if secret:
-                return {'ok': False, 'error': 'Secret required'}
+                log.warning('Webhook %s: invalid signature', webhook_id)
+                return JSONResponse({'ok': False, 'error': 'Invalid signature'}, status_code=401)
+        elif x_webhook_secret:
+            # compare_digest, not `!=`. A plain string comparison short-circuits
+            # on the first differing byte, which leaks the secret one character
+            # at a time to anyone able to time the responses. The HMAC branch
+            # directly above already got this right; this branch did not.
+            if not hmac.compare_digest(x_webhook_secret, secret):
+                log.warning('Webhook %s: invalid secret', webhook_id)
+                return JSONResponse({'ok': False, 'error': 'Invalid secret'}, status_code=401)
+        else:
+            log.warning('Webhook %s: no credential supplied', webhook_id)
+            return JSONResponse(
+                {
+                    'ok': False,
+                    'error': 'Secret required',
+                    'hint': 'Send X-Webhook-Secret, or X-Hub-Signature-256 for HMAC.',
+                },
+                status_code=401,
+            )
 
     # Parse payload
     try:

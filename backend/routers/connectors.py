@@ -28,6 +28,8 @@ import asyncio
 import email.mime.multipart
 import json
 import logging
+import os
+import threading
 import uuid
 from datetime import datetime, timezone
 
@@ -3789,6 +3791,47 @@ _DISPATCHERS = {
 
 
 # ── Core execute function ──────────────────────────────────────────────────────
+# ── Connector rate limiting ────────────────────────────────────────────────────
+# Per (connector, agent) fixed window. In-memory on purpose: this is a local
+# backstop against a runaway agent loop, not a distributed quota system, and
+# pretending otherwise would be worse than being explicit. A multi-process
+# deployment needs the shared-store version noted in the module review.
+CONNECTOR_RATE_LIMIT = int(os.environ.get('CONNECTOR_RATE_LIMIT', '60'))
+CONNECTOR_RATE_WINDOW_S = int(os.environ.get('CONNECTOR_RATE_WINDOW_S', '60'))
+
+_connector_calls: dict[tuple[str, str], list[float]] = {}
+_connector_rate_lock = threading.Lock()
+
+
+def _check_connector_rate(connector_id: str, agent_id: str) -> tuple[bool, str]:
+    """Return (allowed, message). Counts the call when allowed."""
+    if CONNECTOR_RATE_LIMIT <= 0:  # explicit opt-out
+        return True, ''
+
+    import time as _time
+
+    now = _time.time()
+    key = (connector_id, agent_id or 'system')
+    with _connector_rate_lock:
+        hits = [t for t in _connector_calls.get(key, []) if now - t < CONNECTOR_RATE_WINDOW_S]
+        if len(hits) >= CONNECTOR_RATE_LIMIT:
+            retry_in = int(CONNECTOR_RATE_WINDOW_S - (now - hits[0])) + 1
+            _connector_calls[key] = hits
+            return False, (
+                f'Rate limit reached for {connector_id} ({CONNECTOR_RATE_LIMIT} calls per '
+                f'{CONNECTOR_RATE_WINDOW_S}s per agent). Retry in {retry_in}s.'
+            )
+        hits.append(now)
+        _connector_calls[key] = hits
+    return True, ''
+
+
+def _reset_connector_rate() -> None:
+    """Clear all counters. Used by tests."""
+    with _connector_rate_lock:
+        _connector_calls.clear()
+
+
 async def execute_connector(
     connector_id: str, action: str, payload: dict, agent_id: str = 'system', inline_creds:dict | None = None
 ) -> dict:
@@ -3798,6 +3841,20 @@ async def execute_connector(
 
     exec_id = f'cex_{uuid.uuid4().hex[:10]}'
     t0 = time.time()
+
+    # RATE LIMIT. Connector calls reach third-party APIs with the user's own
+    # credentials, and an agent loop is entirely capable of running one in a
+    # tight cycle -- burning a Slack or Notion quota, or tripping a provider's
+    # abuse detection against the user's account. Nothing local stood between
+    # an agent and that. This is a backstop, not a policy engine: a fixed
+    # window per (connector, agent), enforced before any credential is loaded
+    # or any request leaves the process.
+    _rl_ok, _rl_msg = _check_connector_rate(connector_id, agent_id)
+    if not _rl_ok:
+        log.warning('Connector rate limit hit: %s/%s — %s', connector_id, agent_id, _rl_msg)
+        return {
+            'ok': False, 'error': _rl_msg, 'rate_limited': True, 'exec_id': exec_id,
+        }
 
     con = _get_conn()
     try:

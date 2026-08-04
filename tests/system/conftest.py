@@ -35,7 +35,10 @@ def ts():
     return int(time.time())
 
 async def GET(c, path, **kw):   return await c.get(path,  params=kw or None)
-async def POST(c, path, j=None): return await c.post(path, json=j or {})
+async def POST(c, path, j=None, headers=None):
+    # `headers` added in Module 20: webhook triggers now require a credential,
+    # so a system test has to be able to send one.
+    return await c.post(path, json=j or {}, headers=headers)
 async def PATCH(c, path, j):    return await c.patch(path, json=j)
 async def PUT(c, path, j):      return await c.put(path,   json=j)
 async def DELETE(c, path, j=None):
