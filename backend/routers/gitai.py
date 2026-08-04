@@ -21,6 +21,7 @@ import subprocess
 import time
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/gitai', tags=['gitai'])
 log = logging.getLogger('agentic.gitai')
@@ -45,6 +46,68 @@ def _git(args: list[str], cwd=None) -> tuple[str, str, int]:
 # ══════════════════════════════════════════════════════════════════
 
 
+# Git subcommands that only read. Anything not on this list requires an
+# explicit allow_unsafe=true from the CALLER, never from the model.
+_READONLY_GIT = frozenset({
+    'log', 'status', 'diff', 'show', 'branch', 'blame', 'shortlog',
+    'describe', 'rev-parse', 'ls-files', 'ls-tree', 'cat-file', 'grep',
+    'remote', 'tag', 'reflog', 'whatchanged', 'count-objects', 'var',
+})
+
+# Flags and subcommands that are never run from a natural-language request,
+# regardless of what any caller asks for. `git config` can set core.pager or
+# core.sshCommand, which turns a "read-only" git invocation into arbitrary
+# command execution; the others are irreversible or reach the network.
+_FORBIDDEN_GIT = frozenset({'config', 'daemon', 'filter-branch', 'filter-repo', 'gc', 'fsck'})
+_FORBIDDEN_FLAGS = ('--upload-pack', '--receive-pack', '--exec', '-c', '--config-env')
+
+
+def classify_git_command(cmd: list[str]) -> tuple[bool, bool, str]:
+    """Classify a git argv. Returns (is_valid, is_readonly, reason).
+
+    BUG FIX: nl-git executed whatever the LLM returned, gated ONLY by the
+    model's own "safe": true flag:
+
+        safe = cmd_info.get('safe', True)
+        if not safe and not body.get('allow_unsafe', False): ...skip...
+        stdout, stderr, code = _git(cmd[1:])
+
+    The model both proposes the command AND declares it safe, so a
+    prompt-injected or simply confused model self-authorises. Verified by
+    replaying the exact code path: with is_destructive=false and safe=true,
+    `git push --force`, `git reset --hard HEAD~50`, `git clean -fdx` and
+    `git config --global core.pager "sh -c id"` all execute. The last is
+    arbitrary code execution dressed as a git command.
+
+    Trust boundary correction: the model may SUGGEST, the server decides.
+    """
+    if not isinstance(cmd, list) or not cmd:
+        return False, False, 'empty command'
+    if any(not isinstance(part, str) for part in cmd):
+        return False, False, 'command must be a list of strings'
+    if cmd[0] != 'git':
+        return False, False, f'not a git command: {cmd[0]!r}'
+
+    args = cmd[1:]
+    if not args:
+        return False, False, 'no git subcommand'
+
+    # A leading -c/--config-env injects config for this invocation only, which
+    # is the same core.pager escape by another route.
+    for flag in _FORBIDDEN_FLAGS:
+        if any(a == flag or a.startswith(flag + '=') for a in args):
+            return False, False, f'flag {flag} is not permitted'
+
+    sub_cmd = next((a for a in args if not a.startswith('-')), '')
+    if sub_cmd in _FORBIDDEN_GIT:
+        return False, False, (
+            f"'git {sub_cmd}' is never run from a natural-language request "
+            f'(it can alter git configuration or rewrite history)'
+        )
+
+    return True, sub_cmd in _READONLY_GIT, sub_cmd
+
+
 @router.post('/nl-git')
 async def natural_language_git(req: Request):
     """
@@ -65,7 +128,7 @@ async def natural_language_git(req: Request):
     dry_run = body.get('dry_run', True)  # default safe: show command before running
 
     if not query:
-        return {'ok': False, 'error': 'query required'}
+        return JSONResponse({'ok': False, 'error': 'query required'}, status_code=400)
 
     from ..services import llm as llm_svc
 
@@ -127,17 +190,29 @@ Rules:
             'note': 'Set dry_run=false to execute (not recommended for destructive ops)',
         }
 
-    # Execute safe commands
+    # Execute commands the SERVER classifies as safe. The model's own "safe"
+    # flag is advisory only — see classify_git_command().
     results = []
+    allow_unsafe = bool(body.get('allow_unsafe', False))
     for cmd_info in commands:
         cmd = cmd_info.get('cmd', [])
-        safe = cmd_info.get('safe', True)
-        if not cmd or cmd[0] != 'git':
+        valid, readonly, reason = classify_git_command(cmd)
+        if not valid:
+            results.append({
+                'cmd': ' '.join(map(str, cmd)) if isinstance(cmd, list) else str(cmd),
+                'skipped': True,
+                'reason': f'Refused: {reason}',
+            })
             continue
-        if not safe and not body.get('allow_unsafe', False):
-            results.append(
-                {'cmd': ' '.join(cmd), 'skipped': True, 'reason': 'Unsafe command skipped (set allow_unsafe=true)'}
-            )
+        if not readonly and not allow_unsafe:
+            results.append({
+                'cmd': ' '.join(cmd),
+                'skipped': True,
+                'reason': (
+                    f"'git {reason}' modifies the repository — set allow_unsafe=true to run it"
+                ),
+                'model_claimed_safe': bool(cmd_info.get('safe', True)),
+            })
             continue
         stdout, stderr, code = _git(cmd[1:])
         results.append(
