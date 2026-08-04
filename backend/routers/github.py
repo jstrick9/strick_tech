@@ -21,6 +21,8 @@ router = APIRouter(prefix='/api/github', tags=['github'])
 log = logging.getLogger('agentic.github')
 from backend.config import get_data_dir
 
+from ..services.safe_paths import is_within
+
 ROOT = get_data_dir()
 
 GITHUB_API = 'https://api.github.com'
@@ -253,7 +255,8 @@ async def push_to_github(req: Request):
 
     source_dir = (ROOT / directory if directory != 'preview' else ROOT / 'preview').resolve()
     # Security: ensure source_dir is within ROOT
-    if not str(source_dir).startswith(str(ROOT.resolve())):
+    # is_within(): str.startswith() accepted sibling dirs like <root>_ESCAPED.
+    if not is_within(source_dir, ROOT):
         return {'ok': False, 'error': 'Invalid directory path (must be within project)'}
     if not source_dir.exists():
         return {'ok': False, 'error': f"Directory '{directory}' not found"}
@@ -360,7 +363,7 @@ async def pull_from_github(req: Request):
                         content = base64.b64decode(content_b64.replace('\n', ''))
                         f = (target_dir / path).resolve()
                         # Security: ensure resolved path stays inside target_dir
-                        if not str(f).startswith(str(target_dir.resolve())):
+                        if not is_within(f, target_dir):
                             log.warning('Blocked path traversal attempt: %s', path)
                             continue
                         f.parent.mkdir(parents=True, exist_ok=True)

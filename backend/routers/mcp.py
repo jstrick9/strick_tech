@@ -18,6 +18,8 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/mcp', tags=['mcp'])
 from backend.config import get_data_dir
 
+from ..services.safe_paths import is_within
+
 ROOT = get_data_dir()
 
 
@@ -302,7 +304,9 @@ def _safe_path(path: str) -> Path:
     if not path:
         return SANDBOXED_DIR
     resolved = (SANDBOXED_DIR / path.lstrip('/')).resolve()
-    if not str(resolved).startswith(str(SANDBOXED_DIR.resolve())):
+    # is_within(): component-wise. The old string prefix let a sibling
+    # directory named <sandbox>_ESCAPED pass as inside the sandbox.
+    if not is_within(resolved, SANDBOXED_DIR):
         raise ToolError(f'Path traversal denied: {path}')
     return resolved
 

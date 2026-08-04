@@ -31,6 +31,8 @@ log = logging.getLogger('agentic.imagegen')
 
 from backend.config import get_data_dir
 
+from ..services.safe_paths import safe_path
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 ASSETS_DIR = PREVIEW_DIR / 'assets' / 'images'
@@ -99,26 +101,14 @@ def _or_headers() -> dict:
 
 
 def _safe_preview_path(relative: str) -> Path | None:
-    """Resolve a relative path within PREVIEW_DIR, blocking traversal.
+    """Resolve a path inside PREVIEW_DIR, blocking traversal.
 
-    BUG FIX: containment was tested with str.startswith() on the resolved path,
-    which is a prefix test on a *string*, not on a path. `../preview_evil/x`
-    resolves to `<root>/preview_evil/x`, which starts with `<root>/preview` and
-    was therefore accepted. Verified live: save_to='../preview_ESCAPED/pwned.svg'
-    wrote outside PREVIEW_DIR. Path.relative_to() compares path components, so a
-    sibling directory whose name merely begins with 'preview' can't slip through.
+    Delegates to services.safe_paths.safe_path — the containment rule lives in
+    one place now. The bug this replaced (str.startswith on the resolved path,
+    which accepted sibling directories like preview_ESCAPED) is documented
+    there.
     """
-    if not relative or not isinstance(relative, str):
-        return None
-    # Reject NUL and absolute paths outright rather than normalising them away.
-    if '\x00' in relative:
-        return None
-    try:
-        target = (PREVIEW_DIR / relative.lstrip('/')).resolve()
-        target.relative_to(PREVIEW_DIR.resolve())
-    except (ValueError, OSError):
-        return None
-    return target
+    return safe_path(relative, base=PREVIEW_DIR)
 
 
 def _sniff_image(content: bytes, ext: str) -> bool:

@@ -28,6 +28,8 @@ log = logging.getLogger('agentic.codeindex')
 
 from backend.config import get_data_dir
 
+from ..services.safe_paths import is_within
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
@@ -280,7 +282,9 @@ async def index_directory(req: Request):
     if base_dir:
         # FIX 8: validate directory stays inside project root
         candidate = (ROOT / base_dir).resolve()
-        if str(candidate).startswith(str(ROOT.resolve())):
+        # is_within(): component-wise. str.startswith() accepted sibling
+        # directories such as <root>_ESCAPED, which are OUTSIDE the root.
+        if is_within(candidate, ROOT):
             target = candidate
         else:
             return {'ok': False, 'error': 'Directory outside project root is not allowed'}
