@@ -185,21 +185,77 @@ a broken test into extra coverage.
 
 ---
 
-## Recommended follow-ups
+## Follow-ups ✅ *all four done in `ff0008d`*
 
-1. **There is no per-user authorisation on this endpoint.** Anyone who can reach
-   the API can run shell commands as the server user. That's defensible for a
-   local single-user OS, but it should be an explicit, documented decision — and
-   if the platform is ever exposed beyond localhost, this is the first thing that
-   needs an auth gate.
-2. **The filter is a denylist wearing an allowlist's clothes.** It's now
-   substantially tighter, but the honest long-term fix for arbitrary shell
-   execution is OS-level isolation — a container, `nsjail`, or at minimum
-   `RLIMIT_*` caps on CPU/memory/file size. The current design can only ever
-   enumerate badness.
-3. **No stdin support.** Any command that prompts (`npm init`, `git rebase -i`)
-   hangs until the timeout now kills it. Worth either wiring stdin through the
-   SSE channel or detecting and refusing known-interactive commands with a clear
-   message.
-4. **`_which_version()` runs four blocking subprocesses** on every `/env` call,
-   with a 2s timeout each — up to 8s of blocked event loop. Should be cached.
+### 1. Authorisation gate
+
+There was none — anyone who could reach the API had a shell as the server user.
+Defensible on `127.0.0.1`, not once the server is reachable from the network, so
+the gate is tied to the bind address rather than switched on globally:
+
+| Condition | Behaviour |
+|---|---|
+| Bound to loopback | Allowed, exactly as before |
+| Bound to `0.0.0.0` / a real IP | API key **required** |
+| `TERMINAL_REQUIRE_AUTH=1` | Always required |
+| `TERMINAL_DISABLED=1` | Refused outright (403) |
+
+**A real fail-open found while verifying this:** `require_api_key()` returns
+`None` when *no users are registered*, treating "auth not configured yet" as
+"auth not needed". Sensible first-run convenience for most endpoints; a hole for
+a network-reachable shell. Verified live — `TERMINAL_REQUIRE_AUTH=1` with an
+empty user table ran `echo hi` and returned **200**. Now 401 with instructions.
+The gate also fails **closed** (503) if the auth backend itself errors.
+
+### 2. Kernel-enforced resource limits
+
+The filter can only enumerate badness; it cannot bound what an *allowed* command
+does. Added RLIMITs via `preexec_fn` — CPU 60s, address space 2 GB, file size
+512 MB, 256 processes, no core dumps. Verified live with tight caps:
+
+```
+600 MB allocation →  MemoryError in 37ms          (cap 256 MB)
+infinite loop     →  killed at 3.02s, exit 152    (SIGXCPU, cap 3s)
+50 MB write       →  OSError [Errno 27]; file stopped at exactly 1048576 bytes
+```
+
+Soft limits are clamped to the inherited hard limit so `setrlimit` can't fail on
+a restricted host, and every failure is swallowed — an exception in a forked
+child before `exec` would be far worse than a missing cap.
+
+### 3. Interactive commands fail fast, with the fix in the message
+
+`stdin` is `DEVNULL`, so `npm init` blocked until the runtime cap killed it and
+the user saw a bare timeout. Now detected up front:
+
+```
+npm init    →  "Try: npm init -y"
+git commit  →  "Try: git commit -m \"message\""
+git merge   →  "Try: git merge --no-edit"
+```
+
+Detection is **per-invocation, not per-command**, which is the part that matters:
+`git commit` is refused but `git commit -m x` runs; `git add -p` is refused but
+`git add .` runs; `git rebase -i` is refused but `git rebase --onto main` runs.
+A blanket ban on `git commit` would have been worse than the hang.
+
+### 4. `/env` caching
+
+Four blocking subprocesses per call at 2s each — up to 8s of blocked event loop,
+on an endpoint the UI hits every render. Cached for 5 minutes, with an explicit
+`POST /env/refresh` for after installing a tool (a permanent cache would never
+notice one).
+
+**60 new contracts**; 35 fail against the pre-change code. One forks a child,
+applies the limits and reads them back rather than trusting the source text.
+
+---
+
+## Module status
+
+All four follow-ups complete. The one thing I could not do here remains the
+honest long-term answer for arbitrary shell execution: **OS-level isolation**
+(a container or `nsjail`). The RLIMITs bound resource consumption, and the filter
+bounds obvious misuse, but neither is a substitute for a real sandbox. That is an
+infrastructure decision rather than a code fix, and it needs a host this
+environment cannot provide.
