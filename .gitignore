@@ -90,3 +90,14 @@ workspaces/marketplace/assets/
 preview/assets/
 preview/browser_screenshots/
 memory/digital_twin/anchors/
+
+# ── Test residue guard (Module 18 follow-up) ─────────────────────────────────
+# Unit tests wrote into the real repo because conftest.py sandboxed the
+# DATABASE but not the FILESYSTEM: 1158 stray directories and 3135 files were
+# committed before anyone noticed, burying the user's single real project.
+# tests/unit/conftest.py now sets AGENTIC_OS_DATA_DIR, and
+# scripts/clean_test_residue.py removes the backlog. These patterns are the
+# last line of defence — anything matching a test-generated workspace name is
+# never committable, whatever a future harness does.
+workspaces/*/preview/
+!workspaces/71951640/

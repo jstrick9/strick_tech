@@ -1,3 +1,0 @@
-# Stripe Payments Setup
-
-[Ollama complete error — could not connect or generate on `http://localhost:11434` (). Verify Ollama is running and model `qwen2.5:0.5b` is installed via `ollama list`]

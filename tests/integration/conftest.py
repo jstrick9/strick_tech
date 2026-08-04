@@ -163,13 +163,22 @@ def _assert_server_db_is_sandboxed() -> None:
     except Exception:
         return  # the "is the server up" check elsewhere reports this properly
 
-    if info.get('db_is_test_sandbox'):
+    problems = []
+    if not info.get('db_is_test_sandbox'):
+        problems.append(f"database {info.get('db_path') or 'unknown'}")
+    # The filesystem half. Checking only the DB let every workspace, preview
+    # file and export land in the real repo: 1158 stray directories and 3135
+    # files committed to git before anyone noticed.
+    if not info.get('data_dir_is_test_sandbox'):
+        problems.append(f"data directory {info.get('data_dir') or 'unknown'}")
+    if not problems:
         return
 
     message = (
-        f"Live-server suite is running against a NON-SANDBOXED database: "
-        f"{info.get('db_path') or 'unknown'}. Test data will be written to it. "
-        f"Restart the server with AGENTIC_TEST_DB=/tmp/agentic-test.db to isolate it."
+        f"Live-server suite is running against NON-SANDBOXED storage: "
+        f"{'; '.join(problems)}. Test data will be written to it. Restart the "
+        f"server with AGENTIC_TEST_DB=/tmp/agentic-test.db and "
+        f"AGENTIC_OS_DATA_DIR=/tmp/agentic-test-data to isolate it."
     )
     if _os.environ.get('AGENTIC_REQUIRE_TEST_DB'):
         raise RuntimeError(message)
