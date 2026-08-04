@@ -163,6 +163,122 @@ async def complete(
     inject_steering: bool = True,
     allow_stub: bool = False,
 ) -> dict:
+    """Single-shot completion that RECORDS ITS COST.
+
+    Module 21 finding: 30 routers call this function and spend real money;
+    exactly ONE (chat.py) recorded anything to the cost ledger. The FinOps
+    dashboard, the budget caps, the per-goal spend breakdown and every alert
+    built on top of them were therefore reporting chat traffic only, while
+    presenting themselves as platform-wide. Verified live: running a skill and
+    an MCP tool left total_events unchanged at 80.
+
+    The fix belongs HERE rather than at 29 call sites. Recording at the call
+    site is exactly the arrangement that produced a 1-in-30 hit rate, and it
+    would regress the moment a 31st caller was added. `complete()` already
+    computes `cost` — it simply threw it away.
+
+    The real implementation is `_complete_impl`; this wrapper exists solely to
+    give every one of its seven return paths a single recording point.
+    """
+    # BUDGET ENFORCEMENT. check_budget_before_spend() exists and is correct --
+    # and, like record_cost(), was wired into chat.py alone. A cap set to
+    # 'pause' or 'kill' therefore stopped chat and nothing else: a runaway
+    # supervisor, swarm or workflow could spend past every cap the operator
+    # configured. Same 1-in-30 shape as the ledger gap, same reason it belongs
+    # at this layer instead of at each call site.
+    #
+    # Fails OPEN by design (see the function): a guardrail that hard-blocks
+    # every AI call when the database hiccups is worse than the overspend it
+    # prevents.
+    _gate = _check_budget(agent_id)
+    if _gate is not None:
+        return _gate
+
+    result = await _complete_impl(
+        messages,
+        agent_id=agent_id,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        timeout=timeout,
+        inject_steering=inject_steering,
+        allow_stub=allow_stub,
+    )
+    _record_llm_cost(agent_id, result)
+    return result
+
+
+def _check_budget(agent_id: str) -> dict | None:
+    """Return a refusal result when a hard budget cap is breached, else None."""
+    try:
+        from ..routers.finops import check_budget_before_spend
+
+        gate = check_budget_before_spend(agent_id=agent_id or 'default')
+    except Exception as e:  # pragma: no cover - fail open, loudly
+        log.error('Budget check failed for %s (allowing): %s', agent_id, e)
+        return None
+
+    if gate.get('allowed', True):
+        return None
+
+    reason = gate.get('reason') or 'Budget cap reached'
+    log.warning('LLM call BLOCKED by budget cap for %s: %s', agent_id, reason)
+    return {
+        'text': '',
+        'tokens': 0,
+        'cost': 0.0,
+        'model': '',
+        'ok': False,
+        'error': reason,
+        'code': 'budget_exceeded',
+        'budget': gate,
+    }
+
+
+def _record_llm_cost(agent_id: str, result: dict) -> None:
+    """Write one LLM call to the cost ledger. Never raises into the caller.
+
+    A failure to record must not fail the completion the user asked for, but it
+    must be loud — a silently empty ledger is what this whole fix is about.
+    """
+    if not isinstance(result, dict) or not result.get('ok'):
+        return
+    cost = float(result.get('cost') or 0.0)
+    tokens = int(result.get('tokens') or 0)
+    if cost <= 0 and tokens <= 0:
+        return  # nothing was spent (stub/mocked responses)
+    try:
+        from ..routers.finops import record_cost
+
+        record_cost(
+            agent_id=agent_id or 'default',
+            source_type='llm',
+            cost_usd=cost,
+            tokens=tokens,
+            tokens_in=int(result.get('prompt_tokens') or 0),
+            tokens_out=int(result.get('completion_tokens') or 0),
+            # `model` is its own column; putting it in source_id left the
+            # model field empty on every row, so per-model cost breakdowns
+            # would have been blank. Caught by reading back the row I had just
+            # written rather than trusting the insert.
+            model=str(result.get('model') or ''),
+            source_id=str(result.get('provider') or ''),
+            latency_ms=int(result.get('latency_ms') or 0),
+        )
+    except Exception as e:  # pragma: no cover - ledger must not break inference
+        log.error('COST NOT RECORDED for %s: %s', agent_id, e)
+
+
+async def _complete_impl(
+    messages: list[dict],
+    agent_id: str = 'default',
+    model: str = '',
+    temperature: float = 0.7,
+    max_tokens: int = 2048,
+    timeout: float = 60.0,
+    inject_steering: bool = True,
+    allow_stub: bool = False,
+) -> dict:
     """Single-shot completion. Returns {text, tokens, cost, model, latency_ms}.
 
     Raises LLMUnavailableError when no AI provider is configured or reachable, so
