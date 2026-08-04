@@ -15,7 +15,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 router = APIRouter(prefix='/api/workflow', tags=['workflow'])
 log = logging.getLogger('agentic.workflow')
@@ -235,7 +235,7 @@ def get_workflow(wf_id: str):
     """Retrieve and return get workflow."""
     wf = _load_one(wf_id)
     if not wf:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Workflow not found'}, status_code=404)
     return wf
 
 
@@ -246,7 +246,13 @@ async def update_workflow(wf_id: str, req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         body = {}
-    existing = _load_one(wf_id) or {}
+    # BUG FIX: `_load_one(wf_id) or {}` meant PUT to a nonexistent id silently
+    # CREATED a workflow there instead of 404ing — a typo in the id produced a
+    # second, near-invisible workflow while the user believed they had saved
+    # the original. Verified live: PUT /api/workflow/nope returned 200.
+    existing = _load_one(wf_id)
+    if not existing:
+        return JSONResponse({'ok': False, 'error': 'Workflow not found'}, status_code=404)
     existing.update(
         {
             'id': wf_id,
@@ -265,9 +271,10 @@ async def update_workflow(wf_id: str, req: Request):
 def delete_workflow(wf_id: str):
     """Delete or remove specified workflow."""
     p = _wf_path(wf_id)
-    if p.exists():
-        p.unlink()
-    return {'ok': True}
+    if not p.exists():
+        return JSONResponse({'ok': False, 'error': 'Workflow not found'}, status_code=404)
+    p.unlink()
+    return {'ok': True, 'deleted': wf_id}
 
 
 @router.get('/node-types/list')
@@ -360,6 +367,102 @@ def node_types():
 
 
 # ── Workflow execution (SSE streaming) ────────────────────────────────────────
+_CONDITION_OPS = ('contains', 'not_contains', 'equals', 'not_equals',
+                  'starts_with', 'ends_with', 'matches', 'is_empty', 'is_not_empty',
+                  '>=', '<=', '==', '!=', '>', '<')
+
+
+def evaluate_condition(expression: str, context: dict) -> tuple[bool, str]:
+    """Evaluate a condition-node expression. Returns (result, explanation).
+
+    BUG FIX: the executor computed the expression and THREW IT AWAY —
+
+        cfg.get('expression', '').replace('{{prev_output}}', context['prev_output'])
+        passed = any(kw in context['prev_output'].lower()
+                     for kw in ['yes', 'pass', 'true', 'success', 'ok'])
+
+    a bare statement with no assignment, followed by a keyword scan that
+    ignored it entirely. Whatever the user configured had NO effect on which
+    branch ran. Verified live: an expression written to never match still took
+    the "yes" branch because the input happened to contain the word "yes".
+
+    Supports a small, deliberately non-executable grammar:
+        {{prev_output}} contains 'text'
+        {{input}} equals 'text'
+        {{prev_output}} matches '^regex$'
+        {{prev_output}} is_not_empty
+        {{prev_output}} > 5
+    Nothing here evals code — a workflow node that ran arbitrary Python would
+    be a far worse bug than the one being fixed. An empty expression falls back
+    to the old keyword heuristic so existing workflows keep working, but says
+    so in the explanation.
+    """
+    import re as _re
+
+    raw = str(expression or '').strip()
+    resolved = (
+        raw.replace('{{prev_output}}', str(context.get('prev_output', '')))
+        .replace('{{input}}', str(context.get('input', '')))
+    )
+
+    if not raw:
+        passed = any(
+            kw in str(context.get('prev_output', '')).lower()
+            for kw in ('yes', 'pass', 'true', 'success', 'ok')
+        )
+        return passed, 'no expression configured — fell back to keyword heuristic'
+
+    # <lhs> <op> [<rhs>]
+    pattern = r'^(.*?)\s+(' + '|'.join(_re.escape(o) for o in _CONDITION_OPS) + r')(?:\s+(.*))?$'
+    m = _re.match(pattern, resolved, _re.DOTALL)
+    if not m:
+        # No recognised operator: treat the whole thing as a substring test,
+        # which is what most people mean by a bare expression.
+        passed = resolved.lower() in str(context.get('prev_output', '')).lower()
+        return passed, f'substring test for {resolved[:60]!r}'
+
+    lhs = (m.group(1) or '').strip()
+    op = m.group(2)
+    rhs = (m.group(3) or '').strip().strip('\'"')
+
+    def _num(v):
+        try:
+            return float(str(v).strip())
+        except (TypeError, ValueError):
+            return None
+
+    try:
+        if op == 'contains':
+            passed = rhs.lower() in lhs.lower()
+        elif op == 'not_contains':
+            passed = rhs.lower() not in lhs.lower()
+        elif op in ('equals', '=='):
+            passed = lhs.strip().strip('\'"').lower() == rhs.lower()
+        elif op in ('not_equals', '!='):
+            passed = lhs.strip().strip('\'"').lower() != rhs.lower()
+        elif op == 'starts_with':
+            passed = lhs.lower().startswith(rhs.lower())
+        elif op == 'ends_with':
+            passed = lhs.lower().endswith(rhs.lower())
+        elif op == 'matches':
+            passed = bool(_re.search(rhs, lhs, _re.IGNORECASE | _re.DOTALL))
+        elif op == 'is_empty':
+            passed = not lhs.strip()
+        elif op == 'is_not_empty':
+            passed = bool(lhs.strip())
+        elif op in ('>', '<', '>=', '<='):
+            a, b = _num(lhs), _num(rhs)
+            if a is None or b is None:
+                return False, f'cannot compare {lhs[:30]!r} {op} {rhs[:30]!r} numerically'
+            passed = {'>': a > b, '<': a < b, '>=': a >= b, '<=': a <= b}[op]
+        else:
+            return False, f'unknown operator {op!r}'
+    except _re.error as exc:
+        return False, f'invalid regex: {exc}'
+
+    return passed, f'{op} -> {passed}'
+
+
 @router.post('/{wf_id}/run')
 async def run_workflow(wf_id: str, req: Request):
     """Execute and run workflow operation."""
@@ -369,7 +472,7 @@ async def run_workflow(wf_id: str, req: Request):
         body = {}
     wf = _load_one(wf_id)
     if not wf:
-        return {'ok': False, 'error': 'Workflow not found'}
+        return JSONResponse({'ok': False, 'error': 'Workflow not found'}, status_code=404)
 
     user_input = body.get('input', '')
 
@@ -395,6 +498,7 @@ async def run_workflow(wf_id: str, req: Request):
 
         visited: set[str] = set()
         queue = [triggers[0]['id']]
+        node_errors: list[dict] = []
 
         from ..services import llm as llm_svc
 
@@ -430,14 +534,22 @@ async def run_workflow(wf_id: str, req: Request):
                     context['prev_output'] = result.get('text', '')
                     yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": context["prev_output"][:300]})}\n\n'
                 except Exception as ex:
+                    node_errors.append({'node_id': nid, 'error': str(ex)})
                     yield f'data: {json.dumps({"type": "node_error", "node_id": nid, "error": str(ex)})}\n\n'
 
             elif node['type'] == 'condition':
-                cfg.get('expression', '').replace('{{prev_output}}', context['prev_output'])
-                passed = any(kw in context['prev_output'].lower() for kw in ['yes', 'pass', 'true', 'success', 'ok'])
+                passed, why = evaluate_condition(cfg.get('expression', ''), context)
                 context['_condition'] = passed
-                cond_str = 'true' if passed else 'false'
-                yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": f"Condition: {cond_str}"})}\n\n'
+                yield (
+                    'data: '
+                    + json.dumps({
+                        'type': 'node_output',
+                        'node_id': nid,
+                        'output': f'Condition: {str(passed).lower()} ({why})',
+                        'condition': passed,
+                    })
+                    + '\n\n'
+                )
 
             elif node['type'] == 'transform':
                 mode = cfg.get('mode', 'passthrough')
@@ -476,6 +588,7 @@ async def run_workflow(wf_id: str, req: Request):
                         )
                         last_output = result.get('text', '')
                     except Exception as ex:
+                        node_errors.append({'node_id': nid, 'error': str(ex)})
                         yield f'data: {json.dumps({"type": "node_error", "node_id": nid, "error": str(ex)})}\n\n'
                         break
                     preview = f'[iteration {i + 1}/{iterations}] {last_output[:200]}'
@@ -505,15 +618,16 @@ async def run_workflow(wf_id: str, req: Request):
                             r = await client.post(url, json=context)
                             context['prev_output'] = r.text[:500]
                     except Exception as ex:
+                        node_errors.append({'node_id': nid, 'error': f'webhook: {ex}'})
                         context['prev_output'] = f'Webhook error: {ex}'
                 yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": context["prev_output"][:200]})}\n\n'
 
             elif node['type'] == 'memory':
-                from ..services.memory_db import get_conn
+                from ..services import memory_db as _mdb
 
                 action = cfg.get('action', 'read')
                 if action == 'write':
-                    con = get_conn()
+                    con = _mdb.get_conn()
                     try:
                         con.execute(
                             'INSERT INTO memory(source,content,tags) VALUES (?,?,?)',
@@ -524,7 +638,27 @@ async def run_workflow(wf_id: str, req: Request):
                         con.close()
                     yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": "Saved to memory"})}\n\n'
                 else:
-                    yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": "Memory op done"})}\n\n'
+                    # BUG FIX: the read branch reported "Memory op done" and read
+                    # NOTHING — prev_output passed straight through, so a Memory
+                    # node wired for retrieval silently contributed no context.
+                    query = str(
+                        cfg.get('query') or context.get('prev_output') or context.get('input') or ''
+                    )[:200]
+                    try:
+                        limit = min(10, max(1, int(cfg.get('limit', 3))))
+                    except (TypeError, ValueError):
+                        limit = 3
+                    hits = _mdb.memory_search_fts(query, limit=limit) if query.strip() else []
+                    if hits:
+                        recalled = '\n'.join(f'- {h["content"][:200]}' for h in hits)
+                        context['prev_output'] = (
+                            f'{context["prev_output"]}\n\n[Recalled from memory]\n{recalled}'
+                            if context['prev_output'] else recalled
+                        )
+                        msg = f'Recalled {len(hits)} memor{"y" if len(hits) == 1 else "ies"}'
+                    else:
+                        msg = 'No matching memories found'
+                    yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": msg})}\n\n'
 
             elif node['type'] == 'output':
                 target = cfg.get('target', 'chat')
@@ -533,8 +667,46 @@ async def run_workflow(wf_id: str, req: Request):
                 yield f'data: {json.dumps({"type": "final_output", "target": target, "result": context["prev_output"]})}\n\n'
 
             elif node['type'] == 'code':
-                # JS-like simple expression eval (Python side: just passthrough for safety)
-                yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": "Code transform applied"})}\n\n'
+                # BUG FIX: this reported "Code transform applied" while doing
+                # nothing at all — the output passed through unchanged. Claiming
+                # a transform happened is worse than refusing: a user debugging
+                # a pipeline sees a green node and looks elsewhere.
+                #
+                # Executing user code here is deliberately NOT the fix. This
+                # runs in the server process with database and vault access; a
+                # workflow node that evals arbitrary code would be a far worse
+                # bug than the one being repaired. Text transforms that are
+                # provably safe are supported; anything else says so plainly.
+                op = str(cfg.get('operation') or cfg.get('mode') or '').strip().lower()
+                text = context['prev_output']
+                _ops = {
+                    'uppercase': lambda t: t.upper(),
+                    'lowercase': lambda t: t.lower(),
+                    'trim': lambda t: t.strip(),
+                    'strip_html': lambda t: re.sub(r'<[^>]+>', '', t),
+                    'first_line': lambda t: t.splitlines()[0] if t.splitlines() else '',
+                    'json_pretty': lambda t: json.dumps(json.loads(t), indent=2),
+                }
+                if op in _ops:
+                    try:
+                        context['prev_output'] = _ops[op](text)
+                        msg = f'Applied {op}'
+                    except (ValueError, TypeError, json.JSONDecodeError) as ex:
+                        msg = f'{op} failed: {ex}'
+                elif cfg.get('code'):
+                    msg = (
+                        'This node cannot execute code: it would run inside the server '
+                        'process with database and vault access. Use a Code node '
+                        f'"operation" instead (one of: {", ".join(sorted(_ops))}), or '
+                        'run the script via a Terminal step.'
+                    )
+                    yield f'data: {json.dumps({"type": "node_error", "node_id": nid, "error": msg})}\n\n'
+                    node_errors.append({'node_id': nid, 'error': msg})
+                    msg = None
+                else:
+                    msg = 'No operation configured — output passed through unchanged'
+                if msg:
+                    yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": msg})}\n\n'
 
             # FIX 11: Queue next nodes — filter by condition label for condition nodes
             for e in edges:
@@ -565,7 +737,18 @@ async def run_workflow(wf_id: str, req: Request):
                     """INSERT OR REPLACE INTO workflow_runs
                        (id, workflow_id, workflow_nm, status, input, created_at)
                        VALUES (?,?,?,?,?,datetime('now'))""",
-                    (run_id, wf['id'], wf['name'][:100], 'success', user_input[:1000]),
+                    # BUG FIX: this was hardcoded to 'success'. A run whose
+                    # agent node errored outright was still recorded as a
+                    # success, so the Replay pane and any monitoring built on
+                    # workflow_runs were systematically wrong. Verified live:
+                    # a run that emitted node_error persisted status='success'.
+                    (
+                        run_id,
+                        wf['id'],
+                        wf['name'][:100],
+                        'failed' if node_errors else 'success',
+                        user_input[:1000],
+                    ),
                 )
                 _con.commit()
             finally:
@@ -573,7 +756,17 @@ async def run_workflow(wf_id: str, req: Request):
         except Exception as _e:
             log.warning('Failed to persist workflow run: %s', _e)
 
-        yield f'data: {json.dumps({"type": "done", "run_id": run_id})}\n\n'
+        yield (
+            'data: '
+            + json.dumps({
+                'type': 'done',
+                'run_id': run_id,
+                'status': 'failed' if node_errors else 'success',
+                'errors': node_errors,
+                'nodes_run': len(visited),
+            })
+            + '\n\n'
+        )
 
     return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
@@ -585,7 +778,7 @@ async def duplicate_workflow(wf_id: str, req: Request):
     """Create a copy of an existing workflow with a new ID."""
     wf = _load_one(wf_id)
     if not wf:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Workflow not found'}, status_code=404)
     try:
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
@@ -605,7 +798,7 @@ async def import_workflow(req: Request):
     try:
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
-        return {'ok': False, 'error': 'Invalid JSON'}
+        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
     wf_id = body.get('id', f'wf_{uuid.uuid4().hex[:8]}')
     # If ID already exists, assign a new one
@@ -630,7 +823,7 @@ def export_workflow(wf_id: str):
     """Export a workflow as a downloadable JSON file."""
     wf = _load_one(wf_id)
     if not wf:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Workflow not found'}, status_code=404)
     content = json.dumps(wf, indent=2)
     safe_name = ''.join(c if c.isalnum() or c in '-_' else '_' for c in wf.get('name', 'workflow'))
     from fastapi.responses import Response
@@ -647,7 +840,7 @@ def delete_edge(wf_id: str, edge_id: str):
     """Delete a single edge from a workflow."""
     wf = _load_one(wf_id)
     if not wf:
-        return {'ok': False, 'error': 'Workflow not found'}
+        return JSONResponse({'ok': False, 'error': 'Workflow not found'}, status_code=404)
     wf['edges'] = [e for e in (wf.get('edges') or []) if e.get('id') != edge_id]
     wf['updated_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     _wf_path(wf_id).write_text(json.dumps(wf, indent=2))
@@ -671,7 +864,7 @@ async def validate_workflow(wf_id: str, req: Request):
     # Use provided data or load from disk
     wf = body if body.get('nodes') else _load_one(wf_id)
     if not wf:
-        return {'ok': False, 'error': 'Workflow not found'}
+        return JSONResponse({'ok': False, 'error': 'Workflow not found'}, status_code=404)
 
     nodes = {n['id']: n for n in (wf.get('nodes') or [])}
     edges = wf.get('edges') or []
