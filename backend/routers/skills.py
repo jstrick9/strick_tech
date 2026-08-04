@@ -11,6 +11,7 @@ import logging
 import time
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/skills', tags=['skills'])
 log = logging.getLogger('agentic.skills')
@@ -368,6 +369,20 @@ async def create_skill(req: Request):
         'inputs': body.get('inputs', []),
         'prompt_template': body.get('prompt_template', '{prompt}')[:4000],
     }
+    # Same template guard as the plugin installer. run_skill() renders with
+    # `template.format(**inputs)`, so a template using attribute access is
+    # executable regardless of which endpoint it arrived through. Guarding only
+    # the plugin path would leave the identical primitive one endpoint over.
+    from ..services.plugin_safety import review_skill
+
+    _review = review_skill(skill)
+    if _review['errors']:
+        return JSONResponse(
+            {'ok': False, 'error': 'Skill rejected by the safety check.',
+             'problems': _review['errors'], 'unsafe': True},
+            status_code=400,
+        )
+
     skills = load_skills()
     # Prevent overwriting built-in skill ids with custom skills
     builtin_ids = {s['id'] for s in DEFAULT_SKILLS}

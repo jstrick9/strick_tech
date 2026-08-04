@@ -852,11 +852,40 @@ def uninstall_pack(pack_id: str):
         with contextlib.suppress(Exception):
             sdk_pack.unlink()
 
-    # Sync uninstallation with active Skills Hub
+    # Sync uninstallation with active Skills Hub.
+    #
+    # This filtered on `source_plugin`, a tag only the MARKETPLACE installer
+    # applies. The plugins backend installs into the same skills.json without
+    # it, so a skill shipped by both (dockerfile: dev-toolkit + devops-toolkit)
+    # was orphaned — after removing BOTH owners it remained in the Skills pane
+    # with no pack behind it. Now uses the same ownership rule as the plugins
+    # backend: remove only when no other installed pack, in either registry,
+    # still claims it.
     with contextlib.suppress(Exception):
+        from .plugins import _find_pack_skills, _load_installed
         from .skills import load_skills, save_skills
-        active_skills = load_skills()
-        active_skills = [s for s in active_skills if s.get('source_plugin') != pack_id]
+
+        pack_skill_ids = {
+            sk.get('id') for sk in _find_pack_skills(pack_id)
+            if isinstance(sk, dict) and sk.get('id')
+        }
+        retained: set = set()
+        for other_id in _load_installed():
+            if other_id == pack_id:
+                continue
+            retained |= {
+                sk.get('id') for sk in _find_pack_skills(other_id)
+                if isinstance(sk, dict) and sk.get('id')
+            }
+        to_remove = pack_skill_ids - retained
+        active_skills = [
+            s for s in load_skills()
+            if not (
+                (s.get('id') in to_remove
+                 or (s.get('source_plugin') == pack_id and s.get('id') not in retained))
+                and not s.get('user_modified')
+            )
+        ]
         save_skills(active_skills)
 
     # Sync uninstallation with plugins registry

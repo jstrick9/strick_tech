@@ -380,6 +380,40 @@ async def test_item(item_id: str, req: Request):
     return {'ok': entry['ready'], 'id': item_id, 'detail': f"Server status: {entry['status']}"}
 
 
+@router.get('/permissions/{agent_id}')
+def agent_tool_permissions(agent_id: str):
+    """Which tools an agent may actually call, and which it may not.
+
+    `agent_permissions` was previously visible only as a capability list on an
+    agent card -- a display of grants that nothing enforced. Now that the MCP
+    path enforces them, this answers the operator's real question: given these
+    grants, what can this agent DO?
+    """
+    from ..services.tool_policy import (
+        TOOL_ACTIONS,
+        check_tool_permission,
+        required_action,
+    )
+
+    allowed, denied = [], []
+    for tool in sorted(TOOL_ACTIONS):
+        ok, reason = check_tool_permission(agent_id, tool)
+        entry = {'tool': tool, 'requires': required_action(tool)}
+        if ok:
+            allowed.append(entry)
+        else:
+            denied.append({**entry, 'reason': reason})
+
+    return {
+        'ok': True,
+        'agent_id': agent_id,
+        'allowed': allowed,
+        'denied': denied,
+        'allowed_count': len(allowed),
+        'denied_count': len(denied),
+    }
+
+
 @router.get('/setup/{connector_id}')
 def setup_guide(connector_id: str):
     """Setup instructions for a connector.
