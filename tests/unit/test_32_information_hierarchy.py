@@ -48,8 +48,11 @@ class TestInformationHierarchy:
         assert r.status_code == 200
         data = r.json()
         assert data["ok"] is True
-        assert "Joshua Strickland" in data["tier1"]["about_me"]
-        assert "leverage" in data["tier1"]["about_my_voice"]
+        # The defaults used to ship the author's own name, company and pricing,
+        # which every install inherited as its AI context. They are now neutral
+        # fill-in templates, so assert the SHAPE rather than someone's details.
+        assert data["tier1"]["about_me"].lstrip().startswith("# About Me")
+        assert "Voice" in data["tier1"]["about_my_voice"]
 
     def test_create_project_hierarchy_ivren(self, client):
         payload = {
@@ -58,6 +61,9 @@ class TestInformationHierarchy:
             "audience": "Founders and tech enthusiasts",
             "description": "Weekly deep dives into multi-agent systems."
         }
+        # Re-creating an existing project is now a 409 rather than a silent
+        # meta.json overwrite, and this project persists on disk between runs.
+        client.delete("/api/hierarchy/projects/newsletter")
         r = client.post("/api/hierarchy/projects/create", json=payload)
         assert r.status_code == 200
         data = r.json()

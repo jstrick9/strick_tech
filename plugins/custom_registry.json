@@ -3660,7 +3660,7 @@
     ]
   },
   {
-    "id": "unit_test_9d0197",
+    "id": "unit_test_d84d7c",
     "name": "Unit Test Plugin",
     "version": "1.0.0",
     "author": "UnitTest",
@@ -3669,7 +3669,7 @@
     "skills": []
   },
   {
-    "id": "sysplugin_20e7aedc8f",
+    "id": "sysplugin_6462a9f1ee",
     "name": "System Test Plugin",
     "version": "1.0.0",
     "author": "SystemTest",
@@ -3678,7 +3678,7 @@
     "skills": []
   },
   {
-    "id": "test_plugin_4aea93bb",
+    "id": "test_plugin_2d02cfb4",
     "name": "Integration Test Plugin",
     "version": "1.0.0",
     "author": "IntegrationTest",
@@ -3687,7 +3687,7 @@
     "skills": []
   },
   {
-    "id": "uat_plugin_cf730828",
+    "id": "uat_plugin_69f6f6cd",
     "name": "UAT Test Plugin",
     "version": "1.0.0",
     "author": "UAT",
@@ -3703,7 +3703,7 @@
     ]
   },
   {
-    "id": "unit_test_69be71",
+    "id": "unit_test_55638b",
     "name": "Unit Test Plugin",
     "version": "1.0.0",
     "author": "UnitTest",
@@ -3712,7 +3712,25 @@
     "skills": []
   },
   {
-    "id": "sysplugin_31298df5e1",
+    "id": "unit_test_d48d73",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "unit_test_4676c1",
+    "name": "Unit Test Plugin",
+    "version": "1.0.0",
+    "author": "UnitTest",
+    "category": "testing",
+    "emoji": "\ud83e\uddea",
+    "skills": []
+  },
+  {
+    "id": "sysplugin_c5ab83b538",
     "name": "System Test Plugin",
     "version": "1.0.0",
     "author": "SystemTest",
@@ -3721,7 +3739,7 @@
     "skills": []
   },
   {
-    "id": "test_plugin_626d86a7",
+    "id": "test_plugin_d6bf802f",
     "name": "Integration Test Plugin",
     "version": "1.0.0",
     "author": "IntegrationTest",
@@ -3730,7 +3748,7 @@
     "skills": []
   },
   {
-    "id": "uat_plugin_7efa512d",
+    "id": "uat_plugin_8f18131f",
     "name": "UAT Test Plugin",
     "version": "1.0.0",
     "author": "UAT",
