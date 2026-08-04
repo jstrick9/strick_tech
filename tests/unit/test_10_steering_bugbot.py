@@ -24,7 +24,8 @@ class TestSteering:
                       {"name": f"unit_test_{self._uid()}",
                        "content": "# Unit Test Steering\nAlways write tests.",
                        "enabled": True})
-        assert r.status_code == 200
+        # POST /api/steering returns 201 Created — it creates a resource.
+        assert r.status_code == 201
         d = r.json()
         sfid = d.get("id") or (d.get("file") or {}).get("id")
         assert sfid is not None or d.get("ok") is True
