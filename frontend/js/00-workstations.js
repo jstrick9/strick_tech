@@ -39,7 +39,11 @@ window.WORKSTATIONS = {
   // Every "run this automatically" surface.
   'workflow': ['pipeline', 'loops', 'specs', 'ambient'],
   // Everything that extends the platform.
-  'plugins': ['pluginsdk', 'marketplace', 'skills'],
+  // Marketplace folded into the Plugin Hub (the 'plugins' pane): it was a
+  // second catalog over a second backend showing overlapping packs with
+  // independent install state. Skills and the SDK remain — they are different
+  // jobs (use what you installed / build your own), not duplicate catalogs.
+  'plugins': ['skills', 'pluginsdk'],
   // Source control and shipping.
   'github': ['gitai', 'deploy'],
   // Secrets and cryptography.
@@ -75,7 +79,7 @@ window.WORKSTATION_LABELS = {
   'obsidian': '📝 Obsidian Sync',
   'workflow': '⎈ Workflows', 'pipeline': '⎈ Pipelines', 'loops': '♾ Autonomous Loops',
   'specs': '📐 Spec Builder', 'ambient': '🌙 Ambient Mode',
-  'plugins': '🧩 Installed', 'pluginsdk': '🔧 Plugin SDK', 'marketplace': '🛒 Marketplace',
+  'plugins': '🧩 Plugin Hub', 'pluginsdk': '🔧 Build a Plugin', 'marketplace': '🛒 Marketplace',
   'skills': '⚡ Skills',
   'github': '🐙 GitHub', 'gitai': '⎇ Git Assistant', 'deploy': '🚀 Deploy',
   'secrets': '🔐 Secrets Vault', 'pqc': '🛡 Encryption',

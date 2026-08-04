@@ -113,6 +113,7 @@ from .routers.observability import router as observability_router
 from .routers.obsidian import router as obsidian_router
 from .routers.onboarding import router as onboarding_router
 from .routers.pipeline import router as pipeline_router
+from .routers.plugin_hub import router as plugin_hub_router
 from .routers.plugins import router as plugins_router
 from .routers.pluginsdk import router as pluginsdk_router
 from .routers.pqc import router as pqc_router
@@ -463,6 +464,7 @@ app.include_router(pipeline_router)
 app.include_router(obsidian_router)
 app.include_router(system_router)
 app.include_router(plugins_router)
+app.include_router(plugin_hub_router)
 app.include_router(onboarding_router)
 app.include_router(collab_router)
 app.include_router(github_router)

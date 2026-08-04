@@ -73,19 +73,32 @@ class TestRegressionU02_BulkUpdate:
 class TestRegressionU03_PluginsUninstall:
     """U-03: POST /plugins/uninstall was 405 (DELETE-only) — fixed by adding POST alias."""
 
+    # Updated in Module 19. U-03 guards that the POST alias EXISTS (it used to
+    # 405). Both tests additionally pinned "200 for a nonexistent plugin",
+    # codifying the platform-wide 200-on-failure pattern this review removes —
+    # and the DELETE case asserted `not in (404, 405)`, which makes a correct
+    # 404 indistinguishable from the missing route it was written to catch.
+    # The route-exists intent is preserved; the status is now correct.
     def test_plugins_uninstall_post_works(self, client):
         """Regression: POST /api/plugins/uninstall/{id} must not return 405."""
         r = client.post("/api/plugins/uninstall/nonexistent_plugin_xyz")
-        assert r.status_code != 405, f"U-03 REGRESSION: 405 Method Not Allowed"
-        # 200 with ok:False is expected for nonexistent plugin
-        assert r.status_code == 200
-        d = r.json()
-        assert "ok" in d
+        assert r.status_code != 405, "U-03 REGRESSION: 405 Method Not Allowed"
+        assert r.status_code == 404, "uninstalling a nonexistent plugin must be a 404"
+        assert "ok" in r.json()
 
     def test_plugins_uninstall_delete_still_works(self, client):
-        """Regression: DELETE alias still works."""
+        """Regression: DELETE alias still routes (must not be 405)."""
         r = client.delete("/api/plugins/uninstall/nonexistent_plugin_xyz")
-        assert r.status_code not in (404, 405), f"DELETE uninstall broken: {r.status_code}"
+        assert r.status_code != 405, f"DELETE uninstall broken: {r.status_code}"
+        assert r.status_code == 404
+        # A real plugin still uninstalls through the DELETE alias. It must be a
+        # pack that the /api/plugins BACKEND owns -- a marketplace pack is not in
+        # BUILTIN_REGISTRY, so this route correctly 404s for it. That asymmetry
+        # is exactly why /api/hub exists: it routes to the owning backend so the
+        # caller does not have to know which one that is.
+        client.post("/api/plugins/install/founder-os")
+        r2 = client.delete("/api/plugins/uninstall/founder-os")
+        assert r2.status_code == 200, r2.text
 
 
 class TestRegressionU04_MemoryStats:
