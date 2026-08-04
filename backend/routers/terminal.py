@@ -20,6 +20,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from ..services import sandbox as sandbox_svc
 from ..services.memory_db import audit_log, get_conn
 from ..services.safe_paths import safe_path
 
@@ -417,6 +418,15 @@ def _apply_rlimits() -> None:
 # 12 seconds, and nothing stopped a command running indefinitely, holding a
 # subprocess and an SSE connection open forever. Output was equally unbounded —
 # a loop printing 200-byte lines streamed until the client gave up.
+# OS-level isolation. The command filter and RLIMITs bound *what* a command
+# may ask for and *how much* it may consume; neither bounds what it can reach.
+# The sandbox runs each command with the host filesystem unreachable, no view
+# of other processes, and (by default) no network. On a host where namespaces
+# are unavailable the platform degrades to the filter + RLIMIT path and says
+# so, rather than silently pretending to be isolated.
+SANDBOX_ENABLED = os.getenv('TERMINAL_SANDBOX', '1').strip().lower() not in {'0', 'false', 'no'}
+SANDBOX_ALLOW_NETWORK = os.getenv('TERMINAL_SANDBOX_NETWORK', '0').strip().lower() in {'1', 'true', 'yes'}
+
 MAX_RUNTIME_S = int(os.getenv('TERMINAL_TIMEOUT_S', '300'))
 MAX_OUTPUT_BYTES = int(os.getenv('TERMINAL_MAX_OUTPUT_BYTES', str(2 * 1024 * 1024)))
 
@@ -605,15 +615,52 @@ async def run_command(req: Request):
 
     async def generate():
         """Execute or process generate operation."""
-        yield f'data: {json.dumps({"type": "start", "command": command, "cwd": work_dir, "run_id": run_id})}\n\n'
+        sandbox_scratch = None
+        sandboxed = False
+        if SANDBOX_ENABLED:
+            available, sb_reason = sandbox_svc.sandbox_available()
+            sandboxed = available
+        else:
+            sb_reason = 'disabled via TERMINAL_SANDBOX=0'
+
+        yield (
+            'data: '
+            + json.dumps(
+                {
+                    'type': 'start',
+                    'command': command,
+                    'cwd': work_dir,
+                    'run_id': run_id,
+                    # Be explicit. A user who believes they are sandboxed when
+                    # they are not is worse off than one who knows they aren't.
+                    'sandboxed': sandboxed,
+                    'sandbox_note': (
+                        'isolated: no host filesystem, no other processes, no network'
+                        if sandboxed
+                        else f'NOT isolated ({sb_reason}) — command filter and resource limits only'
+                    ),
+                }
+            )
+            + '\n\n'
+        )
         t0 = time.time()
         proc = None
         try:
-            proc = await asyncio.create_subprocess_shell(
-                command,
+            # Inside the jail the workspace is mounted at /work, so the
+            # command's cwd must be /work rather than the host path.
+            argv = ['/bin/sh', '-c', command]
+            exec_cwd = work_dir
+            if sandboxed:
+                argv, sandbox_scratch = sandbox_svc.wrap_command(
+                    argv, work_dir, allow_network=SANDBOX_ALLOW_NETWORK
+                )
+                exec_cwd = None  # the jail chdirs to /work itself
+
+            proc = await asyncio.create_subprocess_exec(  # noqa: S606 — explicit argv, no shell interpolation
+                *argv,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
-                cwd=work_dir,
+                cwd=exec_cwd,
                 env=_sandboxed_env(),
                 # No stdin: a command that prompts must fail fast rather than
                 # hold a subprocess and an SSE connection until the timeout.
@@ -705,6 +752,9 @@ async def run_command(req: Request):
             # this the subprocess would keep running with nobody reading it.
             _terminate_tree(proc, signal.SIGKILL)
             _active_processes.pop(run_id, None)
+            # The jail root is ephemeral: anything the command wrote outside
+            # /work lived only here, and goes away with it.
+            sandbox_svc.cleanup(sandbox_scratch)
 
     return StreamingResponse(
         generate(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
@@ -826,6 +876,13 @@ def get_environment():
 def _probe_environment() -> dict:
     """Actually run the version probes (uncached)."""
     return {
+        'sandbox': sandbox_svc.describe() if SANDBOX_ENABLED else {
+            'available': False,
+            'reason': 'disabled via TERMINAL_SANDBOX=0',
+            'mechanism': 'none',
+            'isolates': [],
+            'note': 'OS-level isolation is switched off for this server.',
+        },
         'cwd': str(PREVIEW_DIR),
         'node': _which_version('node'),
         'npm': _which_version('npm'),

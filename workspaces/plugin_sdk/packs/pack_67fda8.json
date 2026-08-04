@@ -1,9 +1,9 @@
 {
-  "id": "provenance-test",
-  "name": "Provenance Test",
+  "id": "pack_67fda8",
+  "name": "unit-test-pack",
   "version": "1.0.0",
-  "description": "What your plugin does",
-  "author": "Your Name",
+  "description": "Unit test plugin pack",
+  "author": "test_suite",
   "license": "MIT",
   "tags": [
     "utility",
@@ -57,11 +57,11 @@
     "files"
   ],
   "min_version": "6.0.0",
-  "created_at": "2026-08-04T13:40:17Z",
-  "updated_at": "2026-08-04T13:40:17Z",
+  "created_at": "2026-08-04T13:39:52Z",
+  "updated_at": "2026-08-04T13:39:52Z",
   "provenance": {
     "status": "unsigned",
     "source": "local_sdk",
-    "manifest_sha256": "f9ceef7b761558df2a126ea736602416a7eb9130ac34f1b7333195db588afcfe"
+    "manifest_sha256": "92e3ce1648ed5f4595d8918e87a8e7a5ded97021cc474465f4b9c4b23be96df1"
   }
 }
