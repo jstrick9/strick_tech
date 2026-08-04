@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import time
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/mcp', tags=['mcp'])
+log = logging.getLogger('agentic.mcp')
 from backend.config import get_data_dir
 
 from ..services.safe_paths import is_within
@@ -107,6 +109,40 @@ async def call_tool(req: Request):
                 'available': sorted(TOOLS.keys()),
             },
             status_code=404,
+        )
+
+    # PER-AGENT AUTHORISATION. `agent_permissions` has existed since Sprint A
+    # and nothing ever consulted it: the agent_id on this endpoint was
+    # accepted, logged, echoed back and written to the audit chain without ever
+    # being used to make a decision. Verified before this fix, with an agent
+    # holding neither write_files nor delete_files:
+    #
+    #   {"tool":"fs.write",  "agent_id":"probe_readonly"} -> ok, file written
+    #   {"tool":"fs.delete", "agent_id":"probe_readonly"} -> ok, file deleted
+    #   {"tool":"fs.write",  "agent_id":"i_do_not_exist"} -> ok, file written
+    #
+    # The last case is the worst: a fictional agent id wrote a file, and the
+    # audit entry recorded it as that agent's action. An unenforced identity
+    # field is worse than no field, because the trail reads as though
+    # authorisation happened.
+    from ..services.tool_policy import check_tool_permission, required_action
+
+    _allowed, _reason = check_tool_permission(agent_id, tool)
+    if not _allowed:
+        from ..services.memory_db import audit_log as _audit
+
+        _audit('mcp_denied', f'{agent_id}:{tool} — {_reason[:160]}')
+        log.warning('Tool call DENIED: %s -> %s (%s)', agent_id, tool, _reason)
+        return JSONResponse(
+            {
+                'ok': False,
+                'tool': tool,
+                'agent_id': agent_id,
+                'error': _reason,
+                'denied': True,
+                'required_permission': required_action(tool),
+            },
+            status_code=403,
         )
 
     t0 = time.time()

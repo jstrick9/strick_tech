@@ -400,6 +400,93 @@ async def install_collection(collection_id: str, req: Request):
     }
 
 
+@router.get('/updates')
+def updates():
+    """Packs with a newer version than the one installed.
+
+    mkt_releases and /marketplace/installed/check-updates already existed but
+    nothing surfaced them, so an installed pack could go stale indefinitely.
+    """
+    out: list[dict] = []
+    try:
+        from .marketplace import check_updates
+
+        for u in (check_updates() or {}).get('updates', []):
+            out.append({
+                'id': u.get('pack_id'), 'name': u.get('name'),
+                'icon': u.get('icon') or '📦',
+                'installed_version': u.get('installed_ver'),
+                'latest_version': u.get('latest_ver'), 'source': SOURCE_MARKET,
+            })
+    except Exception as e:  # pragma: no cover
+        log.warning('hub: update check failed: %s', e)
+
+    try:
+        from .plugins import BUILTIN_REGISTRY, _load_installed
+
+        for pid, rec in _load_installed().items():
+            pack = next((p for p in BUILTIN_REGISTRY if p.get('id') == pid), None)
+            if not pack:
+                continue
+            latest = pack.get('version') or '1.0.0'
+            if rec.get('version') and rec['version'] != latest:
+                out.append({
+                    'id': pid, 'name': pack.get('name', pid),
+                    'icon': pack.get('emoji') or '🧩',
+                    'installed_version': rec.get('version'),
+                    'latest_version': latest, 'source': SOURCE_PLUGINS,
+                })
+    except Exception as e:  # pragma: no cover
+        log.warning('hub: plugin update check failed: %s', e)
+
+    seen, uniq = set(), []
+    for u in out:
+        if u['id'] in seen:
+            continue
+        seen.add(u['id'])
+        uniq.append(u)
+    return {'ok': True, 'updates': uniq, 'count': len(uniq)}
+
+
+@router.get('/provenance/{pack_id}')
+def provenance(pack_id: str):
+    """Where an installed pack came from, and its content hash.
+
+    Custom plugins arrive from an arbitrary URL or a paste and were previously
+    indistinguishable from curated content once installed.
+    """
+    from .plugins import _load_installed
+
+    rec = _load_installed().get(pack_id)
+    if not rec:
+        return JSONResponse({'ok': False, 'error': 'Not installed'}, status_code=404)
+    return {
+        'ok': True, 'id': pack_id,
+        'origin': rec.get('origin', 'unknown'),
+        'origin_url': rec.get('origin_url', ''),
+        'content_hash': rec.get('content_hash', ''),
+        'installed_at': rec.get('installed_at', ''),
+        'warnings': rec.get('warnings', []),
+        'trusted': rec.get('origin') == 'builtin',
+    }
+
+
+@router.post('/review')
+async def review_before_install(req: Request):
+    """Static safety review of a pack WITHOUT installing it."""
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
+    pack = body.get('plugin_json') or body.get('pack') or body
+    if not isinstance(pack, dict):
+        return JSONResponse({'ok': False, 'error': 'Expected a plugin object'}, status_code=400)
+
+    from ..services.plugin_safety import review_pack
+
+    return {'ok': True, **review_pack(pack)}
+
+
 @router.get('/stats')
 def stats():
     """Headline numbers for the hub landing page."""
