@@ -178,6 +178,71 @@ async function createGHRepo() {
   } catch(ex) { if (res) res.innerHTML = `<div style="color:var(--red)">${escHtml(ex.message)}</div>`; toast('Error: ' + ex.message, 'err'); }
 }
 
+// Push previews before it publishes. The endpoint uploads up to 100 files to a
+// remote repository, and secret screening can hold files back — without a
+// preview, a file that was deliberately withheld is indistinguishable from one
+// that failed, and a wrong `directory` is only discoverable after the fact.
+function ghRenderPushPreview(plan) {
+  const fileRow = (f, colour) =>
+    `<div style="display:flex;justify-content:space-between;gap:10px;font-family:monospace;font-size:11.5px;color:${colour}">
+       <span style="overflow:hidden;text-overflow:ellipsis">${escHtml(f.path)}</span>
+       <span style="flex-shrink:0;color:var(--text-3)">${escHtml(String(f.bytes ?? f.reason ?? ''))}</span>
+     </div>`;
+
+  const held = plan.held_back || [];
+  const over = plan.oversize || [];
+  return `
+    <div style="max-height:46vh;overflow:auto">
+      <div style="font-size:12px;color:var(--text-1);margin-bottom:6px">
+        <strong>${plan.would_push_count}</strong> file(s) will be published to
+        <strong>${escHtml(plan.repo)}</strong> · ${escHtml(String(plan.total_bytes))} bytes
+      </div>
+      <div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:10px">
+        ${(plan.would_push || []).map(f => fileRow(f, 'var(--text-1)')).join('') ||
+          '<div style="color:var(--text-3);font-size:12px">Nothing to publish.</div>'}
+      </div>
+      ${held.length ? `
+        <div style="font-size:12px;color:var(--yellow);margin-bottom:4px">
+          🔒 ${held.length} file(s) held back — these look like credentials and will NOT be uploaded:
+        </div>
+        <div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:10px">
+          ${held.map(f => fileRow(f, 'var(--yellow)')).join('')}
+        </div>` : ''}
+      ${over.length ? `
+        <div style="font-size:12px;color:var(--yellow);margin-bottom:4px">📦 ${over.length} too large to upload:</div>
+        <div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:10px">
+          ${over.map(f => fileRow(f, 'var(--yellow)')).join('')}
+        </div>` : ''}
+      ${plan.truncated ? `<div style="font-size:11.5px;color:var(--yellow)">
+        ⚠ Only the first ${plan.limit} of ${plan.total_candidates} files are included.</div>` : ''}
+    </div>`;
+}
+
+function ghConfirmPush(plan) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.innerHTML = `
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;max-width:640px;width:100%;padding:20px">
+        <h3 style="margin:0 0 12px;color:var(--text-0);font-size:15px">⬆ Review before publishing</h3>
+        ${ghRenderPushPreview(plan)}
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+          <button type="button" class="btn btn-ghost btn-sm" data-gh="cancel">Cancel</button>
+          <button type="button" class="btn btn-primary btn-sm" data-gh="confirm"
+                  ${plan.would_push_count ? '' : 'disabled'}>Publish ${plan.would_push_count} file(s)</button>
+        </div>
+      </div>`;
+    const finish = (v) => { overlay.remove(); resolve(v); };
+    overlay.addEventListener('click', (e) => {
+      const act = e.target.closest('[data-gh]')?.dataset.gh;
+      if (act === 'confirm') return finish(true);
+      if (act === 'cancel' || e.target === overlay) return finish(false);
+    });
+    overlay.addEventListener('keydown', (e) => { if (e.key === 'Escape') finish(false); });
+    document.body.appendChild(overlay);
+  });
+}
+
 async function showGHPush() {
   const repo = ghSelectedRepo || await gmPrompt('Push to GitHub', 'Repository (e.g. username/my-repo)', '');
   if (!repo) return;
@@ -185,25 +250,56 @@ async function showGHPush() {
   const msg = await gmPrompt('Commit message', 'What changed?', `Agentic OS push ${new Date().toISOString().slice(0,10)}`);
   if (msg === null) return;
   const res = document.getElementById('gh-action-result');
-  if (res) res.innerHTML = `<div style="color:var(--text-2)">Pushing ${escHtml(repo)}…</div>`;
-  try {
+  const body = {repo, message: msg || 'Agentic OS push', branch: 'main'};
+
+  const postPush = async (payload) => {
     const r = await fetch('/api/github/push', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({repo, message: msg||'Agentic OS push', branch:'main'})
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
     });
-    if (!r.ok) { if (res) res.innerHTML = `<div style="color:var(--red)">Server error ${r.status}</div>`; return; }
-    const j = await r.json();
-    if (j.ok) {
-    if (res) res.innerHTML = `<div class="settings-card">
-      <h3>✅ Pushed to GitHub!</h3>
-      <p>${j.files_pushed} files pushed to <a href="${j.url}" target="_blank" style="color:var(--accent)">${escHtml(j.repo)} ↗</a></p>
-      ${j.errors?.length ? `<div style="color:var(--yellow);font-size:12px">⚠ ${j.errors.length} errors: ${escHtml(j.errors.join(', '))}</div>` : ''}
-    </div>`;
-    toast(`⬆ Pushed ${j.files_pushed} files to GitHub`, 'ok', 4000);
-  } else {
-      toast('Push failed: ' + (j.error||''), 'err');
+    let j = {};
+    try { j = await r.json(); } catch (e) { /* non-JSON body */ }
+    return {r, j};
+  };
+
+  try {
+    if (res) res.innerHTML = `<div style="color:var(--text-2)">Checking what would be published…</div>`;
+    const {r: pr, j: plan} = await postPush({...body, dry_run: true});
+    if (!pr.ok) {
+      const m = plan.error || `Server error ${pr.status}`;
+      if (res) res.innerHTML = `<div style="color:var(--red)">${escHtml(m)}</div>`;
+      toast('Push failed: ' + m, 'err');
+      return;
     }
-  } catch(ex) { if (res) res.innerHTML = `<div style="color:var(--red)">${escHtml(ex.message)}</div>`; toast('Push error: ' + ex.message, 'err'); }
+
+    if (!(await ghConfirmPush(plan))) {
+      if (res) res.innerHTML = `<div style="color:var(--text-2)">Push cancelled — nothing was uploaded.</div>`;
+      return;
+    }
+
+    if (res) res.innerHTML = `<div style="color:var(--text-2)">Pushing ${escHtml(repo)}…</div>`;
+    const {r, j} = await postPush({...body, dry_run: false});
+    if (!r.ok) {
+      const m = j.error || `Server error ${r.status}`;
+      if (res) res.innerHTML = `<div style="color:var(--red)">${escHtml(m)}</div>`;
+      toast('Push failed: ' + m, 'err');
+      return;
+    }
+    if (j.ok) {
+      if (res) res.innerHTML = `<div class="settings-card">
+        <h3>✅ Pushed to GitHub!</h3>
+        <p>${j.files_pushed} files pushed to <a href="${escHtml(j.url||'')}" target="_blank" rel="noopener" style="color:var(--accent)">${escHtml(j.repo)} ↗</a></p>
+        ${j.held_back_count ? `<div style="color:var(--yellow);font-size:12px">🔒 ${j.held_back_count} credential-like file(s) were not uploaded</div>` : ''}
+        ${j.errors?.length ? `<div style="color:var(--yellow);font-size:12px">⚠ ${j.errors.length} errors: ${escHtml(j.errors.join(', '))}</div>` : ''}
+      </div>`;
+      toast(`⬆ Pushed ${j.files_pushed} files to GitHub`, 'ok', 4000);
+    } else {
+      toast('Push failed: ' + (j.error || ''), 'err');
+    }
+  } catch (ex) {
+    if (res) res.innerHTML = `<div style="color:var(--red)">${escHtml(ex.message)}</div>`;
+    toast('Push error: ' + ex.message, 'err');
+  }
 }
 
 async function showGHPull() {
