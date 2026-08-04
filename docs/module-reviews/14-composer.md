@@ -144,11 +144,12 @@ evidence.
 
 ## Recommended follow-ups
 
-1. **`safe_preview_path()` should be one shared helper, not four.** Composer,
-   imagegen, terminal and hierarchy now each have their own correct
-   implementation of the same containment rule. Four correct copies is better
-   than four broken ones, but it's still four places for the fifth module to not
-   look at. This belongs in `backend/services/` with the others importing it.
+1. ~~**`safe_preview_path()` should be one shared helper, not four.**~~
+   ✅ **Done in `c9646f2`** — and the sweep found it was worse than four. Five
+   further modules still had the original defect, including `github.py:256`,
+   which selects a directory to push to a *remote repository*. Now one helper in
+   `backend/services/safe_paths.py` across 12 modules, with a repo-wide test that
+   fails on any reintroduction. See `docs/module-reviews/00-path-containment.md`.
 2. **Composer has no dry-run.** It writes files immediately; the plan is shown
    *as* the writes happen, not before. A confirm step between `plan_ready` and
    the first write would make a bad instruction recoverable without digging
