@@ -178,3 +178,130 @@ Full suite: **3273 passed / 18 skipped / 0 failed** (was 3235).
 5. **`07-marketplace.js` contains no marketplace code** — it holds BugBot,
    Health, GitAI and Ambient renderers. A misleading filename in a codebase
    this size is a real navigation cost.
+
+---
+
+# Follow-ups 1–5 (`da6b3e4`)
+
+All five closed.
+
+## 1. Plugin templates were executable
+
+`skills.run_skill()` renders templates with `template.format(**inputs)`.
+Python's format mini-language evaluates attribute access, so a plugin-supplied
+template is executable to a degree. Verified against a skill installed through
+the normal endpoint:
+
+```
+template : "Value: {topic.__class__.__mro__}"
+rendered : "Value: (<class 'str'>, <class 'object'>)"
+```
+
+**Honest scope — checked, not assumed.** The usual escalation
+`{x.__class__.__init__.__globals__[sys]}` fails here: inputs are coerced with
+`str()`, and `str.__init__` is a `wrapper_descriptor` with no `__globals__`. A
+skill run also reaches `llm.complete()` with **no tool or function access**. So
+this is information disclosure, not RCE, and I am not going to describe it as
+worse than it is.
+
+It is still worth refusing. *"The escalation happens not to work today"* is not
+a security property — it depends on a `str()` call in an unrelated function
+staying where it is. A template has no legitimate reason to reach through an
+attribute.
+
+`backend/services/plugin_safety.py` refuses attribute access, indexing,
+dunders, and positional fields. Plain `{name}` substitution is unaffected.
+
+### Both doors, again
+
+Enforced on `/api/plugins/install/{json,url}` **and** `POST /api/skills`.
+Guarding only the plugin path would leave the identical primitive reachable one
+endpoint over — the third instance of this pattern in the review (Module 17's
+`/table/create`, Module 19's two install routes, now this).
+
+### Injection is warned, not blocked
+
+An injected instruction can distort an agent's **output** but cannot make it
+execute anything. And over-blocking a text pattern rejects legitimate packs: a
+prompt-engineering pack that *teaches* about injection contains those very
+strings. The rule I settled on — **refuse what has no legitimate use; warn
+about what does.** A refusal the user cannot override just teaches them to
+distrust the check.
+
+## 2. Provenance
+
+Nothing recorded where an installed pack came from, so a plugin pasted from an
+arbitrary URL was indistinguishable from curated content once installed. Each
+install now records origin (`builtin`/`url`/`json`), source URL, content hash,
+and any warnings it was accepted with.
+
+`_BUILTIN_IDS` is captured **before** custom plugins are appended to
+`BUILTIN_REGISTRY`. Both `_load_custom_registry()` and `_install_plugin_data()`
+append to that list, so a membership test taken any later would label every
+custom plugin "builtin" — precisely the distinction the record exists to make.
+
+## 3. Updates
+
+`mkt_releases` and `check-updates` already existed; **nothing surfaced them**,
+so an installed pack could go stale indefinitely with no sign anywhere.
+`GET /api/hub/updates` federates both backends; the hub shows a banner with
+one-click Update.
+
+## 4. Uninstall destroyed skills other packs still needed
+
+Skills can be owned by more than one pack:
+
+```
+install dev-toolkit + devops-toolkit  → dockerfile present
+uninstall dev-toolkit                 → dockerfile DELETED
+devops-toolkit                        → still "installed", silently broken
+```
+
+`linkedin_post` has the same overlap (social-media-pack / content-creator).
+
+A skill is now removed only when no other still-installed pack — in **either**
+registry — claims it, and the response reports what it kept.
+
+**The mirror-image bug**, found while verifying the fix: the marketplace
+uninstall filtered on `source_plugin`, a tag only the *marketplace* installer
+applies. Skills installed by the plugins backend were therefore **orphaned** —
+after removing both owners, `dockerfile` was still in the Skills pane with no
+pack behind it. Two backends writing to one `skills.json` with two different
+removal strategies. Both now share one ownership rule.
+
+## 5. Misleading filename
+
+`07-marketplace.js` contained no marketplace code — `renderBugBot`,
+`renderHealth`, `renderGitAI`, `renderAmbient`. Renamed to
+`07-quality-tools.js`. It sent me to the wrong file twice while reviewing this
+module, which is the argument for treating it as a real defect rather than
+cosmetics.
+
+## A 500 the tests found
+
+`install_plugin` used bracket access for `version`/`author`/`category`/`emoji`
+— fields a minimal custom plugin legitimately omits — so the documented "paste
+your JSON" flow crashed with `KeyError` → **HTTP 500**. Reproduced with a
+`{id, name, skills}` plugin. Defaults applied.
+
+## Tests
+
+`tests/unit/test_79_plugin_safety_followups.py` — **44 cases**.
+**Proven to catch the bugs: with the four routers stashed, 16 of 44 fail.**
+
+### Two self-corrections
+
+1. My first scanner made *"template uses an undeclared input"* a **blocking
+   error**, and it immediately rejected the create-skill endpoint's **own
+   default template** `{prompt}` — which declares no inputs and is filled by
+   the caller at run time. Rejecting a request for using the endpoint's own
+   default is the check being wrong, not the caller. Demoted to a warning.
+2. `{}` parses to a field name of `''`, which my truthiness filter silently
+   dropped — bare positional braces slipped through. Caught by testing the
+   scanner against its own edge cases rather than only against the exploit.
+
+Full suite: **3317 passed / 18 skipped / 0 failed** (was 3273).
+
+## Module 19 status
+
+All five follow-ups closed. Nothing outstanding for Plugins.
