@@ -180,6 +180,106 @@ def classify_sql(sql: str) -> tuple[bool, str]:
     return False, ''
 
 
+
+# ── Audit trail ────────────────────────────────────────────────────────────────
+# Every mutating statement Database Studio executes is recorded in the immutable
+# hash-chained ledger (backend/routers/audit_log.py) BEFORE it runs and again
+# with its outcome AFTER it runs.
+#
+# Why: verified live before this fix — `DROP TABLE audit_victim` with
+# allow_write=true returned {"ok": true, "type": "write"} and produced ZERO
+# rows anywhere in audit_log_chain. The single most destructive operation the
+# platform exposes was also its least observable one: no record of who ran it,
+# what the statement was, or that it happened at all. Every other privileged
+# subsystem in this codebase (MCP tool calls, connector execs, goal changes,
+# agent messages) already appends receipts; Database Studio did not.
+#
+# Two entries, not one, for destructive statements. The ledger is append-only,
+# so an "in flight" row cannot later be updated with its result. A pre-entry
+# means a statement that crashes the process, corrupts the file, or hangs
+# forever still leaves a trace of having been attempted — which is precisely
+# the case where the post-entry never gets written.
+
+# Statements that destroy data or schema. These get the pre-entry as well and
+# are recorded at high risk.
+_DESTRUCTIVE_KEYWORDS = frozenset({'DROP', 'DELETE', 'TRUNCATE', 'ALTER', 'REPLACE', 'VACUUM'})
+
+
+def _sql_risk(sql: str) -> str:
+    """Classify a mutating statement's blast radius for the audit ledger."""
+    import re as _re
+
+    upper = _re.sub(r"'[^']*'", "''", strip_sql_comments(sql).upper())
+    has_where = bool(_re.search(r'\bWHERE\b', upper))
+
+    # Ordered checks, not a set scan: iteration order over a frozenset is not
+    # stable, so `DROP TABLE x; ALTER ...` could be graded 'high' on one run and
+    # 'critical' on the next. Always test the worst case first.
+    if _re.search(r'\b(DROP|TRUNCATE)\b', upper):
+        return 'critical'
+    # An unqualified DELETE/UPDATE empties the whole table.
+    if _re.search(r'\b(DELETE|UPDATE)\b', upper) and not has_where:
+        return 'critical'
+    for kw in sorted(_DESTRUCTIVE_KEYWORDS):
+        if _re.search(rf'\b{kw}\b', upper):
+            return 'high'
+    return 'medium'
+
+
+def _sql_tables(sql: str) -> list[str]:
+    """Best-effort list of table names referenced after FROM/INTO/TABLE/UPDATE."""
+    import re as _re
+
+    cleaned = strip_sql_comments(sql)
+    names = _re.findall(
+        r'\b(?:FROM|INTO|UPDATE|TABLE|JOIN)\s+["`\[]?([A-Za-z_][A-Za-z0-9_]*)',
+        cleaned,
+        _re.IGNORECASE,
+    )
+    seen: list[str] = []
+    for n in names:
+        if n.upper() in ('IF', 'EXISTS', 'SELECT') or n in seen:
+            continue
+        seen.append(n)
+    return seen[:10]
+
+
+def audit_sql(
+    sql: str,
+    *,
+    action: str,
+    outcome: str,
+    risk: str = 'medium',
+    detail: str = '',
+    extra: dict | None = None,
+) -> None:
+    """Append a Database Studio statement to the immutable audit chain.
+
+    Best-effort by design: a ledger failure must not silently swallow the user's
+    query result, but it must be loud in the logs. It is never allowed to raise
+    into the request path.
+    """
+    try:
+        from ..routers.audit_log import append_entry
+
+        meta = {'sql': sql[:2000], 'tables': _sql_tables(sql)}
+        if extra:
+            meta.update(extra)
+        append_entry(
+            agent_id='user',
+            agent_name='Database Studio',
+            action_type=action,
+            action_detail=(detail or sql)[:2000],
+            reasoning='Statement submitted through the Database Studio SQL editor',
+            authority='user',
+            risk_level=risk,
+            outcome=outcome,
+            metadata=meta,
+        )
+    except Exception as e:  # pragma: no cover - ledger must never break the request
+        log.error('AUDIT FAILURE: could not record Database Studio statement: %s', e)
+
+
 # ── SQLite Studio ──────────────────────────────────────────────────────────────
 @router.get('/sqlite/tables')
 def sqlite_tables():
@@ -263,8 +363,19 @@ async def sqlite_query(req: Request):
 
     is_write, refusal = classify_sql(sql)
     if refusal:
+        # Refusals are recorded too: a rejected ATTACH or writable_schema attempt
+        # is a security signal, and a ledger that only holds successes cannot
+        # show that someone tried.
+        audit_sql(sql, action='db_sql_refused', outcome='blocked', risk='high', detail=refusal)
         return JSONResponse({'ok': False, 'error': refusal, 'forbidden': True}, status_code=403)
     if is_write and not allow_write:
+        audit_sql(
+            sql,
+            action='db_sql_refused',
+            outcome='blocked',
+            risk='medium',
+            detail='Write attempted without allow_write',
+        )
         return JSONResponse(
             {
                 'ok': False,
@@ -274,14 +385,28 @@ async def sqlite_query(req: Request):
             status_code=403,
         )
 
+    risk = _sql_risk(sql) if is_write else 'low'
+    if is_write and risk == 'critical':
+        # Pre-entry: the ledger is append-only, so a statement that never
+        # returns would otherwise leave no trace whatsoever.
+        audit_sql(sql, action='db_sql_attempt', outcome='pending', risk=risk)
+
     con = _connect()
     con.row_factory = sqlite3.Row
     try:
         cur = con.execute(sql)
         if is_write:
             con.commit()
+            affected = cur.rowcount
             con.close()
-            return {'ok': True, 'rows_affected': cur.rowcount, 'type': 'write'}
+            audit_sql(
+                sql,
+                action='db_sql_write',
+                outcome='success',
+                risk=risk,
+                extra={'rows_affected': affected},
+            )
+            return {'ok': True, 'rows_affected': affected, 'type': 'write'}
         rows = cur.fetchall()[:1000]
         cols = [d[0] for d in (cur.description or [])]
         con.close()
@@ -294,6 +419,8 @@ async def sqlite_query(req: Request):
         }
     except Exception as e:
         con.close()
+        if is_write:
+            audit_sql(sql, action='db_sql_write', outcome='failure', risk=risk, extra={'error': str(e)[:300]})
         return JSONResponse({'ok': False, 'error': str(e)}, status_code=400)
 
 
@@ -319,9 +446,25 @@ async def sqlite_insert(table: str, req: Request):
         con.commit()
         rowid = cur.lastrowid
         con.close()
+        audit_sql(
+            f'INSERT INTO "{table}" ({col_names}) VALUES (...)',
+            action='db_row_insert',
+            outcome='success',
+            risk='medium',
+            detail=f'Insert row into {table}',
+            extra={'table': table, 'columns': cols, 'rowid': rowid},
+        )
         return {'ok': True, 'rowid': rowid}
     except Exception as e:
         con.close()
+        audit_sql(
+            f'INSERT INTO "{table}"',
+            action='db_row_insert',
+            outcome='failure',
+            risk='medium',
+            detail=f'Insert row into {table}',
+            extra={'table': table, 'error': str(e)[:300]},
+        )
         return {'ok': False, 'error': str(e)}
 
 
@@ -342,10 +485,27 @@ async def sqlite_delete_row(table: str, req: Request):
     try:
         cur = con.execute(f'DELETE FROM "{table}" WHERE "{pk}"=?', (value,))
         con.commit()
+        deleted = cur.rowcount
         con.close()
-        return {'ok': True, 'deleted': cur.rowcount}
+        audit_sql(
+            f'DELETE FROM "{table}" WHERE "{pk}"=?',
+            action='db_row_delete',
+            outcome='success',
+            risk='high',
+            detail=f'Delete from {table} where {pk}={value}',
+            extra={'table': table, 'pk_column': pk, 'pk_value': str(value)[:200], 'deleted': deleted},
+        )
+        return {'ok': True, 'deleted': deleted}
     except Exception as e:
         con.close()
+        audit_sql(
+            f'DELETE FROM "{table}"',
+            action='db_row_delete',
+            outcome='failure',
+            risk='high',
+            detail=f'Delete from {table}',
+            extra={'table': table, 'error': str(e)[:300]},
+        )
         return {'ok': False, 'error': str(e)}
 
 
@@ -387,12 +547,23 @@ async def create_table(req: Request):
     if not sql:
         return {'ok': False, 'error': 'Provide sql or name+columns'}
 
+    # DDL arriving here is frequently LLM-authored (the AI Schema Designer posts
+    # straight to this endpoint), so it is subject to the same statement guard
+    # as the SQL editor rather than being executed on trust.
+    _is_write, refusal = classify_sql(sql)
+    if refusal:
+        audit_sql(sql, action='db_schema_refused', outcome='blocked', risk='high', detail=refusal)
+        return JSONResponse({'ok': False, 'error': refusal, 'forbidden': True}, status_code=403)
+
+    risk = _sql_risk(sql)
     con = _connect()
     try:
         con.execute(sql)
         con.commit()
+        audit_sql(sql, action='db_schema_change', outcome='success', risk=risk)
         return {'ok': True, 'sql': sql}
     except Exception as e:
+        audit_sql(sql, action='db_schema_change', outcome='failure', risk=risk, extra={'error': str(e)[:300]})
         return {'ok': False, 'error': str(e), 'sql': sql}
     finally:
         con.close()
