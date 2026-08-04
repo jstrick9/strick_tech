@@ -277,3 +277,90 @@ return:
   no-argument calls).
 - **Phase 3:** `Content-Security-Policy-Report-Only` with the strict policy for
   a week, then drop `unsafe-inline`.
+
+
+---
+
+# Phases 2 & 3 — partially executed, and why I stopped where I did
+
+Committed: `a5d129e` (delegation shim + migration tooling), `0a20f20` (strict
+CSP in Report-Only mode with violation collection).
+
+**Not committed: the bulk migration of 859 handlers.** That was a judgement
+call, and the reasoning matters more than the outcome.
+
+## What measurement showed
+
+The recommendation said "772 handlers, 300 trivial". Measured properly:
+
+| | Count |
+|---|---|
+| Inline handlers total | **859** (the earlier grep undercounted) |
+| Convertible automatically (proven plain calls) | **546** |
+| Need hand-written listeners | **313** |
+| Inline `<script>` blocks in `index.html` | **5** (~15KB) |
+
+The 313 break down as: 146 use `this` (`this.parentElement.remove()`), 72 other
+expressions, 37 use the `event` object, 26 complex interpolation, 20
+multi-statement bodies, 12 non-delegated events.
+
+## Why the migration did not ship
+
+Three reasons, in order of weight:
+
+**1. Partial migration buys nothing.** `unsafe-inline` is required if *one*
+inline handler remains. Converting the easy 546 would touch **49 files** and
+leave the CSP exactly as permissive as before — all of the regression risk,
+none of the security benefit.
+
+**2. I cannot verify it.** Chromium will not install here (no root for
+libnss3), so all **31 tests in `tests/e2e_browser` error out**. The failure mode
+of a bad conversion is *"button does nothing, no error anywhere"* — silent,
+and precisely the shape of bug this review has spent 22 modules removing. A
+546-site, 49-file UI refactor that I cannot click a single button of is not
+something to push.
+
+**3. The security value was already banked.** Phase 1 closed the actual
+exploit. What remains is defence-in-depth, and defence-in-depth does not
+justify shipping an unverifiable refactor.
+
+## What shipped instead
+
+**`frontend/js/00-delegate.js`** — the shim the handlers migrate *onto*, with
+the design decision that matters: it **does not eval**. A `data-act` value is
+parsed as `name(arg, ...)`, the name resolved by plain property lookup on
+`window`, every argument required to be a JSON literal. Anything else is
+refused and logged. Eval would have reintroduced phase 1's injection surface
+*and* still required `'unsafe-eval'`, defeating the purpose.
+
+Verified with **6 real DOM-event tests under jsdom** — including delegation
+from a nested target, because clicks land on inner `<span>`s and without
+`closest()` the migration would silently break every icon button.
+
+**`scripts/migrate_inline_handlers.py`** — the classifier and rewriter, which
+converts only what it can *prove* is a plain call and reports the rest. The
+tool is the durable artefact: whoever does phase 2 with a browser available
+runs it and reviews 313 cases, rather than starting from 859.
+
+**`scripts/lint_inline_handlers.py` now covers `data-act`.** Without that, the
+migration would move 546 handlers out from under the guard protecting them.
+
+**Report-Only CSP + `/api/security/csp-report`.** This is phase 3's genuinely
+useful half. Browsers enforce the permissive policy and only *report* on the
+strict one, so nothing breaks while every would-be violation is collected and
+aggregated. It turns *"we think 313 handlers need work"* into a measured list
+from real usage — the evidence that was missing when I first wrote this
+recommendation.
+
+## What is left, and what unblocks it
+
+1. **313 hand-written listeners + 5 inline `<script>` blocks extracted.**
+   Needs a browser to verify. `tests/e2e_browser` already exists and is written;
+   it needs Chromium, which needs root.
+2. **Then flip enforcing.** By then `/api/security/csp-report` will say whether
+   it is safe, rather than anyone guessing.
+
+The honest summary: **phase 2 is blocked on verification capability, not on
+effort or understanding.** I have removed every part of that blocker I can —
+the shim is proven, the tooling exists, the remaining work is enumerated, and
+the measurement infrastructure is live and collecting.
