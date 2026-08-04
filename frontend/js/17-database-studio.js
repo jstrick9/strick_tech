@@ -52,11 +52,11 @@ async function renderSQLiteTab(el) {
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px;overflow-y:auto" id="db-table-list">
       <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Tables (${tables.length})</div>
       ${tables.map((t, idx) => `
-        <div data-table-idx="${idx}"
+        <div data-table-idx="${idx}" title="${t.restricted ? 'Protected — holds credential material' : (t.sensitive_columns||[]).length ? 'Contains masked columns: ' + escHtml((t.sensitive_columns||[]).join(', ')) : ''}"
              style="padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;margin-bottom:2px;${dbActiveTable===t.name?'background:var(--accent-glow);color:var(--accent-hi)':''}"
              onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background='${dbActiveTable===t.name?'var(--accent-glow)':''}'"
         >
-          <div style="font-weight:600">${escHtml(t.name)}</div>
+          <div style="font-weight:600">${t.restricted ? '🔒 ' : ''}${escHtml(t.name)}${(t.sensitive_columns||[]).length ? ' <span style="color:var(--orange,#e0821c);font-size:10px">🔒</span>' : ''}</div>
           <div style="font-size:10.5px;color:var(--text-3)">${t.row_count} rows</div>
         </div>`).join('')}
     </div>
@@ -92,6 +92,14 @@ async function dbLoadTable(name) {
   el.innerHTML = `<div style="color:var(--text-2);padding:12px">Loading ${escHtml(name)}…</div>`;
   try {
     const r    = await fetch(`/api/db/sqlite/table/${encodeURIComponent(name)}?limit=100`);
+    if (r.status === 403) {
+      const err = await r.json().catch(() => ({}));
+      el.innerHTML = `<div style="padding:16px">
+        <div style="font-weight:700;margin-bottom:6px">🔒 Protected table</div>
+        <div style="font-size:13px;color:var(--text-2)">${escHtml(err.error||'This table is not readable through Database Studio.')}</div>
+      </div>`;
+      return;
+    }
     if (!r.ok) { el.innerHTML = `<div style="color:var(--red);padding:12px">Server error ${r.status}</div>`; return; }
     const data = await r.json();
     if (!data.ok) { el.innerHTML = `<div style="color:var(--red);padding:12px">${escHtml(data.error||'error')}</div>`; return; }
@@ -297,6 +305,7 @@ function renderSQLEditorTab(el) {
             <input type="checkbox" id="sql-allow-write" style="accent-color:var(--red)">
             <span style="color:var(--red)">Allow writes</span>
           </label>
+          <button onclick="runSQL({dryRun:true})" class="btn btn-ghost btn-sm" title="Run inside a transaction and roll it back — shows how many rows would change, commits nothing">🔍 Dry run</button>
           <button onclick="runSQL()" class="btn btn-primary btn-sm">▶ Run SQL</button>
         </div>
       </div>
@@ -327,12 +336,15 @@ function dbSqlLooksDestructive(sql) {
   return false;
 }
 
-async function runSQL() {
+async function runSQL(opts) {
+  const dryRun      = !!(opts && opts.dryRun);
   const sql         = document.getElementById('sql-editor')?.value.trim();
-  const allowWrite  = document.getElementById('sql-allow-write')?.checked;
+  const allowWrite  = dryRun ? true : document.getElementById('sql-allow-write')?.checked;
   if (!sql) return;
 
-  if (allowWrite && dbSqlLooksDestructive(sql)) {
+  // A dry run commits nothing, so it needs no confirmation — that is the point
+  // of offering it: the safe way to find out what a statement would do.
+  if (!dryRun && allowWrite && dbSqlLooksDestructive(sql)) {
     const ok = await gmDanger(
       'Run destructive SQL?',
       'This statement can drop a table or empty it entirely. It will be recorded in the immutable audit trail. Continue?'
@@ -345,12 +357,26 @@ async function runSQL() {
   try {
     const r = await fetch('/api/db/sqlite/query', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({sql, allow_write: allowWrite})
+      body: JSON.stringify({sql, allow_write: allowWrite, dry_run: dryRun})
     });
-    if (!r.ok) { if (res) res.innerHTML = `<div style="color:var(--red)">Server error ${r.status}</div>`; return; }
-    const j = await r.json();
+    const j = await r.json().catch(() => null);
+    if (!r.ok && !j) { if (res) res.innerHTML = `<div style="color:var(--red)">Server error ${r.status}</div>`; return; }
     if (!j.ok) {
-    res.innerHTML = `<div style="color:var(--red);font-size:13px">Error: ${escHtml(j.error||'')}</div>`;
+    res.innerHTML = `<div style="color:var(--red);font-size:13px">${j.sensitive ? '🔒 ' : ''}Error: ${escHtml(j.error||'')}</div>`;
+    return;
+  }
+  if (j.dry_run) {
+    const deltas = j.deltas || {};
+    const keys = Object.keys(deltas);
+    res.innerHTML = `<div style="border-left:3px solid var(--accent, #4c8dff);padding-left:10px">
+      <div style="font-weight:700;margin-bottom:4px">🔍 Dry run — nothing was committed</div>
+      <div style="font-size:13px;color:var(--text-1)">${escHtml(j.message||'')}</div>
+      <div style="font-size:12px;color:var(--text-2);margin-top:4px">Risk: <b style="color:${j.risk==='critical'?'var(--red)':'var(--text-1)'}">${escHtml(j.risk||'')}</b></div>
+      ${keys.length ? `<div style="font-size:12px;margin-top:8px">${keys.map(t =>
+        `<div>${escHtml(t)}: ${j.row_count_before[t]} → ${j.row_count_after[t]} <b style="color:${deltas[t]<0?'var(--red)':'var(--green)'}">(${deltas[t]>0?'+':''}${deltas[t]})</b></div>`
+      ).join('')}</div>` : ''}
+      <div style="font-size:11px;color:var(--text-3);margin-top:8px">Tick “Allow writes” and press Run SQL to apply this for real.</div>
+    </div>`;
     return;
   }
   if (j.type === 'write') {
@@ -360,7 +386,9 @@ async function runSQL() {
   }
   const cols = j.columns || [];
   const rows = j.rows || [];
-  res.innerHTML = `<div style="font-size:12px;color:var(--text-2);margin-bottom:8px">${rows.length} rows returned</div>
+  const redacted = j.redacted_columns || [];
+  res.innerHTML = `<div style="font-size:12px;color:var(--text-2);margin-bottom:8px">${rows.length} rows returned${
+    redacted.length ? ` · <span style="color:var(--orange,#e0821c)">🔒 masked: ${escHtml(redacted.join(', '))}</span>` : ''}</div>
     <div style="overflow:auto;max-height:300px">
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr>${cols.map(c=>`<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border);color:var(--text-2);font-weight:700">${escHtml(c)}</th>`).join('')}</tr></thead>
@@ -397,11 +425,29 @@ async function generateSchema(type) {
     if (!r.ok) { if (el) el.innerHTML = `<div style="color:var(--red)">Server error ${r.status}</div>`; return; }
     const j = await r.json();
     if (el && j.sql) {
+    // The server analyses the model's DDL against the REAL schema and returns a
+    // plan. Nothing is offered for one-click execution until the operator has
+    // seen what it would do — LLM-authored SQL against a live database used to
+    // sit behind a bare "Create Table" button.
+    const plan = j.plan || {};
+    const warns = plan.warnings || [];
+    const blocked = warns.some(w => String(w).indexOf('will be refused') !== -1);
     el.innerHTML = `<div style="position:relative">
       <pre style="background:var(--bg-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto">${escHtml(j.sql)}</pre>
+      <div style="margin-top:10px;padding:10px;border-radius:var(--radius-sm);border:1px solid ${warns.length?'var(--red)':'var(--border)'};background:var(--bg-1)">
+        <div style="font-weight:700;font-size:12px;margin-bottom:6px">${warns.length ? '⚠️ Review before running' : '✅ Review'}</div>
+        <div style="font-size:12px;color:var(--text-2)">
+          Creates: <b>${escHtml((plan.creates||[]).join(', ') || 'none')}</b> ·
+          Drops: <b style="color:${(plan.drops||[]).length?'var(--red)':'inherit'}">${escHtml((plan.drops||[]).join(', ') || 'none')}</b> ·
+          Statements: <b>${plan.statements ?? '?'}</b> ·
+          Risk: <b style="color:${plan.risk==='critical'?'var(--red)':'inherit'}">${escHtml(plan.risk||'')}</b>
+        </div>
+        ${warns.length ? `<ul style="margin:8px 0 0 16px;padding:0;font-size:12px;color:var(--red)">${
+          warns.map(w => `<li>${escHtml(w)}</li>`).join('')}</ul>` : ''}
+      </div>
       <div style="display:flex;gap:6px;margin-top:8px">
         <button id="schema-copy-btn" class="btn btn-ghost btn-sm">📋 Copy</button>
-        ${type==='sqlite'?`<button id="schema-create-btn" class="btn btn-primary btn-sm">▶ Create Table</button>`:''}
+        ${type==='sqlite' && !blocked ?`<button id="schema-create-btn" class="btn ${warns.length?'btn-ghost':'btn-primary'} btn-sm">▶ ${warns.length?'Run anyway…':'Create Table'}</button>`:''}
       </div>
     </div>`;
     // Bind via closures over the real `j.sql` string instead of
@@ -416,13 +462,23 @@ async function generateSchema(type) {
       navigator.clipboard.writeText(j.sql).then(() => toast('📋 Copied', 'ok', 1500));
     });
     document.getElementById('schema-create-btn')?.addEventListener('click', () => {
-      runGeneratedSchema(j.sql);
+      runGeneratedSchema(j.sql, plan);
     });
     }
   } catch(ex) { if (el) el.innerHTML = `<div style="color:var(--red)">Error: ${escHtml(ex.message)}</div>`; }
 }
 
-async function runGeneratedSchema(sql) {
+async function runGeneratedSchema(sql, plan) {
+  const warns = (plan && plan.warnings) || [];
+  if (warns.length) {
+    const ok = await gmDanger(
+      'Run AI-generated SQL against the live database?',
+      'The server flagged this statement:<br><br>' +
+      warns.map(w => '• ' + escHtml(w)).join('<br>') +
+      '<br><br>This runs against your real data and is recorded in the audit trail. Continue?'
+    );
+    if (!ok) return;
+  }
   try {
     const r = await fetch('/api/db/sqlite/table/create', {
       method:'POST', headers:{'Content-Type':'application/json'},

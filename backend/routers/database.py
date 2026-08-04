@@ -181,6 +181,15 @@ def classify_sql(sql: str) -> tuple[bool, str]:
 
 
 
+# ── Sensitive data policy ──────────────────────────────────────────────────────
+from ..services import db_policy
+
+
+def _policy_refusal(sql: str) -> str:
+    """Refusal reason if the statement touches credential material."""
+    return db_policy.check_statement(strip_sql_comments(sql))
+
+
 # ── Audit trail ────────────────────────────────────────────────────────────────
 # Every mutating statement Database Studio executes is recorded in the immutable
 # hash-chained ledger (backend/routers/audit_log.py) BEFORE it runs and again
@@ -280,6 +289,62 @@ def audit_sql(
         log.error('AUDIT FAILURE: could not record Database Studio statement: %s', e)
 
 
+def _dry_run_statement(sql: str, risk: str) -> dict:
+    """Run a mutating statement inside a transaction and roll it back.
+
+    Returns the row count the statement WOULD affect. Nothing is committed --
+    verified by re-counting the affected tables after the rollback.
+    """
+    con = _connect()
+    con.row_factory = sqlite3.Row
+    before = {}
+    try:
+        tables = _sql_tables(sql)
+        for t in tables:
+            try:
+                before[t] = con.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]
+            except sqlite3.Error:
+                pass  # not a real table (CTE alias, or being created)
+
+        con.execute('BEGIN')
+        cur = con.execute(sql)
+        affected = cur.rowcount
+        after = {}
+        for t in tables:
+            try:
+                after[t] = con.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]
+            except sqlite3.Error:
+                pass
+        con.rollback()
+
+        deltas = {t: after[t] - before[t] for t in after if t in before and after[t] != before[t]}
+        audit_sql(
+            sql, action='db_sql_dryrun', outcome='success', risk=risk,
+            extra={'rows_affected': affected, 'deltas': deltas},
+        )
+        return {
+            'ok': True,
+            'dry_run': True,
+            'type': 'write',
+            'rows_affected': affected,
+            'row_count_before': before,
+            'row_count_after': after,
+            'deltas': deltas,
+            'risk': risk,
+            'committed': False,
+            'message': f'Dry run only -- rolled back. {affected} row(s) would be affected.',
+        }
+    except Exception as e:
+        try:
+            con.rollback()
+        except sqlite3.Error:
+            pass
+        audit_sql(sql, action='db_sql_dryrun', outcome='failure', risk=risk, extra={'error': str(e)[:300]})
+        return JSONResponse({'ok': False, 'error': str(e), 'dry_run': True}, status_code=400)
+    finally:
+        con.close()
+
+
 # ── SQLite Studio ──────────────────────────────────────────────────────────────
 @router.get('/sqlite/tables')
 def sqlite_tables():
@@ -303,7 +368,15 @@ def sqlite_tables():
                 ]
             except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                 count, cols = 0, []
-            result.append({'name': name, 'type': t['type'], 'row_count': count, 'columns': cols})
+            restricted = db_policy.is_restricted_table(name)
+            result.append({
+                'name': name,
+                'type': t['type'],
+                'row_count': count,
+                'columns': cols,
+                'restricted': restricted,
+                'sensitive_columns': [c['name'] for c in cols if db_policy.is_sensitive_column(name, c['name'])],
+            })
         return result
     except Exception as e:
         log.error('sqlite_tables error: %s', e)
@@ -318,6 +391,20 @@ def sqlite_table_data(table: str, limit: int = 100, offset: int = 0, q: str = ''
     # Validate table name
     if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table):
         return JSONResponse({'ok': False, 'error': 'Invalid table name'}, status_code=400)
+    if db_policy.is_restricted_table(table):
+        reason = (
+            f'Table "{table}" holds credential material and is not readable through '
+            f'Database Studio. Set AGENTIC_DB_ALLOW_SENSITIVE=1 on the server to override.'
+        )
+        if not db_policy.sensitive_override_enabled():
+            audit_sql(
+                f'SELECT * FROM "{table}"', action='db_read_refused', outcome='blocked',
+                risk='critical', detail=reason, extra={'table': table},
+            )
+            return JSONResponse(
+                {'ok': False, 'error': reason, 'forbidden': True, 'sensitive': True}, status_code=403
+            )
+
     con = _connect()
     con.row_factory = sqlite3.Row
     try:
@@ -334,14 +421,16 @@ def sqlite_table_data(table: str, limit: int = 100, offset: int = 0, q: str = ''
         sql += f' LIMIT {limit} OFFSET {offset}'
         rows = con.execute(sql, params).fetchall()
         con.close()
+        out_rows, redacted = db_policy.redact_rows([dict(r) for r in rows], cols, table=table)
         return {
             'ok': True,
             'table': table,
             'columns': cols,
-            'rows': [dict(r) for r in rows],
+            'rows': out_rows,
             'total': total,
             'limit': limit,
             'offset': offset,
+            'redacted_columns': redacted,
         }
     except Exception as e:
         con.close()
@@ -361,6 +450,8 @@ async def sqlite_query(req: Request):
     if not sql:
         return JSONResponse({'ok': False, 'error': 'SQL required'}, status_code=400)
 
+    dry_run = bool(body.get('dry_run', False))
+
     is_write, refusal = classify_sql(sql)
     if refusal:
         # Refusals are recorded too: a rejected ATTACH or writable_schema attempt
@@ -368,6 +459,17 @@ async def sqlite_query(req: Request):
         # show that someone tried.
         audit_sql(sql, action='db_sql_refused', outcome='blocked', risk='high', detail=refusal)
         return JSONResponse({'ok': False, 'error': refusal, 'forbidden': True}, status_code=403)
+
+    policy_refusal = _policy_refusal(sql)
+    if policy_refusal:
+        audit_sql(
+            sql, action='db_sql_refused', outcome='blocked', risk='critical', detail=policy_refusal,
+            extra={'reason': 'sensitive_data_policy'},
+        )
+        return JSONResponse(
+            {'ok': False, 'error': policy_refusal, 'forbidden': True, 'sensitive': True},
+            status_code=403,
+        )
     if is_write and not allow_write:
         audit_sql(
             sql,
@@ -386,6 +488,15 @@ async def sqlite_query(req: Request):
         )
 
     risk = _sql_risk(sql) if is_write else 'low'
+
+    if is_write and dry_run:
+        # Execute inside a transaction that is ALWAYS rolled back, so the user
+        # can see how many rows a statement would touch before committing it.
+        # Every statement here auto-commits, which made a mistyped DELETE
+        # instantly permanent with no undo — this is the "show me the row count
+        # before I commit" mode that gap called for.
+        return _dry_run_statement(sql, risk)
+
     if is_write and risk == 'critical':
         # Pre-entry: the ledger is append-only, so a statement that never
         # returns would otherwise leave no trace whatsoever.
@@ -410,12 +521,18 @@ async def sqlite_query(req: Request):
         rows = cur.fetchall()[:1000]
         cols = [d[0] for d in (cur.description or [])]
         con.close()
+        # `SELECT *` never names the column, so the statement scan above cannot
+        # see it. Mask on the way out as well.
+        out_rows, redacted = db_policy.redact_rows(
+            [dict(r) for r in rows], cols, table=(_sql_tables(sql) or [''])[0]
+        )
         return {
             'ok': True,
             'columns': cols,
-            'rows': [dict(r) for r in rows],
-            'count': len(rows),
+            'rows': out_rows,
+            'count': len(out_rows),
             'type': 'select',
+            'redacted_columns': redacted,
         }
     except Exception as e:
         con.close()
@@ -555,6 +672,16 @@ async def create_table(req: Request):
         audit_sql(sql, action='db_schema_refused', outcome='blocked', risk='high', detail=refusal)
         return JSONResponse({'ok': False, 'error': refusal, 'forbidden': True}, status_code=403)
 
+    policy_refusal = _policy_refusal(sql)
+    if policy_refusal:
+        audit_sql(
+            sql, action='db_schema_refused', outcome='blocked', risk='critical', detail=policy_refusal,
+            extra={'reason': 'sensitive_data_policy'},
+        )
+        return JSONResponse(
+            {'ok': False, 'error': policy_refusal, 'forbidden': True, 'sensitive': True}, status_code=403
+        )
+
     risk = _sql_risk(sql)
     con = _connect()
     try:
@@ -610,7 +737,103 @@ async def ai_schema_designer(req: Request):
     sql = result.get('text', '').strip()
     # Strip markdown code fences robustly
     sql = _strip_markdown_sql(sql)
-    return {'ok': result.get('ok'), 'sql': sql, 'description': desc}
+
+    # The model proposes; the server decides. LLM-authored DDL used to be handed
+    # to the UI with nothing but a Create Table button next to it. It is now
+    # analysed server-side and returned as a REVIEW PLAN so the operator sees
+    # what it would do to the live database before anything runs. The same
+    # lesson as the Module 16 gitai fix and the Module 14 composer paths.
+    plan = _analyse_ddl(sql)
+    return {
+        'ok': result.get('ok'),
+        'sql': sql,
+        'description': desc,
+        'plan': plan,
+        'requires_confirmation': True,
+        'safe': plan['safe'],
+    }
+
+
+def _analyse_ddl(sql: str) -> dict:
+    """Describe what a DDL statement would do to the live database.
+
+    Reports collisions with existing tables, destructive clauses, and whether
+    the statement is refused outright by the guards -- computed from the real
+    schema, never from anything the model asserted about its own output.
+    """
+    import re as _re
+
+    warnings: list[str] = []
+
+    # classify_sql() inspects the LEADING token for forbidden statements, which
+    # is correct for the executor (sqlite3.execute() refuses multi-statement
+    # input outright) but wrong for a PREVIEW: analysing the whole blob as one
+    # string reported `safe: true` for
+    #     CREATE TABLE t (k TEXT); ATTACH DATABASE '/tmp/z.db' AS z
+    # because ATTACH was not the leading token. Not exploitable — the execution
+    # path rejects it with "You can only execute one statement at a time" — but
+    # a confirmation screen that says "safe" about SQL the server will refuse is
+    # itself a defect. Each statement is classified separately here.
+    statements = [s.strip() for s in (sql or '').split(';') if s.strip()]
+    refusal = ''
+    policy = ''
+    if not sql:
+        refusal = 'no SQL was generated'
+    else:
+        for stmt in statements:
+            _is_write, r = classify_sql(stmt)
+            if r and not refusal:
+                refusal = r
+            pr = _policy_refusal(stmt)
+            if pr and not policy:
+                policy = pr
+        if len(statements) > 1:
+            warnings.append(
+                f'{len(statements)} statements were generated. Only one statement can be '
+                f'executed at a time — run them individually.'
+            )
+
+    creates = [m.upper() for m in _re.findall(
+        r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["`\[]?([A-Za-z_][A-Za-z0-9_]*)', sql or '', _re.I)]
+    drops = _re.findall(
+        r'DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?["`\[]?([A-Za-z_][A-Za-z0-9_]*)', sql or '', _re.I)
+
+    existing: list[str] = []
+    collisions: list[str] = []
+    try:
+        con = _connect()
+        try:
+            existing = [r[0] for r in con.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+        finally:
+            con.close()
+        upper_existing = {e.upper(): e for e in existing}
+        collisions = [upper_existing[c] for c in creates if c in upper_existing]
+    except Exception as e:  # pragma: no cover - schema read must not break the preview
+        warnings.append(f'Could not read the current schema to check for collisions: {e}')
+
+    if collisions:
+        warnings.append(
+            'These tables ALREADY EXIST and would be affected: ' + ', '.join(collisions)
+        )
+    if drops:
+        warnings.append('This statement DROPS existing tables: ' + ', '.join(drops))
+    if refusal:
+        warnings.append(f'This statement will be refused: {refusal}')
+    if policy:
+        warnings.append(f'This statement will be refused: {policy}')
+    if not sql:
+        warnings.append('The model returned no SQL.')
+
+    return {
+        'creates': creates,
+        'drops': list(drops),
+        'collisions': collisions,
+        'statements': len(statements),
+        'risk': _sql_risk(sql) if sql else 'low',
+        'warnings': warnings,
+        'safe': not warnings,
+    }
 
 
 # ── Supabase Integration ───────────────────────────────────────────────────────
