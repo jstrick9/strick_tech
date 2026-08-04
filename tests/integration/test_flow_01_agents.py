@@ -134,7 +134,7 @@ class TestSteeringIntegration:
             "content": "# Integration Test Steering\nAlways prefix answers with [IT].",
             "enabled": True
         })
-        d = ok(r)
+        d = ok_or(r, 200, 201)
         sfid = d.get("id") or (d.get("file") or {}).get("id")
         check("create returns id", bool(sfid))
 
@@ -153,7 +153,7 @@ class TestSteeringIntegration:
             "content": "# Toggle test",
             "enabled": True
         })
-        d = ok(r)
+        d = ok_or(r, 200, 201)
         sfid = d.get("id") or (d.get("file") or {}).get("id")
 
         if sfid:
@@ -178,7 +178,7 @@ class TestSteeringIntegration:
             "content": "# Delete me",
             "enabled": True
         })
-        d = ok(r)
+        d = ok_or(r, 200, 201)
         sfid = d.get("id") or (d.get("file") or {}).get("id")
         await DELETE(client, f"/api/steering/{sfid}")
 

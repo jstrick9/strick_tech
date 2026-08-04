@@ -207,7 +207,7 @@ class TestUATSteeringFiles:
         r = await POST(U, "/api/steering", {
             "name": name, "content": content, "enabled": True
         })
-        d = accept(r, "create steering file", 200)
+        d = accept(r, "create steering file", 200, 201)
         sfid = d.get("id") or (d.get("file") or {}).get("id")
         uat("steering file ID returned", bool(sfid))
         
@@ -218,7 +218,7 @@ class TestUATSteeringFiles:
         r = await POST(U, "/api/steering", {
             "name": uid("ToggleSteering"), "content": "Toggle test rule", "enabled": True
         })
-        d = accept(r, "create steering", 200)
+        d = accept(r, "create steering", 200, 201)
         sfid = d.get("id") or (d.get("file") or {}).get("id")
         
         if sfid:
