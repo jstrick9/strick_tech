@@ -149,3 +149,62 @@ def test_the_enforcing_style_src_is_unchanged(client):
         'style-src was tightened in the ENFORCING policy; that is a separate, '
         'much larger migration'
     )
+
+
+# ══ The dashboard ═════════════════════════════════════════════════════════════
+# The reports had been collected since the header was introduced and were
+# invisible to anyone who did not curl the endpoint. That is how the channel
+# managed to sit at zero for weeks: the only way to notice was to ask the API.
+def test_the_monitor_module_exists_and_is_loaded():
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parents[2]
+    assert (root / 'frontend' / 'js' / '58-csp-monitor.js').exists()
+    index = (root / 'frontend' / 'index.html').read_text(encoding='utf-8')
+    assert '58-csp-monitor.js' in index
+
+
+def test_the_security_tab_is_reachable():
+    import pathlib
+
+    index = (pathlib.Path(__file__).resolve().parents[2]
+             / 'frontend' / 'index.html').read_text(encoding='utf-8')
+    assert 'id="settings-nav-security"' in index, 'no way to reach the panel'
+    assert 'id="settings-tab-security"' in index
+    assert "switchSettingsTab('security')" in index
+
+
+def test_the_panel_loads_lazily():
+    """The endpoint is cheap, but polling it on every settings visit would be
+    noise for a panel most users never open."""
+    import pathlib
+
+    core = (pathlib.Path(__file__).resolve().parents[2]
+            / 'frontend' / 'js' / '01-app-core.js').read_text(encoding='utf-8')
+    assert "tabId === 'security'" in core
+    assert 'renderCspMonitor' in core
+
+
+def test_the_panel_separates_our_code_from_third_party():
+    """Third-party violations come from vendored libraries injecting their own
+    styles. They cannot be fixed here, so counting them alongside our own would
+    overstate the migration cost."""
+    import pathlib
+
+    src = (pathlib.Path(__file__).resolve().parents[2]
+           / 'frontend' / 'js' / '58-csp-monitor.js').read_text(encoding='utf-8')
+    assert 'isThirdParty' in src
+    assert 'In our code' in src
+
+
+def test_an_empty_report_list_does_not_read_as_success():
+    """The failure this whole fix is about: zero violations can mean 'safe to
+    enforce' OR 'the channel is broken / nothing was exercised'. The panel must
+    not let the reader assume the first."""
+    import pathlib
+
+    src = (pathlib.Path(__file__).resolve().parents[2]
+           / 'frontend' / 'js' / '58-csp-monitor.js').read_text(encoding='utf-8')
+    assert 'has not been exercised' in src, (
+        'an empty list must say what else it could mean'
+    )
