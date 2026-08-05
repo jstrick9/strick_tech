@@ -1550,7 +1550,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <div class="chat-input-row">
                 <input id="chat-file-input" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.js,.jsx,.ts,.tsx,.py,.html,.css,.xml,.yaml,.yml,.log,.sql,.sh,.java,.go,.rs,.rb,.php,.c,.cpp,.h,.pdf,.docx,.jpg,.jpeg,.png,.gif,.webp,.svg">
                 <button type="button" class="chat-attach-btn btn-3d" data-act-click="hClickFileInput()" title="Attach files: Text, Code, CSV, JSON, PDF, Word, Images (max 5 files, 250KB text / 4MB documents)" aria-label="Attach files" style="font-size:13px">📎</button>
-                <textarea id="chat-input" aria-label="Chat message input" placeholder="Message AI… or drop a file or image here" rows="4" style="min-height:84px"></textarea>
+                <textarea id="chat-input" data-draft="chat" aria-label="Chat message input" placeholder="Message AI… or drop a file or image here" rows="4" style="min-height:84px"></textarea>
                 <button type="button" class="chat-send-btn" id="chat-send" aria-label="Send message">➤</button>
               </div>
             </div>
@@ -1583,7 +1583,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <option value="sveltekit">🔥 SvelteKit</option>
               <option value="expo">📱 Expo React Native</option>
             </select>
-            <textarea id="studio-scaffold-prompt" placeholder="Describe your app…" rows="2" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 7px;color:var(--text-1);font-size:11.5px;resize:none;outline:none;font-family:inherit;margin-bottom:5px"></textarea>
+            <textarea id="studio-scaffold-prompt" data-draft="scaffold" placeholder="Describe your app…" rows="2" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 7px;color:var(--text-1);font-size:11.5px;resize:none;outline:none;font-family:inherit;margin-bottom:5px"></textarea>
             <button type="button" data-act-click="studioScaffold()" class="btn btn-primary" style="width:100%;font-size:12px;padding:6px">⚡ Scaffold</button>
           </div>
 
@@ -2117,7 +2117,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             </div>
           </div>
           <div style="border-top:1px solid var(--border);padding:10px">
-            <textarea id="gx-ingest-text" placeholder="Add memory…" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px;color:var(--text-1);font-size:12px;resize:none;min-height:60px;outline:none"></textarea>
+            <textarea id="gx-ingest-text" data-draft="memory-ingest" placeholder="Add memory…" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px;color:var(--text-1);font-size:12px;resize:none;min-height:60px;outline:none"></textarea>
             <div style="display:flex;gap:6px;margin-top:6px">
               <input id="gx-ingest-tags" placeholder="tags (optional)" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;color:var(--text-1);font-size:12px;outline:none">
               <button type="button" data-act-click="ingestMemory()" class="btn btn-primary btn-sm">+ Add</button>
@@ -2942,7 +2942,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <div class="form-row full">
       <div class="form-group">
         <label>System Prompt (optional)</label>
-        <textarea id="am-system" placeholder="You are [Name], an expert in… Keep responses concise and actionable."></textarea>
+        <textarea id="am-system" data-draft="agent-system-prompt" placeholder="You are [Name], an expert in… Keep responses concise and actionable."></textarea>
       </div>
     </div>
     <div class="modal-actions">
@@ -3027,6 +3027,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 <script src="/static/js/00-delegate.js"></script>
 <script src="/static/js/00-handlers.js"></script>
 <script src="/static/js/00-net-feedback.js"></script>
+<script src="/static/js/00-drafts.js"></script>
 <script src="/static/js/00-pane-registry.js"></script>
 <script src="/static/js/00-workstations.js"></script>
 <script src="/static/js/00-errors.js"></script>
