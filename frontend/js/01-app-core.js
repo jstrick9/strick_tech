@@ -362,7 +362,7 @@ function setActiveAgent(agent) {
 
 function showAgentPicker() {
   const items = (S.agents || []).map(a =>
-    `<div class="palette-item" data-agent="${escHtml(JSON.stringify(a))}" data-act-click="hSetActiveAgentAndClose($json.agent)">
+    `<div class="palette-item" data-agent="${escHtml(JSON.stringify(a))}" data-act-click="hSetActiveAgentAndClose($json.agent)" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
       <span class="p-icon">${a.avatar||'🤖'}</span>
       <span class="p-label">${escHtml(a.name)}</span>
       <span class="p-desc">${escHtml(a.model||'')}</span>
@@ -3808,7 +3808,7 @@ function showMentionDropdown(query, atIdx) {
   dd.innerHTML = [
     '<div style="padding:5px 10px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase">Agents</div>',
     ...agentMatches.slice(0, 6).map(a =>
-      `<div class="mention-item" data-act-click="selectMention(${jsArg('@' + (a.name) + '')})" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:var(--transition)" data-hover="bg:var(--bg-3)" data-hover-out="bg:">
+      `<div class="mention-item" data-act-click="selectMention(${jsArg('@' + (a.name) + '')})" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:var(--transition)" data-hover="bg:var(--bg-3)" data-hover-out="bg:" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span style="font-size:16px">${a.avatar||'🤖'}</span>
         <div><div style="font-size:13px;font-weight:600">${escHtml(a.name)}</div><div style="font-size:10.5px;color:var(--text-3)">${escHtml(a.role||'')}</div></div>
       </div>`),
@@ -4333,7 +4333,7 @@ async function studioLoadFileTree() {
         <span style="font-size:10px;color:var(--text-3)">${formatBytes(f.size)}</span>
         <button type="button" class="file-row-delete-btn" title="Delete file" data-act-click="studioDeleteFile(${jsArg(f.path)})" data-stop="1" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:2px 4px;margin-left:2px;opacity:0;transition:opacity .15s">🗑</button>
       </div>`;
-    }).join('') + `<div class="new-file-btn" data-act-click="openNewFileModal()">＋ New file</div>`;
+    }).join('') + `<div class="new-file-btn" data-act-click="openNewFileModal()" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">＋ New file</div>`;
     // Reveal the delete button only on row hover, via JS (avoids adding a
     // new global CSS rule for a single component).
     el.querySelectorAll('.file-row').forEach(row => {

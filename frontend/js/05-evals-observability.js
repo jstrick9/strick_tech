@@ -528,7 +528,7 @@ async function obsLoadTraces(q='') {
           <div>Trace</div><div>Agent</div><div>Latency</div><div>Tokens</div><div>Status</div>
         </div>
         ${(d.traces||[]).map((t) =>`
-          <div class="trace-row" data-act-click="obsShowTrace(${JSON.stringify(t.id)})">
+          <div class="trace-row" data-act-click="obsShowTrace(${JSON.stringify(t.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-1)">${escHtml(t.name||t.input?.slice(0,60)||t.id)}</div>
             <div style="color:var(--text-2)">${escHtml(t.agent_id||'')}</div>
             <div style="color:var(--text-2)">${t.total_latency_ms||0}ms</div>
@@ -615,7 +615,7 @@ async function renderKnowledgeGraph() {
       </div>
       <div style="flex:1;overflow-y:auto;padding:0 8px 8px" id="kg-entity-list">
         ${(entities.entities||[]).map((e) =>`
-          <div class="kg-entity-card" data-act-click="kgShowEntity(${JSON.stringify(e.id)})">
+          <div class="kg-entity-card" data-act-click="kgShowEntity(${JSON.stringify(e.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
               <span class="kg-type-badge">${e.type||'concept'}</span>
               <span style="font-weight:600;color:var(--text-0);font-size:12px">${escHtml(e.name||'')}</span>
@@ -657,7 +657,7 @@ async function kgSearch(q) {
 
 function renderKGList(entities, el) {
   el.innerHTML=entities.map(e=>`
-    <div class="kg-entity-card" data-act-click="kgShowEntity(${JSON.stringify(e.id)})">
+    <div class="kg-entity-card" data-act-click="kgShowEntity(${JSON.stringify(e.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
         <span class="kg-type-badge">${e.type||'concept'}</span>
         <span style="font-weight:600;color:var(--text-0);font-size:12px">${escHtml(e.name||'')}</span>
@@ -690,13 +690,13 @@ async function kgShowEntity(entityId) {
       ${d.outgoing_relations?.length?`
         <div style="margin-bottom:12px">
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Outgoing Relations</div>
-          ${d.outgoing_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)">→ <strong>${escHtml(r.relation||'')}</strong> → <span style="color:var(--accent);cursor:pointer" data-act-click="kgShowEntity(${jsArg(r.to_id)})">${escHtml(r.to_name||'')}</span></div>`).join('')}
+          ${d.outgoing_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)">→ <strong>${escHtml(r.relation||'')}</strong> → <span style="color:var(--accent);cursor:pointer" data-act-click="kgShowEntity(${jsArg(r.to_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(r.to_name||'')}</span></div>`).join('')}
         </div>`:''}
 
       ${d.incoming_relations?.length?`
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Incoming Relations</div>
-          ${d.incoming_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--accent);cursor:pointer" data-act-click="kgShowEntity(${jsArg(r.from_id)})">${escHtml(r.from_name||'')}</span> → <strong>${escHtml(r.relation||'')}</strong> → this</div>`).join('')}
+          ${d.incoming_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--accent);cursor:pointer" data-act-click="kgShowEntity(${jsArg(r.from_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(r.from_name||'')}</span> → <strong>${escHtml(r.relation||'')}</strong> → this</div>`).join('')}
         </div>`:''}
 
       <div style="display:flex;gap:6px;margin-top:12px">
@@ -720,7 +720,7 @@ async function kgQuery() {
         ${(d.entities_found||[]).length?`
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Entities Found</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">
-            ${(d.entities_found||[]).map((e) =>`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer;color:var(--accent)" data-act-click="kgShowEntity(${JSON.stringify(e.id)})">${escHtml(e.name||'')} <span style="color:var(--text-3)">(${e.type})</span></span>`).join('')}
+            ${(d.entities_found||[]).map((e) =>`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer;color:var(--accent)" data-act-click="kgShowEntity(${JSON.stringify(e.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(e.name||'')} <span style="color:var(--text-3)">(${e.type})</span></span>`).join('')}
           </div>`:''}
       </div>`;
   }catch(ex){if(el) el.innerHTML=`<div style="color:var(--danger)">${escHtml(ex.message)}</div>`;}
@@ -770,7 +770,7 @@ async function kgTraverse(entityId) {
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
       <h4 style="margin:0 0 12px;color:var(--text-0)">Graph Traversal (2 hops) — ${d.node_count} nodes, ${d.edge_count} edges</h4>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
-        ${(d.nodes||[]).map((n) =>`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--text-1)" data-act-click="kgShowEntity(${JSON.stringify(n.id)})">${escHtml(n.name||'')} <span style="color:var(--text-3)">(${n.type})</span></span>`).join('')}
+        ${(d.nodes||[]).map((n) =>`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--text-1)" data-act-click="kgShowEntity(${JSON.stringify(n.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(n.name||'')} <span style="color:var(--text-3)">(${n.type})</span></span>`).join('')}
       </div>
       ${(d.edges||[]).map((e) =>`<div style="font-size:11px;color:var(--text-2);padding:3px 0">${escHtml(e.from_id.slice(-4))} → <strong>${escHtml(e.relation)}</strong> → ${escHtml(e.to_id.slice(-4))}</div>`).join('')}
     </div>`;

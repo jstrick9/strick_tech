@@ -248,7 +248,7 @@ function createFavoritesSection(favorites) {
       const icon = original.querySelector('.icon')?.textContent || '📌';
       const label = original.querySelector('.label')?.textContent || navId;
       html += `
-        <div class="nav-item fav-item" data-nav="${navId}" data-act-click="nav(${jsArg(navId)})">
+        <div class="nav-item fav-item" data-nav="${navId}" data-act-click="nav(${jsArg(navId)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <span class="icon">${icon}</span>
           <span class="label">${label}</span>
           <button type="button" class="fav-remove-btn" title="Remove from Favorites" 

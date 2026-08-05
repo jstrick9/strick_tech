@@ -63,7 +63,7 @@
       (config.icon ? '<div class="empty-state__icon">' + config.icon + '</div>' : '<div class="neural-orb-3d" style="width:48px;height:48px;margin:0 auto 16px"></div>') +
       '<div class="empty-state__title">' + (config.title || 'Workstation Ready') + '</div>' +
       '<div class="empty-state__body">' + (config.body || 'This specialist workstation is armed and waiting for your first task.') + '</div>' +
-      (config.action ? '<div role="button" tabindex="0" class="empty-state__actions"><button type="button" class="btn-3d btn-primary" data-act-click="' + config.action + '" data-keys="Enter,Space" data-prevent="1" data-self-click="1">' + (config.actionLabel || '⚡ Launch Task') + '</button></div>' : '');
+      (config.action ? '<div role="button" tabindex="0" class="empty-state__actions"><button type="button" class="btn-3d btn-primary" data-act-click="' + config.action + '">' + (config.actionLabel || '⚡ Launch Task') + '</button></div>' : '');
     target.appendChild(emptyDiv);
   };
 

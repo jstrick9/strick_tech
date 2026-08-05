@@ -29,7 +29,7 @@ async function renderWorkspaces() {
                 <button data-workspace-id="${escHtml(w.id)}" data-workspace-name="${escHtml(w.name)}" data-act-click="deleteWorkspace($data.workspaceId,$data.workspaceName)" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">🗑</button>`}
           </div>
         </div>`).join('')}
-        <div class="card card-interactive" data-act-click="createNewWorkspace()" style="display:flex;align-items:center;justify-content:center;min-height:120px;border-style:dashed;cursor:pointer">
+        <div class="card card-interactive" data-act-click="createNewWorkspace()" style="display:flex;align-items:center;justify-content:center;min-height:120px;border-style:dashed;cursor:pointer" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <div style="text-align:center;color:var(--text-3)"><div style="font-size:24px;margin-bottom:4px">＋</div><div style="font-size:12.5px">New Project</div></div>
         </div>
       </div>

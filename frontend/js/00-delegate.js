@@ -292,6 +292,10 @@
 
   var KEY_ALIASES = { Space: ' ', Spacebar: ' ' };
 
+  // Elements the browser already activates from the keyboard. They must never
+  // receive the synthetic self-click — see the note at its call site.
+  var NATIVELY_CLICKABLE = /^(BUTTON|A|INPUT|SELECT|TEXTAREA|SUMMARY)$/;
+
   // ── Hover styling ────────────────────────────────────────────────────────
   // `data-hover="bg:var(--bg-3)"` / `data-hover-out="bg:"` replace the
   // `onmouseover="this.style.background=..."` idiom. Values are literals
@@ -355,10 +359,26 @@
 
     if (spec) dispatch(spec, el, event);
 
-    // Keyboard accessibility idiom: a non-button element made operable with
+    // Keyboard accessibility idiom: a NON-native element made operable with
     // Enter/Space by re-dispatching a click on itself. Guarded against
     // recursion — a click handler that clicks itself would loop forever.
-    if (el.getAttribute('data-self-click') === '1' && type !== 'click' && el.click) {
+    //
+    // Natively focusable controls are excluded, and that exclusion is
+    // load-bearing rather than tidiness. A <button> already turns Enter and
+    // Space into a real click, so adding a synthetic one runs the handler
+    // TWICE for a single key press. Measured with native semantics in place:
+    // 2 invocations, i.e. a double form submit / double launch. One such site
+    // shipped (92-pane-error-boundary.js) because the migration applied the
+    // polyfill mechanically wherever it saw the old `this.click()` idiom.
+    //
+    // Enforcing it here rather than at the call site means a future
+    // data-self-click on a <button> is harmless instead of a duplicate action.
+    if (
+      el.getAttribute('data-self-click') === '1'
+      && type !== 'click'
+      && el.click
+      && !NATIVELY_CLICKABLE.test(el.tagName)
+    ) {
       el.click();
     }
 

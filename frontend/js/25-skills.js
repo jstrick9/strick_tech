@@ -41,7 +41,7 @@ async function renderSkills() {
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px" id="skill-cats"></div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px" id="skill-grid"></div>
   <!-- Run modal -->
-  <div id="skill-run-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px)" data-act-click="closeSkillModal()" data-click-self="1">
+  <div id="skill-run-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px)" data-act-click="closeSkillModal()" data-click-self="1" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
     <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-lg);width:100%;max-width:600px;padding:24px;max-height:85vh;overflow-y:auto">
       <h2 id="srm-title" style="font-size:18px;font-weight:800;margin-bottom:6px"></h2>
       <p id="srm-desc" style="font-size:13px;color:var(--text-2);margin-bottom:18px"></p>
@@ -68,8 +68,8 @@ async function loadSkills() {
     // Render category pills
     const catEl = document.getElementById('skill-cats');
     if (catEl) catEl.innerHTML =
-      `<span class="tag ${skillCategory==='all'?'blue':''}" data-cat="all" style="cursor:pointer;padding:5px 12px" data-act-click="filterSkills('all')">All (${allSkills.length})</span>` +
-      cats.map(c => `<span class="tag ${skillCategory===c.id?'blue':''}" data-cat="${c.id}" style="cursor:pointer;padding:5px 12px" data-act-click="filterSkills(${jsArg(c.id)})">${escHtml(c.id)} (${c.count})</span>`).join('');
+      `<span class="tag ${skillCategory==='all'?'blue':''}" data-cat="all" style="cursor:pointer;padding:5px 12px" data-act-click="filterSkills('all')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">All (${allSkills.length})</span>` +
+      cats.map(c => `<span class="tag ${skillCategory===c.id?'blue':''}" data-cat="${c.id}" style="cursor:pointer;padding:5px 12px" data-act-click="filterSkills(${jsArg(c.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(c.id)} (${c.count})</span>`).join('');
     renderSkillGrid();
   } catch(e) { console.warn('Failed to load skills:', e); toast('Loaded offline skills', 'ok'); }
 }

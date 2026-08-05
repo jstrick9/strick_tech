@@ -95,7 +95,7 @@ async function renderPrompts() {
       <div id="prompt-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px">${renderPromptCards()}</div>
       </div>
       <!-- Prompt modal -->
-      <div id="prompt-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(8px)" data-act-click="closePromptModal()" data-click-self="1">
+      <div id="prompt-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(8px)" data-act-click="closePromptModal()" data-click-self="1" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-xl);padding:22px;width:100%;max-width:560px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto">
           <h2 style="font-size:17px;font-weight:800;margin-bottom:14px" id="pm-modal-title">New Prompt</h2>
           <div class="form-group"><label class="form-label">Title *</label><input id="pm-title" class="input" placeholder="e.g. Security code review"></div>
@@ -644,7 +644,7 @@ async function runCodeSearch(){
     res.innerHTML=`<div style="margin-bottom:12px;font-size:13px;color:var(--text-1);font-weight:600">${j.total} match${j.total!==1?'es':''} in ${Object.keys(byFile).length} file${Object.keys(byFile).length!==1?'s':''}${j.summary?` — ${escHtml(j.summary)}`:''}
     </div>${Object.entries(byFile).map(([file,hits])=>`
       <div style="margin-bottom:10px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
-        <div style="padding:7px 12px;background:var(--bg-3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer" data-act-click="studioOpenFile(${jsArg(file)});nav('studio')">
+        <div style="padding:7px 12px;background:var(--bg-3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer" data-act-click="studioOpenFile(${jsArg(file)});nav('studio')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <span style="font-size:11.5px;font-family:monospace;color:var(--accent);font-weight:600">${escHtml(file)}</span>
           <span style="font-size:10.5px;color:var(--text-3);margin-left:auto">${hits.length} match${hits.length!==1?'es':''} · open →</span>
         </div>
@@ -659,7 +659,7 @@ async function runCodeSearch(){
               <span style="font-family:monospace;font-size:12px;color:${isMatch?'var(--text-0)':'var(--text-3)'};white-space:pre-wrap">${escHtml(l)}</span>
             </div>`;
           }).join('');
-          return `<div style="padding:6px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:var(--transition)" data-act-click="studioOpenFile(${jsArg(file)});nav('studio')" data-hover="bg:var(--bg-3)" data-hover-out="bg:">
+          return `<div style="padding:6px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:var(--transition)" data-act-click="studioOpenFile(${jsArg(file)});nav('studio')" data-hover="bg:var(--bg-3)" data-hover-out="bg:" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             ${ctxHtml}
           </div>`;
         }).join('')}
