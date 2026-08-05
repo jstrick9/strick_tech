@@ -230,6 +230,13 @@ def test_the_app_module_actually_uses_the_gate():
 EXPECTED_CSRF_EXEMPT = {
     '/api/security/csrf-token',  # must be reachable to bootstrap a token
     '/api/health',               # liveness probes cannot fetch a token
+    # CSP violation reports. The BROWSER posts these from its own network
+    # stack with no JavaScript involved, so it cannot attach a token and there
+    # is no way to make it. Enforcing CSRF here protected nothing and simply
+    # discarded the reports: the console showed 1740 violations while the
+    # endpoint reported 0. Appends to a bounded in-memory buffer, returns no
+    # data, changes no state a forged request could exploit.
+    '/api/security/csp-report',
 }
 
 
@@ -268,11 +275,14 @@ def test_exempt_paths_are_not_state_changing_business_routes():
     """A sanity check on the shape of what may be exempt."""
     from backend.app import _CSRF_EXEMPT
 
+    # Each shape has to earn its place. 'csp' joins the list because a browser
+    # -originated report genuinely cannot carry a token — that is a property of
+    # the reporting mechanism, not a convenience.
     for path in _CSRF_EXEMPT:
         assert path.startswith('/api/'), path
-        assert 'health' in path or 'csrf' in path, (
-            f'{path} is exempt from CSRF but is neither a health probe nor the '
-            f'token endpoint — justify it explicitly'
+        assert any(k in path for k in ('health', 'csrf', 'csp')), (
+            f'{path} is exempt from CSRF but is not a health probe, the token '
+            f'endpoint, or a browser-originated report — justify it explicitly'
         )
 
 

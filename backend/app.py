@@ -380,6 +380,20 @@ else:
 _CSRF_EXEMPT = frozenset({
     '/api/security/csrf-token',
     '/api/health',
+    # CSP violation reports. The BROWSER posts these itself, from its own
+    # network stack, with no JavaScript involved -- so it cannot attach a CSRF
+    # token and there is no way to make it. Enforcing CSRF here does not
+    # protect anything; it just discards the reports.
+    #
+    # It did exactly that: after CSRF enforcement went on, every report was
+    # answered 403 and the endpoint reported "0 violations" while the browser
+    # console showed 1740. A measurement channel that silently reads zero is
+    # worse than no channel, because the zero looks like good news.
+    #
+    # The endpoint is safe to exempt: it only appends to a bounded in-memory
+    # ring buffer, returns no data to the poster, and performs no state change
+    # a forged request could exploit.
+    '/api/security/csp-report',
 })
 
 
@@ -491,11 +505,17 @@ CSP_REPORT_ONLY = (
     # The whole point: no 'unsafe-inline' on script-src.
     "script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
     "https://cdn.tailwindcss.com https://unpkg.com https://cdn.monaco-editor.net; "
-    # style-src keeps 'unsafe-inline': the codebase sets element.style
-    # extensively and inline style attributes are a far smaller risk than
-    # inline script. Tightening it is a separate exercise with its own
-    # cost/benefit, and bundling the two would stall both.
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com "
+    # REPORT-ONLY RATCHET. This header exists to measure the NEXT tightening
+    # before enforcing it, which is the job it stopped doing the moment the
+    # enforcing policy caught up: after 461ba07 the two were byte-identical
+    # except for report-uri, so it reported on rules already in force and
+    # collected nothing actionable.
+    #
+    # It now drops 'unsafe-inline' from style-src, the last major weakness.
+    # Browsers keep enforcing the permissive policy, so nothing breaks; every
+    # style that WOULD be refused is reported to /api/security/csp-report
+    # instead. That converts an estimate into a measurement.
+    "style-src 'self' https://fonts.googleapis.com "
     "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
     "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net "
     "https://cdnjs.cloudflare.com data:; "
