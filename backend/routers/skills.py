@@ -18,6 +18,8 @@ log = logging.getLogger('agentic.skills')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import as_text
+
 ROOT = get_data_dir()
 SKILLS_FILE = ROOT / 'skills' / 'skills.json'
 
@@ -353,7 +355,7 @@ async def create_skill(req: Request):
         body = await req.json()
     except Exception:
         body = {}
-    name = (body.get('name') or '').strip()
+    name = as_text(body.get('name'))
     if not name:
         return {'ok': False, 'error': 'name required'}
 

@@ -13,7 +13,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ..services import llm, memory_db
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 # Characters that can terminate a JS string literal or an HTML attribute.
 _UNSAFE_NAME_CHARS = re.compile(r'[\'"<>\\\x00-\x1f\x7f]')
@@ -44,7 +44,7 @@ async def create_agent(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    name = (body.get('name') or '').strip()
+    name = as_text(body.get('name'))
     if not name:
         return {'ok': False, 'error': 'name is required'}
 
@@ -198,7 +198,7 @@ async def test_agent(agent_id: str, req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    message = (body.get('message') or 'Say hello and describe your role.').strip()
+    message = (as_text(body.get('message')) or 'Say hello and describe your role.')
 
     agents = {a['id']: a for a in memory_db.agents_list()}
     agent = agents.get(agent_id, {'id': agent_id, 'name': agent_id, 'model': '', 'system_prompt': ''})

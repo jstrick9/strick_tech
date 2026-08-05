@@ -35,6 +35,8 @@ log = logging.getLogger('agentic.identity')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import as_text
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -437,9 +439,9 @@ async def provision_identity(req: Request):
     except Exception:
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
-    agent_id = (body.get('agent_id') or '').strip()
-    display_name = (body.get('display_name') or '').strip()
-    authority_lvl = (body.get('authority_level') or 'standard').strip()
+    agent_id = as_text(body.get('agent_id'))
+    display_name = as_text(body.get('display_name'))
+    authority_lvl = (as_text(body.get('authority_level')) or 'standard')
 
     if not agent_id:
         return JSONResponse({'ok': False, 'error': 'agent_id required'}, status_code=400)
@@ -546,9 +548,9 @@ async def validate_token(req: Request):
     except Exception:
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
-    token_id = (body.get('token_id') or '').strip()
-    agent_id = (body.get('agent_id') or '').strip()
-    action = (body.get('required_action') or '').strip()
+    token_id = as_text(body.get('token_id'))
+    agent_id = as_text(body.get('agent_id'))
+    action = as_text(body.get('required_action'))
 
     if not token_id or not agent_id:
         return JSONResponse({'ok': False, 'error': 'token_id and agent_id required'}, status_code=400)
@@ -613,9 +615,9 @@ async def grant_permission(agent_id: str, req: Request):
     except Exception:
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
-    action = (body.get('action') or '').strip()
-    resource = (body.get('resource') or '*').strip()
-    granted_by = (body.get('granted_by') or 'user').strip()
+    action = as_text(body.get('action'))
+    resource = (as_text(body.get('resource')) or '*')
+    granted_by = (as_text(body.get('granted_by')) or 'user')
 
     if not action:
         return JSONResponse({'ok': False, 'error': 'action required'}, status_code=400)

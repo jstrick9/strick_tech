@@ -27,6 +27,8 @@ log = logging.getLogger('agentic.license')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import as_text
+
 ROOT = get_data_dir()
 LICENSE_FILE = ROOT / '.agentic' / 'license.json'
 LICENSE_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -321,7 +323,7 @@ async def activate_license(req: Request):
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         return {'ok': False, 'error': 'Invalid JSON body'}
 
-    key = (body.get('license_key') or '').strip()
+    key = as_text(body.get('license_key'))
     if not key:
         return {'ok': False, 'error': 'license_key required'}
 

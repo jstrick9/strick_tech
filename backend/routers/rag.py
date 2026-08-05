@@ -31,7 +31,7 @@ log = logging.getLogger('agentic.rag')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 DOCS_DIR = ROOT / 'workspaces' / 'rag_documents'
@@ -342,7 +342,7 @@ async def retrieve(pipeline_id: str, req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    query = (body.get('query') or '').strip()
+    query = as_text(body.get('query'))
     k = _safe_rag_int(body.get('k', 5), 5, 1, 20)
     if not query:
         return JSONResponse({'ok': False, 'error': 'query required'}, status_code=400)
@@ -356,7 +356,7 @@ async def rag_query(pipeline_id: str, req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    query = (body.get('query') or '').strip()
+    query = as_text(body.get('query'))
     k = _safe_rag_int(body.get('k', 5), 5, 1, 20)
     agent_id = str(body.get('agent_id', 'builder'))[:64]
     if not query:

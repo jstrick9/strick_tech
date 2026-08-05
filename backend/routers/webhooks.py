@@ -22,7 +22,7 @@ from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
 from ..services.memory_db import audit_log, get_conn, memory_add
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(prefix='/api/webhooks', tags=['webhooks'])
 log = logging.getLogger('agentic.webhooks')
@@ -90,7 +90,7 @@ async def create_webhook(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    name = (body.get('name') or 'Webhook').strip()[:80]
+    name = (as_text(body.get('name')) or 'Webhook')[:80]
     wid = str(uuid.uuid4())[:12]
     secret = body.get('secret', uuid.uuid4().hex[:24])
     con = get_conn()

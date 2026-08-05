@@ -17,7 +17,7 @@ from fastapi.responses import StreamingResponse
 
 from ..services import llm, memory_db
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(prefix='/api/pipeline', tags=['pipeline'])
 log = logging.getLogger('agentic.pipeline')
@@ -59,7 +59,7 @@ async def pipeline_run(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    goal = (body.get('goal') or body.get('prompt') or '').strip()
+    goal = as_text(body.get('goal')) or as_text(body.get('prompt'))
     stages = body.get('stages') or STAGE_ORDER
     body.get('target', 'web')
     stream_out = body.get('stream', True)

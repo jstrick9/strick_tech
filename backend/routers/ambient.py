@@ -27,7 +27,7 @@ from fastapi.responses import JSONResponse
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
@@ -559,7 +559,7 @@ async def create_background_task(req: Request):
     if _body_err:
         return _body_err
     name = (body.get('name') or 'Background Task')[:200]
-    prompt = (body.get('prompt') or '').strip()
+    prompt = as_text(body.get('prompt'))
     agent_id = body.get('agent_id', 'builder')
     trigger = body.get('trigger_src', 'api')
 

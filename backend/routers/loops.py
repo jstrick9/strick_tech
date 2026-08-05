@@ -10,7 +10,7 @@ import uuid
 from fastapi import APIRouter, Request
 
 from ..services import scheduler as sched_svc
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 from ..services.scheduler import _BUILTIN_JOB_IDS
 
 router = APIRouter(prefix='/api/loops', tags=['loops'])
@@ -32,7 +32,7 @@ async def create_loop(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = str(body.get('prompt') or '').strip()[:4000]
+    prompt = as_text(body.get('prompt'))[:4000]
     try:
         interval = int(body.get('interval_minutes', 15))
     except (TypeError, ValueError):

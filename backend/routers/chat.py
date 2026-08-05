@@ -13,7 +13,7 @@ from fastapi.responses import StreamingResponse
 
 from ..services import llm, memory_db
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(tags=['chat'])
 
@@ -87,7 +87,7 @@ def _system_prompt_for_agent(agent: dict) -> str:
             'When writing code, use proper syntax blocks. '
             'Answer questions directly and naturally, exactly like ChatGPT or Claude.'
         )
-    custom = (agent.get('system_prompt') or '').strip()
+    custom = (as_text(agent.get('system_prompt')) or '')
     if custom:
         return custom
     name = agent.get('name', 'AI')
@@ -128,13 +128,13 @@ async def chat_stream(req: Request):
             if isinstance(p, dict) and p.get('type') == 'text'
         ).strip()[:16000]
     else:
-        message = (raw_message or '').strip()[:16000]
+        message = as_text(raw_message, limit=16000)[:16000]
     has_images = bool(
         message_parts
         and any(isinstance(p, dict) and p.get('type') == 'image_url' for p in message_parts)
     )
     agent_id = (body.get('agent_id') or 'default').lower()[:64]
-    req_model = (body.get('model') or '').strip()[:200]
+    req_model = as_text(body.get('model'))[:200]
     session_id = str(body.get('session_id') or str(uuid.uuid4()))[:128]
     history = body.get('history') or []  # [{role, content}, ...]
     temperature = _bounded_temperature(body.get('temperature', 0.7))
@@ -342,7 +342,7 @@ async def chat_stream(req: Request):
             is_generic_agent = agent_id in ('default', 'direct ai chat', '')
             filtered = []
             for r in mem_results:
-                content = (r.get('content') or '').strip()
+                content = (as_text(r.get('content')) or '')
                 if not content:
                     continue
                 # BUG FIX: retrieval could surface platform error text that was
@@ -557,7 +557,7 @@ async def chat_complete(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    message = (body.get('message') or '').strip()[:16000]
+    message = as_text(body.get('message'))[:16000]
     agent_id = str(body.get('agent_id') or 'default')[:64]
     model = str(body.get('model') or '')[:200]
     system = str(body.get('system') or '')[:16000]
@@ -695,7 +695,7 @@ async def chat_clear(req: Request):
             body = {}
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         body = {}
-    session_id = (body.get('session_id') or '').strip()
+    session_id = as_text(body.get('session_id'))
     con = memory_db.get_conn()
     try:
         if session_id:

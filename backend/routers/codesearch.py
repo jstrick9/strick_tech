@@ -24,7 +24,7 @@ log = logging.getLogger('agentic.project')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -196,8 +196,8 @@ async def set_project_memory(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    key = (body.get('key') or '').strip()[:120]
-    val = (body.get('value') or '').strip()[:2000]
+    key = as_text(body.get('key'))[:120]
+    val = as_text(body.get('value'))[:2000]
     if not key or not val:
         return {'ok': False, 'error': 'key and value required'}
     con = memory_db.get_conn()
@@ -225,8 +225,8 @@ async def learn_from_interaction(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    action = (body.get('action') or '').strip()
-    context = (body.get('context') or '').strip()
+    action = as_text(body.get('action'))
+    context = as_text(body.get('context'))
 
     if not action:
         return {'ok': False, 'error': 'action required'}
@@ -255,7 +255,7 @@ async def learn_from_interaction(req: Request):
     result = await llm.complete(
         messages, agent_id='free', max_tokens=300, temperature=0.2, inject_steering=False
     )  # FIX: learn/from-interaction
-    text = (result.get('text') or '').strip()
+    text = (as_text(result.get('text')) or '')
 
     # Parse JSON
     learned = []
@@ -311,7 +311,7 @@ async def get_suggestions(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    last_action = (body.get('action') or '').strip()
+    last_action = as_text(body.get('action'))
     pane = body.get('pane', '')
     files = body.get('files', [])
 
@@ -357,7 +357,7 @@ async def get_suggestions(req: Request):
     result = await llm.complete(
         messages, agent_id='free', max_tokens=400, temperature=0.4, inject_steering=False
     )  # FIX: suggestions
-    text = (result.get('text') or '').strip()
+    text = (as_text(result.get('text')) or '')
 
     suggestions = []
     try:
@@ -439,7 +439,7 @@ async def review_code(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    filepath = (body.get('filepath') or '').strip().lstrip('/')
+    filepath = as_text(body.get('filepath')).lstrip('/')
     force = bool(body.get('force', False))
 
     if not filepath:
@@ -477,7 +477,7 @@ async def review_code(req: Request):
     result = await llm.complete(
         messages, agent_id='reviewer', max_tokens=1500, temperature=0.2, inject_steering=False
     )  # FIX: code reviewer
-    text = (result.get('text') or '').strip()
+    text = (as_text(result.get('text')) or '')
 
     review = {'issues': [], 'summary': '', 'score': 75, 'highlights': []}
     try:

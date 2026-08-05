@@ -25,7 +25,7 @@ log = logging.getLogger('agentic.goals')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -286,7 +286,7 @@ async def create_goal(req: Request):
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
-    title = (body.get('title') or '').strip()
+    title = as_text(body.get('title'))
     if not title:
         return JSONResponse({'ok': False, 'error': 'title required'}, status_code=400)
 
@@ -530,7 +530,7 @@ async def add_checkin(goal_id: str, req: Request):
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
-    note = (body.get('note') or '').strip()[:1000]
+    note = as_text(body.get('note'))[:1000]
     progress = max(0, min(100, int(body.get('progress') or 0)))
     agent_id = (body.get('agent_id') or 'user')[:50]
 
@@ -564,7 +564,7 @@ async def add_milestone(goal_id: str, req: Request):
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
-    title = (body.get('title') or '').strip()
+    title = as_text(body.get('title'))
     if not title:
         return JSONResponse({'ok': False, 'error': 'title required'}, status_code=400)
 

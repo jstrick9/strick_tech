@@ -28,7 +28,7 @@ log = logging.getLogger('agentic.browser')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 SCREENSHOTS = ROOT / 'preview' / 'browser_screenshots'
@@ -222,7 +222,7 @@ async def run_browser_task(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    task = str(body.get('task') or '').strip()[:8000]
+    task = as_text(body.get('task'))[:8000]
     raw_url = str(body.get('start_url', 'https://duckduckgo.com') or 'https://duckduckgo.com')[:2000]
     try:
         max_steps = max(1, min(int(body.get('max_steps', 15)), 30))
@@ -660,7 +660,7 @@ async def quick_screenshot(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    raw_url = (body.get('url') or '').strip()
+    raw_url = as_text(body.get('url'))
     if not raw_url:
         return JSONResponse({'ok': False, 'error': 'url required'}, status_code=400)
 

@@ -27,7 +27,7 @@ log = logging.getLogger('agentic.composer')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 from ..services.safe_paths import safe_path
 
 ROOT = get_data_dir()
@@ -66,7 +66,7 @@ async def composer_run(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    instruction = (body.get('instruction') or '').strip()
+    instruction = as_text(body.get('instruction'))
     framework = body.get('framework', 'web')
     stream_out = body.get('stream', True)
     extra_ctx = body.get('context', '')

@@ -27,7 +27,7 @@ router = APIRouter(prefix='/api/templates', tags=['templates'])
 log = logging.getLogger('agentic.templates')
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 PREV = ROOT / 'preview'
@@ -570,7 +570,7 @@ async def scaffold_custom(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    name = (body.get('name') or '').strip()[:80]
+    name = as_text(body.get('name'))[:80]
     if not name:
         return {'ok': False, 'error': 'name required'}
 

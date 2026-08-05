@@ -15,7 +15,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ..services import llm, memory_db
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(prefix='/api/swarm', tags=['swarm'])
 
@@ -53,7 +53,7 @@ async def swarm_run(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = str(body.get('prompt') or '').strip()[:16000]
+    prompt = as_text(body.get('prompt'))[:16000]
     raw_agents = body.get('agents') or ['brain', 'builder', 'researcher', 'creative']
     agent_ids = raw_agents if isinstance(raw_agents, list) else [raw_agents]
     agent_ids = [str(agent_id)[:64] for agent_id in agent_ids if str(agent_id).strip()]

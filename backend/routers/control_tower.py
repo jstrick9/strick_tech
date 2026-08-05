@@ -27,7 +27,7 @@ log = logging.getLogger('agentic.control')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -576,7 +576,7 @@ async def create_budget_rule(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    name = (body.get('name') or 'Budget limit').strip()[:80]
+    name = (as_text(body.get('name')) or 'Budget limit')[:80]
     agent_id = body.get('agent_id', '*')
     max_cost = float(body.get('max_cost', 1.0))
     max_tok = int(body.get('max_tokens', 100000))

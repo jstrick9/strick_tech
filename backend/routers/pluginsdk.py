@@ -22,7 +22,7 @@ log = logging.getLogger('agentic.pluginsdk')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 SDK_DIR = ROOT / 'workspaces' / 'plugin_sdk'
@@ -108,7 +108,7 @@ async def create_pack(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    name = (body.get('name') or '').strip()
+    name = as_text(body.get('name'))
     if not name:
         return {'ok': False, 'error': 'name is required'}
     pack_id = (body.get('id') or f'pack_{uuid.uuid4().hex[:6]}').lower().replace(' ', '-')

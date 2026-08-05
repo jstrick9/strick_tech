@@ -17,7 +17,7 @@ import logging
 
 from fastapi import APIRouter, Request
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(prefix='/api/agent-leaderboard', tags=['agent_leaderboard'])
 log = logging.getLogger('agentic.leaderboard')
@@ -167,13 +167,13 @@ async def record_event(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    agent_id = (body.get('agent_id') or '').strip()
+    agent_id = as_text(body.get('agent_id'))
     if not agent_id:
         return {'ok': False, 'error': 'agent_id required'}
     try:
         record_performance(
             agent_id=agent_id,
-            task_type=(body.get('task_type') or 'general').strip()[:64],
+            task_type=(as_text(body.get('task_type')) or 'general')[:64],
             success=bool(body.get('success', True)),
             tokens=max(0, int(body.get('tokens', 0))),
             cost_usd=max(0.0, float(body.get('cost_usd', 0))),
@@ -255,7 +255,7 @@ async def rate_agent(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    agent_id = (body.get('agent_id') or '').strip()
+    agent_id = as_text(body.get('agent_id'))
     if not agent_id:
         return {'ok': False, 'error': 'agent_id required'}
     rating = min(5, max(1, int(body.get('rating', 3))))
@@ -305,9 +305,9 @@ async def create_policy(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    agent_id = (body.get('agent_id') or '*').strip()[:64]
-    policy_type = (body.get('policy_type') or 'custom').strip()[:64]
-    policy_rule = (body.get('policy_rule') or '').strip()[:500]
+    agent_id = (as_text(body.get('agent_id')) or '*')[:64]
+    policy_type = (as_text(body.get('policy_type')) or 'custom')[:64]
+    policy_rule = as_text(body.get('policy_rule'))[:500]
     if not policy_rule:
         return {'ok': False, 'error': 'policy_rule required'}
     enabled = 1 if body.get('enabled', True) else 0

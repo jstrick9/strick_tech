@@ -28,7 +28,7 @@ router = APIRouter(tags=['builder'])
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
@@ -137,10 +137,10 @@ async def studio_lint(req: Request):
     if _body_err:
         return _body_err
 
-    scope = (body.get('scope') or '').strip().lower()
+    scope = as_text(body.get('scope')).lower()
 
     if scope != 'platform':
-        path = str(body.get('path') or '').strip()
+        path = as_text(body.get('path'))
         content = body.get('content')
 
         # Fall back to reading the named preview file when no content was sent.
@@ -261,8 +261,14 @@ async def preview_save(req: Request):
     # never checked `r.ok` before `r.json()`, so the failure was completely
     # silent to the user. `or` catches both "missing" and "explicitly
     # null/empty" cases.
-    path = (d.get('path') or 'index.html').lstrip('/')
+    path = (as_text(d.get('path')) or 'index.html').lstrip('/')
+    # write_text() needs a str. A JSON number or object arrived as a
+    # non-string and raised TypeError -> 500. NOT as_text(): that strips
+    # surrounding whitespace, and leading/trailing whitespace in a source
+    # file is meaningful.
     content = d.get('content', '')
+    if not isinstance(content, str):
+        content = '' if content is None else str(content)
     f = (PREVIEW_DIR / path).resolve()
     if not _is_within(f, PREVIEW_DIR):
         return {'ok': False, 'error': 'path traversal'}
@@ -314,7 +320,7 @@ async def preview_save(req: Request):
 async def preview_new(req: Request):
     """Execute or process preview new operation."""
     d = await _request_json(req)
-    path = (d.get('path') or 'untitled.html').lstrip('/')
+    path = (as_text(d.get('path')) or 'untitled.html').lstrip('/')
     f = (PREVIEW_DIR / path).resolve()
     if not _is_within(f, PREVIEW_DIR):
         return {'ok': False, 'error': 'path traversal'}
@@ -409,7 +415,7 @@ async def preview_restore(req: Request):
 async def preview_commit(req: Request):
     """Execute or process preview commit operation."""
     d = await _request_json(req)
-    path = d.get('path') or 'index.html'
+    path = as_text(d.get('path')) or 'index.html'
     f = (PREVIEW_DIR / path).resolve()
     # FIX 4: traversal guard on commit path
     if not _is_within(f, PREVIEW_DIR):
@@ -438,7 +444,7 @@ async def preview_commit(req: Request):
 async def agent_edit(req: Request):
     """Streaming inline code edit (⌘K). Diff-friendly output."""
     d = await _request_json(req)
-    instruction = (d.get('instruction') or '').strip()
+    instruction = (as_text(d.get('instruction')) or '')
     code = d.get('code') or ''
     language = d.get('language') or 'javascript'
     filepath = d.get('filepath') or ''
@@ -469,7 +475,7 @@ async def agent_edit(req: Request):
 async def agent_fix(req: Request):
     """Auto-fix an error in a file."""
     d = await _request_json(req)
-    error = (d.get('error') or '').strip()
+    error = (as_text(d.get('error')) or '')
     code = d.get('code') or ''
     language = d.get('language') or 'javascript'
 
@@ -532,7 +538,7 @@ async def complete_code(req: Request):
 async def preview_scaffold(req: Request):
     """Execute or process preview scaffold operation."""
     d = await _request_json(req)
-    prompt_raw = d.get('prompt', 'app')
+    prompt_raw = as_text(d.get('prompt')) or 'app'
     prompt = prompt_raw.lower()
     framework = d.get('framework', 'auto')
 
@@ -876,8 +882,8 @@ def pm_list():
 async def pm_add(req: Request):
     """Execute or process pm add operation."""
     d = await _request_json(req)
-    name = (d.get('name') or '').strip()
-    ver = (d.get('version') or 'latest').strip()
+    name = (as_text(d.get('name')) or '')
+    ver = (as_text(d.get('version')) or 'latest')
     dev = bool(d.get('dev', False))
     if not name:
         return {'ok': False, 'error': 'name required'}
@@ -906,7 +912,7 @@ async def pm_add(req: Request):
 async def pm_remove(req: Request):
     """Execute or process pm remove operation."""
     d = await _request_json(req)
-    name = (d.get('name') or '').strip()
+    name = (as_text(d.get('name')) or '')
     if not name:
         return {'ok': False, 'error': 'name required'}
     for path in [PREVIEW_DIR / 'package.json']:

@@ -25,7 +25,7 @@ log = logging.getLogger('agentic.obsidian')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -53,7 +53,7 @@ def _vault_path() ->Path | None:
 _UNSAFE_PATH_MARKERS = ('..', '%2e', '%2f', '%5c', '\x00')
 
 
-def validate_note_path(raw: str) -> tuple[str | None, str | None]:
+def validate_note_path(raw: object) -> tuple[str | None, str | None]:
     """Normalise a caller-supplied note path.
 
     Returns (safe_relative_path, error). The path is always relative, always
@@ -61,7 +61,22 @@ def validate_note_path(raw: str) -> tuple[str | None, str | None]:
     already enforced downstream, but only AFTER a junk filename had been
     accepted — this rejects the input up front so the vault stays clean.
     """
-    path = (raw or '').strip().replace('\\', '/')
+    # Typed `object`, not `str`: callers pass body.get('path') straight in, and
+    # a JSON number or list arrived as a non-string and crashed the handler
+    # with a 500 before any containment check below could run.
+    #
+    # Coerced here rather than with as_text(), which STRIPS null bytes. For a
+    # filesystem path a null byte must be REJECTED, not quietly removed --
+    # 'note\x00.md' silently becoming 'note.md' would mean the caller and the
+    # server disagree about which file was written, which is the beginning of a
+    # path-confusion bug rather than the end of one.
+    if raw is None:
+        return None, 'path required'
+    if not isinstance(raw, str):
+        raw = str(raw)
+    if '\x00' in raw:
+        return None, 'path contains a null byte'
+    path = raw.strip().replace('\\', '/')
     if not path:
         return None, 'path required'
     # Reject absolute paths outright rather than silently rebasing them.
@@ -241,12 +256,12 @@ async def export_to_vault(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    source = (body.get('source') or '').strip()
+    source = as_text(body.get('source'))
     try:
         limit = min(int(body.get('limit', 50)), 200)
     except (TypeError, ValueError):
         limit = 50
-    title = (body.get('title') or f'Agentic OS Export {date.today()}').strip()[:200]
+    title = (as_text(body.get('title')) or f'Agentic OS Export {date.today()}')[:200]
 
     from ..services.memory_db import memory_list, memory_search_fts
 

@@ -23,7 +23,7 @@ router = APIRouter(prefix='/api/db', tags=['database'])
 log = logging.getLogger('agentic.db')
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 DB = ROOT / 'memory' / 'agentic.db'
@@ -445,7 +445,7 @@ async def sqlite_query(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    sql = (body.get('sql') or '').strip()
+    sql = as_text(body.get('sql'))
     allow_write = bool(body.get('allow_write', False))
 
     if not sql:
@@ -712,7 +712,7 @@ async def ai_schema_designer(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    desc = (body.get('description') or '').strip()
+    desc = as_text(body.get('description'))
     if not desc:
         return {'ok': False, 'error': 'description required'}
 
@@ -979,7 +979,7 @@ async def supabase_ai_setup(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    desc = (body.get('description') or '').strip()
+    desc = as_text(body.get('description'))
     if not desc:
         return {'ok': False, 'error': 'description required'}
 

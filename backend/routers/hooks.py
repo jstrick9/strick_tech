@@ -34,7 +34,7 @@ from fastapi.responses import JSONResponse
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 HOOKS_DIR = ROOT / '.agentic'
@@ -372,11 +372,11 @@ async def create_hook(req: Request):
     if _body_err:
         return _body_err
     hook_id = body.get('id') or f'hook_{uuid.uuid4().hex[:8]}'
-    event = (body.get('event', 'file_save') or '').strip() or 'file_save'
+    event = as_text(body.get('event')) or 'file_save'
     _event_raw = body.get('event')
     if _event_raw is not None and not str(_event_raw).strip():
         return {'ok': False, 'error': 'event is required'}
-    prompt = (body.get('prompt') or '').strip()
+    prompt = as_text(body.get('prompt'))
     if not prompt:
         return {'ok': False, 'error': 'prompt is required'}
     if not event:

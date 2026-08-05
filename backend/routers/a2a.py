@@ -58,6 +58,8 @@ log = logging.getLogger('agentic.a2a')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import as_text
+
 ROOT = get_data_dir()
 
 # ── Schema guard ───────────────────────────────────────────────────────────────
@@ -1093,7 +1095,7 @@ async def register_agent(request: Request):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
     agent_id = (body.get('agent_id') or f'ext_{uuid.uuid4().hex[:8]}').strip()
-    name = (body.get('name') or '').strip()
+    name = as_text(body.get('name'))
     a2a_url = (body.get('a2a_url') or body.get('url', '')).strip()
     description = (body.get('description', '')).strip()
     auth_type = (body.get('auth_type', 'none')).strip()
@@ -1330,8 +1332,8 @@ async def delegate_task(request: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
-    remote_agent_id = (body.get('agent_id') or '').strip()
-    message_text = (body.get('message') or '').strip()
+    remote_agent_id = as_text(body.get('agent_id'))
+    message_text = as_text(body.get('message'))
     session_id = body.get('session_id', '')
     metadata = body.get('metadata') or {}
 

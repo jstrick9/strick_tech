@@ -22,7 +22,7 @@ from fastapi.responses import JSONResponse
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 from ..services.safe_paths import safe_path
 
 ROOT = get_data_dir()
@@ -161,7 +161,7 @@ async def scaffold_integration(integration_id: str, req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    framework = (body.get('framework') or 'web').strip()[:64]
+    framework = (as_text(body.get('framework')) or 'web')[:64]
 
     integration = _INT_BY_ID.get(integration_id)
     if not integration:
@@ -249,7 +249,7 @@ async def generate_docs(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    doc_type = (body.get('type') or 'readme').strip().lower()
+    doc_type = (as_text(body.get('type')) or 'readme').lower()
 
     if doc_type not in VALID_DOC_TYPES:
         return {'ok': False, 'error': f"Unknown doc type '{doc_type}'. Valid: {sorted(VALID_DOC_TYPES)}"}
@@ -379,7 +379,7 @@ async def save_project_rules(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    content = (body.get('content') or '').strip()
+    content = as_text(body.get('content'))
     if not content:
         return {'ok': False, 'error': 'content required — cannot save empty rules'}
     try:
@@ -403,17 +403,17 @@ async def stripe_wire(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    mode = (body.get('mode') or 'payment').strip()
+    mode = (as_text(body.get('mode')) or 'payment')
     if mode not in ('payment', 'subscription', 'connect'):
         mode = 'payment'
-    price_id = (body.get('price_id') or '').strip()[:128]
-    product_name = (body.get('product_name') or 'Pro Plan').strip()[:128]
+    price_id = as_text(body.get('price_id'))[:128]
+    product_name = (as_text(body.get('product_name')) or 'Pro Plan')[:128]
     try:
         amount_cents = max(0, int(body.get('amount_cents', 1999)))
     except (TypeError, ValueError):
         amount_cents = 1999
     currency = re.sub(r'[^a-z]', '', (body.get('currency') or 'usd').lower())[:3]
-    target_file = (body.get('target_file') or 'checkout.html').strip()
+    target_file = (as_text(body.get('target_file')) or 'checkout.html')
     include_webhook = bool(body.get('include_webhook', True))
 
     stripe_key = os.getenv('STRIPE_SECRET_KEY', '')
@@ -553,8 +553,8 @@ async def create_checkout_session(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    price_id = (body.get('price_id') or 'price_starter_monthly').strip()[:128]
-    mode = (body.get('mode') or 'subscription').strip()
+    price_id = (as_text(body.get('price_id')) or 'price_starter_monthly')[:128]
+    mode = (as_text(body.get('mode')) or 'subscription')
     if mode not in ('payment', 'subscription'):
         mode = 'subscription'
     success = body.get('success_url', f'http://localhost:{os.getenv("AGENTIC_OS_PORT", "8787")}/preview/success.html')
@@ -600,12 +600,12 @@ async def auth_wire(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    provider = (body.get('provider') or 'nextauth').strip()
+    provider = (as_text(body.get('provider')) or 'nextauth')
     valid_providers = {'nextauth', 'clerk', 'supabase', 'firebase', 'auth0', 'magic'}
     if provider not in valid_providers:
         provider = 'nextauth'
 
-    auth_file = (body.get('target_file') or 'auth.html').strip()
+    auth_file = (as_text(body.get('target_file')) or 'auth.html')
     # Validate oauth_providers list
     raw_oauth = body.get('oauth_providers', ['google', 'github'])
     valid_oauth = {'google', 'github', 'discord', 'twitter', 'facebook', 'apple', 'microsoft'}

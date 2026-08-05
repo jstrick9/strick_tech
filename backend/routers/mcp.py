@@ -21,7 +21,7 @@ router = APIRouter(prefix='/api/mcp', tags=['mcp'])
 log = logging.getLogger('agentic.mcp')
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -95,7 +95,7 @@ async def call_tool(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    tool = (body.get('tool') or '').strip()
+    tool = as_text(body.get('tool'))
     args = body.get('args') or {}
     agent_id = body.get('agent_id', 'system')
 
@@ -174,7 +174,7 @@ async def agent_with_tools(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
+    prompt = as_text(body.get('prompt'))
     agent_id = body.get('agent_id', 'builder')
     max_steps = min(int(body.get('max_steps', 5)), 10)
     allowed = set(body.get('tools') or list(TOOLS.keys()))

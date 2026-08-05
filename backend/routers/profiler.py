@@ -24,7 +24,7 @@ log = logging.getLogger('agentic.profiler')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -284,7 +284,7 @@ async def profile_code_block(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    code = (body.get('code') or '').strip()
+    code = as_text(body.get('code'))
     if not code or len(code) > 2000:
         return {'ok': False, 'error': 'code required, max 2000 chars'}
 

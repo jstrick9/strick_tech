@@ -21,7 +21,7 @@ log = logging.getLogger('agentic.testgen')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -46,7 +46,7 @@ async def generate_tests(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    filepath = (body.get('filepath') or '').strip().lstrip('/')
+    filepath = as_text(body.get('filepath')).lstrip('/')
     framework = body.get('framework', 'jest').lower()
     context = body.get('context', '')
     stream = body.get('stream', True)

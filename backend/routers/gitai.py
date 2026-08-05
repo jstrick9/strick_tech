@@ -28,7 +28,7 @@ log = logging.getLogger('agentic.gitai')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'  # FIX 2: define PREVIEW_DIR for security scanner
@@ -125,7 +125,7 @@ async def natural_language_git(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    query = (body.get('query') or '').strip()
+    query = as_text(body.get('query'))
     dry_run = body.get('dry_run', True)  # default safe: show command before running
 
     if not query:
@@ -804,7 +804,7 @@ async def scan_file(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    content = (body.get('content') or '').strip()
+    content = as_text(body.get('content'))
     filename = body.get('filename', 'unknown')
 
     vulns = []

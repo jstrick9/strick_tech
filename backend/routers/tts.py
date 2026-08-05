@@ -23,7 +23,7 @@ log = logging.getLogger('agentic.tts')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 CACHE_DIR = ROOT / 'memory' / 'tts_cache'
@@ -106,10 +106,10 @@ async def speak(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    text = (body.get('text') or '').strip()
-    agent_id = (body.get('agent_id') or 'default').strip()
-    voice = (body.get('voice') or '').strip()
-    rate = (body.get('rate') or '+0%').strip()
+    text = as_text(body.get('text'))
+    agent_id = (as_text(body.get('agent_id')) or 'default')
+    voice = as_text(body.get('voice'))
+    rate = (as_text(body.get('rate')) or '+0%')
     use_cache = body.get('cache', True)
 
     if not text:
@@ -259,7 +259,7 @@ async def set_agent_voice(agent_id: str, req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    voice = (body.get('voice') or DEFAULT_VOICE).strip()
+    voice = (as_text(body.get('voice')) or DEFAULT_VOICE)
     if voice not in EDGE_VOICES:
         return {'ok': False, 'error': f"Unknown voice '{voice}'. Options: {list(EDGE_VOICES.keys())}"}
     AGENT_VOICES[agent_id.lower()] = voice
@@ -335,7 +335,7 @@ async def elevenlabs_speak(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    text = (body.get('text') or '').strip()[:2000]
+    text = as_text(body.get('text'))[:2000]
     voice_id = body.get('voice_id', '21m00Tcm4TlvDq8ikWAM')  # default Rachel voice
     model = body.get('model', 'eleven_monolingual_v1')
 
