@@ -28,6 +28,13 @@
     ]},
   ];
 
+  // 01-app-core.js:5440 also defines showKeyboardShortcuts (the older
+  // #shortcuts-modal). This grouped overlay has won since it was written: it
+  // lived inline in index.html, and inline scripts run after the non-deferred
+  // core file. Extracting it to a deferred file keeps the same winner, so
+  // behaviour is unchanged -- the clash merely became VISIBLE to
+  // lint_globals.py, which scans .js and could not see an inline block.
+  // intentional-override: richer grouped overlay supersedes the core modal
   window.showKeyboardShortcuts = function() {
     var existing = document.getElementById('kb-shortcuts-overlay');
     if (existing) { existing.remove(); return; }

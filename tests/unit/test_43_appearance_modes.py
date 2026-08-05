@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 CORE = '\n'.join(f.read_text(encoding='utf-8') for f in sorted((ROOT / 'frontend' / 'js').glob('*.js')))
 INDEX = (ROOT / 'frontend' / 'index.html').read_text(encoding='utf-8')
 ONBOARDING = (ROOT / 'backend' / 'routers' / 'onboarding.py').read_text(encoding='utf-8')
+THEME_BOOT = (ROOT / 'frontend' / 'js' / '00-theme-boot.js').read_text(encoding='utf-8')
 
 
 def test_dark_is_the_product_default():
@@ -12,7 +13,13 @@ def test_dark_is_the_product_default():
     # HTML/localhost version" moved the frontend boot default to dark, but the
     # backend DEFAULT_PREFS and this contract were left asserting light.
     assert "'theme': 'dark'" in ONBOARDING
-    assert "localStorage.getItem('agentic_os_theme') || 'dark'" in INDEX
+    # The boot snippet moved out of index.html into frontend/js/00-theme-boot.js
+    # when the CSP work removed every inline <script>. It is still
+    # render-blocking and still runs before styles apply; only its location
+    # changed. Assert against both so the contract tracks the behaviour rather
+    # than the file it happens to live in.
+    boot = "localStorage.getItem('agentic_os_theme') || 'dark'"
+    assert boot in INDEX or boot in THEME_BOOT
 
 
 def test_light_dark_and_auto_choices_are_exposed():
