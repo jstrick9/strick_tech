@@ -28,6 +28,7 @@ router = APIRouter(tags=['builder'])
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
@@ -132,10 +133,9 @@ async def studio_lint(req: Request):
     content (or the named preview file), and falls back to the old
     whole-platform self-check only when explicitly asked via {"scope":"platform"}.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     scope = (body.get('scope') or '').strip().lower()
 

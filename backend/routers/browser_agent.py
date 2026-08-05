@@ -28,6 +28,7 @@ log = logging.getLogger('agentic.browser')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 ROOT = get_data_dir()
 SCREENSHOTS = ROOT / 'preview' / 'browser_screenshots'
@@ -218,10 +219,9 @@ async def run_browser_task(req: Request):
     The AI plans a sequence of browser actions and executes them.
     Body: {task, start_url?, max_steps?, headless?}
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     task = str(body.get('task') or '').strip()[:8000]
     raw_url = str(body.get('start_url', 'https://duckduckgo.com') or 'https://duckduckgo.com')[:2000]
     try:
@@ -657,10 +657,9 @@ def clear_sessions():
 @router.post('/screenshot')
 async def quick_screenshot(req: Request):
     """Take a quick screenshot of any URL."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     raw_url = (body.get('url') or '').strip()
     if not raw_url:
         return JSONResponse({'ok': False, 'error': 'url required'}, status_code=400)

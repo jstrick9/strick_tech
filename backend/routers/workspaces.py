@@ -29,6 +29,8 @@ log = logging.getLogger('agentic.workspaces')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 WS_DIR = ROOT / 'workspaces'
@@ -218,10 +220,9 @@ def list_workspaces():
 @router.post('')
 async def create_workspace(req: Request):
     """Create and initialize a new workspace."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = str(body.get('name') or 'New Project').strip()[:80]
     description = str(body.get('description') or '')[:200]
     color = str(body.get('color') or '#5b8af8')[:20]
@@ -437,10 +438,9 @@ def _save_workspace_locked(ws_id: str):
 @router.patch('/{ws_id}')
 async def update_workspace(ws_id: str, req: Request):
     """Update existing workspace record or state."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     if not _valid_ws_id(ws_id):
         return JSONResponse({'ok': False, 'error': 'Invalid workspace id'}, status_code=400)
     allowed = {'name', 'description', 'color', 'emoji', 'framework', 'github_repo'}
@@ -587,10 +587,9 @@ def export_current_zip():
 @router.post('/import/github')
 async def import_from_github(req: Request):
     """Import files from a GitHub repository into a new workspace."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     repo_name = body.get('repo', '').strip()
     branch = body.get('branch', 'main')
     ws_name = body.get('name', repo_name.split('/')[-1] if '/' in repo_name else repo_name)

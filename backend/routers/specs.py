@@ -39,6 +39,7 @@ def _parse_delta(chunk: str) -> str:
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 ROOT = get_data_dir()
 SPECS_DIR = ROOT / 'workspaces' / 'specs'
@@ -151,10 +152,9 @@ def list_specs(workspace_id: str = 'default'):
 @router.post('')
 async def create_spec(req: Request):
     """Create and initialize a new spec."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     spec_id = f'spec_{uuid.uuid4().hex[:8]}'
     title = (body.get('title') or 'Untitled Feature')[:200]
     desc = (body.get('description') or '')[:2000]
@@ -245,10 +245,9 @@ def delete_spec(spec_id: str):
 @router.post('/{spec_id}/requirements')
 async def generate_requirements(spec_id: str, req: Request):
     """Generate requirements.md from natural language description."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     desc = (body.get('description') or body.get('prompt') or '').strip()
     if not desc:
         spec = _get_spec(spec_id)
@@ -505,10 +504,9 @@ Rules:
 @router.post('/{spec_id}/execute')
 async def execute_spec(spec_id: str, req: Request):
     """Execute all tasks wave by wave. Tasks in same wave run in parallel."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     dry_run = body.get('dry_run', False)
     task_nos = body.get('task_nos', [])  # empty = all
 
@@ -622,10 +620,9 @@ async def execute_spec(spec_id: str, req: Request):
 @router.post('/{spec_id}/run-all')
 async def run_full_pipeline(spec_id: str, req: Request):
     """Run all 4 phases sequentially: requirements → design → tasks → execute."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     desc = body.get('description', '')
 
     async def _stream():
@@ -876,10 +873,9 @@ def get_tasks(spec_id: str):
 @router.patch('/{spec_id}/tasks/{task_no}')
 async def update_task(spec_id: str, task_no: int, req: Request):
     """Update existing task record or state."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     from ..services.memory_db import get_conn
 
     con = get_conn()
@@ -911,10 +907,9 @@ def get_artifact(spec_id: str, filename: str):
 @router.put('/{spec_id}/artifacts/{filename}')
 async def save_artifact(spec_id: str, filename: str, req: Request):
     """Execute or process save artifact operation."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     content = body.get('content', '')
     safe = filename.replace('/', '').replace('..', '')
     _save_artifact(spec_id, safe, content)

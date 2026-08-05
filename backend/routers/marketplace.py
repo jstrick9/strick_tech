@@ -32,6 +32,8 @@ log = logging.getLogger('agentic.marketplace')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 MKT_DIR = ROOT / 'workspaces' / 'marketplace'
 PACKS_DIR = MKT_DIR / 'packs'
@@ -1028,10 +1030,9 @@ def get_reviews(pack_id: str, limit: int = 20):
 async def submit_community_pack(req: Request):
     """Submit a community plugin/skill pack with author attribution and initial ratings."""
     _ensure_schema_and_seed()
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     pack_id = (body.get('id') or body.get('pack_id') or '').strip().lower().replace(' ', '-')
     name = (body.get('name') or pack_id).strip()
     description = (body.get('description') or 'Community skill pack').strip()
@@ -1077,10 +1078,9 @@ def list_community_packs():
 @router.post('/publish')
 async def publish_pack(req: Request):
     """Publish a user-created pack from Plugin SDK to marketplace."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     pack_id = body.get('pack_id', '')
 
     # Load from SDK

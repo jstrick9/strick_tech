@@ -29,6 +29,8 @@ log = logging.getLogger('agentic.terminal')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 WORK_DIR = PREVIEW_DIR  # default working directory
@@ -588,10 +590,9 @@ async def run_command(req: Request):
     Body: {command, cwd?, session_id?}
     Returns: SSE stream of {type, data, exit_code?}
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     command = (body.get('command') or '').strip()
     cwd = body.get('cwd', '')
     session = body.get('session_id', str(uuid.uuid4())[:8])

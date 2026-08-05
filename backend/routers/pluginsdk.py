@@ -22,6 +22,8 @@ log = logging.getLogger('agentic.pluginsdk')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 SDK_DIR = ROOT / 'workspaces' / 'plugin_sdk'
 PACKS_DIR = SDK_DIR / 'packs'
@@ -103,10 +105,9 @@ def list_user_packs():
 @router.post('/packs')
 async def create_pack(req: Request):
     """Create a new plugin pack."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = (body.get('name') or '').strip()
     if not name:
         return {'ok': False, 'error': 'name is required'}
@@ -141,10 +142,9 @@ def get_pack(pack_id: str):
 @router.put('/packs/{pack_id}')
 async def update_pack(pack_id: str, req: Request):
     """Update existing pack record or state."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     p = PACKS_DIR / f'{pack_id}.json'
     existing = json.loads(p.read_text()) if p.exists() else {}
     existing.update({**body, 'id': pack_id, 'updated_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())})
@@ -165,10 +165,9 @@ def delete_pack(pack_id: str):
 @router.post('/validate')
 async def validate_pack(req: Request):
     """Validate a plugin pack manifest."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     errors: list[str] = []
     warns: list[str] = []
 
@@ -381,10 +380,9 @@ async def import_pack(file: UploadFile = File(...)):
 @router.post('/packs/{pack_id}/skills/{skill_id}/run')
 async def run_skill(pack_id: str, skill_id: str, req: Request):
     """Test-run a single skill from a pack."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     p = PACKS_DIR / f'{pack_id}.json'
     if not p.exists():
         return {'ok': False, 'error': 'Pack not found'}

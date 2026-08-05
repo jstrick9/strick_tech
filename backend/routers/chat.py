@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 
 from ..services import llm, memory_db
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 router = APIRouter(tags=['chat'])
 
@@ -109,10 +110,9 @@ async def chat_stream(req: Request):
     Body: {message, agent_id, session_id?, history?}
     Returns: SSE stream of {delta, done, tokens?, cost?, model?}
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     # `message` is normally a string, but Chat sends an OpenAI-format list of
     # content parts when the user attaches images (see sendChat()). Keep the
     # structured form for the provider call while deriving a plain-text view
@@ -554,10 +554,9 @@ async def chat_stream(req: Request):
 @router.post('/api/chat/complete')
 async def chat_complete(req: Request):
     """Non-streaming single completion — used by swarm fan-out."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     message = (body.get('message') or '').strip()[:16000]
     agent_id = str(body.get('agent_id') or 'default')[:64]
     model = str(body.get('model') or '')[:200]

@@ -27,6 +27,8 @@ from fastapi.responses import JSONResponse
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
@@ -94,10 +96,9 @@ async def ambient_scan(req: Request):
     Ambient scan: analyze recent file changes, chat history, and codebase
     to proactively surface suggestions — without being asked.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     deep = body.get('deep', False)
     max_files = min(int(body.get('max_files', 20)), 200)  # cap at 200 files
 
@@ -554,10 +555,9 @@ async def create_background_task(req: Request):
     """Create a background agent task — fire and forget, notified on completion."""
     import uuid
 
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = (body.get('name') or 'Background Task')[:200]
     prompt = (body.get('prompt') or '').strip()
     agent_id = body.get('agent_id', 'builder')

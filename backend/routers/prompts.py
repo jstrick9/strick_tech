@@ -17,6 +17,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ..services.memory_db import audit_log, get_conn
+from ..services.request_body import json_body_or_error
 
 log = logging.getLogger('agentic.prompts')
 
@@ -725,10 +726,9 @@ async def import_prompts(req: Request):
     Set replace_existing=true to overwrite a same-titled prompt instead of
     skipping it.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     if not isinstance(body, dict):
         return JSONResponse({'ok': False, 'error': 'body must be a JSON object'}, status_code=400)
     prompts = body.get('prompts', [])
@@ -1026,10 +1026,9 @@ async def render_saved_prompt(prompt_id: str, req: Request):
 
     Body: {"values": {"name": "…"}, "record_use": true}
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     values = body.get('values') or {}
     if not isinstance(values, dict):
         return JSONResponse({'ok': False, 'error': 'values must be an object'}, status_code=400)
@@ -1077,10 +1076,9 @@ async def render_saved_prompt(prompt_id: str, req: Request):
 @router.post('/preview-variables')
 async def preview_variables(req: Request):
     """Extract {placeholder} names from arbitrary text, for the editor's live hints."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     content = str(body.get('content') or '')
     return {'ok': True, 'variables': extract_variables(content)}
 
@@ -1235,10 +1233,9 @@ def prompt_usage(prompt_id: str, limit: int = 50):
 @router.post('/categories')
 async def create_category(req: Request):
     """Add a user-defined category."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     raw = str(body.get('id') or body.get('name') or '')
     cid = normalize_category(raw)
     if not cid or not _CATEGORY_RE.match(cid):

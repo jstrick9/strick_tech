@@ -29,6 +29,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 router = APIRouter(prefix='/api/hitl', tags=['hitl'])
 log = logging.getLogger('agentic.hitl')
@@ -117,10 +118,9 @@ async def create_interrupt(req: Request):
     Agent calls this before a risky action.
     Returns immediately with interrupt_id; agent polls or waits for decision.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     action_type = str(body.get('action_type', 'unknown'))[:100]
     action_summary = str(body.get('action_summary') or '')[:500]
     action_data = body.get('action_data', {}) if isinstance(body.get('action_data', {}), dict) else {}
@@ -238,10 +238,9 @@ async def wait_for_decision(interrupt_id: str, timeout_seconds: str = '300'):
 @router.post('/interrupt/{interrupt_id}/decide')
 async def decide_interrupt(interrupt_id: str, req: Request):
     """Human approves, rejects, or modifies a pending interrupt."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     decision = body.get('decision', 'approve')  # approve|reject|modify
     note = (body.get('note', ''))[:500]
     reviewer = (body.get('reviewer', 'user'))[:64]
@@ -298,10 +297,9 @@ async def decide_interrupt(interrupt_id: str, req: Request):
 @router.post('/undo-snapshot')
 async def save_undo_snapshot(req: Request):
     """Save state before a destructive action so it can be reverted."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     action_id = body.get('action_id', '')
     state_type = body.get('type', 'file')  # file|db|memory|custom
     state_data = body.get('state_data', '')
@@ -452,10 +450,9 @@ def hitl_stats():
 @router.post('/assess-confidence')
 async def assess_confidence(req: Request):
     """Use AI to assess the confidence/risk of a proposed action."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     # Accept both 'action' and 'task' as the action descriptor
     action = (body.get('action') or body.get('task') or '').strip()
     ctx_raw = body.get('context', '')

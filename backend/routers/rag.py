@@ -31,6 +31,8 @@ log = logging.getLogger('agentic.rag')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 DOCS_DIR = ROOT / 'workspaces' / 'rag_documents'
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
@@ -186,10 +188,9 @@ def _chunk_text(text: str, strategy: str, size: int, overlap: int) -> list[str]:
 @router.post('/pipelines')
 async def create_pipeline(req: Request):
     """Create and initialize a new pipeline."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     pid = f'rag_{uuid.uuid4().hex[:8]}'
     strategy = str(body.get('chunk_strategy', 'paragraph')).lower()
     if strategy not in {'fixed', 'paragraph', 'sentence', 'semantic'}:
@@ -264,10 +265,9 @@ def delete_pipeline(pipeline_id: str):
 @router.post('/pipelines/{pipeline_id}/documents')
 async def add_document(pipeline_id: str, req: Request):
     """Add a text document to a RAG pipeline."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     filename = str(body.get('filename', 'document.txt'))[:255]
     content = str(body.get('content', ''))[:1_000_000]
     if not content.strip():
@@ -339,10 +339,9 @@ async def upload_document(pipeline_id: str, file: UploadFile = File(...)):
 @router.post('/pipelines/{pipeline_id}/retrieve')
 async def retrieve(pipeline_id: str, req: Request):
     """Retrieve relevant chunks for a query."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     query = (body.get('query') or '').strip()
     k = _safe_rag_int(body.get('k', 5), 5, 1, 20)
     if not query:
@@ -354,10 +353,9 @@ async def retrieve(pipeline_id: str, req: Request):
 @router.post('/pipelines/{pipeline_id}/query')
 async def rag_query(pipeline_id: str, req: Request):
     """Full RAG: retrieve + generate answer with citations."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     query = (body.get('query') or '').strip()
     k = _safe_rag_int(body.get('k', 5), 5, 1, 20)
     agent_id = str(body.get('agent_id', 'builder'))[:64]
@@ -410,10 +408,9 @@ Answer with citations:"""
 @router.post('/pipelines/{pipeline_id}/eval')
 async def eval_rag(pipeline_id: str, req: Request):
     """Evaluate RAG quality: faithfulness, answer relevancy, context recall."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     query = body.get('query', '')
     answer = body.get('answer', '')
     contexts = body.get('contexts', [])  # retrieved chunks

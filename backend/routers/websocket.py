@@ -15,6 +15,7 @@ import time
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 
 from ..security_auth import require_websocket_auth
+from ..services.request_body import json_body_or_error
 
 router = APIRouter(tags=['websocket'])
 log = logging.getLogger('agentic.ws')
@@ -252,10 +253,9 @@ async def _get_memory_stats() -> dict:
 @router.post('/api/ws/broadcast')
 async def rest_broadcast(req: Request):
     """Execute or process rest broadcast operation."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     await manager.broadcast(body)
     return {'ok': True, 'connections': len(manager.connections)}
 

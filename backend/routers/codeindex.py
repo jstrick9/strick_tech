@@ -28,6 +28,7 @@ log = logging.getLogger('agentic.codeindex')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -274,10 +275,9 @@ def _index_file(filepath: str, content: str):
 @router.post('/index')
 async def index_directory(req: Request):
     """Index all Python/JS/TS files in preview/ or a given directory."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     base_dir = body.get('directory', '')
     if base_dir:
         # FIX 8: validate directory stays inside project root

@@ -27,6 +27,8 @@ log = logging.getLogger('agentic.control')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 
 # ── In-memory run registry ─────────────────────────────────────────────────────
@@ -571,10 +573,9 @@ def list_budget_rules():
 @router.post('/budget-rules')
 async def create_budget_rule(req: Request):
     """Create and initialize a new budget rule."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = (body.get('name') or 'Budget limit').strip()[:80]
     agent_id = body.get('agent_id', '*')
     max_cost = float(body.get('max_cost', 1.0))
@@ -598,10 +599,9 @@ async def create_budget_rule(req: Request):
 @router.patch('/budget-rules/{rule_id}')
 async def update_budget_rule(rule_id: int, req: Request):
     """Update existing budget rule record or state."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     allowed = {'name', 'agent_id', 'max_cost', 'max_tokens', 'action', 'enabled'}
     sets, vals = [], []
     for k in allowed:

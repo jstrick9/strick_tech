@@ -27,6 +27,8 @@ router = APIRouter(prefix='/api/templates', tags=['templates'])
 log = logging.getLogger('agentic.templates')
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 PREV = ROOT / 'preview'
 PREV.mkdir(parents=True, exist_ok=True)
@@ -453,10 +455,9 @@ async def scaffold_template(template_id: str, req: Request):
     caller hasn't explicitly opted in with overwrite=true the request is
     refused with the list of files at risk so the UI can ask first.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     t = next((t for t in TEMPLATES if t['id'] == template_id), None)
     if not t:
         return JSONResponse({'ok': False, 'error': f"Template '{template_id}' not found"}, status_code=404)
@@ -566,10 +567,9 @@ async def scaffold_template(template_id: str, req: Request):
 @router.post('/scaffold-custom')
 async def scaffold_custom(req: Request):
     """Save current preview/index.html as a named template backup."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = (body.get('name') or '').strip()[:80]
     if not name:
         return {'ok': False, 'error': 'name required'}

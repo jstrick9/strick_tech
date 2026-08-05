@@ -36,6 +36,8 @@ log = logging.getLogger('agentic.mcp_gateway')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -701,10 +703,9 @@ def delete_server(server_id: str):
 @router.post('/servers/{server_id}/toggle')
 async def toggle_server(server_id: str, req: Request):
     """Enable or disable a server (kill switch)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     status = 'disabled' if body.get('disable') else 'active'
     con = _get_conn()
     try:

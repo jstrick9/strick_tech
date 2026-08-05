@@ -15,6 +15,7 @@ from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
 from ..security_auth import require_websocket_auth
+from ..services.request_body import json_body_or_error
 
 router = APIRouter(prefix='/api/collab', tags=['collab'])
 
@@ -116,10 +117,9 @@ def list_active_rooms():
 @router.post('/rooms/{session_id}/join')
 async def join_collab_room(session_id: str, req: Request):
     """Join an active collaborative room and return current CRDT state snapshot."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     peer_id = body.get('peer_id') or f'peer_{uuid.uuid4().hex[:6]}'
     name = body.get('name', 'Collaborator')
     color = body.get('color', '#3b82f6')

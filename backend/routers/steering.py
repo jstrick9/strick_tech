@@ -31,6 +31,8 @@ log = logging.getLogger('agentic.steering')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 STEERING_DIR = ROOT / '.agentic' / 'steering'
 STEERING_DIR.mkdir(parents=True, exist_ok=True)
@@ -532,10 +534,9 @@ async def learn_from_chat(req: Request):
     Analyze recent chat history to extract coding patterns and preferences.
     Windsurf does this automatically after 48hrs; we expose it as an API.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     limit = body.get('limit', 50)  # number of recent messages to analyze
 
     from ..services.memory_db import get_conn
@@ -651,10 +652,9 @@ async def promote_learned_to_steering(req: Request):
     Promote high-confidence learned patterns into a real steering file.
     This is what Windsurf Memories does automatically after 48 hours.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     min_conf = body.get('min_confidence', 0.6)
     file_title = body.get('title', 'Auto-Learned Preferences')
 

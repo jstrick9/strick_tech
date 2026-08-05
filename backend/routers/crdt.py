@@ -32,6 +32,8 @@ log = logging.getLogger('agentic.crdt')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 DOCS_DIR = ROOT / 'workspaces' / 'collab_docs'
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
@@ -513,10 +515,9 @@ def list_docs():
 @router.post('/docs')
 async def create_doc(req: Request):
     """Create and initialize a new doc."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     doc_id = body.get('id') or f'doc_{uuid.uuid4().hex[:8]}'
     title = (body.get('title') or 'Untitled Document')[:120]
     content = body.get('content') or ''
@@ -559,10 +560,9 @@ def get_ops(doc_id: str, since: int = 0):
 @router.post('/docs/{doc_id}/op')
 async def submit_op(doc_id: str, req: Request):
     """Submit a single operation via HTTP (alternative to WebSocket)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     op = body.get('op', [])
     client_rev = int(body.get('revision', 0))
     peer_id = body.get('peer_id', 'http')
@@ -632,10 +632,9 @@ async def restore_revision(doc_id: str, revision: int):
 @router.post('/transform')
 async def transform_ops(req: Request):
     """Test the OT transform function with two ops."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     op_a = body.get('op_a', [])
     op_b = body.get('op_b', [])
     text = body.get('text', '')

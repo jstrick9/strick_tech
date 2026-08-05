@@ -28,6 +28,8 @@ log = logging.getLogger('agentic.gitai')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'  # FIX 2: define PREVIEW_DIR for security scanner
 
@@ -120,10 +122,9 @@ async def natural_language_git(req: Request):
       "what files were changed yesterday?"
       "stage all Python files"
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     query = (body.get('query') or '').strip()
     dry_run = body.get('dry_run', True)  # default safe: show command before running
 
@@ -305,10 +306,9 @@ def git_diff(ref: str = '', staged: bool = False, file: str = ''):
 @router.post('/commit')
 async def ai_commit(req: Request):
     """Generate an AI commit message from staged changes and commit."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     auto_commit = body.get('auto_commit', False)
     extra_hint = body.get('hint', '')
 
@@ -363,10 +363,9 @@ Return ONLY the commit message, no explanation."""
 @router.post('/changelog')
 async def generate_changelog(req: Request):
     """Generate/update CHANGELOG.md from git history."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     since = body.get('since', '')  # tag or date: "v1.0.0" or "2025-01-01"
     version = body.get('version', '')  # new version to add
     limit = min(int(body.get('limit', 50)), 200)
@@ -538,10 +537,9 @@ Return ONLY valid JSON."""
 @router.post('/deps/upgrade')
 async def apply_dep_upgrade(req: Request):
     """Apply a specific package upgrade to requirements.txt."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     package = body.get('package', '')
     version = body.get('version', '')
     eco = body.get('ecosystem', 'python')  # python|node
@@ -704,10 +702,9 @@ async def security_scan(req: Request):
     """
     OWASP Top 10 security scan across all project files.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     target = body.get('target', 'all')  # all|preview|backend
     max_files = min(int(body.get('max_files', 100)), 200)
 
@@ -804,10 +801,9 @@ def security_rules():
 @router.post('/security/scan/file')
 async def scan_file(req: Request):
     """Scan a single file for security issues."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     content = (body.get('content') or '').strip()
     filename = body.get('filename', 'unknown')
 

@@ -23,6 +23,7 @@ log = logging.getLogger('agentic.workflow')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 ROOT = get_data_dir()
 WF_DIR = ROOT / 'workspaces' / 'workflows'
@@ -213,10 +214,9 @@ def list_workflows():
 @router.post('')
 async def create_workflow(req: Request):
     """Create and initialize a new workflow."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     wf = {
         'id': body.get('id') or f'wf_{uuid.uuid4().hex[:8]}',
         'name': (body.get('name') or 'Untitled Workflow')[:120],
@@ -242,10 +242,9 @@ def get_workflow(wf_id: str):
 @router.put('/{wf_id}')
 async def update_workflow(wf_id: str, req: Request):
     """Update existing workflow record or state."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     # BUG FIX: `_load_one(wf_id) or {}` meant PUT to a nonexistent id silently
     # CREATED a workflow there instead of 404ing — a typo in the id produced a
     # second, near-invisible workflow while the user believed they had saved
@@ -466,10 +465,9 @@ def evaluate_condition(expression: str, context: dict) -> tuple[bool, str]:
 @router.post('/{wf_id}/run')
 async def run_workflow(wf_id: str, req: Request):
     """Execute and run workflow operation."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     wf = _load_one(wf_id)
     if not wf:
         return JSONResponse({'ok': False, 'error': 'Workflow not found'}, status_code=404)
@@ -779,10 +777,9 @@ async def duplicate_workflow(wf_id: str, req: Request):
     wf = _load_one(wf_id)
     if not wf:
         return JSONResponse({'ok': False, 'error': 'Workflow not found'}, status_code=404)
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     new_wf = dict(wf)
     new_wf['id'] = body.get('id') or f'wf_{uuid.uuid4().hex[:8]}'
     new_wf['name'] = (body.get('name') or f'{wf["name"]} (copy)')[:120]
@@ -857,10 +854,9 @@ async def validate_workflow(wf_id: str, req: Request):
     - No cycles
     - All edges reference valid nodes
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     # Use provided data or load from disk
     wf = body if body.get('nodes') else _load_one(wf_id)
     if not wf:

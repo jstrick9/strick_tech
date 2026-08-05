@@ -6,7 +6,6 @@ and auto-documentation generation (README, API docs, changelog).
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
@@ -23,6 +22,7 @@ from fastapi.responses import JSONResponse
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
 from ..services.safe_paths import safe_path
 
 ROOT = get_data_dir()
@@ -158,10 +158,9 @@ async def scaffold_integration(integration_id: str, req: Request):
     Scaffold an integration into the current project.
     Generates the necessary files, env var placeholders, and wiring code.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     framework = (body.get('framework') or 'web').strip()[:64]
 
     integration = _INT_BY_ID.get(integration_id)
@@ -247,10 +246,9 @@ async def generate_docs(req: Request):
     AI-powered documentation generator.
     Types: readme, api, changelog, contributing, architecture
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     doc_type = (body.get('type') or 'readme').strip().lower()
 
     if doc_type not in VALID_DOC_TYPES:
@@ -378,10 +376,9 @@ def get_project_rules():
 @router.post('/rules')
 async def save_project_rules(req: Request):
     """Save project AI rules."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     content = (body.get('content') or '').strip()
     if not content:
         return {'ok': False, 'error': 'content required — cannot save empty rules'}
@@ -403,10 +400,9 @@ async def stripe_wire(req: Request):
     """
     Generate real Stripe integration code wired into the preview.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     mode = (body.get('mode') or 'payment').strip()
     if mode not in ('payment', 'subscription', 'connect'):
         mode = 'payment'
@@ -554,10 +550,9 @@ async def stripe_products():
 @router.post('/stripe/checkout-session')
 async def create_checkout_session(req: Request):
     """Create a Stripe Checkout session (live if key, else return test URL)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     price_id = (body.get('price_id') or 'price_starter_monthly').strip()[:128]
     mode = (body.get('mode') or 'subscription').strip()
     if mode not in ('payment', 'subscription'):
@@ -602,10 +597,9 @@ async def auth_wire(req: Request):
     Generate working auth integration code wired into preview.
     Supports NextAuth, Clerk, Supabase Auth, Firebase Auth, Auth0.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     provider = (body.get('provider') or 'nextauth').strip()
     valid_providers = {'nextauth', 'clerk', 'supabase', 'firebase', 'auth0', 'magic'}
     if provider not in valid_providers:

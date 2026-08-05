@@ -16,6 +16,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 router = APIRouter(prefix='/api/arena', tags=['arena'])
 log = logging.getLogger('agentic.arena')
@@ -121,10 +122,9 @@ def list_models():
 @router.post('/battle')
 async def create_battle(req: Request):
     """Start an A/B battle: stream both model responses in parallel."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     model_a = body.get('model_a', 'claude-sonnet')
     model_b = body.get('model_b', 'gpt-4o')
@@ -258,10 +258,9 @@ async def create_battle(req: Request):
 @router.post('/battle/{battle_id}/vote')
 async def vote(battle_id: str, req: Request):
     """Cast a vote for the winner of a battle."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     winner = body.get('winner', '')  # "a" | "b" | "tie"
     reason = body.get('reason', '')[:500]
 
@@ -386,10 +385,9 @@ def arena_stats():
 @router.post('/auto-judge')
 async def auto_judge_battle(req: Request):
     """Use a third model to auto-judge a battle (for automated leaderboard building)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     battle_id = body.get('battle_id', '')
     from ..services.memory_db import get_conn
 

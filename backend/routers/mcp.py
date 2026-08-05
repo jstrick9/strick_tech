@@ -21,6 +21,7 @@ router = APIRouter(prefix='/api/mcp', tags=['mcp'])
 log = logging.getLogger('agentic.mcp')
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -91,10 +92,9 @@ async def call_tool(req: Request):
     Body: {tool: str, args: dict, agent_id?: str}
     Returns: {ok, result, tool, duration_ms}
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     tool = (body.get('tool') or '').strip()
     args = body.get('args') or {}
     agent_id = body.get('agent_id', 'system')
@@ -171,10 +171,9 @@ async def agent_with_tools(req: Request):
     Agentic loop: give an agent a task + all tools, let it reason and call tools.
     POST {prompt, agent_id, max_steps, tools?}
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     agent_id = body.get('agent_id', 'builder')
     max_steps = min(int(body.get('max_steps', 5)), 10)

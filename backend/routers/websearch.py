@@ -30,6 +30,7 @@ log = logging.getLogger('agentic.websearch')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 ROOT = get_data_dir()
 DB = ROOT / 'memory' / 'agentic.db'
@@ -261,10 +262,9 @@ async def _fetch_page_text(url: str, max_chars: int = 2000) -> str:
 @router.post('/search')
 async def web_search(req: Request):
     """Search the web and return results."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     query = (body.get('query') or '').strip()
     n = max(1, min(int(body.get('num_results', 5) or 5), 10))
     fetch = bool(body.get('fetch_content', False))
@@ -311,10 +311,9 @@ def _is_ssrf_blocked_url(url: str) -> bool:
 @router.post('/fetch-content')
 async def fetch_content(req: Request):
     """Fetch and extract readable text from a given URL."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     url = (body.get('url') or '').strip()
     max_chars = max(500, min(int(body.get('max_chars', 3000) or 3000), 10000))
 
@@ -341,10 +340,9 @@ async def grounded_completion(req: Request):
     Like Perplexity: search the web first, then answer with citations.
     Injects search results into the prompt before calling the LLM.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     agent_id = (body.get('agent_id') or 'builder').strip() or 'builder'
     num_results = max(1, min(int(body.get('num_results', 5) or 5), 8))
@@ -408,10 +406,9 @@ async def grounded_completion(req: Request):
 @router.post('/grounded-completion/stream')
 async def grounded_stream(req: Request):
     """Streaming version of grounded completion."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     agent_id = (body.get('agent_id') or 'builder').strip() or 'builder'
     num_results = max(1, min(int(body.get('num_results', 4) or 4), 8))
@@ -476,10 +473,9 @@ async def deep_research(req: Request):
     Multi-query deep research: run multiple searches, synthesize.
     Like Perplexity Deep Research or OpenRouter Fusion with web.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     topic = (body.get('topic') or '').strip()
     if not topic:
         return JSONResponse({'ok': False, 'error': 'topic required'}, status_code=400)

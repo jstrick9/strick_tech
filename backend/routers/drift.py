@@ -39,6 +39,8 @@ log = logging.getLogger('agentic.drift')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 
 # ── Schema (tables created in seeding; ensure they exist) ─────────────────────
@@ -691,10 +693,9 @@ async def detect_all(req: Request):
     Computes/updates fingerprints if needed, then measures current drift.
     Returns per-agent results sorted by drift score descending.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     window = body.get('window', '1h')
     if window not in ('1h', '6h', '24h'):
         window = '1h'
@@ -718,10 +719,9 @@ async def detect_agent(agent_id: str, req: Request):
     Run drift detection for a single agent.
     Also computes/refreshes fingerprint if stale (>2h old).
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     window = body.get('window', '1h')
     if window not in ('1h', '6h', '24h'):
         window = '1h'
@@ -760,10 +760,9 @@ async def build_fingerprints(req: Request):
     Recompute behavioral fingerprints for all (or specified) agents.
     This establishes the baseline that drift is measured against.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     agent_ids = body.get('agent_ids') or []
     window = int(body.get('window_hours', 168))
 
@@ -791,10 +790,9 @@ async def build_fingerprints(req: Request):
 @router.post('/fingerprint/{agent_id}')
 async def build_fingerprint_single(agent_id: str, req: Request):
     """Recompute fingerprint for a single agent."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     window = int(body.get('window_hours', 168))
     return compute_fingerprint(agent_id, window)
 

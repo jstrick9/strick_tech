@@ -24,6 +24,7 @@ log = logging.getLogger('agentic.project')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -192,10 +193,9 @@ def get_project_memory(category: str = ''):
 @router.post('/memory')
 async def set_project_memory(req: Request):
     """Store a learned preference or fact about this project."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     key = (body.get('key') or '').strip()[:120]
     val = (body.get('value') or '').strip()[:2000]
     if not key or not val:
@@ -222,10 +222,9 @@ async def learn_from_interaction(req: Request):
     AI analyzes a user interaction and extracts preferences to remember.
     Call this after every significant interaction.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     action = (body.get('action') or '').strip()
     context = (body.get('context') or '').strip()
 
@@ -309,10 +308,9 @@ async def get_suggestions(req: Request):
     AI suggests 3 smart next actions based on the last action performed.
     Context-aware: considers current files, recent changes, and project memory.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     last_action = (body.get('action') or '').strip()
     pane = body.get('pane', '')
     files = body.get('files', [])
@@ -438,10 +436,9 @@ async def review_code(req: Request):
     AI reviews a file for bugs, security issues, performance, and best practices.
     Returns line-level annotations. Cached per file content.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     filepath = (body.get('filepath') or '').strip().lstrip('/')
     force = bool(body.get('force', False))
 
@@ -525,10 +522,9 @@ async def share_project(req: Request):
     Create a shareable public URL for the current project.
     Uses the LAN tunnel info or Cloudflare if available.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     body.get('target', 'web')
     message = body.get('message', '')
 

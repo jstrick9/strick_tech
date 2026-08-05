@@ -17,6 +17,8 @@ import logging
 
 from fastapi import APIRouter, Request
 
+from ..services.request_body import json_body_or_error
+
 router = APIRouter(prefix='/api/agent-leaderboard', tags=['agent_leaderboard'])
 log = logging.getLogger('agentic.leaderboard')
 
@@ -162,10 +164,9 @@ def leaderboard(limit: int = 20, days: int = 30, task_type: str = ''):
 @router.post('/record')
 async def record_event(req: Request):
     """Record an agent performance event manually."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     agent_id = (body.get('agent_id') or '').strip()
     if not agent_id:
         return {'ok': False, 'error': 'agent_id required'}
@@ -251,10 +252,9 @@ def agent_stats(agent_id: str, days: int = 30):
 @router.post('/rate')
 async def rate_agent(req: Request):
     """Rate the last agent interaction (1-5 stars)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     agent_id = (body.get('agent_id') or '').strip()
     if not agent_id:
         return {'ok': False, 'error': 'agent_id required'}
@@ -302,10 +302,9 @@ def list_policies(agent_id: str = ''):
 @router.post('/policies')
 async def create_policy(req: Request):
     """Create and initialize a new policy."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     agent_id = (body.get('agent_id') or '*').strip()[:64]
     policy_type = (body.get('policy_type') or 'custom').strip()[:64]
     policy_rule = (body.get('policy_rule') or '').strip()[:500]
@@ -333,10 +332,9 @@ async def create_policy(req: Request):
 @router.put('/policies/{policy_id}')
 async def update_policy(policy_id: int, req: Request):
     """Toggle or update a policy."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     from ..services.memory_db import get_conn
 
     con = get_conn()
