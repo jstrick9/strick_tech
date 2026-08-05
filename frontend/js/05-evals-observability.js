@@ -930,6 +930,12 @@ async function ragDeletePipeline(pipelineId) {
 }
 
 async function ragDeleteDoc(pipelineId, docId) {
+  // Every other destructive action in the product confirms first (gmDanger /
+  // gmConfirm). This one did not, so a mis-click permanently removed an
+  // indexed document with no warning and no undo — and because the delete
+  // button sits in a per-row list, mis-clicking the wrong row is easy.
+  const ok = await gmDanger('Delete Document', 'Remove this document from the pipeline? It will need to be re-indexed.');
+  if (!ok) return;
   await fetch(`/api/rag/pipelines/${encodeURIComponent(pipelineId)}/documents/${encodeURIComponent(docId)}`,{method:'DELETE'});
   showToast('Document deleted');
   // Stay in pipeline view, re-fetch pipeline name

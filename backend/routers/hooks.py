@@ -30,6 +30,8 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/hooks', tags=['hooks'])
 log = logging.getLogger('agentic.hooks')
 
+from fastapi.responses import JSONResponse
+
 from backend.config import get_data_dir
 
 ROOT = get_data_dir()
@@ -418,7 +420,7 @@ def get_hook(hook_id: str):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Hook not found'}
+        return JSONResponse({'ok': False, 'error': 'Hook not found'}, status_code=404)
     return {**dict(row), 'recent_runs': [dict(r) for r in runs]}
 
 

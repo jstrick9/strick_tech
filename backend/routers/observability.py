@@ -26,6 +26,7 @@ import logging
 import uuid
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/observability', tags=['observability'])
 log = logging.getLogger('agentic.obs')
@@ -316,7 +317,7 @@ def get_trace(trace_id: str):
     finally:
         con.close()
     if not trace:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     return {'trace': dict(trace), 'spans': [dict(s) for s in spans], 'span_count': len(spans)}
 
 

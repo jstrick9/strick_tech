@@ -110,13 +110,19 @@ class TestMarketplaceFull:
         assert client.get("/api/marketplace/categories").status_code == 200
 
     def test_marketplace_search(self, client):
-        assert client.get("/api/marketplace/search?q=test").status_code == 200
+        """No /search route exists; search is a query param on the collection.
+        The old URL passed because /{pack_id} swallowed "search" and answered
+        200 with {"ok": false, "error": "Pack not found"} — a green test
+        against an endpoint that was never implemented."""
+        assert client.get("/api/marketplace?q=test").status_code == 200
 
     def test_marketplace_featured(self, client):
         assert client.get("/api/marketplace/featured").status_code == 200
 
     def test_marketplace_installed(self, client):
-        r = client.get("/api/marketplace/installed")
+        """The real route is /installed/list, which is what the frontend
+        calls. Same shadowing as above."""
+        r = client.get("/api/marketplace/installed/list")
         assert r.status_code == 200
 
     def test_marketplace_pack_detail(self, client):

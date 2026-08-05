@@ -269,7 +269,7 @@ def get_skill(skill_id: str):
     skills = load_skills()
     s = next((s for s in skills if s['id'] == skill_id), None)
     if not s:
-        return {'ok': False, 'error': f"Skill '{skill_id}' not found"}
+        return JSONResponse({'ok': False, 'error': f"Skill '{skill_id}' not found"}, status_code=404)
     return s
 
 
@@ -407,7 +407,7 @@ def delete_skill(skill_id: str):
     before = len(skills)
     skills = [s for s in skills if s['id'] != skill_id]
     if len(skills) == before:
-        return {'ok': False, 'error': 'Skill not found'}
+        return JSONResponse({'ok': False, 'error': 'Skill not found'}, status_code=404)
     if not save_skills(skills):
         return {'ok': False, 'error': 'Failed to save — disk write error'}
     return {'ok': True, 'deleted': skill_id}

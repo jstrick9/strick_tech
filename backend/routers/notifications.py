@@ -10,6 +10,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 router = APIRouter(prefix='/api/notifications', tags=['notifications'])
@@ -111,7 +112,7 @@ def delete_notification(notif_id: str) -> dict[str, Any]:
     original_len = len(_NOTIFICATIONS)
     _NOTIFICATIONS = [n for n in _NOTIFICATIONS if n['id'] != notif_id]
     if len(_NOTIFICATIONS) == original_len:
-        return {'ok': False, 'error': f"Notification '{notif_id}' not found"}
+        return JSONResponse({'ok': False, 'error': f"Notification '{notif_id}' not found"}, status_code=404)
     return {'ok': True, 'deleted_id': notif_id}
 
 

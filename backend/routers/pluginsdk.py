@@ -134,7 +134,7 @@ def get_pack(pack_id: str):
     """Retrieve and return get pack."""
     p = PACKS_DIR / f'{pack_id}.json'
     if not p.exists():
-        return {'ok': False, 'error': 'Pack not found'}
+        return JSONResponse({'ok': False, 'error': 'Pack not found'}, status_code=404)
     return json.loads(p.read_text())
 
 
@@ -307,7 +307,7 @@ def registry_pack(pack_id: str):
     """Execute or process registry pack operation."""
     p = PUBLISHED / f'{pack_id}.json'
     if not p.exists():
-        return {'ok': False, 'error': 'Not in registry'}
+        return JSONResponse({'ok': False, 'error': 'Not in registry'}, status_code=404)
     return json.loads(p.read_text())
 
 
@@ -319,7 +319,7 @@ def export_pack(pack_id: str):
 
     p = PACKS_DIR / f'{pack_id}.json'
     if not p.exists():
-        return {'ok': False, 'error': 'Pack not found'}
+        return JSONResponse({'ok': False, 'error': 'Pack not found'}, status_code=404)
 
     pack = json.loads(p.read_text())
     buf = io.BytesIO()

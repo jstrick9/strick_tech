@@ -23,6 +23,8 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/ambient', tags=['ambient'])
 log = logging.getLogger('agentic.ambient')
 
+from fastapi.responses import JSONResponse
+
 from backend.config import get_data_dir
 
 ROOT = get_data_dir()
@@ -662,7 +664,7 @@ def get_task(task_id: str):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     return dict(row)
 
 

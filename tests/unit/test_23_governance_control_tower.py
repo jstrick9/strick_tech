@@ -27,8 +27,13 @@ class TestControlTower:
             assert field in d
 
     def test_nonexistent_run(self, client):
+        """Asked for 200 on a missing resource, which is the bug: every layer
+        above has to look inside the body, and `if (r.ok)` — the idiomatic
+        check — is true. The frontend's network-failure reporter also treats
+        200 as success, so a missing run produced a blank screen and no
+        message. The body is unchanged; only the status is honest now."""
         r = client.get("/api/control/runs/nonexistent_run_xyz")
-        assert r.status_code == 200
+        assert r.status_code == 404
         d = r.json()
         assert "error" in d or d.get("ok") is False
 

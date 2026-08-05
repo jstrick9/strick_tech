@@ -19,7 +19,7 @@ import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import PlainTextResponse, StreamingResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
 
 from ..services import llm, memory_db
 
@@ -347,7 +347,7 @@ async def preview_delete(req: Request):
     if not _is_within(f, PREVIEW_DIR) or f == PREVIEW_DIR.resolve():
         return {'ok': False, 'error': 'path traversal'}
     if not f.exists():
-        return {'ok': False, 'error': 'not found'}
+        return JSONResponse({'ok': False, 'error': 'not found'}, status_code=404)
     if f.is_dir():
         return {'ok': False, 'error': 'cannot delete a directory'}
     try:

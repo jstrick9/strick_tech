@@ -15,7 +15,7 @@ import time
 import uuid
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 router = APIRouter(prefix='/api/replay', tags=['replay'])
 log = logging.getLogger('agentic.replay')
@@ -420,7 +420,7 @@ def get_run(run_id: str):
     finally:
         con.close()
     if not run:
-        return {'ok': False, 'error': 'Run not found'}
+        return JSONResponse({'ok': False, 'error': 'Run not found'}, status_code=404)
     return {
         'run': dict(run),
         'frames': [dict(f) for f in frames],
@@ -462,7 +462,7 @@ def get_frame(run_id: str, frame_no: int):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Frame not found'}
+        return JSONResponse({'ok': False, 'error': 'Frame not found'}, status_code=404)
     return dict(row)
 
 
@@ -606,7 +606,7 @@ def get_timeline(run_id: str):
     finally:
         con.close()
     if not run:
-        return {'ok': False, 'error': 'Run not found'}
+        return JSONResponse({'ok': False, 'error': 'Run not found'}, status_code=404)
 
     run_d = dict(run)
     frames_d = [dict(f) for f in frames]

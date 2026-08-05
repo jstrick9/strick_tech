@@ -110,7 +110,7 @@ def get_agent(agent_id: str):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Agent not found'}
+        return JSONResponse({'ok': False, 'error': 'Agent not found'}, status_code=404)
     return {'ok': True, 'agent': dict(row), 'id': dict(row)['id']}
 
 

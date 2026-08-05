@@ -132,7 +132,7 @@ async def join_collab_room(session_id: str, req: Request):
 def get_session(session_id: str):
     """Retrieve and return get session."""
     if session_id not in _sessions:
-        return {'ok': False, 'error': 'Session not found'}
+        return JSONResponse({'ok': False, 'error': 'Session not found'}, status_code=404)
     return _sessions[session_id].snapshot()
 
 
@@ -156,7 +156,7 @@ def get_shared_state(session_id: str, key: str = ''):
     """Retrieve and return get shared state."""
     sess = _sessions.get(session_id)
     if not sess:
-        return {'ok': False, 'error': 'Session not found'}
+        return JSONResponse({'ok': False, 'error': 'Session not found'}, status_code=404)
     if key:
         return {'ok': True, 'key': key, 'value': sess.shared_state.get(key)}
     return {'ok': True, 'state': sess.shared_state}
