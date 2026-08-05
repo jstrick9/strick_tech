@@ -101,3 +101,45 @@ def test_core_agents_are_still_protected(client):
     r = client.delete('/api/agents/orchestrator')
     assert r.json().get('ok') is False
     assert 'core agent' in r.json().get('error', '').lower()
+
+
+# ══ The same class, found by sweeping every single-param write route ══════════
+# A broader probe of PATCH/PUT/DELETE against nonexistent ids turned up 29 more
+# endpoints answering 200. Most are DELETEs where idempotence is a defensible
+# reading; these three are not, because they claim an UPDATE happened that did
+# not, and one of them fabricates a record.
+def test_patching_a_missing_hook_returns_404(client):
+    """The rowcount check was already correct here — only the status lied, so
+    `if (r.ok)` still treated a no-op as an applied change."""
+    r = client.patch(f'/api/hooks/{MISSING}', json={'name': 'x'})
+    assert r.status_code == 404
+
+
+def test_patching_a_missing_hook_with_no_fields_also_404s(client):
+    """The no-fields branch skipped the existence check entirely and returned
+    {"ok": true} for a hook that may never have existed."""
+    r = client.patch(f'/api/hooks/{MISSING}', json={})
+    assert r.status_code == 404
+
+
+def test_patching_a_missing_trace_returns_404(client):
+    """A client writing an outcome to a stale trace id believed it had been
+    recorded; nothing was stored."""
+    r = client.patch(f'/api/observability/traces/{MISSING}', json={'status': 'ok'})
+    assert r.status_code == 404
+
+
+def test_putting_a_missing_plugin_pack_returns_404(client):
+    r = client.put(f'/api/pluginsdk/packs/{MISSING}', json={'name': 'ghost'})
+    assert r.status_code == 404
+
+
+def test_putting_a_missing_plugin_pack_creates_nothing(client):
+    """PUT wrote a pack file with no name, no skills and no manifest, and the
+    ghost then appeared in the pack list."""
+    client.put(f'/api/pluginsdk/packs/{MISSING}', json={'name': 'ghost'})
+    body = client.get('/api/pluginsdk/packs').json()
+    packs = body.get('packs', body) if isinstance(body, dict) else body
+    assert not [p for p in packs if p.get('id') == MISSING], (
+        'PUT fabricated a plugin pack that nobody created'
+    )
