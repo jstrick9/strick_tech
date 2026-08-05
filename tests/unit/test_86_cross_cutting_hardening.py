@@ -290,11 +290,25 @@ def test_csp_tightens_what_it_can():
     assert "form-action 'self'" in APP_PY
 
 
-def test_unsafe_inline_is_documented_not_silently_shipped():
-    """It cannot be dropped while 772 inline onclick handlers exist. Saying so
-    is the honest position; pretending the CSP is strict is not."""
-    assert 'KNOWN, DOCUMENTED weakness' in APP_PY
-    assert 'escHtml() at each call site' in APP_PY
+def test_unsafe_inline_has_been_removed_and_the_history_documented():
+    """This asserted that the weakness was DOCUMENTED, which was the honest
+    position while it could not be dropped. Phase 2 removed the 1107 inline
+    handlers and 5 inline <script> blocks that were blocking it, so the
+    directive itself is gone.
+
+    The reasoning stays in app.py deliberately: a future reader needs to know
+    why style-src still carries 'unsafe-inline' and what re-adding it to
+    script-src would cost.
+    """
+    from backend.app import SECURITY_HEADERS
+
+    script_src = next(
+        d for d in SECURITY_HEADERS['Content-Security-Policy'].split(';')
+        if d.strip().startswith('script-src')
+    )
+    assert "'unsafe-inline'" not in script_src
+    assert 'style-src DELIBERATELY keeps' in APP_PY
+    assert 'delegation shim' in APP_PY
 
 
 # ══ 6. chat_log truncation ════════════════════════════════════════════════════

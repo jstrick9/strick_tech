@@ -1256,7 +1256,7 @@ window.showNoviceApiGuide = function() {
           <div style="font-size:12.5px;color:var(--text-1);line-height:1.6;margin-bottom:12px">On the webpage that opened, sign in, click <strong style="color:var(--accent)">+ Create Key</strong>, give it any name (e.g. Agentic OS), and copy the key (it starts with sk-or-v1-...). Paste it right here:</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <input id="novice-guide-key-inp" type="password" placeholder="Paste sk-or-v1-... key right here" style="flex:1;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
-            <button onclick="const k=document.getElementById('novice-guide-key-inp')?.value?.trim(); if(!k){toast('Please paste your sk-or-v1-... key first','warn');return;} const o=document.getElementById('or-key-input'); if(o)o.value=k; document.getElementById('novice-api-guide-modal').remove(); saveApiKey();" class="btn-3d btn-primary" style="padding:10px 20px;background:#10b981;border:none;color:#fff;font-weight:800">⚡ 2. Save & Unlock All Models</button>
+            <button data-act-click="hSaveNoviceKey()" class="btn-3d btn-primary" style="padding:10px 20px;background:#10b981;border:none;color:#fff;font-weight:800">⚡ 2. Save & Unlock All Models</button>
           </div>
         </div>
 
@@ -2591,7 +2591,7 @@ function showE2ETrace(run) {
   </div>
   ${summary}
   ${screenshots}
-  ${run.score < 0.8 ? '<button onclick="runAutofix(\'' + (run.target||'web') + '\')" class="btn btn-primary btn-sm" style="width:100%;margin-top:8px">🔧 Auto-fix</button>' : ''}`;
+  ${run.score < 0.8 ? '<button data-act-click="runAutofix(\'' + (run.target||'web') + '\')" class="btn btn-primary btn-sm" style="width:100%;margin-top:8px">🔧 Auto-fix</button>' : ''}`;
   document.body.appendChild(overlay);
   setTimeout(() => overlay.remove(), 15000);
 }
@@ -2846,7 +2846,7 @@ function emptyState({ icon, title, body, actions = [] }) {
     <div class="empty-state__title">${escHtml(title)}</div>
     <div class="empty-state__body">${escHtml(body)}</div>
     <div class="empty-state__actions">${actions.map(a =>
-      `<button onclick="${a.action}" class="btn ${a.primary ? 'btn-primary' : 'btn-ghost'}">${a.label}</button>`
+      `<button data-act-click="${a.action}" class="btn ${a.primary ? 'btn-primary' : 'btn-ghost'}">${a.label}</button>`
     ).join('')}</div>
   </div>`;
 }
@@ -2890,7 +2890,7 @@ function pageHeader({ title, subtitle = '', actions = [], badge = '' }) {
           ${subtitle ? `<p class="page-subheading">${escHtml(subtitle)}</p>` : ''}
         </div>
         <div class="page-header__actions">
-          ${actions.map(a => `<button onclick="${a.action}" class="btn ${a.primary?'btn-primary':'btn-ghost'} btn-sm">${escHtml(a.label)}</button>`).join('')}
+          ${actions.map(a => `<button data-act-click="${a.action}" class="btn ${a.primary?'btn-primary':'btn-ghost'} btn-sm">${escHtml(a.label)}</button>`).join('')}
         </div>
       </div>
     </div>`;

@@ -404,11 +404,11 @@
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;width:600px;max-height:80vh;display:flex;flex-direction:column;padding:20px;gap:12px">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <h3 style="margin:0">New Rule File: ${escHtml(title)}</h3>
-          <button onclick="this.closest('[style*=\\"fixed\\"]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         <textarea id="steer-new-content" rows="15" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;font-family:monospace;padding:10px;resize:none" placeholder="# ${escHtml(title)}\n\nWrite your project rules and conventions here..."></textarea>
         <div style="display:flex;gap:8px;justify-content:flex-end">
-          <button class="btn-sm" onclick="this.closest('[style*=\\"fixed\\"]').remove()">Cancel</button>
+          <button class="btn-sm" data-act-click="hCloseFixedPanel($this)">Cancel</button>
           <button class="btn" data-title="${escHtml(title)}" data-cat="${escHtml(cat||'custom')}" data-act-click="steerSaveNew($data.title,$data.cat,$this)">💾 Save</button>
         </div>
       </div>`;

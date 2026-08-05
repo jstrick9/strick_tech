@@ -963,7 +963,7 @@ async function ciShowReferences(symbolName) {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;max-width:500px;width:100%;padding:20px;max-height:70vh;overflow-y:auto">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <h3 style="margin:0;color:var(--text-0)">References: ${escHtml(symbolName)}</h3>
-          <button onclick="this.closest('[style*=\"fixed\"]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Defined in ${(d.defined_in||[]).length} place(s) · Called ${d.ref_count} time(s)</div>
         ${(d.defined_in||[]).map((s) =>`

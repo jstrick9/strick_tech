@@ -1244,7 +1244,7 @@ async function renderCollabEdit() {
             placeholder="Start typing… collaborate in real-time with teammates."
             data-act-input="ceHandleInput()"
             data-act-keydown="ceHandleKeydown($event)"
-            onselect="ceSendCursor()"
+            data-act-select="ceSendCursor()"
             data-act-click="ceSendCursor()"
           ></textarea>
           <div class="ce-cursors" id="ce-cursors"></div>
@@ -1919,7 +1919,7 @@ async function mktViewDetail(packId) {
             <h2 style="margin:0;color:var(--text-0)">${escHtml(d.name||packId)}</h2>
             <div style="color:var(--text-3);font-size:12px">by ${escHtml(d.author||'')} · v${d.latest_ver||'1.0.0'} · ${(d.downloads||0).toLocaleString()} downloads</div>
           </div>
-          <button onclick="this.closest('[style*=\"fixed\"]').remove()" style="margin-left:auto;background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
+          <button data-act-click="hCloseFixedPanel($this)" style="margin-left:auto;background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
         </div>
         <p style="color:var(--text-2);font-size:13px;line-height:1.6">${escHtml(d.description||'')}</p>
         <div style="margin-bottom:16px">
@@ -1928,7 +1928,7 @@ async function mktViewDetail(packId) {
         </div>
         ${reviews?`<div><h4 style="font-size:12px;color:var(--text-3);text-transform:uppercase">Reviews (${(d.reviews||[]).length})</h4>${reviews}</div>`:''}
         <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" onclick="mktInstallOrUninstall(${JSON.stringify(packId)},${JSON.stringify(d.name||packId)},${isInst});this.closest('[style*=\'fixed\']').remove()">
+          <button class="btn" data-act-click="hInstallAndClose(${JSON.stringify(packId)},${JSON.stringify(d.name||packId)},${isInst ? 1 : 0},$this)">
             ${isInst?'✓ Installed (Uninstall)':'Install'}
           </button>
           <button class="btn-sm" data-act-click="mktLeaveReview(${JSON.stringify(packId)})">⭐ Review</button>
@@ -2005,7 +2005,7 @@ async function mktShowInstalled() {
     overlay.innerHTML=`<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:460px;width:100%;max-height:70vh;overflow-y:auto;padding:24px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <h3 style="margin:0;color:var(--text-0)">📦 Installed Packs (${d.count||0})</h3>
-        <button onclick="this.closest('[style*=\"fixed\"]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+        <button data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
       </div>
       ${items||'<div style="color:var(--text-3)">No packs installed</div>'}
     </div>`;

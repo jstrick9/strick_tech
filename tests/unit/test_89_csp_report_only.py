@@ -36,15 +36,25 @@ def test_report_only_policy_drops_unsafe_inline_for_scripts():
     )
 
 
-def test_enforcing_policy_still_permits_inline_so_nothing_breaks():
-    """Until the handlers are migrated, removing this breaks every button."""
+def test_enforcing_policy_no_longer_permits_inline_script():
+    """This test previously asserted the OPPOSITE — that the enforcing policy
+    still allowed inline script "so nothing breaks". That was correct while
+    1107 inline handlers existed, but it encoded a temporary state as a
+    contract, so completing phase 2 made it fail.
+
+    The handlers are now migrated to the delegation shim and the inline
+    <script> blocks are extracted, so the directive is gone. The report-only
+    policy remains useful as an early-warning channel for anything that still
+    trips the rules.
+    """
     from backend.app import SECURITY_HEADERS
 
     enforcing = SECURITY_HEADERS['Content-Security-Policy']
     script_src = next(
         d for d in enforcing.split(';') if d.strip().startswith('script-src')
     )
-    assert "'unsafe-inline'" in script_src
+    assert "'unsafe-inline'" not in script_src
+    assert "'unsafe-eval'" not in script_src
 
 
 def test_report_only_keeps_style_unsafe_inline():

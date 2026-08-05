@@ -554,7 +554,7 @@ async function obsShowTrace(traceId) {
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;max-width:700px;width:100%;max-height:80vh;overflow-y:auto;padding:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <h3 style="margin:0;color:var(--text-0)">Trace: ${traceId}</h3>
-        <button onclick="this.closest('[style*=\"fixed\"]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+        <button data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
       </div>
       <div style="font-size:12px;color:var(--text-2);margin-bottom:12px">
         Agent: ${d.trace?.agent_id||'?'} · ${d.trace?.total_latency_ms||0}ms · ${d.trace?.total_tokens||0} tokens · $${((d.trace?.total_cost||0)).toFixed(5)}

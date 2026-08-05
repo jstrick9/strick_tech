@@ -60,7 +60,7 @@ function renderPluginGrid(list = pluginRegistry) {
     return `<div style="background:var(--bg-2);border:1px solid ${installed?'var(--accent)':'var(--border)'};border-radius:var(--radius-lg);padding:18px;transition:var(--transition)"
          data-plugin-id="${escHtml(p.id)}"
          data-plugin-name="${escHtml(p.name)}"
-         data-hover="bc:var(--border-hi)" onmouseout="this.style.borderColor=${jsArg(installed?'var(--accent)':'var(--border)')}">
+         data-hover="bc:var(--border-hi)" data-hover-out="bc:${installed?'var(--accent)':'var(--border)'}">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <span style="font-size:28px">${p.emoji||'🧩'}</span>
         <div style="flex:1;min-width:0">
