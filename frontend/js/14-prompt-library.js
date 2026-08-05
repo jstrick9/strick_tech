@@ -739,7 +739,7 @@ async function shareProject(){
     await gmAlert('🌐 Share Your App',`
       <div style="margin-bottom:10px;font-size:13px">${j.is_public?'<span style="color:var(--success)">✅ Public URL (anyone can access)</span>':'<span style="color:var(--warning)">⚠️ LAN only (same Wi-Fi)</span>'}</div>
       <code style="display:block;background:var(--bg-0);padding:10px;border-radius:6px;font-size:12px;word-break:break-all;margin-bottom:10px">${url}</code>
-      ${j.qr_url?`<div style="text-align:center;margin-bottom:10px"><img src="${j.qr_url}" style="width:130px;height:130px;border-radius:8px"></div>`:''}
+      ${j.qr_url?`<div style="text-align:center;margin-bottom:10px"><img src="${j.qr_url}" style="width:130px;height:130px;border-radius:8px" alt="QR code linking to the shared prompt"></div>`:''}
       <div style="font-size:12px;color:var(--text-2)">${j.tip}</div>`);
     navigator.clipboard.writeText(url).then(()=>toast('📋 URL copied!','ok',1500));
   }else toast('Share failed','err');

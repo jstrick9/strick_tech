@@ -51,7 +51,7 @@ async function renderComposer() {
         </div>
         <input type="file" id="screenshot-file" accept="image/*" style="display:none" data-act-change="handleScreenshotFile($event)">
         <div id="screenshot-preview" style="display:none;margin-bottom:10px">
-          <img id="screenshot-img" style="max-width:100%;max-height:200px;border-radius:var(--radius-sm);border:1px solid var(--border)">
+          <img id="screenshot-img" style="max-width:100%;max-height:200px;border-radius:var(--radius-sm);border:1px solid var(--border)" alt="Uploaded screenshot preview">
         </div>
         <div style="display:flex;gap:8px">
           <select id="s2c-framework" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px;color:var(--text-0);font-size:12.5px;outline:none">

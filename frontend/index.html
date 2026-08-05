@@ -1431,7 +1431,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   <button type="button" id="folder-settings-btn" title="Folder settings" style="background:none;border:1px solid var(--border);color:var(--text-2);cursor:pointer;font-size:13px;padding:2px 6px;border-radius:6px;transition:all .12s">⚙</button>
                 </div>
               </div>
-              <input type="text" id="chat-sessions-search" placeholder="🔍 Search chats..." data-act-input="filterChatSessions($value)" style="width:100%; background:var(--bg-2); border:1px solid var(--border-hi); border-radius:8px; padding:6px 10px; color:var(--text-0); font-size:12px; outline:none">
+              <input type="text" id="chat-sessions-search" placeholder="🔍 Search chats..." data-act-input="filterChatSessions($value)" style="width:100%; background:var(--bg-2); border:1px solid var(--border-hi); border-radius:8px; padding:6px 10px; color:var(--text-0); font-size:12px; outline:none" aria-label="Search chats">
               <!-- View toggle -->
               <div style="display:flex; gap:2px; margin-top:8px; background:var(--bg-2); border-radius:6px; padding:2px; border:1px solid var(--border)">
                 <button type="button" id="view-folders-btn" data-act-click="switchChatView('folders')" style="flex:1;padding:4px 8px;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;transition:all .12s;background:var(--accent);color:var(--on-accent)">📁 Folders</button>
@@ -1459,7 +1459,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
               <div id="chat-model-control" style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:4px 10px">
                 <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Model</span>
-                <select id="chat-model-select" data-act-change="selectChatModel($value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
+                <select id="chat-model-select" data-act-change="selectChatModel($value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px" aria-label="Model">
                   <optgroup label="Cloud AI">
                     <option value="claude">Claude 3.5 Sonnet</option>
                     <option value="claude-opus">Claude Opus 4</option>
@@ -1485,7 +1485,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   <span id="active-persona-icon">💬</span> <span id="active-persona-label">Direct Chat</span> <span style="font-size:10px;opacity:0.5">▾</span>
                 </summary>
                 <div style="position:absolute;top:100%;left:0;margin-top:4px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:6px;min-width:220px;z-index:100;box-shadow:var(--shadow-lg)">
-                  <select id="chat-persona-select" data-act-change="hPersonaChange($this)" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;font-weight:600;outline:none;cursor:pointer;padding:8px 10px">
+                  <select id="chat-persona-select" data-act-change="hPersonaChange($this)" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;font-weight:600;outline:none;cursor:pointer;padding:8px 10px" aria-label="Agent persona">
                     <option value="default">💬 Direct AI Chat</option>
                     <optgroup id="chat-persona-optgroup" label="Agent Personas">
                       <option value="brain">🧠 Brain — Deep Reasoning</option>
@@ -1548,7 +1548,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               </div>
               <div id="chat-attachment-tray" class="chat-attachment-tray" aria-live="polite"></div>
               <div class="chat-input-row">
-                <input id="chat-file-input" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.js,.jsx,.ts,.tsx,.py,.html,.css,.xml,.yaml,.yml,.log,.sql,.sh,.java,.go,.rs,.rb,.php,.c,.cpp,.h,.pdf,.docx,.jpg,.jpeg,.png,.gif,.webp,.svg">
+                <input id="chat-file-input" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.js,.jsx,.ts,.tsx,.py,.html,.css,.xml,.yaml,.yml,.log,.sql,.sh,.java,.go,.rs,.rb,.php,.c,.cpp,.h,.pdf,.docx,.jpg,.jpeg,.png,.gif,.webp,.svg" aria-label="Attach a file">
                 <button type="button" class="chat-attach-btn btn-3d" data-act-click="hClickFileInput()" title="Attach files: Text, Code, CSV, JSON, PDF, Word, Images (max 5 files, 250KB text / 4MB documents)" aria-label="Attach files" style="font-size:13px">📎</button>
                 <textarea id="chat-input" data-draft="chat" aria-label="Chat message input" placeholder="Message AI… or drop a file or image here" rows="4" style="min-height:84px"></textarea>
                 <button type="button" class="chat-send-btn" id="chat-send" aria-label="Send message">➤</button>
@@ -1577,13 +1577,13 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <!-- Scaffold section -->
           <div style="border-top:1px solid var(--border);padding:8px;flex-shrink:0">
             <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Scaffold</div>
-            <select id="studio-scaffold-fw" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 7px;color:var(--text-1);font-size:11.5px;margin-bottom:5px;outline:none">
+            <select id="studio-scaffold-fw" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 7px;color:var(--text-1);font-size:11.5px;margin-bottom:5px;outline:none" aria-label="Framework">
               <option value="web">🌐 Web (HTML/CSS/JS)</option>
               <option value="nextjs">⚛️ Next.js 15</option>
               <option value="sveltekit">🔥 SvelteKit</option>
               <option value="expo">📱 Expo React Native</option>
             </select>
-            <textarea id="studio-scaffold-prompt" data-draft="scaffold" placeholder="Describe your app…" rows="2" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 7px;color:var(--text-1);font-size:11.5px;resize:none;outline:none;font-family:inherit;margin-bottom:5px"></textarea>
+            <textarea id="studio-scaffold-prompt" data-draft="scaffold" placeholder="Describe your app…" rows="2" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 7px;color:var(--text-1);font-size:11.5px;resize:none;outline:none;font-family:inherit;margin-bottom:5px" aria-label="Describe your app"></textarea>
             <button type="button" data-act-click="studioScaffold()" class="btn btn-primary" style="width:100%;font-size:12px;padding:6px">⚡ Scaffold</button>
           </div>
 
@@ -1601,7 +1601,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <!-- Studio AI input -->
           <div class="studio-ai-bar">
             <div class="studio-ai-input-row">
-              <input class="studio-ai-input" id="studio-ai-input" placeholder="Make the header blue… / Add dark mode…" autocomplete="off">
+              <input class="studio-ai-input" id="studio-ai-input" placeholder="Make the header blue… / Add dark mode…" autocomplete="off" aria-label="Describe the change you want">
               <button type="button" data-act-click="studioAIEdit()" style="background:var(--accent);border:none;color:white;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:14px;flex-shrink:0">➤</button>
             </div>
             <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
@@ -2089,7 +2089,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <button type="button" data-act-click="gxAddMemory()" class="btn-primary btn-sm btn-3d" style="background:var(--accent);color:var(--on-accent)">＋ Add Memory</button>
             <button type="button" data-act-click="refreshGalaxy()" class="btn-ghost btn-sm btn-3d">⟳ Refresh</button>
             <button type="button" data-act-click="fitGalaxy()" class="btn-ghost btn-sm btn-3d">⊡ Fit</button>
-            <select id="gx-limit" data-act-change="refreshGalaxy()" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text-1);font-size:12px">
+            <select id="gx-limit" data-act-change="refreshGalaxy()" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text-1);font-size:12px" aria-label="Results to show">
               <option value="120">120 nodes</option>
               <option value="250" selected>250 nodes</option>
               <option value="500">500 nodes</option>
@@ -2108,7 +2108,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           </div>
           <div id="gx-mem-stats" style="padding:6px 12px;font-size:11px;color:var(--text-3);border-bottom:1px solid var(--border);display:flex;gap:12px"></div>
           <div class="galaxy-search-row">
-            <input id="gx-search" placeholder="Semantic search…" data-act-keydown="doGxSearch()" data-keys="Enter">
+            <input id="gx-search" placeholder="Semantic search…" data-act-keydown="doGxSearch()" data-keys="Enter" aria-label="Search memory">
             <button type="button" data-act-click="doGxSearch()" class="btn btn-primary btn-sm">🔍</button>
           </div>
           <div id="gx-results" style="flex:1;overflow-y:auto;padding:8px">
@@ -2117,9 +2117,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             </div>
           </div>
           <div style="border-top:1px solid var(--border);padding:10px">
-            <textarea id="gx-ingest-text" data-draft="memory-ingest" placeholder="Add memory…" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px;color:var(--text-1);font-size:12px;resize:none;min-height:60px;outline:none"></textarea>
+            <textarea id="gx-ingest-text" data-draft="memory-ingest" placeholder="Add memory…" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px;color:var(--text-1);font-size:12px;resize:none;min-height:60px;outline:none" aria-label="New memory"></textarea>
             <div style="display:flex;gap:6px;margin-top:6px">
-              <input id="gx-ingest-tags" placeholder="tags (optional)" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;color:var(--text-1);font-size:12px;outline:none">
+              <input id="gx-ingest-tags" placeholder="tags (optional)" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;color:var(--text-1);font-size:12px;outline:none" aria-label="Tags (optional)">
               <button type="button" data-act-click="ingestMemory()" class="btn btn-primary btn-sm">+ Add</button>
             </div>
           </div>
@@ -2203,7 +2203,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <span id="t1-editor-title" style="font-size:15px;font-weight:700;color:var(--text-0)">Editing: about_me.md</span>
               <button type="button" data-act-click="saveCurrentTier1File()" class="btn btn-primary btn-sm">💾 Save File</button>
             </div>
-            <textarea id="t1-editor-textarea" style="flex:1;width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius);padding:16px;color:var(--text-0);font-family:monospace;font-size:13px;line-height:1.6;resize:none;outline:none"></textarea>
+            <textarea id="t1-editor-textarea" style="flex:1;width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius);padding:16px;color:var(--text-0);font-family:monospace;font-size:13px;line-height:1.6;resize:none;outline:none" aria-label="Draft content"></textarea>
           </div>
         </div>
 
@@ -2249,10 +2249,10 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             </div>
             <!-- IVREN editor/view -->
             <div style="flex:1;display:flex;flex-direction:column;padding:20px;overflow:hidden">
-              <textarea id="t2-ivren-textarea" style="flex:1;width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius);padding:16px;color:var(--text-0);font-family:monospace;font-size:13px;line-height:1.6;resize:none;outline:none"></textarea>
+              <textarea id="t2-ivren-textarea" style="flex:1;width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius);padding:16px;color:var(--text-0);font-family:monospace;font-size:13px;line-height:1.6;resize:none;outline:none" aria-label="Revision content"></textarea>
               <!-- Compounding Notes Quick Append Bar (shown only when section == 'notes') -->
               <div id="t2-notes-append-bar" style="display:none;margin-top:12px;gap:8px;align-items:center">
-                <input id="t2-notes-input" placeholder="Append feedback or metric (e.g. 'Issue #12 had 42% open rate; concise bullet points worked best')..." style="flex:1;background:var(--bg-1);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:10px 14px;color:var(--text-0);font-size:13px;outline:none">
+                <input id="t2-notes-input" placeholder="Append feedback or metric (e.g. 'Issue #12 had 42% open rate; concise bullet points worked best')..." style="flex:1;background:var(--bg-1);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:10px 14px;color:var(--text-0);font-size:13px;outline:none" aria-label="Feedback or metric">
                 <button type="button" data-act-click="appendNoteToCurrentProject()" class="btn btn-primary btn-sm" style="padding:10px 16px;white-space:nowrap">+ Log Compounding Note</button>
               </div>
             </div>
@@ -2270,7 +2270,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             </span>
             <span id="h-live-split-stats" style="font-size:11px;color:var(--text-3);font-weight:700"></span>
           </div>
-          <textarea id="h-live-split-textarea" readonly style="flex:1;width:100%;background:var(--bg-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;color:var(--text-1);font-family:monospace;font-size:11.5px;line-height:1.5;resize:none;outline:none"></textarea>
+          <textarea id="h-live-split-textarea" readonly style="flex:1;width:100%;background:var(--bg-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;color:var(--text-1);font-family:monospace;font-size:11.5px;line-height:1.5;resize:none;outline:none" aria-label="Split view content"></textarea>
         </div>
         </div> <!-- end #h-main-container -->
         </div>
@@ -2508,7 +2508,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <p style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Add an API key to access 140+ AI models. Your key is stored securely on your device and models appear in Chat automatically.</p>
                 <div class="key-input-row" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
                   <div style="position:relative;flex:1;min-width:240px;display:flex">
-                    <input id="or-key-input" type="password" class="key-input" placeholder="Paste sk-or-v1-… key here" required autocomplete="off" style="width:100%;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 40px 11px 14px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none">
+                    <input id="or-key-input" type="password" class="key-input" placeholder="Paste sk-or-v1-… key here" required autocomplete="off" style="width:100%;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 40px 11px 14px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none" aria-label="OpenRouter API key">
                     <button data-act-click="toggleKeyVisibility('or-key-input')" type="button" title="Show/Hide Key" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px">👁️</button>
                   </div>
                   <button type="button" data-act-click="saveApiKey()" class="btn-primary btn-3d" style="padding:11px 24px;border-radius:10px">⚡ Save, Test & Sync Models</button>
@@ -2528,7 +2528,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 </div>
                 <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Use models that run on your Mac. Your conversations stay on this device. Check once and your available models will appear in Chat.</p>
                 <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-                  <input id="settings-api-ollama-url" type="text" value="http://localhost:11434" style="flex:1;min-width:240px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
+                  <input id="settings-api-ollama-url" type="text" value="http://localhost:11434" style="flex:1;min-width:240px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="Ollama server URL">
                   <button type="button" data-act-click="testOllamaConnection()" class="btn-ghost btn-3d" style="padding:11px 22px;border-radius:10px">⚡ Check & Auto-Discover Models</button>
                   <button type="button" data-act-click="hotReloadBackendEngine()" class="btn-primary btn-3d" style="padding:11px 18px;border-radius:10px;background:#10b981;border:none;color:#fff" title="Reload internal Python AI services in RAM to ensure exact endpoint sync">⚡ Reload Engine & Sync</button>
                   <button type="button" data-act-click="hardRebootBackendEngine()" class="btn-ghost btn-3d" style="padding:11px 16px;border-radius:10px;color:var(--warning);border-color:var(--warning)" title="Perform clean application engine restart">🛑 Hard Restart Engine</button>
@@ -2538,7 +2538,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
                   <div style="font-size:12px;font-weight:800;color:var(--text-0);margin-bottom:8px">📥 1-Click Local Model Puller & Downloader</div>
                   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-                    <select id="ollama-quick-pull-sel" data-act-change="hOllamaModelChange($this)" style="background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-weight:600">
+                    <select id="ollama-quick-pull-sel" data-act-change="hOllamaModelChange($this)" style="background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-weight:600" aria-label="Model to download">
                       <option value="llama3.2:3b">Llama 3.2 3B (Fast / 2.0 GB RAM)</option>
                       <option value="llama3.1:8b">Llama 3.1 8B (General / 4.7 GB RAM)</option>
                       <option value="mistral:7b">Mistral 7B v0.3 (Reasoning / 4.1 GB RAM)</option>
@@ -2547,7 +2547,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                       <option value="nomic-embed-text">Nomic Embed Text (Knowledge Search / 274 MB)</option>
                       <option value="custom">Custom Model Name...</option>
                     </select>
-                    <input id="ollama-custom-pull-inp" type="text" placeholder="e.g. phi3:3.8b" style="display:none;width:150px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-family:monospace">
+                    <input id="ollama-custom-pull-inp" type="text" placeholder="e.g. phi3:3.8b" style="display:none;width:150px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-family:monospace" aria-label="Model name to pull">
                     <button type="button" data-act-click="quickPullSelectedOllamaModel()" class="btn-primary btn-3d btn-sm" style="padding:8px 16px;border-radius:8px">⚡ Pull Model to Mac</button>
                   </div>
                 </div>
@@ -2572,8 +2572,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   <button type="button" data-act-click="hSetGroqPreset()" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: Groq Cloud</button>
                 </div>
                 <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-                  <input id="custom-api-base-url" type="text" placeholder="http://localhost:1234/v1" style="flex:2;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
-                  <input id="custom-api-key" type="password" placeholder="API Key (if required by endpoint)" style="flex:1;min-width:160px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
+                  <input id="custom-api-base-url" type="text" placeholder="http://localhost:1234/v1" style="flex:2;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="API base URL">
+                  <input id="custom-api-key" type="password" placeholder="API Key (if required by endpoint)" style="flex:1;min-width:160px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="API key">
                   <button type="button" data-act-click="saveCustomConnection()" class="btn-primary btn-3d" style="padding:11px 22px;border-radius:10px">🔗 Connect & Sync</button>
                 </div>
                 <div id="custom-api-status-msg" style="font-size:12.5px;color:var(--text-2);padding:10px;background:var(--bg-2);border-radius:8px;border:1px solid var(--border);display:none"></div>
@@ -2738,7 +2738,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   <span id="ollama-status" style="font-size:12px;font-weight:700;color:var(--text-2)">Checking…</span>
                 </div>
                 <div style="display:flex;gap:10px;margin-bottom:14px">
-                  <input id="ollama-url-input" type="text" value="http://localhost:11434" style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
+                  <input id="ollama-url-input" type="text" value="http://localhost:11434" style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="Ollama server URL">
                   <button type="button" data-act-click="testOllamaConnection()" class="btn btn-primary" style="padding:10px 20px;background:var(--accent);border:none;border-radius:10px;color:var(--on-accent);font-weight:700;cursor:pointer">⚡ Check Connection</button>
                 </div>
                 <div id="ollama-models" style="font-size:12px;color:var(--text-2);padding:10px;background:var(--bg-2);border-radius:8px"></div>
@@ -2815,7 +2815,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:14px">🗂️</span>
           <span style="font-size:12.5px;font-weight:800;color:var(--text-0)">Secondary Workstation Slot</span>
-          <select id="split-pane-select" data-act-change="renderSplitPane($value)" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:6px;padding:4px 8px;color:var(--text-0);font-size:12px;font-weight:700;outline:none;cursor:pointer">
+          <select id="split-pane-select" data-act-change="renderSplitPane($value)" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:6px;padding:4px 8px;color:var(--text-0);font-size:12px;font-weight:700;outline:none;cursor:pointer" aria-label="Pane to show alongside">
             <option value="studio">⚡ Studio Code Editor</option>
             <option value="browser">❖ Browser Agent</option>
             <option value="terminal">＞_ Terminal</option>
@@ -2871,17 +2871,17 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <div class="form-row">
       <div class="form-group">
         <label>Name *</label>
-        <input id="am-name" placeholder="e.g. Aria, Max, CodeBot…">
+        <input id="am-name" placeholder="e.g. Aria, Max, CodeBot…" aria-label="Agent name">
       </div>
       <div class="form-group">
         <label>Role / Description</label>
-        <input id="am-role" placeholder="e.g. Full-stack developer">
+        <input id="am-role" placeholder="e.g. Full-stack developer" aria-label="Agent role">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
         <label>Model</label>
-        <select id="am-model">
+        <select id="am-model" aria-label="Model">
           <option value="claude">Claude 3.5 Sonnet</option>
           <option value="claude-opus">Claude Opus 4</option>
           <option value="gpt4o">GPT-4o</option>
@@ -2897,7 +2897,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       </div>
       <div class="form-group">
         <label>Provider</label>
-        <select id="am-provider">
+        <select id="am-provider" aria-label="Provider">
           <option value="openrouter">OpenRouter</option>
           <option value="ollama">Ollama (local)</option>
         </select>
@@ -2942,7 +2942,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <div class="form-row full">
       <div class="form-group">
         <label>System Prompt (optional)</label>
-        <textarea id="am-system" data-draft="agent-system-prompt" placeholder="You are [Name], an expert in… Keep responses concise and actionable."></textarea>
+        <textarea id="am-system" data-draft="agent-system-prompt" placeholder="You are [Name], an expert in… Keep responses concise and actionable." aria-label="System prompt"></textarea>
       </div>
     </div>
     <div class="modal-actions">
@@ -2969,7 +2969,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <p id="ob-body" style="font-size:13.5px;color:var(--text-1);text-align:center;line-height:1.65;margin-bottom:20px"></p>
     <!-- Dynamic input -->
     <div id="ob-input-area" style="margin-bottom:20px;display:none">
-      <input id="ob-input" type="text" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;color:var(--text-0);font-size:14px;outline:none;font-family:inherit" autocomplete="off">
+      <input id="ob-input" type="text" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;color:var(--text-0);font-size:14px;outline:none;font-family:inherit" autocomplete="off" aria-label="Your answer">
     </div>
     <!-- Theme picker (step 5) -->
     <div id="ob-theme-area" style="margin-bottom:20px;display:none;gap:10px;flex-wrap:wrap;justify-content:center"></div>
@@ -3011,8 +3011,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <div style="font-size:17px;font-weight:800;margin-bottom:8px" id="gm-title"></div>
     <div style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.5" id="gm-body"></div>
     <div id="gm-input-wrap" style="margin-bottom:16px;display:none">
-      <input id="gm-input" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:14px;outline:none;font-family:inherit" autocomplete="off">
-      <textarea id="gm-textarea" style="display:none;width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;outline:none;font-family:inherit;resize:vertical;min-height:80px"></textarea>
+      <input id="gm-input" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:14px;outline:none;font-family:inherit" autocomplete="off" aria-labelledby="gm-title">
+      <textarea id="gm-textarea" style="display:none;width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;outline:none;font-family:inherit;resize:vertical;min-height:80px" aria-labelledby="gm-title"></textarea>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px" id="gm-btns"></div>
   </div>

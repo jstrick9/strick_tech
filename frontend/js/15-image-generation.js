@@ -94,7 +94,7 @@ async function renderImageGen() {
           </div>
           <div id="img-status" style="font-size:11px;color:var(--text-2);margin-top:4px;min-height:16px"></div>
           <div id="img-result" style="display:none;margin-top:10px">
-            <img id="img-preview" style="max-width:100%;border-radius:var(--radius-sm);border:1px solid var(--border)">
+            <img id="img-preview" style="max-width:100%;border-radius:var(--radius-sm);border:1px solid var(--border)" alt="Generated image preview">
             <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
               <button data-act-click="downloadImage()" class="btn btn-ghost btn-sm">⬇ Download</button>
               <button data-act-click="igSaveToGallery()" class="btn btn-ghost btn-sm">💾 Save to Gallery</button>
@@ -151,7 +151,7 @@ async function renderImageGen() {
           : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;max-height:220px;overflow-y:auto" id="asset-library-grid">
               ${gallery.images.map((img, idx)=>`
                 <div data-gallery-idx="${idx}" style="aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border);cursor:pointer;position:relative;group" title="${escHtml(img.name)}">
-                  <img src="${escHtml(img.url)}" style="width:100%;height:100%;object-fit:cover" loading="lazy">
+                  <img src="${escHtml(img.url)}" style="width:100%;height:100%;object-fit:cover" loading="lazy" alt="Generated image">
                   <button type="button" data-gallery-delete-idx="${idx}"
                           style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);border:none;border-radius:4px;color:#fff;font-size:10px;cursor:pointer;padding:1px 4px;display:none" class="ig-del-btn">🗑</button>
                 </div>`).join('')}
@@ -395,7 +395,7 @@ async function igVariations() {
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
     const variantsHtml = variations.map((v, i) =>
       `<div data-variation-idx="${i}" style="cursor:pointer;border:2px solid var(--border);border-radius:8px;overflow:hidden">
-        <img src="${escHtml(v.src)}" style="width:100%;height:140px;object-fit:cover">
+        <img src="${escHtml(v.src)}" style="width:100%;height:140px;object-fit:cover" alt="Style transfer result">
         <div style="font-size:10px;color:var(--text-3);padding:4px 6px">${escHtml(v.modifier)}</div>
       </div>`
     ).join('');
