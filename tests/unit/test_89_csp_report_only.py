@@ -57,16 +57,27 @@ def test_enforcing_policy_no_longer_permits_inline_script():
     assert "'unsafe-eval'" not in script_src
 
 
-def test_report_only_keeps_style_unsafe_inline():
-    """Deliberate: the codebase sets element.style extensively, inline STYLE is
-    a far smaller risk than inline SCRIPT, and bundling the two would stall
-    both."""
+def test_report_only_now_measures_strict_style_src():
+    """This asserted the OPPOSITE — that Report-Only kept style-src
+    'unsafe-inline' — which was right while the header's job was to preview
+    dropping it from SCRIPT-src. That shipped in 461ba07, at which point the
+    two policies became byte-identical apart from report-uri and the header
+    was measuring nothing.
+
+    Its purpose is to be one ratchet ahead of what is enforced. It now previews
+    strict style-src, and the ENFORCING policy still allows inline styles —
+    asserted separately in test_105 — so nothing breaks while the cost of that
+    migration is measured from real usage.
+    """
     from backend.app import CSP_REPORT_ONLY
 
     style_src = next(
         d for d in CSP_REPORT_ONLY.split(';') if d.strip().startswith('style-src')
     )
-    assert "'unsafe-inline'" in style_src
+    assert "'unsafe-inline'" not in style_src, (
+        'Report-Only is no longer ahead of the enforcing policy; it would '
+        'collect nothing actionable'
+    )
 
 
 def test_report_only_points_at_a_real_endpoint():
