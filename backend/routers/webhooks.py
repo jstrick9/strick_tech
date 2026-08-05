@@ -169,7 +169,7 @@ def webhook_events(webhook_id: str, limit: int = 20):
     con = get_conn()
     try:
         rows = con.execute(
-            'SELECT * FROM webhook_events WHERE webhook_id=? ORDER BY id DESC LIMIT ?', (webhook_id, min(limit, 100))
+            'SELECT * FROM webhook_events WHERE webhook_id=? ORDER BY id DESC LIMIT ?', (webhook_id, max(1, min(limit, 100)))
         ).fetchall()
         return [dict(r) for r in rows]
     except Exception as e:

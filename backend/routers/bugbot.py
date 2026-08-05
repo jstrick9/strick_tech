@@ -140,7 +140,7 @@ def list_reviews(limit: int = 20):
     try:
         rows = con.execute(
             'SELECT id,pr_url,title,severity,score,status,created_at FROM bugbot_reviews ORDER BY created_at DESC LIMIT ?',
-            (min(limit, 100),),
+            (max(1, min(limit, 100)),),
         ).fetchall()
     finally:
         con.close()

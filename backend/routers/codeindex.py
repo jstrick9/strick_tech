@@ -350,7 +350,7 @@ def search_symbols(q: str = '', file: str = '', type: str = '', limit: int = 50)
         if where:
             sql += ' WHERE ' + ' AND '.join(where)
         sql += ' ORDER BY symbol_name LIMIT ?'
-        params.append(min(limit, 500))
+        params.append(max(1, min(limit, 500)))
         rows = con.execute(sql, params).fetchall()
         count_params = params[:-1]  # exclude LIMIT
         count_where = ' WHERE ' + ' AND '.join(where) if where else ''

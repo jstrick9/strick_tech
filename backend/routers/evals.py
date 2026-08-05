@@ -324,7 +324,7 @@ def list_eval_runs(agent_id: str = '', limit: int = 50, pass_fail: str = ''):
             + (f' WHERE {" AND ".join(where)}' if where else '')
             + ' ORDER BY created_at DESC LIMIT ?'
         )
-        params.append(min(limit, 500))
+        params.append(max(1, min(limit, 500)))
         rows = con.execute(sql, params).fetchall()
     finally:
         con.close()

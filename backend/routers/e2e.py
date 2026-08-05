@@ -154,7 +154,7 @@ def e2e_history(limit: int = 20):
                GROUP BY run_id, target
                ORDER BY MAX(created_at) DESC
                LIMIT ?""",
-            (limit,),
+            (max(1, min(limit, 500)),),
         ).fetchall()
     finally:
         con.close()

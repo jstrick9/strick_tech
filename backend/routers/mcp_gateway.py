@@ -1290,7 +1290,7 @@ def list_calls(agent_id: str = '', server_id: str = '', status: str = '', limit:
         where.append('status=?')
         params.append(status)
     where_sql = ('WHERE ' + ' AND '.join(where)) if where else ''
-    params.append(min(limit, 500))
+    params.append(max(1, min(limit, 500)))
     con = _get_conn()
     try:
         rows = con.execute(

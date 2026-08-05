@@ -397,11 +397,11 @@ def list_runs(wf_id: str = '', limit: int = 50):
         if wf_id:
             rows = con.execute(
                 'SELECT * FROM workflow_runs WHERE workflow_id=? ORDER BY created_at DESC LIMIT ?',
-                (wf_id, min(limit, 200)),
+                (wf_id, max(1, min(limit, 200))),
             ).fetchall()
         else:
             rows = con.execute(
-                'SELECT * FROM workflow_runs ORDER BY created_at DESC LIMIT ?', (min(limit, 200),)
+                'SELECT * FROM workflow_runs ORDER BY created_at DESC LIMIT ?', (max(1, min(limit, 200)),)
             ).fetchall()
     finally:
         con.close()

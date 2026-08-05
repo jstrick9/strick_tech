@@ -1098,7 +1098,7 @@ def list_reports(limit: int = 50):
     con = _get_conn()
     try:
         rows = con.execute(
-            'SELECT * FROM compliance_reports ORDER BY created_at DESC LIMIT ?', (min(limit, 200),)
+            'SELECT * FROM compliance_reports ORDER BY created_at DESC LIMIT ?', (max(1, min(limit, 200)),)
         ).fetchall()
     finally:
         con.close()

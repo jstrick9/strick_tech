@@ -262,7 +262,7 @@ def git_status():
 @router.get('/log')
 def git_log(limit: int = 20, file: str = '', since: str = '', author: str = ''):
     """Get git log with optional filters."""
-    args = ['log', '--pretty=format:%H|%an|%ae|%ad|%s', '--date=short', f'-{min(limit, 100)}']
+    args = ['log', '--pretty=format:%H|%an|%ae|%ad|%s', '--date=short', f'-{max(1, min(limit, 100))}']
     if file:
         args += ['--', '' + file]
     if since:

@@ -186,7 +186,7 @@ def pipeline_history(limit: int = 20):
     try:
         rows = con.execute(
             "SELECT action, detail, datetime(created_at,'localtime') as ts FROM audit WHERE action='pipeline_run' ORDER BY id DESC LIMIT ?",
-            (min(limit, 200),),
+            (max(1, min(limit, 200)),),
         ).fetchall()
         return [dict(r) for r in rows]
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):

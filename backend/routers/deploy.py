@@ -271,7 +271,7 @@ def deploy_history(limit: int = 20):
     """Return recent deploy records from memory + audit log."""
     from ..services.memory_db import get_conn, memory_search_fts
 
-    results = memory_search_fts('deploy', limit=min(limit, 100))
+    results = memory_search_fts('deploy', limit=max(1, min(limit, 100)))
     deploy_mem = [r for r in results if 'deploy' in (r.get('tags') or '')]
     # Also check audit log for deploy actions
     try:
@@ -280,7 +280,7 @@ def deploy_history(limit: int = 20):
             audit_rows = con.execute(
                 "SELECT action, detail, datetime(created_at,'localtime') as created_at "
                 "FROM audit WHERE action LIKE 'deploy%' ORDER BY id DESC LIMIT ?",
-                (min(limit, 100),),
+                (max(1, min(limit, 100)),),
             ).fetchall()
             for row in audit_rows:
                 deploy_mem.append(
@@ -297,7 +297,7 @@ def deploy_history(limit: int = 20):
         pass
     # Sort combined by created_at descending
     deploy_mem.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-    return deploy_mem[: min(limit, 100)]
+    return deploy_mem[: max(1, min(limit, 100))]
 
 
 # ── Status check ───────────────────────────────────────────────────────────────

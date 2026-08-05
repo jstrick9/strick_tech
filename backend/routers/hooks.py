@@ -545,7 +545,7 @@ def recent_runs(limit: int = 50):
             JOIN agent_hooks h ON h.id=r.hook_id
             ORDER BY r.created_at DESC LIMIT ?
         """,
-            (min(limit, 200),),
+            (max(1, min(limit, 200)),),
         ).fetchall()
     finally:
         con.close()

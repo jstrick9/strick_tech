@@ -283,7 +283,7 @@ def swarm_history(limit: int = 20):
                       total_latency_ms, total_tokens,
                       datetime(created_at,'localtime') as ts
                FROM swarm_history ORDER BY id DESC LIMIT ?""",
-            (min(limit, 100),),
+            (max(1, min(limit, 100)),),
         ).fetchall()
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         return []

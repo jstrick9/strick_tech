@@ -139,7 +139,7 @@ def leaderboard(limit: int = 20, days: int = 30, task_type: str = ''):
             ORDER BY success_rate DESC, total_calls DESC
             LIMIT :limit
         """,
-            {'task_type': task_type, 'limit': min(limit, 100)},
+            {'task_type': task_type, 'limit': max(1, min(limit, 100))},
         ).fetchall()
     except Exception as ex:
         log.warning('leaderboard query error: %s', ex)

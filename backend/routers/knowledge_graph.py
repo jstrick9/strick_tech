@@ -224,7 +224,7 @@ def search_entities(q: str = '', type: str = '', limit: int = 30):
             + (f' WHERE {" AND ".join(where)}' if where else '')
             + ' ORDER BY confidence DESC, updated_at DESC LIMIT ?'
         )
-        params.append(min(limit, 200))
+        params.append(max(1, min(limit, 200)))
         rows = con.execute(sql, params).fetchall()
     finally:
         con.close()

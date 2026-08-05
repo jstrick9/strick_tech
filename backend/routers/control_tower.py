@@ -398,11 +398,11 @@ def list_runs(status: str = '', limit: int = 50):
     try:
         if status:
             rows = con.execute(
-                'SELECT * FROM agent_traces WHERE status=? ORDER BY created_at DESC LIMIT ?', (status, min(limit, 200))
+                'SELECT * FROM agent_traces WHERE status=? ORDER BY created_at DESC LIMIT ?', (status, max(1, min(limit, 200)))
             ).fetchall()
         else:
             rows = con.execute(
-                'SELECT * FROM agent_traces ORDER BY created_at DESC LIMIT ?', (min(limit, 200),)
+                'SELECT * FROM agent_traces ORDER BY created_at DESC LIMIT ?', (max(1, min(limit, 200)),)
             ).fetchall()
     finally:
         con.close()
@@ -641,10 +641,10 @@ def list_notifications(unread_only: bool = False, limit: int = 50):
     try:
         if unread_only:
             rows = con.execute(
-                'SELECT * FROM notifications WHERE read_at IS NULL ORDER BY id DESC LIMIT ?', (min(limit, 200),)
+                'SELECT * FROM notifications WHERE read_at IS NULL ORDER BY id DESC LIMIT ?', (max(1, min(limit, 200)),)
             ).fetchall()
         else:
-            rows = con.execute('SELECT * FROM notifications ORDER BY id DESC LIMIT ?', (min(limit, 200),)).fetchall()
+            rows = con.execute('SELECT * FROM notifications ORDER BY id DESC LIMIT ?', (max(1, min(limit, 200)),)).fetchall()
         unread_count = con.execute('SELECT COUNT(*) FROM notifications WHERE read_at IS NULL').fetchone()[0]
     finally:
         con.close()

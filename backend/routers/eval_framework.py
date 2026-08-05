@@ -616,7 +616,7 @@ def list_results(
         params.append(pass_fail)
     if needs_review:
         where.append("needs_review=1 AND reviewed_at=''")
-    params.append(min(limit, 500))
+    params.append(max(1, min(limit, 500)))
     sql = 'SELECT * FROM eval_results'
     if where:
         sql += ' WHERE ' + ' AND '.join(where)
@@ -664,7 +664,7 @@ def review_queue(limit: int = 20):
             SELECT * FROM eval_results WHERE needs_review=1 AND reviewed_at=''
             ORDER BY overall_score ASC LIMIT ?
         """,
-            (min(limit, 200),),
+            (max(1, min(limit, 200)),),
         ).fetchall()
     finally:
         con.close()

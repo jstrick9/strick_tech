@@ -86,7 +86,7 @@ async def search_code(q: str = '', limit: int = 20, context_lines: int = 3):
     # Sort by score then line
     results.sort(key=lambda r: (-r['score'], r['file'], r['line']))
     total = len(results)
-    results = results[: min(limit, 200)]
+    results = results[: max(1, min(limit, 200))]
 
     # AI-powered summary if few results
     summary = ''
