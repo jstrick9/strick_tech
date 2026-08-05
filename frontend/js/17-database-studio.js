@@ -223,7 +223,7 @@ async function renderSupabaseTab(el) {
       <p>PostgreSQL + Auth + Storage — the same stack Lovable uses.</p>
       <div style="background:var(--bg-1);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.8;margin-bottom:14px">
         ${(s.setup?.steps||[]).map(s=>escHtml(s)).join('<br>')}
-        <a href="${safeUrl(s.setup?.url||'https://supabase.com')}" target="_blank" style="color:var(--accent);display:block;margin-top:8px">→ Create Supabase project ↗</a>
+        <a href="${safeUrl(s.setup?.url||'https://supabase.com')}" target="_blank" style="color:var(--accent-text);display:block;margin-top:8px">→ Create Supabase project ↗</a>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px">
         <div>
@@ -244,7 +244,7 @@ async function renderSupabaseTab(el) {
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
       <span style="font-size:24px">☁️</span>
       <div><div style="font-weight:800">Supabase Connected</div>
-      <div style="font-size:12px;color:var(--accent)">${escHtml(s.url||'')}</div></div>
+      <div style="font-size:12px;color:var(--accent-text)">${escHtml(s.url||'')}</div></div>
       <span class="tag green" style="margin-left:auto">✅ Connected</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">

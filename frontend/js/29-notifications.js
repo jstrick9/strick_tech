@@ -69,7 +69,7 @@ function createNotifPanel() {
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:16px">🔔</span>
         <span style="font-weight:700;font-size:14px;color:var(--text-0)">Notifications</span>
-        <span id="notif-count-badge" style="font-size:10px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:99px;font-weight:700;display:none">0</span>
+        <span id="notif-count-badge" style="font-size:10px;background:var(--accent);color:var(--on-accent);padding:1px 6px;border-radius:99px;font-weight:700;display:none">0</span>
       </div>
       <div style="display:flex;gap:6px">
         <button data-act-click="markAllNotifRead()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:4px 8px;border-radius:6px;transition:all 0.15s">Mark all read</button>

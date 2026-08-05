@@ -78,7 +78,7 @@ async function renderSupervisor() {
         <div class="dag-sidebar-head">
           <p class="dag-sidebar-title">🧠 Supervisor Runs</p>
           <div class="dag-stats-grid" id="dag-stats-grid">
-            <div class="dag-stat"><div class="dag-stat-val" id="dag-stat-total" style="color:var(--accent)">—</div><div class="dag-stat-label">Total</div></div>
+            <div class="dag-stat"><div class="dag-stat-val" id="dag-stat-total" style="color:var(--accent-text)">—</div><div class="dag-stat-label">Total</div></div>
             <div class="dag-stat"><div class="dag-stat-val" id="dag-stat-done" style="color:var(--success)">—</div><div class="dag-stat-label">Done</div></div>
             <div class="dag-stat"><div class="dag-stat-val" id="dag-stat-score" style="color:#9d74f5">—</div><div class="dag-stat-label">Avg Score</div></div>
             <div class="dag-stat"><div class="dag-stat-val" id="dag-stat-tokens" style="color:var(--text-2)">—</div><div class="dag-stat-label">Tokens</div></div>
@@ -353,7 +353,7 @@ window.clusterScanLAN = async function() {
     gmAlert(
       '📡 Cluster Status',
       `Cluster <code style="font-family:monospace">${escHtml(d.cluster_id || 'unknown')}</code><br><br>` +
-      `Registered nodes: <strong style="color:var(--accent)">${d.node_count ?? 0}</strong><br>` +
+      `Registered nodes: <strong style="color:var(--accent-text)">${d.node_count ?? 0}</strong><br>` +
       `Active (recent heartbeat): <strong>${d.active_nodes ?? 0}</strong><br>` +
       `Total VRAM reported: <strong>${d.total_vram_gb ?? 0} GB</strong><br><br>` +
       `<span style="color:var(--text-3)">Automatic subnet discovery isn't available — add nodes by URL with “＋ Add Edge Node”.</span>`
@@ -748,7 +748,7 @@ function dagShowTaskDetail(taskId) {
         <span style="padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;background:${stCol}22;color:${stCol}">
           ${DAG_STATUS_ICONS[task.status] || ''} ${task.status}
         </span>
-        ${task.duration_ms > 0 ? `<span style="font-size:11px;color:var(--accent)">${(task.duration_ms/1000).toFixed(2)}s</span>` : ''}
+        ${task.duration_ms > 0 ? `<span style="font-size:11px;color:var(--accent-text)">${(task.duration_ms/1000).toFixed(2)}s</span>` : ''}
         ${task.tokens ? `<span style="font-size:10px;color:var(--text-3)">${task.tokens} tokens</span>` : ''}
       </div>
     </div>

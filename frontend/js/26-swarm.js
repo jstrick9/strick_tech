@@ -96,7 +96,7 @@ window.renderSwarmDAG = function(runs = [], winner = '', isRunning = false, acti
             }).join('')}
           </div>
         </div>
-        ${lIdx < levels.length - 1 ? `<div style="text-align:center;color:var(--accent);font-size:14px;opacity:0.6;margin:-4px 0">↓ Conduit Data Stream</div>` : ''}
+        ${lIdx < levels.length - 1 ? `<div style="text-align:center;color:var(--accent-text);font-size:14px;opacity:0.6;margin:-4px 0">↓ Conduit Data Stream</div>` : ''}
       `).join('')}
     </div>`;
 
@@ -146,7 +146,7 @@ function renderSwarm() {
       <div style="overflow-y:auto;max-height:calc(100vh - 160px);display:flex;flex-direction:column">
         <div id="swarm-dag-container" class="card-elevated surface-z2" style="margin-bottom:16px;min-height:380px;display:flex;flex-direction:column">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">
-            <span style="font-weight:800;font-size:13px;color:var(--accent)">🕸️ Directed Acyclic Graph (DAG) Network</span>
+            <span style="font-weight:800;font-size:13px;color:var(--accent-text)">🕸️ Directed Acyclic Graph (DAG) Network</span>
             <span class="badge badge-accent">LIVE ORCHESTRATION</span>
           </div>
           <div id="swarm-dag-host" style="flex:1"></div>
@@ -190,7 +190,7 @@ async function renderSwarmAgents() {
     <label style="display:flex;align-items:center;gap:6px;background:var(--bg-3);border-radius:var(--radius-sm);
       padding:6px 10px;cursor:pointer;border:1px solid var(--border);font-size:12px;transition:var(--transition)"
       title="${escHtml(a.role||a.description||'')}">
-      <input type="checkbox" data-agent="${a.id}" ${defaultOn.has(a.id)?'checked':''} style="accent-color:var(--accent)">
+      <input type="checkbox" data-agent="${a.id}" ${defaultOn.has(a.id)?'checked':''} style="accent-color:var(--accent-text)">
       <span>${a.avatar||'🤖'}</span><span>${escHtml(a.name)}</span>
     </label>`).join('');
 }

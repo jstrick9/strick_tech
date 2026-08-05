@@ -285,7 +285,7 @@ function crcRenderGenerator(container) {
         <button class="crc-gen-btn" id="crc-gen-btn" data-act-click="crcGenerate()" ${_crcGenerating?'disabled':''}>
           ${_crcGenerating ? '<div class="crc-spinner"></div> Generating Report…' : '📄 Generate Compliance Report'}
         </button>
-        ${_crcGenerating ? `<div class="crc-generating"><div class="crc-spinner"></div><span style="font-size:12px;color:var(--accent)">Building report — collecting audit chain, HITL records, policy data…</span></div>` : ''}
+        ${_crcGenerating ? `<div class="crc-generating"><div class="crc-spinner"></div><span style="font-size:12px;color:var(--accent-text)">Building report — collecting audit chain, HITL records, policy data…</span></div>` : ''}
       </div>
     </div>
   `;
@@ -558,7 +558,7 @@ async function crcRenderAuditChain(container) {
           <tr data-act-click="crcShowEntry(${JSON.stringify(e.entry_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <td style="font-family:monospace;color:var(--text-3)">${e.seq}</td>
             <td>${CRC_OUTCOME_ICONS[e.outcome]||'❓'} <span style="font-size:10px">${escHtml(e.outcome||'')}</span></td>
-            <td style="color:var(--accent)">${escHtml((e.agent_name||e.agent_id||'').slice(0,16))}</td>
+            <td style="color:var(--accent-text)">${escHtml((e.agent_name||e.agent_id||'').slice(0,16))}</td>
             <td style="font-size:10px">${escHtml((e.action_type||'').slice(0,20))}</td>
             <td style="font-size:10px;color:var(--text-2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((e.action_detail||'').slice(0,80))}</td>
             <td><span class="crc-risk-chip" style="background:${CRC_RISK_COLORS[e.risk_level]||'var(--text-3)'}22;color:${CRC_RISK_COLORS[e.risk_level]||'var(--text-3)'}">${e.risk_level||''}</span></td>

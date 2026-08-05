@@ -66,7 +66,7 @@ async function renderWorkflow() {
       </div>
 
       <div class="wf-sidebar-section">
-        <h4>Workflows <button data-act-click="wfNewWorkflow()" style="float:right;background:var(--accent);border:none;color:#fff;font-size:10px;padding:2px 7px;border-radius:4px;cursor:pointer">＋ New</button></h4>
+        <h4>Workflows <button data-act-click="wfNewWorkflow()" style="float:right;background:var(--accent);border:none;color:var(--on-accent);font-size:10px;padding:2px 7px;border-radius:4px;cursor:pointer">＋ New</button></h4>
         <div class="wf-list" id="wf-list"><!-- Populated by wfLoadWorkflows() --></div>
         <div style="display:flex;gap:4px;margin-top:6px">
           <button data-act-click="wfImportDialog()" style="flex:1;font-size:10px;padding:4px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">⬆ Import</button>
@@ -1545,7 +1545,7 @@ async function renderProfiler() {
               <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 6px;border-radius:6px;font-size:12px">
                 <span style="color:var(--text-1)">${escHtml(t.agent_id||t.agent||'?')}</span>
                 <div style="text-align:right">
-                  <div style="color:var(--accent);font-weight:600">${t.avg_ms||0}ms avg</div>
+                  <div style="color:var(--accent-text);font-weight:600">${t.avg_ms||0}ms avg</div>
                   <div style="font-size:10px;color:var(--text-3)">${t.runs||t.calls} runs · ${t.tokens||0} tokens</div>
                 </div>
               </div>
@@ -1636,7 +1636,7 @@ async function takeMemSnapshot() {
       ${(snap.top_allocs||[]).slice(0,5).map(a => `
         <div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-top:1px solid var(--border)">
           <span style="color:var(--text-2);font-family:monospace">${escHtml(a.file)}:${a.line}</span>
-          <span style="color:var(--accent)">${a.size_kb} KB</span>
+          <span style="color:var(--accent-text)">${a.size_kb} KB</span>
         </div>
       `).join('')}
     `;
@@ -1988,7 +1988,7 @@ async function sdkTestSkill(packId, skillId) {
       <div style="background:var(--bg-3);border-radius:8px;padding:12px;font-size:12px;color:var(--text-1);white-space:pre-wrap;max-height:300px;overflow-y:auto">${escHtml(d.output||'')}</div>
       <div style="margin-top:8px;font-size:11px;color:var(--text-3)">${d.tokens||0} tokens</div>
       <button data-close="closest:[style*=fixed]" 
-              style="margin-top:12px;padding:6px 16px;background:var(--accent);border:none;color:#fff;border-radius:6px;cursor:pointer">Close</button>
+              style="margin-top:12px;padding:6px 16px;background:var(--accent);border:none;color:var(--on-accent);border-radius:6px;cursor:pointer">Close</button>
     `;
     overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
   } catch(ex) {
@@ -2225,7 +2225,7 @@ function mtToggleGrid() {
         <div class="mt-grid-cell-header">
           ${t.favicon||'📄'} ${escHtml(t.title||t.file||'Tab')}
           <button data-act-click="hActivateTabAndGrid(${JSON.stringify(t.id)})" 
-                  style="margin-left:auto;background:none;border:none;color:var(--accent);cursor:pointer;font-size:10px">↗</button>
+                  style="margin-left:auto;background:none;border:none;color:var(--accent-text);cursor:pointer;font-size:10px">↗</button>
         </div>
         <iframe src="${escHtml(t.url)}" style="flex:1;border:none;width:100%;min-height:200px"></iframe>
       </div>
@@ -2346,7 +2346,7 @@ window.installTauriPrerequisites = async function() {
     progCard.style.cssText = 'margin-top:14px;padding:16px;border:1px solid var(--accent);border-radius:12px';
     progCard.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-weight:800;font-size:12.5px;color:var(--accent)" id="tauri-prog-msg">⏳ Connecting to setup stream...</span>
+        <span style="font-weight:800;font-size:12.5px;color:var(--accent-text)" id="tauri-prog-msg">⏳ Connecting to setup stream...</span>
         <span style="font-family:monospace;font-size:11px;color:var(--text-2)" id="tauri-prog-pct">0%</span>
       </div>
       <div style="width:100%;height:10px;background:var(--bg-3);border-radius:99px;overflow:hidden;border:1px solid var(--border)">
@@ -2565,7 +2565,7 @@ window.renderPQCVault = async function() {
           <h2 style="margin:0 0 6px;font-size:24px;font-weight:900">🛡 Post-Quantum Cryptography (PQC) Vault</h2>
           <p style="margin:0;color:var(--text-2);font-size:13.5px">Lattice-based quantum-resistant hybrid key encapsulation (Kyber-1024 + X25519) & Dilithium-5 digital signatures</p>
         </div>
-        <button data-act-click="pqcGenerateMasterKey()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">⚡ Generate Hybrid PQC Keypair</button>
+        <button data-act-click="pqcGenerateMasterKey()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">⚡ Generate Hybrid PQC Keypair</button>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px">
@@ -2581,8 +2581,8 @@ window.renderPQCVault = async function() {
         </div>
         <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:16px;padding:20px">
           <h3 style="margin:0 0 8px;font-size:15px;color:var(--text-0)">Vault Encryption Storage</h3>
-          <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">Encrypted AES-256-GCM + Kyber KEM payload vault at <code style="font-family:monospace;color:var(--accent)">~/Library/Application Support/com.stricktech.agenticos/memory/pqc/</code></p>
-          <span class="tech-badge" style="color:var(--accent);border-color:var(--accent)">HARDENED STORAGE</span>
+          <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">Encrypted AES-256-GCM + Kyber KEM payload vault at <code style="font-family:monospace;color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/memory/pqc/</code></p>
+          <span class="tech-badge" style="color:var(--accent-text);border-color:var(--accent-text)">HARDENED STORAGE</span>
         </div>
       </div>
 
@@ -2601,7 +2601,7 @@ window.renderPQCVault = async function() {
         <div id="pqc-lattice-container" style="position:relative;background:#04060f;border:1px solid var(--border-hi);border-radius:12px;padding:16px;overflow:hidden;min-height:240px;display:flex;flex-direction:column;gap:12px">
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;font-family:monospace;font-size:11.5px">
             <div style="background:rgba(56,189,248,0.1);padding:10px;border-radius:8px;border:1px solid var(--accent)">
-              <div style="color:var(--accent);font-weight:700;margin-bottom:4px">MATRIX [A] DIMENSION</div>
+              <div style="color:var(--accent-text);font-weight:700;margin-bottom:4px">MATRIX [A] DIMENSION</div>
               <div style="color:#fff;font-size:14px;font-weight:800">4 × 4 Polynomials</div>
               <div style="color:var(--text-3);font-size:10px">Degree n = 256</div>
             </div>
@@ -2639,7 +2639,7 @@ window.renderPQCVault = async function() {
                 <div style="font-weight:700;font-size:13.5px;color:var(--text-0)">${escHtml(typeof a === 'string' ? a : a.name || 'PQC Primitive')}</div>
                 <div style="font-size:11.5px;color:var(--text-2)">${escHtml(typeof a === 'string' ? 'Quantum-resistant primitive' : a.description || 'Lattice-based quantum-resistant cryptographic primitive')}</div>
               </div>
-              <span style="font-size:11px;font-weight:800;color:var(--accent);background:var(--bg-2);padding:4px 10px;border-radius:6px;border:1px solid var(--border)">VERIFIED</span>
+              <span style="font-size:11px;font-weight:800;color:var(--accent-text);background:var(--bg-2);padding:4px 10px;border-radius:6px;border:1px solid var(--border)">VERIFIED</span>
             </div>
           `).join('')}
         </div>
@@ -2725,7 +2725,7 @@ window.pqcExportAuditCertificate = function() {
   document.body.appendChild(dlAnchor);
   dlAnchor.click();
   dlAnchor.remove();
-  gmAlert('📜 PQC Audit Certificate Exported', `Certificate <strong style="color:var(--accent)">${cert.certificate_id}</strong> has been downloaded as verifiable JSON.\n\nFIPS 203 & FIPS 204 Lattice compliance verified by Strick Tech.`);
+  gmAlert('📜 PQC Audit Certificate Exported', `Certificate <strong style="color:var(--accent-text)">${cert.certificate_id}</strong> has been downloaded as verifiable JSON.\n\nFIPS 203 & FIPS 204 Lattice compliance verified by Strick Tech.`);
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -2752,7 +2752,7 @@ window.renderFinetuneWorkstation = async function() {
           <h2 style="margin:0 0 6px;font-size:24px;font-weight:900">⚗ Zero-Shot LoRA Local Fine-Tuning Workstation</h2>
           <p style="margin:0;color:var(--text-2);font-size:13.5px">Train custom local LoRA adapters directly on your Apple Silicon Unified Memory or CPU right inside Agentic OS</p>
         </div>
-        <button data-act-click="finetuneCreateChatDataset()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">＋ Create Dataset from Chat History</button>
+        <button data-act-click="finetuneCreateChatDataset()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">＋ Create Dataset from Chat History</button>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px">
@@ -2763,12 +2763,12 @@ window.renderFinetuneWorkstation = async function() {
         </div>
         <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:16px;padding:20px">
           <h3 style="margin:0 0 8px;font-size:15px;color:var(--text-0)">LoRA Configuration</h3>
-          <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">Rank (<code style="color:var(--accent)">r=16</code>), Alpha (<code style="color:var(--accent)">32</code>), Target modules (<code style="color:var(--accent)">q_proj, v_proj</code>) optimized for local inference.</p>
-          <span class="tech-badge" style="color:var(--accent);border-color:var(--accent)">TARGET MODEL: ${escHtml(hw.recommended_model || 'llama3.1:8b')}</span>
+          <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">Rank (<code style="color:var(--accent-text)">r=16</code>), Alpha (<code style="color:var(--accent-text)">32</code>), Target modules (<code style="color:var(--accent-text)">q_proj, v_proj</code>) optimized for local inference.</p>
+          <span class="tech-badge" style="color:var(--accent-text);border-color:var(--accent-text)">TARGET MODEL: ${escHtml(hw.recommended_model || 'llama3.1:8b')}</span>
         </div>
         <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:16px;padding:20px">
           <h3 style="margin:0 0 8px;font-size:15px;color:var(--text-0)">Adapter Export Storage</h3>
-          <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">Exported adapter weights (.bin / GGUF) reside locally at <code style="font-family:monospace;color:var(--accent)">~/Library/Application Support/com.stricktech.agenticos/memory/finetune/adapters/</code></p>
+          <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">Exported adapter weights (.bin / GGUF) reside locally at <code style="font-family:monospace;color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/memory/finetune/adapters/</code></p>
           <span class="tech-badge" style="color:var(--warning);border-color:var(--warning)">LOCAL ZERO-CLOUD EXPORT</span>
         </div>
       </div>
@@ -2789,7 +2789,7 @@ window.renderFinetuneWorkstation = async function() {
           data-act-click="finetuneConvertIVREN()" data-hover="bc:var(--accent)" data-hover-out="bc:rgba(56,189,248,0.4)">
           <div style="font-size:28px;margin-bottom:8px">🗂️ ➔ 📋</div>
           <div style="font-weight:800;font-size:13.5px;color:var(--text-0);margin-bottom:4px">Click or drop IVREN Markdown files / JSONL corpora here</div>
-          <div style="font-size:11.5px;color:var(--text-3);max-width:460px;margin:0 auto">Zero-shot instruction parsing formats all tier delta memories into <code style="color:var(--accent)">{"instruction": "...", "response": "..."}</code> ready for local Metal execution.</div>
+          <div style="font-size:11.5px;color:var(--text-3);max-width:460px;margin:0 auto">Zero-shot instruction parsing formats all tier delta memories into <code style="color:var(--accent-text)">{"instruction": "...", "response": "..."}</code> ready for local Metal execution.</div>
         </div>
       </div>
 
@@ -2806,7 +2806,7 @@ window.renderFinetuneWorkstation = async function() {
             <div style="padding:14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
               <div>
                 <div style="font-weight:700;font-size:13.5px;color:var(--text-0)">${escHtml(d.name || d.id)}</div>
-                <div style="font-size:11.5px;color:var(--text-2)">ID: <code style="color:var(--accent)">${escHtml(d.id)}</code> · ${d.rows || 10} training examples formatted in instruction-response JSONL</div>
+                <div style="font-size:11.5px;color:var(--text-2)">ID: <code style="color:var(--accent-text)">${escHtml(d.id)}</code> · ${d.rows || 10} training examples formatted in instruction-response JSONL</div>
               </div>
               <div style="display:flex;gap:8px;align-items:center">
                 <span style="font-size:11px;font-weight:800;color:var(--success);background:var(--bg-2);padding:4px 10px;border-radius:6px;border:1px solid var(--border)">${escHtml(d.status || 'READY')}</span>
@@ -2829,7 +2829,7 @@ window.renderFinetuneWorkstation = async function() {
           </div>
         </div>
         <div id="finetune-progress-box" style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;color:var(--text-2);font-size:13px">
-          Click <strong style="color:var(--accent)">⚡ Start LoRA Training Loop Now</strong> above to initialize adapter fine-tuning and loss curves on your local machine.
+          Click <strong style="color:var(--accent-text)">⚡ Start LoRA Training Loop Now</strong> above to initialize adapter fine-tuning and loss curves on your local machine.
         </div>
       </div>
     </div>
@@ -2891,12 +2891,12 @@ window.finetuneStartJob = async function(datasetId) {
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-2);margin-bottom:14px">
         <span>Loss: <strong style="color:var(--success)">0.384</strong></span>
-        <span>Step: <strong style="color:var(--accent)">140 / 400</strong></span>
+        <span>Step: <strong style="color:var(--accent-text)">140 / 400</strong></span>
         <span>ETA: <strong>1m 45s</strong></span>
       </div>
       <!-- Real-Time Training Loss vs. Epochs Visual Chart -->
       <div id="lora-loss-chart" style="background:#04060f;border:1px solid var(--border-hi);border-radius:10px;padding:14px;font-family:monospace;font-size:11px;color:#7dd3fc;text-align:left">
-        <div style="display:flex;justify-content:space-between;color:var(--accent);font-weight:700;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;color:var(--accent-text);font-weight:700;margin-bottom:8px">
           <span>📈 Training Loss vs. Epoch Progression</span>
           <span>Target Loss < 0.25</span>
         </div>

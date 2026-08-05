@@ -60,7 +60,7 @@ async function loadMCPTools() {
     if (list) list.innerHTML = j.tools.map(t => `
       <div style="display:flex;gap:10px;padding:7px 10px;background:var(--bg-3);border-radius:var(--radius-sm);cursor:pointer"
            data-act-click="hSetFieldValue('mcp-tool-sel',${jsArg(t.name)})">
-        <code style="color:var(--accent);font-size:12px;min-width:140px">${t.name}</code>
+        <code style="color:var(--accent-text);font-size:12px;min-width:140px">${t.name}</code>
         <span style="font-size:12px;color:var(--text-2)">${t.description}</span>
       </div>`).join('');
     // auto-fill args hint on select change
@@ -127,7 +127,7 @@ async function runAgentWithTools() {
   resultEl.innerHTML = `
     <div style="margin-bottom:10px;font-size:13px;font-weight:700">${j.ok?'✅':'❌'} ${j.step_count} steps</div>
     ${(j.steps||[]).map((s,i) => `<div style="background:var(--bg-3);border-radius:var(--radius-sm);padding:8px;margin-bottom:6px;font-size:12px">
-      <div style="font-weight:700;margin-bottom:3px">Step ${s.step}: <span style="color:var(--accent)">${s.type}</span>${s.tool?` → ${s.tool}`:''}</div>
+      <div style="font-weight:700;margin-bottom:3px">Step ${s.step}: <span style="color:var(--accent-text)">${s.type}</span>${s.tool?` → ${s.tool}`:''}</div>
       ${s.output?`<div style="color:var(--text-1);white-space:pre-wrap;max-height:80px;overflow:hidden">${escHtml((s.output||'').slice(0,200))}</div>`:''}
       ${s.error?`<div style="color:var(--red)">${escHtml(s.error)}</div>`:''}
     </div>`).join('')}

@@ -345,7 +345,7 @@
     _ctxMenu.innerHTML = '<div style="padding:8px">'
       + '<div style="font-size:12px;font-weight:700;color:var(--text-0);margin-bottom:8px">Rename Folder</div>'
       + '<input id="ctx-rename-folder-input" type="text" value="' + oldName.replace(/"/g, '&quot;') + '" style="width:100%;background:var(--bg-0);border:1px solid var(--accent);border-radius:6px;padding:6px 10px;color:var(--text-0);font-size:12px;outline:none;font-family:inherit;margin-bottom:10px">'
-      + '<button id="ctx-rename-folder-btn" type="button" style="width:100%;padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Rename</button>'
+      + '<button id="ctx-rename-folder-btn" type="button" style="width:100%;padding:6px 12px;background:var(--accent);color:var(--on-accent);border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Rename</button>'
       + '</div>';
     _ctxMenu.style.display = 'block';
     _ctxMenu.style.left = Math.round(window.innerWidth/2-120)+'px';
@@ -560,7 +560,7 @@
         return '<button type="button" class="ctx-icon-btn" data-icon="'+ic+'" style="background:'+(ic==='📁'?'var(--accent-glow)':'var(--bg-3)')+';border:1px solid '+(ic==='📁'?'var(--accent)':'var(--border)')+';border-radius:6px;padding:4px 6px;cursor:pointer;font-size:14px;transition:all .1s">'+ic+'</button>';
       }).join('')
       + '</div>'
-      + '<button id="ctx-create-folder-btn" type="button" style="width:100%;padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Create Folder</button>'
+      + '<button id="ctx-create-folder-btn" type="button" style="width:100%;padding:6px 12px;background:var(--accent);color:var(--on-accent);border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Create Folder</button>'
       + '</div>';
     _ctxMenu.style.display = 'block';
     _ctxMenu.style.left = Math.round(window.innerWidth/2-120)+'px';

@@ -113,7 +113,7 @@ async function renderReplay() {
             <div class="ttd-empty-title">No Run Selected</div>
             <div class="ttd-empty-sub">
               Select a run from the sidebar to replay it frame-by-frame on the graph canvas,
-              or run a workflow from the <strong style="color:var(--accent);cursor:pointer" data-act-click="nav('workflow')">Workflows</strong> pane first.
+              or run a workflow from the <strong style="color:var(--accent-text);cursor:pointer" data-act-click="nav('workflow')">Workflows</strong> pane first.
             </div>
           </div>
 
@@ -269,7 +269,7 @@ function ttdRenderRunList() {
   const runs = ttdGetFilteredRuns();
   if (!runs.length) {
     list.innerHTML = `<div style="color:var(--text-3);font-size:12px;padding:10px;line-height:1.7">
-      ${_ttdRuns.length ? 'No runs match your filter.' : 'No runs yet. <strong style="color:var(--accent);cursor:pointer" data-act-click="nav(\'workflow\')">Run a workflow</strong> first.'}
+      ${_ttdRuns.length ? 'No runs match your filter.' : 'No runs yet. <strong style="color:var(--accent-text);cursor:pointer" data-act-click="nav(\'workflow\')">Run a workflow</strong> first.'}
     </div>`;
     return;
   }
@@ -676,7 +676,7 @@ function ttdShowNodeDetail(nodeId, upToIdx) {
                      color:${isErr?'#e85252':frame.event_type==='node_output'?'#3dba7a':'#5b8af8'}">
           ${isErr ? '❌ Error' : frame.event_type === 'node_output' ? '✅ Complete' : '⏳ Running'}
         </span>
-        ${frame.duration_ms ? `<span style="font-size:11px;color:var(--accent)">${frame.duration_ms}ms</span>` : ''}
+        ${frame.duration_ms ? `<span style="font-size:11px;color:var(--accent-text)">${frame.duration_ms}ms</span>` : ''}
         <span style="font-size:10px;color:var(--text-3)">Frame ${frame.frame_no}</span>
       </div>
     </div>
@@ -831,9 +831,9 @@ async function ttdRunDiff(idA, idB) {
         <td class="ttd-diff-node">${escHtml(df.node_label || df.node_id)}</td>
         <td>${badge}</td>
         <td class="ttd-diff-out">${df.a_output != null ? escHtml((df.a_output||'').slice(0,120)) : '<em style="color:var(--text-3)">—</em>'}
-          ${df.a_duration != null ? `<div style="font-size:10px;color:var(--accent)">${df.a_duration}ms</div>` : ''}</td>
+          ${df.a_duration != null ? `<div style="font-size:10px;color:var(--accent-text)">${df.a_duration}ms</div>` : ''}</td>
         <td class="ttd-diff-out">${df.b_output != null ? escHtml((df.b_output||'').slice(0,120)) : '<em style="color:var(--text-3)">—</em>'}
-          ${df.b_duration != null ? `<div style="font-size:10px;color:var(--accent)">${df.b_duration}ms</div>` : ''}</td>
+          ${df.b_duration != null ? `<div style="font-size:10px;color:var(--accent-text)">${df.b_duration}ms</div>` : ''}</td>
       </tr>`;
     }).join('');
 
@@ -1218,7 +1218,7 @@ async function renderCollabEdit() {
     <div class="ce-sidebar">
       <div class="ce-sidebar-top">
         <h3>✍️ Collab Docs</h3>
-        <button data-act-click="ceNewDoc()" style="width:100%;padding:6px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">＋ New Document</button>
+        <button data-act-click="ceNewDoc()" style="width:100%;padding:6px;background:var(--accent);border:none;border-radius:7px;color:var(--on-accent);font-size:12px;font-weight:600;cursor:pointer">＋ New Document</button>
       </div>
       <div class="ce-doc-list" id="ce-doc-list">Loading…</div>
     </div>
@@ -1560,7 +1560,7 @@ function ceAddHistoryEntry(peerName, op) {
   const el = document.createElement('div');
   el.className = 'ce-op-row';
   const opStr = op.map(c=>typeof c==='string'?`+${JSON.stringify(c.slice(0,20))}`:c).join(', ');
-  el.innerHTML = `<span class="peer" style="color:var(--accent)">${escHtml(peerName)}</span>: ${escHtml(opStr.slice(0,60))}`;
+  el.innerHTML = `<span class="peer" style="color:var(--accent-text)">${escHtml(peerName)}</span>: ${escHtml(opStr.slice(0,60))}`;
   container.insertBefore(el, container.firstChild);
   if (container.children.length>50) container.lastChild?.remove();
 }

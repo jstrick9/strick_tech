@@ -210,7 +210,7 @@
     if (t._custom) {
       var customTag = document.createElement('span');
       customTag.className = 'tag';
-      customTag.style.cssText = 'flex-shrink:0;font-size:10px;background:var(--accent-glow);color:var(--accent);border-color:var(--accent)';
+      customTag.style.cssText = 'flex-shrink:0;font-size:10px;background:var(--accent-glow);color:var(--accent-text);border-color:var(--accent-text)';
       customTag.textContent = 'custom';
       titleRow.appendChild(customTag);
     }

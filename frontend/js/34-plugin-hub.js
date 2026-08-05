@@ -172,7 +172,7 @@ function hubCardHtml(p) {
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:5px">
           ${escHtml(p.name)}
-          ${p.verified ? '<span title="Verified publisher" style="color:var(--accent)">✓</span>' : ''}
+          ${p.verified ? '<span title="Verified publisher" style="color:var(--accent-text)">✓</span>' : ''}
         </div>
         <div style="font-size:11px;color:var(--text-3)">by ${escHtml(p.author)} · v${escHtml(p.version)}</div>
       </div>

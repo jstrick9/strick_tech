@@ -164,7 +164,7 @@ async function renderHITL() {
 
     <!-- Sprint A: Link to full audit log -->
     <div style="margin-top:12px;text-align:center">
-      <button class="btn-sm" data-act-click="nav('audit-log')" style="color:var(--accent);border-color:var(--accent)">🔏 View Full Immutable Audit Log →</button>
+      <button class="btn-sm" data-act-click="nav('audit-log')" style="color:var(--accent-text);border-color:var(--accent-text)">🔏 View Full Immutable Audit Log →</button>
     </div>
   </div>`;
 

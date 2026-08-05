@@ -125,7 +125,7 @@ function a2aRenderNetwork(container) {
 
     <!-- Protocol explanation -->
     <div style="background:rgba(91,138,248,.06);border:1px solid rgba(91,138,248,.2);border-radius:10px;padding:12px 14px;margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">🌐 A2A Protocol v1.0 — Agent-to-Agent</div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent-text);margin-bottom:6px">🌐 A2A Protocol v1.0 — Agent-to-Agent</div>
       <div style="font-size:11px;color:var(--text-2);line-height:1.6">
         Every agent exposes a signed <strong>Agent Card</strong> at <code style="background:var(--bg-3);padding:1px 5px;border-radius:3px">/.well-known/agent.json</code> and a
         <strong>JSON-RPC 2.0 endpoint</strong> at <code style="background:var(--bg-3);padding:1px 5px;border-radius:3px">/a2a/{id}</code>.<br>
@@ -189,7 +189,7 @@ function a2aRenderNetwork(container) {
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:11px;transition:all .12s" data-act-click="a2aViewLocalCard(${JSON.stringify(a.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <span style="font-weight:600;color:var(--text-0)">${escHtml(a.name)}</span>
           <span style="color:var(--text-3);margin-left:6px">${escHtml((a.description||'').slice(0,30))}</span>
-          <a href="/a2a/${encodeURIComponent(a.agent_id)}/card" target="_blank" style="color:var(--accent);font-size:10px;margin-left:8px" data-stop="1">🪪</a>
+          <a href="/a2a/${encodeURIComponent(a.agent_id)}/card" target="_blank" style="color:var(--accent-text);font-size:10px;margin-left:8px" data-stop="1">🪪</a>
         </div>`).join('')}
     </div>` : ''}
   `;
@@ -235,7 +235,7 @@ async function a2aRenderTasks(container) {
           return `<tr data-act-click="a2aViewTask(${JSON.stringify(t.task_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <td style="font-family:monospace;font-size:10px;color:var(--text-3)">${t.task_id.slice(0,18)}…</td>
             <td style="font-size:10px">${isOutbound?'📤 outbound':'📥 inbound'}</td>
-            <td style="color:var(--accent);font-size:11px">${escHtml(isOutbound?t.target_agent_id:t.target_agent_id)}</td>
+            <td style="color:var(--accent-text);font-size:11px">${escHtml(isOutbound?t.target_agent_id:t.target_agent_id)}</td>
             <td><span class="a2a-state" style="background:${sc}22;color:${sc}">${t.state}</span></td>
             <td style="font-size:10px">${t.progress_pct||0}%</td>
             <td style="font-size:10px;color:var(--text-3)">${new Date(t.created_at).toLocaleString()}</td>

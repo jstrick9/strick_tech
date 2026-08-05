@@ -92,7 +92,7 @@ async function renderAgentMonitor() {
         <span class="bdd-header-title" id="bdd-header-title">🧬 Behavior Drift Detection</span>
         <button class="bdd-header-btn" data-act-click="bddRefresh()">↺ Refresh</button>
         <button class="bdd-header-btn" data-act-click="bddBuildFingerprints()" title="Recompute baselines">🧬 Rebuild Baselines</button>
-        <button class="bdd-header-btn" data-act-click="bddDetectAll()" style="background:var(--accent);border-color:var(--accent);color:#fff">🔍 Detect All</button>
+        <button class="bdd-header-btn" data-act-click="bddDetectAll()" style="background:var(--accent);border-color:var(--accent-text);color:var(--on-accent)">🔍 Detect All</button>
       </div>
       <div class="bdd-content" id="bdd-content">
         <div style="padding:40px;text-align:center;color:var(--text-3)">Loading…</div>
@@ -554,7 +554,7 @@ async function bddRenderHistory(container) {
           const tc = DRIFT_TREND_COLORS[h.trend||'stable'];
           return `<tr data-act-click="bddViewAgent(${JSON.stringify(h.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <td style="color:var(--text-3);white-space:nowrap">${new Date(h.computed_at).toLocaleTimeString()}</td>
-            <td style="font-weight:600;color:var(--accent)">${escHtml(h.agent_id)}</td>
+            <td style="font-weight:600;color:var(--accent-text)">${escHtml(h.agent_id)}</td>
             <td style="font-size:10px;color:var(--text-3)">${h.window_label||'1h'}</td>
             <td style="font-weight:800;color:${sc.border}">${(h.drift_score||0).toFixed(1)}</td>
             <td><span class="bdd-lb-sev" style="background:${sc.bg};color:${sc.text}">${sc.label}</span></td>

@@ -78,7 +78,7 @@
       '<h2>Welcome to Agentic OS</h2>' +
       '<p style="color:var(--text-2);font-size:14px;margin-top:6px;line-height:1.5">Your local-first AI operating system. Chat with AI agents, build apps with live preview, manage tasks, and store everything in your Memory Galaxy.</p>' +
       '<div style="background:var(--bg-3);border-radius:14px;padding:18px;margin:20px 0;text-align:left">' +
-        '<div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">Quick Start</div>' +
+        '<div style="font-size:13px;font-weight:700;color:var(--accent-text);margin-bottom:8px">Quick Start</div>' +
         '<div style="font-size:12px;color:var(--text-1);line-height:1.75">' +
           '<div style="margin-bottom:6px">1. <strong>Add your API key</strong> in Settings (get a free key at openrouter.ai/keys)</div>' +
           '<div style="margin-bottom:6px">2. <strong>Chat with an agent</strong> \u2014 try typing /help or ask any question</div>' +
@@ -88,7 +88,7 @@
       '</div>' +
       '<div style="font-size:12.5px;color:var(--text-2);margin-bottom:20px"><strong>Simple mode</strong> shows 7 core features. Switch to <strong>Power mode</strong> anytime for all 60+ features.</div>' +
       '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
-        '<button class="btn btn-primary" id="ob-power-btn" style="padding:11px 26px;font-size:14px;font-weight:700;cursor:pointer;border-radius:10px;border:none;background:var(--accent);color:#fff">Power Mode (All 60+ Features) →</button>' +
+        '<button class="btn btn-primary" id="ob-power-btn" style="padding:11px 26px;font-size:14px;font-weight:700;cursor:pointer;border-radius:10px;border:none;background:var(--accent);color:var(--on-accent)">Power Mode (All 60+ Features) →</button>' +
         '<button class="btn btn-ghost" id="ob-simple-btn" style="padding:11px 22px;font-size:14px;cursor:pointer;border-radius:10px;border:1px solid var(--border);background:var(--bg-3);color:var(--text-1)">Simple Mode (7 Core)</button>' +
       '</div>';
     overlay.appendChild(card);

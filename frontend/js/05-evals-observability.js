@@ -111,7 +111,7 @@ async function renderEvals() {
     <div id="eval-pane-ab" style="display:none">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div>
-          <label style="font-size:11px;color:var(--accent);font-weight:700;display:block;margin-bottom:4px">Prompt A</label>
+          <label style="font-size:11px;color:var(--accent-text);font-weight:700;display:block;margin-bottom:4px">Prompt A</label>
           <textarea id="ab-prompt-a" rows="5" style="width:100%;background:var(--bg-2);border:1px solid var(--accent)44;border-radius:8px;color:var(--text-0);font-size:12px;padding:10px;resize:vertical;box-sizing:border-box" placeholder="First prompt variant (use {{input}} for variable input)"></textarea>
         </div>
         <div>
@@ -307,7 +307,7 @@ async function evalRunAB() {
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                   <div style="background:var(--bg-3);border-radius:8px;padding:12px;border:2px solid ${d.winner==='A'?'var(--accent)':'transparent'}">
-                    <div style="font-weight:700;color:var(--accent)">Prompt A</div>
+                    <div style="font-weight:700;color:var(--accent-text)">Prompt A</div>
                     <div style="font-size:22px;font-weight:800;color:var(--text-0)">${d.avg_a}</div>
                     <div style="font-size:10px;color:var(--text-3)">avg score</div>
                   </div>
@@ -469,7 +469,7 @@ async function renderObservability() {
         </div>
         ${(analytics.by_model||[]).map((m) =>`
           <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 80px;padding:10px 14px;border-top:1px solid var(--border);font-size:12px">
-            <div style="color:var(--accent);font-family:monospace;font-size:11px">${escHtml((m.model||'').split('/').pop())}</div>
+            <div style="color:var(--accent-text);font-family:monospace;font-size:11px">${escHtml((m.model||'').split('/').pop())}</div>
             <div>${m.calls||0}</div>
             <div>${Math.round(m.avg_latency||0)}ms</div>
             <div>${(m.tokens||0).toLocaleString()}</div>
@@ -566,7 +566,7 @@ async function obsShowTrace(traceId) {
             <span>${escHtml(s.name||s.span_type)}</span>
             <span style="margin-left:auto;color:var(--text-3)">${s.latency_ms||0}ms · ${(s.tokens_in||0)+(s.tokens_out||0)}t</span>
           </div>
-          ${s.model?`<div style="font-size:10px;color:var(--accent);font-family:monospace">${escHtml(s.model.split('/').pop())}</div>`:''}
+          ${s.model?`<div style="font-size:10px;color:var(--accent-text);font-family:monospace">${escHtml(s.model.split('/').pop())}</div>`:''}
           ${s.error?`<div style="font-size:11px;color:var(--danger)">${escHtml(s.error)}</div>`:''}
         </div>`).join('')}
     </div>`;
@@ -690,13 +690,13 @@ async function kgShowEntity(entityId) {
       ${d.outgoing_relations?.length?`
         <div style="margin-bottom:12px">
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Outgoing Relations</div>
-          ${d.outgoing_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)">→ <strong>${escHtml(r.relation||'')}</strong> → <span style="color:var(--accent);cursor:pointer" data-act-click="kgShowEntity(${jsArg(r.to_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(r.to_name||'')}</span></div>`).join('')}
+          ${d.outgoing_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)">→ <strong>${escHtml(r.relation||'')}</strong> → <span style="color:var(--accent-text);cursor:pointer" data-act-click="kgShowEntity(${jsArg(r.to_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(r.to_name||'')}</span></div>`).join('')}
         </div>`:''}
 
       ${d.incoming_relations?.length?`
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Incoming Relations</div>
-          ${d.incoming_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--accent);cursor:pointer" data-act-click="kgShowEntity(${jsArg(r.from_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(r.from_name||'')}</span> → <strong>${escHtml(r.relation||'')}</strong> → this</div>`).join('')}
+          ${d.incoming_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--accent-text);cursor:pointer" data-act-click="kgShowEntity(${jsArg(r.from_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(r.from_name||'')}</span> → <strong>${escHtml(r.relation||'')}</strong> → this</div>`).join('')}
         </div>`:''}
 
       <div style="display:flex;gap:6px;margin-top:12px">
@@ -720,7 +720,7 @@ async function kgQuery() {
         ${(d.entities_found||[]).length?`
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Entities Found</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">
-            ${(d.entities_found||[]).map((e) =>`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer;color:var(--accent)" data-act-click="kgShowEntity(${JSON.stringify(e.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(e.name||'')} <span style="color:var(--text-3)">(${e.type})</span></span>`).join('')}
+            ${(d.entities_found||[]).map((e) =>`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer;color:var(--accent-text)" data-act-click="kgShowEntity(${JSON.stringify(e.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(e.name||'')} <span style="color:var(--text-3)">(${e.type})</span></span>`).join('')}
           </div>`:''}
       </div>`;
   }catch(ex){if(el) el.innerHTML=`<div style="color:var(--danger)">${escHtml(ex.message)}</div>`;}

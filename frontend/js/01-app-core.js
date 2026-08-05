@@ -795,7 +795,7 @@ async function sendChat() {
               if (!tag) {
                 tag = document.createElement('span');
                 tag.className = 'model-used-tag tag';
-                tag.style.cssText = 'font-size:10.5px;padding:2px 8px;border-radius:4px;background:var(--bg-3);color:var(--accent);margin-left:8px;font-family:monospace;border:1px solid var(--border-hi);display:inline-flex;align-items:center;gap:3px';
+                tag.style.cssText = 'font-size:10.5px;padding:2px 8px;border-radius:4px;background:var(--bg-3);color:var(--accent-text);margin-left:8px;font-family:monospace;border:1px solid var(--border-hi);display:inline-flex;align-items:center;gap:3px';
                 metaEl.appendChild(tag);
               }
               tag.innerHTML = `⚡ <strong>${escHtml(mStr)}</strong>`;
@@ -903,7 +903,7 @@ function addMessage(content, role, avatar, name, modelUsed = '') {
   // Assign a safe, non-empty ID synchronously. History rendering and WebKit
   // accessibility passes can query this bubble immediately after insertion.
   div.id = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-  const modelBadge = (modelUsed && role !== 'user') ? ` <span class="model-used-tag tag" style="font-size:10.5px;padding:2px 8px;border-radius:4px;background:var(--bg-3);color:var(--accent);margin-left:8px;font-family:monospace;border:1px solid var(--border-hi);display:inline-flex;align-items:center;gap:3px">⚡ <strong>${escHtml(modelUsed)}</strong></span>` : '';
+  const modelBadge = (modelUsed && role !== 'user') ? ` <span class="model-used-tag tag" style="font-size:10.5px;padding:2px 8px;border-radius:4px;background:var(--bg-3);color:var(--accent-text);margin-left:8px;font-family:monospace;border:1px solid var(--border-hi);display:inline-flex;align-items:center;gap:3px">⚡ <strong>${escHtml(modelUsed)}</strong></span>` : '';
   div.innerHTML = `
     <div class="msg-avatar">${avatar}</div>
     <div class="msg-body">
@@ -1174,7 +1174,7 @@ window.lpSaveVerifyKey = async function() {
     return;
   }
   const key = keyInp.value.trim();
-  if (statusEl) statusEl.innerHTML = '<span style="color:var(--accent)">⏳ Saving & verifying live connection to OpenRouter...</span>';
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--accent-text)">⏳ Saving & verifying live connection to OpenRouter...</span>';
   try {
     const r = await fetch('/api/secrets/set', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -1238,7 +1238,7 @@ window.showNoviceApiGuide = function() {
         <div class="neural-orb-3d" style="width:46px;height:46px;flex-shrink:0"></div>
         <div>
           <h3 style="margin:0;font-size:18px;font-weight:900;color:var(--text-0)">🌟 Novice Quick Setup: Get Your Free API Key</h3>
-          <p style="margin:2px 0 0;font-size:12px;color:var(--accent)">Follow these 3 simple steps to unlock 140+ AI models across your operating system right now.</p>
+          <p style="margin:2px 0 0;font-size:12px;color:var(--accent-text)">Follow these 3 simple steps to unlock 140+ AI models across your operating system right now.</p>
         </div>
       </div>
 
@@ -1247,13 +1247,13 @@ window.showNoviceApiGuide = function() {
         <div class="surface-z2" style="padding:16px;border-radius:12px;border-left:4px solid var(--accent)">
           <div style="font-weight:800;font-size:13.5px;color:var(--text-0);margin-bottom:6px">Step 1: Open OpenRouter & Create Your Free Account</div>
           <div style="font-size:12.5px;color:var(--text-1);line-height:1.6;margin-bottom:12px">OpenRouter is our primary cloud gateway. It lets you use Claude, ChatGPT, Gemini, and Llama from one place. No credit card required (many models run at zero cost). Click below to launch their key generator:</div>
-          <button data-act-click="openExternalLink('https://openrouter.ai/keys')" class="btn-3d btn-primary btn-sm" style="padding:10px 18px;background:var(--accent);color:#fff;font-weight:800">🌐 1. Launch OpenRouter Key Page in Browser ↗</button>
+          <button data-act-click="openExternalLink('https://openrouter.ai/keys')" class="btn-3d btn-primary btn-sm" style="padding:10px 18px;background:var(--accent);color:var(--on-accent);font-weight:800">🌐 1. Launch OpenRouter Key Page in Browser ↗</button>
         </div>
 
         <!-- Step 2 -->
         <div class="surface-z2" style="padding:16px;border-radius:12px;border-left:4px solid #a855f7">
           <div style="font-weight:800;font-size:13.5px;color:var(--text-0);margin-bottom:6px">Step 2: Copy & Paste Your New Key Below</div>
-          <div style="font-size:12.5px;color:var(--text-1);line-height:1.6;margin-bottom:12px">On the webpage that opened, sign in, click <strong style="color:var(--accent)">+ Create Key</strong>, give it any name (e.g. Agentic OS), and copy the key (it starts with sk-or-v1-...). Paste it right here:</div>
+          <div style="font-size:12.5px;color:var(--text-1);line-height:1.6;margin-bottom:12px">On the webpage that opened, sign in, click <strong style="color:var(--accent-text)">+ Create Key</strong>, give it any name (e.g. Agentic OS), and copy the key (it starts with sk-or-v1-...). Paste it right here:</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <input id="novice-guide-key-inp" type="password" placeholder="Paste sk-or-v1-... key right here" style="flex:1;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
             <button data-act-click="hSaveNoviceKey()" class="btn-3d btn-primary" style="padding:10px 20px;background:#10b981;border:none;color:#fff;font-weight:800">⚡ 2. Save & Unlock All Models</button>
@@ -1287,7 +1287,7 @@ async function saveApiKey() {
   const resEl = document.getElementById('settings-key-test-result');
   const badge = document.getElementById('or-key-status-badge');
   if (!key) { toast('Enter your OpenRouter API key','warn'); return; }
-  if (resEl) { resEl.style.display = 'block'; resEl.innerHTML = '<span style="color:var(--accent)">⏳ Verifying your OpenRouter API key…</span>'; }
+  if (resEl) { resEl.style.display = 'block'; resEl.innerHTML = '<span style="color:var(--accent-text)">⏳ Verifying your OpenRouter API key…</span>'; }
   if (badge) { badge.textContent = 'CHECKING...'; badge.style.color = 'var(--warning)'; }
 
   // UX FIX: this used to SAVE first and verify afterwards, so a typo'd or
@@ -1416,7 +1416,7 @@ window.pullOllamaModel = async function(modelName) {
   const url = urlInp ? urlInp.value.trim() : 'http://localhost:11434';
   const setModelsHtml = (html) => modelsEls.forEach(el => { el.innerHTML = html; });
   toast(`⚡ Triggering model pull for ${modelName}... Check Ollama local server`, 'ok', 4000);
-  setModelsHtml(`<div style="color:var(--accent);font-weight:700">⏳ Pulling model '${escHtml(modelName)}' via Ollama API (` + '`http://localhost:11434/api/pull`' + `)...</div>`);
+  setModelsHtml(`<div style="color:var(--accent-text);font-weight:700">⏳ Pulling model '${escHtml(modelName)}' via Ollama API (` + '`http://localhost:11434/api/pull`' + `)...</div>`);
   try {
     const r = await fetch(url + '/api/pull', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -1427,10 +1427,10 @@ window.pullOllamaModel = async function(modelName) {
       toast(`✅ Model ${modelName} ready!`, 'ok', 4000);
       if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
     } else {
-      setModelsHtml(`<div style="color:var(--warning);font-weight:700">⚠️ Ollama pull requested (${escHtml(modelName)}). If CORS blocked direct browser call, run: <code style="color:var(--accent)">ollama pull ${escHtml(modelName)}</code> in Terminal.</div>`);
+      setModelsHtml(`<div style="color:var(--warning);font-weight:700">⚠️ Ollama pull requested (${escHtml(modelName)}). If CORS blocked direct browser call, run: <code style="color:var(--accent-text)">ollama pull ${escHtml(modelName)}</code> in Terminal.</div>`);
     }
   } catch(e) {
-    setModelsHtml(`<div style="color:var(--warning);font-weight:700">⚠️ Run <code style="color:var(--accent)">ollama pull ${escHtml(modelName)}</code> inside your macOS Terminal to install offline.</div>`);
+    setModelsHtml(`<div style="color:var(--warning);font-weight:700">⚠️ Run <code style="color:var(--accent-text)">ollama pull ${escHtml(modelName)}</code> inside your macOS Terminal to install offline.</div>`);
   }
 };
 
@@ -1440,7 +1440,7 @@ window.saveCustomConnection = async function() {
   const statusEl = document.getElementById('settings-api-custom-status');
   const msgEl    = document.getElementById('custom-api-status-msg');
   if (!baseUrl) { toast('Enter a custom Base URL', 'warn'); return; }
-  if (msgEl) { msgEl.style.display = 'block'; msgEl.innerHTML = '<span style="color:var(--accent)">⏳ Testing connection...</span>'; }
+  if (msgEl) { msgEl.style.display = 'block'; msgEl.innerHTML = '<span style="color:var(--accent-text)">⏳ Testing connection...</span>'; }
   try {
     try { _safeLS.set('agentic_os_custom_base_url', baseUrl); } catch {}
     if (apiKey) try { _safeLS.set('agentic_os_custom_api_key', apiKey); } catch {}
@@ -1466,7 +1466,7 @@ window.saveCustomConnection = async function() {
 
 window.checkVaultIntegrity = async function() {
   const resEl = document.getElementById('vault-audit-result');
-  if (resEl) { resEl.style.display = 'block'; resEl.innerHTML = '<span style="color:var(--accent)">🔍 Auditing local AES-256-GCM cryptographic vault keys...</span>'; }
+  if (resEl) { resEl.style.display = 'block'; resEl.innerHTML = '<span style="color:var(--accent-text)">🔍 Auditing local AES-256-GCM cryptographic vault keys...</span>'; }
   try {
     const r = await fetch('/api/secrets/get?key=OPENROUTER_API_KEY');
     const j = await r.json();
@@ -1474,8 +1474,8 @@ window.checkVaultIntegrity = async function() {
       if (resEl) {
         resEl.innerHTML = `
           <div style="color:var(--success);font-weight:800;margin-bottom:6px">✅ Local Cryptographic Secret Vault Verified (100% Zero-Trust)</div>
-          <div>Storage Root: <code style="color:var(--accent)">~/Library/Application Support/com.stricktech.agenticos/secrets/</code></div>
-          <div>Hardware Master Key: <code style="color:var(--accent)">~/.vault_key</code> (AES-256-GCM + Kyber-1024 hybrid wrapping)</div>
+          <div>Storage Root: <code style="color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/secrets/</code></div>
+          <div>Hardware Master Key: <code style="color:var(--accent-text)">~/.vault_key</code> (AES-256-GCM + Kyber-1024 hybrid wrapping)</div>
           <div>Active OpenRouter Secret: <strong style="color:var(--text-0)">${j.ok ? 'ENCRYPTED IN VAULT (Fingerprint: ' + (j.fingerprint || 'active') + ')' : 'NOT CONFIGURED'}</strong></div>
           <div style="color:var(--text-3);margin-top:4px">Audit timestamp: ${new Date().toISOString()} • Zero cloud telemetry transmission verified.</div>
         `;
@@ -1531,7 +1531,7 @@ window.hotReloadBackendEngine = async function() {
     const r = await fetch('/api/system/reload-engine', { method: 'POST' });
     if (r.status === 404) {
       if (statusEl) { statusEl.textContent = 'RESTART NEEDED'; statusEl.style.color = 'var(--warning)'; }
-      gmAlert('How to Apply Updates Right Now', `Because your application was running when you updated the code (<code style="color:var(--accent)">git pull</code>), the running process in your computer's memory needs one quick restart to load our new endpoints.\n\n<strong style="color:var(--success)">How to restart based on how you open the app:</strong>\n\n🖥️ <strong>If using the Native Desktop App (Agentic OS.app):</strong>\n• Simply quit the app (press Cmd + Q or click Agentic OS > Quit in your top menu bar) and double-click Agentic OS.app to open it right back up.\n\n＞_ <strong>If running via Command Line / Terminal (python3 run.py):</strong>\n• Go to the command window where run.py (or uvicorn) is running, press <code style="color:var(--accent)">Ctrl + C</code> to stop it, and type <code style="color:var(--accent)">python3 run.py</code> to start it right back up.\n\nOnce reopened, your Ollama chat and all future 1-click reloads will work instantly!`);
+      gmAlert('How to Apply Updates Right Now', `Because your application was running when you updated the code (<code style="color:var(--accent-text)">git pull</code>), the running process in your computer's memory needs one quick restart to load our new endpoints.\n\n<strong style="color:var(--success)">How to restart based on how you open the app:</strong>\n\n🖥️ <strong>If using the Native Desktop App (Agentic OS.app):</strong>\n• Simply quit the app (press Cmd + Q or click Agentic OS > Quit in your top menu bar) and double-click Agentic OS.app to open it right back up.\n\n＞_ <strong>If running via Command Line / Terminal (python3 run.py):</strong>\n• Go to the command window where run.py (or uvicorn) is running, press <code style="color:var(--accent-text)">Ctrl + C</code> to stop it, and type <code style="color:var(--accent-text)">python3 run.py</code> to start it right back up.\n\nOnce reopened, your Ollama chat and all future 1-click reloads will work instantly!`);
       return;
     }
     const j = await r.json();
@@ -1556,7 +1556,7 @@ window.hardRebootBackendEngine = async function() {
   try {
     const r = await fetch('/api/system/reboot-engine', { method: 'POST' });
     if (r.status === 404) {
-      gmAlert('How to Restart Right Now', `To apply our latest engine updates to your running application:\n\n🖥️ <strong>If using the Native Desktop App (Agentic OS.app):</strong>\n• Quit the application (Cmd + Q or Quit Agentic OS) and open Agentic OS.app again.\n\n＞_ <strong>If running from Command Line (python3 run.py):</strong>\n• In that window, press <code style="color:var(--accent)">Ctrl + C</code> and type <code style="color:var(--accent)">python3 run.py</code> to start it back up.\n\nOnce restarted, this button and your Ollama model chats will work with 1 click!`);
+      gmAlert('How to Restart Right Now', `To apply our latest engine updates to your running application:\n\n🖥️ <strong>If using the Native Desktop App (Agentic OS.app):</strong>\n• Quit the application (Cmd + Q or Quit Agentic OS) and open Agentic OS.app again.\n\n＞_ <strong>If running from Command Line (python3 run.py):</strong>\n• In that window, press <code style="color:var(--accent-text)">Ctrl + C</code> and type <code style="color:var(--accent-text)">python3 run.py</code> to start it back up.\n\nOnce restarted, this button and your Ollama model chats will work with 1 click!`);
       return;
     }
     const j = await r.json();
@@ -3381,7 +3381,7 @@ function renderMarkdownEnhanced(text) {
     const lineNumHtml = lineCount > 1 ? `<div class="code-line-numbers">${Array.from({length: lineCount}, (_, i) => i+1).join('\n')}</div>` : '';
     return `<div class="card-elevated surface-z2 code-with-lines" style="position:relative;margin:12px 0;border-radius:10px;overflow:hidden;padding:0;border:1px solid var(--border-hi)">
       <div style="display:flex;align-items:center;justify-content:space-between;background:#04060f;padding:6px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px">
-        <span style="font-size:11px;font-weight:800;color:var(--accent);font-family:monospace">${escHtml(langLabel)}</span>
+        <span style="font-size:11px;font-weight:800;color:var(--accent-text);font-family:monospace">${escHtml(langLabel)}</span>
         <div style="display:flex;gap:6px;align-items:center">
           <button data-act-click="openCodeInStudio(${JSON.stringify(id)},${jsArg(lang||'js')})" class="btn-3d btn-primary btn-sm" style="padding:2px 8px;font-size:10.5px" title="Load directly into primary Monaco editor buffer">⚡ Open in Studio ↗</button>
           <button data-act-click="copyCodeBlock(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:10.5px">📋 Copy</button>
@@ -3405,12 +3405,12 @@ function renderMarkdownEnhanced(text) {
   // Blockquote
   t = t.replace(/^> (.+)$/gm, '<blockquote style="border-left:3px solid var(--accent);margin:6px 0;padding:4px 12px;color:var(--text-2);font-style:italic">$1</blockquote>');
   // Lists
-  t = t.replace(/^[\s]*[-•*] (.+)$/gm, '<div style="padding:2px 0 2px 16px;display:flex;gap:6px"><span style="color:var(--accent);flex-shrink:0">•</span><span>$1</span></div>');
-  t = t.replace(/^[\s]*(\d+)\. (.+)$/gm, '<div style="padding:2px 0 2px 16px;display:flex;gap:6px"><span style="color:var(--accent);flex-shrink:0">$1.</span><span>$2</span></div>');
+  t = t.replace(/^[\s]*[-•*] (.+)$/gm, '<div style="padding:2px 0 2px 16px;display:flex;gap:6px"><span style="color:var(--accent-text);flex-shrink:0">•</span><span>$1</span></div>');
+  t = t.replace(/^[\s]*(\d+)\. (.+)$/gm, '<div style="padding:2px 0 2px 16px;display:flex;gap:6px"><span style="color:var(--accent-text);flex-shrink:0">$1.</span><span>$2</span></div>');
   // Horizontal rule
   t = t.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
   // Links
-  t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent);text-decoration:underline">$1</a>');
+  t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent-text);text-decoration:underline">$1</a>');
   // Line breaks
   t = t.replace(/\n\n/g, '</p><p style="margin-bottom:8px">');
   t = t.replace(/\n/g, '<br>');
@@ -4776,7 +4776,7 @@ async function studioQR() {
       `<div style="text-align:center">
         <img src="${qrUrl}" style="width:180px;height:180px;border-radius:10px;margin-bottom:10px">
         <div style="font-size:12px;color:var(--text-2)">Make sure your phone is on the same Wi-Fi</div>
-        <div style="font-size:11px;color:var(--accent);margin-top:4px">${j.urls?.web_preview||''}</div>
+        <div style="font-size:11px;color:var(--accent-text);margin-top:4px">${j.urls?.web_preview||''}</div>
       </div>`);
   } else {
     toast('Could not get QR code', 'err');
@@ -5260,12 +5260,12 @@ function applyPreferences(prefs) {
 }
 
 const THEME_VARS = {
-  light:    { bg0:'#f8fafc', bg1:'#ffffff', bg2:'#f1f5f9', bg3:'#e2e8f0', bg4:'#cbd5e1', bg5:'#94a3b8', text0:'#0f172a', text1:'#334155', text2:'#64748b', text3:'#94a3b8', border:'rgba(15,23,42,0.12)', borderHi:'rgba(15,23,42,0.22)', accent:'#0284c7', accentHi:'#0369a1' },
-  dark:     { bg0:'#060814', bg1:'#0b0f22', bg2:'#111633', bg3:'#171d42', bg4:'#1f2654', bg5:'#28316b', text0:'#f8fafc', text1:'#cbd5e1', text2:'#8292b4', text3:'#47557a', border:'rgba(56,189,248,.14)', borderHi:'rgba(56,189,248,.28)', accent:'#38bdf8', accentHi:'#7dd3fc' },
-  obsidian: { bg0:'#040408', bg1:'#06060d', bg2:'#090912', bg3:'#10101c', bg4:'#1a1a2e', bg5:'#252542', text0:'#ffffff', text1:'#cbd5e1', text2:'#7a8aaa', text3:'#47557a', border:'rgba(255,255,255,.1)', borderHi:'rgba(255,255,255,.2)', accent:'#38bdf8', accentHi:'#7dd3fc' },
-  jet:      { bg0:'#000000', bg1:'#0a0a0a', bg2:'#121216', bg3:'#1a1a20', bg4:'#24242e', bg5:'#30303e', text0:'#ffffff', text1:'#e2e8f0', text2:'#94a3b8', text3:'#64748b', border:'rgba(255,255,255,.15)', borderHi:'rgba(255,255,255,.3)', accent:'#e11d48', accentHi:'#fb7185' },
-  midnight: { bg0:'#050810', bg1:'#080b14', bg2:'#0f1220', bg3:'#161b30', bg4:'#202848', bg5:'#2d3764', text0:'#f8fafc', text1:'#c2ceec', text2:'#7a8aaa', text3:'#3a4468', border:'rgba(168,85,247,.16)', borderHi:'rgba(168,85,247,.3)', accent:'#a855f7', accentHi:'#c084fc' },
-  forest:   { bg0:'#06100a', bg1:'#09160e', bg2:'#0e2216', bg3:'#14301f', bg4:'#1d452d', bg5:'#275e3d', text0:'#ecfdf5', text1:'#a7f3d0', text2:'#6ee7b7', text3:'#34d399', border:'rgba(16,185,129,.16)', borderHi:'rgba(16,185,129,.3)', accent:'#10b981', accentHi:'#34d399' },
+light: { bg0:'#f8fafc', bg1:'#ffffff', bg2:'#f1f5f9', bg3:'#e2e8f0', bg4:'#cbd5e1', bg5:'#94a3b8', text0:'#0f172a', text1:'#334155', text2:'#59687c', text3:'#566881', border:'rgba(15,23,42,0.12)', borderHi:'rgba(15,23,42,0.22)', accent:'#0284c7', accentHi:'#0369a1' , accentText:'#02699f', onAccent:'#0b1020' },
+  dark: { bg0:'#060814', bg1:'#0b0f22', bg2:'#111633', bg3:'#171d42', bg4:'#1f2654', bg5:'#28316b', text0:'#f8fafc', text1:'#cbd5e1', text2:'#8292b4', text3:'#7a8ab2', border:'rgba(56,189,248,.14)', borderHi:'rgba(56,189,248,.28)', accent:'#38bdf8', accentHi:'#7dd3fc' , accentText:'#38bdf8', onAccent:'#0b1020' },
+  obsidian: { bg0:'#040408', bg1:'#06060d', bg2:'#0d0d18', bg3:'#16162a', bg4:'#22223c', bg5:'#2e2e52', text0:'#ffffff', text1:'#cbd5e1', text2:'#7a8aaa', text3:'#7384ae', border:'rgba(255,255,255,.1)', borderHi:'rgba(255,255,255,.2)', accent:'#38bdf8', accentHi:'#7dd3fc' , accentText:'#38bdf8', onAccent:'#0b1020' },
+  jet: { bg0:'#000000', bg1:'#0a0a0a', bg2:'#121216', bg3:'#1a1a20', bg4:'#24242e', bg5:'#30303e', text0:'#ffffff', text1:'#e2e8f0', text2:'#94a3b8', text3:'#76869d', border:'rgba(255,255,255,.15)', borderHi:'rgba(255,255,255,.3)', accent:'#e11d48', accentHi:'#fb7185' , accentText:'#e8496c', onAccent:'#ffffff' },
+  midnight: { bg0:'#050810', bg1:'#080b14', bg2:'#0f1220', bg3:'#161b30', bg4:'#202848', bg5:'#2d3764', text0:'#f8fafc', text1:'#c2ceec', text2:'#7a8aaa', text3:'#7885b4', border:'rgba(168,85,247,.16)', borderHi:'rgba(168,85,247,.3)', accent:'#a855f7', accentHi:'#c084fc' , accentText:'#ad5ff7', onAccent:'#0b1020' },
+  forest: { bg0:'#06100a', bg1:'#09160e', bg2:'#0e2216', bg3:'#14301f', bg4:'#1d452d', bg5:'#275e3d', text0:'#ecfdf5', text1:'#a7f3d0', text2:'#6ee7b7', text3:'#34d399', border:'rgba(16,185,129,.16)', borderHi:'rgba(16,185,129,.3)', accent:'#10b981', accentHi:'#34d399' , accentText:'#10b981', onAccent:'#0b1020' },
 };
 
 function applyTheme(themeId, accentOverride, options = {}) {
@@ -5292,6 +5292,13 @@ function applyTheme(themeId, accentOverride, options = {}) {
   if (t.borderHi) root.style.setProperty('--border-hi', t.borderHi);
   root.style.setProperty('--accent', accent);
   root.style.setProperty('--accent-hi', t.accentHi || accent);
+  // Accessible accent for TEXT/icons. The fill itself cannot be brightened:
+  // 46 controls put a foreground ON it, and lightening the fill makes that
+  // pairing worse, not better. So text gets its own token.
+  root.style.setProperty('--accent-text', t.accentText || accent);
+  // Foreground for primary buttons. White failed on 5 of 6 themes (2.14:1 on
+  // dark and obsidian) -- the most important control had the worst contrast.
+  root.style.setProperty('--on-accent', t.onAccent || '#ffffff');
   root.style.setProperty('--accent-glow', accent + '22');
   root.setAttribute('data-theme', tid);
   root.setAttribute('data-theme-preference', preference);

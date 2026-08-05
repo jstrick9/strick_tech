@@ -145,7 +145,7 @@ function ensureSimpleHeader() {
     <div style="font-size:11px;color:var(--text-2);line-height:1.5;margin-bottom:8px">
       Showing core features only.
     </div>
-    <button data-act-click="switchUIMode('power')" style="width:100%;padding:5px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">
+    <button data-act-click="switchUIMode('power')" style="width:100%;padding:5px;background:var(--accent);border:none;border-radius:6px;color:var(--on-accent);font-size:11px;font-weight:600;cursor:pointer">
       ⚡ Switch to Power Mode
     </button>`;
   sidebar.insertBefore(hdr, sidebar.querySelector('.sidebar-section') || sidebar.firstChild);
@@ -533,7 +533,7 @@ async function showTierPlans() {
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
       ${tiers.map((t) =>`
         <div style="background:var(--bg-3);border:2px solid ${t.highlight?'var(--accent)':'var(--border)'};border-radius:14px;padding:20px;position:relative">
-          ${t.highlight?'<div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:2px 12px;border-radius:20px">MOST POPULAR</div>':''}
+          ${t.highlight?'<div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--on-accent);font-size:11px;font-weight:700;padding:2px 12px;border-radius:20px">MOST POPULAR</div>':''}
           <div style="font-size:22px;font-weight:800;color:var(--text-0);margin-bottom:4px">${t.name}</div>
           <div style="font-size:24px;font-weight:800;color:${t.highlight?'var(--accent)':'var(--text-0)'};margin-bottom:8px">${t.price}</div>
           <div style="font-size:12px;color:var(--text-2);margin-bottom:16px">${t.description}</div>
@@ -547,7 +547,7 @@ async function showTierPlans() {
         </div>`).join('')}
     </div>
     <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--text-3)">
-      Have a license key? <button data-act-click="showLicenseActivation()" style="background:none;border:none;color:var(--accent);cursor:pointer;text-decoration:underline">Enter it here</button> &nbsp;·&nbsp; <button data-act-click="showSetUserModal()" style="background:none;border:none;color:var(--text-3);cursor:pointer;text-decoration:underline;font-size:11px">Update user details</button>
+      Have a license key? <button data-act-click="showLicenseActivation()" style="background:none;border:none;color:var(--accent-text);cursor:pointer;text-decoration:underline">Enter it here</button> &nbsp;·&nbsp; <button data-act-click="showSetUserModal()" style="background:none;border:none;color:var(--text-3);cursor:pointer;text-decoration:underline;font-size:11px">Update user details</button>
     </div>
   </div>`;
   modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
@@ -664,7 +664,7 @@ const ONBOARDING_STEPS = [
         <p style="font-size:14px;color:var(--text-2);line-height:1.7;max-width:360px;margin:0 auto">
           Agentic OS lets you chat with any AI model, build agent workflows, review code with BugBot, and much more — all running locally on your machine.
         </p>
-        <div style="background:rgba(91,138,248,.1);border:1px solid var(--accent)33;border-radius:10px;padding:12px;margin-top:16px;font-size:12px;color:var(--accent)">
+        <div style="background:rgba(91,138,248,.1);border:1px solid var(--accent)33;border-radius:10px;padding:12px;margin-top:16px;font-size:12px;color:var(--accent-text)">
           ✨ You're on a <strong>14-day free trial</strong> of all Pro & Enterprise features!
         </div>
       </div>`,
@@ -698,7 +698,7 @@ const ONBOARDING_STEPS = [
           <div style="font-size:28px;margin-bottom:8px">✨</div>
           <div style="font-weight:700;font-size:15px;margin-bottom:6px">Simple Mode</div>
           <div style="font-size:12px;color:var(--text-2);line-height:1.5">Clean interface with just the core features. Perfect for getting started quickly.</div>
-          <div style="margin-top:10px;font-size:11px;color:var(--accent);font-weight:600">Recommended for beginners</div>
+          <div style="margin-top:10px;font-size:11px;color:var(--accent-text);font-weight:600">Recommended for beginners</div>
         </button>
         <button data-act-click="selectMode('power')" id="obmode-power" style="padding:20px 16px;background:var(--bg-3);border:2px solid var(--border);border-radius:14px;color:var(--text-0);cursor:pointer;text-align:left">
           <div style="font-size:28px;margin-bottom:8px">⚡</div>
@@ -717,7 +717,7 @@ const ONBOARDING_STEPS = [
       <div style="padding:8px 0">
         <div style="background:var(--bg-3);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text-2);line-height:1.7">
           <strong style="color:var(--text-0)">Get a free OpenRouter key:</strong><br>
-          1. Visit <a href="https://openrouter.ai" target="_blank" style="color:var(--accent)">openrouter.ai</a><br>
+          1. Visit <a href="https://openrouter.ai" target="_blank" style="color:var(--accent-text)">openrouter.ai</a><br>
           2. Sign up (free, no credit card)<br>
           3. Go to Keys → Create Key<br>
           4. Paste it below
@@ -835,7 +835,7 @@ function showOnboarding() {
         <div id="ob-dots" style="display:flex;gap:6px"></div>
         <div style="display:flex;gap:8px">
           <button id="ob-back-btn" data-act-click="obBack()" style="display:none;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-1);padding:8px 16px;cursor:pointer;font-size:13px">← Back</button>
-          <button id="ob-next-btn" data-act-click="obNext()" style="background:var(--accent);border:none;border-radius:8px;color:#fff;padding:8px 20px;cursor:pointer;font-size:13px;font-weight:700">Get Started →</button>
+          <button id="ob-next-btn" data-act-click="obNext()" style="background:var(--accent);border:none;border-radius:8px;color:var(--on-accent);padding:8px 20px;cursor:pointer;font-size:13px;font-weight:700">Get Started →</button>
         </div>
       </div>
     </div>`;
@@ -1032,7 +1032,7 @@ function showTourStep() {
   tooltip.style.cssText = `position:fixed;background:var(--bg-2);border:1px solid var(--accent);border-radius:14px;padding:16px 18px;z-index:9902;max-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.5)`;
   tooltip.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px">
-      <span style="font-size:11px;font-weight:700;color:var(--accent)">STEP ${_tourStep+1} OF ${_TOUR_STEPS.length}</span>
+      <span style="font-size:11px;font-weight:700;color:var(--accent-text)">STEP ${_tourStep+1} OF ${_TOUR_STEPS.length}</span>
       <span style="font-size:10px;color:var(--text-3)">Press Esc to close</span>
     </div>
     <div style="font-weight:700;font-size:14px;color:var(--text-0);margin-bottom:6px">${step.title}</div>
@@ -1040,7 +1040,7 @@ function showTourStep() {
     <div style="display:flex;gap:8px">
       <button data-act-click="cleanTour()" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-2);padding:5px 12px;cursor:pointer;font-size:11px">Skip tour</button>
       ${_tourStep>0?`<button data-act-click="tourBack()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);padding:5px 12px;cursor:pointer;font-size:11px">← Back</button>`:''}
-      <button data-act-click="tourNext()" style="background:var(--accent);border:none;border-radius:6px;color:#fff;padding:5px 14px;cursor:pointer;font-size:11px;font-weight:700;margin-left:auto">${_tourStep===_TOUR_STEPS.length-1?'Done ✓':'Next →'}</button>
+      <button data-act-click="tourNext()" style="background:var(--accent);border:none;border-radius:6px;color:var(--on-accent);padding:5px 14px;cursor:pointer;font-size:11px;font-weight:700;margin-left:auto">${_tourStep===_TOUR_STEPS.length-1?'Done ✓':'Next →'}</button>
     </div>`;
 
   // Position tooltip relative to target element
@@ -1323,7 +1323,7 @@ async function docsSearch(q) {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
           <span style="font-size:11px;padding:1px 6px;border-radius:3px;background:var(--bg-3);color:var(--text-3);text-transform:uppercase">${r.type||'doc'}</span>
           <span style="font-weight:600;color:var(--text-0);font-size:13px">${escHtml(r.title||'')}</span>
-          ${r.shortcut?`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:monospace;font-size:10px;color:var(--accent)">${escHtml(r.shortcut)}</span>`:''}
+          ${r.shortcut?`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:monospace;font-size:10px;color:var(--accent-text)">${escHtml(r.shortcut)}</span>`:''}
         </div>
         ${r.answer_preview?`<div style="font-size:12px;color:var(--text-2)">${escHtml(r.answer_preview)}</div>`:''}
       </div>`).join('')}
@@ -1367,11 +1367,11 @@ async function docsShowQuickStart(qsId) {
       </div>
       ${(qs.steps||[]).map(s =>`
         <div style="display:flex;gap:14px;margin-bottom:16px;background:var(--bg-2);padding:14px;border-radius:12px;border:1px solid var(--border)">
-          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px">${s.step}</div>
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--on-accent);flex-shrink:0;margin-top:2px">${s.step}</div>
           <div style="flex:1">
             <div style="font-weight:700;color:var(--text-0);font-size:14px;margin-bottom:4px">${escHtml(s.title||'')}</div>
             <div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:6px">${escHtml(s.desc||'')}</div>
-            ${s.tip?`<div style="font-size:11px;background:rgba(91,138,248,.1);border:1px solid var(--accent)33;border-radius:6px;padding:6px 10px;color:var(--accent)">💡 Pro Tip: ${escHtml(s.tip)}</div>`:''}
+            ${s.tip?`<div style="font-size:11px;background:rgba(91,138,248,.1);border:1px solid var(--accent)33;border-radius:6px;padding:6px 10px;color:var(--accent-text)">💡 Pro Tip: ${escHtml(s.tip)}</div>`:''}
           </div>
         </div>`).join('')}
       ${(qs.related||[]).length?`<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px"><div style="font-size:12px;font-weight:700;color:var(--text-3);margin-bottom:8px">RELATED GUIDES</div><div style="display:flex;gap:8px" id="docs-qs-related">${(qs.related||[]).map(rel=>`<button type="button" data-related-qs-id="${escHtml(rel)}" class="btn-sm btn-3d">${escHtml(rel.replace('qs_','').replace(/_/g,' '))}</button>`).join('')}</div></div>`:''}`;
@@ -1447,7 +1447,7 @@ window.docsShowVideoGuide = function(video) {
         <span style="font-size:38px">${escHtml(video.icon||'🎬')}</span>
         <div>
           <h3 style="margin:0;font-size:20px;color:var(--text-0)">${escHtml(video.title)}</h3>
-          <span class="tech-badge" style="color:var(--accent);border-color:var(--accent);margin-top:4px;display:inline-block">⏱ ${escHtml(video.dur)} · ${escHtml(video.level)} Walkthrough</span>
+          <span class="tech-badge" style="color:var(--accent-text);border-color:var(--accent-text);margin-top:4px;display:inline-block">⏱ ${escHtml(video.dur)} · ${escHtml(video.level)} Walkthrough</span>
         </div>
       </div>
       
@@ -1466,7 +1466,7 @@ window.docsShowVideoGuide = function(video) {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:16px;font-size:13px;color:var(--text-2);line-height:1.7">
         <div style="margin-bottom:8px"><strong>0:00 - Introduction:</strong> Welcome to ${escHtml(video.title)}. In this quick guide, we cover step-by-step best practices.</div>
         <div style="margin-bottom:8px"><strong>1:10 - Core Concepts:</strong> How to configure your workspace, attach context files, and trigger the right specialist agent.</div>
-        <div><strong>2:00 - Pro Tip:</strong> Use <code style="color:var(--accent)">⌘K</code> anytime to jump directly to this component or run automated actions.</div>
+        <div><strong>2:00 - Pro Tip:</strong> Use <code style="color:var(--accent-text)">⌘K</code> anytime to jump directly to this component or run automated actions.</div>
       </div>
     </div>
   `;
@@ -1566,7 +1566,7 @@ window.openInspectionDrawer = function(doc) {
         <span style="font-size:24px">${escHtml(doc.icon||'📘')}</span>
         <div>
           <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--text-0)">${escHtml(doc.title||'Workstation Inspection')}</h3>
-          <span style="font-size:11px;color:var(--accent);font-weight:700">${escHtml((doc.tier||'PRO').toUpperCase())} TIER WORKSTATION</span>
+          <span style="font-size:11px;color:var(--accent-text);font-weight:700">${escHtml((doc.tier||'PRO').toUpperCase())} TIER WORKSTATION</span>
         </div>
       </div>
       <button type="button" id="insp-drawer-close-btn" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:14px">✕</button>

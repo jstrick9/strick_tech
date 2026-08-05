@@ -43,7 +43,7 @@ async function renderAgentIdentity() {
 
     <!-- Zero-trust explainer -->
     <div style="background:rgba(122,162,247,0.08);border:1px solid var(--accent);border-radius:10px;padding:14px 18px;margin-bottom:18px">
-      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">🔐 Zero-Trust Architecture Active</div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent-text);margin-bottom:6px">🔐 Zero-Trust Architecture Active</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:11px;color:var(--text-2)">
         <div>🪪 <strong>Unique cryptographic identity</strong> per agent — no shared service accounts</div>
         <div>⏱️ <strong>JIT tokens expire</strong> automatically — no persistent long-lived credentials</div>

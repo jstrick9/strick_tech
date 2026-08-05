@@ -237,7 +237,7 @@
         </div>
       </div>
 
-      <button type="button" id="acct-save-profile-btn" class="btn btn-primary" style="width:100%;padding:11px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer">💾 Save Profile</button>
+      <button type="button" id="acct-save-profile-btn" class="btn btn-primary" style="width:100%;padding:11px;border-radius:10px;font-weight:700;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer">💾 Save Profile</button>
     `;
 
     const picker = body.querySelector('#acct-avatar-picker');
@@ -399,10 +399,10 @@
         ${items.map(it => `
           <label style="display:flex;align-items:center;justify-content:space-between;padding:12px 4px;border-bottom:1px solid var(--border);cursor:pointer">
             <span style="font-size:13px;color:var(--text-1)">${esc(it.label)}</span>
-            <input type="checkbox" class="acct-notif-toggle" data-key="${it.key}" ${it.checked ? 'checked' : ''} style="width:17px;height:17px;cursor:pointer;accent-color:var(--accent)">
+            <input type="checkbox" class="acct-notif-toggle" data-key="${it.key}" ${it.checked ? 'checked' : ''} style="width:17px;height:17px;cursor:pointer;accent-color:var(--accent-text)">
           </label>`).join('')}
       </div>
-      <button type="button" id="acct-save-notifs-btn" class="btn btn-primary" style="width:100%;padding:11px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;margin-top:20px">💾 Save Notification Preferences</button>
+      <button type="button" id="acct-save-notifs-btn" class="btn btn-primary" style="width:100%;padding:11px;border-radius:10px;font-weight:700;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;margin-top:20px">💾 Save Notification Preferences</button>
     `;
     body.querySelector('#acct-save-notifs-btn').addEventListener('click', async () => {
       const notifs = {};
@@ -428,7 +428,7 @@
         <div style="font-size:11px;color:var(--text-3);margin-top:6px">Shown in the topbar title and browser tab.</div>
       </div>
 
-      <button type="button" id="acct-save-workspace-btn" class="btn btn-primary" style="width:100%;padding:11px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;margin-bottom:24px">💾 Save Workspace Name</button>
+      <button type="button" id="acct-save-workspace-btn" class="btn btn-primary" style="width:100%;padding:11px;border-radius:10px;font-weight:700;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;margin-bottom:24px">💾 Save Workspace Name</button>
 
       <div style="display:flex;flex-direction:column;gap:2px">
         ${[
@@ -447,7 +447,7 @@
       if (ok) {
         fireToast('✅ Workspace name saved!', 'ok', 2000);
         const titleEl = document.getElementById('custom-app-title');
-        if (titleEl) titleEl.innerHTML = `${esc(appName)} <span style="color:var(--accent)">Agentic OS</span>`;
+        if (titleEl) titleEl.innerHTML = `${esc(appName)} <span style="color:var(--accent-text)">Agentic OS</span>`;
         if (document.title) document.title = `${appName} Agentic OS — Mission Control`;
         _state.prefs.workspace_name = appName;
       } else {
@@ -483,7 +483,7 @@
           ${lic.is_trial && lic.trial_days_left > 0 ? `<span style="font-size:12px;color:var(--text-2)">⏰ ${lic.trial_days_left} days left</span>` : ''}
         </div>
         ${lic.is_trial ? `<p style="font-size:12.5px;color:var(--text-2);margin:0 0 14px">You're on a trial with full feature access. Upgrade anytime to keep it after the trial ends.</p>` : `<p style="font-size:12.5px;color:var(--text-2);margin:0 0 14px">Thanks for being a ${esc(lic.tier || '')} member.</p>`}
-        <button type="button" id="acct-view-plans-btn" class="btn btn-primary" style="width:100%;padding:10px;border-radius:9px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer">View Upgrade Options</button>
+        <button type="button" id="acct-view-plans-btn" class="btn btn-primary" style="width:100%;padding:10px;border-radius:9px;font-weight:700;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer">View Upgrade Options</button>
       </div>
 
       <div style="font-size:11.5px;color:var(--text-3)">Org: ${esc(lic.org || '—')} &middot; Account: ${esc(lic.user_email || '—')}</div>

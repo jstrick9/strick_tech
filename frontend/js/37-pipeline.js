@@ -37,7 +37,7 @@ async function renderPipeline() {
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px" id="pipe-stages">
           ${['goal','research','code','review','ship'].map(s => `
             <label style="display:flex;align-items:center;gap:5px;background:var(--bg-3);border-radius:var(--radius-sm);padding:5px 10px;cursor:pointer;font-size:12px;border:1px solid var(--border)">
-              <input type="checkbox" data-stage="${s}" checked style="accent-color:var(--accent)">${s}
+              <input type="checkbox" data-stage="${s}" checked style="accent-color:var(--accent-text)">${s}
             </label>`).join('')}
         </div>
         <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Templates</div>

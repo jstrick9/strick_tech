@@ -78,18 +78,18 @@
 
     // Dynamic sub-context summaries
     if (pane === 'hierarchy') {
-      subEl.innerHTML = '<span style="color:var(--accent)">Active:</span> Universal Context & IVREN Deltas';
+      subEl.innerHTML = '<span style="color:var(--accent-text)">Active:</span> Universal Context & IVREN Deltas';
     } else if (pane === 'studio') {
       // MODULE MERGE: 'builder' (Code Editor) retired and folded into
       // 'studio' — nav('builder') redirects here, so this branch never
       // needs to special-case the old id anymore.
       subEl.innerHTML = '<span style="color:var(--success)">● Live Preview Sandbox:</span> index.html / app.js';
     } else if (pane === 'chat') {
-      subEl.innerHTML = '<span style="color:var(--accent)">Engine:</span> Multi-Agent Streaming + Information Hierarchy';
+      subEl.innerHTML = '<span style="color:var(--accent-text)">Engine:</span> Multi-Agent Streaming + Information Hierarchy';
     } else if (pane === 'swarm') {
-      subEl.innerHTML = '<span style="color:var(--accent)">Active:</span> Parallel Agent Fan-Out & AI Judge Consensus';
+      subEl.innerHTML = '<span style="color:var(--accent-text)">Active:</span> Parallel Agent Fan-Out & AI Judge Consensus';
     } else if (pane === 'galaxy') {
-      subEl.innerHTML = '<span style="color:var(--accent)">Storage:</span> SQLite FTS5 + Qdrant Vector Embeddings';
+      subEl.innerHTML = '<span style="color:var(--accent-text)">Storage:</span> SQLite FTS5 + Qdrant Vector Embeddings';
     } else if (pane === 'control') {
       subEl.innerHTML = '<span style="color:var(--warning)">Control Tower:</span> Live Execution Traces & HITL Approval Queue';
     } else {
@@ -106,8 +106,8 @@
       const subEl = document.getElementById('breadcrumb-sub-context');
       if (subEl) {
         subEl.innerHTML = tab === 'tier1' 
-          ? '<span style="color:var(--accent)">Tier 1:</span> Universal Business Context (4 Core Manuals)'
-          : '<span style="color:var(--accent)">Tier 2:</span> Project IVREN Subfolders & Compounding Notes';
+          ? '<span style="color:var(--accent-text)">Tier 1:</span> Universal Business Context (4 Core Manuals)'
+          : '<span style="color:var(--accent-text)">Tier 2:</span> Project IVREN Subfolders & Compounding Notes';
       }
     };
   }

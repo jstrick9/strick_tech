@@ -161,7 +161,7 @@ async function termShowSuggestions() {
     // "Uncaught SyntaxError: ...Unexpected end of input" and never filled
     // the input. Fixed via data-sugg-idx + a delegated listener on the
     // dropdown container looking up the real command from `top6`.
-    dd.innerHTML=top6.map((s,idx)=>`<div data-sugg-idx="${idx}" style="padding:7px 12px;cursor:pointer;display:flex;gap:10px;border-bottom:1px solid var(--border)" data-hover="bg:var(--bg-3)" data-hover-out="bg:"><span style="color:var(--accent);flex:1">${escHtml(s.cmd)}</span><span style="color:var(--text-3)">${escHtml(s.desc)}</span></div>`).join('');
+    dd.innerHTML=top6.map((s,idx)=>`<div data-sugg-idx="${idx}" style="padding:7px 12px;cursor:pointer;display:flex;gap:10px;border-bottom:1px solid var(--border)" data-hover="bg:var(--bg-3)" data-hover-out="bg:"><span style="color:var(--accent-text);flex:1">${escHtml(s.cmd)}</span><span style="color:var(--text-3)">${escHtml(s.desc)}</span></div>`).join('');
     dd.addEventListener('click', (e) => {
       const row = e.target.closest('[data-sugg-idx]');
       if (!row) return;

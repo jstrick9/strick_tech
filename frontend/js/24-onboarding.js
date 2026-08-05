@@ -249,7 +249,7 @@ window.showQuickSetup = async function() {
     } else if (rec.backend === 'openrouter') {
       recEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:24px">☁️</span>
-        <div><strong style="color:var(--accent)">Connected!</strong> <span style="font-size:13px;color:var(--text-1)">${escHtml(rec.message)}</span></div>
+        <div><strong style="color:var(--accent-text)">Connected!</strong> <span style="font-size:13px;color:var(--text-1)">${escHtml(rec.message)}</span></div>
       </div>`;
     } else {
       recEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
