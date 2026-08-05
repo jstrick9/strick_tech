@@ -19,7 +19,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 router = APIRouter(prefix='/api/specs', tags=['specs'])
 log = logging.getLogger('agentic.specs')
@@ -176,7 +176,7 @@ def get_spec(spec_id: str):
     """Retrieve and return get spec."""
     spec = _get_spec(spec_id)
     if not spec:
-        return {'ok': False, 'error': 'Spec not found'}
+        return JSONResponse({'ok': False, 'error': 'Spec not found'}, status_code=404)
     spec['requirements'] = _load_artifact(spec_id, 'requirements.md')
     spec['design'] = _load_artifact(spec_id, 'design.md')
     spec['tasks_md'] = _load_artifact(spec_id, 'tasks.md')
@@ -926,7 +926,7 @@ def export_spec(spec_id: str):
     """Export full spec as a structured dict."""
     spec = _get_spec(spec_id)
     if not spec:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     from ..services.memory_db import get_conn
 
     con = get_conn()

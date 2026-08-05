@@ -424,7 +424,7 @@ def get_run(run_id: str):
     finally:
         con.close()
     if not run:
-        return {'ok': False, 'error': 'Run not found'}
+        return JSONResponse({'ok': False, 'error': 'Run not found'}, status_code=404)
     return {'run': dict(run), 'steps': [dict(s) for s in steps], 'active': False}
 
 

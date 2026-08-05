@@ -20,7 +20,7 @@ import subprocess
 import time
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 router = APIRouter(prefix='/api/bugbot', tags=['bugbot'])
 log = logging.getLogger('agentic.bugbot')
@@ -512,7 +512,7 @@ def get_review(review_id: str):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     d = dict(row)
     d['issues'] = json.loads(d.get('issues', '[]') or '[]')
     d['fixes'] = json.loads(d.get('fixes', '[]') or '[]')

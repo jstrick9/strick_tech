@@ -25,7 +25,7 @@ import zipfile
 from pathlib import Path
 
 from fastapi import APIRouter, File, Request, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 router = APIRouter(prefix='/api/marketplace', tags=['marketplace'])
 log = logging.getLogger('agentic.marketplace')
@@ -712,7 +712,7 @@ def get_pack(pack_id: str):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Pack not found'}
+        return JSONResponse({'ok': False, 'error': 'Pack not found'}, status_code=404)
     d = _pack_row_to_dict(row)
     d['releases'] = [dict(r) for r in releases]
     d['reviews'] = [dict(r) for r in reviews]
@@ -1231,7 +1231,7 @@ def download_pack(pack_id: str, version: str = ''):
     finally:
         con.close()
     if not pack:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
 
     # Build zip on the fly from manifest
     manifest_path = PACKS_DIR / pack_id / 'manifest.json'

@@ -12,7 +12,7 @@ import time
 import uuid
 
 from fastapi import APIRouter, Request
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from ..services.memory_db import audit_log, get_conn
 
@@ -334,7 +334,7 @@ def delete_session(session_id: str):
     finally:
         con.close()
     if not deleted:
-        return {'ok': False, 'error': 'Session not found'}
+        return JSONResponse({'ok': False, 'error': 'Session not found'}, status_code=404)
     audit_log('session_delete', session_id)
     return {'ok': True, 'deleted': session_id}
 
@@ -482,7 +482,7 @@ def export_session(session_id: str, fmt: str = 'markdown'):
     try:
         info = con.execute('SELECT * FROM chat_sessions WHERE id=?', (session_id,)).fetchone()
         if not info:
-            return {'ok': False, 'error': 'Session not found'}
+            return JSONResponse({'ok': False, 'error': 'Session not found'}, status_code=404)
 
         msgs = con.execute(
             """SELECT agent, role, message,

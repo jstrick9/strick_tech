@@ -13,7 +13,7 @@ import time
 import uuid
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.llm import sse_guard
 
@@ -353,7 +353,7 @@ def get_battle(battle_id: str):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     return dict(row)
 
 

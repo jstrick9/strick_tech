@@ -19,6 +19,8 @@ from ..services import llm, memory_db
 router = APIRouter(prefix='/api/integrations', tags=['integrations'])
 log = logging.getLogger('agentic.integrations')
 
+from fastapi.responses import JSONResponse
+
 from backend.config import get_data_dir
 
 from ..services.safe_paths import safe_path
@@ -752,5 +754,5 @@ def get_integration(integration_id: str):
     # (e.g. /categories, /docs/types) they won't conflict with a single segment.
     integration = _INT_BY_ID.get(integration_id)
     if not integration:
-        return {'ok': False, 'error': f"Integration '{integration_id}' not found"}
+        return JSONResponse({'ok': False, 'error': f"Integration '{integration_id}' not found"}, status_code=404)
     return {**integration, 'ok': True}

@@ -67,7 +67,11 @@ class TestTauriBuild:
 
 class TestIntegrations:
     def test_list_integrations(self, client):
-        r = client.get("/api/integrations/list")
+        """There is no /list route — the collection is GET /api/integrations.
+        This passed only because /{integration_id} matched "list" and returned
+        200 with {"ok": false}. The test was green while asserting a URL the
+        product does not have; the frontend correctly calls the bare path."""
+        r = client.get("/api/integrations")
         assert r.status_code == 200
         d = r.json()
         assert isinstance(d, (list, dict))

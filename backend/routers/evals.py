@@ -29,7 +29,7 @@ import re
 import uuid
 
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.llm import sse_guard
 
@@ -347,7 +347,7 @@ def get_eval_run(run_id: str):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     d = dict(row)
     d['issues'] = json.loads(d.get('issues', '[]') or '[]')
     return d
@@ -461,7 +461,7 @@ def get_dataset(dataset_id: str):
     finally:
         con.close()
     if not row:
-        return {'ok': False, 'error': 'Not found'}
+        return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     d = dict(row)
     d['cases'] = json.loads(d.get('cases_json', '[]') or '[]')
     return d

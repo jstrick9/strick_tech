@@ -158,7 +158,7 @@ def delete_webhook(webhook_id: str):
         cur = con.execute('DELETE FROM webhooks WHERE id=?', (webhook_id,))
         con.commit()
         if cur.rowcount == 0:
-            return {'ok': False, 'error': 'Webhook not found'}
+            return JSONResponse({'ok': False, 'error': 'Webhook not found'}, status_code=404)
     finally:
         con.close()
     return {'ok': True}
