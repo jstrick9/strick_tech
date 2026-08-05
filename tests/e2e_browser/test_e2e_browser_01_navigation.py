@@ -42,8 +42,12 @@ class TestE2ENavigation:
         page.goto(BASE)
         page.wait_for_load_state("domcontentloaded")
         # Use actual pane IDs (galaxy=memory, dashboard=analytics)
+        # "builder" is deliberately absent: commit 6a8260e merged the Code
+        # Editor into Code Studio and retired the standalone pane (68 -> 67).
+        # The test kept asserting it because nothing could run these in a real
+        # browser until now, so the stale expectation was never surfaced.
         core_panes = [
-            "chat", "studio", "builder", "kanban", "galaxy",
+            "chat", "studio", "kanban", "galaxy",
             "dashboard", "secrets", "dbstudio", "docs", "settings",
             "audit-log", "agent-identity", "supervisor", "goals",
             "mcp-gateway", "connectors", "agent-monitor", "finops", "eval-framework"

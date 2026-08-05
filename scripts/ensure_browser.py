@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -107,6 +108,53 @@ def _write_marker(data: dict) -> None:
         pass  # a diagnostic marker must never break startup
 
 
+def _can_sudo() -> bool:
+    """True only for genuinely passwordless sudo. Never prompts."""
+    if os.name != 'posix' or shutil.which('sudo') is None:
+        return False
+    try:
+        return subprocess.run(
+            ['sudo', '-n', 'true'], capture_output=True, timeout=10
+        ).returncode == 0
+    except Exception:
+        return False
+
+
+def _install_system_deps(say=print) -> None:
+    """Best-effort install of Chromium's shared-library dependencies."""
+    say('  📦 Installing browser system libraries (sudo available)…')
+    try:
+        proc = subprocess.run(
+            ['sudo', '-n', sys.executable, '-m', 'playwright', 'install-deps', 'chromium'],
+            capture_output=True, text=True, timeout=900,
+        )
+        if proc.returncode == 0:
+            say('     system libraries ready')
+            return
+        say('     playwright install-deps was partial; installing the core set directly')
+    except Exception as exc:
+        say(f'     install-deps unavailable ({str(exc)[:60]}); trying the core set')
+
+    # The libraries Chromium actually needs to LAUNCH. Font packages are
+    # deliberately excluded: they are what makes install-deps fail on Debian,
+    # and their absence only affects glyph coverage.
+    core = [
+        'libnss3', 'libnspr4', 'libatk1.0-0', 'libatk-bridge2.0-0', 'libcups2',
+        'libdrm2', 'libxkbcommon0', 'libxcomposite1', 'libxdamage1', 'libxfixes3',
+        'libxrandr2', 'libgbm1', 'libpango-1.0-0', 'libcairo2', 'libasound2',
+        'libatspi2.0-0',
+    ]
+    try:
+        subprocess.run(['sudo', '-n', 'apt-get', 'update', '-qq'],
+                       capture_output=True, timeout=300)
+        r = subprocess.run(['sudo', '-n', 'apt-get', 'install', '-y', '-qq', *core],
+                           capture_output=True, text=True, timeout=900)
+        say('     core libraries installed' if r.returncode == 0
+            else '     could not install core libraries; the E2E suite will skip')
+    except Exception as exc:
+        say(f'     dependency install skipped: {str(exc)[:80]}')
+
+
 def ensure(*, quiet: bool = False, force: bool = False, system_deps: bool = False) -> dict:
     """Install Chromium if missing. Returns a status dict; never raises."""
     def say(msg: str) -> None:
@@ -138,6 +186,19 @@ def ensure(*, quiet: bool = False, force: bool = False, system_deps: bool = Fals
     if system_deps:
         # Requires root; only when the caller explicitly asks.
         cmd.append('--with-deps')
+    elif _can_sudo():
+        # A downloaded-but-unlaunchable Chromium is the state this whole
+        # bootstrap exists to avoid, and on a bare Linux host it is the DEFAULT
+        # outcome: the 120MB binary installs fine, then fails to start because
+        # libnss3 and friends are absent. That blocked the browser E2E suite
+        # for this entire review.
+        #
+        # Where passwordless sudo is available, install the libraries too.
+        # Playwright's own install-deps exits non-zero if any single package is
+        # unavailable (two font packages are, on Debian 13), so the failure is
+        # logged and ignored rather than treated as fatal -- the fonts are
+        # cosmetic and the browser launches without them.
+        _install_system_deps(say)
 
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
@@ -188,3 +249,5 @@ def main() -> int:
 
 if __name__ == '__main__':
     raise SystemExit(main())
+
+

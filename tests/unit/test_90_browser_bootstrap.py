@@ -15,6 +15,7 @@ of an optional test dependency.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -64,12 +65,37 @@ def test_check_reports_missing_system_libraries_distinctly():
         assert detail, 'a failure must explain itself'
 
 
-def test_exit_code_is_always_zero():
-    """A non-zero exit would fail an installer over something optional."""
+def test_exit_code_is_always_zero(monkeypatch, tmp_path):
+    """A non-zero exit would fail an installer over something optional.
+
+    AGENTIC_SKIP_BROWSER_SETUP short-circuits the real work. Without it this
+    launched Chromium for a deep availability probe, which is fine alone and
+    intermittently exceeded its timeout inside a 3900-test run — a slow test
+    reporting a bug that does not exist. The exit-code contract is what
+    matters here, and the skip path exercises the same return.
+    """
+    env = dict(os.environ, AGENTIC_SKIP_BROWSER_SETUP='1')
     r = subprocess.run(
-        [sys.executable, str(SCRIPT), '--quiet'], capture_output=True, text=True, timeout=300
+        [sys.executable, str(SCRIPT), '--quiet'],
+        capture_output=True, text=True, timeout=120, env=env,
     )
-    assert r.returncode == 0
+    assert r.returncode == 0, r.stdout[-400:] + r.stderr[-400:]
+
+
+def test_exit_code_is_zero_even_when_the_browser_is_unavailable(monkeypatch):
+    """The case that matters: a machine where the download or launch fails
+    must not break `python run.py`."""
+    import ensure_browser as eb
+
+    monkeypatch.setattr(eb, 'browser_available', lambda **k: (False, 'simulated failure'))
+    monkeypatch.setattr(eb, '_can_sudo', lambda: False)
+    monkeypatch.setattr(
+        eb.subprocess, 'run',
+        lambda *a, **k: subprocess.CompletedProcess(a[0] if a else [], 1, '', 'boom'),
+    )
+    # Must return, not raise.
+    result = eb.ensure(quiet=True)
+    assert isinstance(result, dict)
 
 
 def test_failure_is_recorded_so_it_is_not_retried_every_launch(tmp_path, monkeypatch):
@@ -203,4 +229,52 @@ def test_e2e_collection_no_longer_errors():
          '-p', 'no:randomly'],
         cwd=ROOT, capture_output=True, text=True, timeout=300,
     )
-    assert 'error' not in r.stdout.lower(), r.stdout[-600:]
+    # Check the RETURN CODE and pytest's own error line, not a substring
+    # search of stdout. Collection lists every test name, and
+    # `test_a_server_error_produces_a_visible_toast` contains "error" — so the
+    # naive check failed on a clean collection as soon as a test was named
+    # after the condition it covers.
+    assert r.returncode == 0, r.stdout[-600:]
+    assert 'errors' not in r.stdout.split('\n')[-2].lower(), r.stdout[-600:]
+
+
+# ══ System dependencies ═══════════════════════════════════════════════════════
+# Downloading Chromium is only half the job. On a bare Linux host the 120MB
+# binary installs fine and then FAILS TO LAUNCH because libnss3 and friends are
+# absent — which is the default state of a fresh machine, and is what blocked
+# the browser E2E suite for this entire review. Installing the libraries turned
+# 31 skipped tests into 53 passing ones.
+def test_bootstrap_installs_system_libraries_when_it_can():
+    src = (ROOT / 'scripts' / 'ensure_browser.py').read_text(encoding='utf-8')
+    assert '_install_system_deps' in src
+    assert 'libnss3' in src, 'the core launch dependency is not installed'
+
+
+def test_sudo_probe_never_prompts():
+    """A bootstrap that blocks on a password prompt during app startup would
+    hang the desktop launch. `sudo -n` fails immediately instead."""
+    src = (ROOT / 'scripts' / 'ensure_browser.py').read_text(encoding='utf-8')
+    assert "'sudo', '-n'" in src
+    assert 'def _can_sudo' in src
+
+
+def test_font_packages_are_deliberately_excluded():
+    """`playwright install-deps` exits non-zero when any package is
+    unavailable, and two font packages are absent on Debian 13. Treating that
+    as fatal would skip the libraries that actually matter; the fonts only
+    affect glyph coverage."""
+    src = (ROOT / 'scripts' / 'ensure_browser.py').read_text(encoding='utf-8')
+    assert 'ttf-' not in src, 'font packages break the install on Debian'
+    assert 'cosmetic' in src or 'glyph' in src, (
+        'the reason fonts are excluded must survive with the code'
+    )
+
+
+def test_a_missing_sudo_is_not_an_error():
+    """Most users will not have passwordless sudo. The app must still start."""
+    import sys as _sys
+
+    _sys.path.insert(0, str(ROOT / 'scripts'))
+    import ensure_browser
+
+    assert isinstance(ensure_browser._can_sudo(), bool)

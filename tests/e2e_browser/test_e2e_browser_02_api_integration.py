@@ -65,15 +65,33 @@ class TestE2EAPIFromBrowser:
         assert "available" in d and ("fallback" in d or "url" in d), f"Qdrant status unexpected: {d}"
 
     def test_post_request_from_browser_context(self, page):
-        """Browser can POST JSON to the API (no CORS block for same origin)."""
+        """Browser can POST JSON to the API (no CORS block for same origin).
+
+        Now fetches a CSRF token first. The test predated enforcement and was
+        POSTing without one, which is precisely the shape of a forged
+        cross-site request — so the 403 it started returning was the control
+        working, not a regression. A real client does what this does now.
+        """
+        token = page.request.get(f"{BASE}/api/security/csrf-token").json()["csrf_token"]
         resp = page.request.post(f"{BASE}/api/audit-log/append", data=json.dumps({
             "actor": "browser-e2e-test", "action": "e2e.browser.post",
             "resource": "test", "resource_id": "e2e001",
             "outcome": "success", "detail": "Browser E2E POST test"
-        }), headers={"Content-Type": "application/json"})
+        }), headers={"Content-Type": "application/json", "X-CSRF-Token": token})
         assert resp.status == 200
         d = resp.json()
         assert d.get("ok") is True
+
+    def test_a_post_without_a_csrf_token_is_refused(self, page):
+        """The other half, asserted explicitly so the protection cannot be
+        removed silently: omitting the header must fail."""
+        resp = page.request.post(f"{BASE}/api/audit-log/append", data=json.dumps({
+            "actor": "forged", "action": "e2e.browser.forged",
+        }), headers={"Content-Type": "application/json"})
+        assert resp.status == 403, (
+            f'a token-less POST returned {resp.status}; CSRF is not enforced'
+        )
+        assert 'csrf' in resp.text().lower()
 
     def test_license_status_from_browser(self, page):
         resp = page.request.get(f"{BASE}/api/license/status")
