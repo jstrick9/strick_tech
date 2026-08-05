@@ -1883,3 +1883,11 @@ body {
 .ws-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .ws-bodies { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
 .ws-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* Mobile drawer — see frontend/js/00-mobile-nav.js and the matching block in
+   styles-redesign.css. Duplicated here because styles-unified.css also ships
+   `#sidebar { display:none !important }` at <=768px (line ~1258) and either
+   sheet alone reintroduces the unreachable-navigation bug. */
+@media (max-width: 768px) {
+  #sidebar { display: flex !important; }
+}

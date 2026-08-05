@@ -469,7 +469,21 @@ SECURITY_HEADERS = {
         # common case with no OPENROUTER_API_KEY configured. Reproduced
         # live and confirmed fixed by adding `blob:` here to match the
         # other three directives that already allow it.
-        "connect-src 'self' blob: ws: wss: http://127.0.0.1:* http://localhost:* https://api.github.com https://openrouter.ai https://slack.com https://gmail.googleapis.com https://graph.microsoft.com https://oauth2.googleapis.com https://www.googleapis.com https://jira.*.atlassian.net https://api.notion.com; "
+        # BUG FIX: `https://jira.*.atlassian.net` is not a legal CSP
+        # host-source. The grammar allows a wildcard ONLY as the entire
+        # leftmost label (`*.atlassian.net`); it cannot appear inside a
+        # label or after one. Chromium rejected the whole source and
+        # logged, on every single page load:
+        #   "The source list for the Content Security Policy directive
+        #    'connect-src' contains an invalid source:
+        #    'https://jira.*.atlassian.net'. It will be ignored."
+        # Observed live in Chromium via the browser console. Two
+        # consequences: every Jira connector call from the browser was
+        # blocked by connect-src regardless of the host, because the
+        # allowance never took effect; and the console noise trained
+        # anyone debugging to ignore CSP errors. Corrected to the legal
+        # form, which covers jira.<site>.atlassian.net as intended.
+        "connect-src 'self' blob: ws: wss: http://127.0.0.1:* http://localhost:* https://api.github.com https://openrouter.ai https://slack.com https://gmail.googleapis.com https://graph.microsoft.com https://oauth2.googleapis.com https://www.googleapis.com https://*.atlassian.net https://api.notion.com; "
         "worker-src 'self' blob:; "
         "frame-src 'self' blob: data:; "
     ),
