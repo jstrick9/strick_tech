@@ -571,6 +571,27 @@
 .key-input:focus{border-color:var(--accent-text)}
 
 /* ── Responsive ──────────────────────────────────────────── */
+/* ── Reduced motion ──────────────────────────────────────────────────────
+   The UI carries 20 keyframe animations and 70 transitions -- pulsing orbs,
+   sliding panels, tilting cards. For users with vestibular disorders that
+   motion can cause genuine nausea and dizziness, and the OS-level
+   "reduce motion" setting is how they ask software to stop. Nothing honoured
+   it before this.
+
+   Motion is reduced to a near-instant 0.01ms rather than removed outright:
+   transitions still FIRE, so anything that relies on transitionend still
+   works, but nothing visibly moves. Smooth scrolling is disabled for the same
+   reason -- a long animated scroll is one of the worst offenders. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  html { scroll-behavior: auto !important; }
+}
+
 @media(max-width:900px){
   #sidebar{width:52px}
   .form-row{grid-template-columns:1fr}
