@@ -306,3 +306,42 @@ def test_images_declare_alt_text():
     assert not offenders, (
         'images without an alt attribute:\n  ' + '\n  '.join(offenders[:15])
     )
+
+
+# ══ Motion ════════════════════════════════════════════════════════════════════
+def test_reduced_motion_preference_is_honoured():
+    """The UI carries 20 keyframe animations and 70 transitions. For users with
+    vestibular disorders that motion can cause real nausea, and the OS-level
+    'reduce motion' setting is how they ask software to stop. Nothing honoured
+    it before (WCAG 2.3.3)."""
+    css = INDEX.read_text(encoding='utf-8')
+    assert 'prefers-reduced-motion' in css, 'no reduced-motion support'
+    block = css[css.index('prefers-reduced-motion'):][:600]
+    assert 'animation-duration' in block
+    assert 'transition-duration' in block
+    assert 'scroll-behavior' in block, (
+        'a long animated scroll is one of the worst motion offenders'
+    )
+
+
+def test_reduced_motion_shortens_rather_than_removes_transitions():
+    """Setting transition-duration to 0 rather than removing the transition
+    keeps transitionend firing, so anything sequenced on it still runs."""
+    css = INDEX.read_text(encoding='utf-8')
+    block = css[css.index('prefers-reduced-motion'):][:600]
+    assert '0.01ms' in block, (
+        'transitions should be near-instant, not removed — removing them '
+        'silently breaks any code waiting on transitionend'
+    )
+
+
+def test_the_global_focus_ring_is_not_suppressed_for_navigation():
+    """86 elements became tabbable in this review. A tab stop with no visible
+    ring is arguably worse than no tab stop at all (WCAG 2.4.7)."""
+    css = INDEX.read_text(encoding='utf-8')
+    assert re.search(r':focus-visible\{outline:\s*2px solid', css), (
+        'no global focus-visible ring'
+    )
+    assert not re.search(r'\.nav-item\{[^}]*outline:\s*none', css), (
+        'the navigation suppresses its own focus ring'
+    )
