@@ -113,9 +113,9 @@
 
       var catEl = document.getElementById('tmpl-cats');
       if (catEl) {
-        var html = '<span class="bp-btn ' + (templateCategory === 'all' ? 'active' : '') + '" data-act-click="filterTemplates(\'all\')">All (' + allTemplates.length + ')</span>';
+        var html = '<span class="bp-btn ' + (templateCategory === 'all' ? 'active' : '') + '" data-act-click="filterTemplates(\'all\')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">All (' + allTemplates.length + ')</span>';
         catList.forEach(function(c) {
-          html += '<span class="bp-btn ' + (templateCategory === c.id ? 'active' : '') + '" data-act-click="filterTemplates(\'' + c.id + '\')">' + escHtml(c.label) + ' (' + c.count + ')</span>';
+          html += '<span class="bp-btn ' + (templateCategory === c.id ? 'active' : '') + '" data-act-click="filterTemplates(\'' + c.id + '\')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">' + escHtml(c.label) + ' (' + c.count + ')</span>';
         });
         catEl.innerHTML = html;
       }

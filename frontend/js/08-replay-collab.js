@@ -167,7 +167,7 @@ async function renderReplay() {
       <!-- Playback controls -->
       <div class="ttd-controls" id="ttd-controls" style="display:none">
         <!-- Scrubber -->
-        <div class="ttd-scrubber-wrap" id="ttd-scrubber" data-act-click="ttdScrubClick($event)" data-act-mousemove="ttdScrubHover($event)">
+        <div class="ttd-scrubber-wrap" id="ttd-scrubber" data-act-click="ttdScrubClick($event)" data-act-mousemove="ttdScrubHover($event)" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <div class="ttd-scrubber-track" id="ttd-scrub-track">
             <div class="ttd-frame-markers" id="ttd-frame-pips"></div>
             <div class="ttd-scrubber-fill" id="ttd-scrub-fill" style="width:0%"></div>
@@ -279,7 +279,7 @@ function ttdRenderRunList() {
     const isDiffB  = _ttdDiffRunB === run.id;
     const diffLabel = isDiffA ? 'A' : (isDiffB ? 'B' : '');
     const ts = new Date(run.created_at).toLocaleString(undefined, {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-    return `<div class="ttd-run-card ${isActive?'active':''}" data-act-click="ttdSelectRun(${JSON.stringify(run.id)})">
+    return `<div class="ttd-run-card ${isActive?'active':''}" data-act-click="ttdSelectRun(${JSON.stringify(run.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
       <div class="ttd-run-card-top">
         <input type="checkbox" class="ttd-diff-checkbox" title="Select for diff"
           data-act-click="ttdToggleDiffSelect(${JSON.stringify(run.id)},$checked)" data-stop="1"
@@ -1292,7 +1292,7 @@ async function ceLoadDocs() {
     const list = document.getElementById('ce-doc-list');
     if (!list) return;
     list.innerHTML = _ceDocs.map(doc => `
-      <div class="ce-doc-item ${_ceDoc?.id===doc.id?'active':''}" data-act-click="ceSelectDoc(${JSON.stringify(doc.id)})">
+      <div class="ce-doc-item ${_ceDoc?.id===doc.id?'active':''}" data-act-click="ceSelectDoc(${JSON.stringify(doc.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <div style="font-weight:600;color:var(--text-0)">${escHtml(doc.title||'Untitled')}</div>
         <div style="font-size:10px;color:var(--text-3)">${doc.size||0} chars · rev ${doc.revision}</div>
       </div>

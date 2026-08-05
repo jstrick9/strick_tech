@@ -19,21 +19,21 @@ async function renderA2A() {
     <!-- Sidebar -->
     <div class="a2a-sidebar">
       <div class="a2a-sidebar-title">A2A Network</div>
-      <div class="a2a-nav active" id="a2a-nav-network" data-act-click="a2aSetTab('network')">
+      <div class="a2a-nav active" id="a2a-nav-network" data-act-click="a2aSetTab('network')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="a2a-nav-icon">🌐</span> Agent Network
       </div>
-      <div class="a2a-nav" id="a2a-nav-tasks" data-act-click="a2aSetTab('tasks')">
+      <div class="a2a-nav" id="a2a-nav-tasks" data-act-click="a2aSetTab('tasks')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="a2a-nav-icon">📋</span> Tasks
         <span class="a2a-badge" id="a2a-task-badge" style="display:none">0</span>
       </div>
-      <div class="a2a-nav" id="a2a-nav-cards" data-act-click="a2aSetTab('cards')">
+      <div class="a2a-nav" id="a2a-nav-cards" data-act-click="a2aSetTab('cards')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="a2a-nav-icon">🪪</span> Agent Cards
       </div>
       <div class="a2a-div"></div>
-      <div class="a2a-nav" data-act-click="a2aOpenRegister()">
+      <div class="a2a-nav" data-act-click="a2aOpenRegister()" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="a2a-nav-icon">➕</span> Register Agent
       </div>
-      <div class="a2a-nav" data-act-click="a2aOpenDelegate()">
+      <div class="a2a-nav" data-act-click="a2aOpenDelegate()" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="a2a-nav-icon">📤</span> Delegate Task
       </div>
     </div>
@@ -149,7 +149,7 @@ function a2aRenderNetwork(container) {
         const skills = ag.skills || [];
         const caps   = ag.capabilities || [];
         const isLocal= ag.trust_level === 'local';
-        return `<div class="a2a-agent-card ${_a2aSelected===ag.agent_id?'selected':''}" data-act-click="a2aSelectAgent(${JSON.stringify(ag.agent_id)})">
+        return `<div class="a2a-agent-card ${_a2aSelected===ag.agent_id?'selected':''}" data-act-click="a2aSelectAgent(${JSON.stringify(ag.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <div class="a2a-agent-head">
             <span class="a2a-agent-icon">${isLocal?'🏠':ag.status==='active'?'🌐':'🔌'}</span>
             <div class="a2a-agent-body">
@@ -172,7 +172,7 @@ function a2aRenderNetwork(container) {
         </div>`;
       }).join('')}
       <!-- Add remote agent card -->
-      <div class="a2a-agent-card" data-act-click="a2aOpenRegister()" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;min-height:160px;opacity:.7">
+      <div class="a2a-agent-card" data-act-click="a2aOpenRegister()" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;min-height:160px;opacity:.7" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <div style="font-size:28px;margin-bottom:8px">➕</div>
         <div style="font-size:12px;font-weight:600;color:var(--text-1)">Register Remote Agent</div>
         <div style="font-size:10px;color:var(--text-3);margin-top:4px;text-align:center">Connect to any A2A-compatible platform</div>
@@ -186,7 +186,7 @@ function a2aRenderNetwork(container) {
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:6px">
       ${_a2aLocalAgents.map(a=>`
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:11px;transition:all .12s" data-act-click="a2aViewLocalCard(${JSON.stringify(a.agent_id)})">
+        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:11px;transition:all .12s" data-act-click="a2aViewLocalCard(${JSON.stringify(a.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <span style="font-weight:600;color:var(--text-0)">${escHtml(a.name)}</span>
           <span style="color:var(--text-3);margin-left:6px">${escHtml((a.description||'').slice(0,30))}</span>
           <a href="/a2a/${encodeURIComponent(a.agent_id)}/card" target="_blank" style="color:var(--accent);font-size:10px;margin-left:8px" data-stop="1">🪪</a>
@@ -232,7 +232,7 @@ async function a2aRenderTasks(container) {
         ${_a2aTasks.map(t => {
           const sc = stateColors[t.state] || 'var(--text-3)';
           const isOutbound = t.direction === 'outbound';
-          return `<tr data-act-click="a2aViewTask(${JSON.stringify(t.task_id)})">
+          return `<tr data-act-click="a2aViewTask(${JSON.stringify(t.task_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <td style="font-family:monospace;font-size:10px;color:var(--text-3)">${t.task_id.slice(0,18)}…</td>
             <td style="font-size:10px">${isOutbound?'📤 outbound':'📥 inbound'}</td>
             <td style="color:var(--accent);font-size:11px">${escHtml(isOutbound?t.target_agent_id:t.target_agent_id)}</td>

@@ -656,10 +656,10 @@ async function renderCodeIndex() {
 
     <div class="ci-main">
       <div class="ci-tabs">
-        <div class="ci-tab active" data-act-click="ciShowTab('graph',$this)">🕸️ Dependency Graph</div>
-        <div class="ci-tab" data-act-click="ciShowTab('complexity',$this)">🔥 Complexity</div>
-        <div class="ci-tab" data-act-click="ciShowTab('dead',$this)">💀 Dead Code</div>
-        <div class="ci-tab" data-act-click="ciShowTab('stats',$this)">📊 Stats</div>
+        <div class="ci-tab active" data-act-click="ciShowTab('graph',$this)" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">🕸️ Dependency Graph</div>
+        <div class="ci-tab" data-act-click="ciShowTab('complexity',$this)" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">🔥 Complexity</div>
+        <div class="ci-tab" data-act-click="ciShowTab('dead',$this)" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">💀 Dead Code</div>
+        <div class="ci-tab" data-act-click="ciShowTab('stats',$this)" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">📊 Stats</div>
       </div>
 
       <div class="ci-graph-area" id="ci-graph-area">
@@ -928,7 +928,7 @@ async function ciSearch(q) {
     const el = document.getElementById('ci-sym-list');
     if (!el) return;
     el.innerHTML = (d.symbols||[]).map((s) => `
-      <div class="ci-sym-row" data-act-click="ciShowReferences(${jsArg(s.symbol_name)})">
+      <div class="ci-sym-row" data-act-click="ciShowReferences(${jsArg(s.symbol_name)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="ci-type-badge ${s.symbol_type}">${s.symbol_type.slice(0,3)}</span>
         <span style="color:var(--text-0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.symbol_name)}</span>
         <span style="font-size:9px;color:var(--text-3)">L${s.line_no}</span>
@@ -944,7 +944,7 @@ async function ciSearchDefault() {
     const el = document.getElementById('ci-sym-list');
     if (!el) return;
     el.innerHTML = (d.symbols||[]).map((s) => `
-      <div class="ci-sym-row" data-act-click="ciShowReferences(${jsArg(s.symbol_name)})">
+      <div class="ci-sym-row" data-act-click="ciShowReferences(${jsArg(s.symbol_name)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="ci-type-badge ${s.symbol_type}">${s.symbol_type.slice(0,3)}</span>
         <span style="color:var(--text-0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.symbol_name)}</span>
         <span style="font-size:9px;color:var(--text-3)">L${s.line_no}</span>

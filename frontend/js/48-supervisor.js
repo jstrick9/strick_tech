@@ -1033,7 +1033,7 @@ function dagOpenLaunch() {
       <p>The Brain agent will decompose your goal into a task DAG, assign specialist agents, and execute waves in parallel. Watch the graph light up in real time.</p>
       <textarea id="dag-goal-ta" placeholder="Describe your goal in detail…&#10;&#10;Be specific about deliverables, constraints, and desired output format." rows="4"></textarea>
       <div class="dag-modal-examples">
-        ${examples.map(ex => `<div class="dag-modal-example" data-act-click="hSetFieldValue('dag-goal-ta',${jsArg(ex)})">${escHtml(ex)}</div>`).join('')}
+        ${examples.map(ex => `<div class="dag-modal-example" data-act-click="hSetFieldValue('dag-goal-ta',${jsArg(ex)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(ex)}</div>`).join('')}
       </div>
       <div class="dag-modal-row">
         <button class="dag-toolbar-btn" data-close="id:dag-launch-modal">Cancel</button>

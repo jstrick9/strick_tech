@@ -102,7 +102,7 @@ async function renderWorkflow() {
 
       <!-- Center toolbar -->
       <div class="wf-toolbar" id="wf-toolbar">
-        <span class="wf-name" id="wf-name-badge" title="Click to rename" data-act-click="wfRename()">Select a workflow</span>
+        <span class="wf-name" id="wf-name-badge" title="Click to rename" data-act-click="wfRename()" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">Select a workflow</span>
         <div class="wf-divider"></div>
         <button data-act-click="wfUndo()" id="wf-undo-btn" title="Undo (⌘Z)" disabled>↩</button>
         <button data-act-click="wfRedo()" id="wf-redo-btn" title="Redo (⌘⇧Z)" disabled>↪</button>
@@ -118,7 +118,7 @@ async function renderWorkflow() {
       </div>
 
       <!-- Validation badge -->
-      <div class="wf-validation-badge" id="wf-validation-badge" style="display:none" data-act-click="wfShowValidation()">
+      <div class="wf-validation-badge" id="wf-validation-badge" style="display:none" data-act-click="wfShowValidation()" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span id="wf-val-icon">✓</span>
         <span id="wf-val-text">Valid</span>
       </div>
@@ -132,7 +132,7 @@ async function renderWorkflow() {
       </div>
 
       <!-- Minimap -->
-      <div class="wf-minimap" id="wf-minimap" title="Minimap — click to center" data-act-click="wfMinimapClick($event)">
+      <div class="wf-minimap" id="wf-minimap" title="Minimap — click to center" data-act-click="wfMinimapClick($event)" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <canvas id="wf-minimap-canvas" width="140" height="88"></canvas>
       </div>
 

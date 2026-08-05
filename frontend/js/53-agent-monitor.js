@@ -64,21 +64,21 @@ async function renderAgentMonitor() {
     <!-- ── Sidebar ── -->
     <div class="bdd-sidebar">
       <div class="bdd-sidebar-title">Drift Detection</div>
-      <div class="bdd-nav active" id="bdd-nav-dashboard" data-act-click="bddSetTab('dashboard')">
+      <div class="bdd-nav active" id="bdd-nav-dashboard" data-act-click="bddSetTab('dashboard')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="bdd-nav-icon">📊</span> Dashboard
       </div>
-      <div class="bdd-nav" id="bdd-nav-agents" data-act-click="bddSetTab('agents')">
+      <div class="bdd-nav" id="bdd-nav-agents" data-act-click="bddSetTab('agents')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="bdd-nav-icon">🤖</span> Agent Scores
       </div>
-      <div class="bdd-nav" id="bdd-nav-alerts" data-act-click="bddSetTab('alerts')">
+      <div class="bdd-nav" id="bdd-nav-alerts" data-act-click="bddSetTab('alerts')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="bdd-nav-icon">⚠️</span> Alerts
         <span class="bdd-alert-badge" id="bdd-alert-count" style="display:none">0</span>
       </div>
-      <div class="bdd-nav" id="bdd-nav-history" data-act-click="bddSetTab('history')">
+      <div class="bdd-nav" id="bdd-nav-history" data-act-click="bddSetTab('history')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="bdd-nav-icon">📈</span> History
       </div>
       <div class="bdd-sidebar-div"></div>
-      <div class="bdd-nav" id="bdd-nav-monitor" data-act-click="bddSetTab('monitor')">
+      <div class="bdd-nav" id="bdd-nav-monitor" data-act-click="bddSetTab('monitor')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="bdd-nav-icon">📡</span> Live Monitor
       </div>
       <div class="bdd-sidebar-foot">
@@ -223,7 +223,7 @@ function bddRenderDashboard(container) {
         const trendI = DRIFT_TREND_ICONS[a.trend]  || '?';
         const pct    = Math.min(a.drift_score, 100);
         const isSelected = _driftSelected === a.agent_id;
-        return `<div class="bdd-lb-row ${isSelected?'selected':''}" data-act-click="bddViewAgent(${JSON.stringify(a.agent_id)})">
+        return `<div class="bdd-lb-row ${isSelected?'selected':''}" data-act-click="bddViewAgent(${JSON.stringify(a.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <span class="bdd-lb-agent">${escHtml(a.agent_id)}</span>
           <div class="bdd-lb-score-bar">
             <div class="bdd-lb-score-fill" style="width:${pct}%;background:${sc.border}"></div>
@@ -255,7 +255,7 @@ function bddRenderAgents(container) {
         ${_driftLeaderboard.map(a => {
           const sc = DRIFT_SEV_COLORS[a.severity] || DRIFT_SEV_COLORS.none;
           const pct = Math.min(a.drift_score, 100);
-          return `<div class="bdd-lb-row" data-act-click="bddViewAgent(${JSON.stringify(a.agent_id)})">
+          return `<div class="bdd-lb-row" data-act-click="bddViewAgent(${JSON.stringify(a.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div class="bdd-gauge" style="border-color:${sc.border};width:48px;height:48px">
               <span class="bdd-gauge-val" style="color:${sc.border};font-size:13px">${a.drift_score.toFixed(0)}</span>
               <span class="bdd-gauge-lbl" style="color:${sc.border};font-size:7px">${sc.label}</span>
@@ -552,7 +552,7 @@ async function bddRenderHistory(container) {
         ${hist.map(h => {
           const sc = DRIFT_SEV_COLORS[h.severity||'none'];
           const tc = DRIFT_TREND_COLORS[h.trend||'stable'];
-          return `<tr data-act-click="bddViewAgent(${JSON.stringify(h.agent_id)})">
+          return `<tr data-act-click="bddViewAgent(${JSON.stringify(h.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <td style="color:var(--text-3);white-space:nowrap">${new Date(h.computed_at).toLocaleTimeString()}</td>
             <td style="font-weight:600;color:var(--accent)">${escHtml(h.agent_id)}</td>
             <td style="font-size:10px;color:var(--text-3)">${h.window_label||'1h'}</td>

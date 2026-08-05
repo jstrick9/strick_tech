@@ -1320,23 +1320,23 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <!-- ═══ ESSENTIALS: daily drivers ═══ -->
         <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#a5b4fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('core')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> ESSENTIALS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
         <div class="sidebar-group-content" id="group-core">
-          <div class="nav-item active" data-nav="chat" data-tier="core" data-act-click="nav('chat')" data-tooltip="Chat with AI — start here" role="menuitem" aria-label="Chat">
+          <div class="nav-item active" data-nav="chat" data-tier="core" data-act-click="nav('chat')" data-tooltip="Chat with AI — start here" role="button" aria-label="Chat" tabindex="0" data-keys="Enter" data-self-click="1">
             <span class="icon">💬</span><span class="label">Chat</span>
           </div>
-          <div class="nav-item" data-nav="studio" data-tier="core" data-act-click="nav('studio')" data-tooltip="Write code with live preview" role="menuitem" aria-label="Studio">
+          <div class="nav-item" data-nav="studio" data-tier="core" data-act-click="nav('studio')" data-tooltip="Write code with live preview" role="button" aria-label="Studio" tabindex="0" data-keys="Enter" data-self-click="1">
             <span class="icon">⚡</span><span class="label">Code Studio</span>
             <span class="badge badge-live" style="font-size:9px;padding:1px 6px">LIVE</span>
           </div>
-          <div class="nav-item" data-nav="galaxy" data-tier="core" data-act-click="nav('galaxy')" data-tooltip="Your saved knowledge & memories" role="menuitem" aria-label="Memory">
+          <div class="nav-item" data-nav="galaxy" data-tier="core" data-act-click="nav('galaxy')" data-tooltip="Your saved knowledge & memories" role="button" aria-label="Memory" tabindex="0" data-keys="Enter" data-self-click="1">
             <span class="icon">🧠</span><span class="label">Memory</span>
           </div>
-          <div class="nav-item" data-nav="kanban" data-tier="core" data-act-click="nav('kanban')" data-tooltip="Track tasks and to-dos" role="menuitem" aria-label="Tasks">
+          <div class="nav-item" data-nav="kanban" data-tier="core" data-act-click="nav('kanban')" data-tooltip="Track tasks and to-dos" role="button" aria-label="Tasks" tabindex="0" data-keys="Enter" data-self-click="1">
             <span class="icon">✅</span><span class="label">Tasks</span>
           </div>
-          <div class="nav-item" data-nav="templates" data-tier="core" data-act-click="nav('templates')" data-tooltip="Start from a template" role="menuitem" aria-label="Templates">
+          <div class="nav-item" data-nav="templates" data-tier="core" data-act-click="nav('templates')" data-tooltip="Start from a template" role="button" aria-label="Templates" tabindex="0" data-keys="Enter" data-self-click="1">
             <span class="icon">📋</span><span class="label">Templates</span>
           </div>
-          <div class="nav-item" data-nav="settings" data-tier="core" data-act-click="nav('settings')" data-tooltip="Connect AI & customize" role="menuitem" aria-label="Settings">
+          <div class="nav-item" data-nav="settings" data-tier="core" data-act-click="nav('settings')" data-tooltip="Connect AI & customize" role="button" aria-label="Settings" tabindex="0" data-keys="Enter" data-self-click="1">
             <span class="icon">⚙</span><span class="label">Settings</span>
           </div>
         </div>
@@ -1397,7 +1397,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <div id="content">
       <!-- Sticky Contextual Breadcrumb Bar (Phase A) -->
       <div id="sticky-breadcrumb-bar" style="background:var(--bg-1);border-bottom:1px solid var(--border);padding:8px 24px;font-size:12.5px;color:var(--text-2);display:flex;align-items:center;gap:8px;flex-shrink:0;user-select:none">
-        <span data-act-click="nav('chat')" style="cursor:pointer;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:4px">🏠 Mission Control</span>
+        <span data-act-click="nav('chat')" style="cursor:pointer;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:4px" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">🏠 Mission Control</span>
         <span style="opacity:.4">›</span>
         <span id="breadcrumb-current-pane" style="color:var(--text-0);font-weight:700;display:flex;align-items:center;gap:6px">💬 Chat</span>
         <span id="breadcrumb-sub-context" style="margin-left:auto;font-size:11.5px;color:var(--text-3);display:flex;align-items:center;gap:6px"></span>
@@ -2199,7 +2199,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div style="width:240px;border-right:1px solid var(--border);background:var(--bg-1);display:flex;flex-direction:column;padding:12px;gap:6px">
             <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between">
               <span>Project Folders</span>
-              <span data-act-click="openNewProjectIvrenModal()" style="cursor:pointer;color:var(--accent);font-size:14px" title="Create Project">+</span>
+              <span data-act-click="openNewProjectIvrenModal()" style="cursor:pointer;color:var(--accent);font-size:14px" title="Create Project" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">+</span>
             </div>
             <div id="t2-project-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
               <!-- Dynamically rendered projects -->

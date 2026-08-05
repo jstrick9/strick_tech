@@ -41,7 +41,7 @@ async function refreshControlTower() {
             ${runs.length === 0 ? emptyState({icon:'📊',title:'No runs yet',body:'Agent runs appear here with full traces and cost breakdown.'}) :
             runs.slice(0,10).map(r=>{
               const sCol = {running:'var(--warning)',done:'var(--success)',error:'var(--danger)',killed:'var(--text-3)'}[r.status]||'var(--text-2)';
-              return `<div class="card card-interactive" data-act-click="showRunTrace(${jsArg(r.run_id)})" style="padding:9px 12px">
+              return `<div class="card card-interactive" data-act-click="showRunTrace(${jsArg(r.run_id)})" style="padding:9px 12px" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
                 <div style="display:flex;align-items:center;gap:9px">
                   <span style="color:${sCol};font-size:9px">●</span>
                   <div style="flex:1;min-width:0">

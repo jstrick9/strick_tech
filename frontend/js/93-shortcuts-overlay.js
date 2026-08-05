@@ -47,7 +47,7 @@
     var html = '<div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:16px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto;padding:28px;box-shadow:0 32px 80px rgba(0,0,0,.7)">';
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">';
     html += '<h2 style="margin:0;font-size:18px;font-weight:800">⌨️ Keyboard Shortcuts</h2>';
-    html += '<button type="button" data-act-click="document.getElementById(\'kb-shortcuts-overlay\').remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px">✕</button>';
+    html += '<button type="button" data-close="id:kb-shortcuts-overlay" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px">✕</button>';
     html += '</div>';
     
     shortcuts.forEach(function(group) {

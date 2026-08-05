@@ -36,7 +36,7 @@ async function renderWebhooks() {
         </div>
         <div>
           <div style="font-weight:700;margin-bottom:10px">🚀 Templates</div>
-          ${tmpls.map(t=>`<div class="card card-interactive lift" data-act-click="installWebhookTemplate(${JSON.stringify(t.id)})" style="margin-bottom:8px;padding:11px">
+          ${tmpls.map(t=>`<div class="card card-interactive lift" data-act-click="installWebhookTemplate(${JSON.stringify(t.id)})" style="margin-bottom:8px;padding:11px" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div style="font-weight:600;font-size:12.5px;margin-bottom:2px">${escHtml(t.name)}</div>
             <div style="font-size:11.5px;color:var(--text-2);margin-bottom:4px">${escHtml(t.description)}</div>
             <div style="font-size:10.5px;color:var(--text-3)">${escHtml(t.setup)}</div>

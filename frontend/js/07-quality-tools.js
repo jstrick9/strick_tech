@@ -111,7 +111,7 @@ async function renderBugBot() {
       </div>
       <div id="bb-pane-history" style="display:none">
         ${(reviews.reviews||[]).map(r=>`
-          <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" data-act-click="bbShowReview(${JSON.stringify(r.id)})">
+          <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" data-act-click="bbShowReview(${JSON.stringify(r.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div style="width:44px;height:44px;border-radius:50%;background:var(--bg-3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:${r.score>=80?'var(--success)':r.score>=60?'var(--warning)':'var(--danger)'}">
               ${r.score}
             </div>

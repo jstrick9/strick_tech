@@ -233,12 +233,12 @@ function gmRenderDetail() {
     </div>
 
     <div class="gm-tabs">
-      <div class="gm-tab ${_goalTab==='overview'?'active':''}"   data-act-click="gmSetTab('overview')">Overview</div>
-      <div class="gm-tab ${_goalTab==='decompose'?'active':''}"  data-act-click="gmSetTab('decompose')">
+      <div class="gm-tab ${_goalTab==='overview'?'active':''}"   data-act-click="gmSetTab('overview')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">Overview</div>
+      <div class="gm-tab ${_goalTab==='decompose'?'active':''}"  data-act-click="gmSetTab('decompose')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         Decompose<span class="gm-tab-badge" id="gm-decomp-badge">${decomp.length||''}</span>
       </div>
-      <div class="gm-tab ${_goalTab==='score'?'active':''}"      data-act-click="gmSetTab('score')">Outcome Score</div>
-      <div class="gm-tab ${_goalTab==='history'?'active':''}"    data-act-click="gmSetTab('history')">
+      <div class="gm-tab ${_goalTab==='score'?'active':''}"      data-act-click="gmSetTab('score')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">Outcome Score</div>
+      <div class="gm-tab ${_goalTab==='history'?'active':''}"    data-act-click="gmSetTab('history')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         History<span class="gm-tab-badge" id="gm-hist-badge">${scores.length||''}</span>
       </div>
     </div>
@@ -297,7 +297,7 @@ function gmTabOverview() {
       ${ms.length ? `
       <div class="gm-milestone-list">
         ${ms.map(m=>`
-        <div class="gm-milestone-item ${m.completed?'done':''}" data-ms-id="${escHtml(m.id)}" data-ms-done="${m.completed ? 1 : 0}" data-act-click="gmCompleteMilestone(${jsArg(m.id)},${m.completed ? 1 : 0})">
+        <div class="gm-milestone-item ${m.completed?'done':''}" data-ms-id="${escHtml(m.id)}" data-ms-done="${m.completed ? 1 : 0}" data-act-click="gmCompleteMilestone(${jsArg(m.id)},${m.completed ? 1 : 0})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <span class="gm-milestone-check">${m.completed?'✅':'⬜'}</span>
           <span class="gm-milestone-title ${m.completed?'done':''}">${escHtml(m.title)}</span>
           ${m.due_date ? `<span style="font-size:10px;color:var(--text-3)">${m.due_date}</span>` : ''}

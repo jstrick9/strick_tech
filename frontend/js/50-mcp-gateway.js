@@ -106,11 +106,11 @@ async function renderMCPGateway() {
         <button style="padding:4px 10px;border-radius:6px;font-size:11px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer" data-act-click="mcgTestCall()">🧪 Test Call</button>
       </div>
       <div class="prb-tab-bar">
-        <div class="prb-tab active" id="prb-tab-rules"     data-act-click="prbSetTab('rules')">📋 Rules</div>
-        <div class="prb-tab"        id="prb-tab-builder"   data-act-click="prbSetTab('builder')">⚙️ Builder</div>
-        <div class="prb-tab"        id="prb-tab-simulator" data-act-click="prbSetTab('simulator')">🧪 Simulator</div>
-        <div class="prb-tab"        id="prb-tab-conflicts" data-act-click="prbSetTab('conflicts')">⚠️ Conflicts<span class="prb-tab-badge" id="prb-conflict-badge" style="display:none">0</span></div>
-        <div class="prb-tab"        id="prb-tab-servers"   data-act-click="prbSetTab('servers')">🖥️ Servers</div>
+        <div class="prb-tab active" id="prb-tab-rules"     data-act-click="prbSetTab('rules')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">📋 Rules</div>
+        <div class="prb-tab"        id="prb-tab-builder"   data-act-click="prbSetTab('builder')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">⚙️ Builder</div>
+        <div class="prb-tab"        id="prb-tab-simulator" data-act-click="prbSetTab('simulator')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">🧪 Simulator</div>
+        <div class="prb-tab"        id="prb-tab-conflicts" data-act-click="prbSetTab('conflicts')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">⚠️ Conflicts<span class="prb-tab-badge" id="prb-conflict-badge" style="display:none">0</span></div>
+        <div class="prb-tab"        id="prb-tab-servers"   data-act-click="prbSetTab('servers')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">🖥️ Servers</div>
       </div>
       <div class="prb-content" id="prb-content">
         <div style="padding:40px;text-align:center;color:var(--text-3)">Loading…</div>
@@ -274,7 +274,7 @@ function prbRenderRulesTab(container) {
           <td><span class="prb-code" style="font-size:9px">${escHtml(p.server_id.replace('srv_',''))}</span></td>
           <td><span class="prb-code">${escHtml(p.tool_pattern)}</span></td>
           <td data-stop="1">
-            <span class="prb-toggle" data-policy-id="${escHtml(p.policy_id)}" data-policy-enabled="${p.enabled}" data-act-click="hTogglePolicyEnabled($data.policyId,$data.policyEnabled)" title="${p.enabled?'Click to disable':'Click to enable'}">
+            <span class="prb-toggle" data-policy-id="${escHtml(p.policy_id)}" data-policy-enabled="${p.enabled}" data-act-click="hTogglePolicyEnabled($data.policyId,$data.policyEnabled)" title="${p.enabled?'Click to disable':'Click to enable'}" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
               ${p.enabled ? '🟢' : '⚫'}
             </span>
           </td>
@@ -317,7 +317,7 @@ function prbRenderBuilderTab(container) {
         ${_prbTemplates.map(t => {
           const ac = PRB_ACTION_COLORS[t.action] || PRB_ACTION_COLORS.allow;
           const catCol = PRB_CATEGORY_COLORS[t.category] || 'var(--text-3)';
-          return `<div class="prb-tpl-card" data-template-id="${escHtml(t.id||t.name)}" data-act-click="prbApplyTemplateById($data.templateId)">
+          return `<div class="prb-tpl-card" data-template-id="${escHtml(t.id||t.name)}" data-act-click="prbApplyTemplateById($data.templateId)" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div class="prb-tpl-icon">${t.icon}</div>
             <div class="prb-tpl-name">${escHtml(t.name)}</div>
             <div class="prb-tpl-desc">${escHtml(t.description)}</div>
@@ -350,7 +350,7 @@ function prbRenderBuilderTab(container) {
           const labels = { allow:['✅','Allow','Permit this tool call to proceed'], deny:['🚫','Deny','Block this call entirely — returns error'], require_hitl:['🛂','Require HITL','Pause and require human approval before proceeding'] };
           const [icon, label, desc] = labels[action];
           const isSelected = (editing?.action || 'allow') === action;
-          return `<div class="prb-action-opt ${isSelected?'selected-'+action:''}" id="prb-aopt-${action}" data-action="${escHtml(action)}" data-act-click="prbSelectAction($data.action)">
+          return `<div class="prb-action-opt ${isSelected?'selected-'+action:''}" id="prb-aopt-${action}" data-action="${escHtml(action)}" data-act-click="prbSelectAction($data.action)" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div class="prb-action-icon">${icon}</div>
             <div class="prb-action-label" style="color:${ac.text}">${label}</div>
             <div class="prb-action-desc">${desc}</div>
