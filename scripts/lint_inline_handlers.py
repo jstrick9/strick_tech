@@ -81,9 +81,40 @@ def is_safe(expr: str) -> bool:
     return bool(BOOL_OR_COUNTER.match(expr))
 
 
+INLINE_ON = re.compile(r'\son[a-z]+\s*=\s*"')
+
+
+def check_no_inline_handlers() -> list[str]:
+    """Since script-src dropped 'unsafe-inline', an inline on*= handler is a
+    DEAD CONTROL: the browser refuses to compile it, so the button renders,
+    looks clickable and does nothing. That is silent, so it needs to fail CI.
+    """
+    frontend = pathlib.Path(__file__).resolve().parent.parent / 'frontend'
+    out: list[str] = []
+    targets = [frontend / 'index.html'] + sorted((frontend / 'js').glob('*.js'))
+    for path in targets:
+        for i, line in enumerate(path.read_text(encoding='utf-8').split('\n'), 1):
+            if path.suffix == '.js' and line.lstrip().startswith(('//', '*', '/*')):
+                continue
+            if INLINE_ON.search(line):
+                out.append(f'{path.name}:{i}')
+    return out
+
+
 def main() -> int:
     root = pathlib.Path(__file__).resolve().parent.parent / 'frontend' / 'js'
     offenders: list[tuple[str, int, str]] = []
+
+    dead = check_no_inline_handlers()
+    if dead:
+        print("\u2717 inline on*= handlers found, and script-src no longer allows them\n")
+        print('  These render but CANNOT run: the browser refuses to compile an')
+        print('  inline handler under the current CSP. Use data-act-<event>=')
+        print('  (frontend/js/00-delegate.js) instead.\n')
+        for site in dead[:30]:
+            print(f'  {site}')
+        print(f'\n{len(dead)} dead handler(s)')
+        return 1
 
     for path in sorted(root.glob('*.js')):
         lines = path.read_text(encoding='utf-8').split('\n')
