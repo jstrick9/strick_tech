@@ -11,6 +11,7 @@
 // ── State ─────────────────────────────────────────────────────────
 let _goalFilter   = { status: '', domain: '', priority: '' };
 let _goalList     = [];           // cached goal array
+let _goalTotal    = 0;            // true server-side count (may exceed the page)
 let _goalSelected = null;         // currently open goal detail {goal, milestones, checkins, decomposition, score_history}
 let _goalTab      = 'overview';   // 'overview' | 'decompose' | 'score' | 'history'
 let _goalPollTimer = null;
@@ -119,6 +120,11 @@ async function gmLoadGoals() {
     fetch(`/api/goals?limit=100${_goalFilter.status?'&status='+encodeURIComponent(_goalFilter.status):''}${_goalFilter.domain?'&domain='+encodeURIComponent(_goalFilter.domain):''}${_goalFilter.priority?'&priority='+encodeURIComponent(_goalFilter.priority):''}`).then(r=>r.ok?r.json():{goals:[]}).catch(()=>({goals:[]})),
   ]);
   _goalList = goalsR.goals || [];
+  // The API caps at 100 but reports the true count. 724 goals existed in
+  // testing while the list showed 100 and said nothing, so 624 were simply
+  // unreachable -- the user has no way to know they are not seeing
+  // everything, which is worse than an explicit limit.
+  _goalTotal = goalsR.total ?? _goalList.length;
   gmUpdateStats(statsR);
   gmRenderList();
 }
@@ -137,7 +143,15 @@ function gmRenderList() {
     list.innerHTML = `<div style="color:var(--text-3);font-size:12px;padding:12px;line-height:1.7">No goals match these filters.</div>`;
     return;
   }
-  list.innerHTML = _goalList.map(g => {
+  const hidden = Math.max(0, _goalTotal - _goalList.length);
+  const truncationNote = hidden
+    ? `<div role="status" style="padding:8px 12px;margin-bottom:8px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);font-size:11.5px;color:var(--text-2)">
+         Showing ${_goalList.length} of ${_goalTotal} goals.
+         <span style="color:var(--text-3)">${hidden} more are hidden — narrow the filters to find them.</span>
+       </div>`
+    : '';
+
+  list.innerHTML = truncationNote + _goalList.map(g => {
     const pCol   = GOAL_PRIORITY_COLORS[g.priority]  || 'var(--accent)';
     const sCol   = GOAL_STATUS_COLORS[g.status]       || 'var(--text-3)';
     const prog   = g.progress || 0;
@@ -145,7 +159,7 @@ function gmRenderList() {
     const isActive = _goalSelected?.goal?.id === g.id;
     const score  = g.outcome_score != null ? Math.round(g.outcome_score*100) : null;
     const icon   = GOAL_DOMAIN_ICONS[g.domain] || '📌';
-    return `<div class="gm-goal-card ${isActive?'active':''}" style="border-left-color:${pCol}" data-goal-id="${escHtml(g.id)}" >>
+    return `<div class="gm-goal-card ${isActive?'active':''}" style="border-left-color:${pCol}" data-goal-id="${escHtml(g.id)}">
       <div class="gm-goal-card-top">
         <span class="gm-goal-icon">${icon}</span>
         <span class="gm-goal-title">${escHtml(g.title.slice(0,55))}</span>

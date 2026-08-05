@@ -30,6 +30,7 @@
 // (`showToast` is a legacy compatibility alias for old code only).
 // ── Prompt Library state ─────────────────────────────────────────────────────
 let promptsData    = [];
+let promptsTotal = 0;   // server-side count; may exceed the returned page
 let promptCategory = 'all';
 let promptFavOnly  = false;
 let editingPromptId = null;
@@ -63,6 +64,11 @@ async function renderPrompts() {
     // Non-fatal: without it the picker just falls back to "any agent".
     const agents   = ar.ok ? await ar.json() : {agents: []};
     promptsData = listData.prompts || listData || [];  // handle both wrapped and raw
+    // The API caps the page but reports the true count. 103 prompts existed
+    // in testing while 100 were shown and nothing said so -- a silently
+    // truncated list is worse than an explicit limit, because the user
+    // concludes the missing item does not exist.
+    promptsTotal = (typeof listData.total === 'number') ? listData.total : promptsData.length;
     const cats  = catData.categories || catData || [];
 
     pane.innerHTML = `
@@ -92,6 +98,7 @@ async function renderPrompts() {
                   title="Create a custom category">＋ Category</button>
         </div>
       </div>
+      ${promptsTotal > promptsData.length ? `<div role="status" style="padding:8px 12px;margin-bottom:10px;border-radius:6px;background:var(--bg-2);border:1px solid var(--border);font-size:11.5px;color:var(--text-2)">Showing ${promptsData.length} of ${promptsTotal} prompts. <span style="color:var(--text-3)">${promptsTotal - promptsData.length} more are hidden — use search to find them.</span></div>` : ''}
       <div id="prompt-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px">${renderPromptCards()}</div>
       </div>
       <!-- Prompt modal -->
