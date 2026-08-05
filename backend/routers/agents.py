@@ -144,7 +144,29 @@ async def update_agent(agent_id: str, req: Request):
             data[k] = v
 
     if len(data) == 1:
-        return {'ok': False, 'error': 'no valid fields to update'}
+        return JSONResponse(
+            {'ok': False, 'error': 'no valid fields to update'}, status_code=400
+        )
+
+    # PATCH must UPDATE, never create. agent_upsert() inserts when the id is
+    # absent, so a typo'd or stale id silently produced a phantom agent:
+    #
+    #     PATCH /api/agents/nope {"name": "x"}
+    #     -> 200 {"ok": true, "agent": {"id": "nope", "role": "", "model": ""}}
+    #
+    # and that half-built record then appeared in the agent picker with no
+    # model, where selecting it fails. Verified against the running server.
+    from ..services.memory_db import get_conn as _get_agents_conn
+
+    con = _get_agents_conn()
+    try:
+        exists = con.execute('SELECT 1 FROM agents WHERE id=?', (agent_id,)).fetchone()
+    finally:
+        con.close()
+    if not exists:
+        return JSONResponse(
+            {'ok': False, 'error': 'Agent not found'}, status_code=404
+        )
 
     result = memory_db.agent_upsert(data)
     memory_db.audit_log('agent_update', str(agent_id))
@@ -159,8 +181,15 @@ def delete_agent(agent_id: str):
     if agent_id in protected:
         return {'ok': False, 'error': f"'{agent_id}' is a core agent and cannot be deleted. Disable it instead."}
     deleted = memory_db.agent_delete(agent_id)
+    if not deleted:
+        # Deleting something that is not there answered 200 {"ok": false}, so
+        # `if (r.ok)` treated a no-op as a successful delete and the UI removed
+        # the row from the list. 404 says what actually happened.
+        return JSONResponse(
+            {'ok': False, 'error': 'Agent not found'}, status_code=404
+        )
     memory_db.audit_log('agent_delete', agent_id)
-    return {'ok': deleted}
+    return {'ok': True, 'deleted': agent_id}
 
 
 @router.post('/{agent_id}/test')

@@ -443,6 +443,15 @@ def delete_goal(goal_id: str):
     """Delete or remove specified goal."""
     con = _get_conn()
     try:
+        # Reported {"ok": true, "deleted": "<id>"} even when nothing matched, so
+        # deleting an already-deleted goal looked like it worked. That hides a
+        # stale client and makes a double-delete indistinguishable from a real
+        # one in the audit trail.
+        exists = con.execute('SELECT 1 FROM goals_v2 WHERE id=?', (goal_id,)).fetchone()
+        if not exists:
+            return JSONResponse(
+                {'ok': False, 'error': 'Goal not found'}, status_code=404
+            )
         con.execute('DELETE FROM goal_milestones WHERE goal_id=?', (goal_id,))
         con.execute('DELETE FROM goal_checkins WHERE goal_id=?', (goal_id,))
         con.execute('DELETE FROM goals_v2 WHERE id=?', (goal_id,))
