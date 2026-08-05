@@ -412,6 +412,61 @@ _PUBLIC_SECURE_PATHS = {'/api/system/health', '/api/system/stats'}
 # max requests per configured window (5/sec average by default)
 
 # Security headers for all responses
+# ── /preview/ CSP ─────────────────────────────────────────────────────────────
+# CSP phase 2 dropped script-src 'unsafe-inline' from the enforcing policy.
+# That was correct for the application, but the middleware applied the same
+# policy to /preview/ — and /preview/ is not the application. It serves the
+# HTML the user writes in Code Studio and the HTML the agent generates, and
+# essentially all of it carries inline <script>.
+#
+# The result, verified in Chromium: an inline script in a preview document
+# does not run at all.
+#
+#   GET /preview/csptest.html  ->  <h1> still reads "BEFORE"
+#   console: Refused to execute inline script ... "script-src 'self'"
+#
+# So the entire Live Preview feature was silently dead for any generated page
+# with script in it, which is most of them. It also broke Studio's own two
+# instrumentation injections (01-app-core.js:4147 and :4923) — the ones that
+# forward console output and runtime errors from the preview frame back to the
+# Studio console and the "Fix with AI" error bar. Both were blocked on every
+# load, so the preview console showed nothing and JS errors were never
+# surfaced. Note the Report-Only policy already carried a `/preview/`
+# exemption; the enforcing one never got the matching change. That is the
+# "second door" pattern: a control applied at one call site while an identical
+# one goes unprotected.
+#
+# This policy restores inline script for preview documents ONLY, and is
+# tighter than the application's in the ways that matter for untrusted
+# content:
+#
+#   • frame-ancestors 'self'   — only our own Studio may frame it.
+#   • form-action 'none'       — generated markup cannot POST credentials out.
+#   • object-src 'none'        — no plugin content.
+#   • base-uri 'none'          — an injected <base> cannot reroute the page.
+#
+# The iframe additionally runs under a `sandbox` attribute (index.html:1712),
+# so this is defence in depth rather than the only boundary.
+PREVIEW_CSP = (
+    "default-src 'self' data: blob:; "
+    "object-src 'none'; "
+    "base-uri 'none'; "
+    "form-action 'none'; "
+    "frame-ancestors 'self'; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: "
+    "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com "
+    "https://unpkg.com https://cdn.monaco-editor.net; "
+    "style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com "
+    "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+    "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net "
+    "https://cdnjs.cloudflare.com; "
+    "img-src 'self' data: blob: https:; "
+    "connect-src 'self' blob: data: ws: wss: https:; "
+    "worker-src 'self' blob:; "
+    "frame-src 'self' blob: data:;"
+)
+
+
 SECURITY_HEADERS = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'SAMEORIGIN',
@@ -656,6 +711,13 @@ async def _security_middleware(request: Request, call_next):
 
     for header, value in SECURITY_HEADERS.items():
         response.headers[str(header).strip()] = str(value).strip()
+
+    # Preview documents get their own policy, applied AFTER the loop above so
+    # it replaces the application policy rather than being replaced by it.
+    # See PREVIEW_CSP for why: without this, inline script in a generated page
+    # is blocked and Live Preview does not work at all.
+    if path.startswith('/preview/'):
+        response.headers['Content-Security-Policy'] = PREVIEW_CSP
 
     # SVG served from our own origin is executable XML, not an inert image: a
     # <script> inside one runs with full same-origin privileges under the
