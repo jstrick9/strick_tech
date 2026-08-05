@@ -1201,7 +1201,20 @@ window.lpSaveVerifyKey = async function() {
       });
       const tj = await tr.json();
       if (tj.ok) {
-        if (statusEl) statusEl.innerHTML = `<span style="color:var(--success)">✅ Verified & active! ${tj.models_count || 180}+ models ready (Claude 3.5 Sonnet, GPT-4o, Llama 3.3).</span>`;
+        // BUG FIX: this read `${tj.models_count || 180}+ models ready (Claude
+        // 3.5 Sonnet, GPT-4o, Llama 3.3)`. When the backend could not reach
+        // the catalogue it returns models_count: 0, and `0 || 180` is 180 —
+        // so the UI invented a model count nobody measured and then named
+        // three specific models it had not confirmed the key can reach. The
+        // backend goes to real trouble here (it verifies against
+        // /api/v1/auth/key precisely because the public /models endpoint
+        // returns 200 for any garbage), and the frontend was undoing that by
+        // making up the number when the measurement was unavailable.
+        if (statusEl) {
+          const n = Number(tj.models_count || 0);
+          statusEl.innerHTML = '<span style="color:var(--success)">✅ Key verified and active' +
+            (n > 0 ? ' — ' + n + ' models available' : '') + '.</span>';
+        }
         if (typeof updateKeyStatus === 'function') updateKeyStatus(true);
         keyInp.value = '';
       } else {
