@@ -141,8 +141,15 @@ async def update_trace(trace_id: str, req: Request):
             sets.append('eval_score=?')
             vals.append(int(body['eval_score']))
         vals.append(trace_id)
-        con.execute(f'UPDATE obs_traces SET {",".join(sets)} WHERE id=?', vals)
+        cur = con.execute(f'UPDATE obs_traces SET {",".join(sets)} WHERE id=?', vals)
         con.commit()
+        if cur.rowcount == 0:
+            # Reported {"ok": true} for a trace id that matched nothing, so a
+            # client writing to a stale or mistyped id believed it had
+            # recorded an outcome that was never stored.
+            return JSONResponse(
+                {'ok': False, 'error': 'Trace not found'}, status_code=404
+            )
     finally:
         con.close()
     return {'ok': True}

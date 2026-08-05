@@ -146,7 +146,15 @@ async def update_pack(pack_id: str, req: Request):
     if _body_err:
         return _body_err
     p = PACKS_DIR / f'{pack_id}.json'
-    existing = json.loads(p.read_text()) if p.exists() else {}
+    if not p.exists():
+        # PUT here means "update this pack", and creating one on the fly wrote
+        # a pack file with no name, no skills and no manifest -- verified
+        # against the running server, where the ghost then appeared in the
+        # pack list. Creation has its own POST route.
+        return JSONResponse(
+            {'ok': False, 'error': 'Pack not found'}, status_code=404
+        )
+    existing = json.loads(p.read_text())
     existing.update({**body, 'id': pack_id, 'updated_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())})
     p.write_text(json.dumps(existing, indent=2))
     return {'ok': True, 'pack': existing}

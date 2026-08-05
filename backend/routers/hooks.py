@@ -446,7 +446,21 @@ async def update_hook(hook_id: str, req: Request):
             cur = con.execute(f'UPDATE agent_hooks SET {",".join(sets)} WHERE id=?', vals)
             con.commit()
             if cur.rowcount == 0:
-                return {'ok': False, 'error': 'Hook not found'}
+                # Was a 200. The check was already here and correct; only the
+                # status lied, so `if (r.ok)` still treated it as an update.
+                return JSONResponse(
+                    {'ok': False, 'error': 'Hook not found'}, status_code=404
+                )
+        else:
+            # No recognised fields AND no existence check ran, so this returned
+            # {"ok": true} for a hook that may not exist at all.
+            exists = con.execute(
+                'SELECT 1 FROM agent_hooks WHERE id=?', (hook_id,)
+            ).fetchone()
+            if not exists:
+                return JSONResponse(
+                    {'ok': False, 'error': 'Hook not found'}, status_code=404
+                )
     finally:
         con.close()
     return {'ok': True}
