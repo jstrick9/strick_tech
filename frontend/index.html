@@ -1193,20 +1193,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 /* Status bar - consolidated in unified.css */
 
 </style>
-<script>
-// Apply the saved appearance before styles render. Default is dark mode;
-// Auto follows the device without replacing a deliberate user selection.
-(function () {
-  try {
-    var preference = localStorage.getItem('agentic_os_theme') || 'dark';
-    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var effective = preference === 'auto' ? (dark ? 'dark' : 'light') : preference;
-    document.documentElement.setAttribute('data-theme', effective);
-    document.documentElement.setAttribute('data-theme-preference', preference);
-    document.documentElement.style.colorScheme = effective === 'light' ? 'light' : 'dark';
-  } catch (e) {}
-}());
-</script>
+<script src="/static/js/00-theme-boot.js"></script>
 <link rel="stylesheet" href="/static/styles-redesign.css">
 
 
@@ -3090,301 +3077,25 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 <script src="/static/js/56-chat-history.js" defer></script>
 <script src="/static/js/57-account-settings.js" defer></script>
 
-<script>
-// ── Sidebar collapse toggle (⌘\) ───────────────────────────────
-document.addEventListener('keydown', function(e) {
-  if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
-    e.preventDefault();
-    var sb = document.getElementById('sidebar');
-    if (sb) {
-      var collapsed = sb.style.width === '52px' || getComputedStyle(sb).width === '52px';
-      sb.style.width = collapsed ? 'var(--sidebar-w)' : '52px';
-    }
-  }
-});
-
-
-</script>
+<script src="/static/js/90-sidebar-shortcut.js" defer></script>
 
 
 <!-- ═══════════════════════════════════════════════════════════════
      SIDEBAR MODE SYSTEM + ONBOARDING
      ═══════════════════════════════════════════════════════════════ -->
-<script>
-'use strict';
-(function() {
-  var STORAGE_KEY = 'agentic_os_mode';
-  var currentMode = localStorage.getItem(STORAGE_KEY) || 'power';
-  var advancedOpen = false;
-
-  function applyMode(mode) {
-    currentMode = mode;
-    localStorage.setItem(STORAGE_KEY, mode);
-    document.documentElement.setAttribute('data-ui-mode', mode);
-    var simpleBtn = document.getElementById('mode-simple-btn');
-    var powerBtn  = document.getElementById('mode-power-btn');
-    if (simpleBtn) simpleBtn.classList.toggle('active', mode === 'simple');
-    if (powerBtn)  powerBtn.classList.toggle('active', mode === 'power');
-    var advItems = document.querySelectorAll('.nav-item[data-tier="advanced"]');
-    var countEl = document.getElementById('advanced-count');
-    if (countEl) countEl.textContent = advItems.length + ' features';
-    if (mode === 'power') { advancedOpen = true; showAdv(true); }
-    else { advancedOpen = false; showAdv(false); }
-  }
-
-  function showAdv(show) {
-    document.querySelectorAll('[data-tier="advanced"]').forEach(function(el) {
-      el.style.display = show ? '' : 'none';
-    });
-    var arrow = document.getElementById('adv-arrow');
-    var toggle = document.getElementById('advanced-toggle');
-    if (arrow) arrow.textContent = show ? '\u25BC' : '\u25B6';
-    if (toggle) toggle.classList.toggle('open', show);
-  }
-
-  window.toggleAdvanced = function() { advancedOpen = !advancedOpen; showAdv(advancedOpen); };
-  window.setMode = function(mode) {
-    if (typeof window.switchUIMode === 'function') window.switchUIMode(mode);
-    else applyMode(mode);
-  };
-
-  function injectModeToggle() {
-    var topbar = document.getElementById('topbar-actions');
-    if (!topbar || document.getElementById('mode-toggle-container')) return;
-    var c = document.createElement('div');
-    c.id = 'mode-toggle-container';
-    c.className = 'mode-toggle';
-    c.style.marginRight = '6px';
-    var btn1 = document.createElement('button');
-    btn1.id = 'mode-simple-btn';
-    btn1.textContent = '\u2728 Simple';
-    btn1.title = 'Simple mode \u2014 7 core features';
-    btn1.onclick = function() { setMode('simple'); };
-    var btn2 = document.createElement('button');
-    btn2.id = 'mode-power-btn';
-    btn2.textContent = '\u26A1 Power';
-    btn2.title = 'Power mode \u2014 all 60+ features';
-    btn2.onclick = function() { setMode('power'); };
-    c.appendChild(btn1);
-    c.appendChild(btn2);
-    topbar.insertBefore(c, topbar.firstChild);
-  }
-
-  function showOnboarding() {
-    try { if (localStorage.getItem('agentic_os_onboarded')) return; } catch(e) {}
-    var overlay = document.createElement('div');
-    overlay.id = 'onboarding-overlay';
-    overlay.className = 'onboarding-back';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(2,4,10,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';
-    overlay.onclick = function(e) { if (e.target === overlay) dismissOnboarding('power'); };
-    
-    var card = document.createElement('div');
-    card.className = 'onboarding-card';
-    card.style.cssText = 'background:var(--bg-2);border:1px solid var(--border-hi);border-radius:24px;padding:36px;max-width:560px;width:92%;box-shadow:0 30px 80px rgba(0,0,0,0.8);position:relative;text-align:center;color:var(--text-0);';
-    card.innerHTML =
-      '<button type="button" id="ob-close-top" data-act-click="dismissOnboarding(\'power\')" style="position:absolute;top:18px;right:20px;background:none;border:none;color:var(--text-2);font-size:24px;cursor:pointer;line-height:1">×</button>' +
-      '<div style="font-size:48px;margin-bottom:12px">\uD83E\uDDE0</div>' +
-      '<h2>Welcome to Agentic OS</h2>' +
-      '<p style="color:var(--text-2);font-size:14px;margin-top:6px;line-height:1.5">Your local-first AI operating system. Chat with AI agents, build apps with live preview, manage tasks, and store everything in your Memory Galaxy.</p>' +
-      '<div style="background:var(--bg-3);border-radius:14px;padding:18px;margin:20px 0;text-align:left">' +
-        '<div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">Quick Start</div>' +
-        '<div style="font-size:12px;color:var(--text-1);line-height:1.75">' +
-          '<div style="margin-bottom:6px">1. <strong>Add your API key</strong> in Settings (get a free key at openrouter.ai/keys)</div>' +
-          '<div style="margin-bottom:6px">2. <strong>Chat with an agent</strong> \u2014 try typing /help or ask any question</div>' +
-          '<div style="margin-bottom:6px">3. <strong>Explore the Studio</strong> \u2014 live code editor with AI-powered preview</div>' +
-          '<div>4. <strong>Try the Swarm</strong> \u2014 send one prompt to multiple AI models at once</div>' +
-        '</div>' +
-      '</div>' +
-      '<div style="font-size:12.5px;color:var(--text-2);margin-bottom:20px"><strong>Simple mode</strong> shows 7 core features. Switch to <strong>Power mode</strong> anytime for all 60+ features.</div>' +
-      '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
-        '<button class="btn btn-primary" id="ob-power-btn" style="padding:11px 26px;font-size:14px;font-weight:700;cursor:pointer;border-radius:10px;border:none;background:var(--accent);color:#fff">Power Mode (All 60+ Features) →</button>' +
-        '<button class="btn btn-ghost" id="ob-simple-btn" style="padding:11px 22px;font-size:14px;cursor:pointer;border-radius:10px;border:1px solid var(--border);background:var(--bg-3);color:var(--text-1)">Simple Mode (7 Core)</button>' +
-      '</div>';
-    overlay.appendChild(card);
-    document.body.appendChild(overlay);
-    var pBtn = document.getElementById('ob-power-btn'); if (pBtn) pBtn.onclick = function() { dismissOnboarding('power'); };
-    var sBtn = document.getElementById('ob-simple-btn'); if (sBtn) sBtn.onclick = function() { dismissOnboarding('simple'); };
-  }
-
-  window.dismissOnboarding = function(mode) {
-    try { localStorage.setItem('agentic_os_onboarded', 'true'); } catch(e) {}
-    var overlay = document.getElementById('onboarding-overlay');
-    if (overlay) {
-      overlay.style.display = 'none';
-      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-    }
-    try { setMode(mode || 'power'); } catch(e) {}
-    try { if (window.nav) nav('chat'); } catch(e) {}
-  };
-
-  applyMode(currentMode);
-  setTimeout(injectModeToggle, 200);
-  setTimeout(showOnboarding, 1000);
-  console.log('%c\u2705 Sidebar Mode System loaded', 'color:#5b8af8;font-weight:bold');
-})();
-</script>
+<script src="/static/js/91-mode-switcher.js" defer></script>
 
 
 <!-- ═══════════════════════════════════════════════════════════════
      RENDER ERROR HANDLER + IMPROVED EMPTY STATES
      ═══════════════════════════════════════════════════════════════ -->
-<script>
-(function() {
-  // Global error handler for pane rendering
-  var _renderCount = {};
-  var _renderErrors = {};
-
-  // Override console.warn to track render errors
-  var _origWarn = console.warn;
-  console.warn = function() {
-    var args = Array.prototype.slice.call(arguments);
-    var msg = args.join(' ');
-    if (msg.indexOf('Render error') !== -1) {
-      var pane = msg.match(/for (\w+)/);
-      if (pane) _renderErrors[pane[1]] = msg;
-    }
-    _origWarn.apply(console, args);
-  };
-
-  // Add "Report Issue" button to error states
-  window.showPaneError = function(paneId, error) {
-    var pane = document.getElementById('pane-' + paneId);
-    if (!pane) return;
-    var existing = pane.querySelector('.pane-error-state');
-    if (existing) return; // Don't double-show
-    
-    var errorDiv = document.createElement('div');
-    errorDiv.className = 'pane-error-state card-elevated surface-z2';
-    errorDiv.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px;text-align:center;flex:1;margin:20px;border-radius:18px';
-    errorDiv.innerHTML = 
-      '<div class="neural-orb-3d" style="width:50px;height:50px;margin:0 auto 16px;filter:hue-rotate(140deg)"></div>' +
-      '<div style="font-size:18px;font-weight:800;color:var(--text-0);margin-bottom:8px">Workstation Panel Notice</div>' +
-      '<div style="font-size:13px;color:var(--text-2);max-width:440px;line-height:1.6;margin-bottom:20px">' +
-        'The <strong>' + paneId + '</strong> workstation encountered a rendering check while loading (' + (error || 'status refresh') + '). ' +
-        'You can retry initialization or return to active chat.' +
-      '</div>' +
-      '<div style="display:flex;gap:10px">' +
-        '<button type="button" class="btn-3d btn-primary btn-sm" onclick="retryPane(\'' + paneId + '\')" style="padding:8px 18px">↻ Retry Workstation</button>' +
-        '<button type="button" class="btn-3d btn-ghost btn-sm" data-act-click="nav(\'chat\')" style="padding:8px 18px">← Back to Chat</button>' +
-      '</div>';
-    pane.appendChild(errorDiv);
-  };
-
-  window.retryPane = function(paneId) {
-    var errorDiv = document.querySelector('#pane-' + paneId + ' .pane-error-state');
-    if (errorDiv) errorDiv.remove();
-    delete _renderErrors[paneId];
-    window.nav(paneId);
-  };
-
-  // Add helpful empty states for panes that load successfully but have no data
-  window.showEmptyState = function(paneId, config) {
-    var pane = document.getElementById('pane-' + paneId);
-    if (!pane) return;
-    var target = pane.querySelector('.page-content') || pane;
-    var existing = target.querySelector('.empty-state');
-    if (existing) return;
-    var emptyDiv = document.createElement('div');
-    emptyDiv.className = 'empty-state surface-z1';
-    emptyDiv.innerHTML = 
-      (config.icon ? '<div class="empty-state__icon">' + config.icon + '</div>' : '<div class="neural-orb-3d" style="width:48px;height:48px;margin:0 auto 16px"></div>') +
-      '<div class="empty-state__title">' + (config.title || 'Workstation Ready') + '</div>' +
-      '<div class="empty-state__body">' + (config.body || 'This specialist workstation is armed and waiting for your first task.') + '</div>' +
-      (config.action ? '<div role="button" tabindex="0" class="empty-state__actions"><button type="button" class="btn-3d btn-primary" onclick="' + config.action + '" data-keys="Enter\, \" data-prevent="1" data-self-click="1">' + (config.actionLabel || '⚡ Launch Task') + '</button></div>' : '');
-    target.appendChild(emptyDiv);
-  };
-
-  console.log('%c✅ Render Error Handler loaded', 'color:#e8a237;font-weight:bold');
-})();
-</script>
+<script src="/static/js/92-pane-error-boundary.js" defer></script>
 
 
 <!-- ═══════════════════════════════════════════════════════════════
      KEYBOARD SHORTCUTS OVERLAY
      ═══════════════════════════════════════════════════════════════ -->
-<script>
-(function() {
-  var shortcuts = [
-    {group: 'Navigation', items: [
-      {keys: ['⌘', 'K'], desc: 'Open command palette'},
-      {keys: ['⌘', '\\'], desc: 'Toggle sidebar'},
-      {keys: ['⌘', ','], desc: 'Open settings'},
-      {keys: ['Esc'], desc: 'Close modals / palette'},
-    ]},
-    {group: 'Chat', items: [
-      {keys: ['Enter'], desc: 'Send message'},
-      {keys: ['Shift', 'Enter'], desc: 'New line in message'},
-      {keys: ['/'], desc: 'Start slash command'},
-    ]},
-    {group: 'Quick Nav', items: [
-      {keys: ['⌘', '⇧', 'B'], desc: 'Open BugBot'},
-      {keys: ['⌘', '⇧', 'N'], desc: 'Open Steering'},
-      {keys: ['⌘', '⇧', 'E'], desc: 'Open Health'},
-      {keys: ['⌘', '⇧', 'M'], desc: 'Open Marketplace'},
-      {keys: ['⌘', '⇧', 'R'], desc: 'Open Replay'},
-    ]},
-    {group: 'General', items: [
-      {keys: ['?'], desc: 'Show this help'},
-      {keys: ['⌘', 'S'], desc: 'Save (in editor)'},
-    ]},
-  ];
-
-  window.showKeyboardShortcuts = function() {
-    var existing = document.getElementById('kb-shortcuts-overlay');
-    if (existing) { existing.remove(); return; }
-    
-    var overlay = document.createElement('div');
-    overlay.id = 'kb-shortcuts-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)';
-    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
-    
-    var html = '<div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:16px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto;padding:28px;box-shadow:0 32px 80px rgba(0,0,0,.7)">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">';
-    html += '<h2 style="margin:0;font-size:18px;font-weight:800">⌨️ Keyboard Shortcuts</h2>';
-    html += '<button type="button" onclick="document.getElementById(\'kb-shortcuts-overlay\').remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px">✕</button>';
-    html += '</div>';
-    
-    shortcuts.forEach(function(group) {
-      html += '<div style="margin-bottom:16px">';
-      html += '<div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">' + group.group + '</div>';
-      group.items.forEach(function(item) {
-        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0">';
-        html += '<span style="font-size:13px;color:var(--text-1)">' + item.desc + '</span>';
-        html += '<div style="display:flex;gap:4px">';
-        item.keys.forEach(function(key) {
-          html += '<kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;color:var(--text-2);font-family:inherit;min-width:20px;text-align:center">' + key + '</kbd>';
-        });
-        html += '</div></div>';
-      });
-      html += '</div>';
-    });
-    
-    html += '<div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text-3)">Press <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px">?</kbd> or <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px">Esc</kbd> to close</div>';
-    html += '</div>';
-    
-    overlay.innerHTML = html;
-    document.body.appendChild(overlay);
-  };
-
-  // Listen for ? key (when not in input)
-  document.addEventListener('keydown', function(e) {
-    if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      var tag = (e.target.tagName || '').toLowerCase();
-      if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
-        e.preventDefault();
-        window.showKeyboardShortcuts();
-      }
-    }
-    // Esc to close
-    if (e.key === 'Escape') {
-      var overlay = document.getElementById('kb-shortcuts-overlay');
-      if (overlay) overlay.remove();
-    }
-  });
-
-  console.log('%c✅ Keyboard Shortcuts overlay loaded (press ? for help)', 'color:#5b8af8;font-weight:bold');
-})();
-</script>
+<script src="/static/js/93-shortcuts-overlay.js" defer></script>
 
 
 
