@@ -396,7 +396,11 @@ function specLog(msg) {
 async function specConsumeStream(resp, onEvent) {
   // FIX 3: guard against null body (failed responses)
   if (!resp.body) { specLog('Error: no response body received'); return; }
-  const reader = resp.body.getReader();
+  // readStream() checks resp.ok first: a non-200 here used to either
+  // throw on a null body or feed a JSON error through the SSE parser,
+  // showing the user an empty reply instead of the server's message.
+  const reader = await window.readStream(resp);
+  if (!reader) return;
   const dec    = new TextDecoder();
   let   buf    = '';
   while (true) {

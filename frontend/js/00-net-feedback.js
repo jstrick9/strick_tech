@@ -278,6 +278,53 @@
     }
   });
 
+  // ── Streaming responses ──────────────────────────────────────────────────
+  // 11 streaming call sites did `resp.body.getReader()` without first checking
+  // `resp.ok`. Two failure modes, both bad and both silent:
+  //
+  //   * a non-200 with no body -> `Cannot read properties of null
+  //     (reading 'getReader')`, an uncaught TypeError that aborts the handler
+  //     mid-render, leaving a half-drawn message bubble on screen
+  //   * a non-200 WITH a JSON error body -> the JSON is fed through the SSE
+  //     frame parser, produces zero `data:` frames, and the user watches an
+  //     empty reply stream in and stop. Verified in node.
+  //
+  // The second is the one that matters: /api/chat answers 503 with a genuinely
+  // helpful message ("No AI provider is configured... Settings -> Connect AI
+  // walks through both") and the user never saw a word of it.
+  //
+  // readStream() checks the status, surfaces the server's own explanation, and
+  // returns null so the caller can bail cleanly.
+  window.readStream = async function (resp, onError) {
+    if (!resp) {
+      const msg = 'No response from the server.';
+      if (onError) onError(msg); else notify('down', 'stream', '⚠ ' + msg);
+      return null;
+    }
+    if (!resp.ok) {
+      // Prefer the server's message: these endpoints return actionable text.
+      let msg = 'Request failed (HTTP ' + resp.status + ')';
+      try {
+        const body = await resp.clone().json();
+        if (body && body.error) msg = String(body.error);
+      } catch (_) {
+        try {
+          const text = (await resp.clone().text()).trim();
+          if (text && text.length < 400) msg = text;
+        } catch (_) { /* body already consumed or empty */ }
+      }
+      if (onError) onError(msg);
+      else notify(String(resp.status), shortEndpoint(resp.url || ''), '⚠ ' + msg);
+      return null;
+    }
+    if (!resp.body || typeof resp.body.getReader !== 'function') {
+      const msg = 'The server sent an empty response.';
+      if (onError) onError(msg); else notify('empty', 'stream', '⚠ ' + msg);
+      return null;
+    }
+    return resp.body.getReader();
+  };
+
   // Exposed for tests.
   window.__netFeedback = {
     notify: notify,

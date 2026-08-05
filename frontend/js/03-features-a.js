@@ -1365,7 +1365,11 @@ async function wfRun() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({input: input||''})
     });
-    const reader = resp.body.getReader();
+    // readStream() checks resp.ok first: a non-200 here used to either
+    // throw on a null body or feed a JSON error through the SSE parser,
+    // showing the user an empty reply instead of the server's message.
+    const reader = await window.readStream(resp);
+    if (!reader) return;
     const dec = new TextDecoder();
     let buf = '';
 
@@ -2413,7 +2417,11 @@ async function tauriBuildStart() {
       if (win?.document?.getElementById('log')) win.document.getElementById('log').textContent += '\n❌ No response body (SSE not supported)\n';
       return;
     }
-    const reader = resp.body.getReader();
+    // readStream() checks resp.ok first: a non-200 here used to either
+    // throw on a null body or feed a JSON error through the SSE parser,
+    // showing the user an empty reply instead of the server's message.
+    const reader = await window.readStream(resp);
+    if (!reader) return;
     const dec    = new TextDecoder();
     let buf = '';
     

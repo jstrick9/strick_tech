@@ -247,7 +247,8 @@ async function runTask() {
     }
     if (!resp.body) throw new Error('No response body');
 
-    const reader = resp.body.getReader();
+    const reader = await window.readStream(resp);
+    if (!reader) return;
     const dec    = new TextDecoder();
     let   buf    = '';
 
