@@ -195,3 +195,69 @@ tests proven by reverting the fix.
 
 A final sweep across every category checked in this session returns **zero**
 for all of them.
+
+
+---
+
+# Continued hunt — batches 16-18
+
+Three more classes, all found by probing the API rather than reading it.
+
+## 13. A wrong-typed field crashed the server (22 endpoints)
+
+    POST /api/goals  {"title": 12345}    ->  500 Internal Server Error
+    POST /api/chat   {"message": 12345}  ->  500 Internal Server Error
+
+`(body.get('title') or '').strip()` guards against None and nothing else. An
+int, list or dict has no `.strip()`, so the handler raised AttributeError and
+FastAPI turned it into a 500 — the status most likely to page an operator, for
+what was a client error.
+
+211 call sites migrated to `as_text()` across three passes as the variants
+surfaced: `or ''` defaults, non-empty defaults, non-`body` variable names,
+`.lstrip('/')`, chained `or` across two keys, and an f-string default. Also
+fixed: a 10MB title was accepted and stored, and null bytes were persisted
+verbatim.
+
+## 14. A negative limit bypassed every pagination cap
+
+65 handlers clamp with `min(limit, 500)` — a ceiling with no floor. **In SQLite
+a negative LIMIT means unlimited.**
+
+    GET /api/audit?limit=2   ->     2 rows
+    GET /api/audit?limit=-1  ->  1398 rows
+
+Six endpoints exploitable, the audit log worst. A denial-of-service shape, and
+it silently defeats the "Showing N of M" notices added in batch 11.
+`sessions.py` passed limit and offset to SQL completely unclamped;
+`profiler.py` used `result[:limit]`, where a negative slice drops the *last*
+rows. Now clamped at the data layer too, so a future route inherits a floor.
+
+## 15. A failed stream showed an empty reply instead of the reason
+
+11 sites called `resp.body.getReader()` without checking `resp.ok`. Either an
+uncaught TypeError mid-render, or — worse — a JSON error body fed through the
+SSE parser, producing zero frames. `/api/chat` answers 503 with *"No AI
+provider is configured… Settings → Connect AI walks through both"* and the
+user never saw a word of it. They saw an empty message and concluded the
+product was broken.
+
+## Two more of my own mistakes
+
+**A test that proved nothing, again.** The data-layer limit test asserted
+`len(rows) <= 1000` against an almost-empty table — it passed whether or not
+the clamp existed. It now seeds 12 rows and asserts `<= 5`.
+
+**A CI guard that matched its own comment.** The stream-reader lint scanned for
+a nearby `.ok` and matched the comment the fix writes above itself. Reverting a
+real guard still passed. Now comment-blind. Eighth instance of this trap; the
+pattern is that a fix which documents itself gives the test something to match.
+
+## A regression the suite caught
+
+Routing `validate_note_path` through `as_text()` **stripped** null bytes from
+filesystem paths, where they must be **rejected** — `note\x00.md` silently
+becoming `note.md` means caller and server disagree about which file was
+written. `test_53` asserted rejection and failed. Now a 400.
+
+**Full suite: 3942 passed, 19 skipped, 0 failed.**
