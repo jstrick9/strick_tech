@@ -148,6 +148,7 @@ from .routers.workflow import router as workflow_router
 from .routers.workspace_export import router as workspace_export_router
 from .routers.workspaces import router as workspaces_router
 from .security_auth import require_websocket_auth
+from .services import runtime_topology
 from .services import scheduler as sched_svc
 from .services.memory_db import (
     agents_seed_defaults,
@@ -191,6 +192,20 @@ async def lifespan(app: FastAPI):
         log.info('Autonomous scheduler started')
     except Exception as e:
         log.warning('Scheduler failed: %s', e)
+    # Rate limiting and CSRF tokens are per-process state. Under multiple
+    # workers the first degrades silently (effective limit becomes
+    # workers x configured) and the second breaks outright once enforcement is
+    # on. An operator who scales out should learn that at startup, not from a
+    # support ticket, so name the concrete consequences here.
+    runtime_topology.warn_if_multiprocess(
+        rate_limit_max=_RATE_LIMIT_MAX,
+        csrf_strict=_CSRF_STRICT,
+    )
+    log.info(
+        'CSRF enforcement: %s (AGENTIC_CSRF_STRICT=%s)',
+        'ON' if _CSRF_STRICT else 'OFF',
+        os.getenv('AGENTIC_CSRF_STRICT', '<unset — defaults to ON for a single worker>'),
+    )
     log.info('Agentic OS ready → http://localhost:%s', os.getenv('AGENTIC_OS_PORT', '8787'))
     yield
     # ── Shutdown ──
@@ -326,10 +341,36 @@ try:
 except (TypeError, ValueError):
     _RATE_LIMIT_WINDOW = 60
 # ── CSRF configuration ─────────────────────────────────────────────────────────
-# Opt-in enforcement. Off by default so upgrading does not break scripted API
-# clients; a missing token is logged either way so operators can see the impact
-# before switching it on.
-_CSRF_STRICT = os.getenv('AGENTIC_CSRF_STRICT', '').strip().lower() in ('1', 'true', 'yes')
+# DEFAULT: ON. This was off during the rollout that introduced client-side token
+# attachment, so an upgrade could not break scripted API clients without warning.
+# "Off by default" is a migration state, not an end state -- left indefinitely it
+# means the protection ships disabled and most deployments never enable it, so
+# the security property only exists for operators who read release notes.
+#
+# The evidence for flipping it: frontend/js/00-csrf.js attaches a token to every
+# same-origin mutation by wrapping window.fetch, so all 282 frontend POST call
+# sites are covered automatically, including new ones. A bad token was always
+# rejected; the only behaviour that changes is that a MISSING token is now
+# rejected too.
+#
+# Escape hatch: AGENTIC_CSRF_STRICT=0 restores the permissive behaviour for a
+# deployment with scripted clients that cannot yet fetch a token.
+#
+# SAFETY GATE -- multiple workers. The token store (_CSRF_TOKENS in
+# routers/security.py) is a per-process dict, so a token minted by one worker is
+# unknown to the others. Measured on this codebase with --workers 4 and
+# enforcement on: of 60 POSTs carrying a VALID token, 27 succeeded and 33
+# returned 403. Turning this on by default in that topology would be a
+# self-inflicted outage, so the default yields to detection. An explicit
+# AGENTIC_CSRF_STRICT=1 is still honoured -- an operator who insists is allowed
+# to, and is warned loudly at startup.
+_csrf_strict_env = os.getenv('AGENTIC_CSRF_STRICT', '').strip().lower()
+if _csrf_strict_env in ('1', 'true', 'yes', 'on'):
+    _CSRF_STRICT = True
+elif _csrf_strict_env in ('0', 'false', 'no', 'off'):
+    _CSRF_STRICT = False
+else:
+    _CSRF_STRICT = runtime_topology.csrf_strict_is_safe()
 
 # Endpoints that legitimately receive cross-origin POSTs and authenticate by
 # other means. Webhook deliveries carry an HMAC signature (see routers/

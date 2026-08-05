@@ -6,6 +6,15 @@ Tests: Secrets never exposed, data isolation, resource exhaustion prevention,
 import pytest, json, asyncio
 from tests.security.conftest import *
 
+# CSRF is enforced by default; these construct their own clients, so they need
+# the token-attaching wrapper too. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SECRETS MANAGEMENT
 # ─────────────────────────────────────────────────────────────────────────────
@@ -218,7 +227,7 @@ class TestSecResourceExhaustion:
         """Flood of concurrent writes must not crash the server."""
         import httpx
         async def write(i):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with _csrf_async_client(BASE, timeout=15) as c:
                 r = await c.post("/api/tasks", json={"title": f"flood_{i}", "status": "todo"})
                 return r.status_code
 

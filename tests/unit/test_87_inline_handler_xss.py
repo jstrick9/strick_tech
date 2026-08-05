@@ -173,8 +173,13 @@ def test_lint_actually_fails_on_a_bad_handler(tmp_path, monkeypatch):
 
 
 def test_lint_accepts_the_correct_form(tmp_path):
+    # Spelled data-act-click, not onclick. Since script-src dropped
+    # 'unsafe-inline' the linter also rejects inline handlers outright — they
+    # are dead controls, not merely risky — so the old onclick fixture now
+    # fails for a second, unrelated reason. jsArg() is what this test is
+    # actually about, and it applies identically to both attributes.
     good = JS_DIR / 'zz_lint_ok.js'
-    good.write_text('const x = `<button onclick="f(${jsArg(user.name)})">go</button>`;\n')
+    good.write_text('const x = `<button data-act-click="f(${jsArg(user.name)})">go</button>`;\n')
     try:
         result = subprocess.run(
             [sys.executable, str(ROOT / 'scripts' / 'lint_inline_handlers.py')],

@@ -476,13 +476,15 @@ async def launch_goal(goal_id: str, req: Request):
     if g.get('success_criteria'):
         goal_text += f'\n\nSuccess Criteria: {g["success_criteria"]}'
 
-    import httpx
+    # Calls this server's own API over loopback. CSRF is enforced by default,
+    # so the request must carry a token like any other client -- see
+    # backend/services/internal_http.py for why the address is NOT exempted.
+    from ..services import internal_http
 
-    port = int(__import__('os').getenv('AGENTIC_OS_PORT', '8787'))
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with internal_http.async_client(timeout=10) as client:
             r = await client.post(
-                f'http://127.0.0.1:{port}/api/supervisor/run',
+                '/api/supervisor/run',
                 json={'goal': goal_text, 'goal_id': goal_id, 'goal_title': g['title']},
             )
             run_data = r.json()

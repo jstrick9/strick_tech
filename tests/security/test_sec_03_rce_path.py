@@ -12,6 +12,15 @@ import pytest, asyncio
 from pathlib import Path
 from tests.security.conftest import *
 
+# CSRF is enforced by default; these construct their own clients, so they need
+# the token-attaching wrapper too. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 # Path traversal payloads
 PATH_TRAVERSAL_PAYLOADS = [
     "../../../etc/passwd",
@@ -122,7 +131,7 @@ class TestSecPathTraversal:
             "../../../../",
             "../../etc/passwd/../",
         ]:
-            async with _h.AsyncClient(base_url=BASE, timeout=20) as fresh:
+            async with _csrf_async_client(BASE, timeout=20) as fresh:
                 r = await fresh.post("/api/terminal/run", json={
                     "command": "pwd",
                     "cwd": traversal_cwd
@@ -307,7 +316,7 @@ class TestSecRCETerminal:
     async def _run_cmd(self, cmd: str):
         """Run command via terminal and return SSE response text."""
         import httpx as _h
-        async with _h.AsyncClient(base_url=BASE, timeout=20) as fresh:
+        async with _csrf_async_client(BASE, timeout=20) as fresh:
             r = await fresh.post("/api/terminal/run", json={"command": cmd})
         return r
 
@@ -384,7 +393,7 @@ class TestSecRCETerminal:
         """After all security checks, safe commands still run."""
         import httpx as _h
         marker = uid("sec_term_safe")
-        async with _h.AsyncClient(base_url=BASE, timeout=20) as fresh:
+        async with _csrf_async_client(BASE, timeout=20) as fresh:
             r = await fresh.post("/api/terminal/run", json={"command": f"echo {marker}"})
         
         assert r.status_code == 200

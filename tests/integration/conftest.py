@@ -16,7 +16,7 @@ TIMEOUT = 20
 @pytest.fixture
 async def client():
     """Per-test async HTTP client."""
-    async with httpx.AsyncClient(base_url=BASE, timeout=TIMEOUT) as c:
+    async with _csrf_async_client(BASE, timeout=TIMEOUT) as c:
         yield c
 
 
@@ -118,6 +118,16 @@ def ok_or(r, *codes):
 # ── Core agent restoration (security tests may mutate names) ──────────────────
 import pytest as _pytest, httpx as _httpx
 
+# CSRF enforcement is ON by default for a single-worker server. These suites
+# talk to a server started separately, so they are scripted API clients from
+# its point of view and must carry a token. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 _CORE_AGENTS = {
     "brain":        {"name": "Brain",        "system_prompt": "You are Brain — a deep reasoning and strategic planning agent."},
     "builder":      {"name": "Builder",      "system_prompt": "You are Builder — an expert software engineer."},
@@ -131,7 +141,7 @@ _CORE_AGENTS = {
 
 @_pytest.fixture(autouse=True, scope="session")
 def _restore_core_agents_integration():
-    with _httpx.Client(base_url="http://127.0.0.1:8787", timeout=10) as c:
+    with _csrf_client("http://127.0.0.1:8787", timeout=10) as c:
         for aid, data in _CORE_AGENTS.items():
             try: c.patch(f"/api/agents/{aid}", json=data)
             except: pass

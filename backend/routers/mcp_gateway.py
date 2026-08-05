@@ -472,11 +472,10 @@ async def gateway_call(agent_id: str, server_id: str, tool_name: str, args: dict
     if policy_decision == 'require_hitl':
         # Write HITL interrupt and return pending state
         with contextlib.suppress(Exception):
-            import httpx
-            port = int(__import__('os').getenv('AGENTIC_OS_PORT', '8787'))
-            async with httpx.AsyncClient(timeout=5) as client:
+            from ..services import internal_http
+            async with internal_http.async_client(timeout=5) as client:
                 await client.post(
-                    f'http://127.0.0.1:{port}/api/hitl/interrupt',
+                    '/api/hitl/interrupt',
                     json={
                         'action_type': tool_name,
                         'action_summary': f'MCP tool call: {tool_name}({json.dumps(args)[:100]})',
@@ -497,12 +496,11 @@ async def gateway_call(agent_id: str, server_id: str, tool_name: str, args: dict
 
     # 4. Dispatch to the actual MCP tool via existing /api/mcp/call
     try:
-        import httpx
+        from ..services import internal_http
 
-        port = int(__import__('os').getenv('AGENTIC_OS_PORT', '8787'))
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with internal_http.async_client(timeout=30) as client:
             resp = await client.post(
-                f'http://127.0.0.1:{port}/api/mcp/call', json={'tool': tool_name, 'args': args, 'agent_id': agent_id}
+                '/api/mcp/call', json={'tool': tool_name, 'args': args, 'agent_id': agent_id}
             )
             result = resp.json()
     except Exception as e:

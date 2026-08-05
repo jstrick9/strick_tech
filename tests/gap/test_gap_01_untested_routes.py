@@ -6,6 +6,15 @@ Every test asserts: no 5xx, valid response structure, correct behaviour.
 import pytest, json
 from tests.gap.conftest import *
 
+# CSRF is enforced by default; these construct their own clients, so they need
+# the token-attaching wrapper too. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 
 # ── Preview File System (10 routes) ──────────────────────────────────────────
 class TestGapPreview:
@@ -519,7 +528,7 @@ class TestGapHITL:
             # Use a very short timeout — just verify the endpoint exists (not a 404/405)
             import httpx as _httpx
             try:
-                async with _httpx.AsyncClient(base_url=BASE, timeout=1.0) as short_c:
+                async with _csrf_async_client(BASE, timeout=1.0) as short_c:
                     r2 = await short_c.get(f"/api/hitl/interrupt/{iid}/wait")
                     assert r2.status_code < 500, f"hitl wait 5xx: {r2.status_code}"
             except _httpx.ReadTimeout:
@@ -703,7 +712,7 @@ class TestGapAgentMonitor:
         """SSE stream endpoint accessible — verify it exists and starts streaming."""
         import httpx as _httpx
         try:
-            async with _httpx.AsyncClient(base_url=BASE, timeout=1.5) as short_c:
+            async with _csrf_async_client(BASE, timeout=1.5) as short_c:
                 async with short_c.stream("GET", "/api/agent-monitor/stream") as r:
                     assert r.status_code < 500, f"Monitor stream 5xx: {r.status_code}"
         except (_httpx.ReadTimeout, _httpx.RemoteProtocolError):

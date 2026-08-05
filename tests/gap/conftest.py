@@ -3,12 +3,22 @@ from __future__ import annotations
 import asyncio, json, uuid, time
 import httpx, pytest
 
+# CSRF enforcement is ON by default for a single-worker server. These suites
+# talk to a server started separately, so they are scripted API clients from
+# its point of view and must carry a token. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 BASE    = "http://127.0.0.1:8787"
 TIMEOUT = 20
 
 @pytest.fixture
 async def C():
-    async with httpx.AsyncClient(base_url=BASE, timeout=TIMEOUT) as c:
+    async with _csrf_async_client(BASE, timeout=TIMEOUT) as c:
         yield c
 
 def uid(p="gap"): return f"{p}_{uuid.uuid4().hex[:8]}"

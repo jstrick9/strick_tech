@@ -1,6 +1,38 @@
 server:
   host: "0.0.0.0"
   port: 8787
+  # SINGLE PROCESS BY DESIGN. run.py starts one uvicorn worker, and two
+  # security controls keep their state in memory for that process:
+  #
+  #   * rate limiting  (RATE_LIMIT_MAX / RATE_LIMIT_WINDOW, per client IP)
+  #   * CSRF tokens    (issued by /api/security/csrf-token)
+  #
+  # Neither is shared between workers, and they fail in opposite directions:
+  #
+  #   Rate limiting degrades QUIETLY — each worker counts on its own, so the
+  #   effective limit becomes workers x RATE_LIMIT_MAX. Nothing is bypassed,
+  #   the ceiling is just higher than configured.
+  #
+  #   CSRF breaks LOUDLY once enforcement is on — a token minted by one worker
+  #   is unknown to the others. Measured with --workers 4: of 60 POSTs carrying
+  #   a VALID token, 27 succeeded and 33 returned 403.
+  #
+  # The app detects a multi-worker start and warns at startup, and the CSRF
+  # default yields to OFF rather than inflicting that failure rate. Set
+  # AGENTIC_ACK_MULTIPROCESS=1 to downgrade the warning to info once
+  # understood. See docs/module-reviews/25-runtime-topology.md for the written
+  # trigger for adding a shared (Redis) store.
+
+# Security-relevant environment variables, documented here because nothing
+# parses this file for them — they are read from the environment:
+#
+#   RATE_LIMIT_MAX=300          requests per window, PER PROCESS, per client IP
+#   RATE_LIMIT_WINDOW=60        window in seconds
+#   AGENTIC_CSRF_STRICT         1/0. Unset = ON for a single worker, OFF for
+#                               several. Set explicitly to override either way.
+#   AGENTIC_ACK_MULTIPROCESS=1  "I understand the per-process caveats"
+#   AGENTIC_OS_SECURE_MODE=1    require Authorization: Bearer on every API route
+#   AGENTIC_CSP_REPORT_ONLY=0   silence the Report-Only CSP channel
 
 memory:
   backend: sqlite-fts5          # always available

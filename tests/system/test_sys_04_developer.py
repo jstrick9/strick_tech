@@ -9,6 +9,15 @@ SYS-29: SSE Streaming Correctness
 import pytest
 from tests.system.conftest import *
 
+# CSRF is enforced by default; these construct their own clients, so they need
+# the token-attaching wrapper too. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 
 class TestSysSpecDriven:
     """SYS-05 — Spec-driven development end-to-end."""
@@ -134,7 +143,7 @@ class TestSysTerminalProfiler:
         """Echo via terminal → SSE stream with output."""
         import httpx as _httpx
         marker = uid("sysecho")
-        async with _httpx.AsyncClient(base_url="http://127.0.0.1:8787", timeout=20) as fresh:
+        async with _csrf_async_client("http://127.0.0.1:8787", timeout=20) as fresh:
             r = await fresh.post("/api/terminal/run", json={"command": f"echo {marker}"})
         must(r, 200)
         check("SSE data events", "data:" in r.text)
@@ -146,7 +155,7 @@ class TestSysTerminalProfiler:
     async def test_terminal_exit_code_0_for_success(self, C):
         """Successful command → exit_code 0."""
         import httpx as _httpx
-        async with _httpx.AsyncClient(base_url="http://127.0.0.1:8787", timeout=20) as fresh:
+        async with _csrf_async_client("http://127.0.0.1:8787", timeout=20) as fresh:
             r = await fresh.post("/api/terminal/run", json={"command": "echo done_exit_0"})
         must(r, 200)
         events = sse_events(r.text)
@@ -161,7 +170,7 @@ class TestSysTerminalProfiler:
     async def test_terminal_nonzero_for_failure(self, C):
         """Failing command → non-zero exit_code."""
         import httpx as _httpx
-        async with _httpx.AsyncClient(base_url="http://127.0.0.1:8787", timeout=20) as fresh:
+        async with _csrf_async_client("http://127.0.0.1:8787", timeout=20) as fresh:
             r = await fresh.post("/api/terminal/run", json={"command": "false"})
         must(r, 200)
         events = sse_events(r.text)
@@ -327,7 +336,7 @@ class TestSysSSEStreaming:
     async def test_terminal_sse_parse(self, C):
         """Terminal SSE stream parses into valid events."""
         import httpx as _httpx
-        async with _httpx.AsyncClient(base_url="http://127.0.0.1:8787", timeout=20) as fresh:
+        async with _csrf_async_client("http://127.0.0.1:8787", timeout=20) as fresh:
             r = await fresh.post("/api/terminal/run", json={"command": "echo sys_sse_test"})
         must(r, 200)
         events = sse_events(r.text)
@@ -343,7 +352,7 @@ class TestSysSSEStreaming:
     async def test_terminal_sse_stdout_contains_output(self, C):
         """SSE stdout event contains correct output."""
         import httpx as _httpx
-        async with _httpx.AsyncClient(base_url="http://127.0.0.1:8787", timeout=20) as fresh:
+        async with _csrf_async_client("http://127.0.0.1:8787", timeout=20) as fresh:
             r = await fresh.post("/api/terminal/run", json={"command": "echo sys_output_marker"})
         must(r, 200)
         events = sse_events(r.text)
@@ -355,7 +364,7 @@ class TestSysSSEStreaming:
     async def test_browser_task_sse_parse(self, C):
         """Browser agent task returns parseable SSE."""
         import httpx as _httpx
-        async with _httpx.AsyncClient(base_url="http://127.0.0.1:8787", timeout=30) as fresh:
+        async with _csrf_async_client("http://127.0.0.1:8787", timeout=30) as fresh:
             r = await fresh.post("/api/browser/task", json={
                 "url": "https://example.com",
                 "task": "System test: verify SSE stream works",
@@ -374,7 +383,7 @@ class TestSysSSEStreaming:
     async def test_websearch_stream_parses(self, C):
         """Websearch grounded stream produces parseable events."""
         import httpx as _httpx
-        async with _httpx.AsyncClient(base_url="http://127.0.0.1:8787", timeout=30) as fresh:
+        async with _csrf_async_client("http://127.0.0.1:8787", timeout=30) as fresh:
             r = await fresh.post("/api/websearch/grounded-completion/stream",
                                  json={"prompt": "What is FastAPI?", "num_results": 2})
         must(r, 200)
@@ -387,7 +396,7 @@ class TestSysSSEStreaming:
     async def test_research_stream_parses(self, C):
         """Research stream produces valid SSE events."""
         import httpx as _httpx
-        async with _httpx.AsyncClient(base_url="http://127.0.0.1:8787", timeout=30) as fresh:
+        async with _csrf_async_client("http://127.0.0.1:8787", timeout=30) as fresh:
             r = await fresh.post("/api/websearch/research",
                                  json={"topic": "FastAPI vs Django"})
         must(r, 200)

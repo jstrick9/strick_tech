@@ -11,6 +11,15 @@ SEC-15: Data Integrity
 import pytest, asyncio, time
 from tests.security.conftest import *
 
+# CSRF is enforced by default; these construct their own clients, so they need
+# the token-attaching wrapper too. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 
 class TestSecInputValidation:
     """SEC-06: All inputs validated correctly — malformed data never crashes."""
@@ -406,7 +415,7 @@ class TestSecResourceExhaustion:
         import asyncio
         
         async def create_task(i):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with _csrf_async_client(BASE, timeout=15) as c:
                 try:
                     r = await c.post("/api/tasks", json={"title": uid(f"exhaust_{i}")})
                     return r.status_code, r.json().get("id")
@@ -421,7 +430,7 @@ class TestSecResourceExhaustion:
         assert len(errors) == 0, f"{len(errors)} server errors under concurrent load"
         
         # Cleanup
-        async with httpx.AsyncClient(base_url=BASE, timeout=30) as c:
+        async with _csrf_async_client(BASE, timeout=30) as c:
             for tid in ids:
                 await c.delete(f"/api/tasks/{tid}")
 
@@ -451,7 +460,7 @@ class TestSecDataIntegrity:
         import asyncio
         
         async def update_theme(theme):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with _csrf_async_client(BASE, timeout=15) as c:
                 return await c.patch("/api/profile", json={"theme": theme})
         
         # Concurrent theme changes
@@ -476,7 +485,7 @@ class TestSecDataIntegrity:
         keys = [uid(f"SEC_CONCUR_{i}").upper() for i in range(5)]
         
         async def add_secret(key):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with _csrf_async_client(BASE, timeout=15) as c:
                 return await c.post("/api/secrets/set", json={"key": key, "value": "test"})
         
         results = await asyncio.gather(*[add_secret(k) for k in keys])
@@ -498,7 +507,7 @@ class TestSecDataIntegrity:
         import asyncio
         
         async def create_task(i):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with _csrf_async_client(BASE, timeout=15) as c:
                 r = await c.post("/api/tasks", json={"title": uid(f"concurrent_id_{i}")})
                 return r.json().get("id") if r.status_code == 200 else None
         

@@ -8,12 +8,21 @@ Bug IDs: U-01 through UA-02, VULN-01 through VULN-04
 import pytest
 import httpx
 
+# CSRF is enforced by default; this module builds its own client, so it needs
+# the token-attaching wrapper. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 BASE = "http://127.0.0.1:8787"
 
 
 @pytest.fixture(scope="module")
 def client():
-    return httpx.Client(base_url=BASE, timeout=15)
+    return _csrf_client(BASE, timeout=15)
 
 
 class TestRegressionU01_SessionsDelete:

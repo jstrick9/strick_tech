@@ -56,9 +56,26 @@ def test_a_bad_token_is_always_rejected_regardless_of_strict_mode():
     assert block.index('Invalid CSRF token') < block.index('_CSRF_STRICT')
 
 
-def test_enforcement_is_opt_in_so_upgrades_do_not_break_api_clients():
+def test_enforcement_is_on_by_default_with_a_documented_escape_hatch():
+    """This asserted enforcement was OPT-IN, pinning the literal line
+    `_CSRF_STRICT = os.getenv(...)`. That was right for the rollout commit:
+    flipping it alongside client-side token attachment would have broken
+    scripted clients with no warning.
+
+    "Off by default" is a migration state, not an end state -- left
+    indefinitely the protection ships disabled and only operators who read
+    release notes ever get it. The default is now ON for a single worker, with
+    AGENTIC_CSRF_STRICT=0 as the escape hatch, and it yields to OFF under
+    multiple workers because the token store is per-process.
+    """
+    from backend.app import _CSRF_STRICT
+
     assert 'AGENTIC_CSRF_STRICT' in APP_PY
-    assert "_CSRF_STRICT = os.getenv('AGENTIC_CSRF_STRICT'" in APP_PY
+    assert 'runtime_topology.csrf_strict_is_safe()' in APP_PY, (
+        'the default must consult the worker-count gate'
+    )
+    # This suite runs single-process, so the default resolves to enforced.
+    assert _CSRF_STRICT is True
 
 
 def test_missing_token_is_logged_even_when_not_enforced():

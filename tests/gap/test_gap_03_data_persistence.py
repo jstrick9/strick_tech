@@ -6,6 +6,15 @@ foreign key constraints, concurrent write safety, large data volume.
 import pytest, asyncio, time, json, subprocess, pathlib
 from tests.gap.conftest import *
 
+# CSRF is enforced by default; these construct their own clients, so they need
+# the token-attaching wrapper too. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 
 class TestGapDataPersistence:
     """Critical: data written before server restart must be readable after."""
@@ -201,7 +210,7 @@ class TestGapDataIntegrity:
         """20 concurrent task writes — all unique IDs, no corruption."""
         import httpx
         async def create(i):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with _csrf_async_client(BASE, timeout=15) as c:
                 r = await c.post("/api/tasks", json={
                     "title": uid(f"concurrent_integrity_{i}"), "status": "todo"
                 })
@@ -248,7 +257,7 @@ class TestGapDataIntegrity:
         errors = []
 
         async def heavy_write(i):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with _csrf_async_client(BASE, timeout=15) as c:
                 # Mix of reads and writes
                 r1 = await c.post("/api/memory/add", json={
                     "content": uid(f"lock_test_{i}"), "source": "lock-test"
