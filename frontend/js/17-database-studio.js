@@ -155,30 +155,118 @@ async function dbLoadTable(name) {
 }
 
 async function dbInsertRow(table) {
-  // Get columns first
+  // Was: five sequential gmPrompt() dialogs over `cols.slice(0, 5)`.
+  // That silently dropped every column past the fifth -- goals_v2 has 23,
+  // agents 12 -- so most real inserts lost the majority of their fields, and
+  // any NOT NULL column among them turned into a raw SQL error. It also gave
+  // the user no view of the whole record and no way back after answering.
   try {
-    const r    = await fetch(`/api/db/sqlite/table/${encodeURIComponent(table)}?limit=0`);
+    const r = await fetch(`/api/db/sqlite/table/${encodeURIComponent(table)}?limit=0`);
     if (!r.ok) { toast('Column fetch failed: server error ' + r.status, 'err'); return; }
     const data = await r.json();
-    const cols = (data.columns||[]).filter(c => c !== 'id' && c !== 'created_at');
+
+    // The API returns either plain names or {name,type,notnull,pk} objects.
+    const raw = data.columns || [];
+    const cols = raw
+      .map(c => (typeof c === 'string' ? { name: c } : c))
+      .filter(c => c.name !== 'id' && c.name !== 'created_at' && !c.pk);
     if (!cols.length) { toast('Cannot determine columns', 'warn'); return; }
 
-    const values = {};
-    for (const col of cols.slice(0,5)) {
-      const v = await gmPrompt(`Insert row`, `Value for "${col}"`, '');
-      if (v === null) return;
-      values[col] = v;
-    }
+    dbShowInsertForm(table, cols);
+  } catch (ex) {
+    toast('Insert error: ' + ex.message, 'err');
+  }
+}
 
-    const r2 = await fetch(`/api/db/sqlite/table/${encodeURIComponent(table)}/insert`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({row: values})
+function dbShowInsertForm(table, cols) {
+  document.getElementById('db-insert-modal')?.remove();
+
+  const field = (c) => {
+    const required = c.notnull ? ' <span style="color:var(--danger)" title="Required">*</span>' : '';
+    const hint = c.type ? `<span style="color:var(--text-3);font-weight:400"> · ${escHtml(String(c.type).toLowerCase())}</span>` : '';
+    const long = /text|json|blob/i.test(c.type || '');
+    const control = long
+      ? `<textarea data-col="${escHtml(c.name)}" rows="2" class="input" style="height:auto;padding:8px 10px;resize:vertical"></textarea>`
+      : `<input data-col="${escHtml(c.name)}" class="input" ${/int|real|num/i.test(c.type || '') ? 'type="number"' : ''}>`;
+    return `<label style="display:block;margin-bottom:10px">
+      <span style="display:block;font-size:11.5px;font-weight:700;margin-bottom:4px;color:var(--text-2)">${escHtml(c.name)}${required}${hint}</span>
+      ${control}
+    </label>`;
+  };
+
+  const el = document.createElement('div');
+  el.id = 'db-insert-modal';
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
+  el.setAttribute('aria-label', `Insert a row into ${table}`);
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:19000;'
+    + 'display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)';
+  el.setAttribute('data-act-click', 'dbCloseInsertForm()');
+  el.setAttribute('data-click-self', '1');
+
+  el.innerHTML = `<div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-lg);width:100%;max-width:520px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.7)">
+      <div style="padding:18px 20px 10px">
+        <div style="font-size:16px;font-weight:800">Insert row into ${escHtml(table)}</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:3px">${cols.length} column${cols.length === 1 ? '' : 's'} · leave a field blank to store NULL</div>
+      </div>
+      <div id="db-insert-fields" style="padding:0 20px;overflow:auto;flex:1">${cols.map(field).join('')}</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding:14px 20px 18px;border-top:1px solid var(--border)">
+        <button type="button" class="btn btn-ghost" data-act-click="dbCloseInsertForm()">Cancel</button>
+        <button type="button" class="btn btn-primary" data-act-click="dbSubmitInsertForm(${jsArg(table)})">Insert row</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(el);
+  el.querySelector('[data-col]')?.focus();
+}
+
+function dbCloseInsertForm() {
+  document.getElementById('db-insert-modal')?.remove();
+}
+
+async function dbSubmitInsertForm(table) {
+  const modal = document.getElementById('db-insert-modal');
+  if (!modal) return;
+
+  const values = {};
+  let missing = null;
+  modal.querySelectorAll('[data-col]').forEach(inp => {
+    const name = inp.getAttribute('data-col');
+    const v = inp.value;
+    // A blank field means NULL rather than an empty string -- an empty string
+    // in a numeric or date column is a different, worse kind of wrong.
+    if (v !== '') values[name] = v;
+    const label = inp.closest('label');
+    if (!missing && v === '' && label && label.querySelector('[title="Required"]')) {
+      missing = { name, inp };
+    }
+  });
+
+  if (missing) {
+    toast(`"${missing.name}" is required`, 'warn');
+    missing.inp.focus();
+    return;
+  }
+
+  try {
+    const r = await fetch(`/api/db/sqlite/table/${encodeURIComponent(table)}/insert`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ row: values })
     });
-    if (!r2.ok) { toast('Insert failed: server error ' + r2.status, 'err'); return; }
-    const j = await r2.json();
-    if (j.ok) { toast('Row inserted ✅', 'ok', 1500); dbLoadTable(table); }
-    else toast('Insert failed: ' + (j.error||''), 'err');
-  } catch(ex) { toast('Insert error: ' + ex.message, 'err'); }
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) {
+      // Keep the form open with the user's input intact so they can correct
+      // it -- discarding a filled-in record on a validation error is the
+      // reason people stop trusting a form.
+      toast('Insert failed: ' + (j.error || 'server error ' + r.status), 'err');
+      return;
+    }
+    dbCloseInsertForm();
+    toast('Row inserted ✅', 'ok', 1500);
+    dbLoadTable(table);
+  } catch (ex) {
+    toast('Insert error: ' + ex.message, 'err');
+  }
 }
 
 async function dbDeleteRow(table, value, pk) {
