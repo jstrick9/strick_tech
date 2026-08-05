@@ -241,7 +241,7 @@ async function renderSecretsVault() {
         <div>
           <label style="font-size:11px;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:4px">Key Name</label>
           <input id="vault-key-input" class="vault-input" placeholder="OPENROUTER_API_KEY" autocomplete="off" spellcheck="false"
-            oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9_]/g,'')">
+            data-act-input="hUpperSnakeCase($this)">
         </div>
         <div>
           <label style="font-size:11px;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:4px">Value</label>
@@ -265,7 +265,7 @@ async function renderSecretsVault() {
         <button class="btn btn-primary" data-act-click="vaultSave()">💾 Save to Vault</button>
         <button class="btn btn-ghost" data-act-click="vaultHideAdd()">Cancel</button>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);margin-left:auto;cursor:pointer">
-          <input type="checkbox" id="vault-show-value" onchange="document.getElementById('vault-value-input').type=this.checked?'text':'password'">
+          <input type="checkbox" id="vault-show-value" data-act-change="hToggleVaultReveal($this)">
           Show value
         </label>
       </div>

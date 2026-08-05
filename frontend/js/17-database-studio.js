@@ -305,7 +305,7 @@ function renderSQLEditorTab(el) {
             <input type="checkbox" id="sql-allow-write" style="accent-color:var(--red)">
             <span style="color:var(--red)">Allow writes</span>
           </label>
-          <button onclick="runSQL({dryRun:true})" class="btn btn-ghost btn-sm" title="Run inside a transaction and roll it back — shows how many rows would change, commits nothing">🔍 Dry run</button>
+          <button data-act-click="hRunSqlDryRun()" class="btn btn-ghost btn-sm" title="Run inside a transaction and roll it back — shows how many rows would change, commits nothing">🔍 Dry run</button>
           <button data-act-click="runSQL()" class="btn btn-primary btn-sm">▶ Run SQL</button>
         </div>
       </div>

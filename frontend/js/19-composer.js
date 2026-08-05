@@ -30,7 +30,7 @@ async function renderComposer() {
             'Dashboard with charts and sidebar',
             'Mobile-first portfolio site',
             'E-commerce product page with cart',
-          ].map(p => `<button onclick="document.getElementById('comp-instruction').value=${jsArg(p)}" class="chat-tool" style="font-size:11px">${p.slice(0,30)}…</button>`).join('')}
+          ].map(p => `<button data-act-click="hSetFieldValue('comp-instruction',${jsArg(p)})" class="chat-tool" style="font-size:11px">${p.slice(0,30)}…</button>`).join('')}
         </div>
         <button data-act-click="runComposer()" class="btn btn-primary" style="width:100%" id="comp-run-btn">🪄 Build with AI</button>
         <div id="comp-status" style="font-size:12px;color:var(--text-2);margin-top:8px;min-height:18px"></div>
@@ -44,7 +44,7 @@ async function renderComposer() {
              ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" 
              ondragleave="this.style.borderColor='var(--border)'"
              data-act-drop="handleScreenshotDrop($event)"
-             onclick="document.getElementById('screenshot-file').click()">
+             data-act-click="hClickElement('screenshot-file')">
           <div style="font-size:32px;margin-bottom:8px">🖼️</div>
           <div style="font-size:13px;color:var(--text-2)">Drop a screenshot here, or click to upload</div>
           <div style="font-size:11px;color:var(--text-3);margin-top:4px">PNG, JPG, WebP — any design or UI screenshot</div>

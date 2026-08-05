@@ -222,7 +222,7 @@ async function a2aRenderTasks(container) {
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
       <strong style="font-size:13px;color:var(--text-0)">${_a2aTasks.length} tasks</strong>
       <span style="font-size:11px;color:var(--text-3)">(inbound + outbound)</span>
-      <button class="a2a-btn" onclick="a2aRenderTasks(document.getElementById('a2a-content'))" style="margin-left:auto">↺</button>
+      <button class="a2a-btn" data-act-click="hRenderA2ATasks()" style="margin-left:auto">↺</button>
     </div>
     <table class="a2a-task-table">
       <thead><tr>
@@ -302,7 +302,7 @@ async function a2aShowCard(agentId) {
     <pre class="a2a-card-code">${escHtml(JSON.stringify(d, null, 2))}</pre>
     <div class="a2a-modal-row">
       <a href="/a2a/${encodeURIComponent(agentId)}/card" target="_blank" class="a2a-btn">Open in tab</a>
-      <button class="a2a-btn" onclick="navigator.clipboard.writeText(${JSON.stringify(JSON.stringify(d,null,2))}).then(()=>showToast('Copied!'))">Copy JSON</button>
+      <button class="a2a-btn" data-act-click="hCopyText(${JSON.stringify(JSON.stringify(d,null,2))})">Copy JSON</button>
       <button class="a2a-btn primary" data-close="closest:.a2a-modal-overlay">Close</button>
     </div>
   </div>`;

@@ -825,7 +825,7 @@ function showOnboarding() {
   overlay.onclick = function(e) { if (e.target === overlay) { if (typeof window.closeOnboardingModal === 'function') window.closeOnboardingModal(); else overlay.remove(); } };
   overlay.innerHTML = `
     <div id="onboarding-card" style="background:var(--bg-2);border:1px solid var(--border);border-radius:20px;max-width:500px;width:100%;box-shadow:0 32px 64px rgba(0,0,0,.5);overflow:hidden;position:relative">
-      <button onclick="if(typeof window.closeOnboardingModal==='function')window.closeOnboardingModal();else document.getElementById('onboarding-overlay')?.remove();" style="position:absolute;top:16px;right:20px;background:none;border:none;color:var(--text-2);font-size:26px;cursor:pointer;z-index:999999;line-height:1">×</button>
+      <button data-act-click="hCloseOnboarding()" style="position:absolute;top:16px;right:20px;background:none;border:none;color:var(--text-2);font-size:26px;cursor:pointer;z-index:999999;line-height:1">×</button>
       <!-- Progress bar -->
       <div style="height:3px;background:var(--bg-4)">
         <div id="ob-progress" style="height:100%;background:var(--accent);transition:width .3s;width:0%"></div>

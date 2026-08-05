@@ -417,7 +417,7 @@ async function renderGitAI() {
         <button class="btn" data-act-click="gitaiNLRun()">Ask</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-        ${['show last 10 commits','what changed today?','create branch feature/payments','stage all changes','show diff of HEAD~1','revert last commit'].map(s=>`<button class="btn-sm" onclick="document.getElementById('gitai-nl-input').value=${jsArg(s)};gitaiNLRun()" style="font-size:11px">${s}</button>`).join('')}
+        ${['show last 10 commits','what changed today?','create branch feature/payments','stage all changes','show diff of HEAD~1','revert last commit'].map(s=>`<button class="btn-sm" data-act-click="hSetFieldAndRun('gitai-nl-input',${jsArg(s)},'gitaiNLRun')" style="font-size:11px">${s}</button>`).join('')}
       </div>
       <div id="gitai-nl-result"></div>
     </div>
@@ -490,7 +490,7 @@ async function gitaiNLRun() {
         ${(d.commands||[]).map(c=>`<div class="gitai-cmd">${escHtml(c.cmd?.join(' ')||'')} ${c.safe?'':'⚠️ unsafe'}</div>`).join('<br>')}
         ${d.warnings?.length?`<div style="margin-top:8px;font-size:11px;color:var(--warning)">⚠️ ${d.warnings.join(' | ')}</div>`:''}
         <div style="margin-top:10px;display:flex;gap:6px">
-          <button class="btn-sm" onclick="gitaiNLExecute(_gitaiLastQuery)" ${d.is_destructive?'style="color:var(--danger)"':''}>▶ Execute ${d.is_destructive?'(DESTRUCTIVE!)':''}</button>
+          <button class="btn-sm" data-act-click="hGitaiRunLastQuery()" ${d.is_destructive?'style="color:var(--danger)"':''}>▶ Execute ${d.is_destructive?'(DESTRUCTIVE!)':''}</button>
         </div>
       </div>`;
   } catch(ex) { if(el)el.innerHTML=`<div style="color:var(--danger)">Error: ${escHtml(ex.message)}</div>`; }
@@ -532,7 +532,7 @@ async function gitaiGenerateCommit(autoCommit) {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px">
         <div style="font-size:13px;font-family:monospace;color:var(--text-0);padding:10px;background:var(--bg-3);border-radius:7px;margin-bottom:8px" id="gitai-commit-msg">${escHtml(d.message||'')}</div>
         ${d.committed?'<div style="color:var(--success)">✅ Committed!</div>':''}
-        <button class="btn-sm" onclick="navigator.clipboard.writeText(window._gitaiLastCommitMsg||'').then(()=>showToast('📋 Copied','ok',1200))">📋 Copy</button>  <!-- FIX 7 -->
+        <button class="btn-sm" data-act-click="hCopyLastCommitMsg()">📋 Copy</button>  <!-- FIX 7 -->
       </div>`;
   } catch(ex) { if(el)el.innerHTML=`<div style="color:var(--danger)">Error: ${escHtml(ex.message)}</div>`; }
 }

@@ -897,7 +897,7 @@ function wfSelectNode(nodeId) {
     <div class="wf-prop-actions">
       <button class="wf-prop-btn" data-act-click="wfCopyNode()" title="Copy (⌘C)">⧉ Copy</button>
       <button class="wf-prop-btn" data-act-click="wfDuplicateNode()" title="Duplicate">⊕ Dupe</button>
-      <button class="wf-prop-btn danger" onclick="wfDeleteNode(_wfSelected)" title="Delete (Del)">🗑 Delete</button>
+      <button class="wf-prop-btn danger" data-act-click="hDeleteSelectedNode()" title="Delete (Del)">🗑 Delete</button>
     </div>`;
 }
 
@@ -2058,8 +2058,8 @@ async function renderMultitab() {
       <button data-act-click="mtRefreshActive()" title="Refresh" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:14px">↻</button>
       <input class="mt-url-bar" id="mt-url-bar" value="" placeholder="/preview/index.html" 
              data-act-keydown="mtNavigate($value)" data-keys="Enter"
-             oninput="event.target.style.color='var(--warning)'">
-      <button class="btn-sm" onclick="mtNavigate(document.getElementById('mt-url-bar').value)">Go</button>
+             data-act-input="hMarkDirty($this)">
+      <button class="btn-sm" data-act-click="hNavigateFromUrlBar()">Go</button>
       <button class="btn-sm" data-act-click="mtToggleGrid()" id="mt-grid-btn">⊞ Grid</button>
       <button class="btn-sm" data-act-click="mtRefreshAll()">↻ All</button>
       <button class="btn-sm" data-act-click="mtOpenInBrowser()" title="Open in real browser">↗</button>
@@ -2224,7 +2224,7 @@ function mtToggleGrid() {
       <div class="mt-grid-cell">
         <div class="mt-grid-cell-header">
           ${t.favicon||'📄'} ${escHtml(t.title||t.file||'Tab')}
-          <button onclick="mtActivateTab(${JSON.stringify(t.id)});document.getElementById('mt-grid-btn').click()" 
+          <button data-act-click="hActivateTabAndGrid(${JSON.stringify(t.id)})" 
                   style="margin-left:auto;background:none;border:none;color:var(--accent);cursor:pointer;font-size:10px">↗</button>
         </div>
         <iframe src="${escHtml(t.url)}" style="flex:1;border:none;width:100%;min-height:200px"></iframe>
@@ -2277,7 +2277,7 @@ async function renderTauriStatus() {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px;position:relative">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <h3 style="margin:0;font-size:14px">🖥️ Tauri Desktop App Workstation</h3>
-          <button onclick="const s=document.getElementById('tauri-build-section');if(s)s.style.display='none'" class="btn-ghost btn-sm" style="font-size:10px;padding:2px 8px">✕ Dismiss Panel</button>
+          <button data-act-click="hHideTauriBuild()" class="btn-ghost btn-sm" style="font-size:10px;padding:2px 8px">✕ Dismiss Panel</button>
         </div>
         
         <!-- Status indicators -->

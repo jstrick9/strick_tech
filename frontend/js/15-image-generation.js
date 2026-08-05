@@ -73,7 +73,7 @@ async function renderImageGen() {
           ${models.models?.length ? `<select id="img-model" class="input" style="margin-bottom:8px;font-size:12px" title="Image model">
             ${models.models.map(m=>`<option value="${escHtml(m.id)}"${m.id===models.default?' selected':''}>${escHtml(m.name)}${m.free?' · free':''}</option>`).join('')}
           </select>` : ''}
-          <textarea id="img-prompt" class="input" style="min-height:70px;margin-bottom:8px;font-size:13px" placeholder="A dark SaaS dashboard with charts, clean and modern…" oninput="_imgLastPrompt=this.value"></textarea>
+          <textarea id="img-prompt" class="input" style="min-height:70px;margin-bottom:8px;font-size:13px" placeholder="A dark SaaS dashboard with charts, clean and modern…" data-act-input="hRememberImagePrompt($value)"></textarea>
           <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px" id="style-picker">
             ${styles.map(s=>`<button type="button" class="term-btn" id="style-${escHtml(s.id)}" data-style-id="${escHtml(s.id)}" title="${escHtml(s.prompt)}">${escHtml(s.label)}</button>`).join('')}
           </div>

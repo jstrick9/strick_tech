@@ -34,7 +34,7 @@ async function enhanceCommandPalette() {
         if (!results) return;
         const section = document.createElement('div');
         section.innerHTML = `<div class="palette-section">🌌 Memory Results</div>` +
-          memories.map(m => `<div class="palette-item" onclick="insertCmd('Tell me about: '+${JSON.stringify((m.content||'').slice(0,50))});closePalette()">
+          memories.map(m => `<div class="palette-item" data-act-click="hInsertAndClose(${jsArg((m.content||'').slice(0,50))})">
             <span class="p-icon">💾</span>
             <span class="p-label" style="font-size:12px">${escHtml((m.content||'').slice(0,60))}…</span>
             <span class="p-desc">${escHtml(m.source||'')}</span>
@@ -126,8 +126,8 @@ function showTourStep() {
     <div style="display:flex;align-items:center;justify-content:space-between">
       <span style="font-size:11px;color:var(--text-3)">${tourStep + 1} / ${TOUR_STEPS.length}</span>
       <div style="display:flex;gap:6px">
-        ${tourStep > 0 ? '<button onclick="tourStep--;showTourStep()" class="btn btn-ghost btn-sm">← Back</button>' : ''}
-        <button onclick="tourStep++;showTourStep()" class="btn btn-primary btn-sm">${tourStep === TOUR_STEPS.length - 1 ? 'Finish ✓' : 'Next →'}</button>
+        ${tourStep > 0 ? '<button data-act-click="hTourPrev()" class="btn btn-ghost btn-sm">← Back</button>' : ''}
+        <button data-act-click="hTourNext()" class="btn btn-primary btn-sm">${tourStep === TOUR_STEPS.length - 1 ? 'Finish ✓' : 'Next →'}</button>
       </div>
     </div>`;
   document.body.appendChild(popup);
@@ -246,7 +246,7 @@ setTimeout(addQuickActionBar, 500);
     }
     if (container.children.length > 0) return; // already populated
     container.innerHTML = S.agents.slice(0,6).map(a =>
-      `<button onclick="setActiveAgent(${JSON.stringify(a).replace(/"/g,'&quot;')});document.getElementById('chat-empty').style.display='none'"
+      `<button data-agent="${escHtml(JSON.stringify(a))}" data-act-click="hSetActiveAgentFromChat($json.agent)"
         style="display:flex;align-items:center;gap:6px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;transition:var(--transition);font-size:12px;color:var(--text-1)"
         data-hover="bc:var(--accent)|fg:var(--text-0)"
         data-hover-out="bc:var(--border)|fg:var(--text-1)">

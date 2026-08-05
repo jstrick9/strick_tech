@@ -1270,7 +1270,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
   <!-- ── Simplified Topbar (ChatGPT/Claude style) ──────────── -->
   <div id="topbar">
-    <a class="logo" href="#" onclick="nav('chat');return false">
+    <a class="logo" href="#" data-act-click="hNavChat()">
       <div class="neural-orb-3d" id="agent-status-orb" title="Neural Core: Online & Active"></div>
       <span id="custom-app-title">Strick Tech Agentic OS</span>
       <span id="custom-app-subtitle" style="display:none">MISSION CONTROL</span>
@@ -1471,7 +1471,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   <span id="active-persona-icon">💬</span> <span id="active-persona-label">Direct Chat</span> <span style="font-size:10px;opacity:0.5">▾</span>
                 </summary>
                 <div style="position:absolute;top:100%;left:0;margin-top:4px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:6px;min-width:220px;z-index:100;box-shadow:var(--shadow-lg)">
-                  <select id="chat-persona-select" onchange="if(typeof selectChatPersona === 'function') selectChatPersona(this.value);this.parentElement.parentElement.removeAttribute('open')" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;font-weight:600;outline:none;cursor:pointer;padding:8px 10px">
+                  <select id="chat-persona-select" data-act-change="hPersonaChange($this)" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;font-weight:600;outline:none;cursor:pointer;padding:8px 10px">
                     <option value="default">💬 Direct AI Chat</option>
                     <optgroup id="chat-persona-optgroup" label="Agent Personas">
                       <option value="brain">🧠 Brain — Deep Reasoning</option>
@@ -1535,7 +1535,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <div id="chat-attachment-tray" class="chat-attachment-tray" aria-live="polite"></div>
               <div class="chat-input-row">
                 <input id="chat-file-input" type="file" multiple hidden accept=".txt,.md,.markdown,.csv,.json,.js,.jsx,.ts,.tsx,.py,.html,.css,.xml,.yaml,.yml,.log,.sql,.sh,.java,.go,.rs,.rb,.php,.c,.cpp,.h,.pdf,.docx,.jpg,.jpeg,.png,.gif,.webp,.svg">
-                <button type="button" class="chat-attach-btn btn-3d" onclick="document.getElementById('chat-file-input').click()" title="Attach files: Text, Code, CSV, JSON, PDF, Word, Images (max 5 files, 250KB text / 4MB documents)" aria-label="Attach files" style="font-size:13px">📎</button>
+                <button type="button" class="chat-attach-btn btn-3d" data-act-click="hClickFileInput()" title="Attach files: Text, Code, CSV, JSON, PDF, Word, Images (max 5 files, 250KB text / 4MB documents)" aria-label="Attach files" style="font-size:13px">📎</button>
                 <textarea id="chat-input" aria-label="Chat message input" placeholder="Message AI… or drop a file or image here" rows="4" style="min-height:84px"></textarea>
                 <button type="button" class="chat-send-btn" id="chat-send" aria-label="Send message">➤</button>
               </div>
@@ -1650,14 +1650,14 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <div class="divider"></div>
             <!-- Actions -->
             <button type="button" class="device-btn" data-act-click="studioReloadPreview()" title="Reload preview">⟳</button>
-            <button type="button" class="device-btn" onclick="openExternalLink(location.origin + studioPreviewUrl())" title="Open in new tab">↗</button>
+            <button type="button" class="device-btn" data-act-click="hOpenStudioPreview()" title="Open in new tab">↗</button>
             <button type="button" class="device-btn" data-act-click="studioScreenshot()" title="Screenshot">📷</button>
             <button type="button" class="device-btn" data-act-click="studioQR()" title="QR code for phone">📲</button>
             <!-- Zoom -->
             <div class="zoom-ctrl">
               <button type="button" class="zoom-btn" data-act-click="studioZoom(-10)">−</button>
               <span class="zoom-label" id="studio-zoom-label">100%</span>
-              <button type="button" class="zoom-btn" onclick="studioZoom(+10)">+</button>
+              <button type="button" class="zoom-btn" data-act-click="hStudioZoomIn()">+</button>
             </div>
           </div>
 
@@ -2973,7 +2973,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 </div>
 
 <!-- ── Keyboard Shortcuts Overlay ────────────────────────────────── -->
-<div role="button" tabindex="0" id="shortcuts-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:19000;align-items:center;justify-content:center;backdrop-filter:blur(6px)" onclick="this.style.display='none'" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
+<div role="button" tabindex="0" id="shortcuts-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:19000;align-items:center;justify-content:center;backdrop-filter:blur(6px)" data-act-click="hHideSelf($this)" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
   <div role="button" tabindex="0" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-lg);width:100%;max-width:480px;padding:24px;animation:slideUp .18s ease" data-stop="1" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h2 style="font-size:16px;font-weight:800">⌨️ Keyboard Shortcuts</h2>
@@ -3011,6 +3011,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 <script src="/static/js/00-navigation-state.js"></script>
 <script src="/static/js/00-csrf.js"></script>
 <script src="/static/js/00-delegate.js"></script>
+<script src="/static/js/00-handlers.js"></script>
 <script src="/static/js/00-pane-registry.js"></script>
 <script src="/static/js/00-workstations.js"></script>
 <script src="/static/js/00-errors.js"></script>
