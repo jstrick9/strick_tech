@@ -143,3 +143,25 @@ def test_putting_a_missing_plugin_pack_creates_nothing(client):
     assert not [p for p in packs if p.get('id') == MISSING], (
         'PUT fabricated a plugin pack that nobody created'
     )
+
+
+def test_configuring_an_unregistered_connector_returns_404(client):
+    """The UPDATE matched no row but the handler still answered {"ok": true},
+    so credentials saved against a mistyped or uninstalled connector were
+    silently discarded — the user saw a success toast and the connector stayed
+    unconfigured, with no way to tell those two states apart."""
+    r = client.patch(
+        f'/api/connectors/{MISSING}/configure',
+        json={'credentials': {'token': 'secret'}},
+    )
+    assert r.status_code == 404
+
+
+def test_configuring_a_real_connector_still_works(client):
+    body = client.get('/api/connectors').json()
+    connectors = body.get('connectors', body) if isinstance(body, dict) else body
+    assert connectors, 'no connectors registered'
+    cid = connectors[0].get('connector_id') or connectors[0].get('id')
+    r = client.patch(f'/api/connectors/{cid}/configure', json={'credentials': {}})
+    assert r.status_code == 200
+    assert r.json().get('ok') is True

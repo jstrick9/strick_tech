@@ -4021,11 +4021,21 @@ async def configure_connector(connector_id: str, req: Request):
     status = 'active' if creds else 'unconfigured'
     con = _get_conn()
     try:
-        con.execute(
+        cur = con.execute(
             'UPDATE connector_registry SET credentials=?, config=?, status=?, updated_at=? WHERE connector_id=?',
             (json.dumps(creds), json.dumps(config), status, _now(), connector_id),
         )
         con.commit()
+        if cur.rowcount == 0:
+            # The UPDATE matched nothing but the handler still answered
+            # {"ok": true}, so saving credentials against a mistyped or
+            # uninstalled connector id silently discarded them -- the user saw
+            # a success toast and the connector stayed unconfigured, with no
+            # way to tell those two states apart.
+            return JSONResponse(
+                {'ok': False, 'error': f"Connector '{connector_id}' is not registered."},
+                status_code=404,
+            )
     finally:
         con.close()
     return {'ok': True, 'connector_id': connector_id, 'status': status}
