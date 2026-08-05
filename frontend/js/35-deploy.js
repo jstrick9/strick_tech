@@ -62,7 +62,7 @@ async function renderDeploy() {
   </div>
   <div style="margin-bottom:16px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--text-2)">
     📁 <strong>${statusData.preview_files||0} files</strong> ready in <code style="background:var(--bg-0);padding:1px 5px;border-radius:3px">preview/</code>
-    ${statusData.preview_files ? '' : ' — <a href="#" onclick="nav(\'studio\');return false" style="color:var(--accent)">Build something first</a>'}
+    ${statusData.preview_files ? '' : ' — <a href="#" data-act-click="nav(\'studio\')" style="color:var(--accent)">Build something first</a>'}
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px">
     ${providerCard('vercel',       'Vercel',       '▲',  p.vercel?.ready,       'VERCEL_TOKEN',   'https://vercel.com/account/tokens',                      'Best for Next.js, React, static sites')}

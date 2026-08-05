@@ -2488,7 +2488,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   </div>
                   <div style="display:flex;align-items:center;gap:8px">
                     <span id="or-key-status-badge" class="tech-badge" style="color:var(--text-2);border-color:var(--border)">NOT CONFIGURED</span>
-                    <button onclick="if(typeof showNoviceApiGuide === 'function') showNoviceApiGuide(); else openExternalLink('https://openrouter.ai/keys');" type="button" class="btn-3d btn-ghost btn-sm" style="font-size:11px;color:var(--accent);font-weight:800">🌟 Help getting a key</button>
+                    <button data-act-click="hNoviceApiGuide()" type="button" class="btn-3d btn-ghost btn-sm" style="font-size:11px;color:var(--accent);font-weight:800">🌟 Help getting a key</button>
                   </div>
                 </div>
                 <p style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Add an API key to access 140+ AI models. Your key is stored securely on your device and models appear in Chat automatically.</p>
@@ -2524,7 +2524,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
                   <div style="font-size:12px;font-weight:800;color:var(--text-0);margin-bottom:8px">📥 1-Click Local Model Puller & Downloader</div>
                   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-                    <select id="ollama-quick-pull-sel" onchange="const inp=document.getElementById('ollama-custom-pull-inp');if(inp)inp.style.display=this.value==='custom'?'block':'none';" style="background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-weight:600">
+                    <select id="ollama-quick-pull-sel" data-act-change="hOllamaModelChange($this)" style="background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-weight:600">
                       <option value="llama3.2:3b">Llama 3.2 3B (Fast / 2.0 GB RAM)</option>
                       <option value="llama3.1:8b">Llama 3.1 8B (General / 4.7 GB RAM)</option>
                       <option value="mistral:7b">Mistral 7B v0.3 (Reasoning / 4.1 GB RAM)</option>
@@ -2552,10 +2552,10 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 </div>
                 <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Connect a compatible local or hosted AI server you already use. Available models will appear in Chat automatically after a successful connection.</p>
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-                  <button type="button" onclick="document.getElementById('custom-api-base-url').value='http://localhost:1234/v1';saveCustomConnection()" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: LM Studio (:1234/v1)</button>
-                  <button type="button" onclick="document.getElementById('custom-api-base-url').value='http://localhost:1337/v1';saveCustomConnection()" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: Jan (:1337/v1)</button>
-                  <button type="button" onclick="document.getElementById('custom-api-base-url').value='http://localhost:8000/v1';saveCustomConnection()" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: vLLM (:8000/v1)</button>
-                  <button type="button" onclick="document.getElementById('custom-api-base-url').value='https://api.groq.com/openai/v1';document.getElementById('custom-api-key').focus()" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: Groq Cloud</button>
+                  <button type="button" data-act-click="hSetCustomBaseUrl('http://localhost:1234/v1')" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: LM Studio (:1234/v1)</button>
+                  <button type="button" data-act-click="hSetCustomBaseUrl('http://localhost:1337/v1')" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: Jan (:1337/v1)</button>
+                  <button type="button" data-act-click="hSetCustomBaseUrl('http://localhost:8000/v1')" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: vLLM (:8000/v1)</button>
+                  <button type="button" data-act-click="hSetGroqPreset()" class="btn-3d btn-ghost btn-sm" style="font-size:11px">⚡ Preset: Groq Cloud</button>
                 </div>
                 <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
                   <input id="custom-api-base-url" type="text" placeholder="http://localhost:1234/v1" style="flex:2;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
@@ -2686,7 +2686,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px">You can drag the divider handle (`#sidebar-resizer`) directly between the sidebar and workspace to expand or shrink the navigation pane dynamically between 56px (icon mode) and 600px (deep folder hierarchy mode). Your exact width is automatically saved to local storage.</p>
                 <div style="display:flex;gap:12px">
                   <button type="button" data-act-click="toggleSidebar();toast('Sidebar toggled')" class="btn btn-primary btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);cursor:pointer">Toggle Collapsed Mode (56px)</button>
-                  <button type="button" onclick="const sb=document.getElementById('sidebar');if(sb){sb.style.width='260px';sb.classList.remove('collapsed');try{localStorage.setItem('agentic_os_sidebar_w','260px');}catch(e){}}toast('Sidebar reset to default 260px')" class="btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer">Reset Default Width (260px)</button>
+                  <button type="button" data-act-click="hExpandSidebar()" class="btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer">Reset Default Width (260px)</button>
                 </div>
               </div>
 
@@ -2793,7 +2793,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     </div><!-- /content -->
 
     <!-- Split Workspace Divider -->
-    <div id="workspace-splitter" style="display:none;width:6px;background:var(--border);cursor:col-resize;flex-shrink:0;z-index:20;transition:background 0.15s" data-hover="bg:var(--accent)" onmouseout="if(!window._isSplitResizing)this.style.background='var(--border)'"></div>
+    <div id="workspace-splitter" style="display:none;width:6px;background:var(--border);cursor:col-resize;flex-shrink:0;z-index:20;transition:background 0.15s" data-hover="bg:var(--accent)" data-act-mouseout="hSplitResizerOut($this)"></div>
 
     <!-- Secondary Split Workstation Slot -->
     <div id="content-right" style="display:none;flex:1;overflow:hidden;flex-direction:column;min-width:280px;height:100% !important;background:var(--bg-0);border-left:1px solid var(--border)">

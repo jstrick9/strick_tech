@@ -363,24 +363,34 @@ SECURITY_HEADERS = {
     'X-XSS-Protection': '1; mode=block',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    # CSP — 'unsafe-inline' on script-src is a KNOWN, DOCUMENTED weakness.
+    # CSP — script-src no longer carries 'unsafe-inline'.
     #
-    # It cannot simply be dropped: the frontend renders 772 inline `onclick=`
-    # handlers plus 5 inline <script> blocks, all of which stop working the
-    # moment it is removed. A CSP that breaks the product would be reverted
-    # within a day, so tightening it means removing those handlers first --
-    # tracked as a dedicated refactor, not something to slip into a security
-    # commit.
+    # This was a known, documented weakness for the whole review. It could not
+    # simply be dropped: the frontend rendered 1107 inline `on*=` handlers plus
+    # 5 inline <script> blocks, every one of which stops working the moment the
+    # directive is removed. A CSP that breaks the product gets reverted within
+    # a day, so the handlers had to go first.
     #
-    # What this DOES mean, stated plainly rather than left implicit: the
-    # platform's ~714 innerHTML assignments are not protected by CSP. XSS
-    # defence rests entirely on escHtml() at each call site. Modules 10 and 17
-    # each found a stored-XSS hole of exactly that shape, which is the evidence
-    # that per-call-site escaping does not hold on its own.
+    # They have. Phase 2 migrated all 1107 to the delegation shim
+    # (frontend/js/00-delegate.js) and extracted all 5 inline blocks to
+    # /static/js/. `scripts/migrate_inline_handlers.py` reports 0 remaining and
+    # `scripts/lint_inline_handlers.py` keeps it that way in CI.
     #
-    # object-src and base-uri ARE tightened here; both are free (nothing uses
+    # What this buys, stated plainly: the platform's ~714 innerHTML assignments
+    # are now backed by CSP rather than resting entirely on escHtml() at each
+    # call site. Modules 10 and 17 each found a stored-XSS hole of exactly that
+    # shape, which was the evidence that per-call-site escaping does not hold
+    # on its own. An injected <script> or on*= attribute is now refused by the
+    # browser even when a call site forgets to escape.
+    #
+    # style-src DELIBERATELY keeps 'unsafe-inline'. The codebase sets
+    # element.style throughout and templates carry style="" attributes;
+    # removing it is a separate, much larger piece of work with a far smaller
+    # payoff, since a style injection cannot execute script under this policy.
+    #
+    # object-src and base-uri are also tightened; both are free (nothing uses
     # them) and each closes a real injection vector: <object>/<embed> can load
-    # plugin content, and a injected <base> tag silently reroutes every
+    # plugin content, and an injected <base> tag silently reroutes every
     # relative URL on the page, including script sources.
     'Content-Security-Policy': (
         "default-src 'self'; "
@@ -388,7 +398,7 @@ SECURITY_HEADERS = {
         "base-uri 'self'; "
         "form-action 'self'; "
         "frame-ancestors 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://cdn.monaco-editor.net; "
+        "script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://cdn.monaco-editor.net; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; "
         "img-src 'self' data: blob: https:; "

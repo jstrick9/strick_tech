@@ -83,8 +83,27 @@
     if (sb) {
       sb.style.width = '260px';
       sb.classList.remove('collapsed');
+      try { localStorage.setItem('agentic_os_sidebar_w', '260px'); } catch (e) { /* private mode */ }
     }
+    window.toast('Sidebar reset to default 260px');
   });
+
+  on('hNoop', function () { /* attribute exists only for data-prevent/data-hover */ });
+
+  on('hSetGroqPreset', function () {
+    var url = byId('custom-api-base-url');
+    if (url) url.value = 'https://api.groq.com/openai/v1';
+    var key = byId('custom-api-key');
+    if (key) key.focus();
+  });
+
+  // The split-pane resizer keeps its hover colour WHILE a drag is in
+  // progress, so this cannot be a plain data-hover-out.
+  on('hSplitResizerOut', function (el) {
+    if (!window._isSplitResizing) el.style.background = 'var(--border)';
+  });
+
+  on('hSetBorder', function (el, colour) { if (el) el.style.borderColor = colour; });
 
   on('hHideSelf', function (el) { if (el) el.style.display = 'none'; });
 

@@ -1690,7 +1690,7 @@ function updateNextActionBar(pane) {
   bar.innerHTML = `
     <span style="font-size:10px;font-weight:700;color:var(--text-3);white-space:nowrap;flex-shrink:0">NEXT:</span>
     ${actions.map(a=>`
-      <button onclick="${a.action}" title="${escHtml(a.tip)}" style="
+      <button data-act-click="${a.action}" title="${escHtml(a.tip)}" style="
         background:var(--bg-2);border:1px solid var(--border);border-radius:7px;
         color:var(--text-2);padding:4px 10px;cursor:pointer;font-size:11px;font-weight:600;
         white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:5px;

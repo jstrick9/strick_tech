@@ -54,7 +54,7 @@ async function renderSQLiteTab(el) {
       ${tables.map((t, idx) => `
         <div data-table-idx="${idx}" title="${t.restricted ? 'Protected — holds credential material' : (t.sensitive_columns||[]).length ? 'Contains masked columns: ' + escHtml((t.sensitive_columns||[]).join(', ')) : ''}"
              style="padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;margin-bottom:2px;${dbActiveTable===t.name?'background:var(--accent-glow);color:var(--accent-hi)':''}"
-             data-hover="bg:var(--bg-3)" onmouseout="this.style.background=${jsArg(dbActiveTable===t.name?'var(--accent-glow)':'')}"
+             data-hover="bg:var(--bg-3)" data-hover-out="bg:${dbActiveTable===t.name?'var(--accent-glow)':''}"
         >
           <div style="font-weight:600">${t.restricted ? '🔒 ' : ''}${escHtml(t.name)}${(t.sensitive_columns||[]).length ? ' <span style="color:var(--orange,#e0821c);font-size:10px">🔒</span>' : ''}</div>
           <div style="font-size:10.5px;color:var(--text-3)">${t.row_count} rows</div>

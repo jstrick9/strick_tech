@@ -41,8 +41,8 @@ async function renderComposer() {
         <h3>📷 Screenshot → Code</h3>
         <p>Paste a design screenshot and AI rebuilds it as working code. Like v0's image input.</p>
         <div id="screenshot-drop" style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:24px;text-align:center;cursor:pointer;transition:var(--transition);margin-bottom:10px" 
-             ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" 
-             ondragleave="this.style.borderColor='var(--border)'"
+             data-prevent="1" data-hover="bc:var(--accent)" data-act-dragover="hNoop()" 
+             data-act-dragleave="hSetBorder($this,'var(--border)')"
              data-act-drop="handleScreenshotDrop($event)"
              data-act-click="hClickElement('screenshot-file')">
           <div style="font-size:32px;margin-bottom:8px">🖼️</div>

@@ -115,7 +115,7 @@
       if (catEl) {
         var html = '<span class="bp-btn ' + (templateCategory === 'all' ? 'active' : '') + '" data-act-click="filterTemplates(\'all\')">All (' + allTemplates.length + ')</span>';
         catList.forEach(function(c) {
-          html += '<span class="bp-btn ' + (templateCategory === c.id ? 'active' : '') + '" onclick="filterTemplates(\'' + c.id + '\')">' + escHtml(c.label) + ' (' + c.count + ')</span>';
+          html += '<span class="bp-btn ' + (templateCategory === c.id ? 'active' : '') + '" data-act-click="filterTemplates(\'' + c.id + '\')">' + escHtml(c.label) + ' (' + c.count + ')</span>';
         });
         catEl.innerHTML = html;
       }
