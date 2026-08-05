@@ -428,3 +428,40 @@ proceed the way it should have all along: convert a file with
 
 The remaining work is unchanged — **313 hand-written listeners and 5 inline
 `<script>` blocks** — but it is no longer gated on infrastructure.
+
+
+---
+
+# Items 2 & 3 — Executed (`7861f54`)
+
+Both are done. See `docs/module-reviews/25-runtime-topology.md` for the full
+record.
+
+**The correction worth carrying forward:** these were filed as separate items of
+different urgency — item 2 low ("rate limiting merely degrades"), item 3 medium.
+They are one problem. The analysis above reasoned carefully about
+`_rate_limit_store` being per-process but did not notice that `_CSRF_TOKENS` is
+per-process too, which makes the item-3 flip dangerous in a way item 2's
+"degrades quietly" framing actively concealed.
+
+Measured on a real 4-worker server with enforcement on, 60 POSTs each carrying a
+**valid** token: 27 accepted, **33 rejected 403**. Enabling CSRF by default
+without topology detection would have shipped an outage on half of every user's
+actions.
+
+So item 2 was not low urgency — it was a prerequisite for item 3.
+
+| Recommendation | Status |
+|---|---|
+| Detect and warn on multiple workers | done, names the effective multiplier |
+| Document the ceiling in `config.yaml` | done, plus every security env var |
+| Write down the trigger for revisiting | done, in `25-runtime-topology.md` |
+| Dated CSRF flip | done — **ON by default**, gated on a safe topology |
+| Test the exemption list stays minimal | done, 3 tests |
+| Add Redis | still no, deliberately, with the trigger written down |
+
+Two latent bugs surfaced: the server was calling its own API over loopback
+without a token (goal launch was broken outright), and the same per-process
+token split existed *inside* the app between the TestClient and a separately
+started server. Both fixed without adding a loopback CSRF exemption, which would
+have been a bypass rather than a fix.
