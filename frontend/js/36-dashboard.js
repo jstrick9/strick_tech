@@ -153,7 +153,7 @@ function renderDashBody(d) {
     </div>
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
       <div style="font-weight:700;margin-bottom:8px;font-size:13px">⚡ Recent Activity</div>
-      ${(d.activity?.recent||[]).slice(0,8).map(a => `<div style="font-size:11.5px;padding:3px 0;color:var(--text-2);border-bottom:1px solid var(--border)"><span style="color:var(--accent)">${escHtml(a.action||'')}</span>${a.detail?` · ${escHtml((a.detail||'').slice(0,40))}`:''}<span style="float:right;color:var(--text-3)">${(a.ts||'').slice(11,16)}</span></div>`).join('') || '<div style="color:var(--text-3);font-size:12px">No recent activity</div>'}
+      ${(d.activity?.recent||[]).slice(0,8).map(a => `<div style="font-size:11.5px;padding:3px 0;color:var(--text-2);border-bottom:1px solid var(--border)"><span style="color:var(--accent-text)">${escHtml(a.action||'')}</span>${a.detail?` · ${escHtml((a.detail||'').slice(0,40))}`:''}<span style="float:right;color:var(--text-3)">${(a.ts||'').slice(11,16)}</span></div>`).join('') || '<div style="color:var(--text-3);font-size:12px">No recent activity</div>'}
     </div>
   </div>`;
 }

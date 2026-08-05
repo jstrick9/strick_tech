@@ -49,7 +49,7 @@ async function renderDeploy() {
       </div>
       ${!ready ? `<div style="background:var(--bg-1);border-radius:var(--radius-sm);padding:10px;font-size:12px;margin-bottom:10px;color:var(--text-2)">
         Save <code style="background:var(--bg-0);padding:1px 5px;border-radius:3px">${token_key}</code> via the 🔐 Vault tab (takes effect immediately), or add it to your .env file (requires an app restart).
-        <a href="${safeUrl(docs_url)}" target="_blank" style="color:var(--accent);display:block;margin-top:4px">→ Get token</a>
+        <a href="${safeUrl(docs_url)}" target="_blank" style="color:var(--accent-text);display:block;margin-top:4px">→ Get token</a>
       </div>` : ''}
       <button data-act-click="doDeploy(${jsArg(id)})" class="btn ${ready?'btn-primary':'btn-ghost'}" style="width:100%" id="deploy-btn-${id}">${btnLabel}</button>
       <div id="deploy-result-${id}" style="margin-top:10px;display:none"></div>
@@ -62,7 +62,7 @@ async function renderDeploy() {
   </div>
   <div style="margin-bottom:16px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--text-2)">
     📁 <strong>${statusData.preview_files||0} files</strong> ready in <code style="background:var(--bg-0);padding:1px 5px;border-radius:3px">preview/</code>
-    ${statusData.preview_files ? '' : ' — <a href="#" data-act-click="nav(\'studio\')" style="color:var(--accent)">Build something first</a>'}
+    ${statusData.preview_files ? '' : ' — <a href="#" data-act-click="nav(\'studio\')" style="color:var(--accent-text)">Build something first</a>'}
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px">
     ${providerCard('vercel',       'Vercel',       '▲',  p.vercel?.ready,       'VERCEL_TOKEN',   'https://vercel.com/account/tokens',                      'Best for Next.js, React, static sites')}
@@ -113,11 +113,11 @@ async function doDeploy(provider) {
       // "✅ Deployed!" success message as a real deploy here would be
       // misleading (nothing was actually deployed), so render an honest
       // "key confirmed, action needed" state instead.
-      res.innerHTML = `<div style="color:var(--accent);font-weight:700">🔑 API key confirmed</div>
+      res.innerHTML = `<div style="color:var(--accent-text);font-weight:700">🔑 API key confirmed</div>
         <div style="font-size:12px;color:var(--text-2);margin-top:4px">${escHtml(j.tip||'')}</div>`;
       toast(`🔑 ${providerLabel} key confirmed — manual GitHub connect still required`, 'ok', 5000);
     } else if (j.ok) {
-      const urlLink = j.url ? `<a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent);font-size:13px;display:block;margin-top:4px">${j.url}</a>` : '';
+      const urlLink = j.url ? `<a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent-text);font-size:13px;display:block;margin-top:4px">${j.url}</a>` : '';
       const output  = j.output ? `<div style="font-size:11px;color:var(--text-2);margin-top:4px;font-family:monospace;white-space:pre-wrap">${escHtml(j.output.slice(0,200))}</div>` : '';
       res.innerHTML = `<div style="color:var(--green);font-weight:700">✅ Deployed!</div>
         ${urlLink}
@@ -126,7 +126,7 @@ async function doDeploy(provider) {
       toast(`🚀 Deployed to ${providerLabel}!`, 'ok', 5000);
     } else {
       const setup = j.setup ? '<div style="font-size:11.5px;color:var(--text-2);margin-top:6px">' + (j.setup||[]).map(s=>escHtml(s)).join('<br>') + '</div>' : '';
-      const alt = j.alternative ? `<div style="font-size:11px;color:var(--accent);margin-top:6px">${escHtml(j.alternative)}</div>` : '';
+      const alt = j.alternative ? `<div style="font-size:11px;color:var(--accent-text);margin-top:6px">${escHtml(j.alternative)}</div>` : '';
       res.innerHTML = `<div style="color:var(--yellow)">⚠️ ${escHtml(j.error||'Setup required')}</div>${setup}${alt}`;
       toast(`⚠️ ${providerLabel} setup needed`, 'warn', 3000);
     }
@@ -151,7 +151,7 @@ async function startTunnel() {
     const j = await r.json();
     if (j.ok) {
       res.innerHTML = `<div style="color:var(--green);font-weight:700">✅ Tunnel active!</div>
-        <a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent);font-size:14px;display:block;margin-top:4px;font-weight:700">${j.url}</a>
+        <a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent-text);font-size:14px;display:block;margin-top:4px;font-weight:700">${j.url}</a>
         <div style="font-size:11.5px;color:var(--text-2);margin-top:4px">${escHtml(j.note||'')}</div>
         ${j.qr?`<img src="${j.qr}" style="margin-top:10px;border-radius:8px;width:120px">`:''} 
         <button data-act-click="stopTunnel()" class="btn btn-ghost btn-sm" style="margin-top:8px;color:var(--danger)">⛔ Stop Tunnel</button>`;

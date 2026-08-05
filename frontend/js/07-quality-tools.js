@@ -58,7 +58,7 @@ async function renderBugBot() {
 
     <!-- Review tabs -->
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-      <button class="btn" id="bb-tab-diff" data-act-click="bbShowTab('diff')" style="background:var(--accent);color:#fff">📄 Review Diff</button>
+      <button class="btn" id="bb-tab-diff" data-act-click="bbShowTab('diff')" style="background:var(--accent);color:var(--on-accent)">📄 Review Diff</button>
       <button class="btn-sm" id="bb-tab-git" data-act-click="bbShowTab('git')">🌿 Git Diff</button>
       <button class="btn-sm" id="bb-tab-file" data-act-click="bbShowTab('file')">📁 Review File</button>
       <button class="btn-sm" id="bb-tab-pr" data-act-click="bbShowTab('pr')">🐙 GitHub PR</button>
@@ -239,7 +239,7 @@ function bbShowResults(d) {
                 ${i.file?`<span style="font-size:10px;color:var(--text-3);margin-left:auto">${escHtml(i.file)}${i.line?':'+i.line:''}</span>`:''}
               </div>
               <div style="font-size:12px;color:var(--text-2)">${escHtml(i.description||'')}</div>
-              ${i.fix?`<div style="font-size:11px;color:var(--accent);margin-top:4px;font-family:monospace">Fix: ${escHtml(i.fix)}</div>`:''}
+              ${i.fix?`<div style="font-size:11px;color:var(--accent-text);margin-top:4px;font-family:monospace">Fix: ${escHtml(i.fix)}</div>`:''}
             </div>`).join('')
         }
         ${(d.positives||[]).length?`<div style="margin-top:10px;padding:10px 12px;background:rgba(61,186,122,.08);border-radius:8px;border:1px solid var(--success)33"><strong style="color:var(--success);font-size:12px">✅ Positives:</strong>${(d.positives||[]).map(p=>`<div style="font-size:11px;color:var(--text-2);margin-top:2px">• ${escHtml(p)}</div>`).join('')}</div>`:''}
@@ -393,7 +393,7 @@ async function renderGitAI() {
 
     <!-- Git status bar -->
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:16px;align-items:center;font-size:12px">
-      <span>🌿 <strong style="color:var(--accent)">${escHtml(gitStatus.branch||'(no branch)')}</strong></span>
+      <span>🌿 <strong style="color:var(--accent-text)">${escHtml(gitStatus.branch||'(no branch)')}</strong></span>
       <span style="color:var(--text-3)">|</span>
       <span>${gitStatus.changed_count||0} changed files</span>
       ${gitStatus.clean?'<span style="color:var(--success)">✅ Clean</span>':'<span style="color:var(--warning)">⚠️ Uncommitted changes</span>'}
@@ -567,7 +567,7 @@ async function gitaiRunDepAudit() {
             <span class="bb-severity-badge ${f.severity||'low'}">${f.severity||'info'}</span>
             <strong style="color:var(--text-0);margin-left:6px">${escHtml(f.name||'')}</strong> ${escHtml(f.current_version||'')} → ${escHtml(f.latest_version||'?')}
             <div style="color:var(--text-2);margin-top:2px">${escHtml(f.description||'')}</div>
-            ${f.recommendation?`<div style="color:var(--accent);font-family:monospace;font-size:10px">${escHtml(f.recommendation)}</div>`:''}
+            ${f.recommendation?`<div style="color:var(--accent-text);font-family:monospace;font-size:10px">${escHtml(f.recommendation)}</div>`:''}
           </div>`).join('')||'<div style="color:var(--success)">✅ No issues found</div>'}
         ${d.upgrade_commands?.python?`<div style="margin-top:10px;font-family:monospace;font-size:10px;color:var(--text-3)">${escHtml(d.upgrade_commands.python)}</div>`:''}
       </div>`;

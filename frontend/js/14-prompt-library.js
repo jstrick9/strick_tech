@@ -84,10 +84,10 @@ async function renderPrompts() {
         <button data-act-click="toggleFavs()" class="btn ${promptFavOnly?'btn-primary':'btn-ghost'} btn-sm" id="fav-btn">⭐ Favorites</button>
         <div style="display:flex;gap:4px;flex-wrap:wrap" id="prompt-cat-filter">
           <button type="button" data-prompt-cat="all" class="term-btn" id="pcat-all"
-                  style="${promptCategory==='all'?'border-color:var(--accent);color:var(--accent-hi)':''}">All (${promptsData.length})</button>
+                  style="${promptCategory==='all'?'border-color:var(--accent-text);color:var(--accent-hi)':''}">All (${promptsData.length})</button>
           ${cats.map(c=>`<button type="button" data-prompt-cat="${escHtml(c.id)}" class="term-btn" id="pcat-${escHtml(c.id)}"
             title="${c.builtin===false?'Custom category':'Built-in category'}"
-            style="${promptCategory===c.id?'border-color:var(--accent);color:var(--accent-hi)':''}">${escHtml(c.label||c.id)} (${c.count})</button>`).join('')}
+            style="${promptCategory===c.id?'border-color:var(--accent-text);color:var(--accent-hi)':''}">${escHtml(c.label||c.id)} (${c.count})</button>`).join('')}
           <button type="button" data-prompt-action="new-category" class="term-btn"
                   title="Create a custom category">＋ Category</button>
         </div>
@@ -124,7 +124,7 @@ async function renderPrompts() {
             </select>
           </div>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:14px;font-size:13px">
-            <input type="checkbox" id="pm-fav" style="accent-color:var(--accent)"> Mark as favorite
+            <input type="checkbox" id="pm-fav" style="accent-color:var(--accent-text)"> Mark as favorite
           </label>
           <div style="display:flex;gap:8px;justify-content:flex-end">
             <button data-act-click="closePromptModal()" class="btn btn-ghost">Cancel</button>
@@ -225,7 +225,7 @@ function renderPromptCards() {
           <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap">
             <span style="font-size:10px;padding:1px 7px;border-radius:99px;background:var(--bg-3);color:var(--text-2)">${escHtml(p.category||'general')}</span>
             ${(p.tags||'').split(',').filter(t=>t.trim()).slice(0,2).map(t=>`<span style="font-size:10px;padding:1px 7px;border-radius:99px;background:var(--bg-3);color:var(--text-3)">${escHtml(t.trim())}</span>`).join('')}
-            ${p.agent_id?`<span style="font-size:10px;padding:1px 7px;border-radius:99px;background:var(--bg-3);color:var(--accent)">🤖 ${escHtml(p.agent_id)}</span>`:''}
+            ${p.agent_id?`<span style="font-size:10px;padding:1px 7px;border-radius:99px;background:var(--bg-3);color:var(--accent-text)">🤖 ${escHtml(p.agent_id)}</span>`:''}
             ${(() => { const v = promptVariables(p.content); return v.length
               ? `<span style="font-size:10px;padding:1px 7px;border-radius:99px;background:var(--bg-3);color:var(--warning)"
                        title="Fills in when you click Use: ${escHtml(v.join(', '))}">⚙ ${v.length} var${v.length>1?'s':''}</span>`
@@ -645,7 +645,7 @@ async function runCodeSearch(){
     </div>${Object.entries(byFile).map(([file,hits])=>`
       <div style="margin-bottom:10px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
         <div style="padding:7px 12px;background:var(--bg-3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer" data-act-click="studioOpenFile(${jsArg(file)});nav('studio')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
-          <span style="font-size:11.5px;font-family:monospace;color:var(--accent);font-weight:600">${escHtml(file)}</span>
+          <span style="font-size:11.5px;font-family:monospace;color:var(--accent-text);font-weight:600">${escHtml(file)}</span>
           <span style="font-size:10.5px;color:var(--text-3);margin-left:auto">${hits.length} match${hits.length!==1?'es':''} · open →</span>
         </div>
         ${hits.map(hit=>{
@@ -807,7 +807,7 @@ window.renderSplitPane = async function(paneId) {
     slot.innerHTML = `
       <div style="display:flex;flex-direction:column;height:100%;gap:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-1);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
-          <span style="font-weight:800;color:var(--accent)">⚡ Studio Code Buffer (Secondary Dock)</span>
+          <span style="font-weight:800;color:var(--accent-text)">⚡ Studio Code Buffer (Secondary Dock)</span>
           <button class="btn-3d btn-sm" data-act-click="nav('studio')" style="padding:4px 10px;font-size:11px">Open Full Studio ↗</button>
         </div>
         <div id="secondary-monaco-container" style="flex:1;min-height:320px;background:#04060f;border:1px solid var(--border-hi);border-radius:12px;padding:14px;font-family:monospace;font-size:12.5px;color:#a7f3d0;overflow:auto">
@@ -1054,7 +1054,7 @@ async function showPromptHistory(pid) {
         <button type="button" class="btn btn-ghost btn-sm" data-ph="close">✕</button>
       </div>
       <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px;background:var(--bg-1)">
-        <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Current</div>
+        <div style="font-size:10px;color:var(--accent-text);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Current</div>
         <div style="font-size:12px;color:var(--text-1);white-space:pre-wrap;word-break:break-word">${escHtml((p?.content || '').slice(0, 400))}</div>
       </div>
       ${versions.length ? versions.map(v => `

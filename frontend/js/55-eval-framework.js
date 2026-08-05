@@ -55,7 +55,7 @@ async function renderEvalFramework() {
         <div style="background:var(--bg-3);border-radius:8px;padding:10px;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px">
             <span style="color:var(--danger);font-weight:700">Score: ${Math.round((r.overall_score||0)*100)}%</span>
-            <span style="color:var(--accent)">${escHtml(r.agent_id)}</span>
+            <span style="color:var(--accent-text)">${escHtml(r.agent_id)}</span>
             <span style="color:var(--text-3)">${new Date(r.created_at).toLocaleTimeString()}</span>
           </div>
           <div style="font-size:11px;color:var(--text-1);margin-bottom:6px">${escHtml((r.prompt||'').slice(0,80))}</div>
@@ -93,7 +93,7 @@ async function renderEvalFramework() {
         const pct = a.pass_pct||0;
         return `
         <div style="display:grid;grid-template-columns:120px 1fr 80px 80px;gap:8px;align-items:center;padding:6px 8px;background:${i%2===0?'var(--bg-3)':'transparent'};border-radius:6px;font-size:12px">
-          <span style="color:var(--accent);font-weight:600">${escHtml(a.agent_id)}</span>
+          <span style="color:var(--accent-text);font-weight:600">${escHtml(a.agent_id)}</span>
           <div style="background:var(--bg-2);border-radius:4px;height:8px;overflow:hidden">
             <div style="width:${Math.min(sc*100,100)}%;height:8px;background:${scoreColor(sc)};border-radius:4px"></div>
           </div>

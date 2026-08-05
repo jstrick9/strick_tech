@@ -14,7 +14,7 @@ async function renderWorkspaces() {
       <div class="page-content">
       ${helpPanel({title:'Switch between multiple client projects',body:'Activating a workspace loads its files into Studio instantly. Your current work is auto-saved first.',steps:['Click a workspace card to activate','All files switch automatically','Edit, build, and deploy independently','Export any project as a ZIP']})}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
-        ${ws.map(w=>`<div class="card ${w.is_current?'':'card-interactive lift'}" style="${w.is_current?'border-color:var(--accent)':''}">
+        ${ws.map(w=>`<div class="card ${w.is_current?'':'card-interactive lift'}" style="${w.is_current?'border-color:var(--accent-text)':''}">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
             <div style="width:36px;height:36px;border-radius:8px;background:${w.color||'var(--accent)'}22;border:1px solid ${w.color||'var(--accent)'}44;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${w.emoji||'📁'}</div>
             <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px">${escHtml(w.name)}</div>

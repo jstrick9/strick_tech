@@ -47,9 +47,23 @@
   --text-0: #ffffff;
   --text-1: #e0e0e0;
   --text-2: #b0b0b0;
-  --text-3: #808080;
+  /* WCAG AA. Was #808080, which measured 3.06:1 on --bg-4 and 3.63:1 on
+     --bg-3 -- below the 4.5:1 body-text minimum on every surface except
+     --bg-0/1. This token carries hints, timestamps and metadata across 655
+     call sites, i.e. exactly the secondary text that is hardest to read and
+     easiest to dismiss as "muted by design". #a0a0a0 clears 4.5:1 through
+     --bg-4 while staying visibly de-emphasised against --text-2. */
+  --text-3: #a0a0a0;
+  /* Brand fill. NOT safe as a text colour: 4.01:1 on --bg-1. It cannot simply
+     be brightened because 46 controls put white text ON it -- #fff on #6366f1
+     is already only 4.47:1, and lightening the fill drops that to 2.98:1. So
+     the fill keeps its value and text gets its own token below. */
   --accent: #6366f1;
   --accent-hi: #818cf8;
+  /* Accessible accent for TEXT and icons on dark surfaces: 6.01:1 on --bg-1,
+     4.81:1 on --bg-3. Use var(--accent-text) for coloured text/links and
+     var(--accent) for fills. */
+  --accent-text: #818cf8;
   --accent-glow: rgba(99,102,241,0.15);
   --success: #22c55e;
   --warning: #eab308;
@@ -97,7 +111,7 @@
   color:var(--text-0);text-decoration:none;
   flex-shrink:0;
 }
-#topbar .logo span{color:var(--accent)}
+#topbar .logo span{color:var(--accent-text)}
 .badge{
   font-size:10px;font-weight:700;padding:2px 7px;
   border-radius:99px;background:var(--bg-3);
@@ -219,11 +233,11 @@
 .sidebar-add-agent{
   display:flex;align-items:center;gap:8px;
   padding:7px 10px;border-radius:var(--radius-sm);
-  cursor:pointer;color:var(--accent);font-size:12px;
+  cursor:pointer;color:var(--accent-text);font-size:12px;
   border:1px dashed var(--border);margin:4px 8px 8px;
   transition:var(--transition);
 }
-.sidebar-add-agent:hover{background:var(--accent-glow);border-color:var(--accent)}
+.sidebar-add-agent:hover{background:var(--accent-glow);border-color:var(--accent-text)}
 
 /* ── Content area ────────────────────────────────────────── */
 /* Layout consolidated in unified.css */
@@ -266,7 +280,7 @@
   line-height:1.6;white-space:pre-wrap;word-break:break-word;
   font-size:13.5px;
 }
-.msg.user .msg-bubble{background:var(--accent-glow);border-color:var(--accent)}
+.msg.user .msg-bubble{background:var(--accent-glow);border-color:var(--accent-text)}
 .msg-bubble code{
   background:var(--bg-0);border:1px solid var(--border);
   border-radius:4px;padding:1px 5px;font-size:12px;
@@ -312,7 +326,7 @@
   border-radius:var(--radius);padding:10px 12px;
   transition:var(--transition);
 }
-.chat-input-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.chat-input-row:focus-within{border-color:var(--accent-text);box-shadow:0 0 0 3px var(--accent-glow)}
 #chat-input{
   flex:1;background:transparent;border:none;outline:none;
   color:var(--text-0);font-size:14px;resize:none;
@@ -336,7 +350,7 @@
   padding:3px 10px;cursor:pointer;transition:var(--transition);
 }
 .chat-tool:hover{color:var(--text-0);border-color:var(--border-hi)}
-.chat-tool.active{color:var(--accent-hi);border-color:var(--accent);background:var(--accent-glow)}
+.chat-tool.active{color:var(--accent-hi);border-color:var(--accent-text);background:var(--accent-glow)}
 
 .file-row{
   display:flex;align-items:center;gap:6px;padding:5px 10px;
@@ -352,10 +366,10 @@
 .new-file-btn{
   display:flex;align-items:center;gap:6px;padding:7px 10px;
   border-radius:var(--radius-sm);cursor:pointer;
-  color:var(--accent);font-size:12px;font-weight:600;
+  color:var(--accent-text);font-size:12px;font-weight:600;
   border:1px dashed var(--border);margin:6px;transition:var(--transition);
 }
-.new-file-btn:hover{background:var(--accent-glow);border-color:var(--accent)}
+.new-file-btn:hover{background:var(--accent-glow);border-color:var(--accent-text)}
 
 /* ── Kanban pane ─────────────────────────────────────────── */
 #pane-kanban{background:var(--bg-0);overflow:auto;padding:20px}
@@ -398,7 +412,7 @@
   transition:var(--transition);
 }
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{
-  border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);
+  border-color:var(--accent-text);box-shadow:0 0 0 3px var(--accent-glow);
 }
 .form-group textarea{min-height:80px;resize:vertical}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
@@ -426,7 +440,7 @@
   font-size:18px;cursor:pointer;background:var(--bg-3);
   border:2px solid transparent;transition:var(--transition);
 }
-.avatar-opt:hover,.avatar-opt.selected{border-color:var(--accent)}
+.avatar-opt:hover,.avatar-opt.selected{border-color:var(--accent-text)}
 
 /* ── Command palette ─────────────────────────────────────── */
 #palette-modal{
@@ -530,7 +544,7 @@
   border-radius:var(--radius-sm);padding:7px 10px;
   color:var(--text-0);font-size:12.5px;outline:none;
 }
-.galaxy-search-row input:focus{border-color:var(--accent)}
+.galaxy-search-row input:focus{border-color:var(--accent-text)}
 #gx-results{flex:1;overflow-y:auto;padding:8px}
 .gx-hit{
   padding:8px;border-radius:var(--radius-sm);cursor:pointer;
@@ -554,7 +568,7 @@
   color:var(--text-0);font-size:13px;outline:none;
   font-family:'JetBrains Mono',monospace;
 }
-.key-input:focus{border-color:var(--accent)}
+.key-input:focus{border-color:var(--accent-text)}
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media(max-width:900px){
@@ -618,13 +632,13 @@
   transition:var(--transition);white-space:nowrap;flex-shrink:0;
 }
 .device-btn:hover{background:var(--bg-3);color:var(--text-0)}
-.device-btn.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent-hi)}
+.device-btn.active{background:var(--accent-glow);border-color:var(--accent-text);color:var(--accent-hi)}
 .bp-btn{
   padding:3px 8px;border-radius:5px;font-size:10.5px;font-weight:700;
   border:1px solid var(--border);cursor:pointer;color:var(--text-2);
   background:var(--bg-2);transition:var(--transition);
 }
-.bp-btn:hover,.bp-btn.active{border-color:var(--accent);color:var(--accent-hi);background:var(--accent-glow)}
+.bp-btn:hover,.bp-btn.active{border-color:var(--accent-text);color:var(--accent-hi);background:var(--accent-glow)}
 
 /* Device frames */
 .preview-frame-wrap{
@@ -671,7 +685,7 @@
   border-radius:var(--radius-sm);padding:6px 10px;
   transition:var(--transition);
 }
-.studio-ai-input-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+.studio-ai-input-row:focus-within{border-color:var(--accent-text);box-shadow:0 0 0 2px var(--accent-glow)}
 .studio-ai-input{
   flex:1;background:transparent;border:none;outline:none;
   color:var(--text-0);font-size:13px;font-family:inherit;
@@ -856,7 +870,7 @@
 .input{width:100%;background:var(--bg-1);color:var(--text-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 12px;height:36px;font-size:var(--text-sm);font-family:inherit;outline:none;transition:border-color var(--transition),box-shadow var(--transition)}
 .input::placeholder{color:var(--text-3)}
 .input:hover{border-color:var(--border-hi)}
-.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.input:focus{border-color:var(--accent-text);box-shadow:0 0 0 3px var(--accent-glow)}
 textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
 /* ── Data table ──────────────────────────────────────────── */
@@ -877,7 +891,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 .settings-card h3{font-size:var(--text-md);font-weight:700;color:var(--text-0);margin-bottom:4px}
 .settings-card > p{font-size:var(--text-sm);color:var(--text-2);margin-bottom:var(--space-4);line-height:1.6}
 .key-input{width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-0);font-size:var(--text-sm);outline:none;font-family:'JetBrains Mono','Fira Code',monospace;transition:var(--transition)}
-.key-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.key-input:focus{border-color:var(--accent-text);box-shadow:0 0 0 3px var(--accent-glow)}
 .key-input-row{display:flex;gap:8px}
 
 /* ── Topbar adjustments ──────────────────────────────────── */
@@ -890,7 +904,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 .sidebar-group-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);padding:12px 10px 4px;margin-top:4px}
 /* ── Contextual help ? button (Sprint 20) ─────────────────── */
 .ctx-help-btn{position:absolute;top:8px;right:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text-3);transition:all .12s;z-index:10;line-height:1}
-.ctx-help-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.ctx-help-btn:hover{border-color:var(--accent-text);color:var(--accent-text);background:var(--accent-glow)}
 
 /* ── Simple / Power mode CSS-level enforcement (data-ui-mode attr) ── */
 /* Simple mode: hide all nav items by default, JS selectively shows the 6 allowed ones */
@@ -904,7 +918,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
   display: block;
   font-size: 10px;
   font-weight: 700;
-  color: var(--accent);
+  color:var(--accent-text);
   text-transform: uppercase;
   letter-spacing: .06em;
   padding: 6px 12px 2px;
@@ -1143,14 +1157,14 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
   padding:7px 10px;
   border-radius:var(--radius-sm);
   cursor:pointer;
-  color:var(--accent);
+  color:var(--accent-text);
   font-size:12px;
   border:1px dashed var(--border);
   margin:4px 6px 6px;
   transition:var(--transition);
   flex-shrink:0;
 }
-.sidebar-add-agent:hover{background:var(--accent-glow);border-color:var(--accent)}
+.sidebar-add-agent:hover{background:var(--accent-glow);border-color:var(--accent-text)}
 
 /* Sidebar toggle button */
 #sidebar-toggle-btn{
@@ -1211,11 +1225,11 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 .terminal-container{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#050508;font-family:'JetBrains Mono','Fira Code',ui-monospace,monospace}
 .vault-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12.5px}
 .vault-row:hover{background:var(--bg-2)}
-.vault-key{font-family:monospace;font-weight:700;color:var(--accent);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vault-key{font-family:monospace;font-weight:700;color:var(--accent-text);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vault-scope{font-size:10px;padding:2px 6px;border-radius:3px;background:var(--bg-3);color:var(--text-3)}
 .vault-enc-badge{font-size:10px;padding:2px 6px;border-radius:3px;background:rgba(61,186,122,.15);color:var(--success)}
 .vault-input{width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 11px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none}
-.vault-input:focus{border-color:var(--accent)}
+.vault-input:focus{border-color:var(--accent-text)}
 .terminal-output{flex:1;overflow-y:auto;padding:12px 14px;font-size:13px;line-height:1.55;color:#e0e8f0;word-break:break-all}
 .terminal-output .stdout{color:#c8d8e8}
 .terminal-output .stderr{color:#f06080}
@@ -1385,7 +1399,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <div id="sidebar-agents-section" style="border-top:1px solid var(--border);padding:8px;flex-shrink:0">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px;margin-bottom:4px">
           <span style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px">Agents</span>
-          <button type="button" data-act-click="openAgentModal()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;padding:0;line-height:1" title="Add Agent">+</button>
+          <button type="button" data-act-click="openAgentModal()" style="background:none;border:none;color:var(--accent-text);cursor:pointer;font-size:14px;padding:0;line-height:1" title="Add Agent">+</button>
         </div>
         <div class="agent-list" id="agent-list" style="max-height:120px;overflow-y:auto"></div>
       </div>
@@ -1397,7 +1411,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <div id="content">
       <!-- Sticky Contextual Breadcrumb Bar (Phase A) -->
       <div id="sticky-breadcrumb-bar" style="background:var(--bg-1);border-bottom:1px solid var(--border);padding:8px 24px;font-size:12.5px;color:var(--text-2);display:flex;align-items:center;gap:8px;flex-shrink:0;user-select:none">
-        <span data-act-click="nav('chat')" style="cursor:pointer;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:4px" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">🏠 Mission Control</span>
+        <span data-act-click="nav('chat')" style="cursor:pointer;color:var(--accent-text);font-weight:600;display:flex;align-items:center;gap:4px" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">🏠 Mission Control</span>
         <span style="opacity:.4">›</span>
         <span id="breadcrumb-current-pane" style="color:var(--text-0);font-weight:700;display:flex;align-items:center;gap:6px">💬 Chat</span>
         <span id="breadcrumb-sub-context" style="margin-left:auto;font-size:11.5px;color:var(--text-3);display:flex;align-items:center;gap:6px"></span>
@@ -1420,7 +1434,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <input type="text" id="chat-sessions-search" placeholder="🔍 Search chats..." data-act-input="filterChatSessions($value)" style="width:100%; background:var(--bg-2); border:1px solid var(--border-hi); border-radius:8px; padding:6px 10px; color:var(--text-0); font-size:12px; outline:none">
               <!-- View toggle -->
               <div style="display:flex; gap:2px; margin-top:8px; background:var(--bg-2); border-radius:6px; padding:2px; border:1px solid var(--border)">
-                <button type="button" id="view-folders-btn" data-act-click="switchChatView('folders')" style="flex:1;padding:4px 8px;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;transition:all .12s;background:var(--accent);color:#fff">📁 Folders</button>
+                <button type="button" id="view-folders-btn" data-act-click="switchChatView('folders')" style="flex:1;padding:4px 8px;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;transition:all .12s;background:var(--accent);color:var(--on-accent)">📁 Folders</button>
                 <button type="button" id="view-date-btn" data-act-click="switchChatView('date')" style="flex:1;padding:4px 8px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;background:transparent;color:var(--text-2)">📅 Date</button>
               </div>
             </div>
@@ -2072,7 +2086,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         <div id="galaxy-container">
           <div id="gx-graph"></div>
           <div style="position:absolute;top:12px;left:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <button type="button" data-act-click="gxAddMemory()" class="btn-primary btn-sm btn-3d" style="background:var(--accent);color:#fff">＋ Add Memory</button>
+            <button type="button" data-act-click="gxAddMemory()" class="btn-primary btn-sm btn-3d" style="background:var(--accent);color:var(--on-accent)">＋ Add Memory</button>
             <button type="button" data-act-click="refreshGalaxy()" class="btn-ghost btn-sm btn-3d">⟳ Refresh</button>
             <button type="button" data-act-click="fitGalaxy()" class="btn-ghost btn-sm btn-3d">⊡ Fit</button>
             <select id="gx-limit" data-act-change="refreshGalaxy()" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text-1);font-size:12px">
@@ -2199,7 +2213,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div style="width:240px;border-right:1px solid var(--border);background:var(--bg-1);display:flex;flex-direction:column;padding:12px;gap:6px">
             <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between">
               <span>Project Folders</span>
-              <span data-act-click="openNewProjectIvrenModal()" style="cursor:pointer;color:var(--accent);font-size:14px" title="Create Project" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">+</span>
+              <span data-act-click="openNewProjectIvrenModal()" style="cursor:pointer;color:var(--accent-text);font-size:14px" title="Create Project" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">+</span>
             </div>
             <div id="t2-project-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
               <!-- Dynamically rendered projects -->
@@ -2209,7 +2223,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div style="flex:1;display:flex;flex-direction:column;background:var(--bg-0);overflow:hidden">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg-1)">
               <div style="font-size:15px;font-weight:700;color:var(--text-0)">
-                Project: <span id="t2-project-title" style="color:var(--accent)">Select a project</span>
+                Project: <span id="t2-project-title" style="color:var(--accent-text)">Select a project</span>
               </div>
               <div style="display:flex;gap:6px">
                 <button type="button" data-act-click="saveCurrentIvrenSection()" class="btn btn-primary btn-sm">💾 Save Section</button>
@@ -2251,7 +2265,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         <!-- Side-by-Side Live XML Split Preview Panel (Phase C) -->
         <div id="h-live-split-panel" style="display:none;width:44%;border-left:1px solid var(--border);background:var(--bg-1);flex-direction:column;padding:20px;overflow:hidden">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0">
-            <span style="font-size:14px;font-weight:800;color:var(--accent);display:flex;align-items:center;gap:6px">
+            <span style="font-size:14px;font-weight:800;color:var(--accent-text);display:flex;align-items:center;gap:6px">
               <span>📜</span> Live Compiled XML System Prompt
             </span>
             <span id="h-live-split-stats" style="font-size:11px;color:var(--text-3);font-weight:700"></span>
@@ -2438,7 +2452,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         <div class="settings-workstation" style="display:flex;height:100%;width:100%;overflow:hidden">
           <!-- Left Settings Sidebar -->
           <div class="settings-sidebar" style="width:260px;background:var(--bg-1);border-right:1px solid var(--border);padding:24px 14px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;overflow-y:auto">
-            <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;padding:0 12px 10px">SETTINGS WORKSTATION</div>
+            <div style="font-size:11px;font-weight:800;color:var(--accent-text);text-transform:uppercase;letter-spacing:1px;padding:0 12px 10px">SETTINGS WORKSTATION</div>
             
             <button type="button" id="settings-nav-api" data-act-click="switchSettingsTab('api')" class="settings-nav-item active" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
               <span style="font-size:16px">🔑</span> <span style="flex:1">Connect AI & Privacy</span>
@@ -2488,7 +2502,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   </div>
                   <div style="display:flex;align-items:center;gap:8px">
                     <span id="or-key-status-badge" class="tech-badge" style="color:var(--text-2);border-color:var(--border)">NOT CONFIGURED</span>
-                    <button data-act-click="hNoviceApiGuide()" type="button" class="btn-3d btn-ghost btn-sm" style="font-size:11px;color:var(--accent);font-weight:800">🌟 Help getting a key</button>
+                    <button data-act-click="hNoviceApiGuide()" type="button" class="btn-3d btn-ghost btn-sm" style="font-size:11px;color:var(--accent-text);font-weight:800">🌟 Help getting a key</button>
                   </div>
                 </div>
                 <p style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Add an API key to access 140+ AI models. Your key is stored securely on your device and models appear in Chat automatically.</p>
@@ -2548,7 +2562,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                     <span style="font-size:20px">🔌</span>
                     <label style="font-size:14px;font-weight:900;color:var(--text-0)">3. Another AI connection</label>
                   </div>
-                  <span id="settings-api-custom-status" class="tech-badge" style="color:var(--accent);border-color:var(--accent)">LM Studio · Jan · Any Endpoint</span>
+                  <span id="settings-api-custom-status" class="tech-badge" style="color:var(--accent-text);border-color:var(--accent-text)">LM Studio · Jan · Any Endpoint</span>
                 </div>
                 <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Connect a compatible local or hosted AI server you already use. Available models will appear in Chat automatically after a successful connection.</p>
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -2574,7 +2588,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   </div>
                   <span class="badge badge-success">LOCAL ENCRYPTED STORAGE</span>
                 </div>
-                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">All API keys, tokens, and custom headers are encrypted using local AES-256-GCM cryptography tied to your hardware master key (<code style="color:var(--accent);font-family:monospace">~/.vault_key</code> & <code style="color:var(--accent);font-family:monospace">~/Library/Application Support/com.stricktech.agenticos/secrets/vault.json</code>). No credentials ever leave your machine or transmit to third-party telemetry servers.</p>
+                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">All API keys, tokens, and custom headers are encrypted using local AES-256-GCM cryptography tied to your hardware master key (<code style="color:var(--accent-text);font-family:monospace">~/.vault_key</code> & <code style="color:var(--accent-text);font-family:monospace">~/Library/Application Support/com.stricktech.agenticos/secrets/vault.json</code>). No credentials ever leave your machine or transmit to third-party telemetry servers.</p>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
                   <button type="button" data-act-click="checkVaultIntegrity()" class="btn-3d btn-primary btn-sm" style="padding:8px 18px;border-radius:8px">🔍 Run Cryptographic Vault Audit</button>
                   <button type="button" data-act-click="exportEncryptedVaultBackup()" class="btn-3d btn-ghost btn-sm" style="padding:8px 18px;border-radius:8px">📥 Backup Encrypted Secrets (.json)</button>
@@ -2646,7 +2660,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                   <button type="button" id="settings-simple-btn" data-act-click="switchUIMode('simple');updateSettingsModeButtons();toast('✨ Core Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
                     <div style="font-size:22px;margin-bottom:6px">⚡</div>
-                    <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:var(--accent)">Core Workstation</div>
+                    <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:var(--accent-text)">Core Workstation</div>
                     <div style="font-size:12px;color:var(--text-2);line-height:1.4">Streamlined focused view. Essential Chat, Multi-Agent Swarm, Code Studio, and AI Context &amp; Guidelines.</div>
                   </button>
                   <button type="button" id="settings-power-btn" data-act-click="switchUIMode('power');updateSettingsModeButtons();toast('🌌 Power Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
@@ -2686,7 +2700,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px">You can drag the divider handle (`#sidebar-resizer`) directly between the sidebar and workspace to expand or shrink the navigation pane dynamically between 56px (icon mode) and 600px (deep folder hierarchy mode). Your exact width is automatically saved to local storage.</p>
                 <div style="display:flex;gap:12px">
                   <button type="button" data-act-click="toggleSidebar();toast('Sidebar toggled')" class="btn btn-primary btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);cursor:pointer">Toggle Collapsed Mode (56px)</button>
-                  <button type="button" data-act-click="hExpandSidebar()" class="btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer">Reset Default Width (260px)</button>
+                  <button type="button" data-act-click="hExpandSidebar()" class="btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer">Reset Default Width (260px)</button>
                 </div>
               </div>
 
@@ -2703,7 +2717,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🛡 AI Specialist Agents Swarm</h2>
                   <p style="color:var(--text-2);font-size:13.5px">Configure autonomous specialist agent personas, system prompts, and model routing.</p>
                 </div>
-                <button type="button" data-act-click="openAgentModal()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">＋ Create Specialist Agent</button>
+                <button type="button" data-act-click="openAgentModal()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">＋ Create Specialist Agent</button>
               </div>
 
               <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
@@ -2725,7 +2739,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 </div>
                 <div style="display:flex;gap:10px;margin-bottom:14px">
                   <input id="ollama-url-input" type="text" value="http://localhost:11434" style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
-                  <button type="button" data-act-click="testOllamaConnection()" class="btn btn-primary" style="padding:10px 20px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-weight:700;cursor:pointer">⚡ Check Connection</button>
+                  <button type="button" data-act-click="testOllamaConnection()" class="btn btn-primary" style="padding:10px 20px;background:var(--accent);border:none;border-radius:10px;color:var(--on-accent);font-weight:700;cursor:pointer">⚡ Check Connection</button>
                 </div>
                 <div id="ollama-models" style="font-size:12px;color:var(--text-2);padding:10px;background:var(--bg-2);border-radius:8px"></div>
               </div>
@@ -2741,7 +2755,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                       <div style="font-weight:800;font-size:14px;color:var(--text-0);margin-bottom:4px">Llama 3.1 8B</div>
                       <div style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">Meta's premier instruction-tuned model. Exceptional reasoning & coding on Apple Silicon (`~4.7 GB`).</div>
                     </div>
-                    <button type="button" data-act-click="pullOllamaModel('llama3.1:8b')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent);font-weight:700;cursor:pointer">⚡ Pull llama3.1:8b</button>
+                    <button type="button" data-act-click="pullOllamaModel('llama3.1:8b')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent-text);font-weight:700;cursor:pointer">⚡ Pull llama3.1:8b</button>
                   </div>
                   
                   <div style="padding:16px;border-radius:12px;border:1px solid var(--border);background:var(--bg-2);display:flex;flex-direction:column;justify-content:space-between">
@@ -2749,7 +2763,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                       <div style="font-weight:800;font-size:14px;color:var(--text-0);margin-bottom:4px">Mistral 7B</div>
                       <div style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">High-speed European foundation model with top-tier efficiency and low memory footprint (`~4.1 GB`).</div>
                     </div>
-                    <button type="button" data-act-click="pullOllamaModel('mistral')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent);font-weight:700;cursor:pointer">⚡ Pull mistral</button>
+                    <button type="button" data-act-click="pullOllamaModel('mistral')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent-text);font-weight:700;cursor:pointer">⚡ Pull mistral</button>
                   </div>
 
                   <div style="padding:16px;border-radius:12px;border:1px solid var(--border);background:var(--bg-2);display:flex;flex-direction:column;justify-content:space-between">
@@ -2757,7 +2771,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                       <div style="font-weight:800;font-size:14px;color:var(--text-0);margin-bottom:4px">Qwen 2.5 7B</div>
                       <div style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">Alibaba's cutting-edge multilingual & math specialist model (`~4.5 GB`).</div>
                     </div>
-                    <button type="button" data-act-click="pullOllamaModel('qwen2.5:7b')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent);font-weight:700;cursor:pointer">⚡ Pull qwen2.5:7b</button>
+                    <button type="button" data-act-click="pullOllamaModel('qwen2.5:7b')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent-text);font-weight:700;cursor:pointer">⚡ Pull qwen2.5:7b</button>
                   </div>
                 </div>
               </div>
@@ -2775,8 +2789,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <p style="font-size:13px;color:var(--text-2);margin-bottom:16px">Your SQLite database uses high-concurrency Write-Ahead Logging (WAL) and Full-Text Search 5 (FTS5).</p>
                 
                 <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;font-size:12.5px;color:var(--text-1)">
-                  <div style="margin-bottom:6px"><strong>Database Path:</strong> <code style="font-family:monospace;color:var(--accent)">~/Library/Application Support/com.stricktech.agenticos/memory/agentic.db</code></div>
-                  <div><strong>Encrypted Vault Key Path:</strong> <code style="font-family:monospace;color:var(--accent)">~/Library/Application Support/com.stricktech.agenticos/.vault_key</code></div>
+                  <div style="margin-bottom:6px"><strong>Database Path:</strong> <code style="font-family:monospace;color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/memory/agentic.db</code></div>
+                  <div><strong>Encrypted Vault Key Path:</strong> <code style="font-family:monospace;color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/.vault_key</code></div>
                   <div id="system-info" style="margin-top:8px;color:var(--text-2);font-weight:600"></div>
                 </div>
                 

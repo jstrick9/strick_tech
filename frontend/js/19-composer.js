@@ -245,7 +245,7 @@ async function runScreenshotToCode() {
       // function. The value itself was already restricted to same-origin
       // paths by the regex; the hazard was the name.
       const previewPath = /^\/[^\s"'<>]*$/.test(j.preview_url || '') ? j.preview_url : '/preview/index.html';
-      if (st) st.innerHTML = `✅ Converted! ${escHtml(String(j.tokens ?? 0))} tokens · <a href="${safeUrl(previewPath)}" target="_blank" rel="noopener" style="color:var(--accent)">Preview ↗</a>`;
+      if (st) st.innerHTML = `✅ Converted! ${escHtml(String(j.tokens ?? 0))} tokens · <a href="${safeUrl(previewPath)}" target="_blank" rel="noopener" style="color:var(--accent-text)">Preview ↗</a>`;
       studioLoadFileTree?.();
       studioReloadPreview?.();
       toast('📷 Screenshot converted to code!', 'ok', 4000);

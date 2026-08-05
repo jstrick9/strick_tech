@@ -138,7 +138,7 @@ function fusionSelectPreset(preset) {
           <div style="background:var(--bg-3);border:1px solid ${_fusionPresetColors[preset]||'var(--border)'}44;border-radius:7px;padding:6px 10px;font-size:11px;color:var(--text-1);font-family:monospace">
             ${escHtml(m.split('/').pop())}
           </div>`).join('')}
-        <div style="background:var(--bg-3);border:1px solid var(--accent)44;border-radius:7px;padding:6px 10px;font-size:11px;color:var(--accent);font-family:monospace">
+        <div style="background:var(--bg-3);border:1px solid var(--accent)44;border-radius:7px;padding:6px 10px;font-size:11px;color:var(--accent-text);font-family:monospace">
           🧑‍⚖️ Judge: ${escHtml((p.judge||'').split('/').pop())}
         </div>`;
     }).catch(()=>{});
@@ -157,7 +157,7 @@ async function fusionRun() {
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px" id="fusion-live">
       <div style="font-size:12px;font-weight:700;margin-bottom:8px">🔀 Fusion Running (${preset} preset)…</div>
       <div id="fusion-panel-responses" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
-      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px" id="fusion-judge-label" style="display:none">🧑‍⚖️ Synthesizing…</div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent-text);margin-bottom:6px" id="fusion-judge-label" style="display:none">🧑‍⚖️ Synthesizing…</div>
       <div id="fusion-synthesis" style="font-size:13px;color:var(--text-1);line-height:1.7;white-space:pre-wrap"></div>
     </div>`;
 
@@ -198,7 +198,7 @@ async function fusionRun() {
             if (prEl) {
               const card = document.createElement('div');
               card.style.cssText = `background:var(--bg-3);border:1px solid ${d.error?'var(--danger)':'var(--border)'};border-radius:8px;padding:10px;flex:1;min-width:160px;max-width:220px;font-size:11px`;
-              card.innerHTML = `<div style="font-weight:700;color:var(--accent);margin-bottom:4px">${escHtml(mname)}</div>
+              card.innerHTML = `<div style="font-weight:700;color:var(--accent-text);margin-bottom:4px">${escHtml(mname)}</div>
                 <div style="color:var(--text-2);line-height:1.5">${escHtml((d.text||'').slice(0,150))}${d.text&&d.text.length>150?'…':''}</div>
                 <div style="color:var(--text-3);margin-top:4px">${d.latency_ms||0}ms · ${d.tokens||0}t${d.error?' · ⚠️ error':''}</div>`;
               prEl.appendChild(card);
@@ -259,7 +259,7 @@ async function fusionRoute() {
     if (el) el.innerHTML = `
       <div style="background:var(--bg-3);border-radius:8px;padding:12px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-          <span style="font-size:10px;background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px">${escHtml(d.task_type||'')}</span>
+          <span style="font-size:10px;background:var(--accent);color:var(--on-accent);padding:2px 8px;border-radius:4px">${escHtml(d.task_type||'')}</span>
           <strong style="font-size:12px">${escHtml((d.model||'').split('/').pop())}</strong>
           <span style="font-size:11px;color:var(--text-3)">${d.latency_ms||0}ms · ${d.tokens||0}t${d.error?' · ⚠️ error':''}</span>
         </div>
@@ -284,7 +284,7 @@ async function fusionClassify() {
     if (el) el.innerHTML = `
       <div style="background:var(--bg-3);border-radius:8px;padding:12px;font-size:12px">
         <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-          <span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px">${escHtml(d.task_type||'')}</span>
+          <span style="background:var(--accent);color:var(--on-accent);padding:2px 8px;border-radius:4px">${escHtml(d.task_type||'')}</span>
           <span style="color:var(--text-1);font-weight:600">${escHtml((d.model||'').split('/').pop())}</span>
         </div>
         <div style="color:var(--text-2)">${escHtml(d.reason||'')}</div>
@@ -309,7 +309,7 @@ async function fusionOptimizeCost() {
     if (el) el.innerHTML = `
       <div style="background:var(--bg-3);border-radius:8px;padding:12px;font-size:12px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-          <span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px">${escHtml(d.task_type||'')}</span>
+          <span style="background:var(--accent);color:var(--on-accent);padding:2px 8px;border-radius:4px">${escHtml(d.task_type||'')}</span>
           <strong>${escHtml((d.recommended||'').split('/').pop())}</strong>
           ${d.downgraded?'<span style="color:var(--warning);font-size:10px">⬇ downgraded</span>':'<span style="color:var(--success);font-size:10px">✅ within budget</span>'}
         </div>
@@ -394,7 +394,7 @@ async function fusionSubagent() {
     if (el) {
       el.innerHTML = `
         <div style="background:var(--bg-3);border-radius:8px;padding:12px;margin-top:8px">
-          <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">
+          <div style="font-size:11px;font-weight:700;color:var(--accent-text);margin-bottom:8px">
             ✨ Synthesized from ${subtasks.length} subtask${subtasks.length!==1?'s':''}
             <span style="font-weight:400;color:var(--text-3)">· ${totalMs}ms · ${totalTok}t</span>
           </div>

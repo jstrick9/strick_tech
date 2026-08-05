@@ -24,7 +24,7 @@ async function renderWebhooks() {
               <div style="font-size:11px;color:var(--text-2)">Agent: ${w.agent_id} · ${w.trigger_count||0} triggers</div></div>
               <span class="badge ${w.enabled?'badge-success':'badge-default'}">${w.enabled?'Active':'Off'}</span>
             </div>
-            <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:11px;font-family:monospace;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+            <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:11px;font-family:monospace;color:var(--accent-text);margin-bottom:8px;display:flex;align-items:center;gap:6px">
               <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">POST /api/webhooks/${w.id}/trigger</span>
               <button data-act-click="hCopyWebhookUrl(${jsArg(w.id)})" style="background:none;border:none;color:var(--text-2);cursor:pointer">📋</button>
             </div>

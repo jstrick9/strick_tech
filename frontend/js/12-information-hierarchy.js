@@ -361,7 +361,7 @@
           <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px">
             <span style="color:var(--text-3);width:140px;flex-shrink:0">${escHtml(p.pattern_key||'')}</span>
             <span style="color:var(--text-1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((p.pattern_val||'').slice(0,80))}</span>
-            <span style="color:var(--accent);font-weight:700;width:40px;text-align:right">${Math.round((p.confidence||0)*100)}%</span>
+            <span style="color:var(--accent-text);font-weight:700;width:40px;text-align:right">${Math.round((p.confidence||0)*100)}%</span>
             <span style="color:var(--text-3);font-size:10px;width:50px">×${p.occurrences||1}</span>
             ${p.promoted?'<span style="font-size:10px;color:var(--success)">✅</span>':''}
           </div>
@@ -543,7 +543,7 @@
             <button data-hide="id:hierarchy-interview-modal" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
           </div>
           <div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:20px">
-            Answer these 4 master questions once. We'll automatically structure your 4 Tier 1 Markdown files (<code style="color:var(--accent)">about_me</code>, <code style="color:var(--accent)">about_my_business</code>, <code style="color:var(--accent)">about_my_voice</code>, <code style="color:var(--accent)">about_my_offers</code>).
+            Answer these 4 master questions once. We'll automatically structure your 4 Tier 1 Markdown files (<code style="color:var(--accent-text)">about_me</code>, <code style="color:var(--accent-text)">about_my_business</code>, <code style="color:var(--accent-text)">about_my_voice</code>, <code style="color:var(--accent-text)">about_my_offers</code>).
           </div>
           <div style="display:flex;flex-direction:column;gap:16px">
             <div>

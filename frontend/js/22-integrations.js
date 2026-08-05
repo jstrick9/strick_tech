@@ -25,7 +25,7 @@ async function renderIntegrations() {
     <div id="int-tab-ints">
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
         <div style="display:flex;gap:5px;flex-wrap:wrap;flex:1">
-          <button data-act-click="filterInts('all')" class="term-btn" id="intcat-all" style="border-color:var(--accent);color:var(--accent-hi)">All (${ints.length})</button>
+          <button data-act-click="filterInts('all')" class="term-btn" id="intcat-all" style="border-color:var(--accent-text);color:var(--accent-hi)">All (${ints.length})</button>
           ${cats.map(c=>`<button data-act-click="filterInts(${JSON.stringify(c.id)})" class="term-btn" id="intcat-${c.id}">${escHtml(c.id)} (${c.count})</button>`).join('')}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">

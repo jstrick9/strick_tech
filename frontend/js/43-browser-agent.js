@@ -160,7 +160,7 @@ async function installPlaywrightChromium() {
     progCard.style.cssText = 'margin:16px 24px;padding:16px;border:1px solid var(--accent);border-radius:12px';
     progCard.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-weight:800;font-size:12.5px;color:var(--accent)" id="browser-prog-msg">⏳ Connecting to Playwright setup stream...</span>
+        <span style="font-weight:800;font-size:12.5px;color:var(--accent-text)" id="browser-prog-msg">⏳ Connecting to Playwright setup stream...</span>
         <span style="font-family:monospace;font-size:11px;color:var(--text-2)" id="browser-prog-pct">0%</span>
       </div>
       <div style="width:100%;height:10px;background:var(--bg-3);border-radius:99px;overflow:hidden;border:1px solid var(--border)">
@@ -287,7 +287,7 @@ async function runTask() {
             el.innerHTML = `
               <span class="ba-num">#${d.step_no||stepCount}</span>
               <span class="ba-act">${escHtml(s.action||'?')}</span>
-              <span class="ba-desc">${escHtml(desc.slice(0,100))}${screenPath?`<br><a href="${safeUrl(screenPath)}" target="_blank" rel="noopener" style="color:var(--accent);font-size:10px">📷 screenshot</a>`:''}</span>`;
+              <span class="ba-desc">${escHtml(desc.slice(0,100))}${screenPath?`<br><a href="${safeUrl(screenPath)}" target="_blank" rel="noopener" style="color:var(--accent-text);font-size:10px">📷 screenshot</a>`:''}</span>`;
             stepsList?.appendChild(el);
             if (stepsList) stepsList.scrollTop = stepsList.scrollHeight;
             if (cntEl) cntEl.textContent = stepCount + ' steps';
@@ -365,7 +365,7 @@ async function loadHistory() {
         ${sessions.map((s, idx) => `
           <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;font-size:12px">
             <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-              <span style="font-family:monospace;color:var(--accent)">${escHtml(s.id)}</span>
+              <span style="font-family:monospace;color:var(--accent-text)">${escHtml(s.id)}</span>
               <span style="padding:1px 6px;border-radius:4px;font-size:10px;${s.status==='done'?'background:rgba(61,186,122,.15);color:var(--success)':s.status==='error'?'background:rgba(232,82,82,.1);color:var(--danger)':'background:var(--bg-3);color:var(--text-3)'}">${escHtml(s.status)}</span>
             </div>
             <div style="color:var(--text-1);margin-bottom:2px">${escHtml((s.task||'').slice(0,80))}</div>

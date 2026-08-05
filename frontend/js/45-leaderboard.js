@@ -38,7 +38,7 @@ async function renderLeaderboard() {
 
     <!-- Tabs -->
     <div style="display:flex;gap:8px;margin-bottom:14px">
-      <button class="btn" data-act-click="lbShowTab('leaderboard',$this)" style="background:var(--accent);color:#fff">🏆 Leaderboard</button>
+      <button class="btn" data-act-click="lbShowTab('leaderboard',$this)" style="background:var(--accent);color:var(--on-accent)">🏆 Leaderboard</button>
       <button class="btn-sm" data-act-click="lbShowTab('discover',$this)">🔍 Discover</button>
       <button class="btn-sm" data-act-click="lbShowTab('policies',$this)">📋 Policies</button>
     </div>
@@ -178,7 +178,7 @@ function lbRenderPolicies(policies) {
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
       ${policies.length ? policies.map((p) =>`
         <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px">
-          <span style="background:var(--bg-3);padding:1px 6px;border-radius:4px;font-family:monospace;color:var(--accent);flex-shrink:0">${escHtml(p.agent_id||'*')}</span>
+          <span style="background:var(--bg-3);padding:1px 6px;border-radius:4px;font-family:monospace;color:var(--accent-text);flex-shrink:0">${escHtml(p.agent_id||'*')}</span>
           <span style="font-weight:600;color:var(--text-1);flex-shrink:0">${escHtml(p.policy_type||'')}</span>
           <span style="color:var(--text-2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.policy_rule||'')}</span>
           <button data-act-click="lbTogglePolicy(${JSON.stringify(p.id)},${p.enabled?0:1})" style="background:none;border:none;cursor:pointer;font-size:14px" title="${p.enabled?'Disable':'Enable'} policy">${p.enabled?'✅':'❌'}</button>

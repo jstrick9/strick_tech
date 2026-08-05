@@ -89,7 +89,7 @@ function renderSystemBody(h, m, g) {
         <div style="font-size:11.5px;font-weight:700;color:var(--text-2);margin-bottom:6px">Recent commits</div>
         ${(g.recent_commits||[]).slice(0,4).map(c => `
           <div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);font-size:11.5px">
-            <code style="color:var(--accent);font-size:10.5px">${c.hash}</code>
+            <code style="color:var(--accent-text);font-size:10.5px">${c.hash}</code>
             <span style="flex:1;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.message)}</span>
             <span style="color:var(--text-3)">${c.date}</span>
           </div>`).join('')}

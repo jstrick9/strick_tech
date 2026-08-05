@@ -55,7 +55,7 @@ async function renderGoals() {
       <div class="gm-sidebar-head">
         <p class="gm-sidebar-title">🎯 Goals</p>
         <div class="gm-stats-row" id="gm-stats-row">
-          <div class="gm-stat"><div class="gm-stat-val" id="gm-stat-total" style="color:var(--accent)">—</div><div class="gm-stat-label">Total</div></div>
+          <div class="gm-stat"><div class="gm-stat-val" id="gm-stat-total" style="color:var(--accent-text)">—</div><div class="gm-stat-label">Total</div></div>
           <div class="gm-stat"><div class="gm-stat-val" id="gm-stat-active" style="color:var(--success)">—</div><div class="gm-stat-label">Active</div></div>
           <div class="gm-stat"><div class="gm-stat-val" id="gm-stat-avg" style="color:#9d74f5">—</div><div class="gm-stat-label">Avg%</div></div>
         </div>
@@ -325,7 +325,7 @@ function gmTabOverview() {
     <div class="gm-section">
       <div class="gm-section-title">🧠 Supervisor Run</div>
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;display:flex;align-items:center;gap:8px">
-        <span style="color:var(--accent)">${g.supervisor_run_id}</span>
+        <span style="color:var(--accent-text)">${g.supervisor_run_id}</span>
         <button data-act-click="nav('supervisor')" style="margin-left:auto;font-size:11px;padding:3px 9px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-1);cursor:pointer">View DAG →</button>
       </div>
     </div>` : ''}
@@ -550,7 +550,7 @@ function gmTabScore() {
     <div class="gm-section">
       <div class="gm-section-title">🚀 Recommended Next Actions</div>
       <div class="gm-next-actions">
-        ${nextActions.map((a,i)=>`<div class="gm-next-action"><span style="color:var(--accent);font-weight:700;flex-shrink:0">${i+1}.</span>${escHtml(a)}</div>`).join('')}
+        ${nextActions.map((a,i)=>`<div class="gm-next-action"><span style="color:var(--accent-text);font-weight:700;flex-shrink:0">${i+1}.</span>${escHtml(a)}</div>`).join('')}
       </div>
     </div>`:''}
 
@@ -841,7 +841,7 @@ function gmOpenCreate() {
           <button data-act-click="gcfAddMilestone()" style="margin-top:6px;font-size:11px;padding:4px 10px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">+ Add Milestone</button>
         </div>
         <div class="gm-form-group full" style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="gcf-auto-decompose" checked style="accent-color:var(--accent)">
+          <input type="checkbox" id="gcf-auto-decompose" checked style="accent-color:var(--accent-text)">
           <label for="gcf-auto-decompose" style="font-size:12px;color:var(--text-1);cursor:pointer">Auto-decompose with Brain agent after creating</label>
         </div>
       </div>

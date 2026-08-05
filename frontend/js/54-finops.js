@@ -63,7 +63,7 @@ async function renderFinOps() {
           <span style="font-size:12px;color:var(--text-2)">Real-time spend heatmap across Models, Specialist Roles (brain, builder), and Workspace Folders</span>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button data-act-click="finopsFilterHeatmap('model')" class="btn-3d btn-ghost btn-sm" id="fo-filter-model" style="padding:4px 10px;font-size:11px;background:var(--accent-glow);border-color:var(--accent)">By Model</button>
+          <button data-act-click="finopsFilterHeatmap('model')" class="btn-3d btn-ghost btn-sm" id="fo-filter-model" style="padding:4px 10px;font-size:11px;background:var(--accent-glow);border-color:var(--accent-text)">By Model</button>
           <button data-act-click="finopsFilterHeatmap('role')" class="btn-3d btn-ghost btn-sm" id="fo-filter-role" style="padding:4px 10px;font-size:11px">By Agent Role</button>
           <button data-act-click="finopsFilterHeatmap('folder')" class="btn-3d btn-ghost btn-sm" id="fo-filter-folder" style="padding:4px 10px;font-size:11px">By Folder</button>
           <button data-act-click="toggleSplitWorkspace(true,'finops')" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:11px">🗂️ Secondary Dock</button>
@@ -72,7 +72,7 @@ async function renderFinOps() {
       <div id="finops-treemap-grid" style="display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:110px 110px;gap:10px;font-family:monospace">
         <div style="background:rgba(56,189,248,0.14);border:1px solid var(--accent);border-radius:10px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;grid-row:1/3;transition:all .15s" class="fo-cell">
           <div>
-            <div style="font-weight:800;font-size:13.5px;color:var(--accent)">Claude 3.5 Sonnet (OpenRouter)</div>
+            <div style="font-weight:800;font-size:13.5px;color:var(--accent-text)">Claude 3.5 Sonnet (OpenRouter)</div>
             <div style="font-size:11px;color:var(--text-2)">Primary Cloud Inference Gateway</div>
           </div>
           <div>
@@ -125,7 +125,7 @@ async function renderFinOps() {
             <span style="font-size:16px">${srcIcons[s.source_type]||'⚙️'}</span>
             <span style="font-size:12px;flex:1">${escHtml(s.source_type)}</span>
             <span style="font-size:11px;color:var(--text-3)">${s.n} calls</span>
-            <span style="font-weight:700;font-size:12px;color:var(--accent)">$${(s.c||0).toFixed(5)}</span>
+            <span style="font-weight:700;font-size:12px;color:var(--accent-text)">$${(s.c||0).toFixed(5)}</span>
           </div>`).join('')||'<div style="color:var(--text-3);font-size:12px">No cost data yet</div>'}
       </div>
 
@@ -155,7 +155,7 @@ async function renderFinOps() {
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
         ${(dash.by_agent||[]).map(a=>`
           <div style="background:var(--bg-3);border-radius:8px;padding:8px 12px;font-size:11px">
-            <div style="font-weight:600;color:var(--accent)">${escHtml(a.agent_id)}</div>
+            <div style="font-weight:600;color:var(--accent-text)">${escHtml(a.agent_id)}</div>
             <div style="color:var(--text-3);font-size:10px">${a.n||0} calls</div>
             <div style="font-weight:700;color:var(--text-0)">$${(a.c||0).toFixed(5)}</div>
           </div>`).join('')||'<div style="color:var(--text-3);font-size:12px">No agent cost data yet</div>'}

@@ -21,7 +21,7 @@ async function renderSpecs() {
     <div class="spec-sidebar">
       <div class="spec-sidebar-top">
         <h3>📋 Specs</h3>
-        <button data-act-click="specNew()" style="width:100%;padding:7px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">＋ New Spec</button>
+        <button data-act-click="specNew()" style="width:100%;padding:7px;background:var(--accent);border:none;border-radius:7px;color:var(--on-accent);font-size:12px;font-weight:600;cursor:pointer">＋ New Spec</button>
       </div>
       <div class="spec-list" id="spec-list"><div style="color:var(--text-3);font-size:12px;padding:8px">Loading…</div></div>
     </div>
@@ -972,7 +972,7 @@ async function ciShowReferences(symbolName) {
           </div>`).join('')}
         ${(d.called_in||[]).slice(0,20).map((c) =>`
           <div style="padding:6px 0;border-top:1px solid var(--border);font-size:12px">
-            <strong style="color:var(--accent)">CALL</strong> from <strong>${escHtml(c.from_symbol)}</strong> in ${escHtml(c.from_file?.split('/').slice(-2).join('/'))} :${c.line_no}
+            <strong style="color:var(--accent-text)">CALL</strong> from <strong>${escHtml(c.from_symbol)}</strong> in ${escHtml(c.from_file?.split('/').slice(-2).join('/'))} :${c.line_no}
           </div>`).join('')}
       </div>`;
     overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
@@ -1032,7 +1032,7 @@ async function renderArena() {
         <div class="arena-side">
           <div class="arena-side-hdr">
             <span style="font-size:16px">🤖</span>
-            <strong id="arena-label-a" style="color:var(--accent)">Model A</strong>
+            <strong id="arena-label-a" style="color:var(--accent-text)">Model A</strong>
             <span id="arena-lat-a" style="margin-left:auto;font-size:10px;color:var(--text-3)"></span>
           </div>
           <div class="arena-response" id="arena-resp-a"><span style="color:var(--text-3)">Response will appear here…</span></div>
@@ -1077,7 +1077,7 @@ async function renderArena() {
               <span class="arena-lb-rank">${medal||('#'+(i+1))}</span>
               <span style="font-weight:600;width:120px;flex-shrink:0">${escHtml(m.model)}</span>
               <div class="arena-elo-bar"><div class="arena-elo-fill" style="width:${pct}%"></div></div>
-              <span style="color:var(--accent);font-weight:700;width:50px;text-align:right">${Math.round(m.elo)}</span>
+              <span style="color:var(--accent-text);font-weight:700;width:50px;text-align:right">${Math.round(m.elo)}</span>
               <span style="color:var(--text-3);width:80px;text-align:right">${m.win_rate}% WR</span>
               <span style="color:var(--text-3);width:60px;text-align:right">${m.battles}B</span>
             </div>`;
@@ -1187,7 +1187,7 @@ async function arenaVote(winner) {
             <span class="arena-lb-rank">${medal||('#'+(i+1))}</span>
             <span style="font-weight:600;width:120px;flex-shrink:0">${escHtml(m.model)}</span>
             <div class="arena-elo-bar"><div class="arena-elo-fill" style="width:${pct}%"></div></div>
-            <span style="color:var(--accent);font-weight:700;width:50px;text-align:right">${Math.round(m.elo)}</span>
+            <span style="color:var(--accent-text);font-weight:700;width:50px;text-align:right">${Math.round(m.elo)}</span>
             <span style="color:var(--text-3);width:80px;text-align:right">${m.win_rate}% WR</span>
           </div>`;
         }).join('');
@@ -1549,7 +1549,7 @@ async function showVoiceHistory() {
     if (!d.history?.length) { gmAlert('No voice commands yet. Try talking!'); return; }
     const items = d.history.map(h =>
       `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-        <span style="color:var(--accent);font-family:monospace">${escHtml(h.action)}</span>
+        <span style="color:var(--accent-text);font-family:monospace">${escHtml(h.action)}</span>
         ${h.payload ? `<span style="color:var(--text-2)"> → ${escHtml(h.payload.slice(0,60))}</span>` : ''}
         <div style="font-size:10px;color:var(--text-3)">"${escHtml(h.transcript)}"</div>
       </div>`
