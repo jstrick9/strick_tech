@@ -1011,6 +1011,12 @@ window.switchSettingsTab = function(tabId) {
   if (tabId === 'ollama' && typeof window.checkHardwareRecommendations === 'function') {
     window.checkHardwareRecommendations();
   }
+  // Load CSP reports only when the tab is opened: the endpoint is cheap but
+  // polling it on every settings visit would be noise for a panel most users
+  // never look at.
+  if (tabId === 'security' && typeof window.renderCspMonitor === 'function') {
+    window.renderCspMonitor();
+  }
 };
 
 window.setupSettingsWorkstation = function() {

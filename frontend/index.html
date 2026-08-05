@@ -2493,6 +2493,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <button type="button" id="settings-nav-system" data-act-click="switchSettingsTab('system')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
               <span style="font-size:16px">💾</span> <span style="flex:1">Storage & DB Backup</span>
             </button>
+<button type="button" id="settings-nav-security" data-act-click="switchSettingsTab('security')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+              <span style="font-size:16px">💾</span> <span style="flex:1">Security</span>
+            </button>
           </div>
 
           <!-- Right Content Area -->
@@ -2799,6 +2802,21 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             </div>
 
             <!-- TAB 6: System Storage & Database Backup -->
+            <div id="settings-tab-security" class="settings-tab-pane">
+              <div class="section-head" style="margin-bottom:24px">
+                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🛡️ Content Security Policy</h2>
+                <p style="color:var(--text-2);font-size:13.5px">The enforced policy blocks inline scripts outright. A second, stricter policy runs in report-only mode so the next tightening can be measured before it is applied — nothing below is currently being blocked.</p>
+              </div>
+              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+                  <h3 style="font-size:16px;font-weight:800;margin:0;flex:1">Report-only violations</h3>
+                  <button type="button" class="btn btn-ghost btn-sm" data-act-click="renderCspMonitor()">↺ Refresh</button>
+                  <button type="button" class="btn btn-ghost btn-sm" data-act-click="clearCspReports()">Clear</button>
+                </div>
+                <div id="csp-monitor-body" style="font-size:13px;color:var(--text-2)">Open this tab to load reports.</div>
+              </div>
+            </div>
+
             <div id="settings-tab-system" class="settings-tab-pane">
               <div class="section-head" style="margin-bottom:24px">
                 <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">💾 System Storage & Database Backup</h2>
@@ -3114,6 +3132,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 <script src="/static/js/55-eval-framework.js" defer></script>
 <script src="/static/js/56-chat-history.js" defer></script>
 <script src="/static/js/57-account-settings.js" defer></script>
+<script src="/static/js/58-csp-monitor.js" defer></script>
 
 <script src="/static/js/90-sidebar-shortcut.js" defer></script>
 
