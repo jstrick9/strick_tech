@@ -675,6 +675,9 @@ async function sendChat() {
   const displayMessage = attachments.length ? `${msg}\n\n📎 ${attachments.map((item) => item.file.name).join(', ')}` : msg;
   hideChatEmpty();
   input.value = '';
+  // The prompt is now sent, so the saved draft must go with it -- restoring
+  // a message the user already sent would be worse than losing it.
+  window.Drafts?.clearFor(input);
   window._chatAttachments = [];
   window.renderChatAttachments();
   autoResizeInput(input);
