@@ -191,7 +191,7 @@
       </div>
 
       <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px">
-        <div id="acct-avatar-display" style="width:64px;height:64px;border-radius:50%;background:var(--bg-3);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;overflow:hidden">${p.avatar && p.avatar.startsWith('data:') ? `<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover">` : esc(p.avatar || '👤')}</div>
+        <div id="acct-avatar-display" style="width:64px;height:64px;border-radius:50%;background:var(--bg-3);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;overflow:hidden">${p.avatar && p.avatar.startsWith('data:') ? `<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover" alt="">` : esc(p.avatar || '👤')}</div>
         <div style="flex:1">
           <div style="display:flex;gap:8px;margin-bottom:8px">
             <input type="file" id="acct-avatar-file" accept="image/*" style="display:none">
@@ -264,7 +264,7 @@
       reader.onload = (ev) => {
         const dataUri = ev.target.result;
         const disp = document.getElementById('acct-avatar-display');
-        if (disp) { disp.innerHTML = `<img src="${dataUri}" style="width:100%;height:100%;object-fit:cover">`; disp.dataset.pendingAvatar = dataUri; }
+        if (disp) { disp.innerHTML = `<img src="${dataUri}" style="width:100%;height:100%;object-fit:cover" alt="">`; disp.dataset.pendingAvatar = dataUri; }
       };
       reader.readAsDataURL(file);
     });
@@ -495,7 +495,7 @@
   function syncTopbarIdentity({name, avatar}) {
     const avEl = document.getElementById('topbar-user-avatar');
     if (avEl) {
-      if (avatar && avatar.startsWith('data:')) avEl.innerHTML = `<img src="${avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover">`;
+      if (avatar && avatar.startsWith('data:')) avEl.innerHTML = `<img src="${avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover" alt="">`;
       else avEl.textContent = avatar || '👤';
     }
   }

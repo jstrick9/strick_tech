@@ -251,3 +251,58 @@ def test_focus_is_visible_for_keyboard_users():
     assert ':focus-visible' in css or ':focus' in css, (
         'no focus styling found; tabbable elements would give no visual feedback'
     )
+
+
+# ══ Accessible names ══════════════════════════════════════════════════════════
+# 31 of 33 form controls in index.html had no accessible name. A screen reader
+# announces those as bare "edit text" / "combo box", which makes the settings
+# screens and the agent editor unusable non-visually.
+@requires_jsdom
+def test_every_form_control_has_an_accessible_name():
+    out = _run_node("""
+const {JSDOM} = require('jsdom');
+const fs = require('fs');
+const D = new JSDOM(fs.readFileSync('frontend/index.html','utf8')).window.document;
+const controls = [...D.querySelectorAll('input,select,textarea')]
+  .filter(e => e.type !== 'hidden');
+const unnamed = controls.filter(e =>
+  !e.getAttribute('aria-label') &&
+  !e.getAttribute('aria-labelledby') &&
+  !e.getAttribute('title') &&
+  !D.querySelector('label[for="' + e.id + '"]') &&
+  !e.closest('label')
+).map(e => e.tagName + '#' + (e.id || '?'));
+console.log(JSON.stringify({total: controls.length, unnamed}));
+""")
+    result = json.loads(out.strip())
+    assert result['total'] >= 30, 'markup changed — re-check the audit'
+    assert not result['unnamed'], (
+        f"{len(result['unnamed'])} form controls announce as bare "
+        f"'edit text': {result['unnamed'][:10]}"
+    )
+
+
+def test_the_shared_dialog_input_is_labelled_by_its_title():
+    """A fixed aria-label would be wrong most of the time — the dialog sets its
+    title at runtime, so the name has to follow it."""
+    html = INDEX.read_text(encoding='utf-8')
+    for control_id in ('gm-input', 'gm-textarea'):
+        m = re.search(rf'<(?:input|textarea)[^>]*id="{control_id}"[^>]*>', html)
+        assert m, f'{control_id} not found'
+        assert 'aria-labelledby="gm-title"' in m.group(0), (
+            f'{control_id} needs a dynamic name, not a fixed one'
+        )
+
+
+def test_images_declare_alt_text():
+    """A missing alt makes a screen reader read the filename or URL aloud. An
+    EMPTY alt is correct for decoration — it tells the reader to skip."""
+    offenders = []
+    for path in _sources():
+        for lineno, line in _code_lines(path):
+            for m in re.finditer(r'<img\b[^>]*>', line):
+                if 'alt=' not in m.group(0):
+                    offenders.append(f'{path.name}:{lineno}')
+    assert not offenders, (
+        'images without an alt attribute:\n  ' + '\n  '.join(offenders[:15])
+    )

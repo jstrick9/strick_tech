@@ -4827,7 +4827,7 @@ async function studioQR() {
   if (qrUrl) {
     await gmAlert('📲 QR Code — Scan on your phone',
       `<div style="text-align:center">
-        <img src="${qrUrl}" style="width:180px;height:180px;border-radius:10px;margin-bottom:10px">
+        <img src="${qrUrl}" style="width:180px;height:180px;border-radius:10px;margin-bottom:10px" alt="QR code linking to the shared tunnel URL">
         <div style="font-size:12px;color:var(--text-2)">Make sure your phone is on the same Wi-Fi</div>
         <div style="font-size:11px;color:var(--accent-text);margin-top:4px">${j.urls?.web_preview||''}</div>
       </div>`);

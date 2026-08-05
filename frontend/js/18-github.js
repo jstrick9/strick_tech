@@ -58,7 +58,7 @@ function renderGitHubBody(s) {
     <!-- User card -->
     <div class="settings-card">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-        <img src="${u.avatar_url||''}" style="width:48px;height:48px;border-radius:50%;border:2px solid var(--border)">
+        <img src="${u.avatar_url||''}" style="width:48px;height:48px;border-radius:50%;border:2px solid var(--border)" alt="GitHub profile avatar">
         <div>
           <div style="font-weight:800;font-size:15px">${escHtml(u.name||u.login||'')}</div>
           <a href="${safeUrl(u.html_url)}" target="_blank" style="font-size:12px;color:var(--accent-text)">@${escHtml(u.login||'')}</a>

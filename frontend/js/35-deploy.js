@@ -153,7 +153,7 @@ async function startTunnel() {
       res.innerHTML = `<div style="color:var(--green);font-weight:700">✅ Tunnel active!</div>
         <a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent-text);font-size:14px;display:block;margin-top:4px;font-weight:700">${j.url}</a>
         <div style="font-size:11.5px;color:var(--text-2);margin-top:4px">${escHtml(j.note||'')}</div>
-        ${j.qr?`<img src="${j.qr}" style="margin-top:10px;border-radius:8px;width:120px">`:''} 
+        ${j.qr?`<img src="${j.qr}" style="margin-top:10px;border-radius:8px;width:120px" alt="">`:''} 
         <button data-act-click="stopTunnel()" class="btn btn-ghost btn-sm" style="margin-top:8px;color:var(--danger)">⛔ Stop Tunnel</button>`;
       toast(j.already_active ? '🌐 Tunnel already running — reusing it' : '🌐 Tunnel started — share the URL!', 'ok', 6000);
     } else {

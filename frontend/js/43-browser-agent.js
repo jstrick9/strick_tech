@@ -332,7 +332,7 @@ async function takeScreenshot() {
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:zoom-out;gap:10px';
       overlay.innerHTML = `
         <div style="font-size:12px;color:#fff;opacity:.7">${escHtml(d.title||url)} · ${((d.size||0)/1024).toFixed(1)}KB</div>
-        <img src="data:image/png;base64,${d.b64}" style="max-width:90vw;max-height:85vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6)">
+        <img src="data:image/png;base64,${d.b64}" style="max-width:90vw;max-height:85vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6)" alt="Browser agent screenshot">
         <div style="font-size:11px;color:#fff;opacity:.5">Click anywhere to close</div>`;
       overlay.addEventListener('click', () => overlay.remove());
       document.body.appendChild(overlay);
@@ -475,7 +475,7 @@ async function listScreenshots() {
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
           ${screenshots.map((s, idx) => `
             <div data-ba-open-shot-idx="${idx}" style="border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer">
-              <img src="${escHtml(s.path)}" style="width:100%;height:100px;object-fit:cover" loading="lazy" data-hide-on-error="1">
+              <img src="${escHtml(s.path)}" style="width:100%;height:100px;object-fit:cover" loading="lazy" data-hide-on-error="1" alt="Browser agent screenshot">
               <div style="padding:5px 7px;font-size:10px;color:var(--text-3)">${escHtml((s.filename||'').slice(0,30))} · ${((s.size||0)/1024).toFixed(0)}KB</div>
             </div>`).join('')}
         </div>
