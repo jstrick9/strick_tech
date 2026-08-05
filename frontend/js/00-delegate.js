@@ -207,6 +207,41 @@
     return out;
   }
 
+  // ── Double-submit protection ─────────────────────────────────────────────
+  // 212 click-wired handlers perform a POST/PUT/PATCH/DELETE and disable
+  // nothing while it is in flight. Verified against the running server: three
+  // rapid clicks on "create goal" produced three identical goals. With no
+  // spinner and no disabled state there is also nothing telling the user the
+  // first click registered, so double-clicking is the natural response to a
+  // slow request rather than a mistake.
+  //
+  // Guarding here rather than in 212 handlers means it holds for every current
+  // AND future control, and it needs no cooperation from the handler.
+  //
+  // The guard is per-element and released when the returned promise settles.
+  // A handler that returns nothing is treated as synchronous and released on
+  // the next frame — long enough to swallow a double-click, short enough that
+  // a fast button never feels stuck.
+  var BUSY = 'data-act-busy';
+
+  function markBusy(el) {
+    el.setAttribute(BUSY, '1');
+    el.setAttribute('aria-busy', 'true');
+    // Native controls also get the real disabled state, which stops the
+    // browser dispatching the second click at all.
+    if ('disabled' in el) {
+      try { el.disabled = true; } catch (_) { /* not settable */ }
+    }
+  }
+
+  function clearBusy(el) {
+    el.removeAttribute(BUSY);
+    el.removeAttribute('aria-busy');
+    if ('disabled' in el) {
+      try { el.disabled = false; } catch (_) { /* not settable */ }
+    }
+  }
+
   function callOne(stmt, el, event) {
     // `f?.()` is a plain call with an existence guard — the shim already
     // no-ops on an unknown function, so the guard is redundant here. Strip it
@@ -230,15 +265,25 @@
       return;
     }
     try {
-      fn.apply(el, args);
+      return fn.apply(el, args);
     } catch (err) {
       console.error('[delegate] handler threw:', m[1], err);
     }
+    return undefined;
   }
 
   function dispatch(spec, el, event) {
     var stmts = splitStatements(spec);
-    for (var i = 0; i < stmts.length; i++) callOne(stmts[i], el, event);
+    var results = [];
+    for (var i = 0; i < stmts.length; i++) {
+      results.push(callOne(stmts[i], el, event));
+    }
+    // Surface any promise so the caller can hold the busy state until the
+    // work actually finishes.
+    for (var j = 0; j < results.length; j++) {
+      if (results[j] && typeof results[j].then === 'function') return results[j];
+    }
+    return undefined;
   }
 
   // ── Declarative intents ──────────────────────────────────────────────────
@@ -357,7 +402,44 @@
     if (el.getAttribute('data-stop') === '1' && event.stopPropagation) event.stopPropagation();
     if (el.getAttribute('data-prevent') === '1' && event.preventDefault) event.preventDefault();
 
-    if (spec) dispatch(spec, el, event);
+    if (spec) {
+      // Only activation events are guarded. Applying this to input/change
+      // would block legitimate rapid typing, and to mouseover would freeze
+      // hover styling — the duplicate-record problem is specific to clicks.
+      var guardable = (type === 'click' || type === 'dblclick' || type === 'submit');
+
+      if (guardable && el.hasAttribute(BUSY)) {
+        // Second click while the first is still running: this is the
+        // duplicate the guard exists to prevent.
+        if (event.preventDefault) event.preventDefault();
+        if (event.stopPropagation) event.stopPropagation();
+        return;
+      }
+
+      // Opt out with data-no-busy="1" for controls that are genuinely
+      // repeatable at speed (zoom steps, +/- counters, tour paging).
+      var wantGuard = guardable && el.getAttribute('data-no-busy') !== '1';
+
+      if (wantGuard) markBusy(el);
+      var outcome = dispatch(spec, el, event);
+
+      if (wantGuard) {
+        if (outcome && typeof outcome.then === 'function') {
+          // Async handler: hold the guard until the request settles, which is
+          // exactly the window in which a second click would duplicate.
+          outcome.then(
+            function () { clearBusy(el); },
+            function () { clearBusy(el); }
+          );
+        } else if (typeof requestAnimationFrame === 'function') {
+          // Synchronous handler: release next frame. Long enough to absorb a
+          // double-click, short enough that the control never feels stuck.
+          requestAnimationFrame(function () { clearBusy(el); });
+        } else {
+          setTimeout(function () { clearBusy(el); }, 16);
+        }
+      }
+    }
 
     // Keyboard accessibility idiom: a NON-native element made operable with
     // Enter/Space by re-dispatching a click on itself. Guarded against

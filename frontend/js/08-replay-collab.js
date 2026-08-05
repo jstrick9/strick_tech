@@ -121,7 +121,7 @@ async function renderReplay() {
           <div class="ttd-zoom-controls" id="ttd-zoom-controls" style="display:none">
             <button class="ttd-zoom-btn" data-act-click="ttdZoom(1.2)" title="Zoom in">+</button>
             <div class="ttd-zoom-label" id="ttd-zoom-label">100%</div>
-            <button class="ttd-zoom-btn" data-act-click="hZoomOut('ttdZoom')" title="Zoom out">−</button>
+            <button class="ttd-zoom-btn" data-act-click="hZoomOut('ttdZoom')" data-no-busy="1" title="Zoom out">−</button>
           </div>
 
           <!-- Fit button -->
@@ -177,9 +177,9 @@ async function renderReplay() {
         <!-- Buttons row -->
         <div class="ttd-ctrl-row">
           <button class="ttd-ctrl-btn" data-act-click="ttdGoFirst()"  title="First frame (Home)">⏮</button>
-          <button class="ttd-ctrl-btn" data-act-click="ttdStepBack()" title="Previous frame (←)">◁</button>
+          <button class="ttd-ctrl-btn" data-act-click="ttdStepBack()" data-no-busy="1" title="Previous frame (←)">◁</button>
           <button class="ttd-ctrl-btn" id="ttd-play-btn" data-act-click="ttdTogglePlay()" title="Play/Pause (Space)">▶</button>
-          <button class="ttd-ctrl-btn" data-act-click="ttdStepFwd()"  title="Next frame (→)">▷</button>
+          <button class="ttd-ctrl-btn" data-act-click="ttdStepFwd()" data-no-busy="1"  title="Next frame (→)">▷</button>
           <button class="ttd-ctrl-btn" data-act-click="ttdGoLast()"   title="Last frame (End)">⏭</button>
           <select class="ttd-speed-select" id="ttd-speed" title="Playback speed">
             <option value="800">0.25×</option>

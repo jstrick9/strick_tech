@@ -154,9 +154,9 @@ async function renderSupervisor() {
 
             <!-- Zoom controls -->
             <div class="dag-zoom-controls" id="dag-zoom-controls" style="display:none">
-              <button class="dag-zoom-btn" data-act-click="dagZoom(1.2)" title="Zoom in">+</button>
+              <button class="dag-zoom-btn" data-act-click="dagZoom(1.2)" data-no-busy="1" title="Zoom in">+</button>
               <div class="dag-zoom-label" id="dag-zoom-label">100%</div>
-              <button class="dag-zoom-btn" data-act-click="hZoomOut('dagZoom')" title="Zoom out">−</button>
+              <button class="dag-zoom-btn" data-act-click="hZoomOut('dagZoom')" data-no-busy="1" title="Zoom out">−</button>
             </div>
 
             <!-- Minimap -->

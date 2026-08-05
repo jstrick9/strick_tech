@@ -126,8 +126,8 @@ function showTourStep() {
     <div style="display:flex;align-items:center;justify-content:space-between">
       <span style="font-size:11px;color:var(--text-3)">${tourStep + 1} / ${TOUR_STEPS.length}</span>
       <div style="display:flex;gap:6px">
-        ${tourStep > 0 ? '<button data-act-click="hTourPrev()" class="btn btn-ghost btn-sm">← Back</button>' : ''}
-        <button data-act-click="hTourNext()" class="btn btn-primary btn-sm">${tourStep === TOUR_STEPS.length - 1 ? 'Finish ✓' : 'Next →'}</button>
+        ${tourStep > 0 ? '<button data-act-click="hTourPrev()" data-no-busy="1" class="btn btn-ghost btn-sm">← Back</button>' : ''}
+        <button data-act-click="hTourNext()" data-no-busy="1" class="btn btn-primary btn-sm">${tourStep === TOUR_STEPS.length - 1 ? 'Finish ✓' : 'Next →'}</button>
       </div>
     </div>`;
   document.body.appendChild(popup);

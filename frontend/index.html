@@ -1430,9 +1430,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             </div>
             <!-- Pagination (only shown in date view) -->
             <div id="chat-sessions-pagination" style="padding:6px 10px; border-top:1px solid var(--border); background:var(--bg-1); display:none; align-items:center; justify-content:space-between; gap:4px; font-size:11px; color:var(--text-2); flex-shrink:0">
-              <button type="button" id="chat-page-prev" class="btn-3d btn-ghost btn-sm" data-act-click="changeChatPage(-1)" style="padding:2px 8px; font-size:10.5px">◀ Prev</button>
+              <button type="button" id="chat-page-prev" class="btn-3d btn-ghost btn-sm" data-act-click="changeChatPage(-1)" data-no-busy="1" style="padding:2px 8px; font-size:10.5px">◀ Prev</button>
               <span id="chat-page-indicator" style="font-weight:700; color:var(--text-0)">Page 1 of 1</span>
-              <button type="button" id="chat-page-next" class="btn-3d btn-ghost btn-sm" data-act-click="changeChatPage(1)" style="padding:2px 8px; font-size:10.5px">Next ▶</button>
+              <button type="button" id="chat-page-next" class="btn-3d btn-ghost btn-sm" data-act-click="changeChatPage(1)" data-no-busy="1" style="padding:2px 8px; font-size:10.5px">Next ▶</button>
             </div>
           </div>
           <div id="chat-drawer-resizer" style="width:4px;cursor:col-resize;flex-shrink:0;background:transparent;transition:background .15s;position:relative;z-index:10"></div>
@@ -1655,7 +1655,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <button type="button" class="device-btn" data-act-click="studioQR()" title="QR code for phone">📲</button>
             <!-- Zoom -->
             <div class="zoom-ctrl">
-              <button type="button" class="zoom-btn" data-act-click="studioZoom(-10)">−</button>
+              <button type="button" class="zoom-btn" data-act-click="studioZoom(-10)" data-no-busy="1">−</button>
               <span class="zoom-label" id="studio-zoom-label">100%</span>
               <button type="button" class="zoom-btn" data-act-click="hStudioZoomIn()">+</button>
             </div>

@@ -425,3 +425,100 @@ def test_lint_also_covers_data_act_attributes():
     """Migrating a handler must not move it out from under the CI guard."""
     lint = (ROOT / 'scripts' / 'lint_inline_handlers.py').read_text(encoding='utf-8')
     assert 'data-act' in lint
+
+
+# ══ Double-submit protection ══════════════════════════════════════════════════
+# 212 click-wired handlers perform a mutating request and disable nothing while
+# it is in flight. Verified against the running server: three rapid clicks on
+# "create goal" produced THREE identical goals. With no spinner and no disabled
+# state there is also nothing telling the user the first click registered, so
+# double-clicking is the natural response to a slow request, not a mistake.
+@requires_jsdom
+def test_a_double_click_cannot_submit_twice():
+    out = _run_in_jsdom(HARNESS + """
+let runs = 0, release;
+window.slowSave = function () { runs++; return new Promise(r => { release = r; }); };
+window.document.body.innerHTML = '<button id="s" data-act-click="slowSave()">Save</button>';
+const b = window.document.getElementById('s');
+b.dispatchEvent(new window.MouseEvent('click', {bubbles:true}));
+b.dispatchEvent(new window.MouseEvent('click', {bubbles:true}));
+b.dispatchEvent(new window.MouseEvent('click', {bubbles:true}));
+const during = {runs, busy: b.getAttribute('aria-busy'), disabled: b.disabled};
+release();
+// Two ticks: one for the promise callback that clears the guard, one for the
+// follow-up click. Reading aria-busy in the same tick as the release sees the
+// value BEFORE the .then() has run, which made this assert a false failure.
+setTimeout(() => {
+  const clearedAfterSettle = b.getAttribute('aria-busy');
+  b.dispatchEvent(new window.MouseEvent('click', {bubbles:true}));
+  console.log(JSON.stringify({during, after: runs, cleared: clearedAfterSettle}));
+}, 20);
+""")
+    result = json.loads(out.strip())
+    assert result['during']['runs'] == 1, 'three clicks produced duplicate submissions'
+    assert result['during']['busy'] == 'true', 'no aria-busy while in flight'
+    assert result['during']['disabled'] is True, 'native button was not disabled'
+    assert result['after'] == 2, 'the control never became usable again'
+    assert result['cleared'] is None, 'aria-busy was not cleared'
+
+
+@requires_jsdom
+def test_the_guard_releases_even_when_the_handler_rejects():
+    """A failed save must not leave the button permanently dead — that would
+    turn a transient error into an unusable screen."""
+    out = _run_in_jsdom(HARNESS + """
+window.failing = function () { return Promise.reject(new Error('nope')); };
+window.document.body.innerHTML = '<button id="f" data-act-click="failing()">Go</button>';
+const b = window.document.getElementById('f');
+b.dispatchEvent(new window.MouseEvent('click', {bubbles:true}));
+setTimeout(() => {
+  console.log(JSON.stringify({busy: b.getAttribute('aria-busy'), disabled: b.disabled}));
+}, 10);
+""")
+    result = json.loads(out.strip())
+    assert result['busy'] is None, 'button stayed busy after a rejected promise'
+    assert result['disabled'] is False, 'button stayed disabled after a failure'
+
+
+@requires_jsdom
+def test_typing_is_never_guarded():
+    """Applying the guard to input/change would block legitimate fast typing.
+    The duplicate-record problem is specific to activation events."""
+    out = _run_in_jsdom(HARNESS + """
+let n = 0;
+window.onType = function () { n++; };
+window.document.body.innerHTML = '<input id="q" data-act-input="onType()">';
+const q = window.document.getElementById('q');
+for (let i = 0; i < 5; i++) q.dispatchEvent(new window.Event('input', {bubbles:true}));
+console.log(JSON.stringify({calls: n}));
+""")
+    assert json.loads(out.strip())['calls'] == 5
+
+
+@requires_jsdom
+def test_repeatable_controls_can_opt_out():
+    """Zoom steps, +/- counters and tour paging are meant to be clicked fast."""
+    out = _run_in_jsdom(HARNESS + """
+let n = 0;
+window.step = function () { n++; };
+window.document.body.innerHTML =
+  '<button id="z" data-act-click="step()" data-no-busy="1">+</button>';
+const z = window.document.getElementById('z');
+for (let i = 0; i < 5; i++) z.dispatchEvent(new window.MouseEvent('click', {bubbles:true}));
+console.log(JSON.stringify({calls: n}));
+""")
+    assert json.loads(out.strip())['calls'] == 5
+
+
+def test_repeatable_controls_are_actually_tagged():
+    """The opt-out is only useful if the controls that need it carry it."""
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parents[2] / 'frontend'
+    combined = '\n'.join(
+        p.read_text(encoding='utf-8')
+        for p in [root / 'index.html', *sorted((root / 'js').glob('*.js'))]
+    )
+    assert combined.count('data-no-busy') >= 6, (
+        'stepper/zoom/paging controls should opt out of the busy guard'
+    )
