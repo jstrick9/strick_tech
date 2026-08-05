@@ -2856,7 +2856,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 </div><!-- /shell -->
 
 <!-- ── Command Palette ──────────────────────────────────────── -->
-<div role="button" tabindex="0" id="palette-modal" data-act-click="closePalette()" data-click-self="1" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
+<div role="dialog" aria-modal="true" id="palette-modal" data-act-click="closePalette()" data-click-self="1">
   <div id="palette-box">
     <input id="palette-input" aria-label="Search commands and agents" placeholder="Search commands, agents, files, memories…" data-act-input="filterPalette()" data-act-keydown="paletteKey($event)" autocomplete="off">
     <div id="palette-results"></div>
@@ -2864,7 +2864,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 </div>
 
 <!-- ── Agent Modal ──────────────────────────────────────────── -->
-<div role="button" tabindex="0" id="agent-modal" style="display:none" class="modal-back" data-act-click="closeAgentModal()" data-click-self="1" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
+<div role="dialog" aria-modal="true" id="agent-modal" style="display:none" class="modal-back" data-act-click="closeAgentModal()" data-click-self="1">
   <div class="modal">
     <h2 id="agent-modal-title">🤖 Create Agent</h2>
     <p id="agent-modal-desc">Design a custom AI agent with its own name, model, and personality.</p>
@@ -2957,7 +2957,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 <div id="toast-container" aria-live="polite" aria-atomic="false" role="status"></div>
 
 <!-- ── Onboarding Wizard ──────────────────────────────────────────── -->
-<div role="button" tabindex="0" id="onboarding-modal" style="display:none;position:fixed;inset:0;background:rgba(2,4,10,.95);z-index:29000;align-items:center;justify-content:center;backdrop-filter:blur(12px)" data-act-click="closeOnboardingModal()" data-click-self="1" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
+<div role="dialog" aria-modal="true" id="onboarding-modal" style="display:none;position:fixed;inset:0;background:rgba(2,4,10,.95);z-index:29000;align-items:center;justify-content:center;backdrop-filter:blur(12px)" data-act-click="closeOnboardingModal()" data-click-self="1">
   <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:20px;width:100%;max-width:560px;padding:32px;box-shadow:0 40px 100px rgba(0,0,0,.8);animation:slideUp .25s ease;position:relative">
     <button type="button" data-act-click="closeOnboardingModal()" style="position:absolute;top:16px;right:20px;background:none;border:none;color:var(--text-2);font-size:24px;cursor:pointer;line-height:1">×</button>
     <!-- Progress dots -->
@@ -3006,7 +3006,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 </div>
 
 <!-- ── Global Modal (replaces all alert/confirm/prompt) ─────────── -->
-<div role="button" tabindex="0" id="gmodal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:19000;align-items:center;justify-content:center;backdrop-filter:blur(8px)" data-act-click="_gm_cancel()" data-click-self="1" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
+<div id="gmodal" role="dialog" aria-modal="true" aria-labelledby="gm-title" aria-describedby="gm-body" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:19000;align-items:center;justify-content:center;backdrop-filter:blur(8px)" data-act-click="_gm_cancel()" data-click-self="1">
   <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-lg);width:100%;max-width:460px;padding:24px;box-shadow:0 32px 80px rgba(0,0,0,.7);animation:slideUp .18s ease">
     <div style="font-size:17px;font-weight:800;margin-bottom:8px" id="gm-title"></div>
     <div style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.5" id="gm-body"></div>

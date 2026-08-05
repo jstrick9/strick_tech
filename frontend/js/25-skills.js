@@ -41,7 +41,7 @@ async function renderSkills() {
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px" id="skill-cats"></div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px" id="skill-grid"></div>
   <!-- Run modal -->
-  <div id="skill-run-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px)" data-act-click="closeSkillModal()" data-click-self="1" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+  <div id="skill-run-modal" role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px)" data-act-click="closeSkillModal()" data-click-self="1">
     <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-lg);width:100%;max-width:600px;padding:24px;max-height:85vh;overflow-y:auto">
       <h2 id="srm-title" style="font-size:18px;font-weight:800;margin-bottom:6px"></h2>
       <p id="srm-desc" style="font-size:13px;color:var(--text-2);margin-bottom:18px"></p>

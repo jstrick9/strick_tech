@@ -91,6 +91,15 @@ def test_every_clickable_non_native_element_is_keyboard_operable():
                 attrs = m.group(2)
                 if 'data-act-click' not in attrs:
                     continue
+                # A modal BACKDROP is exempt, and deliberately so. It dismisses
+                # on click but is not a control: giving it tabindex adds a stray
+                # tab stop, and role="button" announces something that does
+                # nothing useful. Its keyboard route is Escape, handled centrally
+                # in the delegation shim — see test_97_modal_focus_and_escape.
+                # An earlier version of this test forced the opposite and
+                # produced exactly that bug on five backdrops.
+                if 'data-click-self="1"' in attrs or 'role="dialog"' in attrs:
+                    continue
                 missing = []
                 if 'tabindex' not in attrs:
                     missing.append('tabindex')

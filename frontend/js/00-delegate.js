@@ -480,6 +480,42 @@
     })(EVENTS[i]);
   }
 
+  // ── Escape closes a dialog ───────────────────────────────────────────────
+  // Any element that dismisses itself on a backdrop click
+  // (data-click-self="1" + data-act-click) should dismiss on Escape too.
+  // Several dialogs — the agent editor and the onboarding overlay among them —
+  // could only be closed with the mouse, which is a WCAG 2.1.2 keyboard trap
+  // and simply feels broken to anyone who reaches for Escape by reflex.
+  //
+  // Handled here rather than per dialog so it also covers the ~50 modals built
+  // ad hoc with innerHTML, which have no shared open/close plumbing to hook.
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+
+    var open = null;
+    var candidates = document.querySelectorAll('[data-click-self="1"][data-act-click]');
+    for (var i = 0; i < candidates.length; i++) {
+      var el = candidates[i];
+      // Visible means: not display:none, and actually laid out.
+      var style = window.getComputedStyle ? window.getComputedStyle(el) : null;
+      var visible = style
+        ? style.display !== 'none' && style.visibility !== 'hidden'
+        : el.style.display !== 'none';
+      if (!visible) continue;
+      // Topmost wins when several are stacked.
+      if (!open) { open = el; continue; }
+      var za = parseInt((style && style.zIndex) || '0', 10) || 0;
+      var zb = parseInt(
+        (window.getComputedStyle ? window.getComputedStyle(open).zIndex : '0') || '0', 10
+      ) || 0;
+      if (za >= zb) open = el;
+    }
+    if (!open) return;
+
+    event.preventDefault();
+    dispatch(open.getAttribute('data-act-click'), open, event);
+  }, true);
+
   // Exposed for tests and for callers that need to trigger the same path.
   window.__delegateDispatch = dispatch;
   window.__delegateHandle = handle;

@@ -95,7 +95,7 @@ async function renderPrompts() {
       <div id="prompt-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px">${renderPromptCards()}</div>
       </div>
       <!-- Prompt modal -->
-      <div id="prompt-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(8px)" data-act-click="closePromptModal()" data-click-self="1" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+      <div id="prompt-modal" role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(8px)" data-act-click="closePromptModal()" data-click-self="1">
         <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-xl);padding:22px;width:100%;max-width:560px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto">
           <h2 style="font-size:17px;font-weight:800;margin-bottom:14px" id="pm-modal-title">New Prompt</h2>
           <div class="form-group"><label class="form-label">Title *</label><input id="pm-title" class="input" placeholder="e.g. Security code review"></div>
