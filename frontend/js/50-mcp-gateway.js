@@ -274,7 +274,7 @@ function prbRenderRulesTab(container) {
           <td><span class="prb-code" style="font-size:9px">${escHtml(p.server_id.replace('srv_',''))}</span></td>
           <td><span class="prb-code">${escHtml(p.tool_pattern)}</span></td>
           <td data-stop="1">
-            <span class="prb-toggle" data-policy-id="${escHtml(p.policy_id)}" data-policy-enabled="${p.enabled}" onclick="prbToggleEnabled(this.dataset.policyId,this.dataset.policyEnabled==='true')" title="${p.enabled?'Click to disable':'Click to enable'}">
+            <span class="prb-toggle" data-policy-id="${escHtml(p.policy_id)}" data-policy-enabled="${p.enabled}" data-act-click="hTogglePolicyEnabled($data.policyId,$data.policyEnabled)" title="${p.enabled?'Click to disable':'Click to enable'}">
               ${p.enabled ? '🟢' : '⚫'}
             </span>
           </td>
@@ -395,7 +395,7 @@ function prbRenderBuilderTab(container) {
         <label class="prb-form-label">Priority</label>
         <div class="prb-priority-wrap">
           <input type="range" class="prb-priority-slider" id="prb-f-priority" min="1" max="200"
-            value="${editing?.priority||100}" oninput="document.getElementById('prb-f-priority-val').textContent=this.value;prbUpdatePreview()">
+            value="${editing?.priority||100}" data-act-input="hPriorityInput($value)">
           <span class="prb-priority-val" id="prb-f-priority-val">${editing?.priority||100}</span>
         </div>
         <div class="prb-form-hint">Lower = higher precedence (1 = first evaluated)</div>
@@ -791,7 +791,7 @@ function prbRenderConflictsTab(container) {
       <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--text-0)">⚠️ Policy Conflicts</h3>
       ${conflict_count ? `<span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;background:rgba(232,82,82,.15);color:#e85252">${conflict_count} conflicts</span>` : ''}
       ${warning_count  ? `<span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;background:rgba(232,162,55,.15);color:#e8a237">${warning_count} warnings</span>` : ''}
-      <button onclick="_prbConflicts=null;prbRenderConflictsTab(document.getElementById('prb-content'))" style="margin-left:auto;font-size:11px;padding:4px 10px;border-radius:5px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer">↺ Re-analyze</button>
+      <button data-act-click="hResetConflicts()" style="margin-left:auto;font-size:11px;padding:4px 10px;border-radius:5px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer">↺ Re-analyze</button>
     </div>
     <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">
       Showing ${Math.min(total, 50)} of ${total} issues. Conflicts are evaluated against the first ${_prbPolicies.length} active rules.

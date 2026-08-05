@@ -121,7 +121,7 @@ async function renderReplay() {
           <div class="ttd-zoom-controls" id="ttd-zoom-controls" style="display:none">
             <button class="ttd-zoom-btn" data-act-click="ttdZoom(1.2)" title="Zoom in">+</button>
             <div class="ttd-zoom-label" id="ttd-zoom-label">100%</div>
-            <button class="ttd-zoom-btn" onclick="ttdZoom(1/1.2)" title="Zoom out">−</button>
+            <button class="ttd-zoom-btn" data-act-click="hZoomOut('ttdZoom')" title="Zoom out">−</button>
           </div>
 
           <!-- Fit button -->
@@ -653,7 +653,7 @@ function ttdShowNodeDetail(nodeId, upToIdx) {
   try { ctx = JSON.parse(frame.input_ctx || '{}'); } catch(e) {}
 
   const copyBtn = (text) =>
-    `<button class="ttd-copy-btn" onclick="navigator.clipboard.writeText(${JSON.stringify(text)}).then(()=>showToast('Copied!'))">Copy</button>`;
+    `<button class="ttd-copy-btn" data-act-click="hCopyText(${JSON.stringify(text)})">Copy</button>`;
 
   body.innerHTML = `
     <!-- Node identity -->
@@ -1700,7 +1700,7 @@ async function renderMarketplace() {
       <div class="mkt-search-row">
         <input class="mkt-search" id="mkt-search" placeholder="Search plugins…"
                data-act-input="mktSearch($value)" value="">
-        <button class="btn" onclick="mktSearch(document.getElementById('mkt-search').value)" style="flex-shrink:0">Search</button>
+        <button class="btn" data-act-click="hSearchMarketplace()" style="flex-shrink:0">Search</button>
         <button class="btn-sm" data-act-click="nav('pluginsdk')" style="flex-shrink:0">🛠️ Publish Pack</button>
       </div>
       <div class="mkt-stats">
@@ -1798,14 +1798,14 @@ function mktCardHTML(p, featured=false) {
         </span>
         <span class="mkt-dl">⬇ ${(p.downloads||0).toLocaleString()}</span>
         <button class="mkt-install-btn ${isInstalled?'installed':''}"
-                onclick="mktInstallOrUninstall(${JSON.stringify(p.id)},${JSON.stringify(p.name)},${isInstalled})"
+                data-act-click="mktInstallOrUninstall(${JSON.stringify(p.id)},${JSON.stringify(p.name)},${isInstalled ? 1 : 0})"
                 id="mkt-btn-${p.id}">
           ${isInstalled?'✓ Installed':'Install'}
         </button>
       </div>
       <div style="display:flex;gap:5px;margin-top:2px">
         <button class="btn-sm" data-act-click="mktViewDetail(${JSON.stringify(p.id)})">Details</button>
-        <button class="btn-sm" onclick="window.open('/api/marketplace/'+encodeURIComponent(${JSON.stringify(p.id)})+'/download','_blank')">⬇ ZIP</button>
+        <button class="btn-sm" data-act-click="hDownloadMarketplacePack(${JSON.stringify(p.id)})">⬇ ZIP</button>
       </div>
     </div>
   `;
@@ -1932,7 +1932,7 @@ async function mktViewDetail(packId) {
             ${isInst?'✓ Installed (Uninstall)':'Install'}
           </button>
           <button class="btn-sm" data-act-click="mktLeaveReview(${JSON.stringify(packId)})">⭐ Review</button>
-          <button class="btn-sm" onclick="window.open('/api/marketplace/'+encodeURIComponent(${JSON.stringify(packId)})+'/download','_blank')">⬇ Download ZIP</button>
+          <button class="btn-sm" data-act-click="hDownloadMarketplacePack(${JSON.stringify(packId)})">⬇ Download ZIP</button>
         </div>
       </div>`;
     overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };

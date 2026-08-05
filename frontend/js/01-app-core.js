@@ -307,7 +307,7 @@ function renderAgentList() {
   if (el && S.agents) {
     el.innerHTML = S.agents.map(a => `
       <div class="agent-row ${S.currentAgent?.id === a.id ? 'active-agent' : ''}"
-           onclick="setActiveAgent(${JSON.stringify(a).replace(/"/g,'&quot;')})"
+           data-agent="${escHtml(JSON.stringify(a))}" data-act-click="hSetActiveAgent($json.agent)"
            data-act-dblclick="openAgentModal(${JSON.stringify(a.id)})">
         <div class="agent-avatar" style="background:${a.color}22;border:1px solid ${a.color}44">
           <span>${a.avatar || '🤖'}</span>
@@ -362,7 +362,7 @@ function setActiveAgent(agent) {
 
 function showAgentPicker() {
   const items = (S.agents || []).map(a =>
-    `<div class="palette-item" onclick="setActiveAgent(${JSON.stringify(a).replace(/"/g,'&quot;')});closePalette()">
+    `<div class="palette-item" data-agent="${escHtml(JSON.stringify(a))}" data-act-click="hSetActiveAgentAndClose($json.agent)">
       <span class="p-icon">${a.avatar||'🤖'}</span>
       <span class="p-label">${escHtml(a.name)}</span>
       <span class="p-desc">${escHtml(a.model||'')}</span>
@@ -4098,7 +4098,7 @@ function updateConsolePanel() {
       <div style="display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid var(--border);background:var(--bg-1);flex-shrink:0">
         <span style="font-size:11.5px;font-weight:700;color:var(--text-2)">Console</span>
         <span id="console-count-badge" style="display:none;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:99px">0</span>
-        <button onclick="consoleMessages=[];updateConsolePanel()" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">Clear</button>
+        <button data-act-click="hClearConsole()" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">Clear</button>
         <button data-act-click="toggleConsole()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">×</button>
       </div>
       <div id="console-messages" style="flex:1;overflow-y:auto"></div>`;

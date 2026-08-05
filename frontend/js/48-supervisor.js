@@ -156,7 +156,7 @@ async function renderSupervisor() {
             <div class="dag-zoom-controls" id="dag-zoom-controls" style="display:none">
               <button class="dag-zoom-btn" data-act-click="dagZoom(1.2)" title="Zoom in">+</button>
               <div class="dag-zoom-label" id="dag-zoom-label">100%</div>
-              <button class="dag-zoom-btn" onclick="dagZoom(1/1.2)" title="Zoom out">−</button>
+              <button class="dag-zoom-btn" data-act-click="hZoomOut('dagZoom')" title="Zoom out">−</button>
             </div>
 
             <!-- Minimap -->
@@ -729,7 +729,7 @@ function dagShowTaskDetail(taskId) {
   if (titleEl) titleEl.textContent = `Task #${task.seq} — ${task.title}`;
 
   const copy = (txt) =>
-    `<button class="dag-copy-btn" onclick="navigator.clipboard.writeText(${jsArg(txt)}).then(()=>toast('Copied!'))">Copy</button>`;
+    `<button class="dag-copy-btn" data-act-click="hCopyText(${jsArg(txt)})">Copy</button>`;
 
   body.innerHTML = `
     <!-- Header -->
@@ -1033,7 +1033,7 @@ function dagOpenLaunch() {
       <p>The Brain agent will decompose your goal into a task DAG, assign specialist agents, and execute waves in parallel. Watch the graph light up in real time.</p>
       <textarea id="dag-goal-ta" placeholder="Describe your goal in detail…&#10;&#10;Be specific about deliverables, constraints, and desired output format." rows="4"></textarea>
       <div class="dag-modal-examples">
-        ${examples.map(ex => `<div class="dag-modal-example" onclick="document.getElementById('dag-goal-ta').value=${jsArg(ex)}">${escHtml(ex)}</div>`).join('')}
+        ${examples.map(ex => `<div class="dag-modal-example" data-act-click="hSetFieldValue('dag-goal-ta',${jsArg(ex)})">${escHtml(ex)}</div>`).join('')}
       </div>
       <div class="dag-modal-row">
         <button class="dag-toolbar-btn" data-close="id:dag-launch-modal">Cancel</button>

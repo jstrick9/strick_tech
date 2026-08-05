@@ -330,7 +330,7 @@ async function bddRenderAgentDetail(container, agentId) {
   container.innerHTML = `
     <!-- Back button -->
     <div style="margin-bottom:12px">
-      <button class="bdd-header-btn" onclick="_driftSelected=null;bddRenderAgents(document.getElementById('bdd-content'))">← Back to All Agents</button>
+      <button class="bdd-header-btn" data-act-click="hResetDriftSelection()">← Back to All Agents</button>
     </div>
 
     <!-- Agent header -->

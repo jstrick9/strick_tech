@@ -1563,7 +1563,7 @@ async function showVoiceHistory() {
           <button data-close="closest:[style*=fixed]" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         ${items}
-        <button class="btn-sm" style="margin-top:10px;color:var(--danger)" onclick="fetch('/api/voice/history',{method:'DELETE'}).then(().catch(()=>{})=>this.closest('[style*=fixed]').remove()).then(()=>showToast('🗑 History cleared'))">🗑 Clear History</button>
+        <button class="btn-sm" style="margin-top:10px;color:var(--danger)" data-act-click="hClearVoiceHistory($this)">🗑 Clear History</button>
       </div>`;
     overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);

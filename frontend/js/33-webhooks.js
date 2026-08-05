@@ -26,7 +26,7 @@ async function renderWebhooks() {
             </div>
             <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:11px;font-family:monospace;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px">
               <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">POST /api/webhooks/${w.id}/trigger</span>
-              <button onclick="navigator.clipboard.writeText('http://localhost:8787/api/webhooks/' + encodeURIComponent(${jsArg(w.id)}) + '/trigger').then(()=>toast('📋 Copied','ok',1200))" style="background:none;border:none;color:var(--text-2);cursor:pointer">📋</button>
+              <button data-act-click="hCopyWebhookUrl(${jsArg(w.id)})" style="background:none;border:none;color:var(--text-2);cursor:pointer">📋</button>
             </div>
             <div style="display:flex;gap:6px">
               <button data-act-click="testWebhook(${JSON.stringify(w.id)})" class="btn btn-ghost btn-sm">▶ Test</button>
