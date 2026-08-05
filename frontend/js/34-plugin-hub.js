@@ -30,13 +30,13 @@ async function renderPluginHub() {
       <p>Add ready-made skills to your agents. One click to install — no configuration.</p>
     </div>
     <div style="display:flex;gap:8px">
-      <button onclick="hubShowInstallCustom()" class="btn btn-ghost btn-sm">＋ Add custom</button>
+      <button data-act-click="hubShowInstallCustom()" class="btn btn-ghost btn-sm">＋ Add custom</button>
     </div>
   </div>
   <div id="hub-stats" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap"></div>
   <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
-    <button onclick="hubSetTab('discover')" id="hub-tab-discover" class="btn btn-sm ${hubTab==='discover'?'btn-primary':'btn-ghost'}">✨ Discover</button>
-    <button onclick="hubSetTab('installed')" id="hub-tab-installed" class="btn btn-sm ${hubTab==='installed'?'btn-primary':'btn-ghost'}">📥 Installed</button>
+    <button data-act-click="hubSetTab('discover')" id="hub-tab-discover" class="btn btn-sm ${hubTab==='discover'?'btn-primary':'btn-ghost'}">✨ Discover</button>
+    <button data-act-click="hubSetTab('installed')" id="hub-tab-installed" class="btn btn-sm ${hubTab==='installed'?'btn-primary':'btn-ghost'}">📥 Installed</button>
     <input id="hub-search" placeholder="Search plugins…" value="${escHtml(hubQuery)}"
            style="flex:1;min-width:180px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 11px;color:var(--text-0);font-size:13px;outline:none">
   </div>
@@ -121,8 +121,8 @@ function hubRenderBody() {
 
   const cats = [...new Set(hubCatalog.map(p => p.category))].filter(Boolean).sort();
   const catBar = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
-      <span onclick="hubSetCategory('')" class="tag" style="cursor:pointer;padding:4px 11px;${!hubCategory?'background:var(--accent-glow);color:var(--accent-hi)':''}">All</span>
-      ${cats.map(c => `<span onclick="hubSetCategory(${jsArg(c)})" class="tag" style="cursor:pointer;padding:4px 11px;${hubCategory===c?'background:var(--accent-glow);color:var(--accent-hi)':''}">${escHtml(c)}</span>`).join('')}
+      <span data-act-click="hubSetCategory('')" class="tag" style="cursor:pointer;padding:4px 11px;${!hubCategory?'background:var(--accent-glow);color:var(--accent-hi)':''}">All</span>
+      ${cats.map(c => `<span data-act-click="hubSetCategory(${jsArg(c)})" class="tag" style="cursor:pointer;padding:4px 11px;${hubCategory===c?'background:var(--accent-glow);color:var(--accent-hi)':''}">${escHtml(c)}</span>`).join('')}
     </div>`;
 
   el.innerHTML = `
@@ -155,7 +155,7 @@ function hubCollectionsHtml() {
           <div style="font-size:12px;color:var(--text-2);line-height:1.45;margin:4px 0 10px;min-height:34px">${escHtml(c.description)}</div>
           <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">${c.available} plugin(s) · ${c.skill_total} skills · ${c.installed_count} installed</div>
           <button ${done ? 'disabled' : ''} data-collection="${escHtml(c.id)}"
-                  onclick="hubInstallCollection(this.dataset.collection)"
+                  data-act-click="hubInstallCollection($data.collection)"
                   class="btn btn-sm ${done?'btn-ghost':'btn-primary'}" style="width:100%">
             ${done ? '✓ All installed' : 'Install set'}
           </button>
@@ -184,10 +184,10 @@ function hubCardHtml(p) {
       <span>${p.skill_count} skill${p.skill_count === 1 ? '' : 's'}</span>
     </div>
     <div style="display:flex;gap:6px">
-      <button data-pack="${escHtml(p.id)}" onclick="hubShowDetail(this.dataset.pack)" class="btn btn-ghost btn-sm" style="flex:1">Preview</button>
+      <button data-pack="${escHtml(p.id)}" data-act-click="hubShowDetail($data.pack)" class="btn btn-ghost btn-sm" style="flex:1">Preview</button>
       ${p.installed
-        ? `<button data-pack="${escHtml(p.id)}" onclick="hubUninstall(this.dataset.pack)" class="btn btn-ghost btn-sm">Remove</button>`
-        : `<button data-pack="${escHtml(p.id)}" onclick="hubInstall(this.dataset.pack)" class="btn btn-primary btn-sm" style="flex:1">Install</button>`}
+        ? `<button data-pack="${escHtml(p.id)}" data-act-click="hubUninstall($data.pack)" class="btn btn-ghost btn-sm">Remove</button>`
+        : `<button data-pack="${escHtml(p.id)}" data-act-click="hubInstall($data.pack)" class="btn btn-primary btn-sm" style="flex:1">Install</button>`}
     </div>
   </div>`;
 }
@@ -201,22 +201,22 @@ async function hubShowDetail(packId) {
     const r = await fetch(`/api/hub/pack/${encodeURIComponent(packId)}`);
     if (!r.ok) { toast('Could not load that plugin', 'err'); drawer.innerHTML = ''; return; }
     const d = await r.json();
-    drawer.innerHTML = `<div onclick="hubCloseDetail(event)" id="hub-overlay"
+    drawer.innerHTML = `<div data-act-click="hubCloseDetail($event)" id="hub-overlay"
         style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;display:flex;justify-content:flex-end">
-      <div onclick="event.stopPropagation()" style="width:min(560px,100%);height:100%;overflow-y:auto;background:var(--bg-1);border-left:1px solid var(--border);padding:22px">
+      <div data-stop="1" style="width:min(560px,100%);height:100%;overflow-y:auto;background:var(--bg-1);border-left:1px solid var(--border);padding:22px">
         <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:6px">
           <span style="font-size:34px">${d.icon || '🧩'}</span>
           <div style="flex:1">
             <div style="font-size:19px;font-weight:800">${escHtml(d.name)}</div>
             <div style="font-size:12px;color:var(--text-3)">by ${escHtml(d.author)} · v${escHtml(d.version)} · ${escHtml(d.category)}</div>
           </div>
-          <button onclick="hubCloseDetail()" class="btn btn-ghost btn-sm">✕</button>
+          <button data-act-click="hubCloseDetail()" class="btn btn-ghost btn-sm">✕</button>
         </div>
         <p style="font-size:13px;color:var(--text-1);line-height:1.6">${escHtml(d.description)}</p>
         <div style="margin:14px 0">
           ${d.installed
-            ? `<button data-pack="${escHtml(d.id)}" onclick="hubUninstall(this.dataset.pack)" class="btn btn-ghost" style="width:100%">Remove plugin</button>`
-            : `<button data-pack="${escHtml(d.id)}" onclick="hubInstall(this.dataset.pack)" class="btn btn-primary" style="width:100%">Install — adds ${d.skill_count} skill(s)</button>`}
+            ? `<button data-pack="${escHtml(d.id)}" data-act-click="hubUninstall($data.pack)" class="btn btn-ghost" style="width:100%">Remove plugin</button>`
+            : `<button data-pack="${escHtml(d.id)}" data-act-click="hubInstall($data.pack)" class="btn btn-primary" style="width:100%">Install — adds ${d.skill_count} skill(s)</button>`}
         </div>
         <div style="font-weight:700;font-size:13px;margin:18px 0 8px">What you get</div>
         ${(d.skills || []).length ? (d.skills || []).map(s => `

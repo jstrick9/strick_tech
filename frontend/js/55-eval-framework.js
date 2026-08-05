@@ -20,9 +20,9 @@ async function renderEvalFramework() {
         <p style="margin:0;color:var(--text-2);font-size:13px">Continuous eval pipeline — agents earn autonomy by demonstrating measured quality across task completion, faithfulness, safety, and hallucination scoring</p>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn" onclick="evalRunSuite()">▶ Run Eval Suite</button>
-        <button class="btn-sm" onclick="evalCreateSuite()">+ New Suite</button>
-        <button class="btn-sm" onclick="renderEvalFramework()">↻ Refresh</button>
+        <button class="btn" data-act-click="evalRunSuite()">▶ Run Eval Suite</button>
+        <button class="btn-sm" data-act-click="evalCreateSuite()">+ New Suite</button>
+        <button class="btn-sm" data-act-click="renderEvalFramework()">↻ Refresh</button>
       </div>
     </div>
 
@@ -59,7 +59,7 @@ async function renderEvalFramework() {
             <span style="color:var(--text-3)">${new Date(r.created_at).toLocaleTimeString()}</span>
           </div>
           <div style="font-size:11px;color:var(--text-1);margin-bottom:6px">${escHtml((r.prompt||'').slice(0,80))}</div>
-          <button class="btn-sm" onclick="evalHumanReview(${JSON.stringify(r.result_id)})">👁️ Review</button>
+          <button class="btn-sm" data-act-click="evalHumanReview(${JSON.stringify(r.result_id)})">👁️ Review</button>
         </div>`).join('')}
     </div>`:''}
 
@@ -74,9 +74,9 @@ async function renderEvalFramework() {
             📂 ${escHtml(s.domain)} · ${s.cases_count||0} cases · Pass: ${Math.round((s.pass_threshold||0.7)*100)}%
           </div>
           <div style="display:flex;gap:6px">
-            <button class="btn-sm" onclick="evalRunSpecific(${JSON.stringify(s.suite_id)})">▶ Run</button>
-            <button class="btn-sm" onclick="evalViewCases(${JSON.stringify(s.suite_id)})">📋 Cases</button>
-            <button class="btn-sm" onclick="evalAddCase(${JSON.stringify(s.suite_id)})">+ Case</button>
+            <button class="btn-sm" data-act-click="evalRunSpecific(${JSON.stringify(s.suite_id)})">▶ Run</button>
+            <button class="btn-sm" data-act-click="evalViewCases(${JSON.stringify(s.suite_id)})">📋 Cases</button>
+            <button class="btn-sm" data-act-click="evalAddCase(${JSON.stringify(s.suite_id)})">+ Case</button>
           </div>
         </div>`).join('')}
     </div>

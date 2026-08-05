@@ -27,11 +27,11 @@ async function renderConnectHub() {
   </div>
   <div id="connect-stats" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap"></div>
   <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
-    <button onclick="connectSetFilter('all')" id="cf-all" class="btn btn-sm btn-primary">All</button>
-    <button onclick="connectSetFilter('setup')" id="cf-setup" class="btn btn-sm btn-ghost">⚙️ Needs setup</button>
-    <button onclick="connectSetFilter('connector')" id="cf-connector" class="btn btn-sm btn-ghost">🔗 Apps</button>
-    <button onclick="connectSetFilter('tool')" id="cf-tool" class="btn btn-sm btn-ghost">🔧 Tools</button>
-    <button onclick="connectSetFilter('server')" id="cf-server" class="btn btn-sm btn-ghost">🚪 Servers</button>
+    <button data-act-click="connectSetFilter('all')" id="cf-all" class="btn btn-sm btn-primary">All</button>
+    <button data-act-click="connectSetFilter('setup')" id="cf-setup" class="btn btn-sm btn-ghost">⚙️ Needs setup</button>
+    <button data-act-click="connectSetFilter('connector')" id="cf-connector" class="btn btn-sm btn-ghost">🔗 Apps</button>
+    <button data-act-click="connectSetFilter('tool')" id="cf-tool" class="btn btn-sm btn-ghost">🔧 Tools</button>
+    <button data-act-click="connectSetFilter('server')" id="cf-server" class="btn btn-sm btn-ghost">🚪 Servers</button>
     <input id="connect-search" placeholder="Search…" value="${escHtml(connectQuery)}"
       style="flex:1;min-width:160px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 11px;color:var(--text-0);font-size:13px;outline:none">
   </div>
@@ -115,7 +115,7 @@ function connectRenderBody() {
         <div style="font-size:12px;color:var(--text-2);margin-top:3px">
           ${needsSetup.slice(0,6).map(i => escHtml(i.name)).join(' · ')}
         </div>
-        <button onclick="connectSetFilter('setup')" class="btn btn-primary btn-sm" style="margin-top:9px">Set them up</button>
+        <button data-act-click="connectSetFilter('setup')" class="btn btn-primary btn-sm" style="margin-top:9px">Set them up</button>
       </div>`
     : '';
 
@@ -145,10 +145,10 @@ function connectCard(i) {
       ${(i.actions||[]).length>4?`<span style="color:var(--text-3)"> +${i.actions.length-4}</span>`:''}
     </div>` : ''}
     <div style="display:flex;gap:6px">
-      <button data-item="${escHtml(i.id)}" onclick="connectShowDetail(this.dataset.item)" class="btn btn-ghost btn-sm" style="flex:1">Details</button>
+      <button data-item="${escHtml(i.id)}" data-act-click="connectShowDetail($data.item)" class="btn btn-ghost btn-sm" style="flex:1">Details</button>
       ${i.needs_setup
-        ? `<button data-item="${escHtml(i.id)}" onclick="connectShowSetup(this.dataset.item)" class="btn btn-primary btn-sm" style="flex:1">Set up</button>`
-        : `<button data-item="${escHtml(i.id)}" onclick="connectTest(this.dataset.item)" class="btn btn-ghost btn-sm">Test</button>`}
+        ? `<button data-item="${escHtml(i.id)}" data-act-click="connectShowSetup($data.item)" class="btn btn-primary btn-sm" style="flex:1">Set up</button>`
+        : `<button data-item="${escHtml(i.id)}" data-act-click="connectTest($data.item)" class="btn btn-ghost btn-sm">Test</button>`}
     </div>
   </div>`;
 }
@@ -160,14 +160,14 @@ async function connectShowDetail(id) {
     const r = await fetch(`/api/connect/item/${encodeURIComponent(id)}`);
     if (!r.ok) { toast('Not found', 'err'); return; }
     const d = await r.json();
-    drawer.innerHTML = `<div id="connect-overlay" onclick="connectClose(event)"
+    drawer.innerHTML = `<div id="connect-overlay" data-act-click="connectClose($event)"
         style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;display:flex;justify-content:flex-end">
-      <div onclick="event.stopPropagation()" style="width:min(520px,100%);height:100%;overflow-y:auto;background:var(--bg-1);border-left:1px solid var(--border);padding:22px">
+      <div data-stop="1" style="width:min(520px,100%);height:100%;overflow-y:auto;background:var(--bg-1);border-left:1px solid var(--border);padding:22px">
         <div style="display:flex;align-items:flex-start;gap:12px">
           <span style="font-size:32px">${d.icon || '🔧'}</span>
           <div style="flex:1"><div style="font-size:18px;font-weight:800">${escHtml(d.name)}</div>
             <div style="font-size:12px;color:var(--text-3)">${escHtml(d.kind)} · ${escHtml(d.category)} · ${d.ready?'ready':'needs setup'}</div></div>
-          <button onclick="connectClose()" class="btn btn-ghost btn-sm">✕</button>
+          <button data-act-click="connectClose()" class="btn btn-ghost btn-sm">✕</button>
         </div>
         <p style="font-size:13px;color:var(--text-1);line-height:1.6;margin-top:10px">${escHtml(d.description||'')}</p>
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px;font-size:12.5px;margin:12px 0">
@@ -177,7 +177,7 @@ async function connectShowDetail(id) {
           <div>${(d.actions||[]).map(a=>`<span class="tag" style="margin:0 4px 4px 0;display:inline-block">${escHtml(a)}</span>`).join('')}</div>` : ''}
         ${d.setup ? connectSetupHtml(d.id, d.setup) : ''}
         <div style="margin-top:16px;display:flex;gap:8px">
-          <button data-item="${escHtml(d.id)}" onclick="connectTest(this.dataset.item)" class="btn btn-ghost" style="flex:1">Test connection</button>
+          <button data-item="${escHtml(d.id)}" data-act-click="connectTest($data.item)" class="btn btn-ghost" style="flex:1">Test connection</button>
         </div>
         <div id="connect-test-result" style="margin-top:10px"></div>
       </div>
@@ -192,7 +192,7 @@ function connectSetupHtml(id, s) {
     ${s.where ? `<div style="font-size:12px;color:var(--text-2);margin-top:5px">Where: ${escHtml(s.where)}</div>` : ''}
     ${s.scopes ? `<div style="font-size:12px;color:var(--text-2);margin-top:5px">Scopes: ${escHtml(s.scopes)}</div>` : ''}
     ${s.docs ? `<div style="font-size:12px;margin-top:6px"><a href="${safeUrl(s.docs)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Provider docs ↗</a></div>` : ''}
-    ${(s.needs||[]).length ? `<button data-item="${escHtml(id)}" onclick="connectShowSetup(this.dataset.item)" class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Enter credentials</button>` : ''}
+    ${(s.needs||[]).length ? `<button data-item="${escHtml(id)}" data-act-click="connectShowSetup($data.item)" class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Enter credentials</button>` : ''}
   </div>`;
 }
 

@@ -60,7 +60,7 @@ function toast(msg, type = 'ok', duration = 3000) {
   if (!c) return;
   const t = document.createElement('div');
   t.className = 'toast ' + type;
-  t.innerHTML = `<span>${escHtml(msg)}</span><span class="toast-close" onclick="this.parentElement.remove()">×</span>`;
+  t.innerHTML = `<span>${escHtml(msg)}</span><span class="toast-close" data-close="parent">×</span>`;
   c.appendChild(t);
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => t.classList.add('show'));
   else setTimeout(() => t.classList.add('show'), 16);
@@ -308,7 +308,7 @@ function renderAgentList() {
     el.innerHTML = S.agents.map(a => `
       <div class="agent-row ${S.currentAgent?.id === a.id ? 'active-agent' : ''}"
            onclick="setActiveAgent(${JSON.stringify(a).replace(/"/g,'&quot;')})"
-           ondblclick="openAgentModal(${JSON.stringify(a.id)})">
+           data-act-dblclick="openAgentModal(${JSON.stringify(a.id)})">
         <div class="agent-avatar" style="background:${a.color}22;border:1px solid ${a.color}44">
           <span>${a.avatar || '🤖'}</span>
         </div>
@@ -335,7 +335,7 @@ function renderAgentList() {
           <div style="font-weight:600;font-size:13px">${escHtml(a.name)}</div>
           <div style="font-size:11px;color:var(--text-2)">${escHtml(a.role||'')} • ${a.model||'default'}</div>
         </div>
-        <button onclick="openAgentModal(${JSON.stringify(a.id)})" class="btn btn-ghost btn-sm">Edit</button>
+        <button data-act-click="openAgentModal(${JSON.stringify(a.id)})" class="btn btn-ghost btn-sm">Edit</button>
       </div>
     `).join('');
   }
@@ -1232,7 +1232,7 @@ window.showNoviceApiGuide = function() {
   modal.style.cssText = 'position:fixed;inset:0;z-index:11000;display:flex;align-items:center;justify-content:center;background:rgba(4,6,15,0.85);backdrop-filter:blur(8px)';
   modal.innerHTML = `
     <div class="card-elevated surface-z4" style="max-width:620px;width:95%;padding:28px;border:2px solid var(--accent);border-radius:20px;position:relative;max-height:90vh;overflow-y:auto">
-      <button onclick="document.getElementById('novice-api-guide-modal').remove()" style="position:absolute;top:16px;right:18px;background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
+      <button data-close="id:novice-api-guide-modal" style="position:absolute;top:16px;right:18px;background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
       
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
         <div class="neural-orb-3d" style="width:46px;height:46px;flex-shrink:0"></div>
@@ -1247,7 +1247,7 @@ window.showNoviceApiGuide = function() {
         <div class="surface-z2" style="padding:16px;border-radius:12px;border-left:4px solid var(--accent)">
           <div style="font-weight:800;font-size:13.5px;color:var(--text-0);margin-bottom:6px">Step 1: Open OpenRouter & Create Your Free Account</div>
           <div style="font-size:12.5px;color:var(--text-1);line-height:1.6;margin-bottom:12px">OpenRouter is our primary cloud gateway. It lets you use Claude, ChatGPT, Gemini, and Llama from one place. No credit card required (many models run at zero cost). Click below to launch their key generator:</div>
-          <button onclick="openExternalLink('https://openrouter.ai/keys')" class="btn-3d btn-primary btn-sm" style="padding:10px 18px;background:var(--accent);color:#fff;font-weight:800">🌐 1. Launch OpenRouter Key Page in Browser ↗</button>
+          <button data-act-click="openExternalLink('https://openrouter.ai/keys')" class="btn-3d btn-primary btn-sm" style="padding:10px 18px;background:var(--accent);color:#fff;font-weight:800">🌐 1. Launch OpenRouter Key Page in Browser ↗</button>
         </div>
 
         <!-- Step 2 -->
@@ -1269,7 +1269,7 @@ window.showNoviceApiGuide = function() {
 
       <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:14px;font-size:11.5px;color:var(--text-3);flex-wrap:wrap;gap:8px">
         <span>🔒 100% Zero-Trust Local Hardware Encryption</span>
-        <button onclick="document.getElementById('novice-api-guide-modal').remove()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">I already have a key / Close</button>
+        <button data-close="id:novice-api-guide-modal" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">I already have a key / Close</button>
       </div>
     </div>
   `;
@@ -2578,7 +2578,7 @@ function showE2ETrace(run) {
     .map(s => `<img src="data:image/png;base64,${s.screenshot_b64}"
       title="${escHtml(s.step||s.step_name||'')}"
       style="width:100%;border-radius:6px;margin-top:6px;border:1px solid var(--border)"
-      onerror="this.style.display='none'">`)
+      data-hide-on-error="1">`)
     .join('');
 
   // Show as a toast-like overlay in builder
@@ -2587,7 +2587,7 @@ function showE2ETrace(run) {
   overlay.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
     <span style="font-size:15px;font-weight:800">🧪 E2E Trace</span>
     <span style="color:${scoreColor};font-weight:700;margin-left:auto">${passed}/${total} · ${run.engine||'heuristic'}</span>
-    <button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:16px">×</button>
+    <button data-close="parent:2" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:16px">×</button>
   </div>
   ${summary}
   ${screenshots}
@@ -2647,7 +2647,7 @@ function _gm_show({ title='', body='', input=false, textarea=false, placeholder=
 
     const btns = document.getElementById('gm-btns');
     btns.innerHTML = buttons.map((b,i) =>
-      `<button class="btn ${b.primary?'btn-primary':b.danger?'btn-danger':'btn-ghost'}" onclick="_gm_click(${jsArg(b.id||i)})">${b.label}</button>`
+      `<button class="btn ${b.primary?'btn-primary':b.danger?'btn-danger':'btn-ghost'}" data-act-click="_gm_click(${jsArg(b.id||i)})">${b.label}</button>`
     ).join('');
 
     document.getElementById('gmodal').style.display = 'flex';
@@ -3177,8 +3177,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
         <div style="font-size:12px;color:var(--text-2);line-height:1.5">Press <kbd style="background:var(--bg-4);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:10px">⌘K</kbd> anytime to search, or start typing in the chat below.</div>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0">
-        <button onclick="nav('templates');document.getElementById('welcome-banner')?.remove()" class="btn btn-primary btn-sm">🎨 Templates</button>
-        <button onclick="document.getElementById('welcome-banner')?.remove()" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:18px;padding:0 4px">×</button>
+        <button data-act-click="nav('templates')" data-close="id:welcome-banner" class="btn btn-primary btn-sm">🎨 Templates</button>
+        <button data-close="id:welcome-banner" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:18px;padding:0 4px">×</button>
       </div>`;
     document.body.appendChild(banner);
     setTimeout(() => banner?.remove(), 12000);
@@ -3383,9 +3383,9 @@ function renderMarkdownEnhanced(text) {
       <div style="display:flex;align-items:center;justify-content:space-between;background:#04060f;padding:6px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px">
         <span style="font-size:11px;font-weight:800;color:var(--accent);font-family:monospace">${escHtml(langLabel)}</span>
         <div style="display:flex;gap:6px;align-items:center">
-          <button onclick="openCodeInStudio(${JSON.stringify(id)}, ${jsArg(lang||'js')})" class="btn-3d btn-primary btn-sm" style="padding:2px 8px;font-size:10.5px" title="Load directly into primary Monaco editor buffer">⚡ Open in Studio ↗</button>
-          <button onclick="copyCodeBlock(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:10.5px">📋 Copy</button>
-          <button onclick="runCodeInTerminal(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:10.5px" title="Send snippet to System Terminal input">＞_ Terminal</button>
+          <button data-act-click="openCodeInStudio(${JSON.stringify(id)},${jsArg(lang||'js')})" class="btn-3d btn-primary btn-sm" style="padding:2px 8px;font-size:10.5px" title="Load directly into primary Monaco editor buffer">⚡ Open in Studio ↗</button>
+          <button data-act-click="copyCodeBlock(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:10.5px">📋 Copy</button>
+          <button data-act-click="runCodeInTerminal(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:10.5px" title="Send snippet to System Terminal input">＞_ Terminal</button>
         </div>
       </div>
       ${lineNumHtml}<pre id="${id}" style="margin:0;padding:14px${lineCount > 1 ? ' 14px 14px 50px' : ''};background:#060814;overflow-x:auto;font-size:12.5px;line-height:1.65;font-family:'JetBrains Mono','Fira Code',monospace"><code class="hljs language-${langLabel}" data-raw="${encodeURIComponent(code)}">${highlightedCode}</code></pre>
@@ -3808,7 +3808,7 @@ function showMentionDropdown(query, atIdx) {
   dd.innerHTML = [
     '<div style="padding:5px 10px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase">Agents</div>',
     ...agentMatches.slice(0, 6).map(a =>
-      `<div class="mention-item" onclick="selectMention(${jsArg('@' + (a.name) + '')})" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:var(--transition)" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
+      `<div class="mention-item" data-act-click="selectMention(${jsArg('@' + (a.name) + '')})" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:var(--transition)" data-hover="bg:var(--bg-3)" data-hover-out="bg:">
         <span style="font-size:16px">${a.avatar||'🤖'}</span>
         <div><div style="font-size:13px;font-weight:600">${escHtml(a.name)}</div><div style="font-size:10.5px;color:var(--text-3)">${escHtml(a.role||'')}</div></div>
       </div>`),
@@ -3874,7 +3874,7 @@ async function showSessionStats() {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:400px;width:100%;padding:20px">
         <div style="display:flex;justify-content:space-between;margin-bottom:14px">
           <h3 style="margin:0;color:var(--text-0)">📊 Session Stats</h3>
-          <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button data-close="closest:[style*=fixed]" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
           ${[
@@ -4099,7 +4099,7 @@ function updateConsolePanel() {
         <span style="font-size:11.5px;font-weight:700;color:var(--text-2)">Console</span>
         <span id="console-count-badge" style="display:none;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:99px">0</span>
         <button onclick="consoleMessages=[];updateConsolePanel()" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">Clear</button>
-        <button onclick="toggleConsole()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">×</button>
+        <button data-act-click="toggleConsole()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">×</button>
       </div>
       <div id="console-messages" style="flex:1;overflow-y:auto"></div>`;
     frameWrap.parentElement?.insertBefore(consolePanel, frameWrap);
@@ -4327,13 +4327,13 @@ async function studioLoadFileTree() {
       // file" existed). Added a hover-revealed 🗑 button per row (stops
       // propagation so it doesn't also trigger studioOpenFile on the row).
       return `<div class="file-row ${f.path===Studio.currentFile?'active':''}" data-path="${escHtml(f.path)}"
-               onclick="studioOpenFile(${jsArg(f.path)})" title="${escHtml(f.path)}" style="display:flex;align-items:center;gap:0">
+               data-act-click="studioOpenFile(${jsArg(f.path)})" title="${escHtml(f.path)}" style="display:flex;align-items:center;gap:0">
         <span style="font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;background:${c}22;color:${c};flex-shrink:0">${ext}</span>
         <span style="flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">${escHtml(name)}</span>
         <span style="font-size:10px;color:var(--text-3)">${formatBytes(f.size)}</span>
-        <button type="button" class="file-row-delete-btn" title="Delete file" onclick="event.stopPropagation();studioDeleteFile(${jsArg(f.path)})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:2px 4px;margin-left:2px;opacity:0;transition:opacity .15s">🗑</button>
+        <button type="button" class="file-row-delete-btn" title="Delete file" data-act-click="studioDeleteFile(${jsArg(f.path)})" data-stop="1" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:2px 4px;margin-left:2px;opacity:0;transition:opacity .15s">🗑</button>
       </div>`;
-    }).join('') + `<div class="new-file-btn" onclick="openNewFileModal()">＋ New file</div>`;
+    }).join('') + `<div class="new-file-btn" data-act-click="openNewFileModal()">＋ New file</div>`;
     // Reveal the delete button only on row hover, via JS (avoids adding a
     // new global CSS rule for a single component).
     el.querySelectorAll('.file-row').forEach(row => {
@@ -4575,11 +4575,11 @@ async function studioRenderVersionHistory() {
       return;
     }
     list.innerHTML = hist.map(v => `
-      <div style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:5px;font-size:11px" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
+      <div style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:5px;font-size:11px" data-hover="bg:var(--bg-3)" data-hover-out="bg:">
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-2)" title="${escHtml(v.message || '')}">v${v.id} · ${escHtml((v.ts||'').slice(5,16))} · ${escHtml(v.author||'')}</span>
-        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" onclick="studioPreviewVersion(${v.id})" title="Preview (load into editor)">👁</button>
-        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" onclick="studioDiffAgainstVersion(${v.id})" title="Compare with current live file">⇄</button>
-        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" onclick="studioRestoreVersion(${v.id})" title="Restore this version">↶</button>
+        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" data-act-click="studioPreviewVersion(${v.id})" title="Preview (load into editor)">👁</button>
+        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" data-act-click="studioDiffAgainstVersion(${v.id})" title="Compare with current live file">⇄</button>
+        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" data-act-click="studioRestoreVersion(${v.id})" title="Restore this version">↶</button>
       </div>`).join('');
   } catch(e) {
     list.innerHTML = '<div style="padding:8px;color:var(--danger)">Failed to load history.</div>';

@@ -19,7 +19,7 @@ async function renderHITL() {
         <h2>🛡️ Human-in-the-Loop</h2>
         <p>Confidence gates, interruption protocols, safe undo — agents pause for human approval before risky actions</p>
       </div>
-      <button class="btn-sm" onclick="hitlTestInterrupt()">🧪 Test Interrupt</button>
+      <button class="btn-sm" data-act-click="hitlTestInterrupt()">🧪 Test Interrupt</button>
     </div>
 
     <!-- Stats -->
@@ -68,11 +68,11 @@ async function renderHITL() {
 
           <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
             <div style="display:flex;gap:8px">
-              <button class="btn-3d btn-primary btn-sm" onclick="hitlDecide(${JSON.stringify(item.id)},'approve')" style="background:var(--success);border:none;color:#fff;padding:6px 14px">✅ Approve & Continue</button>
-              <button class="btn-3d btn-ghost btn-sm" onclick="hitlModify(${JSON.stringify(item.id)})" style="padding:6px 14px">✏ Modify Parameters</button>
-              <button class="btn-3d btn-danger btn-sm" onclick="hitlDecide(${JSON.stringify(item.id)},'reject')" style="padding:6px 14px">🛑 Abort & Revert</button>
+              <button class="btn-3d btn-primary btn-sm" data-act-click="hitlDecide(${JSON.stringify(item.id)},'approve')" style="background:var(--success);border:none;color:#fff;padding:6px 14px">✅ Approve & Continue</button>
+              <button class="btn-3d btn-ghost btn-sm" data-act-click="hitlModify(${JSON.stringify(item.id)})" style="padding:6px 14px">✏ Modify Parameters</button>
+              <button class="btn-3d btn-danger btn-sm" data-act-click="hitlDecide(${JSON.stringify(item.id)},'reject')" style="padding:6px 14px">🛑 Abort & Revert</button>
             </div>
-            <button onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace(true, 'hitl')" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:11px">🗂️ Secondary Dock</button>
+            <button data-act-click="toggleSplitWorkspace(true,'hitl')" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:11px">🗂️ Secondary Dock</button>
           </div>
         </div>`).join('') || '<div style="color:var(--text-3);padding:24px;text-align:center;background:var(--surface-z1);border-radius:12px;border:1px dashed var(--border)">No pending interruptions — autonomous agents operating safely within set confidence thresholds.</div>'}
     </div>
@@ -93,7 +93,7 @@ async function renderHITL() {
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="font-size:13px;font-weight:700">🎛️ Delegation Profiles</div>
-        <button class="btn-sm" onclick="hitlSaveDelegation()">💾 Save Profile</button>
+        <button class="btn-sm" data-act-click="hitlSaveDelegation()">💾 Save Profile</button>
       </div>
       <p style="font-size:11px;color:var(--text-3);margin:0 0 12px">Configure which action classes agents can perform autonomously vs. which always require your approval.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
@@ -164,7 +164,7 @@ async function renderHITL() {
 
     <!-- Sprint A: Link to full audit log -->
     <div style="margin-top:12px;text-align:center">
-      <button class="btn-sm" onclick="nav('audit-log')" style="color:var(--accent);border-color:var(--accent)">🔏 View Full Immutable Audit Log →</button>
+      <button class="btn-sm" data-act-click="nav('audit-log')" style="color:var(--accent);border-color:var(--accent)">🔏 View Full Immutable Audit Log →</button>
     </div>
   </div>`;
 

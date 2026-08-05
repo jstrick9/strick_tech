@@ -17,7 +17,7 @@ async function renderLeaderboard() {
         <h2>🏆 Agent Leaderboard</h2>
         <p>Rank agents by success rate, speed, and cost. Like Arthur AI's governance dashboard — discover and govern all agents.</p>
       </div>
-      <button class="btn-sm" onclick="lbSeedData()">🎲 Seed Test Data</button>
+      <button class="btn-sm" data-act-click="lbSeedData()">🎲 Seed Test Data</button>
     </div>
 
     <!-- Governance summary -->
@@ -38,25 +38,25 @@ async function renderLeaderboard() {
 
     <!-- Tabs -->
     <div style="display:flex;gap:8px;margin-bottom:14px">
-      <button class="btn" onclick="lbShowTab('leaderboard',this)" style="background:var(--accent);color:#fff">🏆 Leaderboard</button>
-      <button class="btn-sm" onclick="lbShowTab('discover',this)">🔍 Discover</button>
-      <button class="btn-sm" onclick="lbShowTab('policies',this)">📋 Policies</button>
+      <button class="btn" data-act-click="lbShowTab('leaderboard',$this)" style="background:var(--accent);color:#fff">🏆 Leaderboard</button>
+      <button class="btn-sm" data-act-click="lbShowTab('discover',$this)">🔍 Discover</button>
+      <button class="btn-sm" data-act-click="lbShowTab('policies',$this)">📋 Policies</button>
     </div>
 
     <!-- Leaderboard tab -->
     <div id="lb-tab-leaderboard">
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
         <label style="font-size:11px;color:var(--text-3)">Days:</label>
-        <select id="lb-days-select" onchange="lbChangeDays(this.value)" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:11px;padding:3px 8px">
+        <select id="lb-days-select" data-act-change="lbChangeDays($value)" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:11px;padding:3px 8px">
           <option value="7">7d</option><option value="30" selected>30d</option><option value="90">90d</option><option value="365">1y</option>
         </select>
         <label style="font-size:11px;color:var(--text-3)">Task:</label>
-        <select id="lb-task-select" onchange="lbChangeDays()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:11px;padding:3px 8px">
+        <select id="lb-task-select" data-act-change="lbChangeDays()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:11px;padding:3px 8px">
           <option value="">All tasks</option>
           <option value="code">Code</option><option value="research">Research</option>
           <option value="chat">Chat</option><option value="analysis">Analysis</option>
         </select>
-        <button class="btn-sm" onclick="lbExport()" style="margin-left:auto">⬇ Export</button>
+        <button class="btn-sm" data-act-click="lbExport()" style="margin-left:auto">⬇ Export</button>
       </div>
       <div id="lb-table-container">
       ${(lb.leaderboard||[]).length ? `
@@ -70,8 +70,8 @@ async function renderLeaderboard() {
             const rating = a.avg_rating ? '★'.repeat(Math.round(a.avg_rating)) : '—';
             return `
               <div style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:10px 14px;border-top:1px solid var(--border);align-items:center;cursor:pointer;transition:background .1s"
-                   onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''"
-                   onclick="lbViewAgent(${JSON.stringify(a.agent_id)})">
+                   data-hover="bg:var(--bg-3)" data-hover-out="bg:"
+                   data-act-click="lbViewAgent(${JSON.stringify(a.agent_id)})">
                 <div style="font-weight:700;color:var(--text-3);font-size:12px">${medal||('#'+(i+1))}</div>
                 <div style="font-size:20px">${a.avatar||'🤖'}</div>
                 <div>
@@ -100,8 +100,8 @@ async function renderLeaderboard() {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
         ${(discovered.agents||[]).length ? (discovered.agents||[]).map((a) =>`
           <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer"
-               onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''"
-               onclick="lbViewAgent(${JSON.stringify(a.id||a.agent_id)})">
+               data-hover="bg:var(--bg-3)" data-hover-out="bg:"
+               data-act-click="lbViewAgent(${JSON.stringify(a.id||a.agent_id)})">
             <span style="font-size:22px">${a.avatar||'🤖'}</span>
             <div style="flex:1;min-width:0">
               <div style="font-weight:600;color:var(--text-0);font-size:13px">${escHtml(a.name||a.id)}</div>
@@ -122,9 +122,9 @@ async function renderLeaderboard() {
     <!-- Policies tab -->
     <div id="lb-tab-policies" style="display:none">
       <div style="margin-bottom:10px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-        <input id="lb-policy-filter" placeholder="Filter by agent…" oninput="lbFilterPolicies(this.value)"
+        <input id="lb-policy-filter" placeholder="Filter by agent…" data-act-input="lbFilterPolicies($value)"
                style="flex:1;min-width:120px;max-width:200px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-0);font-size:12px;padding:5px 8px">
-        <button class="btn-sm" onclick="lbAddPolicy()">＋ Add Policy</button>
+        <button class="btn-sm" data-act-click="lbAddPolicy()">＋ Add Policy</button>
       </div>
       <div id="lb-policies-list">Loading…</div>
     </div>
@@ -181,8 +181,8 @@ function lbRenderPolicies(policies) {
           <span style="background:var(--bg-3);padding:1px 6px;border-radius:4px;font-family:monospace;color:var(--accent);flex-shrink:0">${escHtml(p.agent_id||'*')}</span>
           <span style="font-weight:600;color:var(--text-1);flex-shrink:0">${escHtml(p.policy_type||'')}</span>
           <span style="color:var(--text-2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.policy_rule||'')}</span>
-          <button onclick="lbTogglePolicy(${JSON.stringify(p.id)},${p.enabled?0:1})" style="background:none;border:none;cursor:pointer;font-size:14px" title="${p.enabled?'Disable':'Enable'} policy">${p.enabled?'✅':'❌'}</button>
-          <button onclick="lbDeletePolicy(${JSON.stringify(p.id)})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px" title="Delete policy">🗑</button>
+          <button data-act-click="lbTogglePolicy(${JSON.stringify(p.id)},${p.enabled?0:1})" style="background:none;border:none;cursor:pointer;font-size:14px" title="${p.enabled?'Disable':'Enable'} policy">${p.enabled?'✅':'❌'}</button>
+          <button data-act-click="lbDeletePolicy(${JSON.stringify(p.id)})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px" title="Delete policy">🗑</button>
         </div>`).join('') : '<div style="color:var(--text-3);padding:16px;text-align:center">No policies configured</div>'}
     </div>`;
 }
@@ -261,8 +261,8 @@ async function lbChangeDays(days) {
           const col   = a.success_rate>=90?'var(--success)':a.success_rate>=70?'var(--warning)':'var(--danger)';
           const rating = a.avg_rating ? '★'.repeat(Math.min(5,Math.round(a.avg_rating))) : '—';
           return `<div style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:10px 14px;border-top:1px solid var(--border);align-items:center;cursor:pointer;transition:background .1s"
-                       onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''"
-                       onclick="lbViewAgent(${JSON.stringify(a.agent_id)})">
+                       data-hover="bg:var(--bg-3)" data-hover-out="bg:"
+                       data-act-click="lbViewAgent(${JSON.stringify(a.agent_id)})">
             <div style="font-weight:700;color:var(--text-3);font-size:12px">${medal||('#'+(i+1))}</div>
             <div style="font-size:20px">${a.avatar||'🤖'}</div>
             <div>
@@ -300,7 +300,7 @@ async function lbViewAgent(agentId) {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;padding:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <h3 style="margin:0;color:var(--text-0)">📊 ${escHtml(agentId)} Stats</h3>
-          <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button data-close="closest:[style*=fixed]" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
           ${[
@@ -317,8 +317,8 @@ async function lbViewAgent(agentId) {
         </div>
         ${byType ? `<div><h4 style="font-size:11px;color:var(--text-3);text-transform:uppercase;margin:0 0 8px">By Task Type</h4>${byType}</div>` : ''}
         <div style="margin-top:16px;display:flex;gap:8px">
-          <button class="btn-sm" onclick="lbRateAgent(${JSON.stringify(agentId)})">⭐ Rate</button>
-          <button class="btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="lbClearAgent(${JSON.stringify(agentId)});this.closest('[style*=fixed]').remove()">🗑 Clear Data</button>
+          <button class="btn-sm" data-act-click="lbRateAgent(${JSON.stringify(agentId)})">⭐ Rate</button>
+          <button class="btn-sm" style="color:var(--danger);border-color:var(--danger)" data-act-click="lbClearAgent(${JSON.stringify(agentId)})" data-close="closest:[style*=fixed]">🗑 Clear Data</button>
         </div>
       </div>`;
     overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };

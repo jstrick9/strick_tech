@@ -1,0 +1,4 @@
+{
+  "failed_at": 1785886772.1988113,
+  "error": "eded (/usr/local/lib/python3.13/site-packages/playwright/driver/package/lib/server/registry/index.js:851:7)\n    at async Registry.validateHostRequirementsForExecutablesIfNeeded (/usr/local/lib/python3.13/site-packages/playwright/driver/package/lib/server/registry/index.js:840:43)\n    at async t.<anonymous> (/usr/local/lib/python3.13/site-packages/playwright/driver/package/lib/cli/program.js:137:7)"
+}

@@ -65,9 +65,9 @@ async function renderSupervisor() {
       <p style="margin:0;color:var(--text-2);font-size:12.5px">Autonomous goal DAG execution • Local LAN cluster grid • Distributed model sharding across Apple Silicon & edge nodes</p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button onclick="supervisorSwitchView('dag')" id="sup-btn-dag" class="btn-3d btn-primary btn-sm" style="padding:5px 12px">🧠 Supervisor DAGs</button>
-      <button onclick="supervisorSwitchView('cluster')" id="sup-btn-cluster" class="btn-3d btn-ghost btn-sm" style="padding:5px 12px">📡 Multi-Node Edge Radar</button>
-      <button onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace(true, 'supervisor')" class="btn-3d btn-ghost btn-sm" style="padding:5px 12px">🗂️ Secondary Dock</button>
+      <button data-act-click="supervisorSwitchView('dag')" id="sup-btn-dag" class="btn-3d btn-primary btn-sm" style="padding:5px 12px">🧠 Supervisor DAGs</button>
+      <button data-act-click="supervisorSwitchView('cluster')" id="sup-btn-cluster" class="btn-3d btn-ghost btn-sm" style="padding:5px 12px">📡 Multi-Node Edge Radar</button>
+      <button data-act-click="toggleSplitWorkspace(true,'supervisor')" class="btn-3d btn-ghost btn-sm" style="padding:5px 12px">🗂️ Secondary Dock</button>
     </div>
   </div>
 
@@ -88,7 +88,7 @@ async function renderSupervisor() {
           <div style="color:var(--text-3);font-size:12px;padding:10px">Loading…</div>
         </div>
         <div class="dag-sidebar-foot">
-          <button class="dag-launch-btn" onclick="dagOpenLaunch()">⚡ Launch New Goal</button>
+          <button class="dag-launch-btn" data-act-click="dagOpenLaunch()">⚡ Launch New Goal</button>
         </div>
       </div>
 
@@ -101,11 +101,11 @@ async function renderSupervisor() {
             <div class="dag-live-dot"></div>
             <span style="font-size:10px;color:var(--danger);font-weight:700">LIVE</span>
           </div>
-          <button class="dag-toolbar-btn" id="dag-fit-btn" onclick="dagFitView()" style="display:none">⊡ Fit</button>
-          <button class="dag-toolbar-btn" id="dag-detail-toggle" onclick="dagToggleDetail()" style="display:none">Detail ▶</button>
-          <button class="dag-toolbar-btn danger" id="dag-kill-btn" onclick="dagKillActive()" style="display:none">🛑 Kill</button>
-          <button class="dag-toolbar-btn" id="dag-delete-btn" onclick="dagDeleteActive()" style="display:none">🗑 Delete</button>
-          <button class="dag-toolbar-btn" onclick="dagRefresh()" title="Refresh">↺</button>
+          <button class="dag-toolbar-btn" id="dag-fit-btn" data-act-click="dagFitView()" style="display:none">⊡ Fit</button>
+          <button class="dag-toolbar-btn" id="dag-detail-toggle" data-act-click="dagToggleDetail()" style="display:none">Detail ▶</button>
+          <button class="dag-toolbar-btn danger" id="dag-kill-btn" data-act-click="dagKillActive()" style="display:none">🛑 Kill</button>
+          <button class="dag-toolbar-btn" id="dag-delete-btn" data-act-click="dagDeleteActive()" style="display:none">🗑 Delete</button>
+          <button class="dag-toolbar-btn" data-act-click="dagRefresh()" title="Refresh">↺</button>
         </div>
 
         <!-- Phase/wave banner -->
@@ -149,12 +149,12 @@ async function renderSupervisor() {
               <div class="dag-empty-sub">
                 Select a supervisor run from the sidebar to visualize its Task DAG — nodes light up in real time as the supervisor orchestrates specialist agents.
               </div>
-              <button class="dag-launch-btn" onclick="dagOpenLaunch()" style="width:auto;padding:8px 20px;margin-top:16px">⚡ Launch Your First Goal</button>
+              <button class="dag-launch-btn" data-act-click="dagOpenLaunch()" style="width:auto;padding:8px 20px;margin-top:16px">⚡ Launch Your First Goal</button>
             </div>
 
             <!-- Zoom controls -->
             <div class="dag-zoom-controls" id="dag-zoom-controls" style="display:none">
-              <button class="dag-zoom-btn" onclick="dagZoom(1.2)" title="Zoom in">+</button>
+              <button class="dag-zoom-btn" data-act-click="dagZoom(1.2)" title="Zoom in">+</button>
               <div class="dag-zoom-label" id="dag-zoom-label">100%</div>
               <button class="dag-zoom-btn" onclick="dagZoom(1/1.2)" title="Zoom out">−</button>
             </div>
@@ -169,7 +169,7 @@ async function renderSupervisor() {
           <div class="dag-detail collapsed" id="dag-detail">
             <div class="dag-detail-head">
               <h4 id="dag-detail-title">Task Detail</h4>
-              <button onclick="dagToggleDetail()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:13px">✕</button>
+              <button data-act-click="dagToggleDetail()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:13px">✕</button>
             </div>
             <div class="dag-detail-body" id="dag-detail-body">
               <div style="color:var(--text-3);font-size:12px">Click a task node to see its details.</div>
@@ -183,7 +183,7 @@ async function renderSupervisor() {
             <span style="font-size:11px;font-weight:700;color:var(--text-2)">📊 Eval Score:</span>
             <span id="dag-eval-score" style="font-size:14px;font-weight:800;color:var(--success)"></span>
             <span id="dag-eval-notes" style="font-size:11px;color:var(--text-3);flex:1"></span>
-            <button class="dag-toolbar-btn" onclick="dagShowFinalOutput()">📄 Final Output</button>
+            <button class="dag-toolbar-btn" data-act-click="dagShowFinalOutput()">📄 Final Output</button>
           </div>
         </div>
       </div>
@@ -199,9 +199,9 @@ async function renderSupervisor() {
           <span style="font-size:12px;color:var(--text-2)">Zero-latency edge sharding across localized Apple Silicon & inference server nodes</span>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button onclick="clusterAddNode()" class="btn-3d btn-primary btn-sm" style="padding:6px 14px">＋ Add Edge Node</button>
-          <button onclick="clusterScanLAN()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">📡 Scan Local Network</button>
-          <button onclick="clusterRebalanceLoad()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">⚡ Rebalance Swarm Load</button>
+          <button data-act-click="clusterAddNode()" class="btn-3d btn-primary btn-sm" style="padding:6px 14px">＋ Add Edge Node</button>
+          <button data-act-click="clusterScanLAN()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">📡 Scan Local Network</button>
+          <button data-act-click="clusterRebalanceLoad()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">⚡ Rebalance Swarm Load</button>
         </div>
       </div>
 
@@ -586,7 +586,7 @@ function dagNodeHTML(t) {
 
   return `<div class="dag-node ${stCls} ${_dagSelectedTask===t.task_id?'n-selected':''}" id="dagn-${t.task_id}"
               style="left:${t.x||0}px;top:${t.y||0}px"
-              onclick="dagClickTask(event,${jsArg(t.task_id)})">
+              data-act-click="dagClickTask($event,${jsArg(t.task_id)})">
     <div class="dag-node-hdr">
       <div class="dag-node-seq" style="background:${col}">${t.seq}</div>
       <span class="dag-node-label" title="${escHtml(t.title)}">${escHtml(t.title)}</span>
@@ -1036,8 +1036,8 @@ function dagOpenLaunch() {
         ${examples.map(ex => `<div class="dag-modal-example" onclick="document.getElementById('dag-goal-ta').value=${jsArg(ex)}">${escHtml(ex)}</div>`).join('')}
       </div>
       <div class="dag-modal-row">
-        <button class="dag-toolbar-btn" onclick="document.getElementById('dag-launch-modal').remove()">Cancel</button>
-        <button class="dag-launch-btn" style="width:auto;padding:8px 20px" onclick="dagLaunchGoal()">⚡ Launch</button>
+        <button class="dag-toolbar-btn" data-close="id:dag-launch-modal">Cancel</button>
+        <button class="dag-launch-btn" style="width:auto;padding:8px 20px" data-act-click="dagLaunchGoal()">⚡ Launch</button>
       </div>
     </div>`;
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };

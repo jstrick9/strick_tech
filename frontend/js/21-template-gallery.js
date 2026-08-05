@@ -40,17 +40,17 @@
       // but no button anywhere in the UI ever called it — the only way to keep
       // a design was the localStorage-only "New Template", which stores a
       // prompt, not your actual code, and is lost if the browser is cleared.
-      + '<button onclick="saveWorkAsTemplate()" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-weight:700" title="Snapshot what you currently have in Studio as a reusable template file">💾 Save Current Work</button>'
-      + '<button onclick="showCreateTemplateForm()" class="btn btn-primary btn-sm" style="padding:6px 14px;font-weight:700">＋ New Template</button>'
+      + '<button data-act-click="saveWorkAsTemplate()" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-weight:700" title="Snapshot what you currently have in Studio as a reusable template file">💾 Save Current Work</button>'
+      + '<button data-act-click="showCreateTemplateForm()" class="btn btn-primary btn-sm" style="padding:6px 14px;font-weight:700">＋ New Template</button>'
       + '</div>'
       + '</div>'
       + '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap" id="tmpl-cats"></div>'
       + '</div>'
       + '<div style="padding:20px">'
       + '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">'
-      + '<input id="tmpl-search" placeholder="Search templates…" oninput="filterTemplates()" '
+      + '<input id="tmpl-search" placeholder="Search templates…" data-act-input="filterTemplates()" '
       + 'style="flex:1;max-width:300px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-0);font-size:13px;outline:none">'
-      + '<select id="tmpl-sort" onchange="tmplChangeSort(this.value)" '
+      + '<select id="tmpl-sort" data-act-change="tmplChangeSort($value)" '
       + 'style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text-0);font-size:12px;outline:none">'
       + '<option value="name">A-Z</option>'
       + '<option value="category">By Category</option>'
@@ -113,7 +113,7 @@
 
       var catEl = document.getElementById('tmpl-cats');
       if (catEl) {
-        var html = '<span class="bp-btn ' + (templateCategory === 'all' ? 'active' : '') + '" onclick="filterTemplates(\'all\')">All (' + allTemplates.length + ')</span>';
+        var html = '<span class="bp-btn ' + (templateCategory === 'all' ? 'active' : '') + '" data-act-click="filterTemplates(\'all\')">All (' + allTemplates.length + ')</span>';
         catList.forEach(function(c) {
           html += '<span class="bp-btn ' + (templateCategory === c.id ? 'active' : '') + '" onclick="filterTemplates(\'' + c.id + '\')">' + escHtml(c.label) + ' (' + c.count + ')</span>';
         });
@@ -122,7 +122,7 @@
       renderTemplateGrid();
     } catch(ex) {
       var g = document.getElementById('tmpl-grid');
-      if (g) g.innerHTML = '<div style="color:var(--danger);grid-column:1/-1">Failed to load templates: ' + escHtml(ex.message) + '<br><button class="btn-sm" onclick="renderTemplates()" style="margin-top:8px">↻ Retry</button></div>';
+      if (g) g.innerHTML = '<div style="color:var(--danger);grid-column:1/-1">Failed to load templates: ' + escHtml(ex.message) + '<br><button class="btn-sm" data-act-click="renderTemplates()" style="margin-top:8px">↻ Retry</button></div>';
     }
   }
 

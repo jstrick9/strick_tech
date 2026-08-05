@@ -73,15 +73,15 @@ async function renderPrompts() {
       ]})||'<div style="padding:20px"><h2>💬 Prompt Library</h2></div>'}
       <div class="page-content">
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-        <input id="prompt-search" placeholder="Search prompts…" oninput="filterPrompts()"
+        <input id="prompt-search" placeholder="Search prompts…" data-act-input="filterPrompts()"
                style="flex:1;max-width:280px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;color:var(--text-0);font-size:13px;outline:none">
-        <select id="prompt-sort" onchange="changePromptSort(this.value)"
+        <select id="prompt-sort" data-act-change="changePromptSort($value)"
                 style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:12px;outline:none">
           <option value="updated">Recently updated</option>
           <option value="used">Most used</option>
           <option value="title">A-Z</option>
         </select>
-        <button onclick="toggleFavs()" class="btn ${promptFavOnly?'btn-primary':'btn-ghost'} btn-sm" id="fav-btn">⭐ Favorites</button>
+        <button data-act-click="toggleFavs()" class="btn ${promptFavOnly?'btn-primary':'btn-ghost'} btn-sm" id="fav-btn">⭐ Favorites</button>
         <div style="display:flex;gap:4px;flex-wrap:wrap" id="prompt-cat-filter">
           <button type="button" data-prompt-cat="all" class="term-btn" id="pcat-all"
                   style="${promptCategory==='all'?'border-color:var(--accent);color:var(--accent-hi)':''}">All (${promptsData.length})</button>
@@ -95,7 +95,7 @@ async function renderPrompts() {
       <div id="prompt-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px">${renderPromptCards()}</div>
       </div>
       <!-- Prompt modal -->
-      <div id="prompt-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(8px)" onclick="if(event.target===this)closePromptModal()">
+      <div id="prompt-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(8px)" data-act-click="closePromptModal()" data-click-self="1">
         <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-xl);padding:22px;width:100%;max-width:560px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto">
           <h2 style="font-size:17px;font-weight:800;margin-bottom:14px" id="pm-modal-title">New Prompt</h2>
           <div class="form-group"><label class="form-label">Title *</label><input id="pm-title" class="input" placeholder="e.g. Security code review"></div>
@@ -127,8 +127,8 @@ async function renderPrompts() {
             <input type="checkbox" id="pm-fav" style="accent-color:var(--accent)"> Mark as favorite
           </label>
           <div style="display:flex;gap:8px;justify-content:flex-end">
-            <button onclick="closePromptModal()" class="btn btn-ghost">Cancel</button>
-            <button onclick="savePrompt()" class="btn btn-primary" id="pm-save-btn">Save</button>
+            <button data-act-click="closePromptModal()" class="btn btn-ghost">Cancel</button>
+            <button data-act-click="savePrompt()" class="btn btn-primary" id="pm-save-btn">Save</button>
           </div>
         </div>
       </div>`;
@@ -138,7 +138,7 @@ async function renderPrompts() {
 
   } catch(ex) {
     pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Error loading prompts: ${escHtml(ex?.message||String(ex))}<br>
-      <button class="btn-sm" onclick="renderPrompts()" style="margin-top:8px">↻ Retry</button></div>`;
+      <button class="btn-sm" data-act-click="renderPrompts()" style="margin-top:8px">↻ Retry</button></div>`;
   }
 }
 
@@ -624,8 +624,8 @@ async function renderCodeSearch(){
     ${pageHeader?.({title:'🔍 Code Search',subtitle:'Instant search across all project files'})||'<div style="padding:20px"><h2>🔍 Code Search</h2></div>'}
     <div class="page-content">
     <div style="display:flex;gap:8px;margin-bottom:14px">
-      <input id="cs-input" class="input" placeholder="Search code, functions, variables, text…" style="flex:1;font-size:14px;height:42px" onkeydown="if(event.key==='Enter')runCodeSearch()" autocomplete="off">
-      <button onclick="runCodeSearch()" class="btn btn-primary" id="cs-btn" style="height:42px">🔍 Search</button>
+      <input id="cs-input" class="input" placeholder="Search code, functions, variables, text…" style="flex:1;font-size:14px;height:42px" data-act-keydown="runCodeSearch()" data-keys="Enter" autocomplete="off">
+      <button data-act-click="runCodeSearch()" class="btn btn-primary" id="cs-btn" style="height:42px">🔍 Search</button>
     </div>
     <div id="cs-results" style="color:var(--text-3);text-align:center;padding:40px;font-size:13px">Type to search across all project files</div>
     </div>`;
@@ -644,7 +644,7 @@ async function runCodeSearch(){
     res.innerHTML=`<div style="margin-bottom:12px;font-size:13px;color:var(--text-1);font-weight:600">${j.total} match${j.total!==1?'es':''} in ${Object.keys(byFile).length} file${Object.keys(byFile).length!==1?'s':''}${j.summary?` — ${escHtml(j.summary)}`:''}
     </div>${Object.entries(byFile).map(([file,hits])=>`
       <div style="margin-bottom:10px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
-        <div style="padding:7px 12px;background:var(--bg-3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="studioOpenFile?.(${jsArg(file)});nav('studio')">
+        <div style="padding:7px 12px;background:var(--bg-3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer" data-act-click="studioOpenFile(${jsArg(file)});nav('studio')">
           <span style="font-size:11.5px;font-family:monospace;color:var(--accent);font-weight:600">${escHtml(file)}</span>
           <span style="font-size:10.5px;color:var(--text-3);margin-left:auto">${hits.length} match${hits.length!==1?'es':''} · open →</span>
         </div>
@@ -659,7 +659,7 @@ async function runCodeSearch(){
               <span style="font-family:monospace;font-size:12px;color:${isMatch?'var(--text-0)':'var(--text-3)'};white-space:pre-wrap">${escHtml(l)}</span>
             </div>`;
           }).join('');
-          return `<div style="padding:6px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:var(--transition)" onclick="studioOpenFile?.(${jsArg(file)});nav('studio')" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
+          return `<div style="padding:6px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:var(--transition)" data-act-click="studioOpenFile(${jsArg(file)});nav('studio')" data-hover="bg:var(--bg-3)" data-hover-out="bg:">
             ${ctxHtml}
           </div>`;
         }).join('')}
@@ -685,8 +685,8 @@ async function reviewCurrentFile(){
       <span style="font-weight:700;font-size:13px">🔍 Code Review</span>
       <span id="review-score" style="font-size:11px;color:var(--text-2)"></span>
       <div style="margin-left:auto;display:flex;gap:5px">
-        <button onclick="reviewCurrentFile()" class="btn btn-ghost btn-sm">⟳</button>
-        <button onclick="toggleReviewOverlay()" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:16px">×</button>
+        <button data-act-click="reviewCurrentFile()" class="btn btn-ghost btn-sm">⟳</button>
+        <button data-act-click="toggleReviewOverlay()" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:16px">×</button>
       </div>
     </div>
     <div id="review-summary" style="padding:9px 12px;font-size:12.5px;color:var(--text-2);border-bottom:1px solid var(--border);flex-shrink:0"></div>
@@ -808,7 +808,7 @@ window.renderSplitPane = async function(paneId) {
       <div style="display:flex;flex-direction:column;height:100%;gap:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-1);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
           <span style="font-weight:800;color:var(--accent)">⚡ Studio Code Buffer (Secondary Dock)</span>
-          <button class="btn-3d btn-sm" onclick="nav('studio')" style="padding:4px 10px;font-size:11px">Open Full Studio ↗</button>
+          <button class="btn-3d btn-sm" data-act-click="nav('studio')" style="padding:4px 10px;font-size:11px">Open Full Studio ↗</button>
         </div>
         <div id="secondary-monaco-container" style="flex:1;min-height:320px;background:#04060f;border:1px solid var(--border-hi);border-radius:12px;padding:14px;font-family:monospace;font-size:12.5px;color:#a7f3d0;overflow:auto">
 // Strick Tech Studio — Secondary Editor Dock

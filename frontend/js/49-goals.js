@@ -61,14 +61,14 @@ async function renderGoals() {
         </div>
         <div class="gm-filters">
           <div class="gm-filter-row">
-            <select class="gm-filter-select" id="gm-filter-status" onchange="gmFilterChange()">
+            <select class="gm-filter-select" id="gm-filter-status" data-act-change="gmFilterChange()">
               <option value="">All statuses</option>
               <option value="active">Active</option>
               <option value="paused">Paused</option>
               <option value="done">Done</option>
               <option value="blocked">Blocked</option>
             </select>
-            <select class="gm-filter-select" id="gm-filter-priority" onchange="gmFilterChange()">
+            <select class="gm-filter-select" id="gm-filter-priority" data-act-change="gmFilterChange()">
               <option value="">All priorities</option>
               <option value="critical">Critical</option>
               <option value="high">High</option>
@@ -76,7 +76,7 @@ async function renderGoals() {
               <option value="low">Low</option>
             </select>
           </div>
-          <select class="gm-filter-select" id="gm-filter-domain" onchange="gmFilterChange()">
+          <select class="gm-filter-select" id="gm-filter-domain" data-act-change="gmFilterChange()">
             <option value="">All domains</option>
             <option value="Work">💼 Work</option>
             <option value="Health">🏃 Health</option>
@@ -93,7 +93,7 @@ async function renderGoals() {
         <div style="color:var(--text-3);font-size:12px;padding:10px">Loading…</div>
       </div>
       <div class="gm-sidebar-foot">
-        <button class="gm-new-btn" onclick="gmOpenCreate()">+ New Goal</button>
+        <button class="gm-new-btn" data-act-click="gmOpenCreate()">+ New Goal</button>
       </div>
     </div>
 
@@ -103,7 +103,7 @@ async function renderGoals() {
         <div class="gm-empty-icon">🎯</div>
         <div class="gm-empty-title">No Goal Selected</div>
         <div class="gm-empty-sub">Select a goal from the sidebar to view its decomposition, live outcome score, and progress history — or create your first goal.</div>
-        <button class="gm-new-btn" onclick="gmOpenCreate()" style="width:auto;padding:8px 20px;margin-top:16px">+ Create First Goal</button>
+        <button class="gm-new-btn" data-act-click="gmOpenCreate()" style="width:auto;padding:8px 20px;margin-top:16px">+ Create First Goal</button>
       </div>
     </div>
   </div>`;
@@ -222,23 +222,23 @@ function gmRenderDetail() {
         <span class="gm-detail-progress-pct" style="color:${progC}">${prog}%</span>
       </div>
       <div class="gm-detail-actions">
-        <button class="gm-action-btn primary" onclick="gmDecomposeGoal()">🧩 Decompose</button>
-        <button class="gm-action-btn primary" onclick="gmScoreGoal()" style="background:rgba(157,116,245,.2);border-color:#9d74f5;color:#9d74f5">⭐ Score Outcome</button>
-        <button class="gm-action-btn" onclick="gmLaunchGoal()">🚀 Launch Supervisor</button>
-        <button class="gm-action-btn" onclick="gmAddCheckin()">📈 Check-in</button>
-        <button class="gm-action-btn" onclick="gmAddMilestone()">📌 Add Milestone</button>
-        <button class="gm-action-btn" onclick="gmEditGoal()">✏️ Edit</button>
-        <button class="gm-action-btn danger" onclick="gmDeleteGoal()">🗑</button>
+        <button class="gm-action-btn primary" data-act-click="gmDecomposeGoal()">🧩 Decompose</button>
+        <button class="gm-action-btn primary" data-act-click="gmScoreGoal()" style="background:rgba(157,116,245,.2);border-color:#9d74f5;color:#9d74f5">⭐ Score Outcome</button>
+        <button class="gm-action-btn" data-act-click="gmLaunchGoal()">🚀 Launch Supervisor</button>
+        <button class="gm-action-btn" data-act-click="gmAddCheckin()">📈 Check-in</button>
+        <button class="gm-action-btn" data-act-click="gmAddMilestone()">📌 Add Milestone</button>
+        <button class="gm-action-btn" data-act-click="gmEditGoal()">✏️ Edit</button>
+        <button class="gm-action-btn danger" data-act-click="gmDeleteGoal()">🗑</button>
       </div>
     </div>
 
     <div class="gm-tabs">
-      <div class="gm-tab ${_goalTab==='overview'?'active':''}"   onclick="gmSetTab('overview')">Overview</div>
-      <div class="gm-tab ${_goalTab==='decompose'?'active':''}"  onclick="gmSetTab('decompose')">
+      <div class="gm-tab ${_goalTab==='overview'?'active':''}"   data-act-click="gmSetTab('overview')">Overview</div>
+      <div class="gm-tab ${_goalTab==='decompose'?'active':''}"  data-act-click="gmSetTab('decompose')">
         Decompose<span class="gm-tab-badge" id="gm-decomp-badge">${decomp.length||''}</span>
       </div>
-      <div class="gm-tab ${_goalTab==='score'?'active':''}"      onclick="gmSetTab('score')">Outcome Score</div>
-      <div class="gm-tab ${_goalTab==='history'?'active':''}"    onclick="gmSetTab('history')">
+      <div class="gm-tab ${_goalTab==='score'?'active':''}"      data-act-click="gmSetTab('score')">Outcome Score</div>
+      <div class="gm-tab ${_goalTab==='history'?'active':''}"    data-act-click="gmSetTab('history')">
         History<span class="gm-tab-badge" id="gm-hist-badge">${scores.length||''}</span>
       </div>
     </div>
@@ -292,12 +292,12 @@ function gmTabOverview() {
     <div class="gm-section">
       <div class="gm-section-title">📌 Milestones
         ${ms.length ? `<span style="color:var(--text-3);font-size:10px">(${donems}/${ms.length} done)</span>` : ''}
-        <button onclick="gmAddMilestone()" style="margin-left:auto;font-size:10px;padding:2px 7px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">+ Add</button>
+        <button data-act-click="gmAddMilestone()" style="margin-left:auto;font-size:10px;padding:2px 7px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">+ Add</button>
       </div>
       ${ms.length ? `
       <div class="gm-milestone-list">
         ${ms.map(m=>`
-        <div class="gm-milestone-item ${m.completed?'done':''}" data-ms-id="${escHtml(m.id)}" data-ms-done="${m.completed ? 1 : 0}" onclick="gmCompleteMilestone(${jsArg(m.id)}, ${m.completed ? 1 : 0})">
+        <div class="gm-milestone-item ${m.completed?'done':''}" data-ms-id="${escHtml(m.id)}" data-ms-done="${m.completed ? 1 : 0}" data-act-click="gmCompleteMilestone(${jsArg(m.id)},${m.completed ? 1 : 0})">
           <span class="gm-milestone-check">${m.completed?'✅':'⬜'}</span>
           <span class="gm-milestone-title ${m.completed?'done':''}">${escHtml(m.title)}</span>
           ${m.due_date ? `<span style="font-size:10px;color:var(--text-3)">${m.due_date}</span>` : ''}
@@ -326,7 +326,7 @@ function gmTabOverview() {
       <div class="gm-section-title">🧠 Supervisor Run</div>
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;display:flex;align-items:center;gap:8px">
         <span style="color:var(--accent)">${g.supervisor_run_id}</span>
-        <button onclick="nav('supervisor')" style="margin-left:auto;font-size:11px;padding:3px 9px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-1);cursor:pointer">View DAG →</button>
+        <button data-act-click="nav('supervisor')" style="margin-left:auto;font-size:11px;padding:3px 9px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-1);cursor:pointer">View DAG →</button>
       </div>
     </div>` : ''}
   `;
@@ -346,7 +346,7 @@ function gmTabDecompose() {
           Click "Decompose" to have the Brain agent break this goal into<br>
           a dependency-ordered Task DAG with specialist assignments.
         </div>
-        <button class="gm-new-btn" style="width:auto;padding:10px 24px;font-size:13px" onclick="gmDecomposeGoal()">🧩 Decompose This Goal</button>
+        <button class="gm-new-btn" style="width:auto;padding:10px 24px;font-size:13px" data-act-click="gmDecomposeGoal()">🧩 Decompose This Goal</button>
       </div>`;
   }
 
@@ -387,7 +387,7 @@ function gmTabDecompose() {
     const icon = GOAL_AGENT_ICONS[t.agent_hint] || '🤖';
     return `<div class="gm-decomp-task" id="gdt-${t.id}"
       style="left:${t._x}px;top:${t._y}px;border-color:${col}33"
-      data-decomp-id="${escHtml(t.id)}" onclick="gmSelectDecompTask(${jsArg(t.id)})">
+      data-decomp-id="${escHtml(t.id)}" data-act-click="gmSelectDecompTask(${jsArg(t.id)})">
       <div class="gm-decomp-task-hdr">
         <div class="gm-decomp-seq" style="background:${col}">${t.seq}</div>
         <span class="gm-decomp-label">${escHtml(t.title)}</span>
@@ -416,7 +416,7 @@ function gmTabDecompose() {
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
       <span style="font-size:12px;font-weight:600;color:var(--text-0)">${decomp.length} tasks · ${Object.keys(waves).length} waves</span>
       <span style="font-size:11px;color:var(--text-3)">Click any node to see detail · Scroll to pan</span>
-      <button onclick="gmDecomposeGoal(true)" style="margin-left:auto;font-size:11px;padding:4px 10px;border-radius:6px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer">↺ Re-decompose</button>
+      <button data-act-click="gmDecomposeGoal(true)" style="margin-left:auto;font-size:11px;padding:4px 10px;border-radius:6px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer">↺ Re-decompose</button>
     </div>
     <div class="gm-decomp-canvas-wrap" style="height:${Math.max(300,maxY+30)}px">
       <svg class="gm-decomp-edges-svg" width="${maxX}" height="${Math.max(300,maxY+30)}" style="position:absolute;top:0;left:0">
@@ -433,7 +433,7 @@ function gmTabDecompose() {
       <div class="gm-decomp-task-detail" id="gm-decomp-task-detail-content"></div>
     </div>
     <div style="margin-top:12px;text-align:center">
-      <button class="gm-new-btn" style="width:auto;padding:8px 20px" onclick="gmLaunchGoalFromDecomp()">🚀 Launch Supervisor with this Decomposition</button>
+      <button class="gm-new-btn" style="width:auto;padding:8px 20px" data-act-click="gmLaunchGoalFromDecomp()">🚀 Launch Supervisor with this Decomposition</button>
     </div>
   `;
 }
@@ -489,7 +489,7 @@ function gmTabScore() {
           Click "Score Outcome" to have the Evaluator agent assess this goal's<br>
           progress across 5 dimensions and generate actionable next steps.
         </div>
-        <button class="gm-new-btn" style="width:auto;padding:10px 24px;font-size:13px;background:rgba(157,116,245,.25);color:#9d74f5" onclick="gmScoreGoal()">⭐ Score Outcome Now</button>
+        <button class="gm-new-btn" style="width:auto;padding:10px 24px;font-size:13px;background:rgba(157,116,245,.25);color:#9d74f5" data-act-click="gmScoreGoal()">⭐ Score Outcome Now</button>
       </div>`;
   }
 
@@ -555,8 +555,8 @@ function gmTabScore() {
     </div>`:''}
 
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-      <button class="gm-action-btn" onclick="gmScoreGoal()" style="flex:1;justify-content:center">↺ Re-score (Iteration ${(g.iteration||1)+1})</button>
-      <button class="gm-action-btn" onclick="gmSetTab('history')" style="flex:1;justify-content:center">📈 View History</button>
+      <button class="gm-action-btn" data-act-click="gmScoreGoal()" style="flex:1;justify-content:center">↺ Re-score (Iteration ${(g.iteration||1)+1})</button>
+      <button class="gm-action-btn" data-act-click="gmSetTab('history')" style="flex:1;justify-content:center">📈 View History</button>
     </div>
   `;
 }
@@ -836,9 +836,9 @@ function gmOpenCreate() {
         <div class="gm-form-group full">
           <label class="gm-form-label">Initial Milestones (optional)</label>
           <div class="gm-modal-ms-list" id="gcf-ms-list">
-            <div class="gm-modal-ms-item"><input class="gm-modal-ms-input" placeholder="Milestone 1…"><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">✕</button></div>
+            <div class="gm-modal-ms-item"><input class="gm-modal-ms-input" placeholder="Milestone 1…"><button data-close="parent" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">✕</button></div>
           </div>
-          <button onclick="gcfAddMilestone()" style="margin-top:6px;font-size:11px;padding:4px 10px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">+ Add Milestone</button>
+          <button data-act-click="gcfAddMilestone()" style="margin-top:6px;font-size:11px;padding:4px 10px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">+ Add Milestone</button>
         </div>
         <div class="gm-form-group full" style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" id="gcf-auto-decompose" checked style="accent-color:var(--accent)">
@@ -846,8 +846,8 @@ function gmOpenCreate() {
         </div>
       </div>
       <div class="gm-modal-row">
-        <button class="gm-action-btn" onclick="document.getElementById('gm-create-modal').remove()">Cancel</button>
-        <button class="gm-new-btn" style="width:auto;padding:8px 20px" onclick="gmCreateGoal()">✅ Create Goal</button>
+        <button class="gm-action-btn" data-close="id:gm-create-modal">Cancel</button>
+        <button class="gm-new-btn" style="width:auto;padding:8px 20px" data-act-click="gmCreateGoal()">✅ Create Goal</button>
       </div>
     </div>`;
   overlay.onclick = e => { if (e.target===overlay) overlay.remove(); };
@@ -860,7 +860,7 @@ function gcfAddMilestone() {
   if (!list) return;
   const item = document.createElement('div');
   item.className = 'gm-modal-ms-item';
-  item.innerHTML = `<input class="gm-modal-ms-input" placeholder="Milestone…"><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">✕</button>`;
+  item.innerHTML = `<input class="gm-modal-ms-input" placeholder="Milestone…"><button data-close="parent" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">✕</button>`;
   list.appendChild(item);
 }
 

@@ -72,15 +72,15 @@ async function renderMCPGateway() {
           <div class="prb-stat"><div class="prb-stat-val" id="prb-stat-active" style="color:var(--success)">—</div><div class="prb-stat-lbl">Active</div></div>
           <div class="prb-stat"><div class="prb-stat-val" id="prb-stat-deny" style="color:var(--danger)">—</div><div class="prb-stat-lbl">Deny</div></div>
         </div>
-        <input class="prb-search" id="prb-search" placeholder="🔍 Search rules…" oninput="prbSearchChange(this.value)">
+        <input class="prb-search" id="prb-search" placeholder="🔍 Search rules…" data-act-input="prbSearchChange($value)">
         <div class="prb-filter-row">
-          <select class="prb-filter-sel" id="prb-filter-action" onchange="prbFilterChange()">
+          <select class="prb-filter-sel" id="prb-filter-action" data-act-change="prbFilterChange()">
             <option value="">All actions</option>
             <option value="allow">✅ Allow</option>
             <option value="deny">🚫 Deny</option>
             <option value="require_hitl">🛂 Require HITL</option>
           </select>
-          <select class="prb-filter-sel" id="prb-filter-server" onchange="prbFilterChange()">
+          <select class="prb-filter-sel" id="prb-filter-server" data-act-change="prbFilterChange()">
             <option value="">All servers</option>
           </select>
         </div>
@@ -90,11 +90,11 @@ async function renderMCPGateway() {
       </div>
       <div class="prb-sidebar-foot">
         <div class="prb-bulk-row">
-          <button class="prb-bulk-btn" onclick="prbBulkAction('enable')"  title="Enable selected">✓ Enable</button>
-          <button class="prb-bulk-btn" onclick="prbBulkAction('disable')" title="Disable selected">○ Disable</button>
-          <button class="prb-bulk-btn" onclick="prbBulkAction('delete')"  title="Delete selected" style="color:var(--danger)">🗑</button>
+          <button class="prb-bulk-btn" data-act-click="prbBulkAction('enable')"  title="Enable selected">✓ Enable</button>
+          <button class="prb-bulk-btn" data-act-click="prbBulkAction('disable')" title="Disable selected">○ Disable</button>
+          <button class="prb-bulk-btn" data-act-click="prbBulkAction('delete')"  title="Delete selected" style="color:var(--danger)">🗑</button>
         </div>
-        <button class="prb-new-btn" onclick="prbNewRule()">+ New Policy Rule</button>
+        <button class="prb-new-btn" data-act-click="prbNewRule()">+ New Policy Rule</button>
       </div>
     </div>
 
@@ -102,15 +102,15 @@ async function renderMCPGateway() {
     <div class="prb-main">
       <div class="prb-toolbar">
         <span class="prb-toolbar-title" id="prb-toolbar-title">Policy Rule Builder</span>
-        <button style="padding:4px 10px;border-radius:6px;font-size:11px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer" onclick="prbRefresh()">↺ Refresh</button>
-        <button style="padding:4px 10px;border-radius:6px;font-size:11px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer" onclick="mcgTestCall()">🧪 Test Call</button>
+        <button style="padding:4px 10px;border-radius:6px;font-size:11px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer" data-act-click="prbRefresh()">↺ Refresh</button>
+        <button style="padding:4px 10px;border-radius:6px;font-size:11px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer" data-act-click="mcgTestCall()">🧪 Test Call</button>
       </div>
       <div class="prb-tab-bar">
-        <div class="prb-tab active" id="prb-tab-rules"     onclick="prbSetTab('rules')">📋 Rules</div>
-        <div class="prb-tab"        id="prb-tab-builder"   onclick="prbSetTab('builder')">⚙️ Builder</div>
-        <div class="prb-tab"        id="prb-tab-simulator" onclick="prbSetTab('simulator')">🧪 Simulator</div>
-        <div class="prb-tab"        id="prb-tab-conflicts" onclick="prbSetTab('conflicts')">⚠️ Conflicts<span class="prb-tab-badge" id="prb-conflict-badge" style="display:none">0</span></div>
-        <div class="prb-tab"        id="prb-tab-servers"   onclick="prbSetTab('servers')">🖥️ Servers</div>
+        <div class="prb-tab active" id="prb-tab-rules"     data-act-click="prbSetTab('rules')">📋 Rules</div>
+        <div class="prb-tab"        id="prb-tab-builder"   data-act-click="prbSetTab('builder')">⚙️ Builder</div>
+        <div class="prb-tab"        id="prb-tab-simulator" data-act-click="prbSetTab('simulator')">🧪 Simulator</div>
+        <div class="prb-tab"        id="prb-tab-conflicts" data-act-click="prbSetTab('conflicts')">⚠️ Conflicts<span class="prb-tab-badge" id="prb-conflict-badge" style="display:none">0</span></div>
+        <div class="prb-tab"        id="prb-tab-servers"   data-act-click="prbSetTab('servers')">🖥️ Servers</div>
       </div>
       <div class="prb-content" id="prb-content">
         <div style="padding:40px;text-align:center;color:var(--text-3)">Loading…</div>
@@ -199,7 +199,7 @@ function prbRenderList() {
     const isSelected = _prbSelected === p.policy_id;
     const isChecked  = _prbSelIds.has(p.policy_id);
     return `<div class="prb-policy-item ${!p.enabled?'disabled':''} ${isSelected?'selected':''}" data-policy-id="${escHtml(p.policy_id)}" style="border-left-color:${p.enabled?ac.border:'var(--text-3)'}">
-      <input type="checkbox" class="prb-policy-check" ${isChecked?'checked':''} onclick="event.stopPropagation();prbToggleSelect(${JSON.stringify(p.policy_id)},this.checked)">
+      <input type="checkbox" class="prb-policy-check" ${isChecked?'checked':''} data-act-click="prbToggleSelect(${JSON.stringify(p.policy_id)},$checked)" data-stop="1">
       <div class="prb-policy-item-body">
         <div class="prb-policy-item-name">${escHtml(p.name)}</div>
         <div class="prb-policy-item-meta">
@@ -246,7 +246,7 @@ function prbRenderRulesTab(container) {
   }
   container.innerHTML = `<table class="prb-rules-table">
     <thead><tr>
-      <th style="width:28px"><input type="checkbox" id="prb-select-all" onclick="prbSelectAll(this.checked)" style="accent-color:var(--accent)"></th>
+      <th style="width:28px"><input type="checkbox" id="prb-select-all" data-act-click="prbSelectAll($checked)" style="accent-color:var(--accent)"></th>
       <th>Priority</th>
       <th>Action</th>
       <th>Rule Name</th>
@@ -263,7 +263,7 @@ function prbRenderRulesTab(container) {
         const isChecked  = _prbSelIds.has(p.policy_id);
         const hasConditions = p.conditions && p.conditions !== '{}' && p.conditions !== '';
         return `<tr class="${!p.enabled?'disabled':''} ${isSelected?'selected':''}" data-policy-id="${escHtml(p.policy_id)}">
-          <td onclick="event.stopPropagation()"><input type="checkbox" ${isChecked?'checked':''} data-policy-id="${escHtml(p.policy_id)}" onclick="prbToggleSelect(this.dataset.policyId,this.checked)" style="accent-color:var(--accent)"></td>
+          <td data-stop="1"><input type="checkbox" ${isChecked?'checked':''} data-policy-id="${escHtml(p.policy_id)}" data-act-click="prbToggleSelect($data.policyId,$checked)" style="accent-color:var(--accent)"></td>
           <td><span class="prb-priority-badge">${p.priority}</span></td>
           <td><span class="prb-action-chip" style="background:${ac.bg};color:${ac.text}">${ac.icon} ${p.action}</span></td>
           <td style="font-weight:600;color:var(--text-0);max-width:180px">
@@ -273,16 +273,16 @@ function prbRenderRulesTab(container) {
           <td><span class="prb-code">${escHtml(p.agent_id)}</span></td>
           <td><span class="prb-code" style="font-size:9px">${escHtml(p.server_id.replace('srv_',''))}</span></td>
           <td><span class="prb-code">${escHtml(p.tool_pattern)}</span></td>
-          <td onclick="event.stopPropagation()">
+          <td data-stop="1">
             <span class="prb-toggle" data-policy-id="${escHtml(p.policy_id)}" data-policy-enabled="${p.enabled}" onclick="prbToggleEnabled(this.dataset.policyId,this.dataset.policyEnabled==='true')" title="${p.enabled?'Click to disable':'Click to enable'}">
               ${p.enabled ? '🟢' : '⚫'}
             </span>
           </td>
-          <td onclick="event.stopPropagation()">
+          <td data-stop="1">
             <div class="prb-row-actions">
-              <button class="prb-row-btn" data-policy-id="${escHtml(p.policy_id)}" onclick="prbEditPolicy(this.dataset.policyId)" title="Edit">✏️</button>
-              <button class="prb-row-btn" data-policy-id="${escHtml(p.policy_id)}" onclick="prbSimulateFromRow(this.dataset.policyId)" title="Simulate">🧪</button>
-              ${!p.policy_id.startsWith('pol_allow_builtin') ? `<button class="prb-row-btn danger" data-policy-id="${escHtml(p.policy_id)}" data-policy-name="${escHtml(p.name)}" onclick="prbDeletePolicy(this.dataset.policyId,this.dataset.policyName)" title="Delete">🗑</button>` : ''}
+              <button class="prb-row-btn" data-policy-id="${escHtml(p.policy_id)}" data-act-click="prbEditPolicy($data.policyId)" title="Edit">✏️</button>
+              <button class="prb-row-btn" data-policy-id="${escHtml(p.policy_id)}" data-act-click="prbSimulateFromRow($data.policyId)" title="Simulate">🧪</button>
+              ${!p.policy_id.startsWith('pol_allow_builtin') ? `<button class="prb-row-btn danger" data-policy-id="${escHtml(p.policy_id)}" data-policy-name="${escHtml(p.name)}" data-act-click="prbDeletePolicy($data.policyId,$data.policyName)" title="Delete">🗑</button>` : ''}
             </div>
           </td>
         </tr>`;
@@ -317,7 +317,7 @@ function prbRenderBuilderTab(container) {
         ${_prbTemplates.map(t => {
           const ac = PRB_ACTION_COLORS[t.action] || PRB_ACTION_COLORS.allow;
           const catCol = PRB_CATEGORY_COLORS[t.category] || 'var(--text-3)';
-          return `<div class="prb-tpl-card" data-template-id="${escHtml(t.id||t.name)}" onclick="prbApplyTemplateById(this.dataset.templateId)">
+          return `<div class="prb-tpl-card" data-template-id="${escHtml(t.id||t.name)}" data-act-click="prbApplyTemplateById($data.templateId)">
             <div class="prb-tpl-icon">${t.icon}</div>
             <div class="prb-tpl-name">${escHtml(t.name)}</div>
             <div class="prb-tpl-desc">${escHtml(t.description)}</div>
@@ -350,7 +350,7 @@ function prbRenderBuilderTab(container) {
           const labels = { allow:['✅','Allow','Permit this tool call to proceed'], deny:['🚫','Deny','Block this call entirely — returns error'], require_hitl:['🛂','Require HITL','Pause and require human approval before proceeding'] };
           const [icon, label, desc] = labels[action];
           const isSelected = (editing?.action || 'allow') === action;
-          return `<div class="prb-action-opt ${isSelected?'selected-'+action:''}" id="prb-aopt-${action}" data-action="${escHtml(action)}" onclick="prbSelectAction(this.dataset.action)">
+          return `<div class="prb-action-opt ${isSelected?'selected-'+action:''}" id="prb-aopt-${action}" data-action="${escHtml(action)}" data-act-click="prbSelectAction($data.action)">
             <div class="prb-action-icon">${icon}</div>
             <div class="prb-action-label" style="color:${ac.text}">${label}</div>
             <div class="prb-action-desc">${desc}</div>
@@ -364,7 +364,7 @@ function prbRenderBuilderTab(container) {
       <!-- Agent -->
       <div class="prb-form-group">
         <label class="prb-form-label">Agent ID</label>
-        <select class="prb-select" id="prb-f-agent" onchange="prbUpdatePreview()">
+        <select class="prb-select" id="prb-f-agent" data-act-change="prbUpdatePreview()">
           ${PRB_AGENTS.map(a=>`<option value="${a.id}" ${(editing?.agent_id||'*')===a.id?'selected':''}>${escHtml(a.label)}</option>`).join('')}
           <option value="custom_">Custom…</option>
         </select>
@@ -375,7 +375,7 @@ function prbRenderBuilderTab(container) {
       <!-- Server -->
       <div class="prb-form-group">
         <label class="prb-form-label">Server / Resource</label>
-        <select class="prb-select" id="prb-f-server" onchange="prbUpdatePreview()">
+        <select class="prb-select" id="prb-f-server" data-act-change="prbUpdatePreview()">
           <option value="*">All Servers (*)</option>
           ${_prbServers.slice(0,10).map(s=>`<option value="${s.server_id}" ${(editing?.server_id||'*')===s.server_id?'selected':''}>${escHtml(s.name)}</option>`).join('')}
         </select>
@@ -386,7 +386,7 @@ function prbRenderBuilderTab(container) {
       <div class="prb-form-group">
         <label class="prb-form-label">Tool Pattern</label>
         <input class="prb-input" id="prb-f-tool" placeholder="* or fs.delete or http.*"
-          value="${escHtml(editing?.tool_pattern||'*')}" oninput="prbUpdatePreview()">
+          value="${escHtml(editing?.tool_pattern||'*')}" data-act-input="prbUpdatePreview()">
         <div class="prb-form-hint">Glob pattern: * = all, fs.* = all fs tools, fs.delete = exact</div>
       </div>
 
@@ -411,7 +411,7 @@ function prbRenderBuilderTab(container) {
       <div class="prb-conditions">
         <div class="prb-condition-item">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-1)">
-            <input type="checkbox" id="prb-cond-time-enabled" style="accent-color:var(--accent)" onchange="prbToggleTimeCondition()">
+            <input type="checkbox" id="prb-cond-time-enabled" style="accent-color:var(--accent)" data-act-change="prbToggleTimeCondition()">
             Active only during time window
           </label>
         </div>
@@ -424,7 +424,7 @@ function prbRenderBuilderTab(container) {
         </div>
         <div class="prb-condition-item" style="margin-top:8px">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-1)">
-            <input type="checkbox" id="prb-cond-days-enabled" style="accent-color:var(--accent)" onchange="prbToggleDaysCondition()">
+            <input type="checkbox" id="prb-cond-days-enabled" style="accent-color:var(--accent)" data-act-change="prbToggleDaysCondition()">
             Active only on specific days
           </label>
         </div>
@@ -442,10 +442,10 @@ function prbRenderBuilderTab(container) {
 
     <!-- Submit row -->
     <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
-      <button class="prb-new-btn" style="flex:1;padding:10px" data-edit-id="${escHtml(editing?.policy_id||'')}" onclick="prbSubmitRule(this.dataset.editId)">
+      <button class="prb-new-btn" style="flex:1;padding:10px" data-edit-id="${escHtml(editing?.policy_id||'')}" data-act-click="prbSubmitRule($data.editId)">
         ${editing ? '💾 Save Changes' : '✅ Create Rule'}
       </button>
-      ${editing ? `<button style="padding:10px 16px;border-radius:7px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer;font-size:12px" onclick="prbClearEdit()">✕ Cancel</button>` : ''}
+      ${editing ? `<button style="padding:10px 16px;border-radius:7px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-1);cursor:pointer;font-size:12px" data-act-click="prbClearEdit()">✕ Cancel</button>` : ''}
     </div>
   </div>`;
 
@@ -655,7 +655,7 @@ function prbRenderSimulatorTab(container) {
           <label style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">Tool Name</label>
           <input class="prb-input" id="sim-tool" placeholder="fs.delete" value="fs.list">
         </div>
-        <button class="prb-sim-btn" onclick="prbRunSimulation()">▶ Simulate</button>
+        <button class="prb-sim-btn" data-act-click="prbRunSimulation()">▶ Simulate</button>
       </div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
         <span style="font-size:10px;color:var(--text-3)">Quick test:</span>
@@ -664,7 +664,7 @@ function prbRenderSimulatorTab(container) {
           ['builder','srv_filesystem','fs.delete'],
           ['*','srv_http','http.post'],
           ['orchestrator','srv_connectors','slack.message'],
-        ].map(([a,s,t])=>`<button data-quick="${escHtml(a)}|${escHtml(s)}|${escHtml(t)}" onclick="prbQuickSimFromData(this.dataset.quick)" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">${a} → ${t}</button>`).join('')}
+        ].map(([a,s,t])=>`<button data-quick="${escHtml(a)}|${escHtml(s)}|${escHtml(t)}" data-act-click="prbQuickSimFromData($data.quick)" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">${a} → ${t}</button>`).join('')}
       </div>
     </div>
 
@@ -819,8 +819,8 @@ function prbRenderConflictsTab(container) {
             <span style="font-size:9px;color:var(--text-3);margin-left:4px">P:${c.policy_b?.priority||'?'}</span>
           </div>
           ${c.winner ? `<div class="prb-conflict-pol" style="border-color:var(--success)"><span style="font-size:10px;color:var(--success)">Winner: ${escHtml(c.winner.name)}</span></div>` : ''}
-          ${c.policy_a ? `<button data-policy-id="${escHtml(c.policy_a?.id||'')}" onclick="prbEditPolicy(this.dataset.policyId)" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">✏️ Edit A</button>` : ''}
-          ${c.policy_b ? `<button data-policy-id="${escHtml(c.policy_b?.id||'')}" onclick="prbEditPolicy(this.dataset.policyId)" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">✏️ Edit B</button>` : ''}
+          ${c.policy_a ? `<button data-policy-id="${escHtml(c.policy_a?.id||'')}" data-act-click="prbEditPolicy($data.policyId)" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">✏️ Edit A</button>` : ''}
+          ${c.policy_b ? `<button data-policy-id="${escHtml(c.policy_b?.id||'')}" data-act-click="prbEditPolicy($data.policyId)" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">✏️ Edit B</button>` : ''}
         </div>
       </div>`;
     }).join('')}
@@ -837,7 +837,7 @@ function prbRenderServersTab(container) {
   <div style="padding:16px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <h3 style="margin:0;font-size:14px;font-weight:700;color:var(--text-0)">🖥️ MCP Servers</h3>
-      <button onclick="prbRegisterServer()" style="padding:4px 12px;border-radius:6px;font-size:11px;background:var(--accent);border:none;color:#fff;cursor:pointer;margin-left:auto">+ Register Server</button>
+      <button data-act-click="prbRegisterServer()" style="padding:4px 12px;border-radius:6px;font-size:11px;background:var(--accent);border:none;color:#fff;cursor:pointer;margin-left:auto">+ Register Server</button>
     </div>
     <div class="prb-servers">
       ${_prbServers.map(s => {
@@ -858,9 +858,9 @@ function prbRenderServersTab(container) {
             Tools: ${tools.slice(0,4).map(t=>`<span class="prb-code">${escHtml(t.name||t)}</span>`).join(' ')}${tools.length>4?` +${tools.length-4}`:''}</div>` : ''}
           <div class="prb-server-actions">
             ${isActive
-              ? `<button data-server-id="${escHtml(s.server_id)}" data-disable="true" onclick="prbToggleServer(this.dataset.serverId,true)" style="font-size:10px;padding:3px 8px;border-radius:5px;background:rgba(232,82,82,.12);border:1px solid rgba(232,82,82,.3);color:#e85252;cursor:pointer">🔴 Disable</button>`
-              : `<button data-server-id="${escHtml(s.server_id)}" data-disable="false" onclick="prbToggleServer(this.dataset.serverId,false)" style="font-size:10px;padding:3px 8px;border-radius:5px;background:rgba(61,186,122,.12);border:1px solid rgba(61,186,122,.3);color:#3dba7a;cursor:pointer">🟢 Enable</button>`}
-            <button data-server-id="${escHtml(s.server_id)}" data-server-name="${escHtml(s.name)}" onclick="prbAddPolicyForServer(this.dataset.serverId,this.dataset.serverName)" style="font-size:10px;padding:3px 8px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">+ Add Rule</button>
+              ? `<button data-server-id="${escHtml(s.server_id)}" data-disable="true" data-act-click="prbToggleServer($data.serverId,true)" style="font-size:10px;padding:3px 8px;border-radius:5px;background:rgba(232,82,82,.12);border:1px solid rgba(232,82,82,.3);color:#e85252;cursor:pointer">🔴 Disable</button>`
+              : `<button data-server-id="${escHtml(s.server_id)}" data-disable="false" data-act-click="prbToggleServer($data.serverId,false)" style="font-size:10px;padding:3px 8px;border-radius:5px;background:rgba(61,186,122,.12);border:1px solid rgba(61,186,122,.3);color:#3dba7a;cursor:pointer">🟢 Enable</button>`}
+            <button data-server-id="${escHtml(s.server_id)}" data-server-name="${escHtml(s.name)}" data-act-click="prbAddPolicyForServer($data.serverId,$data.serverName)" style="font-size:10px;padding:3px 8px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">+ Add Rule</button>
           </div>
         </div>`;
       }).join('')}

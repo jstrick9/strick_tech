@@ -27,13 +27,13 @@ async function renderTestGen() {
               ${fws.map(f=>`<option value="${f.id}">${f.id} — ${f.lang}</option>`).join('')}
             </select>
           </div>
-          <button onclick="generateTests()" class="btn btn-primary" style="width:100%" id="tg-gen-btn">🧪 Generate</button>
+          <button data-act-click="generateTests()" class="btn btn-primary" style="width:100%" id="tg-gen-btn">🧪 Generate</button>
           <div id="tg-status" style="font-size:12px;color:var(--text-2);margin-top:8px"></div>
         </div>
         <div class="card">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
             <h3>Generated Tests</h3>
-            <button onclick="saveGeneratedTests()" class="btn btn-primary btn-sm" id="tg-save-btn" style="display:none">💾 Save</button>
+            <button data-act-click="saveGeneratedTests()" class="btn btn-primary btn-sm" id="tg-save-btn" style="display:none">💾 Save</button>
           </div>
           <pre id="tg-result" style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-family:'JetBrains Mono',monospace;font-size:11px;min-height:180px;max-height:360px;overflow-y:auto;white-space:pre-wrap;color:var(--text-1)">Select a file and click Generate →</pre>
         </div>

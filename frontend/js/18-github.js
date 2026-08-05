@@ -7,7 +7,7 @@ async function renderGitHub() {
   const pane = document.getElementById('pane-github');
   pane.innerHTML = `<div class="section-head">
     <div><h2>🐙 GitHub Integration</h2><p>Bidirectional sync, branch management, PRs, Pages deploy — all from Agentic OS</p></div>
-    <button onclick="renderGitHub()" class="btn btn-ghost btn-sm">⟳ Refresh</button>
+    <button data-act-click="renderGitHub()" class="btn btn-ghost btn-sm">⟳ Refresh</button>
   </div>
   <div id="gh-body"><div style="color:var(--text-2);font-size:13px">Loading…</div></div>`;
 
@@ -45,7 +45,7 @@ function renderGitHubBody(s) {
       </div>
       <div class="key-input-row">
         <input id="gh-token-input" type="password" class="key-input" placeholder="ghp_…" autocomplete="off">
-        <button onclick="saveGHToken()" class="btn btn-primary">Save Token</button>
+        <button data-act-click="saveGHToken()" class="btn btn-primary">Save Token</button>
       </div>
       <div style="font-size:11.5px;color:var(--text-2);margin-top:6px">Scopes needed: <code>repo, workflow, read:user</code></div>
     </div>`;
@@ -70,11 +70,11 @@ function renderGitHubBody(s) {
       <!-- Quick actions -->
       <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Quick Actions</div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        <button onclick="createGHRepo()" class="btn btn-primary btn-sm" style="text-align:left">📦 Create New Repository</button>
-        <button onclick="showGHPush()" class="btn btn-ghost btn-sm" style="text-align:left">⬆ Push preview/ to GitHub</button>
-        <button onclick="showGHPull()" class="btn btn-ghost btn-sm" style="text-align:left">⬇ Pull from GitHub → preview/</button>
-        <button onclick="showGHPages()" class="btn btn-ghost btn-sm" style="text-align:left">🌐 Deploy to GitHub Pages</button>
-        <button onclick="showGHPR()" class="btn btn-ghost btn-sm" style="text-align:left">🔀 Create Pull Request</button>
+        <button data-act-click="createGHRepo()" class="btn btn-primary btn-sm" style="text-align:left">📦 Create New Repository</button>
+        <button data-act-click="showGHPush()" class="btn btn-ghost btn-sm" style="text-align:left">⬆ Push preview/ to GitHub</button>
+        <button data-act-click="showGHPull()" class="btn btn-ghost btn-sm" style="text-align:left">⬇ Pull from GitHub → preview/</button>
+        <button data-act-click="showGHPages()" class="btn btn-ghost btn-sm" style="text-align:left">🌐 Deploy to GitHub Pages</button>
+        <button data-act-click="showGHPR()" class="btn btn-ghost btn-sm" style="text-align:left">🔀 Create Pull Request</button>
       </div>
     </div>
 
@@ -84,7 +84,7 @@ function renderGitHubBody(s) {
       <div style="display:flex;gap:6px;margin-bottom:10px">
         <input id="gh-repo-input" placeholder="owner/repo-name" value="${escHtml(ghSelectedRepo)}"
           style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:12.5px;outline:none;font-family:monospace">
-        <button onclick="ghSelectRepo()" class="btn btn-primary btn-sm">Select</button>
+        <button data-act-click="ghSelectRepo()" class="btn btn-primary btn-sm">Select</button>
       </div>
       ${ghSelectedRepo ? `<div style="background:var(--accent-glow);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:8px 12px;font-size:12.5px;margin-bottom:10px">
         Selected: <strong>${escHtml(ghSelectedRepo)}</strong>
@@ -93,9 +93,9 @@ function renderGitHubBody(s) {
       <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px">Recent Repos</div>
       <div style="display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto">
         ${(s.recent_repos||[]).length ? (s.recent_repos||[]).map(r => `
-          <div onclick="ghSetRepo(${jsArg(r.full_name)})"
+          <div data-act-click="ghSetRepo(${jsArg(r.full_name)})"
                style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition)"
-               onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
+               data-hover="bg:var(--bg-3)" data-hover-out="bg:">
             <span style="font-size:12px">${r.private?'🔒':'📂'}</span>
             <div style="flex:1;min-width:0">
               <div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(r.name)}</div>
@@ -168,7 +168,7 @@ async function createGHRepo() {
       <h3>✅ Repository Created!</h3>
       <p><a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent)">${j.repo} ↗</a></p>
       <div style="font-size:12.5px;color:var(--text-2)">Clone URL: <code style="font-size:11px">${escHtml(j.clone_url)}</code></div>
-      <button onclick="showGHPush()" class="btn btn-primary btn-sm" style="margin-top:10px">⬆ Push code now</button>
+      <button data-act-click="showGHPush()" class="btn btn-primary btn-sm" style="margin-top:10px">⬆ Push code now</button>
     </div>`;
     toast(`📦 Repository created: ${j.repo}`, 'ok', 4000);
   } else {
@@ -323,7 +323,7 @@ async function showGHPull() {
         <h3>⬇ Pulled from GitHub!</h3>
         <p>${j.files_pulled} files pulled from <strong>${escHtml(repo)}</strong> (${escHtml(j.branch||'main')})</p>
         <div style="font-size:12px;color:var(--text-2);margin-top:6px">Files are now in preview/</div>
-        <button onclick="studioLoadFileTree?.()" class="btn btn-ghost btn-sm" style="margin-top:8px">📂 Refresh File Tree</button>
+        <button data-act-click="studioLoadFileTree()" class="btn btn-ghost btn-sm" style="margin-top:8px">📂 Refresh File Tree</button>
       </div>`;
       toast(`⬇ Pulled ${j.files_pulled} files from GitHub`, 'ok', 3000);
       studioLoadFileTree?.();

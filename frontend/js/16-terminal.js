@@ -161,7 +161,7 @@ async function termShowSuggestions() {
     // "Uncaught SyntaxError: ...Unexpected end of input" and never filled
     // the input. Fixed via data-sugg-idx + a delegated listener on the
     // dropdown container looking up the real command from `top6`.
-    dd.innerHTML=top6.map((s,idx)=>`<div data-sugg-idx="${idx}" style="padding:7px 12px;cursor:pointer;display:flex;gap:10px;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''"><span style="color:var(--accent);flex:1">${escHtml(s.cmd)}</span><span style="color:var(--text-3)">${escHtml(s.desc)}</span></div>`).join('');
+    dd.innerHTML=top6.map((s,idx)=>`<div data-sugg-idx="${idx}" style="padding:7px 12px;cursor:pointer;display:flex;gap:10px;border-bottom:1px solid var(--border)" data-hover="bg:var(--bg-3)" data-hover-out="bg:"><span style="color:var(--accent);flex:1">${escHtml(s.cmd)}</span><span style="color:var(--text-3)">${escHtml(s.desc)}</span></div>`).join('');
     dd.addEventListener('click', (e) => {
       const row = e.target.closest('[data-sugg-idx]');
       if (!row) return;
@@ -262,8 +262,8 @@ async function renderSecretsVault() {
         </div>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-primary" onclick="vaultSave()">💾 Save to Vault</button>
-        <button class="btn btn-ghost" onclick="vaultHideAdd()">Cancel</button>
+        <button class="btn btn-primary" data-act-click="vaultSave()">💾 Save to Vault</button>
+        <button class="btn btn-ghost" data-act-click="vaultHideAdd()">Cancel</button>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);margin-left:auto;cursor:pointer">
           <input type="checkbox" id="vault-show-value" onchange="document.getElementById('vault-value-input').type=this.checked?'text':'password'">
           Show value
@@ -294,9 +294,9 @@ async function renderSecretsVault() {
             <div style="color:var(--text-3);font-size:11px">${item.length||0} chars</div>
             <div style="color:var(--text-3);font-size:11px;white-space:nowrap">${escHtml((item.updated_at||'').slice(0,16))}</div>
             <div style="display:flex;gap:5px">
-              <button class="btn btn-ghost btn-sm" onclick="vaultReveal(${jsArg(item.key)})" title="Reveal value">👁</button>
-              <button class="btn btn-ghost btn-sm" onclick="vaultEdit(${jsArg(item.key)})" title="Update value">✏️</button>
-              <button class="btn btn-sm" onclick="vaultDelete(${jsArg(item.key)})" style="color:var(--danger)" title="Delete">🗑</button>
+              <button class="btn btn-ghost btn-sm" data-act-click="vaultReveal(${jsArg(item.key)})" title="Reveal value">👁</button>
+              <button class="btn btn-ghost btn-sm" data-act-click="vaultEdit(${jsArg(item.key)})" title="Update value">✏️</button>
+              <button class="btn btn-sm" data-act-click="vaultDelete(${jsArg(item.key)})" style="color:var(--danger)" title="Delete">🗑</button>
             </div>
           </div>
         `).join('')}
@@ -308,7 +308,7 @@ async function renderSecretsVault() {
       ${helpPanel({title:'Common API Keys',body:'Click a key name to pre-fill the form.',steps:[]})}
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
         ${['OPENROUTER_API_KEY','GITHUB_TOKEN','VERCEL_TOKEN','NETLIFY_TOKEN','SUPABASE_URL','SUPABASE_ANON_KEY','STRIPE_SECRET_KEY','ANTHROPIC_API_KEY','OPENAI_API_KEY'].map(k=>
-          `<button class="btn btn-ghost btn-sm" onclick="vaultShowAdd(${jsArg(k)})">${escHtml(k)}</button>`
+          `<button class="btn btn-ghost btn-sm" data-act-click="vaultShowAdd(${jsArg(k)})">${escHtml(k)}</button>`
         ).join('')}
       </div>
     </div>

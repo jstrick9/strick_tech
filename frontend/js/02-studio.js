@@ -120,7 +120,7 @@ function showTourStep() {
   popup.innerHTML = `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
       <div style="font-size:14px;font-weight:700;color:var(--text-0)">${step.title}</div>
-      <button onclick="document.getElementById('tour-popup')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;flex-shrink:0;padding:0">×</button>
+      <button data-close="id:tour-popup" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;flex-shrink:0;padding:0">×</button>
     </div>
     <p style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin-bottom:12px">${step.body}</p>
     <div style="display:flex;align-items:center;justify-content:space-between">
@@ -248,8 +248,8 @@ setTimeout(addQuickActionBar, 500);
     container.innerHTML = S.agents.slice(0,6).map(a =>
       `<button onclick="setActiveAgent(${JSON.stringify(a).replace(/"/g,'&quot;')});document.getElementById('chat-empty').style.display='none'"
         style="display:flex;align-items:center;gap:6px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;transition:var(--transition);font-size:12px;color:var(--text-1)"
-        onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text-0)'"
-        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-1)'">
+        data-hover="bc:var(--accent)|fg:var(--text-0)"
+        data-hover-out="bc:var(--border)|fg:var(--text-1)">
         <span>${a.avatar||'🤖'}</span><span>${escHtml(a.name)}</span>
       </button>`
     ).join('');

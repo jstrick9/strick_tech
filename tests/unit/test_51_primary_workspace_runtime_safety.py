@@ -26,8 +26,18 @@ def test_product_smoke_covers_kanban_create_move_and_cleanup_lifecycle():
 
 
 def test_workspace_actions_use_dataset_values_not_breakable_json_inline_handlers():
-    assert 'activateWorkspace(this.dataset.workspaceId, this.dataset.workspaceName)' in CORE
-    assert 'deleteWorkspace(this.dataset.workspaceId, this.dataset.workspaceName)' in CORE
+    # The invariant is that the id/name are READ OFF THE ELEMENT rather than
+    # interpolated into the handler text, where a quote in a workspace name
+    # would break out. Phase 2 migrated these to the delegation shim, where
+    # `this.dataset.x` is spelled `$data.x` — same guarantee, resolved by the
+    # shim from the element instead of by the JS parser. Accept either form so
+    # the test tracks the property, not the spelling.
+    for fn in ('activateWorkspace', 'deleteWorkspace'):
+        dataset_form = f'{fn}(this.dataset.workspaceId, this.dataset.workspaceName)'
+        shim_form = f'{fn}($data.workspaceId,$data.workspaceName)'
+        assert dataset_form in CORE or shim_form in CORE, (
+            f'{fn} no longer reads its arguments off the element'
+        )
     assert 'activateWorkspace(${JSON.stringify(w.id)}' not in CORE
 
 

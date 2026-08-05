@@ -36,19 +36,19 @@ async function renderSkills() {
   if (!pane) return;
   pane.innerHTML = `<div class="section-head">
     <div><h2>⚡ Skills Hub</h2><p>12 pre-built AI skills + create your own. Run any skill with one click.</p></div>
-    <button onclick="openCreateSkill()" class="btn btn-primary btn-sm">＋ New Skill</button>
+    <button data-act-click="openCreateSkill()" class="btn btn-primary btn-sm">＋ New Skill</button>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px" id="skill-cats"></div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px" id="skill-grid"></div>
   <!-- Run modal -->
-  <div id="skill-run-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px)" onclick="if(event.target===this)closeSkillModal()">
+  <div id="skill-run-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px)" data-act-click="closeSkillModal()" data-click-self="1">
     <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-lg);width:100%;max-width:600px;padding:24px;max-height:85vh;overflow-y:auto">
       <h2 id="srm-title" style="font-size:18px;font-weight:800;margin-bottom:6px"></h2>
       <p id="srm-desc" style="font-size:13px;color:var(--text-2);margin-bottom:18px"></p>
       <div id="srm-inputs" style="margin-bottom:16px"></div>
       <div style="display:flex;gap:8px;margin-bottom:16px">
-        <button onclick="execSkill()" class="btn btn-primary" style="flex:1" id="srm-run">▶ Run Skill</button>
-        <button onclick="closeSkillModal()" class="btn btn-ghost">Cancel</button>
+        <button data-act-click="execSkill()" class="btn btn-primary" style="flex:1" id="srm-run">▶ Run Skill</button>
+        <button data-act-click="closeSkillModal()" class="btn btn-ghost">Cancel</button>
       </div>
       <div id="srm-result" style="display:none;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-size:13px;line-height:1.6;max-height:400px;overflow-y:auto"></div>
     </div>
@@ -68,8 +68,8 @@ async function loadSkills() {
     // Render category pills
     const catEl = document.getElementById('skill-cats');
     if (catEl) catEl.innerHTML =
-      `<span class="tag ${skillCategory==='all'?'blue':''}" data-cat="all" style="cursor:pointer;padding:5px 12px" onclick="filterSkills('all')">All (${allSkills.length})</span>` +
-      cats.map(c => `<span class="tag ${skillCategory===c.id?'blue':''}" data-cat="${c.id}" style="cursor:pointer;padding:5px 12px" onclick="filterSkills(${jsArg(c.id)})">${escHtml(c.id)} (${c.count})</span>`).join('');
+      `<span class="tag ${skillCategory==='all'?'blue':''}" data-cat="all" style="cursor:pointer;padding:5px 12px" data-act-click="filterSkills('all')">All (${allSkills.length})</span>` +
+      cats.map(c => `<span class="tag ${skillCategory===c.id?'blue':''}" data-cat="${c.id}" style="cursor:pointer;padding:5px 12px" data-act-click="filterSkills(${jsArg(c.id)})">${escHtml(c.id)} (${c.count})</span>`).join('');
     renderSkillGrid();
   } catch(e) { console.warn('Failed to load skills:', e); toast('Loaded offline skills', 'ok'); }
 }
@@ -89,7 +89,7 @@ function renderSkillGrid() {
   const filtered = skillCategory === 'all' ? allSkills : allSkills.filter(s => s.category === skillCategory);
   grid.innerHTML = filtered.map((s, idx) => `
     <div data-skill-idx="${idx}" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:var(--transition)"
-         onmouseover="this.style.borderColor='var(--border-hi)'" onmouseout="this.style.borderColor='var(--border)'">
+         data-hover="bc:var(--border-hi)" data-hover-out="bc:var(--border)">
       <div style="font-size:24px;margin-bottom:8px">${s.emoji||'⚡'}</div>
       <div style="font-weight:700;font-size:14px;margin-bottom:4px">${escHtml(s.name)}</div>
       <div style="font-size:12px;color:var(--text-2);margin-bottom:10px;min-height:32px">${escHtml(s.description||'')}</div>

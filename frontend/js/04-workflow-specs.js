@@ -76,8 +76,8 @@ function renderTrialBanner(cfg) {
   banner.innerHTML = `
     
     <span>⏰ ${msg}</span>
-    <button onclick="showUpgradeModal('trial-banner')" style="background:#fff2;border:1px solid #fff6;border-radius:5px;color:#fff;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:700">Upgrade</button>
-    <button onclick="this.closest('#trial-banner').remove()" style="background:none;border:none;color:#fff8;cursor:pointer;font-size:14px;margin-left:4px">✕</button>
+    <button data-act-click="showUpgradeModal('trial-banner')" style="background:#fff2;border:1px solid #fff6;border-radius:5px;color:#fff;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:700">Upgrade</button>
+    <button data-close="closest:#trial-banner" style="background:none;border:none;color:#fff8;cursor:pointer;font-size:14px;margin-left:4px">✕</button>
   `;
   document.body.prepend(banner);
 
@@ -145,7 +145,7 @@ function ensureSimpleHeader() {
     <div style="font-size:11px;color:var(--text-2);line-height:1.5;margin-bottom:8px">
       Showing core features only.
     </div>
-    <button onclick="switchUIMode('power')" style="width:100%;padding:5px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">
+    <button data-act-click="switchUIMode('power')" style="width:100%;padding:5px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">
       ⚡ Switch to Power Mode
     </button>`;
   sidebar.insertBefore(hdr, sidebar.querySelector('.sidebar-section') || sidebar.firstChild);
@@ -493,8 +493,8 @@ function showUpgradeModal(paneId, requiredTier='pro', currentTier='free') {
       </div>
 
       <div style="display:flex;gap:10px;justify-content:center">
-        <button onclick="this.closest('#upgrade-modal').remove()" class="btn-sm">Maybe Later</button>
-        <button onclick="showTierPlans();this.closest('#upgrade-modal').remove()" class="btn" style="background:${reqColor};border-color:${reqColor};min-width:140px">
+        <button data-close="closest:#upgrade-modal" class="btn-sm">Maybe Later</button>
+        <button data-act-click="showTierPlans()" data-close="closest:#upgrade-modal" class="btn" style="background:${reqColor};border-color:${reqColor};min-width:140px">
           View Plans — ${tierPrices[requiredTier]||'Contact us'}
         </button>
       </div>
@@ -528,7 +528,7 @@ async function showTierPlans() {
   <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:20px;max-width:860px;width:100%;padding:28px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h2 style="margin:0;color:var(--text-0)">Choose Your Plan</h2>
-      <button onclick="this.closest('#tier-plans-modal').remove()" style="background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
+      <button data-close="closest:#tier-plans-modal" style="background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
       ${tiers.map((t) =>`
@@ -541,13 +541,13 @@ async function showTierPlans() {
             ${t.features.map((f) =>`<div style="font-size:11px;color:var(--text-1);padding:3px 0">✅ ${f}</div>`).join('')}
             ${t.locked.length?`<div style="margin-top:8px">${t.locked.map((f) =>`<div style="font-size:11px;color:var(--text-3);padding:2px 0">🔒 ${f}</div>`).join('')}</div>`:''}
           </div>
-          <button onclick="handlePlanCTA(${JSON.stringify(t.id)},${JSON.stringify(t.cta)})" style="width:100%;padding:10px;background:${t.highlight?'var(--accent)':'var(--bg-4)'};border:1px solid ${t.highlight?'var(--accent)':'var(--border)'};border-radius:8px;color:${t.highlight?'#fff':'var(--text-0)'};font-weight:700;cursor:pointer;font-size:13px">
+          <button data-act-click="handlePlanCTA(${JSON.stringify(t.id)},${JSON.stringify(t.cta)})" style="width:100%;padding:10px;background:${t.highlight?'var(--accent)':'var(--bg-4)'};border:1px solid ${t.highlight?'var(--accent)':'var(--border)'};border-radius:8px;color:${t.highlight?'#fff':'var(--text-0)'};font-weight:700;cursor:pointer;font-size:13px">
             ${t.cta}
           </button>
         </div>`).join('')}
     </div>
     <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--text-3)">
-      Have a license key? <button onclick="showLicenseActivation()" style="background:none;border:none;color:var(--accent);cursor:pointer;text-decoration:underline">Enter it here</button> &nbsp;·&nbsp; <button onclick="showSetUserModal()" style="background:none;border:none;color:var(--text-3);cursor:pointer;text-decoration:underline;font-size:11px">Update user details</button>
+      Have a license key? <button data-act-click="showLicenseActivation()" style="background:none;border:none;color:var(--accent);cursor:pointer;text-decoration:underline">Enter it here</button> &nbsp;·&nbsp; <button data-act-click="showSetUserModal()" style="background:none;border:none;color:var(--text-3);cursor:pointer;text-decoration:underline;font-size:11px">Update user details</button>
     </div>
   </div>`;
   modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
@@ -576,10 +576,10 @@ function showLicenseActivation() {
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:420px;width:100%">
       <h3 style="margin:0 0 12px;color:var(--text-0)">🔑 Activate License</h3>
       <p style="font-size:13px;color:var(--text-2);margin:0 0 14px">Enter your license key to unlock Pro or Enterprise features. Keys start with PRO- or ENT-.</p>
-      <input id="license-key-input" placeholder="PRO-XXXX-XXXX-XXXX or ENT-XXXX-XXXX" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:10px 12px;box-sizing:border-box;margin-bottom:10px;font-family:monospace" onkeydown="if(event.key==='Enter')activateLicense()">
+      <input id="license-key-input" placeholder="PRO-XXXX-XXXX-XXXX or ENT-XXXX-XXXX" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:10px 12px;box-sizing:border-box;margin-bottom:10px;font-family:monospace" data-act-keydown="activateLicense()" data-keys="Enter">
       <div style="display:flex;gap:8px">
-        <button onclick="document.getElementById('license-activation-modal')?.remove()" class="btn-sm">Cancel</button>
-        <button onclick="activateLicense()" class="btn" style="flex:1">✅ Activate</button>
+        <button data-close="id:license-activation-modal" class="btn-sm">Cancel</button>
+        <button data-act-click="activateLicense()" class="btn" style="flex:1">✅ Activate</button>
       </div>
     </div>`;
   modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
@@ -622,8 +622,8 @@ async function showSetUserModal() {
       <input id="set-user-email" placeholder="Email address"     value="${escHtml(existing.email||'')}" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:9px 12px;box-sizing:border-box;margin-bottom:8px" type="email">
       <input id="set-user-org"   placeholder="Organization (opt)"value="${escHtml(existing.org||'')}"   style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:9px 12px;box-sizing:border-box;margin-bottom:14px">
       <div style="display:flex;gap:8px">
-        <button onclick="document.getElementById('set-user-modal')?.remove()" class="btn-sm">Cancel</button>
-        <button onclick="saveSetUser()" class="btn" style="flex:1">Save Details</button>
+        <button data-close="id:set-user-modal" class="btn-sm">Cancel</button>
+        <button data-act-click="saveSetUser()" class="btn" style="flex:1">Save Details</button>
       </div>
     </div>`;
   modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
@@ -681,7 +681,7 @@ const ONBOARDING_STEPS = [
         <label style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:6px">What best describes you?</label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="ob-roles">
           ${[['developer','💻','Developer'],['analyst','📊','Analyst'],['writer','✍️','Writer'],['designer','🎨','Designer'],['manager','📋','Manager'],['student','🎓','Student']].map(([id,icon,label])=>`
-            <button onclick="selectRole(${JSON.stringify(id)})" id="obr-${id}" style="padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;color:var(--text-1);cursor:pointer;font-size:13px;transition:all .12s;display:flex;align-items:center;gap:8px">
+            <button data-act-click="selectRole(${JSON.stringify(id)})" id="obr-${id}" style="padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;color:var(--text-1);cursor:pointer;font-size:13px;transition:all .12s;display:flex;align-items:center;gap:8px">
               <span>${icon}</span><span>${label}</span>
             </button>`).join('')}
         </div>
@@ -694,13 +694,13 @@ const ONBOARDING_STEPS = [
     subtitle: 'You can always change this later in Settings',
     content:  `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:8px 0">
-        <button onclick="selectMode('simple')" id="obmode-simple" style="padding:20px 16px;background:var(--bg-3);border:2px solid var(--accent);border-radius:14px;color:var(--text-0);cursor:pointer;text-align:left">
+        <button data-act-click="selectMode('simple')" id="obmode-simple" style="padding:20px 16px;background:var(--bg-3);border:2px solid var(--accent);border-radius:14px;color:var(--text-0);cursor:pointer;text-align:left">
           <div style="font-size:28px;margin-bottom:8px">✨</div>
           <div style="font-weight:700;font-size:15px;margin-bottom:6px">Simple Mode</div>
           <div style="font-size:12px;color:var(--text-2);line-height:1.5">Clean interface with just the core features. Perfect for getting started quickly.</div>
           <div style="margin-top:10px;font-size:11px;color:var(--accent);font-weight:600">Recommended for beginners</div>
         </button>
-        <button onclick="selectMode('power')" id="obmode-power" style="padding:20px 16px;background:var(--bg-3);border:2px solid var(--border);border-radius:14px;color:var(--text-0);cursor:pointer;text-align:left">
+        <button data-act-click="selectMode('power')" id="obmode-power" style="padding:20px 16px;background:var(--bg-3);border:2px solid var(--border);border-radius:14px;color:var(--text-0);cursor:pointer;text-align:left">
           <div style="font-size:28px;margin-bottom:8px">⚡</div>
           <div style="font-weight:700;font-size:15px;margin-bottom:6px">Power Mode</div>
           <div style="font-size:12px;color:var(--text-2);line-height:1.5">Full access to all 50+ panes and advanced features from the start.</div>
@@ -727,7 +727,7 @@ const ONBOARDING_STEPS = [
         <div style="margin-top:10px;font-size:12px;color:var(--text-3)">
           Your key is stored encrypted on this machine only. Never shared.
         </div>
-        <button onclick="obSkipApiKey()" style="margin-top:8px;background:none;border:none;color:var(--text-3);font-size:12px;cursor:pointer;text-decoration:underline">Skip for now →</button>
+        <button data-act-click="obSkipApiKey()" style="margin-top:8px;background:none;border:none;color:var(--text-3);font-size:12px;cursor:pointer;text-decoration:underline">Skip for now →</button>
       </div>`,
     action_label: 'Save Key & Continue →',
   },
@@ -744,7 +744,7 @@ const ONBOARDING_STEPS = [
           {id:'research',icon:'🔬',title:'Research & analysis',desc:'Web search, RAG, knowledge graph'},
           {id:'explore',icon:'🚀',title:'Just explore everything',desc:'Start with the full platform tour'},
         ].map(t=>`
-          <button onclick="selectTemplate(${JSON.stringify(t.id)})" id="obt-${t.id}" style="padding:12px 14px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;color:var(--text-0);cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;transition:all .12s">
+          <button data-act-click="selectTemplate(${JSON.stringify(t.id)})" id="obt-${t.id}" style="padding:12px 14px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;color:var(--text-0);cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;transition:all .12s">
             <span style="font-size:22px">${t.icon}</span>
             <div><div style="font-weight:600;font-size:13px">${t.title}</div><div style="font-size:11px;color:var(--text-2)">${t.desc}</div></div>
           </button>`).join('')}
@@ -834,8 +834,8 @@ function showOnboarding() {
       <div style="padding:0 28px 24px;display:flex;align-items:center;justify-content:space-between">
         <div id="ob-dots" style="display:flex;gap:6px"></div>
         <div style="display:flex;gap:8px">
-          <button id="ob-back-btn" onclick="obBack()" style="display:none;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-1);padding:8px 16px;cursor:pointer;font-size:13px">← Back</button>
-          <button id="ob-next-btn" onclick="obNext()" style="background:var(--accent);border:none;border-radius:8px;color:#fff;padding:8px 20px;cursor:pointer;font-size:13px;font-weight:700">Get Started →</button>
+          <button id="ob-back-btn" data-act-click="obBack()" style="display:none;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-1);padding:8px 16px;cursor:pointer;font-size:13px">← Back</button>
+          <button id="ob-next-btn" data-act-click="obNext()" style="background:var(--accent);border:none;border-radius:8px;color:#fff;padding:8px 20px;cursor:pointer;font-size:13px;font-weight:700">Get Started →</button>
         </div>
       </div>
     </div>`;
@@ -960,11 +960,11 @@ const _TOUR_STEPS = [
   {target:'#topbar',          title:'Top Bar',            desc:'Model switcher, AI OPs Manual shortcut, and User Identity Hub live here.',         position:'bottom'},
   {target:'#sidebar',         title:'Sidebar Navigation', desc:'All 60+ features are categorized across 5 folders. Toggle Simple vs Power mode anytime.',position:'right'},
   {target:'#pane-chat',       title:'Chat — Your AI Hub', desc:'Single-model chat default or Swarm Fan-out. Switch agents, pick models, and save prompts.',position:'center', group:'core'},
-  {target:'[onclick="toggleSidebarGroup(\'core\')"]', title:'Core Workstation', desc:'Essential daily tools: Chat, Studio live code editor, Swarm fan-out, and your 3D Memory Galaxy.', position:'right', group:'core'},
-  {target:'[onclick="toggleSidebarGroup(\'build\')"]', title:'Build & AI Engine', desc:'Full developer engine room: AST Code Graph, Specialist Skills Hub, and LoRA Fine-Tuning workstation.', position:'right', group:'build'},
-  {target:'[onclick="toggleSidebarGroup(\'ship\')"]', title:'Ship & Governance', desc:'One-click deployment to Vercel/Netlify, GitHub PR automation, and executive Control Tower.', position:'right', group:'ship'},
-  {target:'[onclick="toggleSidebarGroup(\'tools\')"]', title:'Agentic Orchestration', desc:'Spec Builder, BugBot automated repair, real-time CRDT Collaboration, and Marketplace packs.', position:'right', group:'tools'},
-  {target:'[onclick="toggleSidebarGroup(\'enterprise\')"]', title:'Enterprise Governance & Telemetry', desc:'Executive SLA Tower, HITL Approval Gates (<85% confidence interrupt), and Post-Quantum Lattice Cryptography.', position:'right', group:'enterprise'},
+  {target:'[data-act-click="toggleSidebarGroup(\'core\')"]', title:'Core Workstation', desc:'Essential daily tools: Chat, Studio live code editor, Swarm fan-out, and your 3D Memory Galaxy.', position:'right', group:'core'},
+  {target:'[data-act-click="toggleSidebarGroup(\'build\')"]', title:'Build & AI Engine', desc:'Full developer engine room: AST Code Graph, Specialist Skills Hub, and LoRA Fine-Tuning workstation.', position:'right', group:'build'},
+  {target:'[data-act-click="toggleSidebarGroup(\'ship\')"]', title:'Ship & Governance', desc:'One-click deployment to Vercel/Netlify, GitHub PR automation, and executive Control Tower.', position:'right', group:'ship'},
+  {target:'[data-act-click="toggleSidebarGroup(\'tools\')"]', title:'Agentic Orchestration', desc:'Spec Builder, BugBot automated repair, real-time CRDT Collaboration, and Marketplace packs.', position:'right', group:'tools'},
+  {target:'[data-act-click="toggleSidebarGroup(\'enterprise\')"]', title:'Enterprise Governance & Telemetry', desc:'Executive SLA Tower, HITL Approval Gates (<85% confidence interrupt), and Post-Quantum Lattice Cryptography.', position:'right', group:'enterprise'},
   {target:'[data-nav="docs"]',  title:'Documentation & Video Guides',   desc:'Everything explained — interactive video walkthroughs, Quick Starts, FAQ, and keyboard shortcuts.',   position:'right', group:'enterprise'},
   {target:'[data-nav="settings"]',title:'Settings & Open WebUI Hub',       desc:'Open WebUI 3-card connection hub (`OpenRouter`, `Ollama`, `Custom URL`), themes, and identity branding.', position:'right', group:'core'},
 ];
@@ -1038,9 +1038,9 @@ function showTourStep() {
     <div style="font-weight:700;font-size:14px;color:var(--text-0);margin-bottom:6px">${step.title}</div>
     <div style="font-size:12px;color:var(--text-2);line-height:1.6;margin-bottom:12px">${step.desc}</div>
     <div style="display:flex;gap:8px">
-      <button onclick="cleanTour()" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-2);padding:5px 12px;cursor:pointer;font-size:11px">Skip tour</button>
-      ${_tourStep>0?`<button onclick="tourBack()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);padding:5px 12px;cursor:pointer;font-size:11px">← Back</button>`:''}
-      <button onclick="tourNext()" style="background:var(--accent);border:none;border-radius:6px;color:#fff;padding:5px 14px;cursor:pointer;font-size:11px;font-weight:700;margin-left:auto">${_tourStep===_TOUR_STEPS.length-1?'Done ✓':'Next →'}</button>
+      <button data-act-click="cleanTour()" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-2);padding:5px 12px;cursor:pointer;font-size:11px">Skip tour</button>
+      ${_tourStep>0?`<button data-act-click="tourBack()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);padding:5px 12px;cursor:pointer;font-size:11px">← Back</button>`:''}
+      <button data-act-click="tourNext()" style="background:var(--accent);border:none;border-radius:6px;color:#fff;padding:5px 14px;cursor:pointer;font-size:11px;font-weight:700;margin-left:auto">${_tourStep===_TOUR_STEPS.length-1?'Done ✓':'Next →'}</button>
     </div>`;
 
   // Position tooltip relative to target element
@@ -1133,17 +1133,17 @@ async function renderDocs() {
       <div style="position:relative;margin-bottom:16px">
         <input id="docs-search" aria-label="Search documentation" placeholder="Search docs… (e.g. 'how to create an agent', 'keyboard shortcuts')"
           style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;color:var(--text-0);font-size:13px;padding:11px 14px 11px 38px;box-sizing:border-box"
-          oninput="docsSearch(this.value)">
+          data-act-input="docsSearch($value)">
         <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px">🔍</span>
       </div>
 
       <!-- Tabs -->
       <div style="display:flex;border-bottom:1px solid var(--border);overflow-x:auto">
-        <button type="button" class="docs-tab active" data-tab="quickstarts" onclick="docsTab('quickstarts',this)">🚀 Quick Starts</button>
-        <button type="button" class="docs-tab" data-tab="features" onclick="docsTab('features',this)">📘 Features</button>
-        <button type="button" class="docs-tab" data-tab="faq" onclick="docsTab('faq',this)">❓ FAQ</button>
-        <button type="button" class="docs-tab" data-tab="shortcuts" onclick="docsTab('shortcuts',this)">⌨️ Shortcuts</button>
-        <button type="button" class="docs-tab" data-tab="videos" onclick="docsTab('videos',this)">🎥 Videos</button>
+        <button type="button" class="docs-tab active" data-tab="quickstarts" data-act-click="docsTab('quickstarts',$this)">🚀 Quick Starts</button>
+        <button type="button" class="docs-tab" data-tab="features" data-act-click="docsTab('features',$this)">📘 Features</button>
+        <button type="button" class="docs-tab" data-tab="faq" data-act-click="docsTab('faq',$this)">❓ FAQ</button>
+        <button type="button" class="docs-tab" data-tab="shortcuts" data-act-click="docsTab('shortcuts',$this)">⌨️ Shortcuts</button>
+        <button type="button" class="docs-tab" data-tab="videos" data-act-click="docsTab('videos',$this)">🎥 Videos</button>
       </div>
     </div>
 
@@ -1266,7 +1266,7 @@ async function docsTab(tab, el) {
       <div style="font-size:13px;font-weight:700;color:var(--text-0);margin-bottom:12px">Video Guides</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px" id="docs-video-grid">
         ${videos.map((v, idx)=>`
-          <div data-video-idx="${idx}" style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .12s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div data-video-idx="${idx}" style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .12s" data-hover="bc:var(--accent)" data-hover-out="bc:var(--border)">
             <div style="background:var(--bg-3);height:120px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px">
               <span style="font-size:40px">${v.icon}</span>
               <div style="background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 12px;font-size:11px;color:#fff;display:flex;align-items:center;gap:5px">
@@ -1319,7 +1319,7 @@ async function docsSearch(q) {
     ${results.length===0?'<div style="color:var(--text-3);text-align:center;padding:24px">No results found. Try different keywords.</div>':''}
     <div id="docs-search-results">
     ${results.map((r, idx) =>`
-      <div data-search-result-idx="${idx}" style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;cursor:pointer;transition:all .12s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div data-search-result-idx="${idx}" style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;cursor:pointer;transition:all .12s" data-hover="bc:var(--accent)" data-hover-out="bc:var(--border)">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
           <span style="font-size:11px;padding:1px 6px;border-radius:3px;background:var(--bg-3);color:var(--text-3);text-transform:uppercase">${r.type||'doc'}</span>
           <span style="font-weight:600;color:var(--text-0);font-size:13px">${escHtml(r.title||'')}</span>
@@ -1695,11 +1695,11 @@ function updateNextActionBar(pane) {
         color:var(--text-2);padding:4px 10px;cursor:pointer;font-size:11px;font-weight:600;
         white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:5px;
         transition:all .12s;
-      " onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text-0)'"
-         onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">
+      " data-hover="bc:var(--accent)|fg:var(--text-0)"
+         data-hover-out="bc:var(--border)|fg:var(--text-2)">
         ${a.icon} ${escHtml(a.label)}
       </button>`).join('')}
-    <button onclick="document.getElementById('next-action-bar').style.display='none'" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;flex-shrink:0" title="Dismiss (re-shows on next pane)">✕</button>`;
+    <button data-hide="id:next-action-bar" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;flex-shrink:0" title="Dismiss (re-shows on next pane)">✕</button>`;
 }
 
 

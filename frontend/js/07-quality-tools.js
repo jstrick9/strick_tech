@@ -58,11 +58,11 @@ async function renderBugBot() {
 
     <!-- Review tabs -->
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-      <button class="btn" id="bb-tab-diff" onclick="bbShowTab('diff')" style="background:var(--accent);color:#fff">📄 Review Diff</button>
-      <button class="btn-sm" id="bb-tab-git" onclick="bbShowTab('git')">🌿 Git Diff</button>
-      <button class="btn-sm" id="bb-tab-file" onclick="bbShowTab('file')">📁 Review File</button>
-      <button class="btn-sm" id="bb-tab-pr" onclick="bbShowTab('pr')">🐙 GitHub PR</button>
-      <button class="btn-sm" id="bb-tab-history" onclick="bbShowTab('history')">📋 History</button>
+      <button class="btn" id="bb-tab-diff" data-act-click="bbShowTab('diff')" style="background:var(--accent);color:#fff">📄 Review Diff</button>
+      <button class="btn-sm" id="bb-tab-git" data-act-click="bbShowTab('git')">🌿 Git Diff</button>
+      <button class="btn-sm" id="bb-tab-file" data-act-click="bbShowTab('file')">📁 Review File</button>
+      <button class="btn-sm" id="bb-tab-pr" data-act-click="bbShowTab('pr')">🐙 GitHub PR</button>
+      <button class="btn-sm" id="bb-tab-history" data-act-click="bbShowTab('history')">📋 History</button>
     </div>
 
     <div id="bb-tab-content">
@@ -77,8 +77,8 @@ async function renderBugBot() {
 +        return {'token': secrets.token_hex(32)}"></textarea>
         <div style="display:flex;gap:8px;margin-top:8px">
           <input id="bb-review-title" placeholder="Review title (optional)" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:6px 10px">
-          <button class="btn" onclick="bbReviewDiff()">🔍 Review</button>
-          <button class="btn-sm" onclick="bbReviewDiffStream()">⚡ Stream</button>
+          <button class="btn" data-act-click="bbReviewDiff()">🔍 Review</button>
+          <button class="btn-sm" data-act-click="bbReviewDiffStream()">⚡ Stream</button>
         </div>
       </div>
       <div id="bb-pane-git" style="display:none">
@@ -88,16 +88,16 @@ async function renderBugBot() {
             <input type="checkbox" id="bb-staged"> Staged only
           </label>
           <input id="bb-branch-ref" placeholder="branch (optional)" style="background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:6px 10px">
-          <button class="btn" onclick="bbReviewGit()">🌿 Review Git Diff</button>
+          <button class="btn" data-act-click="bbReviewGit()">🌿 Review Git Diff</button>
         </div>
       </div>
       <div id="bb-pane-file" style="display:none">
         <div style="display:flex;gap:8px;margin-bottom:8px">
           <input id="bb-file-name" placeholder="filename.py" style="background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:6px 10px;width:200px">
-          <button class="btn-sm" onclick="bbLoadCurrentFile()">← Load current preview file</button>
+          <button class="btn-sm" data-act-click="bbLoadCurrentFile()">← Load current preview file</button>
         </div>
         <textarea id="bb-file-content" rows="12" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;color:var(--text-0);font-size:12px;font-family:monospace;padding:12px;resize:vertical;box-sizing:border-box" placeholder="Paste file content to review…"></textarea>
-        <button class="btn" onclick="bbReviewFile()" style="margin-top:8px">📁 Review File</button>
+        <button class="btn" data-act-click="bbReviewFile()" style="margin-top:8px">📁 Review File</button>
       </div>
       <div id="bb-pane-pr" style="display:none">
         <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Review a GitHub Pull Request (requires GITHUB_TOKEN)</div>
@@ -106,12 +106,12 @@ async function renderBugBot() {
           <label style="font-size:12px;color:var(--text-1);display:flex;align-items:center;gap:5px">
             <input type="checkbox" id="bb-post-comment"> Auto-post comment to PR
           </label>
-          <button class="btn" onclick="bbReviewPR()">🐙 Review PR</button>
+          <button class="btn" data-act-click="bbReviewPR()">🐙 Review PR</button>
         </div>
       </div>
       <div id="bb-pane-history" style="display:none">
         ${(reviews.reviews||[]).map(r=>`
-          <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="bbShowReview(${JSON.stringify(r.id)})">
+          <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" data-act-click="bbShowReview(${JSON.stringify(r.id)})">
             <div style="width:44px;height:44px;border-radius:50%;background:var(--bg-3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:${r.score>=80?'var(--success)':r.score>=60?'var(--warning)':'var(--danger)'}">
               ${r.score}
             </div>
@@ -289,7 +289,7 @@ async function renderHealth() {
     <div style="padding:20px;max-width:900px;margin:0 auto">
       <div class="section-head">
         <div><h2>💊 Project Health</h2><p>Automated scoring across complexity, security, tech debt, documentation, and dependencies</p></div>
-        <button class="btn-sm" onclick="renderHealth()">🔄 Refresh</button>
+        <button class="btn-sm" data-act-click="renderHealth()">🔄 Refresh</button>
       </div>
 
       <!-- Overall score hero -->
@@ -329,11 +329,11 @@ async function renderHealth() {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
         <div style="font-size:13px;font-weight:700;margin-bottom:10px">⚡ Quick Fixes</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn-sm" onclick="nav('bugbot')">🐛 Run Code Review</button>
-          <button class="btn-sm" onclick="bbRunSecurityScan()">🔒 Security Scan</button>
-          <button class="btn-sm" onclick="bbRunDepAudit()">📦 Audit Dependencies</button>
-          <button class="btn-sm" onclick="nav('codeindex');ciIndexNow()">🕸️ Index Codebase</button>
-          <button class="btn-sm" onclick="nav('ambient');ambientScan()">🌊 Ambient Scan</button>
+          <button class="btn-sm" data-act-click="nav('bugbot')">🐛 Run Code Review</button>
+          <button class="btn-sm" data-act-click="bbRunSecurityScan()">🔒 Security Scan</button>
+          <button class="btn-sm" data-act-click="bbRunDepAudit()">📦 Audit Dependencies</button>
+          <button class="btn-sm" data-act-click="nav('codeindex');ciIndexNow()">🕸️ Index Codebase</button>
+          <button class="btn-sm" data-act-click="nav('ambient');ambientScan()">🌊 Ambient Scan</button>
         </div>
       </div>
 
@@ -397,24 +397,24 @@ async function renderGitAI() {
       <span style="color:var(--text-3)">|</span>
       <span>${gitStatus.changed_count||0} changed files</span>
       ${gitStatus.clean?'<span style="color:var(--success)">✅ Clean</span>':'<span style="color:var(--warning)">⚠️ Uncommitted changes</span>'}
-      <button class="btn-sm" onclick="gitaiRefreshStatus()">↺</button>
+      <button class="btn-sm" data-act-click="gitaiRefreshStatus()">↺</button>
     </div>
 
     <!-- Tabs -->
     <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px">
-      <button class="gitai-tab active" id="gat-nl" onclick="gitaiTab('nl',this)">💬 Natural Language</button>
-      <button class="gitai-tab" id="gat-commit" onclick="gitaiTab('commit',this)">✍ AI Commit</button>
-      <button class="gitai-tab" id="gat-changelog" onclick="gitaiTab('changelog',this)">📋 Changelog</button>
-      <button class="gitai-tab" id="gat-deps" onclick="gitaiTab('deps',this)">📦 Dep Audit</button>
-      <button class="gitai-tab" id="gat-security" onclick="gitaiTab('security',this)">🔒 Security</button>
+      <button class="gitai-tab active" id="gat-nl" data-act-click="gitaiTab('nl',$this)">💬 Natural Language</button>
+      <button class="gitai-tab" id="gat-commit" data-act-click="gitaiTab('commit',$this)">✍ AI Commit</button>
+      <button class="gitai-tab" id="gat-changelog" data-act-click="gitaiTab('changelog',$this)">📋 Changelog</button>
+      <button class="gitai-tab" id="gat-deps" data-act-click="gitaiTab('deps',$this)">📦 Dep Audit</button>
+      <button class="gitai-tab" id="gat-security" data-act-click="gitaiTab('security',$this)">🔒 Security</button>
     </div>
 
     <!-- Natural Language Git -->
     <div id="gitai-pane-nl">
       <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Ask Git anything in plain English — like Cursor's natural language git interface</div>
       <div style="display:flex;gap:8px">
-        <input id="gitai-nl-input" placeholder="e.g. 'show what changed in the last 5 commits' or 'create branch feature/payments'" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:9px;color:var(--text-0);font-size:13px;padding:10px 14px" onkeydown="if(event.key==='Enter')gitaiNLRun()">
-        <button class="btn" onclick="gitaiNLRun()">Ask</button>
+        <input id="gitai-nl-input" placeholder="e.g. 'show what changed in the last 5 commits' or 'create branch feature/payments'" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:9px;color:var(--text-0);font-size:13px;padding:10px 14px" data-act-keydown="gitaiNLRun()" data-keys="Enter">
+        <button class="btn" data-act-click="gitaiNLRun()">Ask</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
         ${['show last 10 commits','what changed today?','create branch feature/payments','stage all changes','show diff of HEAD~1','revert last commit'].map(s=>`<button class="btn-sm" onclick="document.getElementById('gitai-nl-input').value=${jsArg(s)};gitaiNLRun()" style="font-size:11px">${s}</button>`).join('')}
@@ -427,8 +427,8 @@ async function renderGitAI() {
       <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Generate a semantic commit message from your staged/unstaged changes</div>
       <input id="gitai-commit-hint" placeholder="Optional hint (e.g. 'adding auth feature')" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;padding:8px 12px;box-sizing:border-box;margin-bottom:8px">
       <div style="display:flex;gap:8px">
-        <button class="btn" onclick="gitaiGenerateCommit(false)">✍ Generate Message</button>
-        <button class="btn-sm" onclick="gitaiGenerateCommit(true)">⚡ Generate &amp; Commit</button>
+        <button class="btn" data-act-click="gitaiGenerateCommit(false)">✍ Generate Message</button>
+        <button class="btn-sm" data-act-click="gitaiGenerateCommit(true)">⚡ Generate &amp; Commit</button>
       </div>
       <div id="gitai-commit-result"></div>
     </div>
@@ -439,7 +439,7 @@ async function renderGitAI() {
       <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
         <input id="gitai-cl-version" placeholder="New version (e.g. v2.0.0)" style="background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:6px 10px;width:160px">
         <input id="gitai-cl-since" placeholder="Since (e.g. v1.0.0 or 2025-01-01)" style="background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:6px 10px;flex:1">
-        <button class="btn" onclick="gitaiChangelog()">📋 Generate Changelog</button>
+        <button class="btn" data-act-click="gitaiChangelog()">📋 Generate Changelog</button>
       </div>
       <div id="gitai-cl-result"></div>
     </div>
@@ -447,7 +447,7 @@ async function renderGitAI() {
     <!-- Dependencies -->
     <div id="gitai-pane-deps" style="display:none">
       <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Audit requirements.txt and package.json for outdated/vulnerable packages</div>
-      <button class="btn" onclick="gitaiRunDepAudit()">📦 Audit Dependencies</button>
+      <button class="btn" data-act-click="gitaiRunDepAudit()">📦 Audit Dependencies</button>
       <div id="gitai-deps-result"></div>
     </div>
 
@@ -460,7 +460,7 @@ async function renderGitAI() {
           <option value="backend">Backend only</option>
           <option value="preview">Preview only</option>
         </select>
-        <button class="btn" onclick="gitaiRunSecurity()">🔒 Run Security Scan</button>
+        <button class="btn" data-act-click="gitaiRunSecurity()">🔒 Run Security Scan</button>
       </div>
       <div id="gitai-sec-result"></div>
     </div>
@@ -627,9 +627,9 @@ async function renderAmbient() {
     <div class="section-head">
       <div><h2>🌊 Ambient Agent</h2><p>Always-on background intelligence — proactive suggestions, background tasks, project scanning</p></div>
       <div style="display:flex;gap:8px">
-        <button class="btn" onclick="ambientScan()">🔍 Run Scan</button>
-        <button class="btn-sm" onclick="ambientNewTask()">＋ Background Task</button>
-        <button class="btn-sm" style="color:var(--danger)" onclick="ambientClearAll()">🗑 Clear</button>
+        <button class="btn" data-act-click="ambientScan()">🔍 Run Scan</button>
+        <button class="btn-sm" data-act-click="ambientNewTask()">＋ Background Task</button>
+        <button class="btn-sm" style="color:var(--danger)" data-act-click="ambientClearAll()">🗑 Clear</button>
       </div>
     </div>
 
@@ -656,7 +656,7 @@ async function renderAmbient() {
             <span>${sev_icons[s.severity]||'ℹ️'}</span>
             <strong style="color:var(--text-0);font-size:12px">${escHtml(s.title||'')}</strong>
             <span class="amb-cat-pill">${cat_labels[s.category]||s.category||''}</span>
-            <button onclick="ambientDismiss(${JSON.stringify(s.id)},this)" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">✕ Dismiss</button>
+            <button data-act-click="ambientDismiss(${JSON.stringify(s.id)},$this)" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">✕ Dismiss</button>
           </div>
           ${s.description?`<div style="font-size:11px;color:var(--text-2)">${escHtml(s.description)}</div>`:''}
           ${s.file_path?`<div style="font-size:10px;font-family:monospace;color:var(--text-3);margin-top:3px">${escHtml(s.file_path)}${s.line_no?':'+s.line_no:''}</div>`:''}
@@ -674,7 +674,7 @@ async function renderAmbient() {
               <div style="font-weight:600;color:var(--text-0);font-size:12px">${escHtml(t.name||'')}</div>
               <div style="font-size:10px;color:var(--text-3)">${t.status} · ${new Date(t.created_at).toLocaleTimeString()}</div>
             </div>
-            <button class="btn-sm" onclick="ambientShowTask(${JSON.stringify(t.id)})">View</button>
+            <button class="btn-sm" data-act-click="ambientShowTask(${JSON.stringify(t.id)})">View</button>
           </div>
           ${t.result&&t.status!=='pending'?`<div style="font-size:11px;color:var(--text-2);margin-top:6px;font-family:monospace">${escHtml((t.result||'').slice(0,120))}…</div>`:''}
         </div>`).join('') || '<div style="color:var(--text-3);padding:12px">No background tasks yet</div>'}

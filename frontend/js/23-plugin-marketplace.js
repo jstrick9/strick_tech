@@ -7,9 +7,9 @@ async function renderPlugins() {
   pane.innerHTML = `<div class="section-head">
     <div><h2>🧩 Plugin Marketplace</h2><p>Install skill packs, agent personas, and tool collections. One click to unlock new capabilities.</p></div>
     <div style="display:flex;gap:8px">
-      <button onclick="showInstallFromUrl()" class="btn btn-ghost btn-sm">🔗 Install from URL</button>
-      <button onclick="exportWorkspaceData()" class="btn btn-ghost btn-sm">📤 Export Workspace</button>
-      <button onclick="showImportWorkspace()" class="btn btn-ghost btn-sm">📥 Import</button>
+      <button data-act-click="showInstallFromUrl()" class="btn btn-ghost btn-sm">🔗 Install from URL</button>
+      <button data-act-click="exportWorkspaceData()" class="btn btn-ghost btn-sm">📤 Export Workspace</button>
+      <button data-act-click="showImportWorkspace()" class="btn btn-ghost btn-sm">📥 Import</button>
     </div>
   </div>
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="plugin-cats"></div>
@@ -60,7 +60,7 @@ function renderPluginGrid(list = pluginRegistry) {
     return `<div style="background:var(--bg-2);border:1px solid ${installed?'var(--accent)':'var(--border)'};border-radius:var(--radius-lg);padding:18px;transition:var(--transition)"
          data-plugin-id="${escHtml(p.id)}"
          data-plugin-name="${escHtml(p.name)}"
-         onmouseover="this.style.borderColor='var(--border-hi)'" onmouseout="this.style.borderColor=${jsArg(installed?'var(--accent)':'var(--border)')}">
+         data-hover="bc:var(--border-hi)" onmouseout="this.style.borderColor=${jsArg(installed?'var(--accent)':'var(--border)')}">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <span style="font-size:28px">${p.emoji||'🧩'}</span>
         <div style="flex:1;min-width:0">

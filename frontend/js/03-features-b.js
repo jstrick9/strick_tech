@@ -21,7 +21,7 @@ async function renderSpecs() {
     <div class="spec-sidebar">
       <div class="spec-sidebar-top">
         <h3>📋 Specs</h3>
-        <button onclick="specNew()" style="width:100%;padding:7px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">＋ New Spec</button>
+        <button data-act-click="specNew()" style="width:100%;padding:7px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">＋ New Spec</button>
       </div>
       <div class="spec-list" id="spec-list"><div style="color:var(--text-3);font-size:12px;padding:8px">Loading…</div></div>
     </div>
@@ -29,10 +29,10 @@ async function renderSpecs() {
       <div class="spec-topbar">
         <span id="spec-title-display" style="font-size:14px;font-weight:700;color:var(--text-0);flex:1">Select or create a spec</span>
         <div class="spec-pipeline" id="spec-pipeline" style="display:none">
-          <button class="spec-phase-btn" id="sbtn-req" onclick="specShowPhase('requirements')">📝 Requirements</button>
-          <button class="spec-phase-btn" id="sbtn-design" onclick="specShowPhase('design')">🏗️ Design</button>
-          <button class="spec-phase-btn" id="sbtn-tasks" onclick="specShowPhase('tasks')">✅ Tasks</button>
-          <button class="spec-phase-btn" id="sbtn-code" onclick="specShowPhase('execute')">⚡ Execute</button>
+          <button class="spec-phase-btn" id="sbtn-req" data-act-click="specShowPhase('requirements')">📝 Requirements</button>
+          <button class="spec-phase-btn" id="sbtn-design" data-act-click="specShowPhase('design')">🏗️ Design</button>
+          <button class="spec-phase-btn" id="sbtn-tasks" data-act-click="specShowPhase('tasks')">✅ Tasks</button>
+          <button class="spec-phase-btn" id="sbtn-code" data-act-click="specShowPhase('execute')">⚡ Execute</button>
         </div>
       </div>
       <div class="spec-content" id="spec-content">
@@ -42,7 +42,7 @@ async function renderSpecs() {
           <div style="font-size:13px;max-width:420px;line-height:1.7;color:var(--text-2)">
             Like Kiro + Windsurf Cascade — describe a feature, get structured Requirements → Design → Tasks → Code. Every decision is documented and traceable.
           </div>
-          <button class="spec-run-all-btn" onclick="specNew()" style="margin-top:20px">＋ Create Your First Spec</button>
+          <button class="spec-run-all-btn" data-act-click="specNew()" style="margin-top:20px">＋ Create Your First Spec</button>
         </div>
       </div>
     </div>
@@ -176,8 +176,8 @@ function specShowPhase(phase, desc='') {
         </div>
         <textarea class="spec-desc-input" id="spec-desc" placeholder="e.g. A user authentication system with email/password login, Google OAuth, password reset via email, and session management. Users should be able to update their profile and delete their account.">${escHtml(desc || _specCurrent.description || '')}</textarea>
         <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
-          <button class="btn" onclick="specGenReq()" id="spec-gen-req-btn">📝 Generate Requirements</button>
-          <button class="spec-run-all-btn" onclick="specRunAll()" id="spec-run-all">🚀 Run Full Pipeline</button>
+          <button class="btn" data-act-click="specGenReq()" id="spec-gen-req-btn">📝 Generate Requirements</button>
+          <button class="spec-run-all-btn" data-act-click="specRunAll()" id="spec-run-all">🚀 Run Full Pipeline</button>
         </div>
       </div>
       ${existing ? `
@@ -195,7 +195,7 @@ function specShowPhase(phase, desc='') {
           <div style="font-size:13px;font-weight:700;color:var(--text-0)">🏗️ Design Document</div>
           <div style="font-size:12px;color:var(--text-2)">Architecture, data models, API contracts, sequence diagrams generated from your requirements.</div>
         </div>
-        <button class="btn" onclick="specGenDesign()" style="flex-shrink:0">🏗️ Generate Design</button>
+        <button class="btn" data-act-click="specGenDesign()" style="flex-shrink:0">🏗️ Generate Design</button>
       </div>
       ${existing ? `
       <div class="spec-artifact">
@@ -215,8 +215,8 @@ function specShowPhase(phase, desc='') {
           <div style="font-size:12px;color:var(--text-2)">Tasks run in parallel waves. Independent tasks execute simultaneously.</div>
         </div>
         <div style="display:flex;gap:6px;margin-left:auto">
-          <button class="btn-sm" onclick="specExecuteAll(false)">⚡ Execute All</button>
-          <button class="btn-sm" onclick="specExecuteAll(true)">👁 Dry Run</button>
+          <button class="btn-sm" data-act-click="specExecuteAll(false)">⚡ Execute All</button>
+          <button class="btn-sm" data-act-click="specExecuteAll(true)">👁 Dry Run</button>
         </div>
       </div>
       <div class="spec-stream-log" id="spec-log" style="display:none"></div>
@@ -279,7 +279,7 @@ async function specLoadTasks() {
           <div style="font-size:13px;font-weight:700;color:var(--text-0)">✅ Implementation Tasks</div>
           <div style="font-size:12px;color:var(--text-2)">${d.count||0} tasks across ${waveCount} waves</div>
         </div>
-        <button class="btn-sm" onclick="specGenTasks()" style="flex-shrink:0">🔄 Regenerate Tasks</button>
+        <button class="btn-sm" data-act-click="specGenTasks()" style="flex-shrink:0">🔄 Regenerate Tasks</button>
       </div>
       <div class="spec-stream-log" id="spec-log" style="display:none"></div>
     `;
@@ -288,7 +288,7 @@ async function specLoadTasks() {
       html += `
         <div style="color:var(--text-3);font-size:12px;padding:20px;text-align:center">
           No tasks yet.<br>
-          <button class="btn" onclick="specGenTasks()" style="margin-top:12px">✅ Generate Tasks from Design</button>
+          <button class="btn" data-act-click="specGenTasks()" style="margin-top:12px">✅ Generate Tasks from Design</button>
         </div>`;
     } else {
       for (const [wave, tasks] of Object.entries(waves)) {
@@ -444,15 +444,15 @@ async function renderHooks() {
           <p>Event-driven automations — AI agents fire automatically on file save, git commit, tests, and more</p>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn" onclick="hookCreate()">＋ New Hook</button>
-          <button class="btn-sm" onclick="hookFireTest()">▶ Test Fire</button>
+          <button class="btn" data-act-click="hookCreate()">＋ New Hook</button>
+          <button class="btn-sm" data-act-click="hookFireTest()">▶ Test Fire</button>
         </div>
       </div>
 
       <!-- Event types quick filter -->
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
         ${(events.events||[]).map((e) =>`
-          <button class="btn-sm" onclick="hookFilterEvent(${JSON.stringify(e.id)})" id="hfbtn-${e.id}" style="font-size:11px">${e.label}</button>
+          <button class="btn-sm" data-act-click="hookFilterEvent(${JSON.stringify(e.id)})" id="hfbtn-${e.id}" style="font-size:11px">${e.label}</button>
         `).join('')}
       </div>
 
@@ -480,7 +480,7 @@ function hookCardHTML(h, eventMap) {
   return `
     <div class="hook-card" id="hook-${h.id}">
       <div style="display:flex;align-items:flex-start;gap:10px">
-        <button class="hook-toggle ${isOn?'on':''}" onclick="hookToggle(${JSON.stringify(h.id)},this)" title="${isOn?'Enabled':'Disabled'}"></button>
+        <button class="hook-toggle ${isOn?'on':''}" data-act-click="hookToggle(${JSON.stringify(h.id)},$this)" title="${isOn?'Enabled':'Disabled'}"></button>
         <div style="flex:1">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
             <strong style="color:var(--text-0);font-size:13px">${escHtml(h.name)}</strong>
@@ -492,9 +492,9 @@ function hookCardHTML(h, eventMap) {
           <div style="font-size:11px;font-family:monospace;color:var(--text-1);background:var(--bg-3);padding:6px 8px;border-radius:6px;line-height:1.5;max-height:60px;overflow:hidden">${escHtml((h.prompt||'').slice(0,200))}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
-          <button class="btn-sm" onclick="hookManualRun(${JSON.stringify(h.id)})">▶ Run</button>
-          <button class="btn-sm" onclick="hookEdit(${JSON.stringify(h.id)})">✏</button>
-          <button class="btn-sm" style="color:var(--danger)" onclick="hookDelete(${JSON.stringify(h.id)})">🗑</button>
+          <button class="btn-sm" data-act-click="hookManualRun(${JSON.stringify(h.id)})">▶ Run</button>
+          <button class="btn-sm" data-act-click="hookEdit(${JSON.stringify(h.id)})">✏</button>
+          <button class="btn-sm" style="color:var(--danger)" data-act-click="hookDelete(${JSON.stringify(h.id)})">🗑</button>
         </div>
       </div>
     </div>`;
@@ -643,23 +643,23 @@ async function renderCodeIndex() {
       <div class="ci-panel">
         <h4>🔍 Symbol Search</h4>
         <input id="ci-search" placeholder="Search functions, classes…" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:6px 10px;box-sizing:border-box"
-               oninput="ciSearch(this.value)">
+               data-act-input="ciSearch($value)">
       </div>
       <div style="flex:1;overflow-y:auto;padding:8px" id="ci-sym-list">
         <div style="color:var(--text-3);font-size:12px;padding:8px">Index your codebase first →</div>
       </div>
       <div class="ci-panel">
-        <button class="btn" style="width:100%" onclick="ciIndexNow()">🔄 Index Codebase</button>
+        <button class="btn" style="width:100%" data-act-click="ciIndexNow()">🔄 Index Codebase</button>
         <div style="font-size:10px;color:var(--text-3);margin-top:6px" id="ci-index-status">Not indexed</div>
       </div>
     </div>
 
     <div class="ci-main">
       <div class="ci-tabs">
-        <div class="ci-tab active" onclick="ciShowTab('graph',this)">🕸️ Dependency Graph</div>
-        <div class="ci-tab" onclick="ciShowTab('complexity',this)">🔥 Complexity</div>
-        <div class="ci-tab" onclick="ciShowTab('dead',this)">💀 Dead Code</div>
-        <div class="ci-tab" onclick="ciShowTab('stats',this)">📊 Stats</div>
+        <div class="ci-tab active" data-act-click="ciShowTab('graph',$this)">🕸️ Dependency Graph</div>
+        <div class="ci-tab" data-act-click="ciShowTab('complexity',$this)">🔥 Complexity</div>
+        <div class="ci-tab" data-act-click="ciShowTab('dead',$this)">💀 Dead Code</div>
+        <div class="ci-tab" data-act-click="ciShowTab('stats',$this)">📊 Stats</div>
       </div>
 
       <div class="ci-graph-area" id="ci-graph-area">
@@ -671,7 +671,7 @@ async function renderCodeIndex() {
           <div style="font-size:13px;max-width:340px;text-align:center;line-height:1.6">
             Like Windsurf Codemaps & Augment Code — index your project to see a live dependency graph, find complex functions, detect dead code.
           </div>
-          <button class="btn" onclick="ciIndexNow()" style="margin-top:16px">🔄 Index Now</button>
+          <button class="btn" data-act-click="ciIndexNow()" style="margin-top:16px">🔄 Index Now</button>
         </div>
         <div id="ci-node-tooltip" style="position:absolute;display:none;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--text-0);pointer-events:none;z-index:10;max-width:220px"></div>
       </div>
@@ -928,7 +928,7 @@ async function ciSearch(q) {
     const el = document.getElementById('ci-sym-list');
     if (!el) return;
     el.innerHTML = (d.symbols||[]).map((s) => `
-      <div class="ci-sym-row" onclick="ciShowReferences(${jsArg(s.symbol_name)})">
+      <div class="ci-sym-row" data-act-click="ciShowReferences(${jsArg(s.symbol_name)})">
         <span class="ci-type-badge ${s.symbol_type}">${s.symbol_type.slice(0,3)}</span>
         <span style="color:var(--text-0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.symbol_name)}</span>
         <span style="font-size:9px;color:var(--text-3)">L${s.line_no}</span>
@@ -944,7 +944,7 @@ async function ciSearchDefault() {
     const el = document.getElementById('ci-sym-list');
     if (!el) return;
     el.innerHTML = (d.symbols||[]).map((s) => `
-      <div class="ci-sym-row" onclick="ciShowReferences(${jsArg(s.symbol_name)})">
+      <div class="ci-sym-row" data-act-click="ciShowReferences(${jsArg(s.symbol_name)})">
         <span class="ci-type-badge ${s.symbol_type}">${s.symbol_type.slice(0,3)}</span>
         <span style="color:var(--text-0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.symbol_name)}</span>
         <span style="font-size:9px;color:var(--text-3)">L${s.line_no}</span>
@@ -1023,7 +1023,7 @@ async function renderArena() {
               ${_arenaModels.map(m=>`<option value="${m.id}" ${m.id==='gpt-4o'?'selected':''}>${m.id}</option>`).join('')}
             </select>
           </div>
-          <button class="btn" onclick="arenaStartBattle()" id="arena-go-btn" style="height:60px;padding:0 20px;align-self:stretch">⚔️ Battle!</button>
+          <button class="btn" data-act-click="arenaStartBattle()" id="arena-go-btn" style="height:60px;padding:0 20px;align-self:stretch">⚔️ Battle!</button>
         </div>
       </div>
 
@@ -1053,9 +1053,9 @@ async function renderArena() {
       <div id="arena-vote-area" style="display:none;padding:12px 16px;background:var(--bg-1);border-top:1px solid var(--border);text-align:center;flex-shrink:0">
         <div style="font-size:13px;font-weight:600;color:var(--text-0);margin-bottom:10px">Which response was better?</div>
         <div class="arena-vote-row">
-          <button class="arena-vote-btn arena-vote-a" onclick="arenaVote('a')">👈 A is Better</button>
-          <button class="arena-vote-btn arena-vote-tie" onclick="arenaVote('tie')">🤝 Tie</button>
-          <button class="arena-vote-btn arena-vote-b" onclick="arenaVote('b')">B is Better 👉</button>
+          <button class="arena-vote-btn arena-vote-a" data-act-click="arenaVote('a')">👈 A is Better</button>
+          <button class="arena-vote-btn arena-vote-tie" data-act-click="arenaVote('tie')">🤝 Tie</button>
+          <button class="arena-vote-btn arena-vote-b" data-act-click="arenaVote('b')">B is Better 👉</button>
         </div>
       </div>
     </div>
@@ -1065,7 +1065,7 @@ async function renderArena() {
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">
         <span style="font-weight:700;font-size:13px">🏆 ELO Leaderboard</span>
         <span style="font-size:11px;color:var(--text-3)">Based on your votes</span>
-        <button class="btn-sm" onclick="arenaAutoJudge()" style="margin-left:auto">🤖 Auto-Judge Last</button>
+        <button class="btn-sm" data-act-click="arenaAutoJudge()" style="margin-left:auto">🤖 Auto-Judge Last</button>
       </div>
       <div class="arena-lb" id="arena-lb">
         ${(lb.leaderboard||[]).length ? lb.leaderboard.map((m, i) => {
@@ -1325,7 +1325,7 @@ function showVoiceOverlay(interim) {
     <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:6px">
       <span class="_vc-dot" style="color:var(--danger);font-size:18px">●</span>
       <strong>Listening…</strong>
-      <button onclick="toggleVoice()" style="margin-left:8px;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px" title="Stop">✕</button>
+      <button data-act-click="toggleVoice()" style="margin-left:8px;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px" title="Stop">✕</button>
     </div>
     <div id="voice-transcript" style="color:var(--text-2);font-size:12px;min-height:18px;line-height:1.5">${escHtml(interim)}</div>
     <div style="font-size:10px;color:var(--text-3);margin-top:8px">
@@ -1560,7 +1560,7 @@ async function showVoiceHistory() {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:480px;width:100%;max-height:70vh;overflow-y:auto;padding:20px">
         <div style="display:flex;justify-content:space-between;margin-bottom:12px">
           <h3 style="margin:0;color:var(--text-0)">🎤 Voice History (${d.count})</h3>
-          <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button data-close="closest:[style*=fixed]" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         ${items}
         <button class="btn-sm" style="margin-top:10px;color:var(--danger)" onclick="fetch('/api/voice/history',{method:'DELETE'}).then(().catch(()=>{})=>this.closest('[style*=fixed]').remove()).then(()=>showToast('🗑 History cleared'))">🗑 Clear History</button>

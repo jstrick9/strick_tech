@@ -24,7 +24,7 @@ async function renderFusion() {
     <!-- Preset selector -->
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
       ${Object.entries(presets.presets||{}).map(([id,p])=>`
-        <button class="fusion-preset-btn ${id==='budget'?'active':''}" id="fp-${id}" onclick="fusionSelectPreset(${jsArg(id)})">
+        <button class="fusion-preset-btn ${id==='budget'?'active':''}" id="fp-${id}" data-act-click="fusionSelectPreset(${jsArg(id)})">
           ${id==='quality'?'⭐':id==='budget'?'💰':id==='code'?'💻':'🔬'} ${id.charAt(0).toUpperCase()+id.slice(1)}
           <div style="font-size:9px;color:var(--text-3);font-weight:400">${(p.desc||'').slice(0,40)}</div>
         </button>
@@ -45,8 +45,8 @@ Try: 'What are the best practices for building production-ready FastAPI services
         <select id="fusion-preset-select" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:12px;padding:5px 8px">
           ${Object.keys(presets.presets||{}).map(k=>`<option value="${k}" ${k==='budget'?'selected':''}>${k}</option>`).join('')}
         </select>
-        <button class="btn" onclick="fusionRun()" id="fusion-run-btn">⚡ Run Fusion</button>
-        <button class="btn-sm" onclick="fusionRunSimple()">Simple (no stream)</button>
+        <button class="btn" data-act-click="fusionRun()" id="fusion-run-btn">⚡ Run Fusion</button>
+        <button class="btn-sm" data-act-click="fusionRunSimple()">Simple (no stream)</button>
         <div style="margin-left:auto;font-size:11px;color:var(--text-3)" id="fusion-cost-hint">Budget preset uses free models 💰</div>
       </div>
     </div>
@@ -60,9 +60,9 @@ Try: 'What are the best practices for building production-ready FastAPI services
       <div style="padding:16px">
         <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Ask anything and the router automatically picks the optimal model (free vs paid, code vs research vs chat)</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input id="router-prompt" placeholder="Ask anything…" style="flex:1;min-width:200px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:8px 12px" onkeydown="if(event.key==='Enter')fusionRoute()">
-          <button class="btn" onclick="fusionRoute()">🎯 Route</button>
-          <button class="btn-sm" onclick="fusionClassify()">🏷️ Classify</button>
+          <input id="router-prompt" placeholder="Ask anything…" style="flex:1;min-width:200px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:8px 12px" data-act-keydown="fusionRoute()" data-keys="Enter">
+          <button class="btn" data-act-click="fusionRoute()">🎯 Route</button>
+          <button class="btn-sm" data-act-click="fusionClassify()">🏷️ Classify</button>
         </div>
         <div id="router-result" style="margin-top:10px"></div>
       </div>
@@ -76,7 +76,7 @@ Try: 'What are the best practices for building production-ready FastAPI services
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input id="cost-prompt" placeholder="Your prompt…" style="flex:1;min-width:200px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:8px 12px">
           <input id="cost-budget" type="number" value="0.01" min="0" step="0.001" style="width:90px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-0);font-size:12px;padding:6px 8px" placeholder="Budget $">
-          <button class="btn" onclick="fusionOptimizeCost()">💰 Optimize</button>
+          <button class="btn" data-act-click="fusionOptimizeCost()">💰 Optimize</button>
         </div>
         <div id="cost-result" style="margin-top:10px"></div>
       </div>
@@ -91,7 +91,7 @@ Try: 'What are the best practices for building production-ready FastAPI services
         <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
           <label style="font-size:11px;color:var(--text-3)">Max subtasks:</label>
           <input id="subagent-max" type="number" min="1" max="8" value="4" style="width:60px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-0);font-size:12px;padding:5px 8px">
-          <button class="btn" onclick="fusionSubagent()">🤖 Delegate</button>
+          <button class="btn" data-act-click="fusionSubagent()">🤖 Delegate</button>
         </div>
         <div id="subagent-result" style="margin-top:10px"></div>
       </div>
@@ -101,7 +101,7 @@ Try: 'What are the best practices for building production-ready FastAPI services
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-top:16px;overflow:hidden">
       <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
         <span style="font-weight:700;font-size:13px">📜 Run History</span>
-        <button class="btn-sm" onclick="fusionLoadHistory()">↻ Load</button>
+        <button class="btn-sm" data-act-click="fusionLoadHistory()">↻ Load</button>
       </div>
       <div id="fusion-history" style="padding:12px;font-size:12px;color:var(--text-3)">Click Load to show recent fusion runs.</div>
     </div>

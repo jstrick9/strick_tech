@@ -18,19 +18,19 @@ async function renderIntegrations() {
     ${pageHeader?.({title:'🔌 Integrations & Docs',subtitle:'Scaffold Stripe, Auth, Email. Generate docs. Set AI project rules.'})||'<div style="padding:20px"><h2>🔌 Integrations</h2></div>'}
     <div class="page-content">
     <div style="display:flex;gap:2px;background:var(--bg-2);border-radius:var(--radius-sm);padding:3px;margin-bottom:16px;width:fit-content">
-      <button onclick="switchIntTab('ints')" id="inttab-ints" class="btn btn-primary btn-sm">🔌 Integrations</button>
-      <button onclick="switchIntTab('docs')" id="inttab-docs" class="btn btn-ghost btn-sm">📖 Docs</button>
-      <button onclick="switchIntTab('rules')" id="inttab-rules" class="btn btn-ghost btn-sm">📋 Rules</button>
+      <button data-act-click="switchIntTab('ints')" id="inttab-ints" class="btn btn-primary btn-sm">🔌 Integrations</button>
+      <button data-act-click="switchIntTab('docs')" id="inttab-docs" class="btn btn-ghost btn-sm">📖 Docs</button>
+      <button data-act-click="switchIntTab('rules')" id="inttab-rules" class="btn btn-ghost btn-sm">📋 Rules</button>
     </div>
     <div id="int-tab-ints">
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
         <div style="display:flex;gap:5px;flex-wrap:wrap;flex:1">
-          <button onclick="filterInts('all')" class="term-btn" id="intcat-all" style="border-color:var(--accent);color:var(--accent-hi)">All (${ints.length})</button>
-          ${cats.map(c=>`<button onclick="filterInts(${JSON.stringify(c.id)})" class="term-btn" id="intcat-${c.id}">${escHtml(c.id)} (${c.count})</button>`).join('')}
+          <button data-act-click="filterInts('all')" class="term-btn" id="intcat-all" style="border-color:var(--accent);color:var(--accent-hi)">All (${ints.length})</button>
+          ${cats.map(c=>`<button data-act-click="filterInts(${JSON.stringify(c.id)})" class="term-btn" id="intcat-${c.id}">${escHtml(c.id)} (${c.count})</button>`).join('')}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
-          <button class="btn-sm" onclick="intStripeWire()" title="Generate Stripe checkout page">💳 Stripe Wire</button>
-          <button class="btn-sm" onclick="intAuthWire()" title="Generate auth login page">🔐 Auth Wire</button>
+          <button class="btn-sm" data-act-click="intStripeWire()" title="Generate Stripe checkout page">💳 Stripe Wire</button>
+          <button class="btn-sm" data-act-click="intAuthWire()" title="Generate auth login page">🔐 Auth Wire</button>
         </div>
       </div>
       <div id="ints-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px">
@@ -43,7 +43,7 @@ async function renderIntegrations() {
             </div>
             <p style="font-size:12px;color:var(--text-2);margin-bottom:8px;line-height:1.5;min-height:28px">${escHtml(i.description)}</p>
             <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">${i.env_vars.slice(0,2).map(v=>`<code style="font-size:10px;background:var(--bg-0);padding:1px 5px;border-radius:3px;color:var(--text-2)">${v}</code>`).join('')}${i.env_vars.length>2?`<span style="font-size:10px;color:var(--text-3)">+${i.env_vars.length-2}</span>`:''}</div>
-            <div style="display:flex;gap:5px"><button onclick="scaffoldIntegration(${JSON.stringify(i.id)})" class="btn btn-primary btn-sm" style="flex:1">⚡ Scaffold</button><a href="${safeUrl(i.docs_url)}" target="_blank" class="btn btn-ghost btn-sm">Docs ↗</a></div>
+            <div style="display:flex;gap:5px"><button data-act-click="scaffoldIntegration(${JSON.stringify(i.id)})" class="btn btn-primary btn-sm" style="flex:1">⚡ Scaffold</button><a href="${safeUrl(i.docs_url)}" target="_blank" class="btn btn-ghost btn-sm">Docs ↗</a></div>
             <div id="int-status-${i.id}" style="font-size:11px;color:var(--text-2);margin-top:5px;display:none"></div>
           </div>`).join('')}
       </div>
@@ -53,7 +53,7 @@ async function renderIntegrations() {
         <div class="card">
           <h3 style="margin-bottom:12px">Auto-generate documentation</h3>
           <div style="display:flex;flex-direction:column;gap:7px">
-            ${docTypes.map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-3);border-radius:var(--radius-sm);padding:9px 12px"><div><div style="font-size:13px;font-weight:600">${d.label}</div><div style="font-size:11.5px;color:var(--text-2)">${d.desc}</div></div><button onclick="generateDoc(${JSON.stringify(d.id)})" class="btn btn-primary btn-sm" id="docbtn-${d.id}">Generate</button></div>`).join('')}
+            ${docTypes.map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-3);border-radius:var(--radius-sm);padding:9px 12px"><div><div style="font-size:13px;font-weight:600">${d.label}</div><div style="font-size:11.5px;color:var(--text-2)">${d.desc}</div></div><button data-act-click="generateDoc(${JSON.stringify(d.id)})" class="btn btn-primary btn-sm" id="docbtn-${d.id}">Generate</button></div>`).join('')}
           </div>
           <div id="doc-status" style="font-size:12px;color:var(--text-2);margin-top:10px"></div>
         </div>
@@ -66,7 +66,7 @@ async function renderIntegrations() {
           <h3 style="margin-bottom:6px">📋 .agenticrules</h3>
           <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">Like Cursor's .cursorrules — all AI agents read these rules before every response.</p>
           <textarea id="rules-editor" style="width:100%;min-height:280px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical;outline:none;line-height:1.6">${escHtml(rules.content||'')}</textarea>
-          <div style="display:flex;gap:8px;margin-top:8px"><button onclick="saveProjectRules()" class="btn btn-primary" style="flex:1">💾 Save</button><button onclick="loadDefaultRules()" class="btn btn-ghost btn-sm">Reset</button></div>
+          <div style="display:flex;gap:8px;margin-top:8px"><button data-act-click="saveProjectRules()" class="btn btn-primary" style="flex:1">💾 Save</button><button data-act-click="loadDefaultRules()" class="btn btn-ghost btn-sm">Reset</button></div>
         </div>
         <div class="card">
           <h3 style="margin-bottom:10px">How rules work</h3>
@@ -86,7 +86,7 @@ let currentIntTab='ints';
 function switchIntTab(tab){currentIntTab=tab;['ints','docs','rules'].forEach(t=>{const e=document.getElementById(`int-tab-${t}`);const b=document.getElementById(`inttab-${t}`);if(e)e.style.display=t===tab?'':'none';if(b)b.className=`btn ${t===tab?'btn-primary':'btn-ghost'} btn-sm`;});}
 function filterInts(cat){document.querySelectorAll('#ints-grid .card').forEach(c=>{c.style.display=cat==='all'||c.dataset.category===cat?'':'none';});document.querySelectorAll('[id^="intcat-"]').forEach(b=>{b.style.borderColor=b.id===`intcat-${cat}`?'var(--accent)':'';b.style.color=b.id===`intcat-${cat}`?'var(--accent-hi)':'';})}
 async function scaffoldIntegration(id){
-  const btn=document.querySelector(`#int-card-${JSON.stringify(id).replace(/"/g,'')} .btn-primary`)||document.querySelector(`[onclick="scaffoldIntegration(${JSON.stringify(id)})"]`);
+  const btn=document.querySelector(`#int-card-${JSON.stringify(id).replace(/"/g,'')} .btn-primary`)||document.querySelector(`[data-act-click="scaffoldIntegration(${JSON.stringify(id)})"]`);
   const st=document.getElementById(`int-status-${id}`);
   if(btn){btn.disabled=true;btn.textContent='⏳…';}
   if(st){st.style.display='block';st.textContent='Scaffolding…';}

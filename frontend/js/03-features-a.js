@@ -59,17 +59,17 @@ async function renderWorkflow() {
     <div class="wf-sidebar">
       <div class="wf-sidebar-top">
         <h3>Node Palette</h3>
-        <input class="wf-search" id="wf-palette-search" placeholder="🔍 Filter nodes…" oninput="wfFilterPalette(this.value)">
+        <input class="wf-search" id="wf-palette-search" placeholder="🔍 Filter nodes…" data-act-input="wfFilterPalette($value)">
       </div>
       <div class="wf-node-palette" id="wf-node-palette">
         <!-- Populated by wfLoadNodeTypes() -->
       </div>
 
       <div class="wf-sidebar-section">
-        <h4>Workflows <button onclick="wfNewWorkflow()" style="float:right;background:var(--accent);border:none;color:#fff;font-size:10px;padding:2px 7px;border-radius:4px;cursor:pointer">＋ New</button></h4>
+        <h4>Workflows <button data-act-click="wfNewWorkflow()" style="float:right;background:var(--accent);border:none;color:#fff;font-size:10px;padding:2px 7px;border-radius:4px;cursor:pointer">＋ New</button></h4>
         <div class="wf-list" id="wf-list"><!-- Populated by wfLoadWorkflows() --></div>
         <div style="display:flex;gap:4px;margin-top:6px">
-          <button onclick="wfImportDialog()" style="flex:1;font-size:10px;padding:4px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">⬆ Import</button>
+          <button data-act-click="wfImportDialog()" style="flex:1;font-size:10px;padding:4px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">⬆ Import</button>
         </div>
       </div>
     </div>
@@ -102,37 +102,37 @@ async function renderWorkflow() {
 
       <!-- Center toolbar -->
       <div class="wf-toolbar" id="wf-toolbar">
-        <span class="wf-name" id="wf-name-badge" title="Click to rename" onclick="wfRename()">Select a workflow</span>
+        <span class="wf-name" id="wf-name-badge" title="Click to rename" data-act-click="wfRename()">Select a workflow</span>
         <div class="wf-divider"></div>
-        <button onclick="wfUndo()" id="wf-undo-btn" title="Undo (⌘Z)" disabled>↩</button>
-        <button onclick="wfRedo()" id="wf-redo-btn" title="Redo (⌘⇧Z)" disabled>↪</button>
+        <button data-act-click="wfUndo()" id="wf-undo-btn" title="Undo (⌘Z)" disabled>↩</button>
+        <button data-act-click="wfRedo()" id="wf-redo-btn" title="Redo (⌘⇧Z)" disabled>↪</button>
         <div class="wf-divider"></div>
-        <button onclick="wfRun()" id="wf-run-btn" class="primary">▶ Run</button>
-        <button onclick="wfSave()" title="Save (⌘S)" id="wf-save-btn">💾</button>
-        <button onclick="wfValidate()" title="Validate workflow" id="wf-validate-btn">✓</button>
-        <button onclick="wfZoomFit()" title="Fit to screen (F)">⊡</button>
-        <button onclick="wfExport()" title="Export as JSON">⬇</button>
-        <button onclick="wfToggleLog()" title="Toggle run log">📋</button>
+        <button data-act-click="wfRun()" id="wf-run-btn" class="primary">▶ Run</button>
+        <button data-act-click="wfSave()" title="Save (⌘S)" id="wf-save-btn">💾</button>
+        <button data-act-click="wfValidate()" title="Validate workflow" id="wf-validate-btn">✓</button>
+        <button data-act-click="wfZoomFit()" title="Fit to screen (F)">⊡</button>
+        <button data-act-click="wfExport()" title="Export as JSON">⬇</button>
+        <button data-act-click="wfToggleLog()" title="Toggle run log">📋</button>
         <div class="wf-divider"></div>
-        <button onclick="wfClear()" style="color:var(--danger)" title="Clear canvas">🗑</button>
+        <button data-act-click="wfClear()" style="color:var(--danger)" title="Clear canvas">🗑</button>
       </div>
 
       <!-- Validation badge -->
-      <div class="wf-validation-badge" id="wf-validation-badge" style="display:none" onclick="wfShowValidation()">
+      <div class="wf-validation-badge" id="wf-validation-badge" style="display:none" data-act-click="wfShowValidation()">
         <span id="wf-val-icon">✓</span>
         <span id="wf-val-text">Valid</span>
       </div>
 
       <!-- Zoom controls -->
       <div class="wf-zoom-controls">
-        <button class="wf-zoom-btn" onclick="wfZoom(0.15)" title="Zoom in (⌘+)">＋</button>
+        <button class="wf-zoom-btn" data-act-click="wfZoom(0.15)" title="Zoom in (⌘+)">＋</button>
         <div class="wf-zoom-label" id="wf-zoom-label">100%</div>
-        <button class="wf-zoom-btn" onclick="wfZoom(-0.15)" title="Zoom out (⌘-)">−</button>
-        <button class="wf-zoom-btn" onclick="wfZoomReset()" title="Reset zoom" style="font-size:9px">1:1</button>
+        <button class="wf-zoom-btn" data-act-click="wfZoom(-0.15)" title="Zoom out (⌘-)">−</button>
+        <button class="wf-zoom-btn" data-act-click="wfZoomReset()" title="Reset zoom" style="font-size:9px">1:1</button>
       </div>
 
       <!-- Minimap -->
-      <div class="wf-minimap" id="wf-minimap" title="Minimap — click to center" onclick="wfMinimapClick(event)">
+      <div class="wf-minimap" id="wf-minimap" title="Minimap — click to center" data-act-click="wfMinimapClick($event)">
         <canvas id="wf-minimap-canvas" width="140" height="88"></canvas>
       </div>
 
@@ -149,7 +149,7 @@ async function renderWorkflow() {
       <div class="wf-run-log" id="wf-run-log">
         <div class="wf-log-header">
           <span>📋 Run Log</span>
-          <button class="wf-log-close" onclick="wfToggleLog()">✕</button>
+          <button class="wf-log-close" data-act-click="wfToggleLog()">✕</button>
         </div>
         <div class="wf-log-lines" id="wf-log-lines"></div>
       </div>
@@ -159,7 +159,7 @@ async function renderWorkflow() {
     <div class="wf-properties" id="wf-properties">
       <div class="wf-props-header">
         <h4 id="wf-props-title">Properties</h4>
-        <button class="wf-props-close" onclick="wfCloseProps()">✕</button>
+        <button class="wf-props-close" data-act-click="wfCloseProps()">✕</button>
       </div>
       <div class="wf-props-body" id="wf-props-content">
         <div style="color:var(--text-3);font-size:12px">Click a node to edit its properties.</div>
@@ -775,34 +775,34 @@ function wfSelectNode(nodeId) {
   cont.innerHTML = `
     <div class="wf-prop-group">
       <label>Label</label>
-      <input value="${escHtml(node.label||'')}" oninput="wfUpdateNodeProp('label',this.value)" placeholder="Node label">
+      <input value="${escHtml(node.label||'')}" data-act-input="wfUpdateNodeProp('label',$value)" placeholder="Node label">
     </div>
     <div class="wf-prop-group">
       <label>Type</label>
-      <select onchange="wfUpdateNodeProp('type',this.value)">
+      <select data-act-change="wfUpdateNodeProp('type',$value)">
         ${_wfNodeTypes.map(t=>`<option value="${t.id}" ${t.id===node.type?'selected':''}>${t.label}</option>`).join('')}
       </select>
     </div>
     ${node.type==='agent' ? `
     <div class="wf-prop-group">
       <label>Agent ID</label>
-      <select onchange="wfUpdateConfig('agent_id',this.value)">
+      <select data-act-change="wfUpdateConfig('agent_id',$value)">
         ${['orchestrator','researcher','builder','reviewer','creative','brain','memory','local'].map(a=>`<option value="${a}" ${a===node.config?.agent_id?'selected':''}>${a}</option>`).join('')}
       </select>
     </div>
     <div class="wf-prop-group">
       <label>Prompt Template</label>
-      <textarea rows="5" oninput="wfUpdateConfig('prompt',this.value)" placeholder="{{input}} or {{prev_output}}">${escHtml(node.config?.prompt||'{{input}}')}</textarea>
+      <textarea rows="5" data-act-input="wfUpdateConfig('prompt',$value)" placeholder="{{input}} or {{prev_output}}">${escHtml(node.config?.prompt||'{{input}}')}</textarea>
       <div class="wf-prop-hint">Use {{input}} for initial input, {{prev_output}} for previous node output</div>
     </div>
     <div class="wf-prop-group">
       <label>Max Tokens</label>
-      <input type="number" min="100" max="8192" value="${node.config?.max_tokens||1024}" oninput="wfUpdateConfig('max_tokens',+this.value)">
+      <input type="number" min="100" max="8192" value="${node.config?.max_tokens||1024}" data-act-input="wfUpdateConfig('max_tokens',$nvalue)">
     </div>` : ''}
     ${node.type==='trigger' ? `
     <div class="wf-prop-group">
       <label>Trigger Event</label>
-      <select onchange="wfUpdateConfig('event',this.value)">
+      <select data-act-change="wfUpdateConfig('event',$value)">
         <option value="manual" ${node.config?.event==='manual'?'selected':''}>Manual</option>
         <option value="chat" ${node.config?.event==='chat'?'selected':''}>Chat Input</option>
         <option value="webhook" ${node.config?.event==='webhook'?'selected':''}>Webhook</option>
@@ -812,67 +812,67 @@ function wfSelectNode(nodeId) {
     ${node.config?.event==='schedule' ? `
     <div class="wf-prop-group">
       <label>Cron Expression</label>
-      <input value="${escHtml(node.config?.cron||'0 9 * * *')}" oninput="wfUpdateConfig('cron',this.value)" placeholder="0 9 * * *">
+      <input value="${escHtml(node.config?.cron||'0 9 * * *')}" data-act-input="wfUpdateConfig('cron',$value)" placeholder="0 9 * * *">
       <div class="wf-prop-hint">Standard cron: minute hour day month weekday</div>
     </div>` : ''}` : ''}
     ${node.type==='output' ? `
     <div class="wf-prop-group">
       <label>Output Target</label>
-      <select onchange="wfUpdateConfig('target',this.value)">
+      <select data-act-change="wfUpdateConfig('target',$value)">
         ${['chat','deploy','notification','file','memory','slack','email'].map(t=>`<option value="${t}" ${t===node.config?.target?'selected':''}>${t}</option>`).join('')}
       </select>
     </div>` : ''}
     ${node.type==='condition' ? `
     <div class="wf-prop-group">
       <label>Condition Expression</label>
-      <textarea rows="2" oninput="wfUpdateConfig('expression',this.value)" placeholder="{{prev_output}} contains 'yes'">${escHtml(node.config?.expression||'')}</textarea>
+      <textarea rows="2" data-act-input="wfUpdateConfig('expression',$value)" placeholder="{{prev_output}} contains 'yes'">${escHtml(node.config?.expression||'')}</textarea>
       <div class="wf-prop-hint">Top port = true/yes, bottom port = false/no</div>
     </div>
     <div class="wf-prop-group">
       <label>True Edge Label</label>
-      <input value="${escHtml(node.config?.true_label||'yes')}" oninput="wfUpdateConfig('true_label',this.value)" placeholder="yes">
+      <input value="${escHtml(node.config?.true_label||'yes')}" data-act-input="wfUpdateConfig('true_label',$value)" placeholder="yes">
     </div>` : ''}
     ${node.type==='delay' ? `
     <div class="wf-prop-group">
       <label>Delay Seconds</label>
-      <input type="number" min="0" max="60" value="${node.config?.seconds||1}" oninput="wfUpdateConfig('seconds',+this.value)">
+      <input type="number" min="0" max="60" value="${node.config?.seconds||1}" data-act-input="wfUpdateConfig('seconds',$nvalue)">
     </div>` : ''}
     ${node.type==='loop' ? `
     <div class="wf-prop-group">
       <label>Agent ID</label>
-      <select onchange="wfUpdateConfig('agent_id',this.value)">
+      <select data-act-change="wfUpdateConfig('agent_id',$value)">
         ${['orchestrator','researcher','builder','reviewer','creative','brain','memory','local'].map(a=>`<option value="${a}" ${a===node.config?.agent_id?'selected':''}>${a}</option>`).join('')}
       </select>
     </div>
     <div class="wf-prop-group">
       <label>Prompt Template</label>
-      <textarea rows="4" oninput="wfUpdateConfig('prompt',this.value)" placeholder="{{prev_output}}">${escHtml(node.config?.prompt||'{{prev_output}}')}</textarea>
+      <textarea rows="4" data-act-input="wfUpdateConfig('prompt',$value)" placeholder="{{prev_output}}">${escHtml(node.config?.prompt||'{{prev_output}}')}</textarea>
       <div class="wf-prop-hint">Re-run this prompt against the agent's own previous output each iteration</div>
     </div>
     <div class="wf-prop-group">
       <label>Iterations</label>
-      <input type="number" min="1" max="10" value="${node.config?.iterations||3}" oninput="wfUpdateConfig('iterations',+this.value)">
+      <input type="number" min="1" max="10" value="${node.config?.iterations||3}" data-act-input="wfUpdateConfig('iterations',$nvalue)">
     </div>
     <div class="wf-prop-group">
       <label>Stop Keyword (optional)</label>
-      <input value="${escHtml(node.config?.stop_keyword||'')}" oninput="wfUpdateConfig('stop_keyword',this.value)" placeholder="e.g. done">
+      <input value="${escHtml(node.config?.stop_keyword||'')}" data-act-input="wfUpdateConfig('stop_keyword',$value)" placeholder="e.g. done">
       <div class="wf-prop-hint">Loop stops early if this keyword appears in the output</div>
     </div>` : ''}
     ${node.type==='webhook' ? `
     <div class="wf-prop-group">
       <label>Endpoint URL</label>
-      <input value="${escHtml(node.config?.url||'')}" oninput="wfUpdateConfig('url',this.value)" placeholder="https://...">
+      <input value="${escHtml(node.config?.url||'')}" data-act-input="wfUpdateConfig('url',$value)" placeholder="https://...">
     </div>
     <div class="wf-prop-group">
       <label>Method</label>
-      <select onchange="wfUpdateConfig('method',this.value)">
+      <select data-act-change="wfUpdateConfig('method',$value)">
         ${['POST','GET','PUT','PATCH'].map(m=>`<option ${m===node.config?.method?'selected':''}>${m}</option>`).join('')}
       </select>
     </div>` : ''}
     ${node.type==='memory' ? `
     <div class="wf-prop-group">
       <label>Action</label>
-      <select onchange="wfUpdateConfig('action',this.value)">
+      <select data-act-change="wfUpdateConfig('action',$value)">
         <option value="write" ${node.config?.action==='write'?'selected':''}>Write to memory</option>
         <option value="read"  ${node.config?.action==='read'?'selected':''}>Read from memory</option>
         <option value="search"${node.config?.action==='search'?'selected':''}>Search memory</option>
@@ -881,7 +881,7 @@ function wfSelectNode(nodeId) {
     ${node.type==='transform' ? `
     <div class="wf-prop-group">
       <label>Mode</label>
-      <select onchange="wfUpdateConfig('mode',this.value)">
+      <select data-act-change="wfUpdateConfig('mode',$value)">
         <option value="passthrough" ${node.config?.mode==='passthrough'?'selected':''}>Pass through</option>
         <option value="merge" ${node.config?.mode==='merge'?'selected':''}>Merge all inputs</option>
         <option value="filter" ${node.config?.mode==='filter'?'selected':''}>Filter / extract</option>
@@ -891,12 +891,12 @@ function wfSelectNode(nodeId) {
     ${node.type==='code' ? `
     <div class="wf-prop-group">
       <label>Code (JavaScript)</label>
-      <textarea rows="6" style="font-family:monospace;font-size:11px" oninput="wfUpdateConfig('code',this.value)" placeholder="// context.prev_output available\nreturn context.prev_output.toUpperCase();">${escHtml(node.config?.code||'')}</textarea>
+      <textarea rows="6" style="font-family:monospace;font-size:11px" data-act-input="wfUpdateConfig('code',$value)" placeholder="// context.prev_output available\nreturn context.prev_output.toUpperCase();">${escHtml(node.config?.code||'')}</textarea>
       <div class="wf-prop-hint">Return a string to replace prev_output</div>
     </div>` : ''}
     <div class="wf-prop-actions">
-      <button class="wf-prop-btn" onclick="wfCopyNode()" title="Copy (⌘C)">⧉ Copy</button>
-      <button class="wf-prop-btn" onclick="wfDuplicateNode()" title="Duplicate">⊕ Dupe</button>
+      <button class="wf-prop-btn" data-act-click="wfCopyNode()" title="Copy (⌘C)">⧉ Copy</button>
+      <button class="wf-prop-btn" data-act-click="wfDuplicateNode()" title="Duplicate">⊕ Dupe</button>
       <button class="wf-prop-btn danger" onclick="wfDeleteNode(_wfSelected)" title="Delete (Del)">🗑 Delete</button>
     </div>`;
 }
@@ -1448,9 +1448,9 @@ async function renderProfiler() {
       <div class="section-head">
         <div><h2>📈 Performance Profiler</h2><p>Flamegraph, endpoint latency, memory, DB stats</p></div>
         <div style="display:flex;gap:8px">
-          <button class="btn-sm" onclick="refreshProfiler()">🔄 Refresh</button>
-          <button class="btn-sm" onclick="takeMemSnapshot()">📷 Snapshot Memory</button>
-          <button class="btn-sm" style="background:rgba(232,82,82,.15);border-color:var(--danger);color:var(--danger)" onclick="resetProfilerStats()">🗑️ Reset</button>
+          <button class="btn-sm" data-act-click="refreshProfiler()">🔄 Refresh</button>
+          <button class="btn-sm" data-act-click="takeMemSnapshot()">📷 Snapshot Memory</button>
+          <button class="btn-sm" style="background:rgba(232,82,82,.15);border-color:var(--danger);color:var(--danger)" data-act-click="resetProfilerStats()">🗑️ Reset</button>
         </div>
       </div>
 
@@ -1565,7 +1565,7 @@ async function renderProfiler() {
           <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Run a Python snippet and see cProfile stats (safe built-ins only)</div>
           <textarea id="profiler-code-input" rows="5" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;color:var(--text-0);font-family:monospace;font-size:12px;resize:vertical;box-sizing:border-box" placeholder="# Example:\nx = [i**2 for i in range(10000)]\nresult = sum(x)\nprint(f'Sum: {result}')"></textarea>
           <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn btn-primary btn-sm" onclick="runProfilerCode()">▶ Profile</button>
+            <button class="btn btn-primary btn-sm" data-act-click="runProfilerCode()">▶ Profile</button>
             <span id="profiler-elapsed" style="font-size:11px;color:var(--text-3);align-self:center"></span>
           </div>
           <pre id="profiler-code-result" style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-size:10.5px;font-family:monospace;max-height:220px;overflow:auto;white-space:pre;margin-top:10px;display:none;color:var(--text-1)"></pre>
@@ -1707,8 +1707,8 @@ async function renderPluginSDK() {
           <p>Build, validate, publish, and manage your own plugin packs</p>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn-sm" onclick="sdkNewPack()">＋ New Pack</button>
-          <button class="btn-sm" onclick="sdkImportPack()">📦 Import ZIP</button>
+          <button class="btn-sm" data-act-click="sdkNewPack()">＋ New Pack</button>
+          <button class="btn-sm" data-act-click="sdkImportPack()">📦 Import ZIP</button>
         </div>
       </div>
 
@@ -1718,10 +1718,10 @@ async function renderPluginSDK() {
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Your Packs (${packs.count||0})</div>
           <div id="sdk-pack-list">
             ${(packs.packs||[]).map(p => `
-              <div class="sdk-pack-card" onclick="sdkSelectPack(${jsArg(p.id)})" style="
+              <div class="sdk-pack-card" data-act-click="sdkSelectPack(${jsArg(p.id)})" style="
                 background:var(--bg-2);border:1px solid var(--border);border-radius:10px;
                 padding:12px;margin-bottom:8px;cursor:pointer;transition:all .12s;
-              " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+              " data-hover="bc:var(--accent)" data-hover-out="bc:var(--border)">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
                   <span style="font-size:20px">${p.icon||'🔧'}</span>
                   <div>
@@ -1757,7 +1757,7 @@ async function renderPluginSDK() {
             <div style="font-size:13px;max-width:380px;margin:0 auto 16px">
               Create and publish plugin packs that add custom AI skills, sidebar items, and integrations to Agentic OS.
             </div>
-            <button class="btn" onclick="sdkNewPack()">＋ Create Your First Plugin Pack</button>
+            <button class="btn" data-act-click="sdkNewPack()">＋ Create Your First Plugin Pack</button>
           </div>
 
           <!-- Format reference -->
@@ -1987,7 +1987,7 @@ async function sdkTestSkill(packId, skillId) {
       <h3 style="color:var(--text-0);margin:0 0 12px">⚡ Skill Output</h3>
       <div style="background:var(--bg-3);border-radius:8px;padding:12px;font-size:12px;color:var(--text-1);white-space:pre-wrap;max-height:300px;overflow-y:auto">${escHtml(d.output||'')}</div>
       <div style="margin-top:8px;font-size:11px;color:var(--text-3)">${d.tokens||0} tokens</div>
-      <button onclick="this.closest('[style*=fixed]').remove()" 
+      <button data-close="closest:[style*=fixed]" 
               style="margin-top:12px;padding:6px 16px;background:var(--accent);border:none;color:#fff;border-radius:6px;cursor:pointer">Close</button>
     `;
     overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
@@ -2052,17 +2052,17 @@ async function renderMultitab() {
 
   <div style="display:flex;flex-direction:column;height:100%;overflow:hidden">
     <div class="mt-tab-bar" id="mt-tab-bar">
-      <button class="mt-new-tab" onclick="mtNewTab()" title="New tab (⌘T)">＋</button>
+      <button class="mt-new-tab" data-act-click="mtNewTab()" title="New tab (⌘T)">＋</button>
     </div>
     <div class="mt-toolbar">
-      <button onclick="mtRefreshActive()" title="Refresh" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:14px">↻</button>
+      <button data-act-click="mtRefreshActive()" title="Refresh" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:14px">↻</button>
       <input class="mt-url-bar" id="mt-url-bar" value="" placeholder="/preview/index.html" 
-             onkeydown="if(e.key==='Enter')mtNavigate(this.value)"
+             data-act-keydown="mtNavigate($value)" data-keys="Enter"
              oninput="event.target.style.color='var(--warning)'">
       <button class="btn-sm" onclick="mtNavigate(document.getElementById('mt-url-bar').value)">Go</button>
-      <button class="btn-sm" onclick="mtToggleGrid()" id="mt-grid-btn">⊞ Grid</button>
-      <button class="btn-sm" onclick="mtRefreshAll()">↻ All</button>
-      <button class="btn-sm" onclick="mtOpenInBrowser()" title="Open in real browser">↗</button>
+      <button class="btn-sm" data-act-click="mtToggleGrid()" id="mt-grid-btn">⊞ Grid</button>
+      <button class="btn-sm" data-act-click="mtRefreshAll()">↻ All</button>
+      <button class="btn-sm" data-act-click="mtOpenInBrowser()" title="Open in real browser">↗</button>
     </div>
     <div class="mt-frame-area" id="mt-frame-area">
       <iframe class="mt-frame" id="mt-frame" src="/preview/index.html" allowfullscreen></iframe>
@@ -2112,7 +2112,7 @@ function mtRenderTabs() {
     tabEl.innerHTML = `
       <span>${tab.favicon||'📄'}</span>
       <span style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${escHtml(tab.title||tab.file||'Tab')}</span>
-      <button class="tab-close" onclick="event.stopPropagation();mtCloseTab(${JSON.stringify(tab.id)})" title="Close">✕</button>
+      <button class="tab-close" data-act-click="mtCloseTab(${JSON.stringify(tab.id)})" data-stop="1" title="Close">✕</button>
     `;
     tabEl.addEventListener('click', () => mtActivateTab(tab.id));
     bar.insertBefore(tabEl, newBtn || null);
@@ -2322,10 +2322,10 @@ async function renderTauriStatus() {
         ` : ''}
         
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-primary btn-3d" onclick="tauriBuildStart()" ${!rustOk||!tauriOk?'disabled title="Install prerequisites first"':''}>🔨 Build Desktop App (.app / .dmg)</button>
-          <button class="btn-sm btn-ghost btn-3d" onclick="tauriDevStart()" ${!rustOk||!tauriOk?'disabled':''}>▶ Dev Mode</button>
-          ${!rustOk||!tauriOk?`<button class="btn-sm btn-primary btn-3d" style="background:#10b981;border:none;color:#fff" onclick="if(typeof installTauriPrerequisites==='function')installTauriPrerequisites()">⚡ Auto-Install Rust & Tauri CLI</button>`:''}
-          <button class="btn-sm btn-ghost btn-3d" onclick="window.open(${jsArg('/api/tauri/build/log?_=' + (Date.now()) + '')},'_blank')">📋 Build Log</button>
+          <button class="btn btn-primary btn-3d" data-act-click="tauriBuildStart()" ${!rustOk||!tauriOk?'disabled title="Install prerequisites first"':''}>🔨 Build Desktop App (.app / .dmg)</button>
+          <button class="btn-sm btn-ghost btn-3d" data-act-click="tauriDevStart()" ${!rustOk||!tauriOk?'disabled':''}>▶ Dev Mode</button>
+          ${!rustOk||!tauriOk?`<button class="btn-sm btn-primary btn-3d" style="background:#10b981;border:none;color:#fff" data-act-click="installTauriPrerequisites()">⚡ Auto-Install Rust & Tauri CLI</button>`:''}
+          <button class="btn-sm btn-ghost btn-3d" data-act-click="window.open(${jsArg('/api/tauri/build/log?_=' + (Date.now()) + '')},'_blank')">📋 Build Log</button>
         </div>
         <div style="margin-top:8px;font-size:11px;color:var(--text-3)">
           Or run in terminal: <code style="background:var(--bg-3);padding:2px 6px;border-radius:4px">./scripts/tauri-build.sh --bundle-python</code>
@@ -2565,7 +2565,7 @@ window.renderPQCVault = async function() {
           <h2 style="margin:0 0 6px;font-size:24px;font-weight:900">🛡 Post-Quantum Cryptography (PQC) Vault</h2>
           <p style="margin:0;color:var(--text-2);font-size:13.5px">Lattice-based quantum-resistant hybrid key encapsulation (Kyber-1024 + X25519) & Dilithium-5 digital signatures</p>
         </div>
-        <button onclick="pqcGenerateMasterKey()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">⚡ Generate Hybrid PQC Keypair</button>
+        <button data-act-click="pqcGenerateMasterKey()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">⚡ Generate Hybrid PQC Keypair</button>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px">
@@ -2593,9 +2593,9 @@ window.renderPQCVault = async function() {
             <span style="font-size:12px;color:var(--text-2)">Real-time visual proof of Module-Lattice Key Encapsulation Mechanism (ML-KEM-1024 / FIPS 203)</span>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button onclick="pqcTestEncapsulation()" class="btn-3d btn-primary btn-sm" style="padding:6px 14px">🔒 Test Encapsulation</button>
-            <button onclick="pqcExportAuditCertificate()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">📜 Export Audit Certificate</button>
-            <button onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace(true, 'pqc')" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">🗂️ Secondary Dock</button>
+            <button data-act-click="pqcTestEncapsulation()" class="btn-3d btn-primary btn-sm" style="padding:6px 14px">🔒 Test Encapsulation</button>
+            <button data-act-click="pqcExportAuditCertificate()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">📜 Export Audit Certificate</button>
+            <button data-act-click="toggleSplitWorkspace(true,'pqc')" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">🗂️ Secondary Dock</button>
           </div>
         </div>
         <div id="pqc-lattice-container" style="position:relative;background:#04060f;border:1px solid var(--border-hi);border-radius:12px;padding:16px;overflow:hidden;min-height:240px;display:flex;flex-direction:column;gap:12px">
@@ -2752,7 +2752,7 @@ window.renderFinetuneWorkstation = async function() {
           <h2 style="margin:0 0 6px;font-size:24px;font-weight:900">⚗ Zero-Shot LoRA Local Fine-Tuning Workstation</h2>
           <p style="margin:0;color:var(--text-2);font-size:13.5px">Train custom local LoRA adapters directly on your Apple Silicon Unified Memory or CPU right inside Agentic OS</p>
         </div>
-        <button onclick="finetuneCreateChatDataset()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">＋ Create Dataset from Chat History</button>
+        <button data-act-click="finetuneCreateChatDataset()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">＋ Create Dataset from Chat History</button>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px">
@@ -2781,12 +2781,12 @@ window.renderFinetuneWorkstation = async function() {
             <span style="font-size:12px;color:var(--text-2)">Convert 4-Tier IVREN folders (about_me, about_my_business, about_my_voice) into instruction-response JSONL training examples</span>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button onclick="finetuneConvertIVREN()" class="btn-3d btn-primary btn-sm" style="padding:6px 14px">⚡ Convert IVREN to JSONL</button>
-            <button onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace(true, 'finetune')" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">🗂️ Secondary Dock</button>
+            <button data-act-click="finetuneConvertIVREN()" class="btn-3d btn-primary btn-sm" style="padding:6px 14px">⚡ Convert IVREN to JSONL</button>
+            <button data-act-click="toggleSplitWorkspace(true,'finetune')" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">🗂️ Secondary Dock</button>
           </div>
         </div>
         <div id="lora-drop-zone" style="background:#04060f;border:2px dashed rgba(56,189,248,0.4);border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:all 0.2s"
-          onclick="finetuneConvertIVREN()" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='rgba(56,189,248,0.4)'">
+          data-act-click="finetuneConvertIVREN()" data-hover="bc:var(--accent)" data-hover-out="bc:rgba(56,189,248,0.4)">
           <div style="font-size:28px;margin-bottom:8px">🗂️ ➔ 📋</div>
           <div style="font-weight:800;font-size:13.5px;color:var(--text-0);margin-bottom:4px">Click or drop IVREN Markdown files / JSONL corpora here</div>
           <div style="font-size:11.5px;color:var(--text-3);max-width:460px;margin:0 auto">Zero-shot instruction parsing formats all tier delta memories into <code style="color:var(--accent)">{"instruction": "...", "response": "..."}</code> ready for local Metal execution.</div>
@@ -2797,8 +2797,8 @@ window.renderFinetuneWorkstation = async function() {
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
           <h3 style="margin:0;font-size:16px;color:var(--text-0)">Prepared Datasets & Training Controls</h3>
           <div style="display:flex;gap:8px">
-            <button onclick="finetuneCreateChatDataset()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">＋ From Chat History</button>
-            <button onclick="finetuneStartJob('default_dataset')" class="btn-3d btn-primary btn-sm" style="padding:6px 16px;background:var(--success);border:none;color:#fff">⚡ Start LoRA Training Loop Now</button>
+            <button data-act-click="finetuneCreateChatDataset()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">＋ From Chat History</button>
+            <button data-act-click="finetuneStartJob('default_dataset')" class="btn-3d btn-primary btn-sm" style="padding:6px 16px;background:var(--success);border:none;color:#fff">⚡ Start LoRA Training Loop Now</button>
           </div>
         </div>
         <div id="finetune-dataset-list">
@@ -2810,7 +2810,7 @@ window.renderFinetuneWorkstation = async function() {
               </div>
               <div style="display:flex;gap:8px;align-items:center">
                 <span style="font-size:11px;font-weight:800;color:var(--success);background:var(--bg-2);padding:4px 10px;border-radius:6px;border:1px solid var(--border)">${escHtml(d.status || 'READY')}</span>
-                <button onclick="finetuneStartJob(${jsArg(d.id)})" class="btn-3d btn-ghost btn-sm" style="padding:6px 12px">Train Adapter</button>
+                <button data-act-click="finetuneStartJob(${jsArg(d.id)})" class="btn-3d btn-ghost btn-sm" style="padding:6px 12px">Train Adapter</button>
               </div>
             </div>
           `).join('')}
@@ -2825,7 +2825,7 @@ window.renderFinetuneWorkstation = async function() {
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <span id="finetune-status-badge" class="badge badge-default">IDLE</span>
-            <button onclick="finetuneTestCheckpoint()" class="btn-3d btn-ghost btn-sm" style="padding:4px 12px;font-size:11px">🧪 Chat Test LoRA Checkpoint</button>
+            <button data-act-click="finetuneTestCheckpoint()" class="btn-3d btn-ghost btn-sm" style="padding:4px 12px;font-size:11px">🧪 Chat Test LoRA Checkpoint</button>
           </div>
         </div>
         <div id="finetune-progress-box" style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;color:var(--text-2);font-size:13px">

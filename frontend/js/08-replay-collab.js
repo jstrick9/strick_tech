@@ -49,8 +49,8 @@ async function renderReplay() {
     <div class="ttd-sidebar">
       <div class="ttd-sidebar-head">
         <p class="ttd-sidebar-title">⏮ Run History</p>
-        <input class="ttd-search" id="ttd-search" placeholder="🔍  Search runs…" oninput="ttdSearchRuns(this.value)">
-        <select class="ttd-wf-filter" id="ttd-wf-filter" onchange="ttdFilterByWf(this.value)">
+        <input class="ttd-search" id="ttd-search" placeholder="🔍  Search runs…" data-act-input="ttdSearchRuns($value)">
+        <select class="ttd-wf-filter" id="ttd-wf-filter" data-act-change="ttdFilterByWf($value)">
           <option value="">All workflows</option>
         </select>
       </div>
@@ -58,8 +58,8 @@ async function renderReplay() {
         <div style="color:var(--text-3);font-size:12px;padding:10px">Loading…</div>
       </div>
       <div class="ttd-sidebar-foot">
-        <button class="ttd-toolbar-btn" style="flex:1;justify-content:center" onclick="ttdOpenDiffMode()">↔ Diff Runs</button>
-        <button class="ttd-toolbar-btn" onclick="ttdLoadRuns()" title="Refresh">↺</button>
+        <button class="ttd-toolbar-btn" style="flex:1;justify-content:center" data-act-click="ttdOpenDiffMode()">↔ Diff Runs</button>
+        <button class="ttd-toolbar-btn" data-act-click="ttdLoadRuns()" title="Refresh">↺</button>
       </div>
     </div>
 
@@ -69,12 +69,12 @@ async function renderReplay() {
       <div class="ttd-toolbar">
         <span class="ttd-run-title" id="ttd-run-title">Select a run to debug</span>
         <div class="ttd-view-tabs" id="ttd-view-tabs">
-          <button class="ttd-tab active" id="ttd-tab-graph"    onclick="ttdSetView('graph')">Graph</button>
-          <button class="ttd-tab"        id="ttd-tab-timeline" onclick="ttdSetView('timeline')">Timeline</button>
-          <button class="ttd-tab"        id="ttd-tab-diff"     onclick="ttdSetView('diff')">Diff</button>
+          <button class="ttd-tab active" id="ttd-tab-graph"    data-act-click="ttdSetView('graph')">Graph</button>
+          <button class="ttd-tab"        id="ttd-tab-timeline" data-act-click="ttdSetView('timeline')">Timeline</button>
+          <button class="ttd-tab"        id="ttd-tab-diff"     data-act-click="ttdSetView('diff')">Diff</button>
         </div>
-        <button class="ttd-toolbar-btn" onclick="ttdFitView()" title="Fit graph to window">⊡ Fit</button>
-        <button class="ttd-toolbar-btn" onclick="ttdToggleDetail()" id="ttd-detail-toggle">Detail ▶</button>
+        <button class="ttd-toolbar-btn" data-act-click="ttdFitView()" title="Fit graph to window">⊡ Fit</button>
+        <button class="ttd-toolbar-btn" data-act-click="ttdToggleDetail()" id="ttd-detail-toggle">Detail ▶</button>
       </div>
 
       <!-- Viewport (graph + timeline + diff stacked) -->
@@ -113,19 +113,19 @@ async function renderReplay() {
             <div class="ttd-empty-title">No Run Selected</div>
             <div class="ttd-empty-sub">
               Select a run from the sidebar to replay it frame-by-frame on the graph canvas,
-              or run a workflow from the <strong style="color:var(--accent);cursor:pointer" onclick="nav('workflow')">Workflows</strong> pane first.
+              or run a workflow from the <strong style="color:var(--accent);cursor:pointer" data-act-click="nav('workflow')">Workflows</strong> pane first.
             </div>
           </div>
 
           <!-- Zoom controls -->
           <div class="ttd-zoom-controls" id="ttd-zoom-controls" style="display:none">
-            <button class="ttd-zoom-btn" onclick="ttdZoom(1.2)" title="Zoom in">+</button>
+            <button class="ttd-zoom-btn" data-act-click="ttdZoom(1.2)" title="Zoom in">+</button>
             <div class="ttd-zoom-label" id="ttd-zoom-label">100%</div>
             <button class="ttd-zoom-btn" onclick="ttdZoom(1/1.2)" title="Zoom out">−</button>
           </div>
 
           <!-- Fit button -->
-          <button class="ttd-fit-btn" id="ttd-fit-btn" onclick="ttdFitView()" style="display:none">⊡ Fit</button>
+          <button class="ttd-fit-btn" id="ttd-fit-btn" data-act-click="ttdFitView()" style="display:none">⊡ Fit</button>
 
           <!-- Minimap -->
           <div class="ttd-minimap" id="ttd-minimap" style="display:none">
@@ -156,7 +156,7 @@ async function renderReplay() {
         <div class="ttd-detail collapsed" id="ttd-detail">
           <div class="ttd-detail-head">
             <h4 id="ttd-detail-node-name">Frame Detail</h4>
-            <button onclick="ttdToggleDetail()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:13px">✕</button>
+            <button data-act-click="ttdToggleDetail()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:13px">✕</button>
           </div>
           <div class="ttd-detail-body" id="ttd-detail-body">
             <div style="color:var(--text-3);font-size:12px">Click a node to see its details.</div>
@@ -167,7 +167,7 @@ async function renderReplay() {
       <!-- Playback controls -->
       <div class="ttd-controls" id="ttd-controls" style="display:none">
         <!-- Scrubber -->
-        <div class="ttd-scrubber-wrap" id="ttd-scrubber" onclick="ttdScrubClick(event)" onmousemove="ttdScrubHover(event)">
+        <div class="ttd-scrubber-wrap" id="ttd-scrubber" data-act-click="ttdScrubClick($event)" data-act-mousemove="ttdScrubHover($event)">
           <div class="ttd-scrubber-track" id="ttd-scrub-track">
             <div class="ttd-frame-markers" id="ttd-frame-pips"></div>
             <div class="ttd-scrubber-fill" id="ttd-scrub-fill" style="width:0%"></div>
@@ -176,11 +176,11 @@ async function renderReplay() {
         </div>
         <!-- Buttons row -->
         <div class="ttd-ctrl-row">
-          <button class="ttd-ctrl-btn" onclick="ttdGoFirst()"  title="First frame (Home)">⏮</button>
-          <button class="ttd-ctrl-btn" onclick="ttdStepBack()" title="Previous frame (←)">◁</button>
-          <button class="ttd-ctrl-btn" id="ttd-play-btn" onclick="ttdTogglePlay()" title="Play/Pause (Space)">▶</button>
-          <button class="ttd-ctrl-btn" onclick="ttdStepFwd()"  title="Next frame (→)">▷</button>
-          <button class="ttd-ctrl-btn" onclick="ttdGoLast()"   title="Last frame (End)">⏭</button>
+          <button class="ttd-ctrl-btn" data-act-click="ttdGoFirst()"  title="First frame (Home)">⏮</button>
+          <button class="ttd-ctrl-btn" data-act-click="ttdStepBack()" title="Previous frame (←)">◁</button>
+          <button class="ttd-ctrl-btn" id="ttd-play-btn" data-act-click="ttdTogglePlay()" title="Play/Pause (Space)">▶</button>
+          <button class="ttd-ctrl-btn" data-act-click="ttdStepFwd()"  title="Next frame (→)">▷</button>
+          <button class="ttd-ctrl-btn" data-act-click="ttdGoLast()"   title="Last frame (End)">⏭</button>
           <select class="ttd-speed-select" id="ttd-speed" title="Playback speed">
             <option value="800">0.25×</option>
             <option value="400">0.5×</option>
@@ -190,7 +190,7 @@ async function renderReplay() {
           </select>
           <span class="ttd-frame-counter" id="ttd-frame-counter">Frame 0 / 0</span>
           <span class="ttd-frame-time" id="ttd-frame-time"></span>
-          <button class="ttd-rerun-btn" id="ttd-rerun-btn" onclick="ttdRerunFrom()">↺ Re-run from here</button>
+          <button class="ttd-rerun-btn" id="ttd-rerun-btn" data-act-click="ttdRerunFrom()">↺ Re-run from here</button>
         </div>
       </div>
     </div>
@@ -269,7 +269,7 @@ function ttdRenderRunList() {
   const runs = ttdGetFilteredRuns();
   if (!runs.length) {
     list.innerHTML = `<div style="color:var(--text-3);font-size:12px;padding:10px;line-height:1.7">
-      ${_ttdRuns.length ? 'No runs match your filter.' : 'No runs yet. <strong style="color:var(--accent);cursor:pointer" onclick="nav(\'workflow\')">Run a workflow</strong> first.'}
+      ${_ttdRuns.length ? 'No runs match your filter.' : 'No runs yet. <strong style="color:var(--accent);cursor:pointer" data-act-click="nav(\'workflow\')">Run a workflow</strong> first.'}
     </div>`;
     return;
   }
@@ -279,10 +279,10 @@ function ttdRenderRunList() {
     const isDiffB  = _ttdDiffRunB === run.id;
     const diffLabel = isDiffA ? 'A' : (isDiffB ? 'B' : '');
     const ts = new Date(run.created_at).toLocaleString(undefined, {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-    return `<div class="ttd-run-card ${isActive?'active':''}" onclick="ttdSelectRun(${JSON.stringify(run.id)})">
+    return `<div class="ttd-run-card ${isActive?'active':''}" data-act-click="ttdSelectRun(${JSON.stringify(run.id)})">
       <div class="ttd-run-card-top">
         <input type="checkbox" class="ttd-diff-checkbox" title="Select for diff"
-          onclick="event.stopPropagation();ttdToggleDiffSelect(${JSON.stringify(run.id)},this.checked)"
+          data-act-click="ttdToggleDiffSelect(${JSON.stringify(run.id)},$checked)" data-stop="1"
           ${isDiffA||isDiffB?'checked':''}>
         ${diffLabel ? `<span style="font-size:10px;font-weight:700;color:${isDiffA?'#3dba7a':'#9d74f5'}">${diffLabel}</span>` : ''}
         <span class="ttd-badge ${run.status}">${run.status}</span>
@@ -388,7 +388,7 @@ function ttdBuildGraph() {
     const icon = TTD_ICONS[n.type] || '⬡';
     return `<div class="ttd-node n-pending" id="ttdn-${n.id}"
               style="left:${n.x||0}px;top:${n.y||0}px;border-color:${col}22"
-              onclick="ttdClickNode(event,${JSON.stringify(n.id)})">
+              data-act-click="ttdClickNode($event,${JSON.stringify(n.id)})">
       <div class="ttd-node-hdr">
         <span class="ttd-node-icon">${icon}</span>
         <span class="ttd-node-label" title="${escHtml(n.label||n.type)}">${escHtml(n.label||n.type)}</span>
@@ -712,7 +712,7 @@ function ttdShowNodeDetail(nodeId, upToIdx) {
     <!-- Actions -->
     <div class="ttd-detail-section" style="margin-top:16px;display:flex;flex-direction:column;gap:6px">
       <button class="ttd-toolbar-btn" style="width:100%;justify-content:center"
-        onclick="ttdRerunFromNode(${JSON.stringify(frame.node_id)},${frame.frame_no})">
+        data-act-click="ttdRerunFromNode(${JSON.stringify(frame.node_id)},${frame.frame_no})">
         ↺ Re-run from this node
       </button>
     </div>
@@ -750,7 +750,7 @@ function ttdBuildTimeline() {
       return `<div class="ttd-lane-block ${isErr?'lb-error':''}"
                 style="left:${left}%;width:${width}%;background:${isErr?'#e85252':col};min-width:4px"
                 title="${escHtml(nodeLabel)}: ${dur}ms${isErr?' — ERROR':''}"
-                onclick="ttdGoToDbFrame(${f.id})">
+                data-act-click="ttdGoToDbFrame(${f.id})">
         ${dur > 40 ? `${dur}ms` : ''}
       </div>`;
     }).join('');
@@ -1218,23 +1218,23 @@ async function renderCollabEdit() {
     <div class="ce-sidebar">
       <div class="ce-sidebar-top">
         <h3>✍️ Collab Docs</h3>
-        <button onclick="ceNewDoc()" style="width:100%;padding:6px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">＋ New Document</button>
+        <button data-act-click="ceNewDoc()" style="width:100%;padding:6px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">＋ New Document</button>
       </div>
       <div class="ce-doc-list" id="ce-doc-list">Loading…</div>
     </div>
 
     <div class="ce-main">
       <div class="ce-topbar">
-        <input class="ce-title-input" id="ce-title" placeholder="Untitled Document" onblur="ceSaveTitle()" value="">
+        <input class="ce-title-input" id="ce-title" placeholder="Untitled Document" data-act-blur="ceSaveTitle()" value="">
         <div id="ce-status-badge" style="font-size:11px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--text-2)">Not connected</div>
         <div class="ce-presence-bar" id="ce-presence"></div>
         <div style="display:flex;gap:5px;margin-left:4px">
-          <button class="btn-sm" onclick="ceUndo()" title="Undo (⌘Z)">↩</button>
-          <button class="btn-sm" onclick="ceRedo()" title="Redo (⌘⇧Z)">↪</button>
-          <button class="btn-sm" onclick="ceToggleHistory()">History</button>
-          <button class="btn-sm" onclick="ceToggleChat()">💬 Chat</button>
-          <button class="btn-sm" onclick="ceSnapshot()">📷 Snap</button>
-          <button class="btn-sm" onclick="ceShare()">🔗 Share</button>
+          <button class="btn-sm" data-act-click="ceUndo()" title="Undo (⌘Z)">↩</button>
+          <button class="btn-sm" data-act-click="ceRedo()" title="Redo (⌘⇧Z)">↪</button>
+          <button class="btn-sm" data-act-click="ceToggleHistory()">History</button>
+          <button class="btn-sm" data-act-click="ceToggleChat()">💬 Chat</button>
+          <button class="btn-sm" data-act-click="ceSnapshot()">📷 Snap</button>
+          <button class="btn-sm" data-act-click="ceShare()">🔗 Share</button>
         </div>
       </div>
 
@@ -1242,10 +1242,10 @@ async function renderCollabEdit() {
         <div class="ce-editor-wrap" style="flex:1">
           <textarea class="ce-editor" id="ce-editor"
             placeholder="Start typing… collaborate in real-time with teammates."
-            oninput="ceHandleInput()"
-            onkeydown="ceHandleKeydown(event)"
+            data-act-input="ceHandleInput()"
+            data-act-keydown="ceHandleKeydown($event)"
             onselect="ceSendCursor()"
-            onclick="ceSendCursor()"
+            data-act-click="ceSendCursor()"
           ></textarea>
           <div class="ce-cursors" id="ce-cursors"></div>
         </div>
@@ -1259,8 +1259,8 @@ async function renderCollabEdit() {
         <div class="ce-chat-msgs" id="ce-chat-msgs"></div>
         <div class="ce-chat-input-row">
           <input class="ce-chat-input" id="ce-chat-input" placeholder="Message collaborators…"
-                 onkeydown="if(event.key==='Enter'){ceSendChat();event.preventDefault()}">
-          <button class="btn-sm" onclick="ceSendChat()">Send</button>
+                 data-act-keydown="ceSendChat()" data-keys="Enter" data-prevent="1">
+          <button class="btn-sm" data-act-click="ceSendChat()">Send</button>
         </div>
       </div>
 
@@ -1292,7 +1292,7 @@ async function ceLoadDocs() {
     const list = document.getElementById('ce-doc-list');
     if (!list) return;
     list.innerHTML = _ceDocs.map(doc => `
-      <div class="ce-doc-item ${_ceDoc?.id===doc.id?'active':''}" onclick="ceSelectDoc(${JSON.stringify(doc.id)})">
+      <div class="ce-doc-item ${_ceDoc?.id===doc.id?'active':''}" data-act-click="ceSelectDoc(${JSON.stringify(doc.id)})">
         <div style="font-weight:600;color:var(--text-0)">${escHtml(doc.title||'Untitled')}</div>
         <div style="font-size:10px;color:var(--text-3)">${doc.size||0} chars · rev ${doc.revision}</div>
       </div>
@@ -1699,9 +1699,9 @@ async function renderMarketplace() {
       <p>Discover and install community plugin packs — skills, integrations, and AI tools</p>
       <div class="mkt-search-row">
         <input class="mkt-search" id="mkt-search" placeholder="Search plugins…"
-               oninput="mktSearch(this.value)" value="">
+               data-act-input="mktSearch($value)" value="">
         <button class="btn" onclick="mktSearch(document.getElementById('mkt-search').value)" style="flex-shrink:0">Search</button>
-        <button class="btn-sm" onclick="nav('pluginsdk')" style="flex-shrink:0">🛠️ Publish Pack</button>
+        <button class="btn-sm" data-act-click="nav('pluginsdk')" style="flex-shrink:0">🛠️ Publish Pack</button>
       </div>
       <div class="mkt-stats">
         <div class="mkt-stat"><strong>${stats.total_packs||0}</strong> packs</div>
@@ -1715,18 +1715,18 @@ async function renderMarketplace() {
       <!-- Sidebar filters -->
       <div class="mkt-filters">
         <h4>Categories</h4>
-        <button class="mkt-cat-btn active" onclick="mktFilterCat('')" id="mkt-cat-all">
+        <button class="mkt-cat-btn active" data-act-click="mktFilterCat('')" id="mkt-cat-all">
           🏠 All <span class="mkt-cat-count">${stats.total_packs||0}</span>
         </button>
         ${(cats.categories||[]).map((c) => `
-          <button class="mkt-cat-btn" onclick="mktFilterCat(${jsArg(c.category)})" id="mkt-cat-${c.category}">
+          <button class="mkt-cat-btn" data-act-click="mktFilterCat(${jsArg(c.category)})" id="mkt-cat-${c.category}">
             ${catIcon(c.category)} ${capitalize(c.category)}
             <span class="mkt-cat-count">${c.count}</span>
           </button>
         `).join('')}
 
         <h4 style="margin-top:16px">Sort By</h4>
-        <select class="mkt-sort-select" style="width:100%" onchange="mktChangeSort(this.value)">
+        <select class="mkt-sort-select" style="width:100%" data-act-change="mktChangeSort($value)">
           <option value="featured" selected>⭐ Featured</option>
           <option value="downloads">⬇ Most Downloaded</option>
           <option value="rating">⭐ Top Rated</option>
@@ -1734,9 +1734,9 @@ async function renderMarketplace() {
         </select>
 
         <h4 style="margin-top:16px">Manage</h4>
-        <button class="btn-sm" style="width:100%;margin-bottom:6px" onclick="mktCheckUpdates()">🔄 Check Updates</button>
-        <button class="btn-sm" style="width:100%;margin-bottom:6px" onclick="mktShowInstalled()">📦 Installed (${Object.keys(_mktInstalled).length})</button>
-        <button class="btn-sm" style="width:100%" onclick="mktUploadPack()">⬆ Upload ZIP</button>
+        <button class="btn-sm" style="width:100%;margin-bottom:6px" data-act-click="mktCheckUpdates()">🔄 Check Updates</button>
+        <button class="btn-sm" style="width:100%;margin-bottom:6px" data-act-click="mktShowInstalled()">📦 Installed (${Object.keys(_mktInstalled).length})</button>
+        <button class="btn-sm" style="width:100%" data-act-click="mktUploadPack()">⬆ Upload ZIP</button>
       </div>
 
       <!-- Main content -->
@@ -1804,7 +1804,7 @@ function mktCardHTML(p, featured=false) {
         </button>
       </div>
       <div style="display:flex;gap:5px;margin-top:2px">
-        <button class="btn-sm" onclick="mktViewDetail(${JSON.stringify(p.id)})">Details</button>
+        <button class="btn-sm" data-act-click="mktViewDetail(${JSON.stringify(p.id)})">Details</button>
         <button class="btn-sm" onclick="window.open('/api/marketplace/'+encodeURIComponent(${JSON.stringify(p.id)})+'/download','_blank')">⬇ ZIP</button>
       </div>
     </div>
@@ -1931,7 +1931,7 @@ async function mktViewDetail(packId) {
           <button class="btn" onclick="mktInstallOrUninstall(${JSON.stringify(packId)},${JSON.stringify(d.name||packId)},${isInst});this.closest('[style*=\'fixed\']').remove()">
             ${isInst?'✓ Installed (Uninstall)':'Install'}
           </button>
-          <button class="btn-sm" onclick="mktLeaveReview(${JSON.stringify(packId)})">⭐ Review</button>
+          <button class="btn-sm" data-act-click="mktLeaveReview(${JSON.stringify(packId)})">⭐ Review</button>
           <button class="btn-sm" onclick="window.open('/api/marketplace/'+encodeURIComponent(${JSON.stringify(packId)})+'/download','_blank')">⬇ Download ZIP</button>
         </div>
       </div>`;
@@ -1997,7 +1997,7 @@ async function mktShowInstalled() {
           <div style="color:var(--text-3)">v${i.version}</div>
         </div>
         <button class="btn-sm" style="color:var(--danger);border-color:var(--danger)"
-                onclick="mktInstallOrUninstall(${JSON.stringify(i.pack_id)},${JSON.stringify(i.name||i.pack_id)},true)">Uninstall</button>
+                data-act-click="mktInstallOrUninstall(${JSON.stringify(i.pack_id)},${JSON.stringify(i.name||i.pack_id)},true)">Uninstall</button>
       </div>
     `).join('');
     const overlay = document.createElement('div');

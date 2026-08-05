@@ -25,7 +25,7 @@ async function renderPipeline() {
 
   pane.innerHTML = `<div class="section-head">
     <div><h2>🏛️ Pipeline</h2><p>Autonomous multi-stage: Goal → Research → Code → Review → Ship</p></div>
-    <button onclick="loadPipelineHistory()" class="btn btn-ghost btn-sm">📋 History</button>
+    <button data-act-click="loadPipelineHistory()" class="btn btn-ghost btn-sm">📋 History</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
     <div>
@@ -44,7 +44,7 @@ async function renderPipeline() {
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px" id="pipe-templates">
           ${templates.map((t, idx) => `<button type="button" data-template-idx="${idx}" class="btn btn-ghost btn-sm">${escHtml(t.label)}</button>`).join('')}
         </div>
-        <button onclick="runPipeline()" class="btn btn-primary" style="width:100%" id="pipe-run-btn">🏛️ Run Pipeline</button>
+        <button data-act-click="runPipeline()" class="btn btn-primary" style="width:100%" id="pipe-run-btn">🏛️ Run Pipeline</button>
         <div id="pipe-status" style="font-size:12px;color:var(--text-2);margin-top:8px;min-height:18px"></div>
       </div>
     </div>

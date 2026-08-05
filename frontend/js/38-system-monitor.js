@@ -7,8 +7,8 @@ async function renderSystem() {
   pane.innerHTML = `<div class="section-head">
     <div><h2>💻 System Monitor</h2><p>CPU · RAM · Disk · Processes · Git · HMR</p></div>
     <div style="display:flex;gap:8px">
-      <button onclick="refreshSystem()" class="btn btn-ghost btn-sm">⟳ Refresh</button>
-      <button onclick="doGitCommit()" class="btn btn-primary btn-sm">📦 Git Commit</button>
+      <button data-act-click="refreshSystem()" class="btn btn-ghost btn-sm">⟳ Refresh</button>
+      <button data-act-click="doGitCommit()" class="btn btn-primary btn-sm">📦 Git Commit</button>
     </div>
   </div>
   <div id="sys-body"><div style="color:var(--text-2);font-size:13px">Loading…</div></div>`;
@@ -93,7 +93,7 @@ function renderSystemBody(h, m, g) {
             <span style="flex:1;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.message)}</span>
             <span style="color:var(--text-3)">${c.date}</span>
           </div>`).join('')}
-        <button onclick="doGitCommit()" class="btn btn-primary btn-sm" style="width:100%;margin-top:10px">📦 Commit preview/</button>`
+        <button data-act-click="doGitCommit()" class="btn btn-primary btn-sm" style="width:100%;margin-top:10px">📦 Commit preview/</button>`
       : `<div style="color:var(--text-2);font-size:13px">${escHtml(g.error||'Git not available')}</div>
          <div style="font-size:12px;color:var(--text-3);margin-top:4px">${escHtml(g.tip||'')}</div>`}
     </div>
