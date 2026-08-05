@@ -300,3 +300,118 @@ def test_empty_catch_blocks_are_now_covered_by_the_wrapper():
         ))
     # Recorded so a large increase is visible in review rather than invisible.
     assert total < 400, f'empty catch blocks grew sharply: {total}'
+
+
+# ══ Streaming responses ═══════════════════════════════════════════════════════
+# 11 streaming call sites called `resp.body.getReader()` without first checking
+# `resp.ok`. Two silent failure modes, both verified in node:
+#
+#   * non-200 with no body -> TypeError "Cannot read properties of null", an
+#     uncaught throw that aborts the handler mid-render and leaves a half-drawn
+#     message bubble on screen
+#   * non-200 WITH a JSON error body -> the JSON goes through the SSE frame
+#     parser, yields zero `data:` frames, and the user watches an empty reply
+#     stream in and stop
+#
+# The second matters most: /api/chat answers 503 with genuinely useful text
+# ("No AI provider is configured... Settings -> Connect AI walks through
+# both") and the user never saw a word of it.
+def test_readstream_helper_exists():
+    src = MODULE.read_text(encoding='utf-8')
+    assert 'window.readStream' in src
+
+
+@requires_jsdom
+def test_readstream_surfaces_the_servers_own_message():
+    out = _run("""
+(async () => {
+  const resp = {ok:false, status:503, url:'/api/chat', body:null,
+    clone(){return this;},
+    json: async () => ({ok:false, error:'No AI provider is configured.'})};
+  const reader = await W.readStream(resp);
+  console.log(JSON.stringify({reader, toasts: toasts()}));
+})();
+""")
+    assert out['reader'] is None, 'a failed stream must not yield a reader'
+    assert any('No AI provider' in t for t in out['toasts']), (
+        "the server's actionable message never reached the user"
+    )
+
+
+@requires_jsdom
+def test_readstream_does_not_throw_on_a_null_body():
+    """The uncaught TypeError that aborted the handler mid-render."""
+    out = _run("""
+(async () => {
+  let threw = false, reader;
+  try {
+    reader = await W.readStream({ok:true, status:200, url:'/api/chat',
+                                 body:null, clone(){return this;}});
+  } catch (e) { threw = true; }
+  console.log(JSON.stringify({threw, reader: reader === null}));
+})();
+""")
+    assert not out['threw']
+    assert out['reader']
+
+
+@requires_jsdom
+def test_readstream_returns_a_reader_on_success():
+    """The guard must not break the path it protects."""
+    out = _run("""
+(async () => {
+  const body = {getReader(){ return {read: async () => ({done:true})}; }};
+  const reader = await W.readStream({ok:true, status:200, url:'/api/chat',
+                                     body, clone(){return this;}});
+  console.log(JSON.stringify({usable: !!reader && typeof reader.read === 'function'}));
+})();
+""")
+    assert out['usable']
+
+
+@requires_jsdom
+def test_readstream_lets_the_caller_handle_the_error_itself():
+    """Panes that render an inline error need the message, not a toast."""
+    out = _run("""
+(async () => {
+  let got = null;
+  await W.readStream(
+    {ok:false, status:503, url:'/api/chat', body:null, clone(){return this;},
+     json: async () => ({error:'custom msg'})},
+    m => { got = m; }
+  );
+  console.log(JSON.stringify({got, toasts: toasts()}));
+})();
+""")
+    assert out['got'] == 'custom msg'
+    assert out['toasts'] == [], 'a handled error should not also toast'
+
+
+def test_no_stream_reader_skips_the_status_check():
+    """CI guard. The next streaming call site written the old way shows the
+    user an empty reply instead of the reason."""
+    import re as _re
+
+    offenders = []
+    for path in sorted(JS_DIR.glob('*.js')):
+        if path.name == '00-net-feedback.js':
+            continue  # the helper itself
+        # Comment-stripped: the fix documents itself with a note mentioning
+        # "resp.ok", and matching the raw file let that comment satisfy the
+        # very check it describes. Reverting a real guard then passed. This is
+        # the "assertions matching their own fix comments" trap, now hit eight
+        # times in this review.
+        lines = [
+            '' if ln.lstrip().startswith(('//', '*', '/*')) else ln
+            for ln in path.read_text(encoding='utf-8').split('\n')
+        ]
+        for i, line in enumerate(lines):
+            if '.body.getReader()' not in line or 'readStream' in line:
+                continue
+            window = '\n'.join(lines[max(0, i - 12):i + 4])
+            if not _re.search(r'\.ok\b|status\s*[<>=]|body \?', window):
+                offenders.append(f'{path.name}:{i + 1}')
+    assert not offenders, (
+        'streaming reads without a status check:\n  ' + '\n  '.join(offenders)
+        + '\n\nUse `const r = await window.readStream(resp); if (!r) return;`'
+    )

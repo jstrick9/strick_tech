@@ -122,7 +122,11 @@ async function evalRunSpecific(suiteId, agentId) {
   }).catch(()=>null);
   if (!resp) { showToast('⚠️ Eval failed'); return; }
   // Stream results
-  const reader = resp.body.getReader();
+  // readStream() checks resp.ok first: a non-200 here used to either
+  // throw on a null body or feed a JSON error through the SSE parser,
+  // showing the user an empty reply instead of the server's message.
+  const reader = await window.readStream(resp);
+  if (!reader) return;
   const dec = new TextDecoder();
   let passed=0, failed=0, total=0, done=false;
   while (!done) {

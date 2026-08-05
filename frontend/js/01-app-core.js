@@ -774,7 +774,11 @@ async function sendChat() {
     // Stream response
     bubbleEl = addMessage('', 'agent', agent.avatar || '🤖', agent.name);
 
-    const reader  = resp.body.getReader();
+    // readStream() checks resp.ok first: a non-200 here used to either
+    // throw on a null body or feed a JSON error through the SSE parser,
+    // showing the user an empty reply instead of the server's message.
+    const reader = await window.readStream(resp);
+    if (!reader) return;
     const decoder = new TextDecoder();
 
     while (true) {
@@ -3985,7 +3989,11 @@ async function studioFormatFile() {
   });
   let formatted = '';
   let isStub = false;
-  const reader  = r.body.getReader();
+  // readStream() checks resp.ok first: a non-200 here used to either
+  // throw on a null body or feed a JSON error through the SSE parser,
+  // showing the user an empty reply instead of the server's message.
+  const reader = await window.readStream(r);
+  if (!reader) return;
   const decoder = new TextDecoder();
   while (true) {
     const {done, value} = await reader.read();
@@ -4981,7 +4989,11 @@ async function studioAIEdit() {
     }
     let fullText = '';
     let isStub = false;
-    const reader  = resp.body.getReader();
+    // readStream() checks resp.ok first: a non-200 here used to either
+    // throw on a null body or feed a JSON error through the SSE parser,
+    // showing the user an empty reply instead of the server's message.
+    const reader = await window.readStream(resp);
+    if (!reader) return;
     const decoder = new TextDecoder();
     while (true) {
       const {done, value} = await reader.read();
