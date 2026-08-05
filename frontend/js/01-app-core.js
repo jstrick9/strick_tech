@@ -2630,6 +2630,8 @@ async function runAutofix(target = 'web') {
 
 // ── Global Modal system (replaces all alert/confirm/prompt) ───────
 let _gm_resolve = null;
+let _gm_opener = null;
+let _gm_keydown = null;
 
 function _gm_show({ title='', body='', input=false, textarea=false, placeholder='', buttons=[], value='' }) {
   return new Promise(resolve => {
@@ -2650,21 +2652,69 @@ function _gm_show({ title='', body='', input=false, textarea=false, placeholder=
       `<button class="btn ${b.primary?'btn-primary':b.danger?'btn-danger':'btn-ghost'}" data-act-click="_gm_click(${jsArg(b.id||i)})">${b.label}</button>`
     ).join('');
 
-    document.getElementById('gmodal').style.display = 'flex';
-    setTimeout(() => (input ? inp : ta).focus?.(), 50);
+    const modal = document.getElementById('gmodal');
+    modal.style.display = 'flex';
+
+    // Remember who opened it so focus can go back there on close. Without
+    // this, dismissing a dialog dumps keyboard focus onto <body> and the user
+    // has to Tab from the top of the page to get back to where they were.
+    _gm_opener = document.activeElement;
+
+    // Focus the most useful control: the text field if there is one, else the
+    // primary button. Focusing nothing leaves a screen-reader user unaware a
+    // dialog opened at all.
+    setTimeout(() => {
+      const first = input ? inp : (textarea ? ta : null);
+      if (first && first.focus) { first.focus(); return; }
+      const primary = btns.querySelector('.btn-primary, .btn-danger') || btns.querySelector('button');
+      if (primary) primary.focus();
+    }, 50);
+
     if (input) {
-      inp.onkeydown = e => { if (e.key==='Enter') _gm_click('ok'); if (e.key==='Escape') _gm_cancel(); };
+      inp.onkeydown = e => { if (e.key === 'Enter') _gm_click('ok'); };
     }
+
+    // Escape and focus trapping apply to EVERY dialog, not just prompts.
+    // Previously Escape was bound to the text input only, so a confirm or a
+    // delete dialog could not be dismissed from the keyboard at all — the
+    // user had to mouse to Cancel. Tab could also walk out of the dialog and
+    // into the page behind it, which is a WCAG 2.4.3 focus-order failure and
+    // makes the modal feel broken.
+    _gm_keydown = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); _gm_cancel(); return; }
+      if (e.key !== 'Tab') return;
+      const items = [...modal.querySelectorAll('button,input,textarea,select,a[href],[tabindex]')]
+        .filter(el => el.offsetParent !== null && el.getAttribute('tabindex') !== '-1');
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', _gm_keydown, true);
   });
+}
+
+function _gm_teardown() {
+  if (_gm_keydown) {
+    document.removeEventListener('keydown', _gm_keydown, true);
+    _gm_keydown = null;
+  }
+  // Return focus to whatever opened the dialog.
+  if (_gm_opener && typeof _gm_opener.focus === 'function' && _gm_opener.isConnected) {
+    _gm_opener.focus();
+  }
+  _gm_opener = null;
 }
 function _gm_click(id) {
   const val = document.getElementById('gm-input').value || document.getElementById('gm-textarea').value;
   document.getElementById('gmodal').style.display = 'none';
+  _gm_teardown();
   _gm_resolve?.({ id, value: val });
   _gm_resolve = null;
 }
 function _gm_cancel() {
   document.getElementById('gmodal').style.display = 'none';
+  _gm_teardown();
   _gm_resolve?.({ id: 'cancel', value: '' });
   _gm_resolve = null;
 }
