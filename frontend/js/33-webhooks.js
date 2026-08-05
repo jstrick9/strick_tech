@@ -29,14 +29,14 @@ async function renderWebhooks() {
               <button onclick="navigator.clipboard.writeText('http://localhost:8787/api/webhooks/' + encodeURIComponent(${jsArg(w.id)}) + '/trigger').then(()=>toast('📋 Copied','ok',1200))" style="background:none;border:none;color:var(--text-2);cursor:pointer">📋</button>
             </div>
             <div style="display:flex;gap:6px">
-              <button onclick="testWebhook(${JSON.stringify(w.id)})" class="btn btn-ghost btn-sm">▶ Test</button>
-              <button onclick="deleteWebhook(${JSON.stringify(w.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;margin-left:auto">🗑</button>
+              <button data-act-click="testWebhook(${JSON.stringify(w.id)})" class="btn btn-ghost btn-sm">▶ Test</button>
+              <button data-act-click="deleteWebhook(${JSON.stringify(w.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;margin-left:auto">🗑</button>
             </div>
           </div>`).join('')}
         </div>
         <div>
           <div style="font-weight:700;margin-bottom:10px">🚀 Templates</div>
-          ${tmpls.map(t=>`<div class="card card-interactive lift" onclick="installWebhookTemplate(${JSON.stringify(t.id)})" style="margin-bottom:8px;padding:11px">
+          ${tmpls.map(t=>`<div class="card card-interactive lift" data-act-click="installWebhookTemplate(${JSON.stringify(t.id)})" style="margin-bottom:8px;padding:11px">
             <div style="font-weight:600;font-size:12.5px;margin-bottom:2px">${escHtml(t.name)}</div>
             <div style="font-size:11.5px;color:var(--text-2);margin-bottom:4px">${escHtml(t.description)}</div>
             <div style="font-size:10.5px;color:var(--text-3)">${escHtml(t.setup)}</div>

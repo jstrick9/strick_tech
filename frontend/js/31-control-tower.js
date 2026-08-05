@@ -29,7 +29,7 @@ async function refreshControlTower() {
         <span style="font-size:20px">🔴</span>
         <div style="flex:1"><div style="font-weight:700;color:#e85252">${active.length} agent${active.length>1?'s':''} running</div>
         <div style="font-size:11.5px;color:var(--text-2)">Total cost: $${active.reduce((a,r)=>a+(r.total_cost||0),0).toFixed(4)}</div></div>
-        <button onclick="killAllRuns()" class="btn btn-danger btn-sm">🛑 Kill All</button>
+        <button data-act-click="killAllRuns()" class="btn btn-danger btn-sm">🛑 Kill All</button>
       </div>` : ''}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:20px">
         ${[['Total Runs',stats.total_runs||0],['Active',stats.active_runs||0],['Today Cost','$'+(stats.today_cost||0).toFixed(4)],['Total Cost','$'+(stats.total_cost||0).toFixed(4)],['Errors',stats.error_count||0],['Killed',stats.killed_count||0]].map(([l,v])=>`<div class="stat-card"><div class="stat-card__label">${l}</div><div class="stat-card__value" style="font-size:20px">${v}</div></div>`).join('')}
@@ -41,7 +41,7 @@ async function refreshControlTower() {
             ${runs.length === 0 ? emptyState({icon:'📊',title:'No runs yet',body:'Agent runs appear here with full traces and cost breakdown.'}) :
             runs.slice(0,10).map(r=>{
               const sCol = {running:'var(--warning)',done:'var(--success)',error:'var(--danger)',killed:'var(--text-3)'}[r.status]||'var(--text-2)';
-              return `<div class="card card-interactive" onclick="showRunTrace(${jsArg(r.run_id)})" style="padding:9px 12px">
+              return `<div class="card card-interactive" data-act-click="showRunTrace(${jsArg(r.run_id)})" style="padding:9px 12px">
                 <div style="display:flex;align-items:center;gap:9px">
                   <span style="color:${sCol};font-size:9px">●</span>
                   <div style="flex:1;min-width:0">
@@ -52,7 +52,7 @@ async function refreshControlTower() {
                     <div style="font-size:11px;color:${sCol};font-weight:700">${r.status}</div>
                     <div style="font-size:10px;color:var(--text-3)">$${(r.total_cost||0).toFixed(4)}</div>
                   </div>
-                  ${r.status==='running'?`<button onclick="event.stopPropagation();killRun(${jsArg(r.run_id)})" class="btn btn-danger btn-sm">🛑</button>`:''}
+                  ${r.status==='running'?`<button data-act-click="killRun(${jsArg(r.run_id)})" data-stop="1" class="btn btn-danger btn-sm">🛑</button>`:''}
                 </div>
               </div>`;}).join('')}
           </div>
@@ -60,7 +60,7 @@ async function refreshControlTower() {
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
             <div style="font-weight:700">💰 Budget Guardrails</div>
-            <button onclick="addBudgetRule()" class="btn btn-primary btn-sm">＋ Rule</button>
+            <button data-act-click="addBudgetRule()" class="btn btn-primary btn-sm">＋ Rule</button>
           </div>
           ${helpPanel({title:'Stop agents before costs run away',body:'Set limits per agent or globally. Warn or auto-stop when limit is hit.'})}
           <div style="display:flex;flex-direction:column;gap:5px">
@@ -69,7 +69,7 @@ async function refreshControlTower() {
               <div style="flex:1"><div style="font-size:12.5px;font-weight:600">${escHtml(r.name)}</div>
               <div style="font-size:11px;color:var(--text-2)">Max $${r.max_cost} · ${r.action}</div></div>
               <span class="badge ${r.enabled?'badge-success':'badge-default'}">${r.enabled?'On':'Off'}</span>
-              <button onclick="deleteBudgetRule(${JSON.stringify(r.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer">🗑</button>
+              <button data-act-click="deleteBudgetRule(${JSON.stringify(r.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer">🗑</button>
             </div>`).join('')}
           </div>
         </div>

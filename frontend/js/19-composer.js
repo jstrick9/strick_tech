@@ -32,7 +32,7 @@ async function renderComposer() {
             'E-commerce product page with cart',
           ].map(p => `<button onclick="document.getElementById('comp-instruction').value=${jsArg(p)}" class="chat-tool" style="font-size:11px">${p.slice(0,30)}…</button>`).join('')}
         </div>
-        <button onclick="runComposer()" class="btn btn-primary" style="width:100%" id="comp-run-btn">🪄 Build with AI</button>
+        <button data-act-click="runComposer()" class="btn btn-primary" style="width:100%" id="comp-run-btn">🪄 Build with AI</button>
         <div id="comp-status" style="font-size:12px;color:var(--text-2);margin-top:8px;min-height:18px"></div>
       </div>
 
@@ -43,13 +43,13 @@ async function renderComposer() {
         <div id="screenshot-drop" style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:24px;text-align:center;cursor:pointer;transition:var(--transition);margin-bottom:10px" 
              ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" 
              ondragleave="this.style.borderColor='var(--border)'"
-             ondrop="handleScreenshotDrop(event)"
+             data-act-drop="handleScreenshotDrop($event)"
              onclick="document.getElementById('screenshot-file').click()">
           <div style="font-size:32px;margin-bottom:8px">🖼️</div>
           <div style="font-size:13px;color:var(--text-2)">Drop a screenshot here, or click to upload</div>
           <div style="font-size:11px;color:var(--text-3);margin-top:4px">PNG, JPG, WebP — any design or UI screenshot</div>
         </div>
-        <input type="file" id="screenshot-file" accept="image/*" style="display:none" onchange="handleScreenshotFile(event)">
+        <input type="file" id="screenshot-file" accept="image/*" style="display:none" data-act-change="handleScreenshotFile($event)">
         <div id="screenshot-preview" style="display:none;margin-bottom:10px">
           <img id="screenshot-img" style="max-width:100%;max-height:200px;border-radius:var(--radius-sm);border:1px solid var(--border)">
         </div>
@@ -58,7 +58,7 @@ async function renderComposer() {
             <option value="web">Web (HTML)</option>
             <option value="react">React</option>
           </select>
-          <button onclick="runScreenshotToCode()" class="btn btn-primary" id="s2c-btn" disabled>📷 Convert</button>
+          <button data-act-click="runScreenshotToCode()" class="btn btn-primary" id="s2c-btn" disabled>📷 Convert</button>
         </div>
         <div id="s2c-status" style="font-size:12px;color:var(--text-2);margin-top:6px"></div>
       </div>
@@ -75,7 +75,7 @@ async function renderComposer() {
       <div class="settings-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <h3 style="margin:0">🌿 Branch Previews</h3>
-          <button onclick="createBranchPreview()" class="btn btn-primary btn-sm">+ Snapshot</button>
+          <button data-act-click="createBranchPreview()" class="btn btn-primary btn-sm">+ Snapshot</button>
         </div>
         <p style="font-size:12.5px;color:var(--text-2)">Snapshot current state as a named preview URL. Share with clients before making changes.</p>
         <div id="branch-list" style="display:flex;flex-direction:column;gap:6px">Loading…</div>
@@ -165,9 +165,9 @@ async function runComposer() {
             status.innerHTML = `✅ Done in ${ev.duration_ms}ms — ${written.length} files written`;
             if (written.length > 0) {
               results.innerHTML += `<div style="margin-top:10px;display:flex;gap:8px">
-                <button onclick="nav('studio')" class="btn btn-primary btn-sm">🎬 View in Studio</button>
-                <button onclick="createBranchPreview()" class="btn btn-ghost btn-sm">📸 Snapshot</button>
-                <button onclick="showGHPush()" class="btn btn-ghost btn-sm">⬆ Push to GitHub</button>
+                <button data-act-click="nav('studio')" class="btn btn-primary btn-sm">🎬 View in Studio</button>
+                <button data-act-click="createBranchPreview()" class="btn btn-ghost btn-sm">📸 Snapshot</button>
+                <button data-act-click="showGHPush()" class="btn btn-ghost btn-sm">⬆ Push to GitHub</button>
               </div>`;
               // Reload studio file tree
               studioLoadFileTree?.();
@@ -280,7 +280,7 @@ async function loadBranchPreviews() {
           <div style="font-size:11px;color:var(--text-3)">${b.files} files · ${(b.created_at||'').slice(0,16)}</div>
         </div>
         <a href="${safeUrl(b.url)}" target="_blank" class="btn btn-ghost btn-sm">View ↗</a>
-        <button onclick="deleteBranchPreview(${jsArg(b.name)})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button>
+        <button data-act-click="deleteBranchPreview(${jsArg(b.name)})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button>
       </div>`).join('');
   } catch(e) {}
 }

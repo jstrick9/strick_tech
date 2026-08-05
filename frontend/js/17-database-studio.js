@@ -8,11 +8,11 @@ async function renderDBStudio() {
   pane.innerHTML = `<div class="section-head">
     <div><h2>🗄️ Database Studio</h2><p>Visual table browser, SQL editor, and Supabase connect</p></div>
     <div style="display:flex;gap:8px">
-      <button onclick="dbSetTab('sqlite')" class="btn ${dbActiveTab==='sqlite'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-sqlite">📦 SQLite (local)</button>
-      <button onclick="dbSetTab('supabase')" class="btn ${dbActiveTab==='supabase'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-supabase">☁️ Supabase</button>
-      <button onclick="dbSetTab('sql')" class="btn ${dbActiveTab==='sql'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-sql">💻 SQL Editor</button>
-      <button onclick="dbSetTab('designer')" class="btn ${dbActiveTab==='designer'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-designer">🏗️ Schema Designer</button>
-      <button onclick="dbSetTab('audit')" class="btn ${dbActiveTab==='audit'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-audit">📜 Audit Trail</button>
+      <button data-act-click="dbSetTab('sqlite')" class="btn ${dbActiveTab==='sqlite'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-sqlite">📦 SQLite (local)</button>
+      <button data-act-click="dbSetTab('supabase')" class="btn ${dbActiveTab==='supabase'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-supabase">☁️ Supabase</button>
+      <button data-act-click="dbSetTab('sql')" class="btn ${dbActiveTab==='sql'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-sql">💻 SQL Editor</button>
+      <button data-act-click="dbSetTab('designer')" class="btn ${dbActiveTab==='designer'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-designer">🏗️ Schema Designer</button>
+      <button data-act-click="dbSetTab('audit')" class="btn ${dbActiveTab==='audit'?'btn-primary':'btn-ghost'} btn-sm" id="db-tab-audit">📜 Audit Trail</button>
     </div>
   </div>
   <div id="db-body"></div>`;
@@ -54,7 +54,7 @@ async function renderSQLiteTab(el) {
       ${tables.map((t, idx) => `
         <div data-table-idx="${idx}" title="${t.restricted ? 'Protected — holds credential material' : (t.sensitive_columns||[]).length ? 'Contains masked columns: ' + escHtml((t.sensitive_columns||[]).join(', ')) : ''}"
              style="padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;margin-bottom:2px;${dbActiveTable===t.name?'background:var(--accent-glow);color:var(--accent-hi)':''}"
-             onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=${jsArg(dbActiveTable===t.name?'var(--accent-glow)':'')}"
+             data-hover="bg:var(--bg-3)" onmouseout="this.style.background=${jsArg(dbActiveTable===t.name?'var(--accent-glow)':'')}"
         >
           <div style="font-weight:600">${t.restricted ? '🔒 ' : ''}${escHtml(t.name)}${(t.sensitive_columns||[]).length ? ' <span style="color:var(--orange,#e0821c);font-size:10px">🔒</span>' : ''}</div>
           <div style="font-size:10.5px;color:var(--text-3)">${t.row_count} rows</div>
@@ -110,8 +110,8 @@ async function dbLoadTable(name) {
         <span style="font-weight:700;font-size:13px">${escHtml(name)}</span>
         <span style="font-size:11px;color:var(--text-2)">${total} rows · ${columns.length} columns</span>
         <div style="margin-left:auto;display:flex;gap:6px">
-          <button onclick="dbInsertRow(${jsArg(name)})" class="btn btn-primary btn-sm">+ Row</button>
-          <button onclick="dbSetTab('sql')" class="btn btn-ghost btn-sm">SQL</button>
+          <button data-act-click="dbInsertRow(${jsArg(name)})" class="btn btn-primary btn-sm">+ Row</button>
+          <button data-act-click="dbSetTab('sql')" class="btn btn-ghost btn-sm">SQL</button>
         </div>
       </div>
       <div style="overflow:auto;flex:1" id="db-table-rows">
@@ -124,7 +124,7 @@ async function dbLoadTable(name) {
           </thead>
           <tbody>
             ${rows.map((row, idx) => `
-              <tr style="border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''">
+              <tr style="border-bottom:1px solid var(--border)" data-hover="bg:var(--bg-3)" data-hover-out="bg:">
                 ${columns.map(c => `<td style="padding:6px 10px;color:var(--text-1);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(String(row[c]??''))}">${escHtml(String(row[c]??''))}</td>`).join('')}
                 <td style="padding:6px 10px"><button data-row-idx="${idx}" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button></td>
               </tr>`).join('')}
@@ -234,7 +234,7 @@ async function renderSupabaseTab(el) {
           <label style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">SUPABASE_ANON_KEY</label>
           <input id="supa-key-input" type="password" placeholder="eyJhbGci…" class="key-input" style="width:100%">
         </div>
-        <button onclick="saveSupabaseKeys()" class="btn btn-primary">Connect Supabase</button>
+        <button data-act-click="saveSupabaseKeys()" class="btn btn-primary">Connect Supabase</button>
       </div>
     </div>`;
     return;
@@ -248,10 +248,10 @@ async function renderSupabaseTab(el) {
       <span class="tag green" style="margin-left:auto">✅ Connected</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <button onclick="supaGenerateSchema()" class="btn btn-primary">🤖 AI Schema Designer</button>
-      <button onclick="openExternalLink(${jsArg('' + (s.url?.replace('.supabase.co','')||'') + '.supabase.co/project/default/editor')})" class="btn btn-ghost">SQL Editor ↗</button>
-      <button onclick="openExternalLink(${jsArg('' + (s.url?.replace('.supabase.co','')||'') + '.supabase.co/project/default/auth/users')})" class="btn btn-ghost">Auth Users ↗</button>
-      <button onclick="openExternalLink(${jsArg('' + (s.url?.replace('.supabase.co','')||'') + '.supabase.co/project/default/storage/buckets')})" class="btn btn-ghost">Storage ↗</button>
+      <button data-act-click="supaGenerateSchema()" class="btn btn-primary">🤖 AI Schema Designer</button>
+      <button data-act-click="openExternalLink(${jsArg('' + (s.url?.replace('.supabase.co','')||'') + '.supabase.co/project/default/editor')})" class="btn btn-ghost">SQL Editor ↗</button>
+      <button data-act-click="openExternalLink(${jsArg('' + (s.url?.replace('.supabase.co','')||'') + '.supabase.co/project/default/auth/users')})" class="btn btn-ghost">Auth Users ↗</button>
+      <button data-act-click="openExternalLink(${jsArg('' + (s.url?.replace('.supabase.co','')||'') + '.supabase.co/project/default/storage/buckets')})" class="btn btn-ghost">Storage ↗</button>
     </div>
   </div>`;
 }
@@ -306,7 +306,7 @@ function renderSQLEditorTab(el) {
             <span style="color:var(--red)">Allow writes</span>
           </label>
           <button onclick="runSQL({dryRun:true})" class="btn btn-ghost btn-sm" title="Run inside a transaction and roll it back — shows how many rows would change, commits nothing">🔍 Dry run</button>
-          <button onclick="runSQL()" class="btn btn-primary btn-sm">▶ Run SQL</button>
+          <button data-act-click="runSQL()" class="btn btn-primary btn-sm">▶ Run SQL</button>
         </div>
       </div>
       <textarea id="sql-editor" placeholder="SELECT * FROM agents LIMIT 10;" style="width:100%;min-height:120px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;font-family:'JetBrains Mono',monospace;resize:vertical;outline:none"></textarea>
@@ -404,8 +404,8 @@ async function renderSchemaDesignerTab(el) {
     <p>Describe your data model in plain English → AI generates the SQL CREATE TABLE statement.</p>
     <textarea id="schema-desc" placeholder="A blog platform with users, posts, categories, tags, and comments. Users can like posts. Posts have a publish status." style="width:100%;min-height:80px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;resize:none;outline:none;font-family:inherit;margin-bottom:10px"></textarea>
     <div style="display:flex;gap:8px">
-      <button onclick="generateSchema('sqlite')" class="btn btn-primary">Generate SQLite</button>
-      <button onclick="generateSchema('supabase')" class="btn btn-ghost">Generate Supabase SQL</button>
+      <button data-act-click="generateSchema('sqlite')" class="btn btn-primary">Generate SQLite</button>
+      <button data-act-click="generateSchema('supabase')" class="btn btn-ghost">Generate Supabase SQL</button>
     </div>
     <div id="schema-result" style="margin-top:14px"></div>
   </div>`;
@@ -534,7 +534,7 @@ async function renderDBAuditTab(el) {
         <span style="font-size:12px;color:${chainOk ? 'var(--green)' : 'var(--red)'}">
           ${verified ? (chainOk ? '🔒 Chain verified' : '⚠️ Chain integrity FAILED') : ''}
         </span>
-        <button onclick="dbSetTab('audit')" class="btn btn-ghost btn-sm">↻ Refresh</button>
+        <button data-act-click="dbSetTab('audit')" class="btn btn-ghost btn-sm">↻ Refresh</button>
       </div>
     </div>
     ${entries.length ? `<div style="overflow:auto;max-height:520px">

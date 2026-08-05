@@ -53,17 +53,17 @@ async function renderAuditLog() {
     <!-- Sidebar -->
     <div class="crc-sidebar">
       <div class="crc-sidebar-title">Compliance Center</div>
-      <div class="crc-nav-item active" id="crc-nav-dashboard" onclick="crcSetTab('dashboard')">
+      <div class="crc-nav-item active" id="crc-nav-dashboard" data-act-click="crcSetTab('dashboard')">
         <span class="crc-nav-icon">📊</span> Dashboard
       </div>
-      <div class="crc-nav-item" id="crc-nav-generate" onclick="crcSetTab('generate')">
+      <div class="crc-nav-item" id="crc-nav-generate" data-act-click="crcSetTab('generate')">
         <span class="crc-nav-icon">📄</span> Generate Report
       </div>
-      <div class="crc-nav-item" id="crc-nav-history" onclick="crcSetTab('history')">
+      <div class="crc-nav-item" id="crc-nav-history" data-act-click="crcSetTab('history')">
         <span class="crc-nav-icon">🗂️</span> Report History
       </div>
       <div class="crc-sidebar-divider"></div>
-      <div class="crc-nav-item" id="crc-nav-audit" onclick="crcSetTab('audit')">
+      <div class="crc-nav-item" id="crc-nav-audit" data-act-click="crcSetTab('audit')">
         <span class="crc-nav-icon">🔏</span> Audit Chain
       </div>
       <div class="crc-sidebar-divider"></div>
@@ -82,7 +82,7 @@ async function renderAuditLog() {
     <div class="crc-main">
       <div class="crc-header">
         <span class="crc-header-title" id="crc-header-title">🔏 Compliance & Audit Center</span>
-        <button class="crc-action-btn" onclick="crcRefresh()" title="Refresh">↺ Refresh</button>
+        <button class="crc-action-btn" data-act-click="crcRefresh()" title="Refresh">↺ Refresh</button>
       </div>
       <div class="crc-content" id="crc-content">
         <div style="padding:40px;text-align:center;color:var(--text-3)">Loading…</div>
@@ -159,7 +159,7 @@ function crcRenderDashboard(container) {
         <div class="crc-chain-status" style="color:${chainOk?'var(--success)':'var(--danger)'}">${chainOk?'Chain Integrity Verified ✓':'Chain Integrity Issue Detected ⚠️'}</div>
         <div class="crc-chain-detail" style="color:var(--text-3)">${(s.chain_entries||0).toLocaleString()} entries verified · Last report: ${s.last_report_at ? new Date(s.last_report_at).toLocaleDateString() + ' (' + s.last_report_framework + ')' : 'None yet'}</div>
       </div>
-      <button class="crc-action-btn" onclick="crcVerifyChain()" style="margin-left:auto">🔍 Verify Now</button>
+      <button class="crc-action-btn" data-act-click="crcVerifyChain()" style="margin-left:auto">🔍 Verify Now</button>
     </div>
 
     <!-- Stats grid -->
@@ -174,20 +174,20 @@ function crcRenderDashboard(container) {
     <!-- Quick actions -->
     <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Quick Actions</div>
     <div class="crc-quick-actions">
-      <button class="crc-action-btn primary" onclick="crcSetTab('generate')">📄 Generate PDF Report</button>
-      <button class="crc-action-btn" onclick="crcQuickReport('pdf','SOC2')">🛡️ SOC2 Report</button>
-      <button class="crc-action-btn" onclick="crcQuickReport('pdf','GDPR')">🇪🇺 GDPR Report</button>
-      <button class="crc-action-btn" onclick="crcQuickReport('pdf','HIPAA')">🏥 HIPAA Report</button>
-      <button class="crc-action-btn" onclick="crcQuickReport('json','General')">⬇ JSON Export</button>
-      <button class="crc-action-btn" onclick="crcQuickReport('csv','General')">⬇ CSV Export</button>
-      <button class="crc-action-btn" onclick="crcSetTab('audit')">🔏 View Audit Chain</button>
+      <button class="crc-action-btn primary" data-act-click="crcSetTab('generate')">📄 Generate PDF Report</button>
+      <button class="crc-action-btn" data-act-click="crcQuickReport('pdf','SOC2')">🛡️ SOC2 Report</button>
+      <button class="crc-action-btn" data-act-click="crcQuickReport('pdf','GDPR')">🇪🇺 GDPR Report</button>
+      <button class="crc-action-btn" data-act-click="crcQuickReport('pdf','HIPAA')">🏥 HIPAA Report</button>
+      <button class="crc-action-btn" data-act-click="crcQuickReport('json','General')">⬇ JSON Export</button>
+      <button class="crc-action-btn" data-act-click="crcQuickReport('csv','General')">⬇ CSV Export</button>
+      <button class="crc-action-btn" data-act-click="crcSetTab('audit')">🔏 View Audit Chain</button>
     </div>
 
     <!-- Framework cards -->
     <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;margin-top:6px">Supported Compliance Frameworks</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin-bottom:18px">
       ${CRC_FRAMEWORKS.map(fw => `
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:9px;padding:12px;cursor:pointer;transition:all .12s" onclick="crcSetFwAndGenerate(${JSON.stringify(fw.id)})" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:9px;padding:12px;cursor:pointer;transition:all .12s" data-act-click="crcSetFwAndGenerate(${JSON.stringify(fw.id)})" data-hover="bc:var(--accent)" data-hover-out="bc:var(--border)">
           <div style="font-size:18px;margin-bottom:5px">${fw.icon}</div>
           <div style="font-size:12px;font-weight:700;color:var(--text-0);margin-bottom:2px">${fw.name}</div>
           <div style="font-size:10px;color:var(--text-3)">${fw.desc}</div>
@@ -198,7 +198,7 @@ function crcRenderDashboard(container) {
     ${_crcReports.length ? `
     <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Recent Reports</div>
     ${_crcReports.slice(0,3).map(r => crcReportCard(r)).join('')}
-    <button class="crc-action-btn" onclick="crcSetTab('history')" style="margin-top:4px">View All Reports →</button>
+    <button class="crc-action-btn" data-act-click="crcSetTab('history')" style="margin-top:4px">View All Reports →</button>
     ` : ''}
   `;
 }
@@ -218,7 +218,7 @@ function crcRenderGenerator(container) {
           <div class="crc-panel-title">⚖️ Compliance Framework</div>
           <div class="crc-fw-grid">
             ${CRC_FRAMEWORKS.map(fw => `
-              <div class="crc-fw-card ${_crcSelectedFw===fw.id?'selected':''}" id="crc-fw-${fw.id}" onclick="crcSelectFw(${JSON.stringify(fw.id)})">
+              <div class="crc-fw-card ${_crcSelectedFw===fw.id?'selected':''}" id="crc-fw-${fw.id}" data-act-click="crcSelectFw(${JSON.stringify(fw.id)})">
                 <div class="crc-fw-icon">${fw.icon}</div>
                 <div class="crc-fw-name">${fw.name}</div>
                 <div class="crc-fw-desc">${fw.desc}</div>
@@ -231,7 +231,7 @@ function crcRenderGenerator(container) {
           <div class="crc-panel-title">📁 Output Format</div>
           <div class="crc-fmt-row">
             ${[['pdf','📄 PDF','Formatted, signable'],['json','{ } JSON','Machine-readable'],['csv','📊 CSV','Spreadsheet']].map(([id,label,desc]) => `
-              <div class="crc-fmt-btn ${_crcSelectedFmt===id?'selected':''}" id="crc-fmt-${id}" onclick="crcSelectFmt(${JSON.stringify(id)})">
+              <div class="crc-fmt-btn ${_crcSelectedFmt===id?'selected':''}" id="crc-fmt-${id}" data-act-click="crcSelectFmt(${JSON.stringify(id)})">
                 <div>${label}</div>
                 <div style="font-size:9px;color:var(--text-3);margin-top:2px">${desc}</div>
               </div>`).join('')}
@@ -263,15 +263,15 @@ function crcRenderGenerator(container) {
           <div class="crc-panel-title">🔍 Included Sections</div>
           <div class="crc-scope-list" id="crc-scope-list">
             ${CRC_SECTIONS.map(s => `
-              <div class="crc-scope-item" onclick="crcToggleScope(${JSON.stringify(s.key)})">
-                <input type="checkbox" class="crc-scope-check" id="crc-scope-${s.key}" ${_crcScope[s.key]?'checked':''} onclick="event.stopPropagation();crcToggleScope(${JSON.stringify(s.key)})">
+              <div class="crc-scope-item" data-act-click="crcToggleScope(${JSON.stringify(s.key)})">
+                <input type="checkbox" class="crc-scope-check" id="crc-scope-${s.key}" ${_crcScope[s.key]?'checked':''} data-act-click="crcToggleScope(${JSON.stringify(s.key)})" data-stop="1">
                 <span class="crc-scope-icon">${s.icon}</span>
                 <span class="crc-scope-label">${s.label}</span>
               </div>`).join('')}
           </div>
           <div style="display:flex;gap:6px;margin-top:8px">
-            <button onclick="crcSelectAllScope(true)" style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">Select All</button>
-            <button onclick="crcSelectAllScope(false)" style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">Clear All</button>
+            <button data-act-click="crcSelectAllScope(true)" style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">Select All</button>
+            <button data-act-click="crcSelectAllScope(false)" style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">Clear All</button>
           </div>
         </div>
 
@@ -282,7 +282,7 @@ function crcRenderGenerator(container) {
         </div>
 
         <!-- Generate button -->
-        <button class="crc-gen-btn" id="crc-gen-btn" onclick="crcGenerate()" ${_crcGenerating?'disabled':''}>
+        <button class="crc-gen-btn" id="crc-gen-btn" data-act-click="crcGenerate()" ${_crcGenerating?'disabled':''}>
           ${_crcGenerating ? '<div class="crc-spinner"></div> Generating Report…' : '📄 Generate Compliance Report'}
         </button>
         ${_crcGenerating ? `<div class="crc-generating"><div class="crc-spinner"></div><span style="font-size:12px;color:var(--accent)">Building report — collecting audit chain, HITL records, policy data…</span></div>` : ''}
@@ -424,14 +424,14 @@ function crcRenderHistory(container) {
       <div style="font-size:40px;margin-bottom:12px">📄</div>
       <div style="font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:8px">No Reports Generated Yet</div>
       <div style="font-size:12px;line-height:1.6;margin-bottom:20px">Generate your first compliance report from the Generate tab.</div>
-      <button class="crc-gen-btn" style="width:auto;padding:10px 24px" onclick="crcSetTab('generate')">📄 Generate First Report</button>
+      <button class="crc-gen-btn" style="width:auto;padding:10px 24px" data-act-click="crcSetTab('generate')">📄 Generate First Report</button>
     </div>`;
     return;
   }
   container.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <strong style="font-size:13px;color:var(--text-0)">${_crcReports.length} Reports</strong>
-      <button class="crc-action-btn" onclick="crcSetTab('generate')" style="margin-left:auto">+ New Report</button>
+      <button class="crc-action-btn" data-act-click="crcSetTab('generate')" style="margin-left:auto">+ New Report</button>
     </div>
     ${_crcReports.map(r => crcReportCard(r)).join('')}
   `;
@@ -462,8 +462,8 @@ function crcReportCard(r) {
     </div>
     <div class="crc-report-actions">
       <span class="crc-status-badge" style="background:${sc}22;color:${sc}">${r.status}</span>
-      ${r.status==='done' ? `<button class="crc-rep-btn" onclick="crcRegenReport(${JSON.stringify(r)})">↺ Re-run</button>` : ''}
-      <button class="crc-rep-btn" style="color:var(--danger)" onclick="crcDeleteReport(${JSON.stringify(r.report_id)})">🗑</button>
+      ${r.status==='done' ? `<button class="crc-rep-btn" data-act-click="crcRegenReport(${JSON.stringify(r)})">↺ Re-run</button>` : ''}
+      <button class="crc-rep-btn" style="color:var(--danger)" data-act-click="crcDeleteReport(${JSON.stringify(r.report_id)})">🗑</button>
     </div>
   </div>`;
 }
@@ -519,30 +519,30 @@ async function crcRenderAuditChain(container) {
         <div style="font-size:10px;color:var(--text-3)">Entries verified: ${(verifyR.verified||0).toLocaleString()} · Chain tip: <code style="font-size:9px">${chainTip}</code></div>
       </div>
       <div style="display:flex;gap:6px;margin-left:auto">
-        <button class="crc-action-btn" onclick="crcVerifyChain()">🔍 Verify</button>
+        <button class="crc-action-btn" data-act-click="crcVerifyChain()">🔍 Verify</button>
         <a href="/api/audit-log/export/json?limit=5000" download class="crc-action-btn" style="text-decoration:none">⬇ JSON</a>
         <a href="/api/audit-log/export/csv?limit=5000" download class="crc-action-btn" style="text-decoration:none">⬇ CSV</a>
-        <button class="crc-action-btn primary" onclick="crcQuickReport('pdf','General')">📄 PDF Report</button>
+        <button class="crc-action-btn primary" data-act-click="crcQuickReport('pdf','General')">📄 PDF Report</button>
       </div>
     </div>
 
     <!-- Filters -->
     <div class="crc-audit-filters">
       <span style="font-size:11px;font-weight:700;color:var(--text-2)">Filter:</span>
-      <select class="crc-filter-sel" id="crc-audit-risk" onchange="crcAuditFilterChange()">
+      <select class="crc-filter-sel" id="crc-audit-risk" data-act-change="crcAuditFilterChange()">
         <option value="">All Risk</option>
         <option value="low">Low</option>
         <option value="medium">Medium</option>
         <option value="high">High</option>
         <option value="critical">Critical</option>
       </select>
-      <select class="crc-filter-sel" id="crc-audit-outcome" onchange="crcAuditFilterChange()">
+      <select class="crc-filter-sel" id="crc-audit-outcome" data-act-change="crcAuditFilterChange()">
         <option value="">All Outcomes</option>
         <option value="success">Success</option>
         <option value="failure">Failure</option>
         <option value="blocked">Blocked</option>
       </select>
-      <input class="crc-filter-input" id="crc-audit-agent" placeholder="Filter by agent…" oninput="crcAuditFilterChange()">
+      <input class="crc-filter-input" id="crc-audit-agent" placeholder="Filter by agent…" data-act-input="crcAuditFilterChange()">
       <span style="margin-left:auto;font-size:11px;color:var(--text-3)">Showing ${_crcAuditEntries.length} of ${_crcAuditTotal.toLocaleString()}</span>
     </div>
 
@@ -555,7 +555,7 @@ async function crcRenderAuditChain(container) {
         </tr></thead>
         <tbody>
           ${_crcAuditEntries.map(e => `
-          <tr onclick="crcShowEntry(${JSON.stringify(e.entry_id)})">
+          <tr data-act-click="crcShowEntry(${JSON.stringify(e.entry_id)})">
             <td style="font-family:monospace;color:var(--text-3)">${e.seq}</td>
             <td>${CRC_OUTCOME_ICONS[e.outcome]||'❓'} <span style="font-size:10px">${escHtml(e.outcome||'')}</span></td>
             <td style="color:var(--accent)">${escHtml((e.agent_name||e.agent_id||'').slice(0,16))}</td>

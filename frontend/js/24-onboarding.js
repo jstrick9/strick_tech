@@ -83,7 +83,7 @@ function showOnboarding() {
       {id:'ocean',   name:'Ocean',    bg:'#080d10', accent:'#38c5d8'},
     ];
     themeArea.innerHTML = themes.map(t => `
-      <div onclick="selectObTheme(${JSON.stringify(t.id)},${JSON.stringify(t.accent)})"
+      <div data-act-click="selectObTheme(${JSON.stringify(t.id)},${JSON.stringify(t.accent)})"
            id="ob-theme-${t.id}"
            style="cursor:pointer;border-radius:10px;padding:10px 14px;border:2px solid ${obPrefs.theme===t.id?t.accent:'var(--border)'};background:${t.bg};text-align:center;transition:var(--transition)">
         <div style="width:32px;height:32px;border-radius:50%;background:${t.accent};margin:0 auto 6px"></div>
@@ -199,8 +199,8 @@ window.showQuickSetup = async function() {
         <div id="qs-backends" style="margin-bottom:16px"></div>
         <div id="qs-recommended" style="padding:14px;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
-          <button onclick="document.getElementById('quick-setup-modal').remove()" class="btn-3d btn-ghost btn-sm" style="padding:8px 16px">Skip</button>
-          <button id="qs-continue" onclick="document.getElementById('quick-setup-modal').remove(); nav('chat')" class="btn-3d btn-primary btn-sm" style="padding:8px 20px">Start Chatting →</button>
+          <button data-close="id:quick-setup-modal" class="btn-3d btn-ghost btn-sm" style="padding:8px 16px">Skip</button>
+          <button id="qs-continue" data-act-click="nav('chat')" data-close="id:quick-setup-modal" class="btn-3d btn-primary btn-sm" style="padding:8px 20px">Start Chatting →</button>
         </div>
       </div>
 
@@ -208,7 +208,7 @@ window.showQuickSetup = async function() {
         <p style="font-size:12px;color:var(--text-2);margin-bottom:8px">Or paste an OpenRouter API key for 140+ models:</p>
         <div style="display:flex;gap:8px">
           <input id="qs-key-input" type="password" placeholder="sk-or-v1-..." style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none">
-          <button onclick="quickSetupWithKey()" class="btn-3d btn-primary btn-sm" style="padding:8px 16px">Connect</button>
+          <button data-act-click="quickSetupWithKey()" class="btn-3d btn-primary btn-sm" style="padding:8px 16px">Connect</button>
         </div>
       </div>
     </div>

@@ -111,8 +111,17 @@ def test_jsarg_exists_and_is_documented():
 
 
 def test_the_shipped_instance_is_fixed():
-    """selectMention was the live exploit."""
-    m = re.search(r'onclick="selectMention\(([^"]*)\)"', CORE_JS)
+    """selectMention was the live exploit.
+
+    Matches either handler syntax. Phase 2 migrated this site from
+    `onclick=` to `data-act-click=`; the property under test is that the agent
+    name is passed through jsArg(), not which attribute carries it. Pinning
+    the attribute name made this test fail on a change that did not weaken
+    anything.
+    """
+    m = re.search(
+        r'(?:onclick|data-act-click)="selectMention\(([^"]*)\)"', CORE_JS
+    )
     assert m, 'the mention handler moved — re-verify it is still safe'
     assert 'jsArg(' in m.group(1), f'still interpolating raw: {m.group(1)}'
 

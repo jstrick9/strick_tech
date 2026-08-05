@@ -23,13 +23,13 @@ async function renderWorkspaces() {
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             ${w.is_current
-              ?`<button onclick="exportCurrentZip()" class="btn btn-ghost btn-sm">📦 Export</button>`
-              :`<button data-workspace-id="${escHtml(w.id)}" data-workspace-name="${escHtml(w.name)}" onclick="activateWorkspace(this.dataset.workspaceId, this.dataset.workspaceName)" class="btn btn-primary btn-sm">Switch →</button>
-                <button data-workspace-id="${escHtml(w.id)}" onclick="exportWorkspace(this.dataset.workspaceId)" class="btn btn-ghost btn-sm">📦</button>
-                <button data-workspace-id="${escHtml(w.id)}" data-workspace-name="${escHtml(w.name)}" onclick="deleteWorkspace(this.dataset.workspaceId, this.dataset.workspaceName)" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">🗑</button>`}
+              ?`<button data-act-click="exportCurrentZip()" class="btn btn-ghost btn-sm">📦 Export</button>`
+              :`<button data-workspace-id="${escHtml(w.id)}" data-workspace-name="${escHtml(w.name)}" data-act-click="activateWorkspace($data.workspaceId,$data.workspaceName)" class="btn btn-primary btn-sm">Switch →</button>
+                <button data-workspace-id="${escHtml(w.id)}" data-act-click="exportWorkspace($data.workspaceId)" class="btn btn-ghost btn-sm">📦</button>
+                <button data-workspace-id="${escHtml(w.id)}" data-workspace-name="${escHtml(w.name)}" data-act-click="deleteWorkspace($data.workspaceId,$data.workspaceName)" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">🗑</button>`}
           </div>
         </div>`).join('')}
-        <div class="card card-interactive" onclick="createNewWorkspace()" style="display:flex;align-items:center;justify-content:center;min-height:120px;border-style:dashed;cursor:pointer">
+        <div class="card card-interactive" data-act-click="createNewWorkspace()" style="display:flex;align-items:center;justify-content:center;min-height:120px;border-style:dashed;cursor:pointer">
           <div style="text-align:center;color:var(--text-3)"><div style="font-size:24px;margin-bottom:4px">＋</div><div style="font-size:12.5px">New Project</div></div>
         </div>
       </div>
@@ -51,12 +51,12 @@ async function renderWorkspaces() {
         <div style="font-size:12px;color:var(--text-2);margin-bottom:12px">Export your entire Agentic OS database — agents, chat history, memory, tasks, prompts, and skills — as one portable JSON file. Restore it here or on another machine.</div>
         <div id="ws-backup-stats" style="font-size:11.5px;color:var(--text-3);margin-bottom:12px">Loading stats…</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <button onclick="exportFullBackup()" class="btn btn-primary btn-sm">💾 Export Full Backup</button>
+          <button data-act-click="exportFullBackup()" class="btn btn-primary btn-sm">💾 Export Full Backup</button>
           <label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
             <input type="checkbox" id="ws-backup-include-secrets">
             <span style="color:var(--text-2)">Include secrets (encrypted)</span>
           </label>
-          <button onclick="importFullBackupDialog()" class="btn btn-ghost btn-sm">⬆ Restore from Backup</button>
+          <button data-act-click="importFullBackupDialog()" class="btn btn-ghost btn-sm">⬆ Restore from Backup</button>
         </div>
       </div>
       </div>`;

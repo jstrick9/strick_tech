@@ -27,8 +27,8 @@ async function renderConnectors() {
         <p style="margin:0;color:var(--text-2);font-size:13px">Connect agents to the systems businesses already use — Slack, Jira, Google Workspace, Email, GitHub, Salesforce, Notion and custom integrations</p>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn" onclick="connectorRegister()">+ Custom Connector</button>
-        <button class="btn-sm" onclick="renderConnectors()">↻ Refresh</button>
+        <button class="btn" data-act-click="connectorRegister()">+ Custom Connector</button>
+        <button class="btn-sm" data-act-click="renderConnectors()">↻ Refresh</button>
       </div>
     </div>
 
@@ -88,10 +88,10 @@ function renderConnectorCard(c, statusColor) {
     </div>
 
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      ${c.status==='unconfigured'?`<button class="btn" data-connector-id="${escHtml(c.connector_id)}" data-connector-name="${escHtml(c.name)}" data-connector-auth="${escHtml(c.auth_type)}" onclick="connectorConfigure(this.dataset.connectorId, this.dataset.connectorName, this.dataset.connectorAuth)" style="flex:1">⚙️ Configure</button>`:
-        `<button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-connector-caps='${JSON.stringify(caps).replace(/\'/g, "&#39;")}' onclick="connectorExecute(this.dataset.connectorId, this.dataset.connectorName, JSON.parse(this.dataset.connectorCaps))">▶ Execute</button>
-         <button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" onclick="connectorHistory(this.dataset.connectorId)">📋 History</button>
-         <button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" onclick="connectorTest(this.dataset.connectorId)">🧪 Test</button>`}
+      ${c.status==='unconfigured'?`<button class="btn" data-connector-id="${escHtml(c.connector_id)}" data-connector-name="${escHtml(c.name)}" data-connector-auth="${escHtml(c.auth_type)}" data-act-click="connectorConfigure($data.connectorId,$data.connectorName,$data.connectorAuth)" style="flex:1">⚙️ Configure</button>`:
+        `<button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-connector-caps='${JSON.stringify(caps).replace(/\'/g, "&#39;")}' data-act-click="connectorExecute($data.connectorId,$data.connectorName,$json.connectorCaps)">▶ Execute</button>
+         <button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-act-click="connectorHistory($data.connectorId)">📋 History</button>
+         <button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-act-click="connectorTest($data.connectorId)">🧪 Test</button>`}
     </div>
   </div>`;
 }

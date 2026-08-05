@@ -297,6 +297,18 @@ def convert_call(stmt: str) -> str | None:
     # data-stop attribute, never as a call.
     if name in ('event.stopPropagation', 'event.preventDefault'):
         return None
+    # The shim resolves a dotted name by walking `window`. A name rooted at
+    # `this`, `event`, `document` or a DOM expression is NOT resolvable that
+    # way, so converting it would produce an attribute the shim silently
+    # refuses — a control that looks present and does nothing.
+    #
+    # Caught in review: index.html's persona <select> carried
+    #   `this.parentElement.parentElement.removeAttribute('open')`
+    # which PLAIN_CALL happily matched as a dotted "function name". The
+    # dropdown would have stopped closing, with nothing in the console.
+    root = name.split('.')[0]
+    if root in ('this', 'event', 'document', 'e', 'ev'):
+        return None
     args = split_args(raw_args)
     if args is None:
         return None

@@ -20,8 +20,8 @@ async function renderAgentIdentity() {
         <p style="margin:0;color:var(--text-2);font-size:13px">Cryptographic identity per agent · JIT access tokens · Least-privilege permissions · Zero-trust verification</p>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn" onclick="identityProvisionAll()">⚡ Provision All Agents</button>
-        <button class="btn-sm" onclick="renderAgentIdentity()">↻ Refresh</button>
+        <button class="btn" data-act-click="identityProvisionAll()">⚡ Provision All Agents</button>
+        <button class="btn-sm" data-act-click="renderAgentIdentity()">↻ Refresh</button>
       </div>
     </div>
 
@@ -72,7 +72,7 @@ async function renderAgentIdentity() {
             <option value="admin">Admin</option>
           </select>
         </div>
-        <button class="btn" onclick="identityProvisionOne()">🔑 Provision</button>
+        <button class="btn" data-act-click="identityProvisionOne()">🔑 Provision</button>
       </div>
     </div>
 
@@ -83,7 +83,7 @@ async function renderAgentIdentity() {
         <div style="font-size:32px;margin-bottom:10px">🪪</div>
         <div style="font-weight:700;margin-bottom:6px">No identities provisioned yet</div>
         <div style="color:var(--text-3);font-size:12px;margin-bottom:14px">Click "Provision All Agents" to generate cryptographic keypairs for all 8 default agents</div>
-        <button class="btn" onclick="identityProvisionAll()">⚡ Provision All Agents Now</button>
+        <button class="btn" data-act-click="identityProvisionAll()">⚡ Provision All Agents Now</button>
       </div>` : `
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px" id="identity-cards">
       ${(list.identities||[]).map(id=>renderIdentityCard(id)).join('')}
@@ -136,10 +136,10 @@ function renderIdentityCard(id) {
     </div>
 
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn-sm" onclick="identityIssueToken(${JSON.stringify(id.agent_id)})">🎫 Issue Token</button>
-      <button class="btn-sm" onclick="identityViewPerms(${JSON.stringify(id.agent_id)})">🔑 Permissions</button>
-      <button class="btn-sm" onclick="identityViewAudit(${JSON.stringify(id.agent_id)})">📋 Audit</button>
-      <button class="btn-sm" onclick="identityRotateKeys(${JSON.stringify(id.agent_id)})" style="color:var(--warning);border-color:var(--warning)">🔄 Rotate Keys</button>
+      <button class="btn-sm" data-act-click="identityIssueToken(${JSON.stringify(id.agent_id)})">🎫 Issue Token</button>
+      <button class="btn-sm" data-act-click="identityViewPerms(${JSON.stringify(id.agent_id)})">🔑 Permissions</button>
+      <button class="btn-sm" data-act-click="identityViewAudit(${JSON.stringify(id.agent_id)})">📋 Audit</button>
+      <button class="btn-sm" data-act-click="identityRotateKeys(${JSON.stringify(id.agent_id)})" style="color:var(--warning);border-color:var(--warning)">🔄 Rotate Keys</button>
     </div>
 
     <div style="margin-top:8px;font-size:10px;color:var(--text-3)">

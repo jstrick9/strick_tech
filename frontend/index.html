@@ -1290,7 +1290,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     </a>
 
     <!-- Command Palette Search (center) -->
-    <button type="button" id="palette-btn" onclick="openPalette()">
+    <button type="button" id="palette-btn" data-act-click="openPalette()">
       <span style="opacity:0.6">⌘K</span> <span class="btn-text">Search anything…</span>
     </button>
 
@@ -1302,7 +1302,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <div id="topbar-actions">
       <!-- Notification bell -->
       <div style="position:relative;display:inline-flex">
-        <button type="button" class="icon-btn" id="notif-bell-btn" onclick="toggleNotifPanel()"
+        <button type="button" class="icon-btn" id="notif-bell-btn" data-act-click="toggleNotifPanel()"
           title="Notifications" aria-label="Notifications">🔔</button>
         <span id="notif-badge" style="display:none;position:absolute;top:2px;right:2px;
           min-width:14px;height:14px;padding:0 3px;border-radius:999px;background:var(--danger);
@@ -1310,9 +1310,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           border:1.5px solid var(--bg-1);pointer-events:none"></span>
       </div>
       <!-- Settings -->
-      <button type="button" class="icon-btn" onclick="nav('settings')" title="Settings">⚙️</button>
+      <button type="button" class="icon-btn" data-act-click="nav('settings')" title="Settings">⚙️</button>
       <!-- User Profile / Account Settings -->
-      <div role="button" tabindex="0" class="icon-btn" id="user-identity-hub" onclick="if(typeof openProfilePanel==='function')openProfilePanel()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Account Settings">
+      <div role="button" tabindex="0" class="icon-btn" id="user-identity-hub" data-act-click="openProfilePanel()" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="Account Settings">
         <span id="topbar-user-avatar">👤</span>
       </div>
     </div>
@@ -1325,71 +1325,71 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <div id="sidebar" role="navigation" aria-label="Main navigation">
       <div id="sidebar-top-nav-header" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
         <span id="sidebar-nav-label" style="font-size:12px;font-weight:700;color:var(--text-0)">Navigation</span>
-        <button type="button" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="Collapse sidebar (Ctrl+B)" style="width:24px;height:24px;padding:0;font-size:12px;background:transparent;border:none;color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all 0.15s">◀</button>
+        <button type="button" id="sidebar-toggle-btn" data-act-click="toggleSidebar()" title="Collapse sidebar (Ctrl+B)" style="width:24px;height:24px;padding:0;font-size:12px;background:transparent;border:none;color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all 0.15s">◀</button>
       </div>
 
       <!-- Navigation -->
       <div class="sidebar-scroll">
                 <!-- ═══ ESSENTIALS: daily drivers ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#a5b4fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('core')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> ESSENTIALS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#a5b4fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('core')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> ESSENTIALS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
         <div class="sidebar-group-content" id="group-core">
-          <div class="nav-item active" data-nav="chat" data-tier="core" onclick="nav('chat')" data-tooltip="Chat with AI — start here" role="menuitem" aria-label="Chat">
+          <div class="nav-item active" data-nav="chat" data-tier="core" data-act-click="nav('chat')" data-tooltip="Chat with AI — start here" role="menuitem" aria-label="Chat">
             <span class="icon">💬</span><span class="label">Chat</span>
           </div>
-          <div class="nav-item" data-nav="studio" data-tier="core" onclick="nav('studio')" data-tooltip="Write code with live preview" role="menuitem" aria-label="Studio">
+          <div class="nav-item" data-nav="studio" data-tier="core" data-act-click="nav('studio')" data-tooltip="Write code with live preview" role="menuitem" aria-label="Studio">
             <span class="icon">⚡</span><span class="label">Code Studio</span>
             <span class="badge badge-live" style="font-size:9px;padding:1px 6px">LIVE</span>
           </div>
-          <div class="nav-item" data-nav="galaxy" data-tier="core" onclick="nav('galaxy')" data-tooltip="Your saved knowledge & memories" role="menuitem" aria-label="Memory">
+          <div class="nav-item" data-nav="galaxy" data-tier="core" data-act-click="nav('galaxy')" data-tooltip="Your saved knowledge & memories" role="menuitem" aria-label="Memory">
             <span class="icon">🧠</span><span class="label">Memory</span>
           </div>
-          <div class="nav-item" data-nav="kanban" data-tier="core" onclick="nav('kanban')" data-tooltip="Track tasks and to-dos" role="menuitem" aria-label="Tasks">
+          <div class="nav-item" data-nav="kanban" data-tier="core" data-act-click="nav('kanban')" data-tooltip="Track tasks and to-dos" role="menuitem" aria-label="Tasks">
             <span class="icon">✅</span><span class="label">Tasks</span>
           </div>
-          <div class="nav-item" data-nav="templates" data-tier="core" onclick="nav('templates')" data-tooltip="Start from a template" role="menuitem" aria-label="Templates">
+          <div class="nav-item" data-nav="templates" data-tier="core" data-act-click="nav('templates')" data-tooltip="Start from a template" role="menuitem" aria-label="Templates">
             <span class="icon">📋</span><span class="label">Templates</span>
           </div>
-          <div class="nav-item" data-nav="settings" data-tier="core" onclick="nav('settings')" data-tooltip="Connect AI & customize" role="menuitem" aria-label="Settings">
+          <div class="nav-item" data-nav="settings" data-tier="core" data-act-click="nav('settings')" data-tooltip="Connect AI & customize" role="menuitem" aria-label="Settings">
             <span class="icon">⚙</span><span class="label">Settings</span>
           </div>
         </div>
 
         <!-- ═══ AI TOOLS: agent capabilities ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('build')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">8</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('build')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">8</span></div>
         <div class="sidebar-group-content" id="group-build" style="display:none">
-          <div role="button" tabindex="0" class="nav-item" data-nav="supervisor" data-tier="advanced" onclick="nav('supervisor')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎯</span><span class="label">Supervisor</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="websearch" data-tier="advanced" onclick="nav('websearch')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔍</span><span class="label">Web Search</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="browser" data-tier="advanced" onclick="nav('browser')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🌐</span><span class="label">Browser Agent</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="imagegen" data-tier="advanced" onclick="nav('imagegen')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🎨</span><span class="label">Image Generator</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="prompts" data-tier="advanced" onclick="nav('prompts')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">💡</span><span class="label">Prompt Library</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="terminal" data-tier="advanced" onclick="nav('terminal')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">💻</span><span class="label">Terminal</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="hierarchy" data-tier="advanced" onclick="nav('hierarchy')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧭</span><span class="label">AI Context &amp; Guidelines</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="docs" data-tier="advanced" onclick="nav('docs')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📖</span><span class="label">Docs & Help</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="supervisor" data-tier="advanced" data-act-click="nav('supervisor')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🎯</span><span class="label">Supervisor</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="websearch" data-tier="advanced" data-act-click="nav('websearch')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🔍</span><span class="label">Web Search</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="browser" data-tier="advanced" data-act-click="nav('browser')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🌐</span><span class="label">Browser Agent</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="imagegen" data-tier="advanced" data-act-click="nav('imagegen')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🎨</span><span class="label">Image Generator</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="prompts" data-tier="advanced" data-act-click="nav('prompts')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">💡</span><span class="label">Prompt Library</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="terminal" data-tier="advanced" data-act-click="nav('terminal')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">💻</span><span class="label">Terminal</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="hierarchy" data-tier="advanced" data-act-click="nav('hierarchy')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🧭</span><span class="label">AI Context &amp; Guidelines</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="docs" data-tier="advanced" data-act-click="nav('docs')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">📖</span><span class="label">Docs & Help</span></div>
         </div>
 
         <!-- ═══ BUILD & SHIP: create and deliver ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#86efac;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('ship')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD & SHIP  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#86efac;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('ship')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD & SHIP  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
         <div class="sidebar-group-content" id="group-ship" style="display:none">
-          <div role="button" tabindex="0" class="nav-item" data-nav="composer" data-tier="advanced" onclick="nav('composer')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">✍</span><span class="label">Composer</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="workflow" data-tier="advanced" onclick="nav('workflow')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">⎈</span><span class="label">Workflows</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="github" data-tier="advanced" onclick="nav('github')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🐙</span><span class="label">GitHub</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="dbstudio" data-tier="advanced" onclick="nav('dbstudio')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🗄</span><span class="label">Database</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="workspaces" data-tier="advanced" onclick="nav('workspaces')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">📂</span><span class="label">Workspaces</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="plugins" data-tier="advanced" onclick="nav('plugins')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧩</span><span class="label">Plugins</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="composer" data-tier="advanced" data-act-click="nav('composer')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">✍</span><span class="label">Composer</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="workflow" data-tier="advanced" data-act-click="nav('workflow')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">⎈</span><span class="label">Workflows</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="github" data-tier="advanced" data-act-click="nav('github')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🐙</span><span class="label">GitHub</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="dbstudio" data-tier="advanced" data-act-click="nav('dbstudio')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🗄</span><span class="label">Database</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="workspaces" data-tier="advanced" data-act-click="nav('workspaces')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">📂</span><span class="label">Workspaces</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="plugins" data-tier="advanced" data-act-click="nav('plugins')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🧩</span><span class="label">Plugins</span></div>
         </div>
 
         <!-- ═══ CONNECT: outbound connections ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#fcd34d;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('tools')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> CONNECT  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">1</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#fcd34d;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('tools')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> CONNECT  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">1</span></div>
         <div class="sidebar-group-content" id="group-tools" style="display:none">
-          <div role="button" tabindex="0" class="nav-item" data-nav="mcp" data-tier="advanced" onclick="nav('mcp')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔧</span><span class="label">Tool Connections</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="mcp" data-tier="advanced" data-act-click="nav('mcp')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🔧</span><span class="label">Tool Connections</span></div>
         </div>
 
         <!-- ═══ OPERATE: run and verify ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#f0abfc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" onclick="toggleSidebarGroup('enterprise')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> OPERATE  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">3</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#f0abfc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('enterprise')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> OPERATE  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">3</span></div>
         <div class="sidebar-group-content" id="group-enterprise" style="display:none">
-          <div role="button" tabindex="0" class="nav-item" data-nav="observability" data-tier="advanced" onclick="nav('observability')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔭</span><span class="label">Observability</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="evals" data-tier="advanced" onclick="nav('evals')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🧪</span><span class="label">Evals</span></div>
-          <div role="button" tabindex="0" class="nav-item" data-nav="secrets" data-tier="advanced" onclick="nav('secrets')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><span class="icon">🔐</span><span class="label">Secrets Vault</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="observability" data-tier="advanced" data-act-click="nav('observability')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🔭</span><span class="label">Observability</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="evals" data-tier="advanced" data-act-click="nav('evals')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🧪</span><span class="label">Evals</span></div>
+          <div role="button" tabindex="0" class="nav-item" data-nav="secrets" data-tier="advanced" data-act-click="nav('secrets')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🔐</span><span class="label">Secrets Vault</span></div>
         </div>
 
       </div>
@@ -1398,7 +1398,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       <div id="sidebar-agents-section" style="border-top:1px solid var(--border);padding:8px;flex-shrink:0">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 6px;margin-bottom:4px">
           <span style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px">Agents</span>
-          <button type="button" onclick="openAgentModal()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;padding:0;line-height:1" title="Add Agent">+</button>
+          <button type="button" data-act-click="openAgentModal()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;padding:0;line-height:1" title="Add Agent">+</button>
         </div>
         <div class="agent-list" id="agent-list" style="max-height:120px;overflow-y:auto"></div>
       </div>
@@ -1410,7 +1410,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <div id="content">
       <!-- Sticky Contextual Breadcrumb Bar (Phase A) -->
       <div id="sticky-breadcrumb-bar" style="background:var(--bg-1);border-bottom:1px solid var(--border);padding:8px 24px;font-size:12.5px;color:var(--text-2);display:flex;align-items:center;gap:8px;flex-shrink:0;user-select:none">
-        <span onclick="nav('chat')" style="cursor:pointer;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:4px">🏠 Mission Control</span>
+        <span data-act-click="nav('chat')" style="cursor:pointer;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:4px">🏠 Mission Control</span>
         <span style="opacity:.4">›</span>
         <span id="breadcrumb-current-pane" style="color:var(--text-0);font-weight:700;display:flex;align-items:center;gap:6px">💬 Chat</span>
         <span id="breadcrumb-sub-context" style="margin-left:auto;font-size:11.5px;color:var(--text-3);display:flex;align-items:center;gap:6px"></span>
@@ -1430,11 +1430,11 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   <button type="button" id="folder-settings-btn" title="Folder settings" style="background:none;border:1px solid var(--border);color:var(--text-2);cursor:pointer;font-size:13px;padding:2px 6px;border-radius:6px;transition:all .12s">⚙</button>
                 </div>
               </div>
-              <input type="text" id="chat-sessions-search" placeholder="🔍 Search chats..." oninput="if(typeof filterChatSessions==='function')filterChatSessions(this.value)" style="width:100%; background:var(--bg-2); border:1px solid var(--border-hi); border-radius:8px; padding:6px 10px; color:var(--text-0); font-size:12px; outline:none">
+              <input type="text" id="chat-sessions-search" placeholder="🔍 Search chats..." data-act-input="filterChatSessions($value)" style="width:100%; background:var(--bg-2); border:1px solid var(--border-hi); border-radius:8px; padding:6px 10px; color:var(--text-0); font-size:12px; outline:none">
               <!-- View toggle -->
               <div style="display:flex; gap:2px; margin-top:8px; background:var(--bg-2); border-radius:6px; padding:2px; border:1px solid var(--border)">
-                <button type="button" id="view-folders-btn" onclick="switchChatView('folders')" style="flex:1;padding:4px 8px;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;transition:all .12s;background:var(--accent);color:#fff">📁 Folders</button>
-                <button type="button" id="view-date-btn" onclick="switchChatView('date')" style="flex:1;padding:4px 8px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;background:transparent;color:var(--text-2)">📅 Date</button>
+                <button type="button" id="view-folders-btn" data-act-click="switchChatView('folders')" style="flex:1;padding:4px 8px;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;transition:all .12s;background:var(--accent);color:#fff">📁 Folders</button>
+                <button type="button" id="view-date-btn" data-act-click="switchChatView('date')" style="flex:1;padding:4px 8px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;background:transparent;color:var(--text-2)">📅 Date</button>
               </div>
             </div>
             <!-- Chat list (scrollable) -->
@@ -1443,9 +1443,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             </div>
             <!-- Pagination (only shown in date view) -->
             <div id="chat-sessions-pagination" style="padding:6px 10px; border-top:1px solid var(--border); background:var(--bg-1); display:none; align-items:center; justify-content:space-between; gap:4px; font-size:11px; color:var(--text-2); flex-shrink:0">
-              <button type="button" id="chat-page-prev" class="btn-3d btn-ghost btn-sm" onclick="if(typeof changeChatPage==='function')changeChatPage(-1)" style="padding:2px 8px; font-size:10.5px">◀ Prev</button>
+              <button type="button" id="chat-page-prev" class="btn-3d btn-ghost btn-sm" data-act-click="changeChatPage(-1)" style="padding:2px 8px; font-size:10.5px">◀ Prev</button>
               <span id="chat-page-indicator" style="font-weight:700; color:var(--text-0)">Page 1 of 1</span>
-              <button type="button" id="chat-page-next" class="btn-3d btn-ghost btn-sm" onclick="if(typeof changeChatPage==='function')changeChatPage(1)" style="padding:2px 8px; font-size:10.5px">Next ▶</button>
+              <button type="button" id="chat-page-next" class="btn-3d btn-ghost btn-sm" data-act-click="changeChatPage(1)" style="padding:2px 8px; font-size:10.5px">Next ▶</button>
             </div>
           </div>
           <div id="chat-drawer-resizer" style="width:4px;cursor:col-resize;flex-shrink:0;background:transparent;transition:background .15s;position:relative;z-index:10"></div>
@@ -1453,12 +1453,12 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <!-- Main Chat Container -->
           <div id="chat-main-container" style="flex:1; display:flex; flex-direction:column; min-width:0; height:100%">
             <div class="chat-header" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg-1);flex-shrink:0;flex-wrap:wrap;overflow:visible;z-index:10">
-              <button type="button" id="history-toggle-btn" class="btn-3d btn-ghost btn-sm" onclick="toggleChatHistoryDrawer()" style="padding:6px 10px;display:flex;align-items:center;gap:6px" title="Toggle Chat History Sidebar">📁 Hide History</button>
-              <button type="button" class="btn-3d btn-primary btn-sm" onclick="startNewChatSession()" style="padding:6px 10px;display:flex;align-items:center;gap:6px;font-weight:700">＋ New</button>
+              <button type="button" id="history-toggle-btn" class="btn-3d btn-ghost btn-sm" data-act-click="toggleChatHistoryDrawer()" style="padding:6px 10px;display:flex;align-items:center;gap:6px" title="Toggle Chat History Sidebar">📁 Hide History</button>
+              <button type="button" class="btn-3d btn-primary btn-sm" data-act-click="startNewChatSession()" style="padding:6px 10px;display:flex;align-items:center;gap:6px;font-weight:700">＋ New</button>
 
               <div id="chat-model-control" style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:4px 10px">
                 <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Model</span>
-                <select id="chat-model-select" onchange="if(typeof selectChatModel === 'function') selectChatModel(this.value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
+                <select id="chat-model-select" data-act-change="selectChatModel($value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px">
                   <optgroup label="Cloud AI">
                     <option value="claude">Claude 3.5 Sonnet</option>
                     <option value="claude-opus">Claude Opus 4</option>
@@ -1475,7 +1475,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                     <option value="custom">Custom Endpoint</option>
                   </optgroup>
                 </select>
-                <button type="button" id="chat-connection-status" class="connection-status checking" onclick="nav('settings');switchSettingsTab('api')" title="Check or change your AI connection" style="font-size:10px">●</button>
+                <button type="button" id="chat-connection-status" class="connection-status checking" data-act-click="nav('settings');switchSettingsTab('api')" title="Check or change your AI connection" style="font-size:10px">●</button>
               </div>
 
               <details id="chat-persona-details" style="position:relative">
@@ -1503,7 +1503,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <span id="active-model-badge" style="display:none"></span>
 
               <div class="spacer"></div>
-              <button type="button" class="btn-3d btn-ghost btn-sm" onclick="clearChatHistory()" style="padding:6px 12px">🗑 Clear Chat</button>
+              <button type="button" class="btn-3d btn-ghost btn-sm" data-act-click="clearChatHistory()" style="padding:6px 12px">🗑 Clear Chat</button>
             </div>
 
             <div id="chat-messages">
@@ -1515,22 +1515,22 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <!-- Quick Actions -->
                 <div style="margin-top:24px;max-width:560px">
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                    <div role="button" tabindex="0" class="quick-action-card" onclick="randomBuildPrompt()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+                    <div role="button" tabindex="0" class="quick-action-card" data-act-click="randomBuildPrompt()" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
                       <span class="icon">⚡</span>
                       <span class="title">Build something</span>
                       <span class="desc">Create an app, page, or workflow</span>
                     </div>
-                    <div role="button" tabindex="0" class="quick-action-card" onclick="randomResearchPrompt()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+                    <div role="button" tabindex="0" class="quick-action-card" data-act-click="randomResearchPrompt()" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
                       <span class="icon">🔍</span>
                       <span class="title">Research a topic</span>
                       <span class="desc">Deep dive into any subject</span>
                     </div>
-                    <div role="button" tabindex="0" class="quick-action-card" onclick="randomCodePrompt()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+                    <div role="button" tabindex="0" class="quick-action-card" data-act-click="randomCodePrompt()" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
                       <span class="icon">🛠</span>
                       <span class="title">Improve my code</span>
                       <span class="desc">Review, refactor, or debug</span>
                     </div>
-                    <div role="button" tabindex="0" class="quick-action-card" onclick="nav('templates')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+                    <div role="button" tabindex="0" class="quick-action-card" data-act-click="nav('templates')" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
                       <span class="icon">📋</span>
                       <span class="title">Start from template</span>
                       <span class="desc">One-click deploy a project</span>
@@ -1542,8 +1542,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
             <div class="chat-input-area">
               <div class="chat-tools">
-                <button type="button" class="chat-tool" onclick="toggleRag()" id="rag-btn" title="Use your saved memories to improve answers">🧠 Memory</button>
-                <button type="button" class="chat-tool" onclick="toggleStream()" id="stream-btn" title="See responses as they're generated">⚡ Stream</button>
+                <button type="button" class="chat-tool" data-act-click="toggleRag()" id="rag-btn" title="Use your saved memories to improve answers">🧠 Memory</button>
+                <button type="button" class="chat-tool" data-act-click="toggleStream()" id="stream-btn" title="See responses as they're generated">⚡ Stream</button>
               </div>
               <div id="chat-attachment-tray" class="chat-attachment-tray" aria-live="polite"></div>
               <div class="chat-input-row">
@@ -1567,8 +1567,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0">
             <span style="font-size:12px;font-weight:700;color:var(--text-1)">📁 Files</span>
             <div style="display:flex;gap:4px">
-              <button type="button" onclick="openNewFileModal()" class="icon-btn" style="width:24px;height:24px;font-size:14px" title="New file">+</button>
-              <button type="button" onclick="toggleStudioSidebar()" class="icon-btn" style="width:24px;height:24px;font-size:12px" title="Collapse">◀</button>
+              <button type="button" data-act-click="openNewFileModal()" class="icon-btn" style="width:24px;height:24px;font-size:14px" title="New file">+</button>
+              <button type="button" data-act-click="toggleStudioSidebar()" class="icon-btn" style="width:24px;height:24px;font-size:12px" title="Collapse">◀</button>
             </div>
           </div>
           <div id="studio-file-tree" style="flex:0 0 auto;max-height:220px;overflow-y:auto;padding:4px"></div>
@@ -1583,14 +1583,14 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <option value="expo">📱 Expo React Native</option>
             </select>
             <textarea id="studio-scaffold-prompt" placeholder="Describe your app…" rows="2" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 7px;color:var(--text-1);font-size:11.5px;resize:none;outline:none;font-family:inherit;margin-bottom:5px"></textarea>
-            <button type="button" onclick="studioScaffold()" class="btn btn-primary" style="width:100%;font-size:12px;padding:6px">⚡ Scaffold</button>
+            <button type="button" data-act-click="studioScaffold()" class="btn btn-primary" style="width:100%;font-size:12px;padding:6px">⚡ Scaffold</button>
           </div>
 
           <!-- AI chat panel -->
           <div class="studio-chat-panel" style="flex:1;min-height:0">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-top:1px solid var(--border);flex-shrink:0">
               <span style="font-size:11px;font-weight:700;color:var(--text-2)">🤖 AI Chat</span>
-              <button type="button" onclick="clearStudioChat()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:10px">Clear</button>
+              <button type="button" data-act-click="clearStudioChat()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:10px">Clear</button>
             </div>
             <div class="studio-chat-msgs" id="studio-chat-msgs">
               <div class="studio-msg agent">👋 Describe a change and I'll update the code instantly.</div>
@@ -1601,12 +1601,12 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div class="studio-ai-bar">
             <div class="studio-ai-input-row">
               <input class="studio-ai-input" id="studio-ai-input" placeholder="Make the header blue… / Add dark mode…" autocomplete="off">
-              <button type="button" onclick="studioAIEdit()" style="background:var(--accent);border:none;color:white;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:14px;flex-shrink:0">➤</button>
+              <button type="button" data-act-click="studioAIEdit()" style="background:var(--accent);border:none;color:white;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:14px;flex-shrink:0">➤</button>
             </div>
             <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-              <button type="button" onclick="studioAIInput('Add a dark mode toggle')" class="chat-tool" style="font-size:10.5px">🌙 Dark mode</button>
-              <button type="button" onclick="studioAIInput('Make it mobile responsive')" class="chat-tool" style="font-size:10.5px">📱 Responsive</button>
-              <button type="button" onclick="studioAIInput('Fix any bugs in the code')" class="chat-tool" style="font-size:10.5px">🔧 Fix bugs</button>
+              <button type="button" data-act-click="studioAIInput('Add a dark mode toggle')" class="chat-tool" style="font-size:10.5px">🌙 Dark mode</button>
+              <button type="button" data-act-click="studioAIInput('Make it mobile responsive')" class="chat-tool" style="font-size:10.5px">📱 Responsive</button>
+              <button type="button" data-act-click="studioAIInput('Fix any bugs in the code')" class="chat-tool" style="font-size:10.5px">🔧 Fix bugs</button>
             </div>
           </div>
         </div>
@@ -1618,15 +1618,15 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <div class="studio-editor-panel" id="studio-editor-panel" style="width:42%;min-width:200px">
           <!-- Editor toolbar -->
           <div class="studio-toolbar">
-            <button type="button" onclick="toggleStudioSidebar()" class="icon-btn" title="Toggle sidebar">☰</button>
+            <button type="button" data-act-click="toggleStudioSidebar()" class="icon-btn" title="Toggle sidebar">☰</button>
             <div class="divider"></div>
             <span id="studio-ed-file" style="font-size:12px;color:var(--text-2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">index.html</span>
             <span class="autosave-dot" id="autosave-dot" title="Auto-save"></span>
             <div class="divider"></div>
             <span class="hmr-badge" id="hmr-badge">⚡ LIVE</span>
             <div class="divider"></div>
-            <button type="button" onclick="studioSaveFile()" class="btn btn-primary btn-sm">💾 Save</button>
-            <button type="button" onclick="studioCommit()" class="btn btn-ghost btn-sm">📸</button>
+            <button type="button" data-act-click="studioSaveFile()" class="btn btn-primary btn-sm">💾 Save</button>
+            <button type="button" data-act-click="studioCommit()" class="btn btn-ghost btn-sm">📸</button>
           </div>
           <!-- Monaco -->
           <div id="studio-monaco-host" style="flex:1;min-height:0"></div>
@@ -1634,7 +1634,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div style="padding:3px 10px;border-top:1px solid var(--border);background:var(--bg-1);font-size:10.5px;color:var(--text-3);display:flex;gap:12px;flex-shrink:0;position:relative">
             <span id="studio-ed-lang">html</span>
             <span id="studio-ed-cursor">Ln 1, Col 1</span>
-            <button type="button" id="studio-ed-versions" onclick="toggleStudioVersionHistory()" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:10.5px;padding:0;text-decoration:underline dotted" title="Browse version history">0 versions</button>
+            <button type="button" id="studio-ed-versions" data-act-click="toggleStudioVersionHistory()" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:10.5px;padding:0;text-decoration:underline dotted" title="Browse version history">0 versions</button>
             <!-- Version history popover -->
             <div id="studio-version-history" style="display:none;position:absolute;bottom:22px;right:8px;width:280px;max-height:280px;overflow-y:auto;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:50;padding:6px">
               <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;padding:4px 6px">Version History</div>
@@ -1651,24 +1651,24 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <!-- Preview toolbar -->
           <div class="preview-toolbar">
             <!-- Device picker -->
-            <div role="button" tabindex="0" class="device-btn active" id="dev-desktop" onclick="studioSetDevice('desktop')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Desktop">🖥️ Desktop</div>
-            <div role="button" tabindex="0" class="device-btn" id="dev-tablet"  onclick="studioSetDevice('tablet')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"  title="Tablet (768px)">📋 Tablet</div>
-            <div role="button" tabindex="0" class="device-btn" id="dev-mobile"  onclick="studioSetDevice('mobile')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"  title="Phone (390px)">📱 Phone</div>
-            <div role="button" tabindex="0" class="device-btn" id="dev-full"    onclick="studioSetDevice('full')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"    title="Full width">⬜ Full</div>
+            <div role="button" tabindex="0" class="device-btn active" id="dev-desktop" data-act-click="studioSetDevice('desktop')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="Desktop">🖥️ Desktop</div>
+            <div role="button" tabindex="0" class="device-btn" id="dev-tablet"  data-act-click="studioSetDevice('tablet')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"  title="Tablet (768px)">📋 Tablet</div>
+            <div role="button" tabindex="0" class="device-btn" id="dev-mobile"  data-act-click="studioSetDevice('mobile')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"  title="Phone (390px)">📱 Phone</div>
+            <div role="button" tabindex="0" class="device-btn" id="dev-full"    data-act-click="studioSetDevice('full')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"    title="Full width">⬜ Full</div>
             <div class="divider"></div>
             <!-- Breakpoints -->
-            <button type="button" class="bp-btn" onclick="studioSetBreakpoint(375)"  title="iPhone SE">375</button>
-            <button type="button" class="bp-btn" onclick="studioSetBreakpoint(768)"  title="iPad">768</button>
-            <button type="button" class="bp-btn" onclick="studioSetBreakpoint(1280)" title="Desktop">1280</button>
+            <button type="button" class="bp-btn" data-act-click="studioSetBreakpoint(375)"  title="iPhone SE">375</button>
+            <button type="button" class="bp-btn" data-act-click="studioSetBreakpoint(768)"  title="iPad">768</button>
+            <button type="button" class="bp-btn" data-act-click="studioSetBreakpoint(1280)" title="Desktop">1280</button>
             <div class="divider"></div>
             <!-- Actions -->
-            <button type="button" class="device-btn" onclick="studioReloadPreview()" title="Reload preview">⟳</button>
+            <button type="button" class="device-btn" data-act-click="studioReloadPreview()" title="Reload preview">⟳</button>
             <button type="button" class="device-btn" onclick="openExternalLink(location.origin + studioPreviewUrl())" title="Open in new tab">↗</button>
-            <button type="button" class="device-btn" onclick="studioScreenshot()" title="Screenshot">📷</button>
-            <button type="button" class="device-btn" onclick="studioQR()" title="QR code for phone">📲</button>
+            <button type="button" class="device-btn" data-act-click="studioScreenshot()" title="Screenshot">📷</button>
+            <button type="button" class="device-btn" data-act-click="studioQR()" title="QR code for phone">📲</button>
             <!-- Zoom -->
             <div class="zoom-ctrl">
-              <button type="button" class="zoom-btn" onclick="studioZoom(-10)">−</button>
+              <button type="button" class="zoom-btn" data-act-click="studioZoom(-10)">−</button>
               <span class="zoom-label" id="studio-zoom-label">100%</span>
               <button type="button" class="zoom-btn" onclick="studioZoom(+10)">+</button>
             </div>
@@ -1678,7 +1678,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--bg-2);border-bottom:1px solid var(--border);flex-shrink:0">
             <span style="font-size:11px;color:var(--text-3)">🌐</span>
             <div style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:11.5px;color:var(--text-2);font-family:monospace;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" id="studio-url-bar">localhost:8787/preview/index.html</div>
-            <button type="button" onclick="studioReloadPreview()" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:13px">⟳</button>
+            <button type="button" data-act-click="studioReloadPreview()" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:13px">⟳</button>
           </div>
 
           <!-- Iframe wrapper with device frame -->
@@ -1694,8 +1694,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <!-- Error overlay (hidden by default) -->
             <div id="studio-error-bar" class="preview-error-bar" style="display:none">
               <span id="studio-error-text">JS Error detected</span>
-              <button type="button" onclick="studioAIFix()">🔧 Fix with AI</button>
-              <button type="button" onclick="document.getElementById('studio-error-bar').style.display='none'" style="margin-left:auto">✕</button>
+              <button type="button" data-act-click="studioAIFix()">🔧 Fix with AI</button>
+              <button type="button" data-hide="id:studio-error-bar" style="margin-left:auto">✕</button>
             </div>
           </div>
 
@@ -1708,8 +1708,8 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <span id="diff-overlay-title" style="font-weight:800;font-size:14px">⇄ AI Proposed Changes</span>
               <span id="diff-overlay-file" style="font-size:12px;color:var(--text-2)"></span>
               <div style="margin-left:auto;display:flex;gap:8px">
-                <button type="button" class="diff-reject-btn" onclick="studioRejectDiff()">✕ Reject</button>
-                <button type="button" class="diff-accept-btn" onclick="studioAcceptDiff()">✓ Accept & Apply</button>
+                <button type="button" class="diff-reject-btn" data-act-click="studioRejectDiff()">✕ Reject</button>
+                <button type="button" class="diff-accept-btn" data-act-click="studioAcceptDiff()">✓ Accept & Apply</button>
               </div>
             </div>
             <div class="diff-overlay-body" id="studio-diff-host"></div>
@@ -1721,14 +1721,14 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div id="studio-console-drawer" style="display:flex;flex-direction:column;height:170px;flex-shrink:0;background:var(--bg-1);border-top:1px solid var(--border-hi);transition:height 0.2s ease">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 14px;background:var(--bg-2);border-bottom:1px solid var(--border);flex-shrink:0">
               <div style="display:flex;align-items:center;gap:6px">
-                <button type="button" class="studio-console-tab active btn-3d btn-sm" onclick="switchStudioConsoleTab('build')" id="con-tab-build" style="padding:4px 10px;font-size:11px">🖥️ Live Build Output</button>
-                <button type="button" class="studio-console-tab btn-3d btn-ghost btn-sm" onclick="switchStudioConsoleTab('lint')" id="con-tab-lint" style="padding:4px 10px;font-size:11px">🐍 Python Diagnostics (ruff)</button>
-                <button type="button" class="studio-console-tab btn-3d btn-ghost btn-sm" onclick="switchStudioConsoleTab('hmr')" id="con-tab-hmr" style="padding:4px 10px;font-size:11px">⚡ HMR Events (<span id="con-hmr-count">0</span>)</button>
+                <button type="button" class="studio-console-tab active btn-3d btn-sm" data-act-click="switchStudioConsoleTab('build')" id="con-tab-build" style="padding:4px 10px;font-size:11px">🖥️ Live Build Output</button>
+                <button type="button" class="studio-console-tab btn-3d btn-ghost btn-sm" data-act-click="switchStudioConsoleTab('lint')" id="con-tab-lint" style="padding:4px 10px;font-size:11px">🐍 Python Diagnostics (ruff)</button>
+                <button type="button" class="studio-console-tab btn-3d btn-ghost btn-sm" data-act-click="switchStudioConsoleTab('hmr')" id="con-tab-hmr" style="padding:4px 10px;font-size:11px">⚡ HMR Events (<span id="con-hmr-count">0</span>)</button>
               </div>
               <div style="display:flex;align-items:center;gap:6px">
-                <button type="button" onclick="runStudioConsoleLint()" class="btn-3d btn-ghost btn-sm" style="padding:3px 8px;font-size:10.5px" title="Run Linter Now">▶ Linter</button>
-                <button type="button" onclick="clearStudioConsole()" class="btn-3d btn-ghost btn-sm" style="padding:3px 8px;font-size:10.5px">🗑 Clear</button>
-                <button type="button" onclick="toggleStudioConsoleDrawer()" id="con-collapse-btn" class="btn-3d btn-ghost btn-sm" style="padding:3px 8px;font-size:10.5px" title="Toggle Console Height">▼ Collapse</button>
+                <button type="button" data-act-click="runStudioConsoleLint()" class="btn-3d btn-ghost btn-sm" style="padding:3px 8px;font-size:10.5px" title="Run Linter Now">▶ Linter</button>
+                <button type="button" data-act-click="clearStudioConsole()" class="btn-3d btn-ghost btn-sm" style="padding:3px 8px;font-size:10.5px">🗑 Clear</button>
+                <button type="button" data-act-click="toggleStudioConsoleDrawer()" id="con-collapse-btn" class="btn-3d btn-ghost btn-sm" style="padding:3px 8px;font-size:10.5px" title="Toggle Console Height">▼ Collapse</button>
               </div>
             </div>
             <div id="con-panel-build" class="studio-console-panel" style="flex:1;overflow-y:auto;padding:12px;font-family:monospace;font-size:12px;background:#04060f;color:#a7f3d0">
@@ -2085,10 +2085,10 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         <div id="galaxy-container">
           <div id="gx-graph"></div>
           <div style="position:absolute;top:12px;left:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <button type="button" onclick="if(typeof gxAddMemory==='function') gxAddMemory()" class="btn-primary btn-sm btn-3d" style="background:var(--accent);color:#fff">＋ Add Memory</button>
-            <button type="button" onclick="refreshGalaxy()" class="btn-ghost btn-sm btn-3d">⟳ Refresh</button>
-            <button type="button" onclick="fitGalaxy()" class="btn-ghost btn-sm btn-3d">⊡ Fit</button>
-            <select id="gx-limit" onchange="refreshGalaxy()" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text-1);font-size:12px">
+            <button type="button" data-act-click="gxAddMemory()" class="btn-primary btn-sm btn-3d" style="background:var(--accent);color:#fff">＋ Add Memory</button>
+            <button type="button" data-act-click="refreshGalaxy()" class="btn-ghost btn-sm btn-3d">⟳ Refresh</button>
+            <button type="button" data-act-click="fitGalaxy()" class="btn-ghost btn-sm btn-3d">⊡ Fit</button>
+            <select id="gx-limit" data-act-change="refreshGalaxy()" style="background:var(--bg-2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text-1);font-size:12px">
               <option value="120">120 nodes</option>
               <option value="250" selected>250 nodes</option>
               <option value="500">500 nodes</option>
@@ -2100,15 +2100,15 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
             <span style="font-size:13px;font-weight:700">🌌 Memory Galaxy</span>
             <div style="display:flex;gap:4px">
-              <button type="button" onclick="gxReindex()" class="btn btn-ghost btn-sm" title="Reindex FTS">↻</button>
-              <button type="button" onclick="gxExport()" class="btn btn-ghost btn-sm" title="Export memories">⬇</button>
-              <button type="button" onclick="gxImport()" class="btn btn-ghost btn-sm" title="Import memories">⬆</button>
+              <button type="button" data-act-click="gxReindex()" class="btn btn-ghost btn-sm" title="Reindex FTS">↻</button>
+              <button type="button" data-act-click="gxExport()" class="btn btn-ghost btn-sm" title="Export memories">⬇</button>
+              <button type="button" data-act-click="gxImport()" class="btn btn-ghost btn-sm" title="Import memories">⬆</button>
             </div>
           </div>
           <div id="gx-mem-stats" style="padding:6px 12px;font-size:11px;color:var(--text-3);border-bottom:1px solid var(--border);display:flex;gap:12px"></div>
           <div class="galaxy-search-row">
-            <input id="gx-search" placeholder="Semantic search…" onkeydown="if(event.key==='Enter')doGxSearch()">
-            <button type="button" onclick="doGxSearch()" class="btn btn-primary btn-sm">🔍</button>
+            <input id="gx-search" placeholder="Semantic search…" data-act-keydown="doGxSearch()" data-keys="Enter">
+            <button type="button" data-act-click="doGxSearch()" class="btn btn-primary btn-sm">🔍</button>
           </div>
           <div id="gx-results" style="flex:1;overflow-y:auto;padding:8px">
             <div style="color:var(--text-3);font-size:12px;text-align:center;padding:20px">
@@ -2119,7 +2119,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             <textarea id="gx-ingest-text" placeholder="Add memory…" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px;color:var(--text-1);font-size:12px;resize:none;min-height:60px;outline:none"></textarea>
             <div style="display:flex;gap:6px;margin-top:6px">
               <input id="gx-ingest-tags" placeholder="tags (optional)" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;color:var(--text-1);font-size:12px;outline:none">
-              <button type="button" onclick="ingestMemory()" class="btn btn-primary btn-sm">+ Add</button>
+              <button type="button" data-act-click="ingestMemory()" class="btn btn-primary btn-sm">+ Add</button>
             </div>
           </div>
         </div>
@@ -2140,16 +2140,16 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
-            <button type="button" onclick="openHierarchyInterview()" class="btn btn-primary btn-sm" style="display:flex;align-items:center;gap:6px">
+            <button type="button" data-act-click="openHierarchyInterview()" class="btn btn-primary btn-sm" style="display:flex;align-items:center;gap:6px">
               <span>🤖</span> AI Interview Me
             </button>
-            <button type="button" onclick="openNewProjectIvrenModal()" class="btn btn-ghost btn-sm" style="display:flex;align-items:center;gap:6px">
+            <button type="button" data-act-click="openNewProjectIvrenModal()" class="btn btn-ghost btn-sm" style="display:flex;align-items:center;gap:6px">
               <span>+</span> New Project Hierarchy
             </button>
-            <button type="button" onclick="previewCompiledContext()" class="btn btn-ghost btn-sm" title="Preview compiled XML context injected into LLMs">
+            <button type="button" data-act-click="previewCompiledContext()" class="btn btn-ghost btn-sm" title="Preview compiled XML context injected into LLMs">
               <span>📜</span> Preview Injection
             </button>
-            <button type="button" onclick="toggleHierarchySplitPreview()" id="h-split-toggle-btn" class="btn btn-ghost btn-sm" title="Toggle Side-by-Side Live XML Split Preview">
+            <button type="button" data-act-click="toggleHierarchySplitPreview()" id="h-split-toggle-btn" class="btn btn-ghost btn-sm" title="Toggle Side-by-Side Live XML Split Preview">
               <span>🌗</span> Split Preview
             </button>
           </div>
@@ -2157,10 +2157,10 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
         <!-- Sub-tabs for Tier 1 vs Tier 2 vs AI Guidelines -->
         <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg-1);padding:0 24px;gap:24px">
-          <button type="button" id="h-tab-tier1" onclick="switchHierarchyTab('tier1')" class="h-tab active" style="padding:12px 0;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text-0);font-weight:700;font-size:13.5px;cursor:pointer">
+          <button type="button" id="h-tab-tier1" data-act-click="switchHierarchyTab('tier1')" class="h-tab active" style="padding:12px 0;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text-0);font-weight:700;font-size:13.5px;cursor:pointer">
             🏢 Tier 1: Universal Business Context (4 Files)
           </button>
-          <button type="button" id="h-tab-tier2" onclick="switchHierarchyTab('tier2')" class="h-tab" style="padding:12px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:13.5px;cursor:pointer">
+          <button type="button" id="h-tab-tier2" data-act-click="switchHierarchyTab('tier2')" class="h-tab" style="padding:12px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:13.5px;cursor:pointer">
             📁 Tier 2: Project IVREN Subfolders (<span id="h-project-count">0</span>)
           </button>
           <!-- MODULE MERGE: this tab replaces the old standalone "AI Guidelines"
@@ -2168,7 +2168,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                project rules + auto-learned patterns, injected into every AI
                call), now living alongside Tier 1/2 so all persistent AI
                context lives in one place instead of two disconnected panes. -->
-          <button type="button" id="h-tab-guidelines" onclick="switchHierarchyTab('guidelines')" class="h-tab" style="padding:12px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:13.5px;cursor:pointer">
+          <button type="button" id="h-tab-guidelines" data-act-click="switchHierarchyTab('guidelines')" class="h-tab" style="padding:12px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:13.5px;cursor:pointer">
             🧭 AI Guidelines (Coding & Project Rules)
           </button>
         </div>
@@ -2180,16 +2180,16 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <!-- Left list of 4 files -->
           <div style="width:240px;border-right:1px solid var(--border);background:var(--bg-1);display:flex;flex-direction:column;padding:12px;gap:6px">
             <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:4px;letter-spacing:0.5px">Universal Files</div>
-            <div role="button" tabindex="0" onclick="selectTier1File('about_me')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" id="t1-item-about_me" class="t1-file-item active" style="padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;background:rgba(91,138,248,.1);border:1px solid var(--border-hi);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
+            <div role="button" tabindex="0" data-act-click="selectTier1File('about_me')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" id="t1-item-about_me" class="t1-file-item active" style="padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;background:rgba(91,138,248,.1);border:1px solid var(--border-hi);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
               <span>👤</span> About Me
             </div>
-            <div role="button" tabindex="0" onclick="selectTier1File('about_my_business')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" id="t1-item-about_my_business" class="t1-file-item" style="padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;background:transparent;border:1px solid transparent;font-size:13px;display:flex;align-items:center;gap:8px">
+            <div role="button" tabindex="0" data-act-click="selectTier1File('about_my_business')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" id="t1-item-about_my_business" class="t1-file-item" style="padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;background:transparent;border:1px solid transparent;font-size:13px;display:flex;align-items:center;gap:8px">
               <span>🏢</span> About My Business
             </div>
-            <div role="button" tabindex="0" onclick="selectTier1File('about_my_voice')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" id="t1-item-about_my_voice" class="t1-file-item" style="padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;background:transparent;border:1px solid transparent;font-size:13px;display:flex;align-items:center;gap:8px">
+            <div role="button" tabindex="0" data-act-click="selectTier1File('about_my_voice')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" id="t1-item-about_my_voice" class="t1-file-item" style="padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;background:transparent;border:1px solid transparent;font-size:13px;display:flex;align-items:center;gap:8px">
               <span>🗣️</span> Voice & Tone <span style="font-size:10px;background:#f59e0b;color:#000;padding:1px 5px;border-radius:6px;font-weight:800;margin-left:auto">Highest Leverage</span>
             </div>
-            <div role="button" tabindex="0" onclick="selectTier1File('about_my_offers')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" id="t1-item-about_my_offers" class="t1-file-item" style="padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;background:transparent;border:1px solid transparent;font-size:13px;display:flex;align-items:center;gap:8px">
+            <div role="button" tabindex="0" data-act-click="selectTier1File('about_my_offers')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" id="t1-item-about_my_offers" class="t1-file-item" style="padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;background:transparent;border:1px solid transparent;font-size:13px;display:flex;align-items:center;gap:8px">
               <span>💎</span> Offers & Pricing
             </div>
             <div style="margin-top:auto;padding:12px;background:var(--bg-2);border-radius:var(--radius-sm);border:1px solid var(--border);font-size:11.5px;color:var(--text-2);line-height:1.5">
@@ -2200,7 +2200,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div style="flex:1;display:flex;flex-direction:column;padding:20px;background:var(--bg-0);overflow:hidden">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
               <span id="t1-editor-title" style="font-size:15px;font-weight:700;color:var(--text-0)">Editing: about_me.md</span>
-              <button type="button" onclick="saveCurrentTier1File()" class="btn btn-primary btn-sm">💾 Save File</button>
+              <button type="button" data-act-click="saveCurrentTier1File()" class="btn btn-primary btn-sm">💾 Save File</button>
             </div>
             <textarea id="t1-editor-textarea" style="flex:1;width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius);padding:16px;color:var(--text-0);font-family:monospace;font-size:13px;line-height:1.6;resize:none;outline:none"></textarea>
           </div>
@@ -2212,7 +2212,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div style="width:240px;border-right:1px solid var(--border);background:var(--bg-1);display:flex;flex-direction:column;padding:12px;gap:6px">
             <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between">
               <span>Project Folders</span>
-              <span onclick="openNewProjectIvrenModal()" style="cursor:pointer;color:var(--accent);font-size:14px" title="Create Project">+</span>
+              <span data-act-click="openNewProjectIvrenModal()" style="cursor:pointer;color:var(--accent);font-size:14px" title="Create Project">+</span>
             </div>
             <div id="t2-project-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
               <!-- Dynamically rendered projects -->
@@ -2225,24 +2225,24 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 Project: <span id="t2-project-title" style="color:var(--accent)">Select a project</span>
               </div>
               <div style="display:flex;gap:6px">
-                <button type="button" onclick="saveCurrentIvrenSection()" class="btn btn-primary btn-sm">💾 Save Section</button>
+                <button type="button" data-act-click="saveCurrentIvrenSection()" class="btn btn-primary btn-sm">💾 Save Section</button>
               </div>
             </div>
             <!-- IVREN 5 Tabs -->
             <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg-2);padding:0 20px;gap:16px">
-              <button type="button" id="ivren-tab-instructions" onclick="switchIvrenSection('instructions')" class="ivren-tab active" style="padding:10px 0;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text-0);font-weight:700;font-size:12.5px;cursor:pointer">
+              <button type="button" id="ivren-tab-instructions" data-act-click="switchIvrenSection('instructions')" class="ivren-tab active" style="padding:10px 0;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text-0);font-weight:700;font-size:12.5px;cursor:pointer">
                 📜 (I) Instructions
               </button>
-              <button type="button" id="ivren-tab-voice" onclick="switchIvrenSection('voice')" class="ivren-tab" style="padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:12.5px;cursor:pointer">
+              <button type="button" id="ivren-tab-voice" data-act-click="switchIvrenSection('voice')" class="ivren-tab" style="padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:12.5px;cursor:pointer">
                 🗣️ (V) Voice Deltas
               </button>
-              <button type="button" id="ivren-tab-references" onclick="switchIvrenSection('references')" class="ivren-tab" style="padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:12.5px;cursor:pointer">
+              <button type="button" id="ivren-tab-references" data-act-click="switchIvrenSection('references')" class="ivren-tab" style="padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:12.5px;cursor:pointer">
                 📚 (R) References & SOPs
               </button>
-              <button type="button" id="ivren-tab-examples" onclick="switchIvrenSection('examples')" class="ivren-tab" style="padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:12.5px;cursor:pointer">
+              <button type="button" id="ivren-tab-examples" data-act-click="switchIvrenSection('examples')" class="ivren-tab" style="padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:12.5px;cursor:pointer">
                 ✨ (E) 10/10 Examples
               </button>
-              <button type="button" id="ivren-tab-notes" onclick="switchIvrenSection('notes')" class="ivren-tab" style="padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:12.5px;cursor:pointer">
+              <button type="button" id="ivren-tab-notes" data-act-click="switchIvrenSection('notes')" class="ivren-tab" style="padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-weight:600;font-size:12.5px;cursor:pointer">
                 🔄 (N) Compounding Notes
               </button>
             </div>
@@ -2252,7 +2252,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <!-- Compounding Notes Quick Append Bar (shown only when section == 'notes') -->
               <div id="t2-notes-append-bar" style="display:none;margin-top:12px;gap:8px;align-items:center">
                 <input id="t2-notes-input" placeholder="Append feedback or metric (e.g. 'Issue #12 had 42% open rate; concise bullet points worked best')..." style="flex:1;background:var(--bg-1);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:10px 14px;color:var(--text-0);font-size:13px;outline:none">
-                <button type="button" onclick="appendNoteToCurrentProject()" class="btn btn-primary btn-sm" style="padding:10px 16px;white-space:nowrap">+ Log Compounding Note</button>
+                <button type="button" data-act-click="appendNoteToCurrentProject()" class="btn btn-primary btn-sm" style="padding:10px 16px;white-space:nowrap">+ Log Compounding Note</button>
               </div>
             </div>
           </div>
@@ -2453,22 +2453,22 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <div class="settings-sidebar" style="width:260px;background:var(--bg-1);border-right:1px solid var(--border);padding:24px 14px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;overflow-y:auto">
             <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;padding:0 12px 10px">SETTINGS WORKSTATION</div>
             
-            <button type="button" id="settings-nav-api" onclick="switchSettingsTab('api')" class="settings-nav-item active" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+            <button type="button" id="settings-nav-api" data-act-click="switchSettingsTab('api')" class="settings-nav-item active" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
               <span style="font-size:16px">🔑</span> <span style="flex:1">Connect AI & Privacy</span>
             </button>
-            <button type="button" id="settings-nav-appearance" onclick="switchSettingsTab('appearance')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+            <button type="button" id="settings-nav-appearance" data-act-click="switchSettingsTab('appearance')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
               <span style="font-size:16px">🎨</span> <span style="flex:1">Theme & Aesthetics</span>
             </button>
-            <button type="button" id="settings-nav-layout" onclick="switchSettingsTab('layout')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+            <button type="button" id="settings-nav-layout" data-act-click="switchSettingsTab('layout')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
               <span style="font-size:16px">🧭</span> <span style="flex:1">Navigation & Layout</span>
             </button>
-            <button type="button" id="settings-nav-agents" onclick="switchSettingsTab('agents')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+            <button type="button" id="settings-nav-agents" data-act-click="switchSettingsTab('agents')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
               <span style="font-size:16px">🛡</span> <span style="flex:1">AI Agents Swarm</span>
             </button>
-            <button type="button" id="settings-nav-ollama" onclick="switchSettingsTab('ollama')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+            <button type="button" id="settings-nav-ollama" data-act-click="switchSettingsTab('ollama')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
               <span style="font-size:16px">⚡</span> <span style="flex:1">Local Ollama Server</span>
             </button>
-            <button type="button" id="settings-nav-system" onclick="switchSettingsTab('system')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+            <button type="button" id="settings-nav-system" data-act-click="switchSettingsTab('system')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
               <span style="font-size:16px">💾</span> <span style="flex:1">Storage & DB Backup</span>
             </button>
           </div>
@@ -2486,9 +2486,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <section class="connection-quickstart" aria-label="Choose how to connect AI">
                 <div><p class="connection-quickstart-kicker">WELCOME</p><h3>How would you like to connect?</h3><p>Choose one option below to start using AI. You can always add more later.</p></div>
                 <div class="connection-paths">
-                  <button type="button" class="connection-path btn-3d" onclick="startConnectionPath('local')"><span>🖥️</span><strong>Use AI on this computer</strong><small>Free, private, no account needed. Install Ollama to get started.</small></button>
-                  <button type="button" class="connection-path btn-3d" onclick="startConnectionPath('cloud')"><span>☁️</span><strong>Connect to cloud AI</strong><small>Add an API key for 140+ models including Claude, GPT-4o, Gemini.</small></button>
-                  <button type="button" class="connection-path btn-3d" onclick="startConnectionPath('custom')"><span>🔌</span><strong>Use another server</strong><small>Connect to a compatible AI server you already have.</small></button>
+                  <button type="button" class="connection-path btn-3d" data-act-click="startConnectionPath('local')"><span>🖥️</span><strong>Use AI on this computer</strong><small>Free, private, no account needed. Install Ollama to get started.</small></button>
+                  <button type="button" class="connection-path btn-3d" data-act-click="startConnectionPath('cloud')"><span>☁️</span><strong>Connect to cloud AI</strong><small>Add an API key for 140+ models including Claude, GPT-4o, Gemini.</small></button>
+                  <button type="button" class="connection-path btn-3d" data-act-click="startConnectionPath('custom')"><span>🔌</span><strong>Use another server</strong><small>Connect to a compatible AI server you already have.</small></button>
                 </div>
               </section>
 
@@ -2508,10 +2508,10 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <div class="key-input-row" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
                   <div style="position:relative;flex:1;min-width:240px;display:flex">
                     <input id="or-key-input" type="password" class="key-input" placeholder="Paste sk-or-v1-… key here" required autocomplete="off" style="width:100%;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 40px 11px 14px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none">
-                    <button onclick="toggleKeyVisibility('or-key-input')" type="button" title="Show/Hide Key" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px">👁️</button>
+                    <button data-act-click="toggleKeyVisibility('or-key-input')" type="button" title="Show/Hide Key" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px">👁️</button>
                   </div>
-                  <button type="button" onclick="saveApiKey()" class="btn-primary btn-3d" style="padding:11px 24px;border-radius:10px">⚡ Save, Test & Sync Models</button>
-                  <button type="button" onclick="removeApiKey()" class="btn-ghost btn-3d" style="padding:11px 16px;border-radius:10px;color:var(--danger);border-color:var(--danger)" title="Clear API Key">🗑 Remove</button>
+                  <button type="button" data-act-click="saveApiKey()" class="btn-primary btn-3d" style="padding:11px 24px;border-radius:10px">⚡ Save, Test & Sync Models</button>
+                  <button type="button" data-act-click="removeApiKey()" class="btn-ghost btn-3d" style="padding:11px 16px;border-radius:10px;color:var(--danger);border-color:var(--danger)" title="Clear API Key">🗑 Remove</button>
                 </div>
                 <div id="settings-key-test-result" style="font-size:12.5px;margin-top:10px;padding:12px;border-radius:10px;background:var(--bg-2);display:none;border:1px solid var(--border)"></div>
               </div>
@@ -2528,9 +2528,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Use models that run on your Mac. Your conversations stay on this device. Check once and your available models will appear in Chat.</p>
                 <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
                   <input id="settings-api-ollama-url" type="text" value="http://localhost:11434" style="flex:1;min-width:240px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
-                  <button type="button" onclick="if(typeof testOllamaConnection === 'function') testOllamaConnection()" class="btn-ghost btn-3d" style="padding:11px 22px;border-radius:10px">⚡ Check & Auto-Discover Models</button>
-                  <button type="button" onclick="if(typeof hotReloadBackendEngine === 'function') hotReloadBackendEngine()" class="btn-primary btn-3d" style="padding:11px 18px;border-radius:10px;background:#10b981;border:none;color:#fff" title="Reload internal Python AI services in RAM to ensure exact endpoint sync">⚡ Reload Engine & Sync</button>
-                  <button type="button" onclick="if(typeof hardRebootBackendEngine === 'function') hardRebootBackendEngine()" class="btn-ghost btn-3d" style="padding:11px 16px;border-radius:10px;color:var(--warning);border-color:var(--warning)" title="Perform clean application engine restart">🛑 Hard Restart Engine</button>
+                  <button type="button" data-act-click="testOllamaConnection()" class="btn-ghost btn-3d" style="padding:11px 22px;border-radius:10px">⚡ Check & Auto-Discover Models</button>
+                  <button type="button" data-act-click="hotReloadBackendEngine()" class="btn-primary btn-3d" style="padding:11px 18px;border-radius:10px;background:#10b981;border:none;color:#fff" title="Reload internal Python AI services in RAM to ensure exact endpoint sync">⚡ Reload Engine & Sync</button>
+                  <button type="button" data-act-click="hardRebootBackendEngine()" class="btn-ghost btn-3d" style="padding:11px 16px;border-radius:10px;color:var(--warning);border-color:var(--warning)" title="Perform clean application engine restart">🛑 Hard Restart Engine</button>
                 </div>
 
                 <!-- 1-Click Ollama Model Puller (`Open WebUI pattern`) -->
@@ -2547,7 +2547,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                       <option value="custom">Custom Model Name...</option>
                     </select>
                     <input id="ollama-custom-pull-inp" type="text" placeholder="e.g. phi3:3.8b" style="display:none;width:150px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-family:monospace">
-                    <button type="button" onclick="quickPullSelectedOllamaModel()" class="btn-primary btn-3d btn-sm" style="padding:8px 16px;border-radius:8px">⚡ Pull Model to Mac</button>
+                    <button type="button" data-act-click="quickPullSelectedOllamaModel()" class="btn-primary btn-3d btn-sm" style="padding:8px 16px;border-radius:8px">⚡ Pull Model to Mac</button>
                   </div>
                 </div>
 
@@ -2573,7 +2573,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
                   <input id="custom-api-base-url" type="text" placeholder="http://localhost:1234/v1" style="flex:2;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
                   <input id="custom-api-key" type="password" placeholder="API Key (if required by endpoint)" style="flex:1;min-width:160px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
-                  <button type="button" onclick="if(typeof saveCustomConnection === 'function') saveCustomConnection()" class="btn-primary btn-3d" style="padding:11px 22px;border-radius:10px">🔗 Connect & Sync</button>
+                  <button type="button" data-act-click="saveCustomConnection()" class="btn-primary btn-3d" style="padding:11px 22px;border-radius:10px">🔗 Connect & Sync</button>
                 </div>
                 <div id="custom-api-status-msg" style="font-size:12.5px;color:var(--text-2);padding:10px;background:var(--bg-2);border-radius:8px;border:1px solid var(--border);display:none"></div>
               </div>
@@ -2589,9 +2589,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 </div>
                 <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">All API keys, tokens, and custom headers are encrypted using local AES-256-GCM cryptography tied to your hardware master key (<code style="color:var(--accent);font-family:monospace">~/.vault_key</code> & <code style="color:var(--accent);font-family:monospace">~/Library/Application Support/com.stricktech.agenticos/secrets/vault.json</code>). No credentials ever leave your machine or transmit to third-party telemetry servers.</p>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-                  <button type="button" onclick="checkVaultIntegrity()" class="btn-3d btn-primary btn-sm" style="padding:8px 18px;border-radius:8px">🔍 Run Cryptographic Vault Audit</button>
-                  <button type="button" onclick="exportEncryptedVaultBackup()" class="btn-3d btn-ghost btn-sm" style="padding:8px 18px;border-radius:8px">📥 Backup Encrypted Secrets (.json)</button>
-                  <button type="button" onclick="clearAllSecrets()" class="btn-3d btn-danger btn-sm" style="padding:8px 18px;border-radius:8px">🗑 Clear All Local Credentials</button>
+                  <button type="button" data-act-click="checkVaultIntegrity()" class="btn-3d btn-primary btn-sm" style="padding:8px 18px;border-radius:8px">🔍 Run Cryptographic Vault Audit</button>
+                  <button type="button" data-act-click="exportEncryptedVaultBackup()" class="btn-3d btn-ghost btn-sm" style="padding:8px 18px;border-radius:8px">📥 Backup Encrypted Secrets (.json)</button>
+                  <button type="button" data-act-click="clearAllSecrets()" class="btn-3d btn-danger btn-sm" style="padding:8px 18px;border-radius:8px">🗑 Clear All Local Credentials</button>
                 </div>
                 <div id="vault-audit-result" style="font-size:12px;color:var(--text-2);margin-top:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--border);display:none;font-family:monospace"></div>
               </div>
@@ -2622,31 +2622,31 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px">
                 <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:14px">Appearance Mode & Visual Palette</label>
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
-                  <button type="button" onclick="applyTheme('light');toast('✨ Ultra-Techy Light Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #e2e8f0;background:#ffffff;color:#0f172a;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.05)">
+                  <button type="button" data-act-click="applyTheme('light');toast('✨ Ultra-Techy Light Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #e2e8f0;background:#ffffff;color:#0f172a;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.05)">
                     <div style="font-size:20px;margin-bottom:6px">☀️</div>
                     Light (Default)
                   </button>
-                  <button type="button" onclick="applyTheme('dark');toast('🌌 Cyber Dark Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #334155;background:#0f172a;color:#f8fafc;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
+                  <button type="button" data-act-click="applyTheme('dark');toast('🌌 Cyber Dark Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #334155;background:#0f172a;color:#f8fafc;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
                     <div style="font-size:20px;margin-bottom:6px">🌑</div>
                     Dark Cyber
                   </button>
-                  <button type="button" onclick="applyTheme('auto');toast('🌓 Auto appearance follows your device')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #94a3b8;background:linear-gradient(135deg,#ffffff 0%,#ffffff 48%,#0f172a 52%,#0f172a 100%);color:#0f172a;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.12)" title="Automatically follows your device light or dark appearance">
+                  <button type="button" data-act-click="applyTheme('auto');toast('🌓 Auto appearance follows your device')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #94a3b8;background:linear-gradient(135deg,#ffffff 0%,#ffffff 48%,#0f172a 52%,#0f172a 100%);color:#0f172a;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.12)" title="Automatically follows your device light or dark appearance">
                     <div style="font-size:20px;margin-bottom:6px">🌓</div>
                     Auto (Device)
                   </button>
-                  <button type="button" onclick="applyTheme('obsidian');toast('🪨 Obsidian Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #27272a;background:#09090b;color:#fafafa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
+                  <button type="button" data-act-click="applyTheme('obsidian');toast('🪨 Obsidian Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #27272a;background:#09090b;color:#fafafa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
                     <div style="font-size:20px;margin-bottom:6px">🪨</div>
                     Obsidian Theme
                   </button>
-                  <button type="button" onclick="applyTheme('jet');toast('✈️ Jet Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #3f3f4e;background:#000000;color:#f8fafc;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
+                  <button type="button" data-act-click="applyTheme('jet');toast('✈️ Jet Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #3f3f4e;background:#000000;color:#f8fafc;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
                     <div style="font-size:20px;margin-bottom:6px">✈️</div>
                     Jet Theme
                   </button>
-                  <button type="button" onclick="applyTheme('midnight');toast('✨ Midnight Blue Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #1e293b;background:#020617;color:#60a5fa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
+                  <button type="button" data-act-click="applyTheme('midnight');toast('✨ Midnight Blue Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #1e293b;background:#020617;color:#60a5fa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
                     <div style="font-size:20px;margin-bottom:6px">🌌</div>
                     Midnight Blue
                   </button>
-                  <button type="button" onclick="applyTheme('forest');toast('🌲 Forest Emerald Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #14532d;background:#052e16;color:#4ade80;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
+                  <button type="button" data-act-click="applyTheme('forest');toast('🌲 Forest Emerald Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #14532d;background:#052e16;color:#4ade80;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
                     <div style="font-size:20px;margin-bottom:6px">🌲</div>
                     Forest Emerald
                   </button>
@@ -2657,12 +2657,12 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
               <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px">
                 <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:14px">Workstation Operating Mode</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-                  <button type="button" id="settings-simple-btn" onclick="switchUIMode('simple');updateSettingsModeButtons();toast('✨ Core Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
+                  <button type="button" id="settings-simple-btn" data-act-click="switchUIMode('simple');updateSettingsModeButtons();toast('✨ Core Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
                     <div style="font-size:22px;margin-bottom:6px">⚡</div>
                     <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:var(--accent)">Core Workstation</div>
                     <div style="font-size:12px;color:var(--text-2);line-height:1.4">Streamlined focused view. Essential Chat, Multi-Agent Swarm, Code Studio, and AI Context &amp; Guidelines.</div>
                   </button>
-                  <button type="button" id="settings-power-btn" onclick="switchUIMode('power');updateSettingsModeButtons();toast('🌌 Power Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
+                  <button type="button" id="settings-power-btn" data-act-click="switchUIMode('power');updateSettingsModeButtons();toast('🌌 Power Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
                     <div style="font-size:22px;margin-bottom:6px">🌌</div>
                     <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:#d8b4fe">Power Workstation</div>
                     <div style="font-size:12px;color:var(--text-2);line-height:1.4">All 65+ features active across categorized groups. Full monitoring, bug detection, evaluations, and encryption.</div>
@@ -2675,14 +2675,14 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <div>
                   <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:8px">Typography Scale</label>
                   <div style="display:flex;gap:8px">
-                    <button type="button" onclick="saveFontSize('sm');toast('Typography set to Small')" class="btn-sm" id="fs-sm" style="padding:7px 16px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer;font-weight:600">Small</button>
-                    <button type="button" onclick="saveFontSize('base');toast('Typography set to Medium')" class="btn-sm" id="fs-base" style="padding:7px 16px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer;font-weight:600">Medium</button>
-                    <button type="button" onclick="saveFontSize('lg');toast('Typography set to Large')" class="btn-sm" id="fs-lg" style="padding:7px 16px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer;font-weight:600">Large</button>
+                    <button type="button" data-act-click="saveFontSize('sm');toast('Typography set to Small')" class="btn-sm" id="fs-sm" style="padding:7px 16px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer;font-weight:600">Small</button>
+                    <button type="button" data-act-click="saveFontSize('base');toast('Typography set to Medium')" class="btn-sm" id="fs-base" style="padding:7px 16px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer;font-weight:600">Medium</button>
+                    <button type="button" data-act-click="saveFontSize('lg');toast('Typography set to Large')" class="btn-sm" id="fs-lg" style="padding:7px 16px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer;font-weight:600">Large</button>
                   </div>
                 </div>
                 <div>
                   <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:8px">High Contrast (WCAG AAA)</label>
-                  <button type="button" onclick="toggleHighContrastTheme()" id="high-contrast-toggle-btn" class="btn-sm" style="padding:8px 18px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);font-weight:700;cursor:pointer">Toggle High Contrast</button>
+                  <button type="button" data-act-click="toggleHighContrastTheme()" id="high-contrast-toggle-btn" class="btn-sm" style="padding:8px 18px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);font-weight:700;cursor:pointer">Toggle High Contrast</button>
                 </div>
               </div>
             </div>
@@ -2698,7 +2698,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">↔️ Resizable Navigation Sidebar</h3>
                 <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px">You can drag the divider handle (`#sidebar-resizer`) directly between the sidebar and workspace to expand or shrink the navigation pane dynamically between 56px (icon mode) and 600px (deep folder hierarchy mode). Your exact width is automatically saved to local storage.</p>
                 <div style="display:flex;gap:12px">
-                  <button type="button" onclick="toggleSidebar();toast('Sidebar toggled')" class="btn btn-primary btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);cursor:pointer">Toggle Collapsed Mode (56px)</button>
+                  <button type="button" data-act-click="toggleSidebar();toast('Sidebar toggled')" class="btn btn-primary btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);cursor:pointer">Toggle Collapsed Mode (56px)</button>
                   <button type="button" onclick="const sb=document.getElementById('sidebar');if(sb){sb.style.width='260px';sb.classList.remove('collapsed');try{localStorage.setItem('agentic_os_sidebar_w','260px');}catch(e){}}toast('Sidebar reset to default 260px')" class="btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer">Reset Default Width (260px)</button>
                 </div>
               </div>
@@ -2716,7 +2716,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🛡 AI Specialist Agents Swarm</h2>
                   <p style="color:var(--text-2);font-size:13.5px">Configure autonomous specialist agent personas, system prompts, and model routing.</p>
                 </div>
-                <button type="button" onclick="openAgentModal()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">＋ Create Specialist Agent</button>
+                <button type="button" data-act-click="openAgentModal()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">＋ Create Specialist Agent</button>
               </div>
 
               <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
@@ -2738,7 +2738,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 </div>
                 <div style="display:flex;gap:10px;margin-bottom:14px">
                   <input id="ollama-url-input" type="text" value="http://localhost:11434" style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
-                  <button type="button" onclick="testOllamaConnection()" class="btn btn-primary" style="padding:10px 20px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-weight:700;cursor:pointer">⚡ Check Connection</button>
+                  <button type="button" data-act-click="testOllamaConnection()" class="btn btn-primary" style="padding:10px 20px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-weight:700;cursor:pointer">⚡ Check Connection</button>
                 </div>
                 <div id="ollama-models" style="font-size:12px;color:var(--text-2);padding:10px;background:var(--bg-2);border-radius:8px"></div>
               </div>
@@ -2754,7 +2754,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                       <div style="font-weight:800;font-size:14px;color:var(--text-0);margin-bottom:4px">Llama 3.1 8B</div>
                       <div style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">Meta's premier instruction-tuned model. Exceptional reasoning & coding on Apple Silicon (`~4.7 GB`).</div>
                     </div>
-                    <button type="button" onclick="pullOllamaModel('llama3.1:8b')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent);font-weight:700;cursor:pointer">⚡ Pull llama3.1:8b</button>
+                    <button type="button" data-act-click="pullOllamaModel('llama3.1:8b')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent);font-weight:700;cursor:pointer">⚡ Pull llama3.1:8b</button>
                   </div>
                   
                   <div style="padding:16px;border-radius:12px;border:1px solid var(--border);background:var(--bg-2);display:flex;flex-direction:column;justify-content:space-between">
@@ -2762,7 +2762,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                       <div style="font-weight:800;font-size:14px;color:var(--text-0);margin-bottom:4px">Mistral 7B</div>
                       <div style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">High-speed European foundation model with top-tier efficiency and low memory footprint (`~4.1 GB`).</div>
                     </div>
-                    <button type="button" onclick="pullOllamaModel('mistral')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent);font-weight:700;cursor:pointer">⚡ Pull mistral</button>
+                    <button type="button" data-act-click="pullOllamaModel('mistral')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent);font-weight:700;cursor:pointer">⚡ Pull mistral</button>
                   </div>
 
                   <div style="padding:16px;border-radius:12px;border:1px solid var(--border);background:var(--bg-2);display:flex;flex-direction:column;justify-content:space-between">
@@ -2770,7 +2770,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                       <div style="font-weight:800;font-size:14px;color:var(--text-0);margin-bottom:4px">Qwen 2.5 7B</div>
                       <div style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">Alibaba's cutting-edge multilingual & math specialist model (`~4.5 GB`).</div>
                     </div>
-                    <button type="button" onclick="pullOllamaModel('qwen2.5:7b')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent);font-weight:700;cursor:pointer">⚡ Pull qwen2.5:7b</button>
+                    <button type="button" data-act-click="pullOllamaModel('qwen2.5:7b')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent);font-weight:700;cursor:pointer">⚡ Pull qwen2.5:7b</button>
                   </div>
                 </div>
               </div>
@@ -2793,7 +2793,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                   <div id="system-info" style="margin-top:8px;color:var(--text-2);font-weight:600"></div>
                 </div>
                 
-                <button type="button" onclick="doBackup();toast('💾 Created backup snapshot in Application Support/com.stricktech.agenticos/memory/')" class="btn btn-primary" style="padding:12px 26px;border-radius:10px;font-weight:700;background:linear-gradient(135deg,#38bdf8,#a855f7);color:#fff;border:none;cursor:pointer;box-shadow:0 0 18px rgba(56,189,248,0.3)">💾 Snapshot & Backup agentic.db Now</button>
+                <button type="button" data-act-click="doBackup();toast('💾 Created backup snapshot in Application Support/com.stricktech.agenticos/memory/')" class="btn btn-primary" style="padding:12px 26px;border-radius:10px;font-weight:700;background:linear-gradient(135deg,#38bdf8,#a855f7);color:#fff;border:none;cursor:pointer;box-shadow:0 0 18px rgba(56,189,248,0.3)">💾 Snapshot & Backup agentic.db Now</button>
               </div>
             </div>
 
@@ -2806,7 +2806,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     </div><!-- /content -->
 
     <!-- Split Workspace Divider -->
-    <div id="workspace-splitter" style="display:none;width:6px;background:var(--border);cursor:col-resize;flex-shrink:0;z-index:20;transition:background 0.15s" onmouseover="this.style.background='var(--accent)'" onmouseout="if(!window._isSplitResizing)this.style.background='var(--border)'"></div>
+    <div id="workspace-splitter" style="display:none;width:6px;background:var(--border);cursor:col-resize;flex-shrink:0;z-index:20;transition:background 0.15s" data-hover="bg:var(--accent)" onmouseout="if(!window._isSplitResizing)this.style.background='var(--border)'"></div>
 
     <!-- Secondary Split Workstation Slot -->
     <div id="content-right" style="display:none;flex:1;overflow:hidden;flex-direction:column;min-width:280px;height:100% !important;background:var(--bg-0);border-left:1px solid var(--border)">
@@ -2814,7 +2814,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:14px">🗂️</span>
           <span style="font-size:12.5px;font-weight:800;color:var(--text-0)">Secondary Workstation Slot</span>
-          <select id="split-pane-select" onchange="if(typeof renderSplitPane === 'function') renderSplitPane(this.value)" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:6px;padding:4px 8px;color:var(--text-0);font-size:12px;font-weight:700;outline:none;cursor:pointer">
+          <select id="split-pane-select" data-act-change="renderSplitPane($value)" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:6px;padding:4px 8px;color:var(--text-0);font-size:12px;font-weight:700;outline:none;cursor:pointer">
             <option value="studio">⚡ Studio Code Editor</option>
             <option value="browser">❖ Browser Agent</option>
             <option value="terminal">＞_ Terminal</option>
@@ -2828,10 +2828,10 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           </select>
         </div>
         <div style="display:flex;gap:6px">
-          <button type="button" onclick="if(typeof swapSplitPanes==='function') swapSplitPanes()" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="Swap Left and Right Panes">↔ Swap</button>
-          <button type="button" onclick="if(typeof setSplitRatio==='function') setSplitRatio(0.5)" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="Equal 50/50 Split">50/50</button>
-          <button type="button" onclick="if(typeof setSplitRatio==='function') setSplitRatio(0.65)" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="65/35 Primary Split">65/35</button>
-          <button type="button" onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace(false)" class="btn-3d btn-primary btn-sm" style="padding:2px 8px;font-size:11px;background:var(--danger)" title="Close Split View">✕ Close</button>
+          <button type="button" data-act-click="swapSplitPanes()" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="Swap Left and Right Panes">↔ Swap</button>
+          <button type="button" data-act-click="setSplitRatio(0.5)" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="Equal 50/50 Split">50/50</button>
+          <button type="button" data-act-click="setSplitRatio(0.65)" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="65/35 Primary Split">65/35</button>
+          <button type="button" data-act-click="toggleSplitWorkspace(false)" class="btn-3d btn-primary btn-sm" style="padding:2px 8px;font-size:11px;background:var(--danger)" title="Close Split View">✕ Close</button>
         </div>
       </div>
       <div id="pane-right-slot" style="flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column">
@@ -2843,11 +2843,11 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
   <!-- Status bar -->
   <div id="statusbar">
     <div class="sb-item"><span class="sb-dot" id="sb-status-dot"></span><span id="sb-version">Agentic OS v11.5.0</span></div>
-    <div role="button" tabindex="0" class="sb-item" id="sb-model" style="cursor:pointer" onclick="nav('settings');switchSettingsTab('api')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Click to change AI model">⚡ <span id="sb-model-name">No model</span></div>
-    <div role="button" tabindex="0" class="sb-item" id="sb-key" style="cursor:pointer" onclick="nav('settings');switchSettingsTab('api')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="AI connection status">🔑 <span id="sb-key-label">No key</span></div>
+    <div role="button" tabindex="0" class="sb-item" id="sb-model" style="cursor:pointer" data-act-click="nav('settings');switchSettingsTab('api')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="Click to change AI model">⚡ <span id="sb-model-name">No model</span></div>
+    <div role="button" tabindex="0" class="sb-item" id="sb-key" style="cursor:pointer" data-act-click="nav('settings');switchSettingsTab('api')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="AI connection status">🔑 <span id="sb-key-label">No key</span></div>
     <div class="sb-item" id="sb-cost" title="Session cost">💰 $0.00</div>
-    <div role="button" tabindex="0" class="sb-item" id="sb-mem" style="cursor:pointer" onclick="nav('galaxy')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Click to open Memory">🧠 <span id="sb-mem-count">0</span></div>
-    <div role="button" tabindex="0" class="sb-item" id="sb-agents" style="cursor:pointer" onclick="nav('chat')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" title="Active agents">🤖 <span id="sb-agent-count">0</span></div>
+    <div role="button" tabindex="0" class="sb-item" id="sb-mem" style="cursor:pointer" data-act-click="nav('galaxy')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="Click to open Memory">🧠 <span id="sb-mem-count">0</span></div>
+    <div role="button" tabindex="0" class="sb-item" id="sb-agents" style="cursor:pointer" data-act-click="nav('chat')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="Active agents">🤖 <span id="sb-agent-count">0</span></div>
     <div class="spacer"></div>
     <div class="sb-item" id="sb-time"></div>
   </div>
@@ -2855,15 +2855,15 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 </div><!-- /shell -->
 
 <!-- ── Command Palette ──────────────────────────────────────── -->
-<div role="button" tabindex="0" id="palette-modal" onclick="if(event.target===this)closePalette()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+<div role="button" tabindex="0" id="palette-modal" data-act-click="closePalette()" data-click-self="1" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
   <div id="palette-box">
-    <input id="palette-input" aria-label="Search commands and agents" placeholder="Search commands, agents, files, memories…" oninput="filterPalette()" onkeydown="paletteKey(event)" autocomplete="off">
+    <input id="palette-input" aria-label="Search commands and agents" placeholder="Search commands, agents, files, memories…" data-act-input="filterPalette()" data-act-keydown="paletteKey($event)" autocomplete="off">
     <div id="palette-results"></div>
   </div>
 </div>
 
 <!-- ── Agent Modal ──────────────────────────────────────────── -->
-<div role="button" tabindex="0" id="agent-modal" style="display:none" class="modal-back" onclick="if(event.target===this)closeAgentModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+<div role="button" tabindex="0" id="agent-modal" style="display:none" class="modal-back" data-act-click="closeAgentModal()" data-click-self="1" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
   <div class="modal">
     <h2 id="agent-modal-title">🤖 Create Agent</h2>
     <p id="agent-modal-desc">Design a custom AI agent with its own name, model, and personality.</p>
@@ -2945,9 +2945,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
       </div>
     </div>
     <div class="modal-actions">
-      <button type="button" class="btn btn-danger btn-sm" id="am-delete-btn" style="display:none;margin-right:auto" onclick="deleteCurrentAgent()">🗑 Delete</button>
-      <button type="button" class="btn btn-ghost" onclick="closeAgentModal()">Cancel</button>
-      <button type="button" class="btn btn-primary" onclick="saveAgent()" id="am-save-btn">Create Agent</button>
+      <button type="button" class="btn btn-danger btn-sm" id="am-delete-btn" style="display:none;margin-right:auto" data-act-click="deleteCurrentAgent()">🗑 Delete</button>
+      <button type="button" class="btn btn-ghost" data-act-click="closeAgentModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" data-act-click="saveAgent()" id="am-save-btn">Create Agent</button>
     </div>
   </div>
 </div>
@@ -2956,9 +2956,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 <div id="toast-container" aria-live="polite" aria-atomic="false" role="status"></div>
 
 <!-- ── Onboarding Wizard ──────────────────────────────────────────── -->
-<div role="button" tabindex="0" id="onboarding-modal" style="display:none;position:fixed;inset:0;background:rgba(2,4,10,.95);z-index:29000;align-items:center;justify-content:center;backdrop-filter:blur(12px)" onclick="if(event.target===this)closeOnboardingModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+<div role="button" tabindex="0" id="onboarding-modal" style="display:none;position:fixed;inset:0;background:rgba(2,4,10,.95);z-index:29000;align-items:center;justify-content:center;backdrop-filter:blur(12px)" data-act-click="closeOnboardingModal()" data-click-self="1" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
   <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:20px;width:100%;max-width:560px;padding:32px;box-shadow:0 40px 100px rgba(0,0,0,.8);animation:slideUp .25s ease;position:relative">
-    <button type="button" onclick="closeOnboardingModal()" style="position:absolute;top:16px;right:20px;background:none;border:none;color:var(--text-2);font-size:24px;cursor:pointer;line-height:1">×</button>
+    <button type="button" data-act-click="closeOnboardingModal()" style="position:absolute;top:16px;right:20px;background:none;border:none;color:var(--text-2);font-size:24px;cursor:pointer;line-height:1">×</button>
     <!-- Progress dots -->
     <div style="display:flex;gap:6px;justify-content:center;margin-bottom:28px" id="ob-dots"></div>
     <!-- Content -->
@@ -2976,9 +2976,9 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
     <div id="ob-agents-area" style="display:none;margin-bottom:16px"></div>
     <!-- Buttons -->
     <div style="display:flex;gap:10px;justify-content:center">
-      <button type="button" id="ob-skip" class="btn btn-ghost" style="display:none" onclick="obNext(true)">Skip</button>
-      <button type="button" id="ob-back" class="btn btn-ghost" style="display:none" onclick="obBack()">← Back</button>
-      <button type="button" id="ob-next" class="btn btn-primary" style="min-width:120px" onclick="obNext()">Next →</button>
+      <button type="button" id="ob-skip" class="btn btn-ghost" style="display:none" data-act-click="obNext(true)">Skip</button>
+      <button type="button" id="ob-back" class="btn btn-ghost" style="display:none" data-act-click="obBack()">← Back</button>
+      <button type="button" id="ob-next" class="btn btn-primary" style="min-width:120px" data-act-click="obNext()">Next →</button>
     </div>
     <!-- Step counter -->
     <div id="ob-counter" style="text-align:center;font-size:11px;color:var(--text-3);margin-top:14px"></div>
@@ -2986,11 +2986,11 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 </div>
 
 <!-- ── Keyboard Shortcuts Overlay ────────────────────────────────── -->
-<div role="button" tabindex="0" id="shortcuts-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:19000;align-items:center;justify-content:center;backdrop-filter:blur(6px)" onclick="this.style.display='none'" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-  <div role="button" tabindex="0" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-lg);width:100%;max-width:480px;padding:24px;animation:slideUp .18s ease" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+<div role="button" tabindex="0" id="shortcuts-modal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:19000;align-items:center;justify-content:center;backdrop-filter:blur(6px)" onclick="this.style.display='none'" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
+  <div role="button" tabindex="0" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-lg);width:100%;max-width:480px;padding:24px;animation:slideUp .18s ease" data-stop="1" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h2 style="font-size:16px;font-weight:800">⌨️ Keyboard Shortcuts</h2>
-      <button type="button" onclick="document.getElementById('shortcuts-modal').style.display='none'" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:20px">×</button>
+      <button type="button" data-hide="id:shortcuts-modal" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:20px">×</button>
     </div>
     <div id="shortcuts-list" style="display:flex;flex-direction:column;gap:6px"></div>
   </div>
@@ -3001,11 +3001,11 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
   <span style="color:var(--green)">●</span>
   <span id="collab-info">Collaboration active</span>
   <div id="collab-peers" style="display:flex;gap:6px;margin-left:auto"></div>
-  <button type="button" onclick="leaveCollab()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px">Leave</button>
+  <button type="button" data-act-click="leaveCollab()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px">Leave</button>
 </div>
 
 <!-- ── Global Modal (replaces all alert/confirm/prompt) ─────────── -->
-<div role="button" tabindex="0" id="gmodal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:19000;align-items:center;justify-content:center;backdrop-filter:blur(8px)" onclick="if(event.target===this)_gm_cancel()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+<div role="button" tabindex="0" id="gmodal" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:19000;align-items:center;justify-content:center;backdrop-filter:blur(8px)" data-act-click="_gm_cancel()" data-click-self="1" data-keys="Enter,Space" data-prevent="1" data-self-click="1">
   <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-lg);width:100%;max-width:460px;padding:24px;box-shadow:0 32px 80px rgba(0,0,0,.7);animation:slideUp .18s ease">
     <div style="font-size:17px;font-weight:800;margin-bottom:8px" id="gm-title"></div>
     <div style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.5" id="gm-body"></div>
@@ -3182,7 +3182,7 @@ document.addEventListener('keydown', function(e) {
     card.className = 'onboarding-card';
     card.style.cssText = 'background:var(--bg-2);border:1px solid var(--border-hi);border-radius:24px;padding:36px;max-width:560px;width:92%;box-shadow:0 30px 80px rgba(0,0,0,0.8);position:relative;text-align:center;color:var(--text-0);';
     card.innerHTML =
-      '<button type="button" id="ob-close-top" onclick="dismissOnboarding(\'power\')" style="position:absolute;top:18px;right:20px;background:none;border:none;color:var(--text-2);font-size:24px;cursor:pointer;line-height:1">×</button>' +
+      '<button type="button" id="ob-close-top" data-act-click="dismissOnboarding(\'power\')" style="position:absolute;top:18px;right:20px;background:none;border:none;color:var(--text-2);font-size:24px;cursor:pointer;line-height:1">×</button>' +
       '<div style="font-size:48px;margin-bottom:12px">\uD83E\uDDE0</div>' +
       '<h2>Welcome to Agentic OS</h2>' +
       '<p style="color:var(--text-2);font-size:14px;margin-top:6px;line-height:1.5">Your local-first AI operating system. Chat with AI agents, build apps with live preview, manage tasks, and store everything in your Memory Galaxy.</p>' +
@@ -3265,7 +3265,7 @@ document.addEventListener('keydown', function(e) {
       '</div>' +
       '<div style="display:flex;gap:10px">' +
         '<button type="button" class="btn-3d btn-primary btn-sm" onclick="retryPane(\'' + paneId + '\')" style="padding:8px 18px">↻ Retry Workstation</button>' +
-        '<button type="button" class="btn-3d btn-ghost btn-sm" onclick="nav(\'chat\')" style="padding:8px 18px">← Back to Chat</button>' +
+        '<button type="button" class="btn-3d btn-ghost btn-sm" data-act-click="nav(\'chat\')" style="padding:8px 18px">← Back to Chat</button>' +
       '</div>';
     pane.appendChild(errorDiv);
   };
@@ -3290,7 +3290,7 @@ document.addEventListener('keydown', function(e) {
       (config.icon ? '<div class="empty-state__icon">' + config.icon + '</div>' : '<div class="neural-orb-3d" style="width:48px;height:48px;margin:0 auto 16px"></div>') +
       '<div class="empty-state__title">' + (config.title || 'Workstation Ready') + '</div>' +
       '<div class="empty-state__body">' + (config.body || 'This specialist workstation is armed and waiting for your first task.') + '</div>' +
-      (config.action ? '<div role="button" tabindex="0" class="empty-state__actions"><button type="button" class="btn-3d btn-primary" onclick="' + config.action + '" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();this.click()}">' + (config.actionLabel || '⚡ Launch Task') + '</button></div>' : '');
+      (config.action ? '<div role="button" tabindex="0" class="empty-state__actions"><button type="button" class="btn-3d btn-primary" onclick="' + config.action + '" data-keys="Enter\, \" data-prevent="1" data-self-click="1">' + (config.actionLabel || '⚡ Launch Task') + '</button></div>' : '');
     target.appendChild(emptyDiv);
   };
 

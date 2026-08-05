@@ -19,17 +19,17 @@ async function renderDashboard() {
              state from inside Chat. Rendered here so the dashboard surfaces it
              too. -->
         <button type="button" id="mission-connection-status" class="connection-status checking"
-                onclick="nav('settings');switchSettingsTab('api')"
+                data-act-click="nav('settings');switchSettingsTab('api')"
                 title="Check or change your AI connection">Checking AI connection…</button>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
-        <select id="dash-days" onchange="renderDashboard()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:12px;padding:4px 8px">
+        <select id="dash-days" data-act-change="renderDashboard()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:12px;padding:4px 8px">
           <option value="7">7 days</option>
           <option value="30" selected>30 days</option>
           <option value="90">90 days</option>
         </select>
-        <button onclick="exportDashboardCSV()" class="btn-sm" title="Export CSV">⬇ CSV</button>
-        <button onclick="renderDashboard()" class="btn btn-ghost btn-sm">⟳ Refresh</button>
+        <button data-act-click="exportDashboardCSV()" class="btn-sm" title="Export CSV">⬇ CSV</button>
+        <button data-act-click="renderDashboard()" class="btn btn-ghost btn-sm">⟳ Refresh</button>
       </div>
     </div>
     <div id="dash-body" style="color:var(--text-2);font-size:13px">Loading…</div>`;
@@ -39,14 +39,14 @@ async function renderDashboard() {
     const r = await fetch(`/api/analytics/dashboard?days=${days}`);
     if (!r.ok) {
       const el = document.getElementById('dash-body');
-      if (el) el.innerHTML = `<div style="color:var(--danger)">Failed to load analytics (HTTP ${r.status})<br><button class="btn-sm" onclick="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
+      if (el) el.innerHTML = `<div style="color:var(--danger)">Failed to load analytics (HTTP ${r.status})<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
       return;
     }
     dashData = await r.json();
     renderDashBody(dashData);
   } catch(ex) {
     const el = document.getElementById('dash-body');
-    if (el) el.innerHTML = `<div style="color:var(--danger)">Failed to load: ${escHtml(ex?.message||String(ex))}<br><button class="btn-sm" onclick="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
+    if (el) el.innerHTML = `<div style="color:var(--danger)">Failed to load: ${escHtml(ex?.message||String(ex))}<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
   }
   // Auto-refresh every 30s
   clearTimeout(_dashRefreshTimer);

@@ -115,9 +115,9 @@ function renderSwarm() {
     <div class="section-head">
       <div><h2>🌀 Multi-Agent Swarm & DAG Visualizer</h2><p>Fan-out across 7 specialist roles • Directed Acyclic Graph (DAG) consensus • fusion of top candidates</p></div>
       <div style="display:flex;gap:8px">
-        <button onclick="toggleSwarmViewMode()" class="btn-3d btn-ghost btn-sm" id="sw-view-toggle-btn">⚡ Switch to Grid View</button>
-        <button onclick="loadSwarmHistory()" class="btn-3d btn-ghost btn-sm">📜 History</button>
-        <button onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace(true, 'swarm')" class="btn-3d btn-ghost btn-sm">🗂️ Secondary Dock</button>
+        <button data-act-click="toggleSwarmViewMode()" class="btn-3d btn-ghost btn-sm" id="sw-view-toggle-btn">⚡ Switch to Grid View</button>
+        <button data-act-click="loadSwarmHistory()" class="btn-3d btn-ghost btn-sm">📜 History</button>
+        <button data-act-click="toggleSplitWorkspace(true,'swarm')" class="btn-3d btn-ghost btn-sm">🗂️ Secondary Dock</button>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;flex:1">
@@ -139,7 +139,7 @@ function renderSwarm() {
               <option value="fanout">Fan-out — show all</option>
             </select>
           </div>
-          <button onclick="runSwarm()" class="btn btn-primary" style="width:100%;margin-top:12px" id="sw-run-btn">🚀 Run Swarm</button>
+          <button data-act-click="runSwarm()" class="btn btn-primary" style="width:100%;margin-top:12px" id="sw-run-btn">🚀 Run Swarm</button>
           <div id="sw-status" style="font-size:12px;color:var(--text-2);margin-top:8px;min-height:18px"></div>
         </div>
       </div>
@@ -156,8 +156,8 @@ function renderSwarm() {
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
             <span style="font-size:20px">🏆</span>
             <span style="font-weight:700;font-size:14px" id="sw-winner-title">Winner</span>
-            <button onclick="copyWinner()" class="btn btn-ghost btn-sm" style="margin-left:auto">📋 Copy</button>
-            <button onclick="acceptWinnerToMonaco()" class="btn btn-primary btn-sm">→ Editor</button>
+            <button data-act-click="copyWinner()" class="btn btn-ghost btn-sm" style="margin-left:auto">📋 Copy</button>
+            <button data-act-click="acceptWinnerToMonaco()" class="btn btn-primary btn-sm">→ Editor</button>
           </div>
           <div style="font-size:12px;color:var(--text-2);margin-bottom:8px" id="sw-winner-reason"></div>
           <div id="sw-winner-body" style="font-size:13px;white-space:pre-wrap;max-height:300px;overflow-y:auto;line-height:1.6"></div>
@@ -270,7 +270,7 @@ async function runSwarm() {
       document.getElementById('sw-winner-title').textContent = '⚠️ Connect AI to run a swarm';
       document.getElementById('sw-winner-reason').textContent = 'No AI connection returned a usable response.';
       document.getElementById('sw-winner-body').innerHTML =
-        `<div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="nav('settings');switchSettingsTab('api')" class="btn btn-primary btn-sm">Connect AI</button><button onclick="testOllamaConnection?.()" class="btn btn-ghost btn-sm">Use Local AI</button></div>`;
+        `<div style="display:flex;gap:8px;flex-wrap:wrap"><button data-act-click="nav('settings');switchSettingsTab('api')" class="btn btn-primary btn-sm">Connect AI</button><button data-act-click="testOllamaConnection()" class="btn btn-ghost btn-sm">Use Local AI</button></div>`;
       statusEl.textContent = '⚠️ Connect AI, then run the swarm again.';
     }
   } catch(e) {

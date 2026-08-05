@@ -475,7 +475,7 @@ async function listScreenshots() {
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
           ${screenshots.map((s, idx) => `
             <div data-ba-open-shot-idx="${idx}" style="border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer">
-              <img src="${escHtml(s.path)}" style="width:100%;height:100px;object-fit:cover" loading="lazy" onerror="this.style.display='none'">
+              <img src="${escHtml(s.path)}" style="width:100%;height:100px;object-fit:cover" loading="lazy" data-hide-on-error="1">
               <div style="padding:5px 7px;font-size:10px;color:var(--text-3)">${escHtml((s.filename||'').slice(0,30))} · ${((s.size||0)/1024).toFixed(0)}KB</div>
             </div>`).join('')}
         </div>

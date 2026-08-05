@@ -13,7 +13,7 @@ async function renderObsidian() {
     renderObsidianBody(s);
   } catch(e) {
     const el = document.getElementById('obs-body');
-    if (el) el.innerHTML = `<div style="color:var(--danger)">Error loading Obsidian status: ${escHtml(e?.message||String(e))}<br><button class="btn-sm" onclick="renderObsidian()" style="margin-top:8px">↻ Retry</button></div>`;
+    if (el) el.innerHTML = `<div style="color:var(--danger)">Error loading Obsidian status: ${escHtml(e?.message||String(e))}<br><button class="btn-sm" data-act-click="renderObsidian()" style="margin-top:8px">↻ Retry</button></div>`;
   }
 }
 
@@ -37,12 +37,12 @@ function renderObsidianBody(s) {
           Set <code>OBSIDIAN_VAULT_PATH=/path/to/MyVault</code> in .env and restart.
         </div>` : ''}
         <div style="display:flex;flex-direction:column;gap:7px">
-          <button onclick="indexVault()" class="btn btn-primary" id="obs-index-btn">📥 Index Vault → Memory Galaxy</button>
-          <button onclick="createDailyNote()" class="btn btn-ghost">📅 Create Daily Note</button>
-          <button onclick="exportMemories()" class="btn btn-ghost">📤 Export Memories → Vault</button>
+          <button data-act-click="indexVault()" class="btn btn-primary" id="obs-index-btn">📥 Index Vault → Memory Galaxy</button>
+          <button data-act-click="createDailyNote()" class="btn btn-ghost">📅 Create Daily Note</button>
+          <button data-act-click="exportMemories()" class="btn btn-ghost">📤 Export Memories → Vault</button>
           <div style="display:flex;gap:6px">
-            <button onclick="startVaultWatch()" class="btn btn-ghost" id="obs-watch-btn" style="flex:1">👁 Start Auto-Watch</button>
-            <button onclick="stopVaultWatch()" class="btn-sm" title="Stop watcher" style="color:var(--danger)">■ Stop</button>
+            <button data-act-click="startVaultWatch()" class="btn btn-ghost" id="obs-watch-btn" style="flex:1">👁 Start Auto-Watch</button>
+            <button data-act-click="stopVaultWatch()" class="btn-sm" title="Stop watcher" style="color:var(--danger)">■ Stop</button>
           </div>
         </div>
         <div id="obs-status" style="margin-top:10px;font-size:12px;color:var(--text-2)"></div>
@@ -52,10 +52,10 @@ function renderObsidianBody(s) {
       <div class="settings-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <h3 style="margin:0">📝 Notes <span id="obs-note-count" style="font-size:11px;color:var(--text-3);font-weight:400"></span></h3>
-          <button class="btn-sm" onclick="loadObsidianNotes()">↻ Refresh</button>
+          <button class="btn-sm" data-act-click="loadObsidianNotes()">↻ Refresh</button>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:8px">
-          <input id="obs-search" placeholder="Search notes…" oninput="searchNotes()" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none">
+          <input id="obs-search" placeholder="Search notes…" data-act-input="searchNotes()" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none">
         </div>
         <div id="obs-notes" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">Loading…</div>
       </div>
@@ -63,7 +63,7 @@ function renderObsidianBody(s) {
         <h3>✏️ Quick Note</h3>
         <input id="obs-note-title" placeholder="Note title…" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none;margin-bottom:7px;box-sizing:border-box">
         <textarea id="obs-note-body" placeholder="Content (Markdown)…" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:12px;outline:none;resize:none;min-height:72px;font-family:monospace;box-sizing:border-box"></textarea>
-        <button onclick="saveQuickNote()" class="btn btn-primary" style="width:100%;margin-top:7px">💾 Save Note</button>
+        <button data-act-click="saveQuickNote()" class="btn btn-primary" style="width:100%;margin-top:7px">💾 Save Note</button>
       </div>
     </div>
   </div>`;
@@ -173,15 +173,15 @@ async function loadObsidianNotes(q='') {
     }
     el.innerHTML = j.notes.map(n => `
       <div style="display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer;transition:background .1s"
-           onmouseover="this.style.background='var(--bg-3)'" onmouseout="this.style.background=''"
-           onclick="viewNote(${JSON.stringify(n.path)})">
+           data-hover="bg:var(--bg-3)" data-hover-out="bg:"
+           data-act-click="viewNote(${JSON.stringify(n.path)})">
         <span style="font-size:12px">${n.folder==='Daily'?'📅':'📄'}</span>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(n.name)}</div>
           <div style="font-size:10px;color:var(--text-3)">${n.modified}${n.folder?' · '+escHtml(n.folder):''}</div>
         </div>
         <span style="font-size:10px;color:var(--text-3)">${Math.round(n.size/1024*10)/10}K</span>
-        <button onclick="event.stopPropagation();obsDeleteNote(${JSON.stringify(n.path)})"
+        <button data-act-click="obsDeleteNote(${JSON.stringify(n.path)})" data-stop="1"
                 style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px;opacity:.5;padding:0 2px" title="Delete">🗑</button>
       </div>`).join('');
   } catch(ex) {
@@ -208,13 +208,13 @@ async function viewNote(path) {
           <div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:8px">
             <span style="font-weight:700;color:var(--text-0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${escHtml(name)}</span>
             <span style="font-size:10px;color:var(--text-3)">${j.size||0}B · ${j.modified||''}</span>
-            <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+            <button data-close="closest:[style*=fixed]" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
           </div>
           <div style="padding:14px 16px;overflow-y:auto;flex:1;font-size:12px;line-height:1.7;color:var(--text-1);white-space:pre-wrap;font-family:monospace">${escHtml((j.content||'').slice(0,6000))}${(j.content||'').length>6000?'\n\n[... truncated]':''}</div>
           <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:7px;align-items:center">
-            <button class="btn-sm" onclick="navigator.clipboard.writeText(${JSON.stringify(j.content||'')})">📋 Copy</button>
-            <button class="btn-sm" style="color:var(--danger)" onclick="obsDeleteNote(${JSON.stringify(path)});this.closest('[style*=fixed]').remove()">🗑 Delete</button>
-            <button class="btn-sm" style="margin-left:auto" onclick="this.closest('[style*=fixed]').remove()">Close</button>
+            <button class="btn-sm" data-act-click="navigator.clipboard.writeText(${JSON.stringify(j.content||'')})">📋 Copy</button>
+            <button class="btn-sm" style="color:var(--danger)" data-act-click="obsDeleteNote(${JSON.stringify(path)})" data-close="closest:[style*=fixed]">🗑 Delete</button>
+            <button class="btn-sm" style="margin-left:auto" data-close="closest:[style*=fixed]">Close</button>
           </div>
         </div>`;
       overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };

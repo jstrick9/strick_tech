@@ -315,9 +315,9 @@
           <p style="color:var(--text-2);font-size:13px;margin:0">Freeform rules injected into every AI prompt alongside your Tier 1/2 context above — like Kiro steering, Cursor .cursorrules, or Windsurf Memories.</p>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-sm" onclick="steerNew()">＋ New Rule File</button>
-          <button class="btn-sm btn-ghost" onclick="steerLearnFromChat()">🧠 Auto-Learn</button>
-          <button class="btn-sm btn-ghost" onclick="steerPromotePatterns()">⬆ Promote Patterns</button>
+          <button class="btn btn-sm" data-act-click="steerNew()">＋ New Rule File</button>
+          <button class="btn-sm btn-ghost" data-act-click="steerLearnFromChat()">🧠 Auto-Learn</button>
+          <button class="btn-sm btn-ghost" data-act-click="steerPromotePatterns()">⬆ Promote Patterns</button>
         </div>
       </div>
 
@@ -409,7 +409,7 @@
         <textarea id="steer-new-content" rows="15" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;font-family:monospace;padding:10px;resize:none" placeholder="# ${escHtml(title)}\n\nWrite your project rules and conventions here..."></textarea>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button class="btn-sm" onclick="this.closest('[style*=\\"fixed\\"]').remove()">Cancel</button>
-          <button class="btn" data-title="${escHtml(title)}" data-cat="${escHtml(cat||'custom')}" onclick="steerSaveNew(this.dataset.title,this.dataset.cat,this)">💾 Save</button>
+          <button class="btn" data-title="${escHtml(title)}" data-cat="${escHtml(cat||'custom')}" data-act-click="steerSaveNew($data.title,$data.cat,$this)">💾 Save</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
@@ -540,7 +540,7 @@
             <div style="font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px">
               <span>🤖</span> AI Interview: Build Universal Context in 2 Minutes
             </div>
-            <button onclick="document.getElementById('hierarchy-interview-modal').style.display='none'" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
+            <button data-hide="id:hierarchy-interview-modal" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
           </div>
           <div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:20px">
             Answer these 4 master questions once. We'll automatically structure your 4 Tier 1 Markdown files (<code style="color:var(--accent)">about_me</code>, <code style="color:var(--accent)">about_my_business</code>, <code style="color:var(--accent)">about_my_voice</code>, <code style="color:var(--accent)">about_my_offers</code>).
@@ -564,8 +564,8 @@
             </div>
           </div>
           <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px">
-            <button onclick="document.getElementById('hierarchy-interview-modal').style.display='none'" class="btn btn-ghost">Cancel</button>
-            <button onclick="submitHierarchyInterview()" class="btn btn-primary">⚡ Generate 4 Tier 1 Context Files</button>
+            <button data-hide="id:hierarchy-interview-modal" class="btn btn-ghost">Cancel</button>
+            <button data-act-click="submitHierarchyInterview()" class="btn btn-primary">⚡ Generate 4 Tier 1 Context Files</button>
           </div>
         </div>
       `;
@@ -615,7 +615,7 @@
             <div style="font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px">
               <span>📁</span> Create Tier 2 Project Hierarchy (IVREN)
             </div>
-            <button onclick="document.getElementById('hierarchy-new-project-modal').style.display='none'" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
+            <button data-hide="id:hierarchy-new-project-modal" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
           </div>
           <div style="font-size:12.5px;color:var(--text-2);margin-bottom:18px">
             Every project gets the exact same 5 compounding subfolders: <strong style="color:var(--text-0)">I</strong>nstructions, <strong style="color:var(--text-0)">V</strong>oice, <strong style="color:var(--text-0)">R</strong>eferences, <strong style="color:var(--text-0)">E</strong>xamples, and <strong style="color:var(--text-0)">N</strong>otes.
@@ -639,8 +639,8 @@
             </div>
           </div>
           <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
-            <button onclick="document.getElementById('hierarchy-new-project-modal').style.display='none'" class="btn btn-ghost">Cancel</button>
-            <button onclick="submitNewProjectIvren()" class="btn btn-primary">✨ Create IVREN Folders</button>
+            <button data-hide="id:hierarchy-new-project-modal" class="btn btn-ghost">Cancel</button>
+            <button data-act-click="submitNewProjectIvren()" class="btn btn-primary">✨ Create IVREN Folders</button>
           </div>
         </div>
       `;
@@ -737,7 +737,7 @@
             <div style="font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px">
               <span>📜</span> Live XML System Prompt Injection Preview
             </div>
-            <button onclick="document.getElementById('hierarchy-preview-modal').style.display='none'" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
+            <button data-hide="id:hierarchy-preview-modal" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
           </div>
           <div style="font-size:12.5px;color:var(--text-2);margin-bottom:12px;flex-shrink:0">
             This exact XML/Markdown context is automatically injected into every Agentic OS chat, swarm query, and specialized agent session:
@@ -745,7 +745,7 @@
           <textarea id="preview-compiled-textarea" readonly style="flex:1;min-height:360px;width:100%;background:var(--bg-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;color:var(--text-0);font-family:monospace;font-size:12px;line-height:1.5;resize:none;outline:none"></textarea>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;flex-shrink:0">
             <span id="preview-compiled-stats" style="font-size:11.5px;color:var(--text-3);font-weight:600"></span>
-            <button onclick="document.getElementById('hierarchy-preview-modal').style.display='none'" class="btn btn-primary">Close Preview</button>
+            <button data-hide="id:hierarchy-preview-modal" class="btn btn-primary">Close Preview</button>
           </div>
         </div>
       `;

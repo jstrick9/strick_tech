@@ -43,12 +43,12 @@ async function renderKanban() {
         </div>
         <div class="kanban-topbar-right">
           <div class="kanban-filter-group">
-            <button type="button" class="kanban-filter-btn ${!kanbanActiveFilter ? 'active' : ''}" onclick="kanbanSetFilter(null)">All</button>
-            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'high' ? 'active' : ''}" onclick="kanbanSetFilter('high')">🔴 High</button>
-            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'medium' ? 'active' : ''}" onclick="kanbanSetFilter('medium')">🟡 Medium</button>
-            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'low' ? 'active' : ''}" onclick="kanbanSetFilter('low')">🟢 Low</button>
+            <button type="button" class="kanban-filter-btn ${!kanbanActiveFilter ? 'active' : ''}" data-act-click="kanbanSetFilter(null)">All</button>
+            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'high' ? 'active' : ''}" data-act-click="kanbanSetFilter('high')">🔴 High</button>
+            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'medium' ? 'active' : ''}" data-act-click="kanbanSetFilter('medium')">🟡 Medium</button>
+            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'low' ? 'active' : ''}" data-act-click="kanbanSetFilter('low')">🟢 Low</button>
           </div>
-          <button type="button" class="kanban-add-btn" onclick="kanbanOpenCreateModal()">
+          <button type="button" class="kanban-add-btn" data-act-click="kanbanOpenCreateModal()">
             ＋ New Task
           </button>
         </div>
@@ -125,13 +125,13 @@ function kanbanRenderBoard() {
             <span>${col.label}</span>
             <span class="kanban-column-count">${columnTasks.length}</span>
           </div>
-          <button type="button" class="kanban-column-add" onclick="kanbanOpenCreateModal(${jsArg(col.id)})">+</button>
+          <button type="button" class="kanban-column-add" data-act-click="kanbanOpenCreateModal(${jsArg(col.id)})">+</button>
         </div>
         <div class="kanban-column-body" 
              id="kanban-col-${col.id}"
-             ondragover="kanbanOnDragOver(event)"
-             ondrop="kanbanOnDrop(event, ${jsArg(col.id)})"
-             ondragleave="kanbanOnDragLeave(event)">
+             data-act-dragover="kanbanOnDragOver($event)"
+             data-act-drop="kanbanOnDrop($event,${jsArg(col.id)})"
+             data-act-dragleave="kanbanOnDragLeave($event)">
           ${columnTasks.length > 0 
             ? columnTasks.map(task => kanbanRenderCard(task)).join('')
             : `<div class="kanban-empty-col">
@@ -167,15 +167,15 @@ function kanbanRenderCard(task) {
     <div class="kanban-card" 
          draggable="true"
          data-task-id="${taskId}"
-         ondragstart="kanbanOnDragStart(event, ${jsArg(taskId)})"
-         ondragend="kanbanOnDragEnd(event)">
+         data-act-dragstart="kanbanOnDragStart($event,${jsArg(taskId)})"
+         data-act-dragend="kanbanOnDragEnd($event)">
       <div class="kanban-card-top">
         <span class="kanban-card-priority" style="background:${priority.bg};color:${priority.color}">
           ${priority.label}
         </span>
         <div class="kanban-card-actions">
-          <button type="button" class="kanban-card-action" onclick="event.stopPropagation();kanbanOpenEditModal(${jsArg(taskId)})">✏️</button>
-          <button type="button" class="kanban-card-action" onclick="event.stopPropagation();kanbanDeleteTask(${jsArg(taskId)})">🗑️</button>
+          <button type="button" class="kanban-card-action" data-act-click="kanbanOpenEditModal(${jsArg(taskId)})" data-stop="1">✏️</button>
+          <button type="button" class="kanban-card-action" data-act-click="kanbanDeleteTask(${jsArg(taskId)})" data-stop="1">🗑️</button>
         </div>
       </div>
       <div class="kanban-card-title">${kanbanEscapeHtml(task.title)}</div>

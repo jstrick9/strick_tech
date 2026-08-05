@@ -88,17 +88,17 @@ async function renderImageGen() {
             <input id="img-save-to" class="input" placeholder="Save as: hero.png" style="font-size:12px">
           </div>
           <div style="display:flex;gap:6px;margin-bottom:8px">
-            <button onclick="generateImage()" class="btn btn-primary" style="flex:1" id="img-gen-btn">🎨 Generate</button>
-            <button onclick="igEnhancePrompt()" class="btn-sm" title="AI-enhance the prompt">✨ Enhance</button>
-            <button onclick="igVariations()" class="btn-sm" title="Generate 4 variations">⊞ Vary</button>
+            <button data-act-click="generateImage()" class="btn btn-primary" style="flex:1" id="img-gen-btn">🎨 Generate</button>
+            <button data-act-click="igEnhancePrompt()" class="btn-sm" title="AI-enhance the prompt">✨ Enhance</button>
+            <button data-act-click="igVariations()" class="btn-sm" title="Generate 4 variations">⊞ Vary</button>
           </div>
           <div id="img-status" style="font-size:11px;color:var(--text-2);margin-top:4px;min-height:16px"></div>
           <div id="img-result" style="display:none;margin-top:10px">
             <img id="img-preview" style="max-width:100%;border-radius:var(--radius-sm);border:1px solid var(--border)">
             <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-              <button onclick="downloadImage()" class="btn btn-ghost btn-sm">⬇ Download</button>
-              <button onclick="igSaveToGallery()" class="btn btn-ghost btn-sm">💾 Save to Gallery</button>
-              <button onclick="insertImageIntoCode()" class="btn btn-ghost btn-sm">→ Insert</button>
+              <button data-act-click="downloadImage()" class="btn btn-ghost btn-sm">⬇ Download</button>
+              <button data-act-click="igSaveToGallery()" class="btn btn-ghost btn-sm">💾 Save to Gallery</button>
+              <button data-act-click="insertImageIntoCode()" class="btn btn-ghost btn-sm">→ Insert</button>
             </div>
             <input type="hidden" id="img-url">
           </div>
@@ -117,7 +117,7 @@ async function renderImageGen() {
                 <option value="react">React + Tailwind</option>
                 <option value="vue">Vue + Tailwind</option>
               </select>
-              <button onclick="importFigma()" class="btn btn-primary btn-sm">🎯 Import</button>
+              <button data-act-click="importFigma()" class="btn btn-primary btn-sm">🎯 Import</button>
             </div>
             <div id="figma-status" style="font-size:11px;color:var(--text-2);min-height:14px"></div>
           </div>
@@ -130,7 +130,7 @@ async function renderImageGen() {
               <select id="st-style" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none">
                 ${['cinematic','anime','oil_painting','watercolor','neon_noir','minimal','fantasy','retro','sketch','pixel_art'].map(s=>`<option value="${s}">${s.replace(/_/g,' ')}</option>`).join('')}
               </select>
-              <button onclick="igStyleTransfer()" class="btn btn-primary btn-sm">→ Apply</button>
+              <button data-act-click="igStyleTransfer()" class="btn btn-primary btn-sm">→ Apply</button>
             </div>
             <div id="st-status" style="font-size:11px;color:var(--text-2);margin-top:4px;min-height:14px"></div>
           </div>
@@ -142,8 +142,8 @@ async function renderImageGen() {
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <h3>🖼️ Asset Library <span style="font-size:11px;color:var(--text-3);font-weight:400">(${gallery.count} images)</span></h3>
           <div style="display:flex;gap:6px">
-            <button onclick="renderImageGen()" class="btn-sm">↻ Refresh</button>
-            <button onclick="igUpload()" class="btn-sm">⬆ Upload</button>
+            <button data-act-click="renderImageGen()" class="btn-sm">↻ Refresh</button>
+            <button data-act-click="igUpload()" class="btn-sm">⬆ Upload</button>
           </div>
         </div>
         ${gallery.images.length === 0
@@ -178,7 +178,7 @@ async function renderImageGen() {
 
   } catch(ex) {
     pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Error loading Image Gen: ${escHtml(ex?.message||String(ex))}<br>
-      <button class="btn-sm" onclick="renderImageGen()" style="margin-top:8px">↻ Retry</button></div>`;
+      <button class="btn-sm" data-act-click="renderImageGen()" style="margin-top:8px">↻ Retry</button></div>`;
   }
 }
 

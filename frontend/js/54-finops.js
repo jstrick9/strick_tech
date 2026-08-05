@@ -21,8 +21,8 @@ async function renderFinOps() {
       </div>
       <div style="display:flex;gap:8px">
         <a href="/api/finops/export/csv?days=30" download class="btn-sm" style="text-decoration:none;display:inline-flex;align-items:center">⬇ Export CSV</a>
-        <button class="btn-sm" onclick="finopsCreateCap()">+ Budget Cap</button>
-        <button class="btn-sm" onclick="renderFinOps()">↻ Refresh</button>
+        <button class="btn-sm" data-act-click="finopsCreateCap()">+ Budget Cap</button>
+        <button class="btn-sm" data-act-click="renderFinOps()">↻ Refresh</button>
       </div>
     </div>
 
@@ -51,7 +51,7 @@ async function renderFinOps() {
           <span>${a.alert_type==='breach'?'🔴':'🟡'}</span>
           <strong>${escHtml(a.cap_name||'Cap')}</strong>
           <span style="color:var(--text-2)">${a.alert_type}: ${Math.round(a.pct_used*100)}% used ($${a.cost_at_alert?.toFixed(4)} / $${a.limit_usd?.toFixed(4)})</span>
-          <button class="btn-sm" onclick="finopsResolveAlert(${JSON.stringify(a.id)})" style="margin-left:auto;font-size:10px">✓</button>
+          <button class="btn-sm" data-act-click="finopsResolveAlert(${JSON.stringify(a.id)})" style="margin-left:auto;font-size:10px">✓</button>
         </div>`).join('')}
     </div>`:''}
 
@@ -63,10 +63,10 @@ async function renderFinOps() {
           <span style="font-size:12px;color:var(--text-2)">Real-time spend heatmap across Models, Specialist Roles (brain, builder), and Workspace Folders</span>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button onclick="finopsFilterHeatmap('model')" class="btn-3d btn-ghost btn-sm" id="fo-filter-model" style="padding:4px 10px;font-size:11px;background:var(--accent-glow);border-color:var(--accent)">By Model</button>
-          <button onclick="finopsFilterHeatmap('role')" class="btn-3d btn-ghost btn-sm" id="fo-filter-role" style="padding:4px 10px;font-size:11px">By Agent Role</button>
-          <button onclick="finopsFilterHeatmap('folder')" class="btn-3d btn-ghost btn-sm" id="fo-filter-folder" style="padding:4px 10px;font-size:11px">By Folder</button>
-          <button onclick="if(typeof toggleSplitWorkspace==='function') toggleSplitWorkspace(true, 'finops')" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:11px">🗂️ Secondary Dock</button>
+          <button data-act-click="finopsFilterHeatmap('model')" class="btn-3d btn-ghost btn-sm" id="fo-filter-model" style="padding:4px 10px;font-size:11px;background:var(--accent-glow);border-color:var(--accent)">By Model</button>
+          <button data-act-click="finopsFilterHeatmap('role')" class="btn-3d btn-ghost btn-sm" id="fo-filter-role" style="padding:4px 10px;font-size:11px">By Agent Role</button>
+          <button data-act-click="finopsFilterHeatmap('folder')" class="btn-3d btn-ghost btn-sm" id="fo-filter-folder" style="padding:4px 10px;font-size:11px">By Folder</button>
+          <button data-act-click="toggleSplitWorkspace(true,'finops')" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:11px">🗂️ Secondary Dock</button>
         </div>
       </div>
       <div id="finops-treemap-grid" style="display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:110px 110px;gap:10px;font-family:monospace">
@@ -145,7 +145,7 @@ async function renderFinOps() {
               <div style="width:${Math.min(pct,100)}%;height:5px;background:${barColor};border-radius:3px;transition:width .4s"></div>
             </div>
           </div>`;}).join('')||'<div style="color:var(--text-3);font-size:12px">No caps configured</div>'}
-        <button class="btn-sm" onclick="finopsCreateCap()" style="margin-top:8px;width:100%">+ Add Cap</button>
+        <button class="btn-sm" data-act-click="finopsCreateCap()" style="margin-top:8px;width:100%">+ Add Cap</button>
       </div>
     </div>
 
@@ -175,7 +175,7 @@ async function renderFinOps() {
           <input id="fo-cost" type="number" step="0.0001" placeholder="0.0050" style="background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text-0);width:100px"></div>
         <div><div style="font-size:10px;color:var(--text-3);margin-bottom:3px">Tokens</div>
           <input id="fo-tokens" type="number" placeholder="500" style="background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text-0);width:80px"></div>
-        <button class="btn-sm" onclick="finopsRecordCost()">Record</button>
+        <button class="btn-sm" data-act-click="finopsRecordCost()">Record</button>
       </div>
     </div>
   </div>`;

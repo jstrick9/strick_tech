@@ -5,7 +5,7 @@ async function renderLoops() {
   const pane = document.getElementById('pane-loops');
   pane.innerHTML = `<div class="section-head">
     <div><h2>♾️ Autonomous Loops</h2><p>Schedule agents to run repeatedly. They wake on a timer, continue working, and commit results.</p></div>
-    <button onclick="refreshLoops()" class="btn btn-ghost btn-sm">⟳ Refresh</button>
+    <button data-act-click="refreshLoops()" class="btn btn-ghost btn-sm">⟳ Refresh</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
     <div class="settings-card">
@@ -25,7 +25,7 @@ async function renderLoops() {
           <input id="loop-interval" type="number" value="15" min="1" max="1440" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px;color:var(--text-0);font-size:12.5px;outline:none">
         </div>
       </div>
-      <button onclick="createLoop()" class="btn btn-primary" style="width:100%">♾️ Start Loop</button>
+      <button data-act-click="createLoop()" class="btn btn-primary" style="width:100%">♾️ Start Loop</button>
     </div>
     <div>
       <div class="settings-card">
@@ -76,8 +76,8 @@ async function refreshLoops() {
           <span style="color:var(--green);font-size:10px">●</span>
           <span style="font-weight:700;font-size:12.5px;flex:1">${escHtml(l.id)}</span>
           <span class="tag">${l.interval_minutes}min</span>
-          <button onclick="pauseLoop(${JSON.stringify(l.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px" title="Pause">${l.status==='paused'?'▶ Resume':'⏸ Pause'}</button>
-          <button onclick="stopLoop(${JSON.stringify(l.id)})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px">Stop</button>
+          <button data-act-click="pauseLoop(${JSON.stringify(l.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px" title="Pause">${l.status==='paused'?'▶ Resume':'⏸ Pause'}</button>
+          <button data-act-click="stopLoop(${JSON.stringify(l.id)})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px">Stop</button>
         </div>
         <div style="font-size:12px;color:var(--text-2);margin-bottom:3px">${escHtml((l.prompt||'').slice(0,100))}</div>
         <div style="font-size:11px;color:var(--text-3)">Runs: ${l.run_count||0} · Next: ${l.next_run?new Date(l.next_run).toLocaleTimeString():'—'}${l.status==='paused'?' · <span style="color:var(--warning)">PAUSED</span>':''}</div>
