@@ -11,6 +11,15 @@ import asyncio, time, json
 import httpx, pytest
 from .conftest import BASE, uid, ts, GET, POST, PATCH, DELETE, must, check, no_server_error
 
+# CSRF is enforced by default; these construct their own clients, so they need
+# the token-attaching wrapper too. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 
 class TestSysIndividualUserJourney:
     """Complete individual user workflow: plan → execute → track."""
@@ -329,7 +338,7 @@ class TestSysPlatformAdminWorkflow:
 
     async def test_platform_metrics_dashboard(self, C):
         """Admin can access all monitoring dashboards simultaneously."""
-        async with httpx.AsyncClient(base_url=BASE, timeout=30) as client:
+        async with _csrf_async_client(BASE, timeout=30) as client:
             dashboards = await asyncio.gather(
                 GET(client, "/api/system/health"),
                 GET(client, "/api/agent-monitor/summary"),

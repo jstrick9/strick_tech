@@ -11,6 +11,15 @@ User stories:
 import pytest
 from tests.uat.conftest import *
 
+# CSRF is enforced by default; these construct their own clients, so they need
+# the token-attaching wrapper too. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 
 class TestUATSecretsVault:
     """User Story: Store API keys and secrets securely."""
@@ -77,7 +86,7 @@ class TestUATTerminal:
         """AC: Terminal accepts commands and streams output via SSE."""
         import httpx as _h
         marker = uid("terminal_output")
-        async with _h.AsyncClient(base_url=BASE, timeout=25) as fresh:
+        async with _csrf_async_client(BASE, timeout=25) as fresh:
             r = await fresh.post("/api/terminal/run", json={"command": f"echo {marker}"})
         
         accept(r, "run terminal command", 200)
@@ -94,7 +103,7 @@ class TestUATTerminal:
     async def test_user_can_list_files(self, U):
         """AC: ls command shows files in current directory."""
         import httpx as _h
-        async with _h.AsyncClient(base_url=BASE, timeout=25) as fresh:
+        async with _csrf_async_client(BASE, timeout=25) as fresh:
             r = await fresh.post("/api/terminal/run", json={"command": "ls"})
         
         accept(r, "run ls", 200)
@@ -114,7 +123,7 @@ class TestUATTerminal:
         """AC: Platform prevents accidental system damage."""
         import httpx as _h
         for dangerous_cmd in ["rm -rf /", "dd if=/dev/zero of=/dev/sda"]:
-            async with _h.AsyncClient(base_url=BASE, timeout=25) as fresh:
+            async with _csrf_async_client(BASE, timeout=25) as fresh:
                 r = await fresh.post("/api/terminal/run", json={"command": dangerous_cmd})
             
             uat(f"'{dangerous_cmd[:20]}' handled safely", r.status_code in (200, 400, 403))

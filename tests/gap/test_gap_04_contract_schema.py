@@ -7,6 +7,15 @@ Tests: required fields present, correct types, no unexpected nulls,
 import pytest, json
 from tests.gap.conftest import *
 
+# CSRF is enforced by default; these construct their own clients, so they need
+# the token-attaching wrapper too. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 
 class TestGapResponseContracts:
     """Every major endpoint returns the documented response shape."""
@@ -177,7 +186,7 @@ class TestGapInputValidation:
         ]
         for ep in write_endpoints:
             import httpx
-            async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+            async with _csrf_async_client(BASE, timeout=10) as c:
                 r = await c.post(ep, content=b"", headers={"Content-Type": "application/json"})
                 chk(f"empty body {ep} not 5xx", r.status_code < 500,
                     got=f"status={r.status_code}")
@@ -231,7 +240,7 @@ class TestGapInputValidation:
         for case in cases:
             method, path = case.split(" ", 1)
             import httpx
-            async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+            async with _csrf_async_client(BASE, timeout=10) as c:
                 r = await c.get(path)
                 chk(f"nonexistent {path} not 5xx", r.status_code < 500,
                     got=f"status={r.status_code}")

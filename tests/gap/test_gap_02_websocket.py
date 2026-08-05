@@ -9,6 +9,15 @@ Covers the one dimension with ZERO previous coverage:
 import pytest, asyncio, json
 from tests.gap.conftest import *
 
+# CSRF is enforced by default; these construct their own clients, so they need
+# the token-attaching wrapper too. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 
 class TestGapWebSocketLive:
     """WebSocket endpoint tests — verify the live WS layer works end-to-end."""
@@ -62,7 +71,7 @@ class TestGapWebSocketLive:
         """WebSocket endpoint /ws is registered — HTTP GET returns 403/400/426 or similar (not 404/405).
         The endpoint is /ws and only accepts WebSocket upgrade handshakes."""
         import httpx
-        async with httpx.AsyncClient(base_url=BASE, timeout=3) as c:
+        async with _csrf_async_client(BASE, timeout=3) as c:
             # Plain HTTP GET to a WS endpoint — protocol mismatch, but endpoint must exist
             # FastAPI WebSocket routes show 403 on plain HTTP in some versions
             r = await c.get("/ws")
@@ -119,7 +128,7 @@ class TestGapWebSocketIntegration:
         """20 concurrent broadcasts — all accepted without race condition."""
         import httpx
         async def broadcast(i):
-            async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+            async with _csrf_async_client(BASE, timeout=10) as c:
                 r = await c.post("/api/ws/broadcast", json={
                     "event": f"concurrent.{i}",
                     "payload": {"n": i}

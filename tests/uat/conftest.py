@@ -23,6 +23,16 @@ from typing import Any
 import httpx
 import pytest
 
+# CSRF enforcement is ON by default for a single-worker server. These suites
+# talk to a server started separately, so they are scripted API clients from
+# its point of view and must carry a token. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 BASE    = "http://127.0.0.1:8787"
 TIMEOUT = 25
 
@@ -30,7 +40,7 @@ TIMEOUT = 25
 @pytest.fixture
 async def U():
     """Fresh user-session client (simulates one browser tab)."""
-    async with httpx.AsyncClient(base_url=BASE, timeout=TIMEOUT) as c:
+    async with _csrf_async_client(BASE, timeout=TIMEOUT) as c:
         yield c
 
 
@@ -144,7 +154,7 @@ CORE_AGENTS = {
 def restore_core_agents():
     """Restore core agent names/prompts at session start (security tests may mutate them)."""
     import httpx as _httpx
-    with _httpx.Client(base_url=BASE, timeout=10) as c:
+    with _csrf_client(BASE, timeout=10) as c:
         for aid, data in CORE_AGENTS.items():
             try:
                 c.patch(f"/api/agents/{aid}", json=data)

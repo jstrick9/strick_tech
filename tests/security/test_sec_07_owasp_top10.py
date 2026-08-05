@@ -14,6 +14,15 @@ A10: SSRF — Server Side Request Forgery
 import pytest, json
 from tests.security.conftest import *
 
+# CSRF is enforced by default; these construct their own clients, so they need
+# the token-attaching wrapper too. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # A01: Broken Access Control
 # ─────────────────────────────────────────────────────────────────────────────
@@ -422,7 +431,7 @@ class TestSecA05Misconfiguration:
     async def test_http_methods_restricted(self, C):
         """Non-standard HTTP methods must not expose info."""
         import httpx
-        async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+        async with _csrf_async_client(BASE, timeout=10) as c:
             for method in ["TRACE", "TRACK", "OPTIONS"]:
                 try:
                     r = await c.request(method, "/api/agents")
@@ -445,7 +454,7 @@ class TestSecA05Misconfiguration:
     async def test_cors_does_not_allow_arbitrary_origins(self, C):
         """CORS must not allow arbitrary origins with credentials."""
         import httpx
-        async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+        async with _csrf_async_client(BASE, timeout=10) as c:
             r = await c.get("/api/agents", headers={
                 "Origin": "https://evil-attacker.com"
             })

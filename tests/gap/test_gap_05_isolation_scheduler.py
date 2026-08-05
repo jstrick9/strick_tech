@@ -10,6 +10,15 @@ Covers:
 import pytest, asyncio, time, json
 from tests.gap.conftest import *
 
+# CSRF is enforced by default; these construct their own clients, so they need
+# the token-attaching wrapper too. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 
 class TestGapDataIsolation:
     """Data scoped to one agent/goal must not bleed into another's view."""
@@ -205,7 +214,7 @@ class TestGapFaultInjection:
     async def test_malformed_json_graceful(self, C):
         """Malformed JSON body → 4xx, not 5xx."""
         import httpx
-        async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+        async with _csrf_async_client(BASE, timeout=10) as c:
             r = await c.post("/api/tasks",
                 content=b"not {valid json at all!!",
                 headers={"Content-Type": "application/json"})
@@ -215,7 +224,7 @@ class TestGapFaultInjection:
     async def test_missing_content_type_handled(self, C):
         """POST without Content-Type header handled gracefully."""
         import httpx
-        async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+        async with _csrf_async_client(BASE, timeout=10) as c:
             r = await c.post("/api/tasks", content=b'{"title":"test"}')
             chk("missing content-type not 5xx", r.status_code < 500)
 
@@ -245,7 +254,7 @@ class TestGapFaultInjection:
 
         import httpx
         async def try_delete():
-            async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+            async with _csrf_async_client(BASE, timeout=10) as c:
                 r = await c.delete(f"/api/tasks/{tid}")
                 return r.status_code
 

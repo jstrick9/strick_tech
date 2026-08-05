@@ -17,12 +17,22 @@ from __future__ import annotations
 import httpx
 import pytest
 
+# CSRF enforcement is ON by default for a single-worker server. These suites
+# talk to a server started separately, so they are scripted API clients from
+# its point of view and must carry a token. See tests/_csrf_client.py.
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import async_client as _csrf_async_client  # noqa: E402
+from _csrf_client import client as _csrf_client  # noqa: E402
+
+
 BASE = "http://127.0.0.1:8787"
 
 
 @pytest.fixture(autouse=True, scope="session")
 def _ensure_agent_identities_provisioned():
-    with httpx.Client(base_url=BASE, timeout=10) as c:
+    with _csrf_client(BASE, timeout=10) as c:
         try:
             c.post("/api/agent-identity/provision-all")
         except Exception:
