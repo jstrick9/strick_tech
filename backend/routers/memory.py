@@ -22,6 +22,7 @@ from ..services.memory_db import (
     memory_search_fts,
     memory_stats,
 )
+from ..services.request_body import as_text
 
 router = APIRouter(prefix='/api/memory', tags=['memory'])
 
@@ -147,8 +148,8 @@ async def add(req: Request):
             body = {}
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         body = {}
-    source = (body.get('source') or 'user').strip()[:64]
-    content = (body.get('content') or '').strip()
+    source = (as_text(body.get('source')) or 'user')[:64]
+    content = as_text(body.get('content'))
     tags_raw = body.get('tags') or ''
     # Accept both list ["a","b"] and comma-string "a,b"
     if isinstance(tags_raw, list):
@@ -171,10 +172,10 @@ async def add_with_embedding(req: Request):
             body = {}
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         body = {}
-    content = (body.get('content') or '').strip()
+    content = as_text(body.get('content'))
     if not content:
         return {'ok': False, 'error': 'content required'}
-    source = (body.get('source') or 'api').strip()[:64]
+    source = (as_text(body.get('source')) or 'api')[:64]
     raw_tags = body.get('tags') or ''
     # Accept both list and string for tags
     if isinstance(raw_tags, list):
@@ -283,12 +284,12 @@ async def import_memories(req: Request):
         return {'ok': False, 'error': 'memories list required'}
     imported, skipped = 0, 0
     for m in memories:
-        content = (m.get('content') or '').strip()
+        content = (as_text(m.get('content')) or '')
         if not content:
             skipped += 1
             continue
-        source = (m.get('source') or 'import').strip()[:64]
-        tags = (m.get('tags') or '').strip()[:256]
+        source = (as_text(m.get('source')) or 'import')[:64]
+        tags = (as_text(m.get('tags')) or '')[:256]
         try:
             memory_add(source, content[:4000], tags)
             imported += 1
@@ -353,8 +354,8 @@ async def update_memory(memory_id: int, req: Request):
             body = {}
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         body = {}
-    content = (body.get('content') or '').strip()
-    tags = (body.get('tags') or '').strip()[:256]
+    content = as_text(body.get('content'))
+    tags = as_text(body.get('tags'))[:256]
     if not content:
         return {'ok': False, 'error': 'content required'}
     con = get_conn()

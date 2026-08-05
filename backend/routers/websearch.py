@@ -30,7 +30,7 @@ log = logging.getLogger('agentic.websearch')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 DB = ROOT / 'memory' / 'agentic.db'
@@ -265,7 +265,7 @@ async def web_search(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    query = (body.get('query') or '').strip()
+    query = as_text(body.get('query'))
     n = max(1, min(int(body.get('num_results', 5) or 5), 10))
     fetch = bool(body.get('fetch_content', False))
 
@@ -314,7 +314,7 @@ async def fetch_content(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    url = (body.get('url') or '').strip()
+    url = as_text(body.get('url'))
     max_chars = max(500, min(int(body.get('max_chars', 3000) or 3000), 10000))
 
     if not url:
@@ -343,8 +343,8 @@ async def grounded_completion(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
-    agent_id = (body.get('agent_id') or 'builder').strip() or 'builder'
+    prompt = as_text(body.get('prompt'))
+    agent_id = (as_text(body.get('agent_id')) or 'builder') or 'builder'
     num_results = max(1, min(int(body.get('num_results', 5) or 5), 8))
     fetch_full = bool(body.get('fetch_content', False))
 
@@ -409,8 +409,8 @@ async def grounded_stream(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
-    agent_id = (body.get('agent_id') or 'builder').strip() or 'builder'
+    prompt = as_text(body.get('prompt'))
+    agent_id = (as_text(body.get('agent_id')) or 'builder') or 'builder'
     num_results = max(1, min(int(body.get('num_results', 4) or 4), 8))
 
     if not prompt:
@@ -476,7 +476,7 @@ async def deep_research(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    topic = (body.get('topic') or '').strip()
+    topic = as_text(body.get('topic'))
     if not topic:
         return JSONResponse({'ok': False, 'error': 'topic required'}, status_code=400)
 

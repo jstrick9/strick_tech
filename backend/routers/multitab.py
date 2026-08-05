@@ -18,7 +18,7 @@ log = logging.getLogger('agentic.multitab')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -123,7 +123,7 @@ async def create_tab(req: Request):
     if _body_err:
         return _body_err
     tid = f'tab_{uuid.uuid4().hex[:6]}'
-    file = (body.get('file') or 'index.html').lstrip('/')
+    file = (as_text(body.get('file')) or 'index.html').lstrip('/')
     url = body.get('url') or f'/preview/{file}'
     title = body.get('title') or file
 

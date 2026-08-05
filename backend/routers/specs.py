@@ -39,7 +39,7 @@ def _parse_delta(chunk: str) -> str:
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 SPECS_DIR = ROOT / 'workspaces' / 'specs'
@@ -396,7 +396,7 @@ Rules:
         result = await llm_svc.complete(
             messages, agent_id='specs', max_tokens=3000, temperature=0.2, inject_steering=False
         )
-        text = (result.get('text') or '').strip()
+        text = (as_text(result.get('text')) or '')
 
         # Parse JSON
         import re
@@ -694,7 +694,7 @@ Return ONLY a JSON array: [{"task_no":1,"title":"...","description":"...","wave"
             result = await llm_svc.complete(
                 task_msgs, agent_id='specs', max_tokens=3000, temperature=0.2, inject_steering=False
             )
-            text = (result.get('text') or '').strip()
+            text = (as_text(result.get('text')) or '')
             import re as _re
 
             jm = _re.search(r'\[.*\]', text, _re.DOTALL)

@@ -36,7 +36,7 @@ log = logging.getLogger('agentic.monitor')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -607,7 +607,7 @@ async def create_shadow_test(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
-    agent_id = (body.get('agent_id') or '').strip()
+    agent_id = as_text(body.get('agent_id'))
     config = body.get('shadow_config') or {}
     if not agent_id:
         return JSONResponse({'ok': False, 'error': 'agent_id required'}, status_code=400)

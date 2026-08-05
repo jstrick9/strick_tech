@@ -24,6 +24,8 @@ log = logging.getLogger('agentic.plugins')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import as_text
+
 ROOT = get_data_dir()
 PLUGIN_DIR = ROOT / 'plugins'
 PLUGIN_DIR.mkdir(exist_ok=True)
@@ -524,7 +526,7 @@ async def install_from_url(req: Request):
         body = await req.json()
     except Exception:
         body = {}
-    url = (body.get('url') or '').strip()
+    url = as_text(body.get('url'))
     if not url:
         return JSONResponse({'ok': False, 'error': 'url required'}, status_code=400)
 

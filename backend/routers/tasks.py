@@ -19,6 +19,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ..services.memory_db import get_conn
+from ..services.request_body import as_text
 
 router = APIRouter(tags=['tasks'])
 log = logging.getLogger('agentic.tasks')
@@ -99,7 +100,7 @@ async def tasks_create(req: Request):
         d = await req.json()
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON body'}, status_code=400)
-    title = (d.get('title') or '').strip()[:240]
+    title = (as_text(d.get('title')) or '')[:240]
     if not title:
         # Validation failures are 400, matching the rest of the task API.
         return JSONResponse({'ok': False, 'error': 'title required'}, status_code=400)

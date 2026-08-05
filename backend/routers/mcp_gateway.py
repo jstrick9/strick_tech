@@ -36,7 +36,7 @@ log = logging.getLogger('agentic.mcp_gateway')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -622,7 +622,7 @@ async def register_server(req: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
-    name = (body.get('name') or '').strip()
+    name = as_text(body.get('name'))
     if not name:
         return JSONResponse({'ok': False, 'error': 'name required'}, status_code=400)
 
@@ -724,10 +724,10 @@ async def gateway_call_endpoint(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
-    server_id = (body.get('server_id') or 'srv_filesystem').strip()
-    tool_name = (body.get('tool') or '').strip()
+    server_id = (as_text(body.get('server_id')) or 'srv_filesystem')
+    tool_name = as_text(body.get('tool'))
     args = body.get('args') or {}
-    agent_id = (body.get('agent_id') or 'system').strip()
+    agent_id = (as_text(body.get('agent_id')) or 'system')
     if not tool_name:
         return JSONResponse({'ok': False, 'error': 'tool required'}, status_code=400)
     result = await gateway_call(agent_id, server_id, tool_name, args)
@@ -752,7 +752,7 @@ async def create_policy(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
-    name = (body.get('name') or '').strip()
+    name = as_text(body.get('name'))
     if not name:
         return JSONResponse({'ok': False, 'error': 'name required'}, status_code=400)
     pol_id = f'pol_{uuid.uuid4().hex[:8]}'
@@ -796,9 +796,9 @@ async def simulate_policy(req: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
-    agent_id = (body.get('agent_id') or '').strip()
-    server_id = (body.get('server_id') or '').strip()
-    tool_name = (body.get('tool_name') or '').strip()
+    agent_id = as_text(body.get('agent_id'))
+    server_id = as_text(body.get('server_id'))
+    tool_name = as_text(body.get('tool_name'))
 
     if not agent_id or not server_id or not tool_name:
         return JSONResponse({'ok': False, 'error': 'agent_id, server_id, tool_name required'}, status_code=400)
@@ -995,7 +995,7 @@ async def bulk_policy_action(req: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
-    action = (body.get('action') or '').strip()
+    action = as_text(body.get('action'))
     policy_ids = body.get('policy_ids') or []
     if action not in ('enable', 'disable', 'delete'):
         return JSONResponse({'ok': False, 'error': 'action must be enable|disable|delete'}, status_code=400)

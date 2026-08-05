@@ -18,7 +18,7 @@ router = APIRouter(prefix='/api/onboarding', tags=['onboarding'])
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 PREFS_FILE = ROOT / 'memory' / 'preferences.json'
@@ -406,7 +406,7 @@ async def complete_onboarding(req: Request):
             prefs[k] = body[k]
 
     # Save API key to vault if provided
-    api_key = (body.get('api_key') or '').strip()
+    api_key = as_text(body.get('api_key'))
     if api_key:
         os.environ['OPENROUTER_API_KEY'] = api_key
         try:

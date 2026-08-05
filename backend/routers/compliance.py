@@ -38,6 +38,8 @@ log = logging.getLogger('agentic.compliance')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import as_text
+
 ROOT = get_data_dir()
 
 # -- Report history schema ------------------------------------------------------
@@ -1174,11 +1176,11 @@ async def generate_report(req: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
 
-    title = (body.get('title') or 'Compliance Report').strip()[:200]
-    framework = (body.get('framework') or 'General').strip()
-    fmt = (body.get('format') or 'pdf').strip().lower()
-    date_from = (body.get('date_from') or '').strip()
-    date_to = (body.get('date_to') or '').strip()
+    title = (as_text(body.get('title')) or 'Compliance Report')[:200]
+    framework = (as_text(body.get('framework')) or 'General')
+    fmt = (as_text(body.get('format')) or 'pdf').lower()
+    date_from = as_text(body.get('date_from'))
+    date_to = as_text(body.get('date_to'))
     scope = body.get('scope') or {}
 
     if framework not in FRAMEWORKS:

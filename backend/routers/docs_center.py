@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request
 
+from ..services.request_body import as_text
+
 router = APIRouter(prefix='/api/docs', tags=['docs'])
 
 # ── In-memory feedback store (lightweight — resets on restart, no DB needed) ──
@@ -1119,8 +1121,8 @@ async def submit_feedback(req: Request):
     except Exception:
         return {'ok': False, 'error': 'Invalid JSON body'}
 
-    doc_id = (body.get('doc_id') or '').strip()[:100]
-    doc_type = (body.get('doc_type') or 'feature').strip()[:20]
+    doc_id = as_text(body.get('doc_id'))[:100]
+    doc_type = (as_text(body.get('doc_type')) or 'feature')[:20]
     helpful = bool(body.get('helpful', True))
 
     if not doc_id:

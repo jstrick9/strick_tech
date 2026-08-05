@@ -112,3 +112,56 @@ async def json_body_or_error(req: Request) -> tuple[dict[str, Any] | None, JSONR
         return await json_body(req), None
     except MalformedBodyError as exc:
         return None, exc.response()
+
+
+# ── Field coercion ────────────────────────────────────────────────────────────
+# 22 POST endpoints returned HTTP 500 when a field arrived with the wrong type.
+# The cause is uniform: `(body.get('title') or '').strip()` assumes a string,
+# and an int, list or dict has no .strip(), so the handler raises AttributeError
+# and FastAPI turns it into a 500.
+#
+#     POST /api/goals   {"title": 12345}   ->  500 Internal Server Error
+#     POST /api/chat    {"message": 12345} ->  500 Internal Server Error
+#
+# A 500 is the wrong answer twice over: it says "the server is broken" when the
+# request was, it is the status most likely to page someone, and it can expose
+# a stack trace. The adjacent lines in the same handlers already do this
+# correctly with `str(body.get('model') or '')`, so this is an oversight rather
+# than a decision.
+#
+# A null byte is stripped as well. SQLite stores it happily, but it truncates
+# C-style strings in downstream tooling and displays as a control character in
+# the UI, so it is never something a user meant to send.
+
+# 1 MiB. Generous for any single text field this platform accepts (chat
+# messages already cap at 16k) while stopping a 10MB title from being written
+# to the database -- verified accepted before this guard.
+MAX_FIELD_CHARS = 1_048_576
+
+
+def as_text(value: Any, *, limit: int = MAX_FIELD_CHARS) -> str:
+    """Coerce a JSON field to a clean string. Never raises.
+
+    None becomes '', which preserves the `or ''` semantics the call sites rely
+    on. Non-strings are stringified rather than rejected: a client sending
+    {"title": 123} plainly means "123", and refusing it would be a behaviour
+    change on top of a crash fix.
+    """
+    if value is None:
+        return ''
+    if not isinstance(value, str):
+        # dict/list stringify to their repr, which is not useful as a title but
+        # is honest, bounded, and does not crash.
+        value = str(value)
+    if '\x00' in value:
+        value = value.replace('\x00', '')
+    if len(value) > limit:
+        value = value[:limit]
+    return value.strip()
+
+
+def text_field(body: dict[str, Any], key: str, *, default: str = '',
+               limit: int = MAX_FIELD_CHARS) -> str:
+    """`as_text(body.get(key))` with a default for the missing/empty case."""
+    out = as_text(body.get(key), limit=limit)
+    return out if out else default

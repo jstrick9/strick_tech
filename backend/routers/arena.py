@@ -16,7 +16,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(prefix='/api/arena', tags=['arena'])
 log = logging.getLogger('agentic.arena')
@@ -125,7 +125,7 @@ async def create_battle(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
+    prompt = as_text(body.get('prompt'))
     model_a = body.get('model_a', 'claude-sonnet')
     model_b = body.get('model_b', 'gpt-4o')
     category = body.get('category', 'general')

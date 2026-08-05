@@ -41,6 +41,8 @@ log = logging.getLogger('agentic.connectors')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import as_text
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -3966,7 +3968,7 @@ async def register_connector(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
-    name = (body.get('name') or '').strip()
+    name = as_text(body.get('name'))
     if not name:
         return JSONResponse({'ok': False, 'error': 'name required'}, status_code=400)
     conn_id = f'conn_{uuid.uuid4().hex[:8]}'
@@ -4050,9 +4052,9 @@ async def run_connector(connector_id: str, req: Request):
         body = await req.json()
     except (json.JSONDecodeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
-    action = (body.get('action') or '').strip()
+    action = as_text(body.get('action'))
     payload = body.get('payload') or {}
-    agent_id = (body.get('agent_id') or 'user').strip()
+    agent_id = (as_text(body.get('agent_id')) or 'user')
     inline_creds = body.get('credentials') or {}  # optional per-call credential override
     if not action:
         return JSONResponse({'ok': False, 'error': 'action required'}, status_code=400)

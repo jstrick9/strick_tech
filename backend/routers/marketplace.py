@@ -32,7 +32,7 @@ log = logging.getLogger('agentic.marketplace')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 MKT_DIR = ROOT / 'workspaces' / 'marketplace'
@@ -1034,9 +1034,9 @@ async def submit_community_pack(req: Request):
     if _body_err:
         return _body_err
     pack_id = (body.get('id') or body.get('pack_id') or '').strip().lower().replace(' ', '-')
-    name = (body.get('name') or pack_id).strip()
-    description = (body.get('description') or 'Community skill pack').strip()
-    author = (body.get('author') or 'Community Builder').strip()
+    name = (as_text(body.get('name')) or pack_id)
+    description = (as_text(body.get('description')) or 'Community skill pack')
+    author = (as_text(body.get('author')) or 'Community Builder')
     skills = body.get('skills') or []
     if not pack_id:
         return {'ok': False, 'error': 'id required'}

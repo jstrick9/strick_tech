@@ -20,6 +20,8 @@ router = APIRouter(prefix='/api/sessions', tags=['sessions'])
 log = logging.getLogger('agentic.sessions')
 from backend.config import get_data_dir
 
+from ..services.request_body import as_text
+
 ROOT = get_data_dir()
 
 
@@ -197,9 +199,9 @@ async def create_session(req: Request):
     except Exception:
         body = {}
     name = (body.get('name') or f'Chat {time.strftime("%b %d %H:%M")}').strip()[:256]
-    agent_id = (body.get('agent_id') or 'brain').strip()[:64]
+    agent_id = (as_text(body.get('agent_id')) or 'brain')[:64]
     sid = (body.get('id') or str(uuid.uuid4())).strip()
-    description = (body.get('description') or '').strip()[:500]
+    description = as_text(body.get('description'))[:500]
 
     if not name:
         return {'ok': False, 'error': 'name required'}
@@ -231,8 +233,8 @@ async def auto_title_session(req: Request):
         body = await req.json()
     except Exception:
         body = {}
-    prompt = (body.get('prompt') or '').strip()
-    session_id = (body.get('session_id') or '').strip()
+    prompt = as_text(body.get('prompt'))
+    session_id = as_text(body.get('session_id'))
     if not prompt and session_id:
         con = get_conn()
         try:
@@ -386,17 +388,17 @@ async def import_session_messages(req: Request):
         body = await req.json()
     except Exception:
         body = {}
-    session_id = (body.get('session_id') or '').strip()
+    session_id = as_text(body.get('session_id'))
     messages = body.get('messages') or []
     if not session_id or not isinstance(messages, list):
         return {'ok': False, 'error': 'session_id and messages list required'}
     con = get_conn()
     try:
         for m in messages:
-            role = (m.get('role') or 'user').strip()
-            msg_txt = (m.get('message') or '').strip()
-            agent = (m.get('agent') or 'default').strip()
-            model = (m.get('model') or '').strip()
+            role = (as_text(m.get('role')) or 'user')
+            msg_txt = (as_text(m.get('message')) or '')
+            agent = (as_text(m.get('agent')) or 'default')
+            model = (as_text(m.get('model')) or '')
             if msg_txt:
                 con.execute(
                     'INSERT INTO chat_log(session_id, agent, role, message, tokens, cost, model) VALUES (?,?,?,?,?,?,?)',
@@ -542,7 +544,7 @@ async def branch_session(session_id: str, req: Request):
     except Exception:
         body = {}
     branch_from = body.get('from_message_id')  # inclusive cutoff
-    new_name = (body.get('name') or 'Branched conversation').strip()[:120]
+    new_name = (as_text(body.get('name')) or 'Branched conversation')[:120]
 
     con = get_conn()
     try:

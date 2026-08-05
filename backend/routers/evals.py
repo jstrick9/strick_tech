@@ -32,7 +32,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(prefix='/api/evals', tags=['evals'])
 log = logging.getLogger('agentic.evals')
@@ -251,8 +251,8 @@ async def run_eval(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
-    response = (body.get('response') or '').strip()
+    prompt = as_text(body.get('prompt'))
+    response = as_text(body.get('response'))
     expected = body.get('expected', '')
     agent_id = body.get('agent_id', 'unknown')
     context = body.get('context', '')
@@ -550,8 +550,8 @@ async def create_ab_test(req: Request):
     if _body_err:
         return _body_err
     name = (body.get('name') or 'A/B Test')[:200]
-    prompt_a = (body.get('prompt_a') or '').strip()
-    prompt_b = (body.get('prompt_b') or '').strip()
+    prompt_a = as_text(body.get('prompt_a'))
+    prompt_b = as_text(body.get('prompt_b'))
     inputs = body.get('inputs', [])  # list of test inputs to run both prompts on
     agent_id = body.get('agent_id', 'builder')
 

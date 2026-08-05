@@ -35,6 +35,8 @@ log = logging.getLogger('agentic.finops')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import as_text
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -573,7 +575,7 @@ async def create_cap(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
-    name = (body.get('name') or '').strip()
+    name = as_text(body.get('name'))
     if not name:
         return JSONResponse({'ok': False, 'error': 'name required'}, status_code=400)
     cap_id = f'cap_{uuid.uuid4().hex[:8]}'

@@ -31,7 +31,7 @@ log = logging.getLogger('agentic.imagegen')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 from ..services.safe_paths import safe_path
 
 ROOT = get_data_dir()
@@ -342,7 +342,7 @@ async def _do_generate(
     if not images:
         # The model answered in text instead of producing an image — usually a
         # refusal or a model that doesn't actually support image output.
-        text = (message.get('content') or '').strip()
+        text = (as_text(message.get('content')) or '')
         raise ImageGenError(
             f'{model} did not return an image'
             + (f': {text[:200]}' if text else '. It may not support image output.'),
@@ -403,11 +403,11 @@ async def generate_image(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
+    prompt = as_text(body.get('prompt'))
     size = body.get('size', '1024x1024')
-    style = (body.get('style') or '').strip()
-    save_to = (body.get('save_to') or '').strip()
-    model = (body.get('model') or '').strip()
+    style = as_text(body.get('style'))
+    save_to = as_text(body.get('save_to'))
+    model = as_text(body.get('model'))
 
     if not prompt:
         return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
@@ -580,7 +580,7 @@ async def inject_image_into_code(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    filepath = (body.get('filepath') or 'index.html').lstrip('/')
+    filepath = (as_text(body.get('filepath')) or 'index.html').lstrip('/')
 
     target = _safe_preview_path(filepath)
     if target is None:
@@ -653,8 +653,8 @@ async def figma_import(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    figma_url = (body.get('url') or '').strip()
-    framework = (body.get('framework') or 'html').strip()
+    figma_url = as_text(body.get('url'))
+    framework = (as_text(body.get('framework')) or 'html')
 
     if not figma_url or not re.search(r'(?:^|[./])figma\.com(?:/|$)', figma_url):
         return JSONResponse(
@@ -683,7 +683,7 @@ async def figma_import(req: Request):
         },
     ]
     result = await llm.complete(messages, agent_id='builder', max_tokens=4096, temperature=0.3, inject_steering=False)
-    code = (result.get('text') or '').strip()
+    code = (as_text(result.get('text')) or '')
     if code.startswith('```'):
         code = '\n'.join(code.split('\n')[1:]).rstrip('`').strip()
 
@@ -766,8 +766,8 @@ async def style_transfer(req: Request):
     if _body_err:
         return _body_err
     source_prompt = (body.get('source_prompt') or body.get('prompt') or '').strip()
-    style_id = (body.get('style') or 'cinematic').strip()
-    custom_style = (body.get('custom_style') or '').strip()
+    style_id = (as_text(body.get('style')) or 'cinematic')
+    custom_style = as_text(body.get('custom_style'))
     size = body.get('size', '1024x1024')
 
     if not source_prompt:
@@ -811,7 +811,7 @@ async def style_transfer(req: Request):
             result = await llm_svc.complete(
                 msgs, agent_id='imagegen', max_tokens=256, temperature=0.7, inject_steering=False
             )
-            enhanced_prompt = (result.get('text') or enhanced_prompt).strip()[:500]
+            enhanced_prompt = (as_text(result.get('text')) or enhanced_prompt)[:500]
         except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
             pass
 
@@ -835,9 +835,9 @@ async def inpaint_image(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
-    mask_desc = (body.get('mask_description') or 'the selected area').strip()
-    fill_with = (body.get('fill_with') or '').strip()
+    prompt = as_text(body.get('prompt'))
+    mask_desc = (as_text(body.get('mask_description')) or 'the selected area')
+    fill_with = as_text(body.get('fill_with'))
     size = body.get('size', '1024x1024')
 
     if not prompt:
@@ -864,9 +864,9 @@ async def enhance_prompt(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
-    style = (body.get('style') or '').strip()
-    goal = (body.get('goal') or 'general').strip()
+    prompt = as_text(body.get('prompt'))
+    style = as_text(body.get('style'))
+    goal = (as_text(body.get('goal')) or 'general')
 
     if not prompt:
         return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
@@ -906,7 +906,7 @@ async def enhance_prompt(req: Request):
             r = await llm_svc.complete(
                 msgs, agent_id='imagegen', max_tokens=200, temperature=0.8, inject_steering=False
             )
-            enhanced = (r.get('text') or base_enhanced).strip()
+            enhanced = (as_text(r.get('text')) or base_enhanced)
         except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
             enhanced = base_enhanced
     else:
@@ -930,7 +930,7 @@ async def generate_variations(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
+    prompt = as_text(body.get('prompt'))
     # BUG FIX: int(body.get('count')) raised ValueError on any non-numeric
     # input, surfacing as a bare HTTP 500. Verified live with count="abc".
     try:

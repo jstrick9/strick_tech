@@ -22,7 +22,7 @@ router = APIRouter(prefix='/api/github', tags=['github'])
 log = logging.getLogger('agentic.github')
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 from ..services.safe_paths import is_within, safe_path
 
 ROOT = get_data_dir()
@@ -196,7 +196,7 @@ async def create_repo(req: Request):
         return _body_err
     import re as _re
 
-    name = _re.sub(r'[^a-zA-Z0-9._-]', '-', (body.get('name') or 'agentic-os-project').strip())[:100]
+    name = _re.sub(r'[^a-zA-Z0-9._-]', '-', (as_text(body.get('name')) or 'agentic-os-project'))[:100]
     name = name.strip('-') or 'agentic-os-project'  # remove leading/trailing hyphens
     description = body.get('description', 'Built with Agentic OS')
     private = bool(body.get('private', False))

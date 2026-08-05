@@ -29,7 +29,7 @@ log = logging.getLogger('agentic.terminal')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
@@ -593,7 +593,7 @@ async def run_command(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    command = (body.get('command') or '').strip()
+    command = as_text(body.get('command'))
     cwd = body.get('cwd', '')
     session = body.get('session_id', str(uuid.uuid4())[:8])
 

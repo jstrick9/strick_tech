@@ -21,7 +21,7 @@ from backend.config import get_data_dir
 from backend.version import VERSION
 
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -307,7 +307,7 @@ async def open_external_url(req: Request):
         body = await req.json()
     except Exception:
         body = {}
-    url = (body.get('url') or '').strip()
+    url = as_text(body.get('url'))
     if not url.startswith(('http://', 'https://')):
         return {'ok': False, 'error': 'Invalid URL protocol'}
     import webbrowser
@@ -361,7 +361,7 @@ async def git_commit(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    message = (body.get('message') or 'Agentic OS checkpoint').strip()[:500]
+    message = (as_text(body.get('message')) or 'Agentic OS checkpoint')[:500]
     if not message:
         message = 'Agentic OS checkpoint'
     try:

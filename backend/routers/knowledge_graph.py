@@ -29,7 +29,7 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(prefix='/api/knowledge-graph', tags=['knowledge_graph'])
 log = logging.getLogger('agentic.kg')
@@ -97,7 +97,7 @@ async def add_entity(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    name = (body.get('name') or '').strip()
+    name = as_text(body.get('name'))
     if not name:
         return JSONResponse({'ok': False, 'error': 'name required'}, status_code=400)
     from ..services.memory_db import get_conn
@@ -185,8 +185,8 @@ async def add_fact(req: Request):
     if _body_err:
         return _body_err
     subject_id = body.get('subject_id', '')
-    predicate = (body.get('predicate') or '').strip()
-    object_text = (body.get('object') or '').strip()
+    predicate = as_text(body.get('predicate'))
+    object_text = as_text(body.get('object'))
     if not all([subject_id, predicate, object_text]):
         return JSONResponse({'ok': False, 'error': 'subject_id, predicate, object required'}, status_code=400)
     fid = f'fct_{uuid.uuid4().hex[:8]}'
@@ -320,7 +320,7 @@ async def extract_from_text(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    text = (body.get('text') or '').strip()[:5000]
+    text = as_text(body.get('text'))[:5000]
     source = body.get('source', 'text_extraction')
     if not text:
         return JSONResponse({'ok': False, 'error': 'text required'}, status_code=400)
@@ -453,7 +453,7 @@ async def natural_language_query(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    query = (body.get('query') or '').strip()
+    query = as_text(body.get('query'))
     if not query:
         return JSONResponse({'ok': False, 'error': 'query required'}, status_code=400)
 

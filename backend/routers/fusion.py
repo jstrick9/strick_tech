@@ -23,7 +23,7 @@ import time
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(prefix='/api/fusion', tags=['fusion'])
 log = logging.getLogger('agentic.fusion')
@@ -169,7 +169,7 @@ def _validate_prompt_or_messages(prompt: str, messages:list | None) ->str | None
     """Return error string if neither prompt nor messages are usable."""
     if prompt:
         return None
-    if messages and any((m.get('content') or '').strip() for m in messages):
+    if messages and any((as_text(m.get('content')) or '') for m in messages):
         return None
     return 'prompt required'
 
@@ -273,11 +273,11 @@ async def fusion_run(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
+    prompt = as_text(body.get('prompt'))
     preset = body.get('preset', 'budget')
     messages_in = body.get('messages') or None
     max_tok = min(int(body.get('max_tokens', 1024)), 4096)
-    system_prompt = (body.get('system_prompt') or '').strip()
+    system_prompt = as_text(body.get('system_prompt'))
 
     err = _validate_prompt_or_messages(prompt, messages_in)
     if err:
@@ -333,7 +333,7 @@ async def fusion_simple(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
+    prompt = as_text(body.get('prompt'))
     preset = body.get('preset', 'budget')
     max_tok = min(int(body.get('max_tokens', 512)), 4096)
 
@@ -376,7 +376,7 @@ async def smart_route(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
+    prompt = as_text(body.get('prompt'))
     max_tok = min(int(body.get('max_tokens', 1024)), 4096)
     if not prompt:
         return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
@@ -509,7 +509,7 @@ async def subagent_delegate(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    task = (body.get('task') or '').strip()
+    task = as_text(body.get('task'))
     orchestrator = body.get('orchestrator', 'anthropic/claude-3.5-sonnet')
     worker = body.get('worker', 'google/gemini-2.0-flash-exp:free')
     max_subtasks = max(1, min(int(body.get('max_subtasks', 5)), 8))
@@ -595,7 +595,7 @@ async def cost_optimize(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    prompt = (body.get('prompt') or '').strip()
+    prompt = as_text(body.get('prompt'))
     budget = float(body.get('budget_usd', 0.01))
     max_tok = int(body.get('max_tokens', 1024))
 

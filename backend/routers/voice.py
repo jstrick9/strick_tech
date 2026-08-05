@@ -12,7 +12,7 @@ import time
 
 from fastapi import APIRouter, Request
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(prefix='/api/voice', tags=['voice'])
 log = logging.getLogger('agentic.voice')
@@ -243,7 +243,7 @@ async def parse_voice_command(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    transcript = (body.get('transcript') or '').strip()
+    transcript = as_text(body.get('transcript'))
 
     if not transcript:
         return {'ok': False, 'error': 'transcript required'}
@@ -388,9 +388,9 @@ async def synthesize_speech(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    text = (body.get('text') or '').strip()[:500]
-    voice = (body.get('voice') or 'aria').strip()
-    rate = (body.get('rate') or '+0%').strip()
+    text = as_text(body.get('text'))[:500]
+    voice = (as_text(body.get('voice')) or 'aria')
+    rate = (as_text(body.get('rate')) or '+0%')
 
     if not text:
         return {'ok': False, 'error': 'text required'}

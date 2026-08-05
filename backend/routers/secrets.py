@@ -23,7 +23,7 @@ log = logging.getLogger('agentic.secrets')
 router = APIRouter(prefix='/api/secrets', tags=['secrets'])
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 KEY_PATH = ROOT / 'memory' / '.vault_key'
@@ -153,7 +153,7 @@ async def set_secret(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    key = (body.get('key') or '').strip().upper()
+    key = as_text(body.get('key')).upper()
     value = body.get('value') or ''
     scope = body.get('scope') or 'global'
     agent = body.get('agent') or ''

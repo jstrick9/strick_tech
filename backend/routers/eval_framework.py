@@ -40,6 +40,7 @@ log = logging.getLogger('agentic.eval_fw')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.request_body import as_text
 
 ROOT = get_data_dir()
 
@@ -370,7 +371,7 @@ async def create_suite(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
-    name = (body.get('name') or '').strip()
+    name = as_text(body.get('name'))
     if not name:
         return JSONResponse({'ok': False, 'error': 'name required'}, status_code=400)
     sid = f'suite_{uuid.uuid4().hex[:8]}'
@@ -420,7 +421,7 @@ async def add_case(suite_id: str, req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
-    prompt = (body.get('prompt') or '').strip()
+    prompt = as_text(body.get('prompt'))
     if not prompt:
         return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
     case_id = f'case_{uuid.uuid4().hex[:8]}'
@@ -453,8 +454,8 @@ async def run_eval(req: Request):
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
-    agent_id = (body.get('agent_id') or 'builder').strip()
-    suite_id = (body.get('suite_id') or 'suite_general').strip()
+    agent_id = (as_text(body.get('agent_id')) or 'builder')
+    suite_id = (as_text(body.get('suite_id')) or 'suite_general')
     run_id = f'erun_{uuid.uuid4().hex[:8]}'
 
     # Validate BEFORE opening the stream. A nonexistent suite previously

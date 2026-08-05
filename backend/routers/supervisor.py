@@ -43,6 +43,7 @@ log = logging.getLogger('agentic.supervisor')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.request_body import as_text
 
 ROOT = get_data_dir()
 
@@ -848,8 +849,8 @@ async def start_supervisor_run(req: Request):
 
     goal_text = (body.get('goal') or body.get('goal_text') or '').strip()
     goal_id = body.get('goal_id') or ''
-    goal_title = (body.get('goal_title') or goal_text[:80]).strip()
-    strategy = (body.get('strategy') or 'hierarchical').strip()
+    goal_title = (as_text(body.get('goal_title')) or goal_text[:80])
+    strategy = (as_text(body.get('strategy')) or 'hierarchical')
 
     if not goal_text:
         return JSONResponse({'ok': False, 'error': 'goal text required'}, status_code=400)

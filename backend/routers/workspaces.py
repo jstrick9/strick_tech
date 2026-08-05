@@ -29,7 +29,7 @@ log = logging.getLogger('agentic.workspaces')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
@@ -223,7 +223,7 @@ async def create_workspace(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    name = str(body.get('name') or 'New Project').strip()[:80]
+    name = str(as_text(body.get('name')) or 'New Project')[:80]
     description = str(body.get('description') or '')[:200]
     color = str(body.get('color') or '#5b8af8')[:20]
     emoji = str(body.get('emoji') or '📁')[:8]

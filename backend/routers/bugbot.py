@@ -28,7 +28,7 @@ log = logging.getLogger('agentic.bugbot')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -153,7 +153,7 @@ async def review_diff(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    diff = (body.get('diff') or '').strip()
+    diff = as_text(body.get('diff'))
     context = body.get('context') or ''
     title = (body.get('title') or 'Manual Review')[:200]
 
@@ -205,7 +205,7 @@ async def review_diff_stream(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    diff = (body.get('diff') or '').strip()
+    diff = as_text(body.get('diff'))
     context = body.get('context') or ''
     title = (body.get('title') or 'Streaming Review')[:200]
 
@@ -345,7 +345,7 @@ async def review_github_pr(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    pr_url = (body.get('pr_url') or '').strip()
+    pr_url = as_text(body.get('pr_url'))
     auto_post = body.get('auto_post_comment', False)
 
     # Parse owner/repo/PR number from URL
@@ -547,7 +547,7 @@ async def review_file(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    content = (body.get('content') or '').strip()
+    content = as_text(body.get('content'))
     filename = body.get('filename', 'unknown')
     if not content:
         return {'ok': False, 'error': 'content required'}

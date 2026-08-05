@@ -17,7 +17,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ..services.memory_db import audit_log, get_conn
-from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text, json_body_or_error
 
 log = logging.getLogger('agentic.prompts')
 
@@ -667,8 +667,8 @@ async def create_prompt(req: Request):
             body = {}
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         body = {}
-    title = (body.get('title') or '').strip()[:120]
-    content = (body.get('content') or '').strip()
+    title = as_text(body.get('title'))[:120]
+    content = as_text(body.get('content'))
     if not title or not content:
         return JSONResponse(
             {'ok': False, 'error': 'title and content required'}, status_code=400
@@ -676,7 +676,7 @@ async def create_prompt(req: Request):
 
     # An unknown category used to be silently rewritten to 'general', so a typo
     # filed the prompt somewhere the user never chose and never found it again.
-    category = (body.get('category') or 'general').strip()[:32]
+    category = (as_text(body.get('category')) or 'general')[:32]
     if category not in valid_categories():
         return JSONResponse(
             {
@@ -687,7 +687,7 @@ async def create_prompt(req: Request):
             status_code=400,
         )
 
-    agent_id = (body.get('agent_id') or '').strip()[:64]
+    agent_id = as_text(body.get('agent_id'))[:64]
     if (bad := check_agent_id(agent_id)) is not None:
         return bad
 
@@ -749,13 +749,13 @@ async def import_prompts(req: Request):
                 skipped += 1
                 errors.append({'index': idx, 'error': 'entry must be an object'})
                 continue
-            title = str(entry.get('title') or '').strip()[:MAX_TITLE]
-            content = str(entry.get('content') or '').strip()
+            title = str(as_text(entry.get('title')) or '')[:MAX_TITLE]
+            content = str(as_text(entry.get('content')) or '')
             if not title or not content:
                 skipped += 1
                 errors.append({'index': idx, 'error': 'title and content required'})
                 continue
-            category = str(entry.get('category') or 'general').strip()[:32]
+            category = str(as_text(entry.get('category')) or 'general')[:32]
             if category not in valid_categories():
                 category = 'general'
 
@@ -771,7 +771,7 @@ async def import_prompts(req: Request):
             # though create() explicitly accepts that shape — so a library
             # exported from this very API could fail to import.
             tags = _clean_tags(entry.get('tags'))
-            agent_id = str(entry.get('agent_id') or '').strip()[:64]
+            agent_id = str(as_text(entry.get('agent_id')) or '')[:64]
             # An import may come from another machine with different agents.
             # Dropping the pin keeps the prompt (its content is the valuable
             # part) and reports the change instead of failing the whole row.
@@ -1251,7 +1251,7 @@ async def create_category(req: Request):
         return JSONResponse(
             {'ok': False, 'error': f'Category already exists: {cid}'}, status_code=409
         )
-    label = str(body.get('label') or raw).strip()[:64] or cid
+    label = str(as_text(body.get('label')) or raw)[:64] or cid
     con = get_conn()
     try:
         con.execute('INSERT INTO prompt_categories(id,label) VALUES(?,?)', (cid, label))
