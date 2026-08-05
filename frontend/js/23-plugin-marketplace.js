@@ -142,7 +142,13 @@ window.loadPluginRegistry = loadPluginRegistry;
 window.installPlugin = installPlugin;
 window.uninstallPlugin = uninstallPlugin;
 window.renderPluginGrid = renderPluginGrid;
-window.filterPlugins = filterPlugins;
+// `window.filterPlugins = filterPlugins` referenced a function that does not
+// exist anywhere in the codebase, so this line threw ReferenceError on EVERY
+// page load and aborted the rest of the module. Only function hoisting kept
+// the exports below it working -- any `const`/`let` added after this point
+// would have been silently missing. Nothing calls filterPlugins, so the dead
+// export is removed rather than a stub invented for it.
+// (Found by a real browser: jsdom never executed this file.)
 window.showInstallFromUrl = showInstallFromUrl;
 
 async function exportWorkspaceData() {

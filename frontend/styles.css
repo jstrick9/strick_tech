@@ -37,8 +37,8 @@
   /* Text — 4-step scale */
   --text-0:#0f172a;
   --text-1:#334155;
-  --text-2:#64748b;
-  --text-3:#94a3b8;
+  --text-2:#59687c;
+  --text-3:#566881;
 
   /* Brand accent — Futuristic Cyber Cyan & Plasma Blue */
   --accent:#0284c7;
@@ -77,7 +77,7 @@
   --text-0:#f8fafc;
   --text-1:#cbd5e1;
   --text-2:#8292b4;
-  --text-3:#47557a;
+  --text-3:#7a8ab2;
 
   /* Brand accent — Futuristic Cyber Cyan & Plasma Blue */
   --accent:#38bdf8;
@@ -499,7 +499,6 @@
 .chat-tool.active{color:var(--accent-hi);border-color:var(--accent);background:var(--accent-glow)}
 
 /* ── Builder pane ────────────────────────────────────────── */
-#pane-builder{background:var(--bg-0);flex-direction:row}
 .builder-sidebar{
   width:220px;flex-shrink:0;border-right:1px solid var(--border);
   background:var(--bg-1);display:flex;flex-direction:column;overflow:hidden;
@@ -4212,7 +4211,7 @@ body.theme-high-contrast a {
     --border: rgba(255,255,255,.25);
     --border-hi: rgba(255,255,255,.4);
     --text-2: #b0b8d8;
-    --text-3: #7080a0;
+    --text-3: #9aa8d0;
   }
 }
 
