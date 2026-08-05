@@ -85,7 +85,7 @@ def tasks_list(status: str = '', agent: str = '', limit: int = 200, q: str = '')
     if where:
         sql += ' WHERE ' + ' AND '.join(where)
     sql += ' ORDER BY sort_order ASC, id DESC LIMIT ?'
-    params.append(min(limit, 500))
+    params.append(max(1, min(limit, 500)))
     try:
         rows = con.execute(sql, params).fetchall()
     finally:

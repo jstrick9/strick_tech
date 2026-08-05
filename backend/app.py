@@ -986,7 +986,11 @@ def cost():
 @app.get('/api/audit')
 def audit(limit: int = 100):
     """Execute or process audit operation."""
-    return audit_list(limit)
+    # A negative LIMIT means UNLIMITED in SQLite, so ?limit=-1 returned the
+    # entire audit log in one response -- 1398 rows against 2 for ?limit=2,
+    # measured on the running server. The audit log is the largest table in
+    # the platform and the one most likely to grow without bound.
+    return audit_list(max(1, min(limit, 500)))
 
 
 # /api/skills and /api/skills/run now handled by skills_router

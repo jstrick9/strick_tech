@@ -4093,7 +4093,7 @@ def list_executions(connector_id: str, limit: int = 20):
     try:
         rows = con.execute(
             'SELECT * FROM connector_executions WHERE connector_id=? ORDER BY created_at DESC LIMIT ?',
-            (connector_id, min(limit, 200)),
+            (connector_id, max(1, min(limit, 200))),
         ).fetchall()
     finally:
         con.close()

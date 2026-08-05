@@ -585,7 +585,7 @@ def get_history(doc_id: str, limit: int = 100):
     try:
         rows = con.execute(
             'SELECT revision,peer_id,peer_name,op_json,created_at FROM crdt_ops WHERE doc_id=? ORDER BY revision DESC LIMIT ?',
-            (doc_id, min(limit, 500)),
+            (doc_id, max(1, min(limit, 500))),
         ).fetchall()
     finally:
         con.close()

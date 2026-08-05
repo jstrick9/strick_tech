@@ -792,12 +792,12 @@ def get_history(session_id: str = '', limit: int = 50):
             if session_id:
                 rows = con.execute(
                     'SELECT command, cwd, created_at FROM terminal_history WHERE session_id=? ORDER BY id DESC LIMIT ?',
-                    (session_id, min(limit, 200)),
+                    (session_id, max(1, min(limit, 200))),
                 ).fetchall()
             else:
                 rows = con.execute(
                     'SELECT DISTINCT command, cwd, created_at FROM terminal_history ORDER BY id DESC LIMIT ?',
-                    (min(limit, 200),),
+                    (max(1, min(limit, 200)),),
                 ).fetchall()
         finally:
             con.close()

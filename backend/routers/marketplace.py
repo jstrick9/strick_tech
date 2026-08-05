@@ -622,7 +622,7 @@ def list_packs(
 
         sql = f"""SELECT * FROM mkt_packs WHERE {' AND '.join(where)}
                   ORDER BY {order} LIMIT ? OFFSET ?"""
-        params += [min(limit, 100), offset]
+        params += [max(1, min(limit, 100)), max(0, offset)]
         rows = con.execute(sql, params).fetchall()
         total = con.execute(f'SELECT COUNT(*) FROM mkt_packs WHERE {" AND ".join(where)}', params[:-2]).fetchone()[0]
     finally:
@@ -644,7 +644,7 @@ def featured_packs(limit: int = 6):
     con = get_conn()
     try:
         rows = con.execute(
-            'SELECT * FROM mkt_packs WHERE featured=1 AND published=1 ORDER BY downloads DESC LIMIT ?', (limit,)
+            'SELECT * FROM mkt_packs WHERE featured=1 AND published=1 ORDER BY downloads DESC LIMIT ?', (max(1, min(limit, 100)),)
         ).fetchall()
     finally:
         con.close()
@@ -674,7 +674,7 @@ def trending_packs(limit: int = 10):
     con = get_conn()
     try:
         rows = con.execute(
-            'SELECT * FROM mkt_packs WHERE published=1 ORDER BY downloads DESC, rating_sum DESC LIMIT ?', (limit,)
+            'SELECT * FROM mkt_packs WHERE published=1 ORDER BY downloads DESC, rating_sum DESC LIMIT ?', (max(1, min(limit, 500)),)
         ).fetchall()
     finally:
         con.close()
@@ -689,7 +689,7 @@ def new_arrivals(limit: int = 10):
     con = get_conn()
     try:
         rows = con.execute(
-            'SELECT * FROM mkt_packs WHERE published=1 ORDER BY created_at DESC LIMIT ?', (limit,)
+            'SELECT * FROM mkt_packs WHERE published=1 ORDER BY created_at DESC LIMIT ?', (max(1, min(limit, 500)),)
         ).fetchall()
     finally:
         con.close()
@@ -1019,7 +1019,7 @@ def get_reviews(pack_id: str, limit: int = 20):
     con = get_conn()
     try:
         rows = con.execute(
-            'SELECT * FROM mkt_reviews WHERE pack_id=? ORDER BY created_at DESC LIMIT ?', (pack_id, min(limit, 100))
+            'SELECT * FROM mkt_reviews WHERE pack_id=? ORDER BY created_at DESC LIMIT ?', (pack_id, max(1, min(limit, 100)))
         ).fetchall()
     finally:
         con.close()

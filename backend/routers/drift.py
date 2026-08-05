@@ -824,7 +824,7 @@ def get_agent_scores(agent_id: str, window_label: str = '', limit: int = 100):
                 WHERE agent_id=? AND window_label=?
                 ORDER BY computed_at DESC LIMIT ?
             """,
-                (agent_id, window_label, min(limit, 500)),
+                (agent_id, window_label, max(1, min(limit, 500))),
             ).fetchall()
         else:
             rows = con.execute(
@@ -833,7 +833,7 @@ def get_agent_scores(agent_id: str, window_label: str = '', limit: int = 100):
                 WHERE agent_id=?
                 ORDER BY computed_at DESC LIMIT ?
             """,
-                (agent_id, min(limit, 500)),
+                (agent_id, max(1, min(limit, 500))),
             ).fetchall()
     finally:
         con.close()
@@ -864,7 +864,7 @@ def list_alerts(
     if agent_id:
         where.append('agent_id=?')
         params.append(agent_id)
-    params.append(min(limit, 200))
+    params.append(max(1, min(limit, 200)))
 
     con = _get_conn()
     try:
@@ -982,7 +982,7 @@ def drift_history(hours: int = 24, limit: int = 200):
             WHERE computed_at > datetime('now', ?)
             ORDER BY drift_score DESC, computed_at DESC LIMIT ?
         """,
-            (f'-{hours} hours', min(limit, 1000)),
+            (f'-{hours} hours', max(1, min(limit, 1000))),
         ).fetchall()
     finally:
         con.close()

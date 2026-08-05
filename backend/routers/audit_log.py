@@ -341,7 +341,7 @@ def list_entries(
         params.append(outcome)
 
     where_sql = ('WHERE ' + ' AND '.join(where_clauses)) if where_clauses else ''
-    params += [min(limit, 500), max(offset, 0)]
+    params += [max(1, min(limit, 500)), max(offset, 0)]
 
     con = _get_conn()
     try:
@@ -446,7 +446,7 @@ def export_json(limit: int = 1000):
     """Export audit log as JSON (compliance download)."""
     con = _get_conn()
     try:
-        rows = con.execute('SELECT * FROM audit_log_chain ORDER BY seq ASC LIMIT ?', (min(limit, 10000),)).fetchall()
+        rows = con.execute('SELECT * FROM audit_log_chain ORDER BY seq ASC LIMIT ?', (max(1, min(limit, 10000)),)).fetchall()
     finally:
         con.close()
 
@@ -476,7 +476,7 @@ def export_csv(limit: int = 1000):
     try:
         rows = con.execute(
             'SELECT seq,entry_id,agent_id,agent_name,action_type,action_detail,reasoning,authority,risk_level,outcome,prev_hash,entry_hash,created_at FROM audit_log_chain ORDER BY seq ASC LIMIT ?',
-            (min(limit, 10000),),
+            (max(1, min(limit, 10000)),),
         ).fetchall()
     finally:
         con.close()

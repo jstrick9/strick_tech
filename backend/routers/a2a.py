@@ -1039,7 +1039,7 @@ def list_agents(trust_level: str = '', status: str = '', limit: int = 50):
     if status:
         where.append('status=?')
         params.append(status)
-    params.append(min(limit, 200))
+    params.append(max(1, min(limit, 200)))
     where_sql = ('WHERE ' + ' AND '.join(where)) if where else ''
 
     con = _get_conn()
@@ -1454,7 +1454,7 @@ def list_all_tasks(state: str = '', direction: str = '', limit: int = 50):
     if state:
         where.append('state=?')
         params.append(state)
-    params.append(min(limit, 200))
+    params.append(max(1, min(limit, 200)))
     where_sql = ('WHERE ' + ' AND '.join(where)) if where else ''
 
     con = _get_conn()

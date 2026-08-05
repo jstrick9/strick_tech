@@ -596,7 +596,7 @@ def chat_history(session_id: str = '', agent: str = '', limit: int = 100):
         if where:
             sql += ' WHERE ' + ' AND '.join(where)
         sql += ' ORDER BY id DESC LIMIT ?'
-        params.append(min(limit, 500))
+        params.append(max(1, min(limit, 500)))
         rows = con.execute(sql, params).fetchall()
     finally:
         con.close()
@@ -619,7 +619,7 @@ def chat_search(q: str = '', limit: int = 20):
                WHERE cl.message LIKE ?
                ORDER BY cl.created_at DESC
                LIMIT ?""",
-            (pattern, min(limit, 50))
+            (pattern, max(1, min(limit, 50)))
         ).fetchall()
     finally:
         con.close()

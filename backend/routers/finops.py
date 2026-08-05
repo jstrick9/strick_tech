@@ -446,7 +446,7 @@ def ledger_entries(
     if run_id:
         where.append('run_id=?')
         params.append(run_id)
-    params.append(min(limit, 1000))
+    params.append(max(1, min(limit, 1000)))
     con = _get_conn()
     try:
         rows = con.execute(
@@ -629,7 +629,7 @@ def list_alerts(resolved: bool = False, limit: int = 50):
     try:
         rows = con.execute(
             'SELECT a.*, b.name as cap_name FROM cost_alerts a JOIN budget_caps b ON b.cap_id=a.cap_id WHERE a.resolved=? ORDER BY a.created_at DESC LIMIT ?',
-            (1 if resolved else 0, min(limit, 200)),
+            (1 if resolved else 0, max(1, min(limit, 200))),
         ).fetchall()
     finally:
         con.close()

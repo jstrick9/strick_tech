@@ -658,7 +658,7 @@ def identity_audit_log(agent_id: str, limit: int = 50):
     con = _get_conn()
     try:
         rows = con.execute(
-            'SELECT * FROM identity_audit WHERE agent_id=? ORDER BY id DESC LIMIT ?', (agent_id, min(limit, 500))
+            'SELECT * FROM identity_audit WHERE agent_id=? ORDER BY id DESC LIMIT ?', (agent_id, max(1, min(limit, 500)))
         ).fetchall()
     finally:
         con.close()

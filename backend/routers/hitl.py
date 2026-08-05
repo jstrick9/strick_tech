@@ -387,7 +387,7 @@ def get_queue(status: str = 'pending', limit: int = 50):
     con = get_conn()
     try:
         rows = con.execute(
-            'SELECT * FROM hitl_queue WHERE status=? ORDER BY created_at DESC LIMIT ?', (status, min(limit, 200))
+            'SELECT * FROM hitl_queue WHERE status=? ORDER BY created_at DESC LIMIT ?', (status, max(1, min(limit, 200)))
         ).fetchall()
     finally:
         con.close()
@@ -401,7 +401,7 @@ def get_all_queue(limit: int = 100):
 
     con = get_conn()
     try:
-        rows = con.execute('SELECT * FROM hitl_queue ORDER BY created_at DESC LIMIT ?', (min(limit, 500),)).fetchall()
+        rows = con.execute('SELECT * FROM hitl_queue ORDER BY created_at DESC LIMIT ?', (max(1, min(limit, 500)),)).fetchall()
     finally:
         con.close()
     return {'interrupts': [dict(r) for r in rows], 'count': len(rows)}
@@ -416,7 +416,7 @@ def hitl_audit_log(limit: int = 100):
     try:
         rows = con.execute(
             'SELECT a.*, q.action_type, q.action_summary, q.risk_level FROM hitl_audit a LEFT JOIN hitl_queue q ON q.id=a.interrupt_id ORDER BY a.created_at DESC LIMIT ?',
-            (min(limit, 500),),
+            (max(1, min(limit, 500)),),
         ).fetchall()
     finally:
         con.close()

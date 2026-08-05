@@ -309,7 +309,7 @@ def leaderboard(limit: int = 20):
     con = get_conn()
     try:
         rows = con.execute(
-            'SELECT * FROM arena_leaderboard WHERE battles>0 ORDER BY elo DESC LIMIT ?', (min(limit, 50),)
+            'SELECT * FROM arena_leaderboard WHERE battles>0 ORDER BY elo DESC LIMIT ?', (max(1, min(limit, 50)),)
         ).fetchall()
     finally:
         con.close()
@@ -334,7 +334,7 @@ def list_battles(limit: int = 20, voted_only: bool = False):
         if voted_only:
             sql += " WHERE winner != ''"
         sql += ' ORDER BY created_at DESC LIMIT ?'
-        params.append(min(limit, 100))
+        params.append(max(1, min(limit, 100)))
         rows = con.execute(sql, params).fetchall()
     finally:
         con.close()

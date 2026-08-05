@@ -278,7 +278,7 @@ def get_suggestions(dismissed: bool = False, severity: str = '', limit: int = 50
             where.append('severity=?')
             params.append(severity)
         sql = f"SELECT * FROM ambient_suggestions WHERE {' AND '.join(where)} ORDER BY CASE severity WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END, created_at DESC LIMIT ?"
-        params.append(min(limit, 200))
+        params.append(max(1, min(limit, 200)))
         rows = con.execute(sql, params).fetchall()
     finally:
         con.close()
@@ -538,7 +538,7 @@ def health_history(limit: int = 10):
     con = get_conn()
     try:
         rows = con.execute(
-            'SELECT * FROM health_snapshots ORDER BY created_at DESC LIMIT ?', (min(limit, 50),)
+            'SELECT * FROM health_snapshots ORDER BY created_at DESC LIMIT ?', (max(1, min(limit, 50)),)
         ).fetchall()
     finally:
         con.close()
@@ -646,7 +646,7 @@ def list_background_tasks(status: str = '', limit: int = 20):
             + (f' WHERE {" AND ".join(where)}' if where else '')
             + ' ORDER BY created_at DESC LIMIT ?'
         )
-        params.append(min(limit, 100))
+        params.append(max(1, min(limit, 100)))
         rows = con.execute(sql, params).fetchall()
     finally:
         con.close()

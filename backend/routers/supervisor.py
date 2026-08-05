@@ -911,11 +911,11 @@ def list_runs(limit: int = 20, status: str = ''):
         if status:
             rows = con.execute(
                 'SELECT * FROM supervisor_runs WHERE status=? ORDER BY created_at DESC LIMIT ?',
-                (status, min(limit, 100)),
+                (status, max(1, min(limit, 100))),
             ).fetchall()
         else:
             rows = con.execute(
-                'SELECT * FROM supervisor_runs ORDER BY created_at DESC LIMIT ?', (min(limit, 100),)
+                'SELECT * FROM supervisor_runs ORDER BY created_at DESC LIMIT ?', (max(1, min(limit, 100)),)
             ).fetchall()
     finally:
         con.close()

@@ -587,7 +587,7 @@ def list_sessions(limit: int = 20):
     try:
         rows = con.execute(
             'SELECT id, url, task, status, error, created_at, updated_at FROM browser_sessions ORDER BY created_at DESC LIMIT ?',
-            (min(limit, 100),),
+            (max(1, min(limit, 100)),),
         ).fetchall()
     finally:
         con.close()
@@ -719,7 +719,7 @@ def list_screenshots(limit: int = 20):
     """List all saved screenshots."""
     files = sorted(SCREENSHOTS.glob('*.png'), key=lambda f: f.stat().st_mtime, reverse=True)
     results = []
-    for f in files[: min(limit, 100)]:
+    for f in files[: max(1, min(limit, 100))]:
         results.append(
             {
                 'filename': f.name,

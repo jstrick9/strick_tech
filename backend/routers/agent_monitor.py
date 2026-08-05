@@ -448,7 +448,7 @@ def agent_kpis(agent_id: str, period: str = 'hour', limit: int = 24):
             SELECT * FROM agent_kpis WHERE agent_id=? AND period=?
             ORDER BY period_start DESC LIMIT ?
         """,
-            (agent_id, period, min(limit, 200)),
+            (agent_id, period, max(1, min(limit, 200))),
         ).fetchall()
         # Also live perf summary
         perf = con.execute(
@@ -501,7 +501,7 @@ def list_anomalies(agent_id: str = '', severity: str = '', resolved: bool = Fals
     if severity:
         where.append('severity=?')
         params.append(severity)
-    params.append(min(limit, 500))
+    params.append(max(1, min(limit, 500)))
     con = _get_conn()
     try:
         rows = con.execute(

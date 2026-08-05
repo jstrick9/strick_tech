@@ -253,6 +253,9 @@ def memory_add(source: str, content: str, tags: str = '', embedding:list | None 
 
 
 def memory_search_fts(q: str, limit: int = 20) -> list[dict]:
+    # Two-sided: a negative LIMIT means UNLIMITED in SQLite, so an unfloored
+    # clamp upstream let a caller pull the whole table in one response.
+    limit = max(1, min(limit, 500))
     """Execute or process memory search fts operation."""
     con = get_conn()
     try:
@@ -295,6 +298,8 @@ def memory_search_fts(q: str, limit: int = 20) -> list[dict]:
 
 
 def memory_list(limit: int = 500, offset: int = 0, source: str = '') -> list[dict]:
+    limit = max(1, min(limit, 1000))
+    offset = max(0, offset)
     """Execute or process memory list operation."""
     con = get_conn()
     try:
@@ -662,6 +667,7 @@ def audit_log(action: str, detail: str = ''):
 
 
 def audit_list(limit: int = 100) -> list[dict]:
+    limit = max(1, min(limit, 500))
     """Execute or process audit list operation."""
     con = get_conn()
     try:

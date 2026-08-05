@@ -128,7 +128,7 @@ async def hybrid_search_endpoint(q: str = '', limit: int = 20):
         return {'results': [], 'mode': 'none'}
     from ..services.memory_db import _QDRANT_AVAILABLE, hybrid_search
 
-    results = hybrid_search(q, limit=min(limit, 50))
+    results = hybrid_search(q, limit=max(1, min(limit, 50)))
     return {
         'results': results,
         'count': len(results),

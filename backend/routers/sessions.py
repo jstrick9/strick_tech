@@ -432,7 +432,7 @@ def session_messages(session_id: str, limit: int = 200, offset: int = 0):
             """SELECT id, agent, role, message, tokens, cost, COALESCE(model, '') as model,
                       datetime(created_at,'localtime') as created_at
                FROM chat_log WHERE TRIM(session_id)=TRIM(?) ORDER BY id ASC LIMIT ? OFFSET ?""",
-            (session_id, limit, offset),
+            (session_id, max(1, min(limit, 1000)), max(0, offset)),
         ).fetchall()
         if not rows:
             sinfo_row = con.execute('SELECT name, created_at FROM chat_sessions WHERE id=?', (session_id,)).fetchone()
@@ -459,7 +459,7 @@ def session_messages(session_id: str, limit: int = 200, offset: int = 0):
                         """SELECT id, agent, role, message, tokens, cost, COALESCE(model, '') as model,
                                   datetime(created_at,'localtime') as created_at
                            FROM chat_log WHERE session_id=? ORDER BY id ASC LIMIT ? OFFSET ?""",
-                        (session_id, limit, offset),
+                        (session_id, max(1, min(limit, 1000)), max(0, offset)),
                     ).fetchall()
         total = con.execute('SELECT COUNT(*) FROM chat_log WHERE TRIM(session_id)=TRIM(?)', (session_id,)).fetchone()[0]
     finally:

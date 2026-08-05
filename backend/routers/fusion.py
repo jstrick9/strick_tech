@@ -237,7 +237,7 @@ def get_history(limit: int = 20):
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            rows = con.execute('SELECT * FROM fusion_history ORDER BY id DESC LIMIT ?', (min(limit, 100),)).fetchall()
+            rows = con.execute('SELECT * FROM fusion_history ORDER BY id DESC LIMIT ?', (max(1, min(limit, 100)),)).fetchall()
             return {'history': [dict(r) for r in rows], 'count': len(rows)}
         finally:
             con.close()

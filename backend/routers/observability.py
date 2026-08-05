@@ -304,7 +304,7 @@ def list_traces(agent_id: str = '', session_id: str = '', status: str = '', limi
             + (f' WHERE {" AND ".join(where)}' if where else '')
             + ' ORDER BY created_at DESC LIMIT ?'
         )
-        params.append(min(limit, 500))
+        params.append(max(1, min(limit, 500)))
         rows = con.execute(sql, params).fetchall()
     finally:
         con.close()

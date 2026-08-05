@@ -186,7 +186,7 @@ def list_goals(
         params.append(priority)
 
     where_sql = ('WHERE ' + ' AND '.join(where)) if where else ''
-    params += [min(limit, 500)]
+    params += [max(1, min(limit, 500))]
 
     con = _get_conn()
     try:

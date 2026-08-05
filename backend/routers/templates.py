@@ -254,7 +254,7 @@ def search_templates(q: str = '', limit: int = 10):
         _template_summary(t)
         for t in TEMPLATES
         if ql in t['name'].lower() or ql in t['description'].lower() or any(ql in tag.lower() for tag in t['tags'])
-    ][: min(limit, 50)]
+    ][: max(1, min(limit, 50))]
     return {'results': results, 'count': len(results), 'query': q}
 
 

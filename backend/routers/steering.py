@@ -544,7 +544,7 @@ async def learn_from_chat(req: Request):
     con = get_conn()
     try:
         msgs = con.execute(
-            "SELECT role, message FROM chat_log WHERE role='user' ORDER BY created_at DESC LIMIT ?", (min(limit, 200),)
+            "SELECT role, message FROM chat_log WHERE role='user' ORDER BY created_at DESC LIMIT ?", (max(1, min(limit, 200)),)
         ).fetchall()
     finally:
         con.close()

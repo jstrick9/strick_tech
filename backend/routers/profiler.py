@@ -107,7 +107,7 @@ def endpoint_stats(sort_by: str = 'avg_ms', limit: int = 50):
         )
 
     result.sort(key=lambda x: x.get(sort_by, 0), reverse=True)
-    return {'endpoints': result[:limit], 'total': len(result)}
+    return {'endpoints': result[:max(1, min(limit, 500))], 'total': len(result)}
 
 
 @router.get('/flamegraph')
