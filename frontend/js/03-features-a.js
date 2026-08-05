@@ -2560,11 +2560,28 @@ document.addEventListener('keydown', e => {
 window.renderPQCVault = async function() {
   const pane = document.getElementById('pane-pqc');
   if (!pane) return;
-  let algos = {ok: false, algorithms: []};
+  // BUG FIX: this read `algos.algorithms`, a field the API has never
+  // returned. GET /api/pqc/algorithms returns `kem_algorithms` and
+  // `signature_algorithms`. The lookup was therefore ALWAYS undefined, so the
+  // `||` fallback below always won and the pane always displayed a hardcoded
+  // list of three invented entries -- never once the server's real answer.
+  //
+  // Worse, each was badged "VERIFIED", while backend/routers/pqc.py states on
+  // every other route that this is "SIMULATED post-quantum cryptography ...
+  // SHA3 hashing and XOR masking, NOT ML-KEM/Kyber or Dilithium. Provides no
+  // confidentiality." Telling a user their key exchange is quantum-resistant
+  // and VERIFIED when the backend says it is a simulation is the most
+  // dangerous kind of wrong this UI could be.
+  let algos = {ok: false};
   try {
     const r = await fetch('/api/pqc/algorithms');
     if (r.ok) algos = await r.json();
   } catch(e) {}
+  const pqcAlgos = [
+    ...(algos.kem_algorithms || []).map(n => ({name: n, kind: 'Key encapsulation'})),
+    ...(algos.signature_algorithms || []).map(n => ({name: n, kind: 'Digital signature'})),
+  ];
+  const pqcSimulated = algos.simulated === true;
 
   pane.innerHTML = `
     <div style="padding:24px;max-width:1100px;margin:0 auto">
@@ -2641,15 +2658,16 @@ window.renderPQCVault = async function() {
       <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:24px">
         <h3 style="margin:0 0 14px;font-size:16px;color:var(--text-0)">Supported Post-Quantum Algorithms Suite</h3>
         <div id="pqc-algo-list">
-          ${(algos.algorithms||[{name:'ML-KEM-1024-X25519-Hybrid', description:'Kyber-1024 hybrid key encapsulation primitive'}, {name:'ML-DSA-87-Dilithium5', description:'FIPS 204 compliant lattice digital signature'}, {name:'AES-256-GCM-Lattice-Wrapped', description:'Authenticated symmetric encryption wrapped inside Kyber keying material'}]).map(a => `
-            <div style="padding:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          ${pqcAlgos.length ? pqcAlgos.map(a => `
+            <div style="padding:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px">
               <div>
-                <div style="font-weight:700;font-size:13.5px;color:var(--text-0)">${escHtml(typeof a === 'string' ? a : a.name || 'PQC Primitive')}</div>
-                <div style="font-size:11.5px;color:var(--text-2)">${escHtml(typeof a === 'string' ? 'Quantum-resistant primitive' : a.description || 'Lattice-based quantum-resistant cryptographic primitive')}</div>
+                <div style="font-weight:700;font-size:13.5px;color:var(--text-0)">${escHtml(a.name)}</div>
+                <div style="font-size:11.5px;color:var(--text-2)">${escHtml(a.kind)}</div>
               </div>
-              <span style="font-size:11px;font-weight:800;color:var(--accent-text);background:var(--bg-2);padding:4px 10px;border-radius:6px;border:1px solid var(--border)">VERIFIED</span>
+              <span style="font-size:11px;font-weight:800;color:${pqcSimulated ? 'var(--warning)' : 'var(--accent-text)'};background:var(--bg-2);padding:4px 10px;border-radius:6px;border:1px solid var(--border);white-space:nowrap">${pqcSimulated ? 'SIMULATED' : 'AVAILABLE'}</span>
             </div>
-          `).join('')}
+          `).join('') : '<div style="padding:18px;color:var(--text-2);font-size:12.5px">The server did not report any algorithms.</div>'}
+          ${algos.warning ? `<div style="margin-top:14px;padding:12px;border-radius:8px;background:var(--bg-2);border:1px solid var(--warning);color:var(--warning);font-size:12px">⚠️ ${escHtml(algos.warning)}</div>` : ''}
         </div>
       </div>
     </div>
@@ -2739,6 +2757,24 @@ window.pqcExportAuditCertificate = function() {
 // ══════════════════════════════════════════════════════════════════
 //  LOCAL LoRA FINE-TUNING WORKSTATION (/api/finetune/*)
 // ══════════════════════════════════════════════════════════════════
+// BUG FIX (dataset list): it fell back to two INVENTED datasets whenever the
+// API returned none — 'ds_chat_v1' (rows:42) and 'ds_evals_v1'
+// (rows:18), both badged READY. Neither exists. Verified against the
+// running server: GET /api/finetune/datasets returns
+// {"ok":true,"count":0,"datasets":[]}, and POST
+// /api/finetune/jobs/start with dataset_id=ds_chat_v1 returns
+// "Dataset 'ds_chat_v1' not found". So a new user saw two datasets
+// that looked ready to train, clicked Train Adapter, and the only
+// possible outcome was an error — while the row counts (42, 18) were
+// pure fiction presented as measurements.
+// 
+// The "Start LoRA Training Loop Now" button had the same problem
+// from the other direction: it was hardcoded to 'default_dataset',
+// which also does not exist. It now trains the first real dataset
+// and is hidden when there are none.
+// 
+// Replaced with a real empty state that says there is nothing yet
+// and offers the two actions that create something.
 window.renderFinetuneWorkstation = async function() {
   const pane = document.getElementById('pane-finetune');
   if (!pane) return;
@@ -2806,15 +2842,23 @@ window.renderFinetuneWorkstation = async function() {
           <h3 style="margin:0;font-size:16px;color:var(--text-0)">Prepared Datasets & Training Controls</h3>
           <div style="display:flex;gap:8px">
             <button data-act-click="finetuneCreateChatDataset()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">＋ From Chat History</button>
-            <button data-act-click="finetuneStartJob('default_dataset')" class="btn-3d btn-primary btn-sm" style="padding:6px 16px;background:var(--success);border:none;color:#fff">⚡ Start LoRA Training Loop Now</button>
+            ${(ds.datasets && ds.datasets.length) ? `<button data-act-click="finetuneStartJob(${jsArg(ds.datasets[0].id)})" class="btn-3d btn-primary btn-sm" style="padding:6px 16px;background:var(--success);border:none;color:#fff">⚡ Train on ${escHtml(ds.datasets[0].name || ds.datasets[0].id)}</button>` : ''}
           </div>
         </div>
+        
         <div id="finetune-dataset-list">
-          ${(ds.datasets && ds.datasets.length ? ds.datasets : [{id:'ds_chat_v1', name:'Active Chat History & System Memory Delta', rows:42, status:'ready'}, {id:'ds_evals_v1', name:'Eval Framework Gold Standard Seed Suite', rows:18, status:'ready'}]).map(d => `
+          ${(!ds.datasets || !ds.datasets.length) ? `
+            <div style="padding:28px 18px;text-align:center;color:var(--text-2)">
+              <div style="font-size:26px;margin-bottom:8px">📋</div>
+              <div style="font-weight:700;font-size:13.5px;color:var(--text-0);margin-bottom:4px">No training datasets yet</div>
+              <div style="font-size:12px;max-width:440px;margin:0 auto 14px">Build one from your chat history, or drop IVREN Markdown / JSONL files in the converter above.</div>
+              <button data-act-click="finetuneCreateChatDataset()" class="btn-3d btn-primary btn-sm" style="padding:7px 16px">＋ Create Dataset from Chat History</button>
+            </div>
+          ` : ds.datasets.map(d => `
             <div style="padding:14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
               <div>
                 <div style="font-weight:700;font-size:13.5px;color:var(--text-0)">${escHtml(d.name || d.id)}</div>
-                <div style="font-size:11.5px;color:var(--text-2)">ID: <code style="color:var(--accent-text)">${escHtml(d.id)}</code> · ${d.rows || 10} training examples formatted in instruction-response JSONL</div>
+                <div style="font-size:11.5px;color:var(--text-2)">ID: <code style="color:var(--accent-text)">${escHtml(d.id)}</code> · ${Number(d.rows || 0)} training examples formatted in instruction-response JSONL</div>
               </div>
               <div style="display:flex;gap:8px;align-items:center">
                 <span style="font-size:11px;font-weight:800;color:var(--success);background:var(--bg-2);padding:4px 10px;border-radius:6px;border:1px solid var(--border)">${escHtml(d.status || 'READY')}</span>

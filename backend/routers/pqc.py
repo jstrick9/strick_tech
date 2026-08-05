@@ -130,6 +130,14 @@ def list_pqc_algorithms() -> dict[str, Any]:
         "default_security_level": "NIST Category 5 (256-bit quantum security)",
         "creator": "Joshua Strickland and Strick Tech",
         "editions_supported": ["Pro", "Enterprise"],
+        # BUG FIX: every other route in this router returns simulated/warning
+        # so a caller cannot mistake this for real cryptography -- this one,
+        # the route that lists the algorithm names, did not. It was the single
+        # most misleading place to omit it: the UI renders these names as a
+        # capability list, and with no disclaimer in the payload it had nothing
+        # to display one from. The frontend duly badged each entry "VERIFIED".
+        "simulated": True,
+        "warning": _SIM_WARNING,
         "timestamp": time.time(),
     }
 
