@@ -22,6 +22,7 @@ from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
 from ..services.memory_db import audit_log, get_conn, memory_add
+from ..services.request_body import json_body_or_error
 
 router = APIRouter(prefix='/api/webhooks', tags=['webhooks'])
 log = logging.getLogger('agentic.webhooks')
@@ -86,10 +87,9 @@ def list_webhooks():
 @router.post('')
 async def create_webhook(req: Request):
     """Create and initialize a new webhook."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = (body.get('name') or 'Webhook').strip()[:80]
     wid = str(uuid.uuid4())[:12]
     secret = body.get('secret', uuid.uuid4().hex[:24])
@@ -125,10 +125,9 @@ async def create_webhook(req: Request):
 @router.patch('/{webhook_id}')
 async def update_webhook(webhook_id: str, req: Request):
     """Update existing webhook record or state."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     allowed = {'name', 'description', 'agent_id', 'prompt_template', 'filters', 'enabled', 'secret'}
     sets, vals = [], []
     for k in allowed:

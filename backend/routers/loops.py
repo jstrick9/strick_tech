@@ -5,12 +5,12 @@ Agentic OS — Autonomous Loops Router
 
 from __future__ import annotations
 
-import json
 import uuid
 
 from fastapi import APIRouter, Request
 
 from ..services import scheduler as sched_svc
+from ..services.request_body import json_body_or_error
 from ..services.scheduler import _BUILTIN_JOB_IDS
 
 router = APIRouter(prefix='/api/loops', tags=['loops'])
@@ -29,10 +29,9 @@ async def create_loop(req: Request):
     Body: {prompt, interval_minutes, agent_id, target}
     Creates a repeating autonomous agent loop.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = str(body.get('prompt') or '').strip()[:4000]
     try:
         interval = int(body.get('interval_minutes', 15))

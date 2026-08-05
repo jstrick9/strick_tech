@@ -18,6 +18,8 @@ router = APIRouter(prefix='/api/onboarding', tags=['onboarding'])
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 PREFS_FILE = ROOT / 'memory' / 'preferences.json'
 
@@ -321,10 +323,9 @@ def get_preference_key(key: str):
 @router.patch('/preferences')
 async def update_preferences(req: Request):
     """Update one or more preferences (partial update)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     if not isinstance(body, dict):
         return JSONResponse({'ok': False, 'error': 'body must be a JSON object'}, status_code=400)
     prefs = load_prefs()
@@ -350,10 +351,9 @@ async def update_preferences(req: Request):
 @router.put('/preferences')
 async def replace_preferences(req: Request):
     """Full replace of preferences (merges with defaults for missing keys)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     if not isinstance(body, dict):
         return JSONResponse({'ok': False, 'error': 'body must be a JSON object'}, status_code=400)
     # Merge with defaults — only allow known keys, and validate their values.
@@ -384,10 +384,9 @@ def reset_preferences():
 @router.post('/complete')
 async def complete_onboarding(req: Request):
     """Mark onboarding as complete and apply final settings."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prefs = load_prefs()
     prefs['onboarding_complete'] = True
     prefs['first_run_at'] = time.strftime('%Y-%m-%dT%H:%M:%S')

@@ -6,7 +6,6 @@ recolor, change model, write system prompts, and delete agents.
 
 from __future__ import annotations
 
-import json
 import re
 import uuid
 
@@ -14,6 +13,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ..services import llm, memory_db
+from ..services.request_body import json_body_or_error
 
 # Characters that can terminate a JS string literal or an HTML attribute.
 _UNSAFE_NAME_CHARS = re.compile(r'[\'"<>\\\x00-\x1f\x7f]')
@@ -41,10 +41,9 @@ async def list_models():
 @router.post('')
 async def create_agent(req: Request):
     """Create a new custom agent."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = (body.get('name') or '').strip()
     if not name:
         return {'ok': False, 'error': 'name is required'}
@@ -117,10 +116,9 @@ def get_agent(agent_id: str):
 @router.patch('/{agent_id}')
 async def update_agent(agent_id: str, req: Request):
     """Update any fields on an existing agent."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     # whitelist editable fields
     allowed = {'name', 'role', 'model', 'provider', 'color', 'avatar', 'system_prompt', 'status', 'enabled'}
     data = {'id': agent_id}
@@ -168,10 +166,9 @@ def delete_agent(agent_id: str):
 @router.post('/{agent_id}/test')
 async def test_agent(agent_id: str, req: Request):
     """Quick-test an agent with a single message."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     message = (body.get('message') or 'Say hello and describe your role.').strip()
 
     agents = {a['id']: a for a in memory_db.agents_list()}

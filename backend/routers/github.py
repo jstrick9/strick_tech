@@ -22,6 +22,7 @@ router = APIRouter(prefix='/api/github', tags=['github'])
 log = logging.getLogger('agentic.github')
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
 from ..services.safe_paths import is_within, safe_path
 
 ROOT = get_data_dir()
@@ -190,10 +191,9 @@ async def list_repos(per_page: int = 30, sort: str = 'updated'):
 @router.post('/repos/create')
 async def create_repo(req: Request):
     """Create a new GitHub repository for the current project."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     import re as _re
 
     name = _re.sub(r'[^a-zA-Z0-9._-]', '-', (body.get('name') or 'agentic-os-project').strip())[:100]
@@ -353,10 +353,9 @@ async def push_to_github(req: Request):
     Push preview/ directory to a GitHub repository.
     Uses GitHub Contents API (no local git required).
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     repo_name = body.get('repo', '').strip()  # e.g. "username/my-repo"
     branch = body.get('branch', 'main').strip()
     message = body.get('message', 'Agentic OS push').strip()
@@ -474,10 +473,9 @@ async def push_to_github(req: Request):
 @router.post('/pull')
 async def pull_from_github(req: Request):
     """Pull files from a GitHub repository into preview/."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     repo_name = body.get('repo', '').strip()
     branch = body.get('branch', 'main').strip()
     target = body.get('target', 'preview')
@@ -551,10 +549,9 @@ async def create_branch(owner: str, repo: str, req: Request):
         return JSONResponse(
             {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
         )
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     branch_name = body.get('name', '').strip()
     from_branch = body.get('from', 'main')
     if not branch_name:
@@ -583,10 +580,9 @@ async def create_pr(owner: str, repo: str, req: Request):
         return JSONResponse(
             {'ok': False, 'error': 'GITHUB_TOKEN not set', 'code': 'no_token'}, status_code=401
         )
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     title = body.get('title', 'Agentic OS changes')
     head = body.get('head', '')  # source branch
     base = body.get('base', 'main')  # target branch
@@ -674,10 +670,9 @@ async def list_commits(owner: str, repo: str, branch: str = 'main', per_page: in
 @router.post('/pages/deploy')
 async def deploy_github_pages(req: Request):
     """Deploy preview/ to GitHub Pages via gh-pages branch."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     repo_name = body.get('repo', '').strip()
     message = body.get('message', 'Deploy to GitHub Pages via Agentic OS')
 
@@ -743,10 +738,9 @@ async def sync_with_github(req: Request):
     Bidirectional sync: push local preview/ to GitHub AND pull latest from GitHub.
     Like Lovable's auto-sync.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     repo_name = body.get('repo', '').strip()
     branch = body.get('branch', 'main')
     direction = body.get('direction', 'push')  # "push" | "pull" | "both"
@@ -815,10 +809,9 @@ async def get_repo(owner: str, repo: str):
 @router.post('/gists')
 async def create_gist(req: Request):
     """Share a file as a GitHub Gist."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     filename = body.get('filename', 'index.html')
     content = body.get('content', '')
     desc = body.get('description', 'Shared from Agentic OS')

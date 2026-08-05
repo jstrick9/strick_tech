@@ -32,6 +32,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 router = APIRouter(prefix='/api/evals', tags=['evals'])
 log = logging.getLogger('agentic.evals')
@@ -247,10 +248,9 @@ Return ONLY valid JSON."""
 @router.post('/run')
 async def run_eval(req: Request):
     """Evaluate a single agent response."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     response = (body.get('response') or '').strip()
     expected = body.get('expected', '')
@@ -416,10 +416,9 @@ def eval_summary(agent_id: str = '', days: int = 30):
 @router.post('/datasets')
 async def create_dataset(req: Request):
     """Create and initialize a new dataset."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     did = f'ds_{uuid.uuid4().hex[:8]}'
     from ..services.memory_db import get_conn
 
@@ -470,10 +469,9 @@ def get_dataset(dataset_id: str):
 @router.post('/datasets/{dataset_id}/run')
 async def run_dataset(dataset_id: str, req: Request):
     """Run all test cases in a dataset against an agent."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     agent_id = body.get('agent_id', 'builder')
 
     from ..services.memory_db import get_conn
@@ -548,10 +546,9 @@ async def run_dataset(dataset_id: str, req: Request):
 @router.post('/ab-test')
 async def create_ab_test(req: Request):
     """Create and initialize a new ab test."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = (body.get('name') or 'A/B Test')[:200]
     prompt_a = (body.get('prompt_a') or '').strip()
     prompt_b = (body.get('prompt_b') or '').strip()
@@ -681,10 +678,9 @@ REDTEAM_ATTACKS = [
 @router.post('/red-team')
 async def run_red_team(req: Request):
     """Run OWASP LLM Top 10 red team attacks against an agent."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     agent_id = body.get('agent_id', 'builder')
     attacks = body.get('attacks', [a['id'] for a in REDTEAM_ATTACKS])  # subset or all
 

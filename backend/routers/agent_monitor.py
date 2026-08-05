@@ -36,6 +36,8 @@ log = logging.getLogger('agentic.monitor')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -542,10 +544,9 @@ def resolve_anomaly(anomaly_id: int):
 @router.post('/kill/{agent_id}')
 async def kill_agent(agent_id: str, req: Request):
     """Immediate kill switch for an agent."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     reason = (body.get('reason') or 'User kill switch')[:200]
     killed_by = (body.get('killed_by') or 'user')[:50]
 

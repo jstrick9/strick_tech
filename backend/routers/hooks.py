@@ -34,6 +34,8 @@ from fastapi.responses import JSONResponse
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 HOOKS_DIR = ROOT / '.agentic'
 HOOKS_DIR.mkdir(exist_ok=True)
@@ -366,10 +368,9 @@ def list_hooks(event: str = '', enabled: str = ''):
 @router.post('')
 async def create_hook(req: Request):
     """Create and initialize a new hook."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     hook_id = body.get('id') or f'hook_{uuid.uuid4().hex[:8]}'
     event = (body.get('event', 'file_save') or '').strip() or 'file_save'
     _event_raw = body.get('event')
@@ -427,10 +428,9 @@ def get_hook(hook_id: str):
 @router.patch('/{hook_id}')
 async def update_hook(hook_id: str, req: Request):
     """Update existing hook record or state."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     from ..services.memory_db import get_conn
 
     con = get_conn()
@@ -488,10 +488,9 @@ async def toggle_hook(hook_id: str):
 @router.post('/{hook_id}/run')
 async def manual_run_hook(hook_id: str, req: Request):
     """Manually trigger a hook."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     from ..services.memory_db import get_conn
 
     con = get_conn()
@@ -509,10 +508,9 @@ async def manual_run_hook(hook_id: str, req: Request):
 @router.post('/fire')
 async def fire_hook_event(req: Request):
     """Fire an event and trigger all matching enabled hooks."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     event_type = body.get('event', 'file_save')
     event_data = body.get('data', {})
     await fire_event(event_type, event_data)

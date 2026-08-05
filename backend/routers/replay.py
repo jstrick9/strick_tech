@@ -23,6 +23,7 @@ log = logging.getLogger('agentic.replay')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 ROOT = get_data_dir()
 WF_DIR = ROOT / 'workspaces' / 'workflows'
@@ -148,10 +149,9 @@ async def recorded_run(wf_id: str, req: Request):
     Like /api/workflow/{id}/run but records every frame to DB for later replay.
     Returns SSE stream identical to normal run PLUS frame snapshots.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     user_input = body.get('input', '')
 
     # Load workflow

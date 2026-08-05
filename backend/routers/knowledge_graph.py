@@ -29,6 +29,8 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from ..services.request_body import json_body_or_error
+
 router = APIRouter(prefix='/api/knowledge-graph', tags=['knowledge_graph'])
 log = logging.getLogger('agentic.kg')
 
@@ -92,10 +94,9 @@ _ensure_schema()
 @router.post('/entities')
 async def add_entity(req: Request):
     """Create and initialize a new entity."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = (body.get('name') or '').strip()
     if not name:
         return JSONResponse({'ok': False, 'error': 'name required'}, status_code=400)
@@ -142,10 +143,9 @@ async def add_entity(req: Request):
 @router.post('/relations')
 async def add_relation(req: Request):
     """Create and initialize a new relation."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     from_id = body.get('from_id', '')
     to_id = body.get('to_id', '')
     relation = (body.get('relation') or 'RELATES_TO').upper().replace(' ', '_')
@@ -181,10 +181,9 @@ async def add_relation(req: Request):
 @router.post('/facts')
 async def add_fact(req: Request):
     """Create and initialize a new fact."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     subject_id = body.get('subject_id', '')
     predicate = (body.get('predicate') or '').strip()
     object_text = (body.get('object') or '').strip()
@@ -318,10 +317,9 @@ def traverse_graph(entity_id: str, depth: int = 2, relation: str = ''):
 @router.post('/extract')
 async def extract_from_text(req: Request):
     """Extract entities and relationships from text using LLM."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     text = (body.get('text') or '').strip()[:5000]
     source = body.get('source', 'text_extraction')
     if not text:
@@ -452,10 +450,9 @@ Only extract clear, factual information. Return ONLY valid JSON."""
 @router.post('/query')
 async def natural_language_query(req: Request):
     """Query the knowledge graph using natural language."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     query = (body.get('query') or '').strip()
     if not query:
         return JSONResponse({'ok': False, 'error': 'query required'}, status_code=400)

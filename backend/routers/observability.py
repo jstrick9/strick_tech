@@ -28,6 +28,8 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from ..services.request_body import json_body_or_error
+
 router = APIRouter(prefix='/api/observability', tags=['observability'])
 log = logging.getLogger('agentic.obs')
 
@@ -92,10 +94,9 @@ _ensure_schema()
 @router.post('/traces')
 async def create_trace(req: Request):
     """Create and initialize a new trace."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     tid = body.get('id') or f'tr_{uuid.uuid4().hex[:10]}'
     from ..services.memory_db import get_conn
 
@@ -122,10 +123,9 @@ async def create_trace(req: Request):
 @router.patch('/traces/{trace_id}')
 async def update_trace(trace_id: str, req: Request):
     """Update existing trace record or state."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     from ..services.memory_db import get_conn
 
     con = get_conn()
@@ -151,10 +151,9 @@ async def update_trace(trace_id: str, req: Request):
 @router.post('/spans')
 async def create_span(req: Request):
     """Create and initialize a new span."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     sid = body.get('id') or f'sp_{uuid.uuid4().hex[:10]}'
     from ..services.memory_db import get_conn
 

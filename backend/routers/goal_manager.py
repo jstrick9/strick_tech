@@ -25,6 +25,8 @@ log = logging.getLogger('agentic.goals')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
@@ -675,10 +677,9 @@ async def decompose_goal(goal_id: str, req: Request):
     - Updates goals_v2.decomposition column
     - Returns structured task list with dependency edges
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     con = _get_conn()
     try:

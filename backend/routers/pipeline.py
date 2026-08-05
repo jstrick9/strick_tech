@@ -17,6 +17,7 @@ from fastapi.responses import StreamingResponse
 
 from ..services import llm, memory_db
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 router = APIRouter(prefix='/api/pipeline', tags=['pipeline'])
 log = logging.getLogger('agentic.pipeline')
@@ -55,10 +56,9 @@ async def pipeline_run(req: Request):
     Body: {goal, stages?, target?, auto_fix?}
     Returns: SSE stream with stage-by-stage progress + final results
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     goal = (body.get('goal') or body.get('prompt') or '').strip()
     stages = body.get('stages') or STAGE_ORDER
     body.get('target', 'web')

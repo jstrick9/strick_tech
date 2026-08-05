@@ -18,6 +18,7 @@ log = logging.getLogger('agentic.multitab')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -118,10 +119,9 @@ def list_tabs():
 @router.post('/tabs')
 async def create_tab(req: Request):
     """Create and initialize a new tab."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     tid = f'tab_{uuid.uuid4().hex[:6]}'
     file = (body.get('file') or 'index.html').lstrip('/')
     url = body.get('url') or f'/preview/{file}'
@@ -151,10 +151,9 @@ async def create_tab(req: Request):
 @router.patch('/tabs/{tab_id}')
 async def update_tab(tab_id: str, req: Request):
     """Update existing tab record or state."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     tabs = _get_tabs()
     if tab_id not in tabs:
         return {'ok': False, 'error': 'Tab not found'}
@@ -254,10 +253,9 @@ def list_preview_files():
 @router.post('/snapshot')
 async def snapshot_tab(req: Request):
     """Create a snapshot of a preview file (for tab history)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     tab_id = body.get('tab_id', 'tab_main')
     tabs = _get_tabs()
     tab = tabs.get(tab_id)

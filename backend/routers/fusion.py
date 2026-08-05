@@ -23,6 +23,8 @@ import time
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from ..services.request_body import json_body_or_error
+
 router = APIRouter(prefix='/api/fusion', tags=['fusion'])
 log = logging.getLogger('agentic.fusion')
 
@@ -268,10 +270,9 @@ async def fusion_run(req: Request):
     Run OpenRouter Fusion: fan prompt to N models, synthesize with judge.
     Body: {prompt, preset?, panel_models?, judge_model?, max_tokens?, system_prompt?, messages?}
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     preset = body.get('preset', 'budget')
     messages_in = body.get('messages') or None
@@ -329,10 +330,9 @@ async def fusion_run(req: Request):
 @router.post('/run/simple')
 async def fusion_simple(req: Request):
     """Non-streaming fusion for simple use cases."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     preset = body.get('preset', 'budget')
     max_tok = min(int(body.get('max_tokens', 512)), 4096)
@@ -373,10 +373,9 @@ async def smart_route(req: Request):
     """
     Classify the prompt and route to the optimal model automatically.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     max_tok = min(int(body.get('max_tokens', 1024)), 4096)
     if not prompt:
@@ -507,10 +506,9 @@ async def subagent_delegate(req: Request):
     Like OpenRouter Subagent: a large 'orchestrator' model breaks a task
     into subtasks, then delegates each to a smaller/cheaper model.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     task = (body.get('task') or '').strip()
     orchestrator = body.get('orchestrator', 'anthropic/claude-3.5-sonnet')
     worker = body.get('worker', 'google/gemini-2.0-flash-exp:free')
@@ -594,10 +592,9 @@ Synthesize all results into a complete, unified answer to the original task."""
 @router.post('/optimize-cost')
 async def cost_optimize(req: Request):
     """Suggest which model to use based on task complexity and budget."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     budget = float(body.get('budget_usd', 0.01))
     max_tok = int(body.get('max_tokens', 1024))

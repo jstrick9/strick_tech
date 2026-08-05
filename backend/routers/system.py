@@ -21,6 +21,7 @@ from backend.config import get_data_dir
 from backend.version import VERSION
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -244,10 +245,9 @@ _ensure_hmr_thread()
 @router.post('/hmr/trigger')
 async def hmr_trigger(req: Request):
     """Manually trigger HMR for a specific file (called after save)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     path = body.get('path', '')
     await _hmr_broadcast({'type': 'file_changed', 'path': path, 'ts': time.time(), 'source': 'manual'})
     return {'ok': True, 'clients': len(_hmr_clients)}
@@ -358,10 +358,9 @@ def git_status():
 @router.post('/git/commit')
 async def git_commit(req: Request):
     """Commit all preview/ changes to git."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     message = (body.get('message') or 'Agentic OS checkpoint').strip()[:500]
     if not message:
         message = 'Agentic OS checkpoint'

@@ -23,6 +23,8 @@ router = APIRouter(prefix='/api/db', tags=['database'])
 log = logging.getLogger('agentic.db')
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 DB = ROOT / 'memory' / 'agentic.db'
 
@@ -440,10 +442,9 @@ def sqlite_table_data(table: str, limit: int = 100, offset: int = 0, q: str = ''
 @router.post('/sqlite/query')
 async def sqlite_query(req: Request):
     """Execute a raw SQL query (SELECT only for safety, or allow writes with flag)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     sql = (body.get('sql') or '').strip()
     allow_write = bool(body.get('allow_write', False))
 
@@ -546,10 +547,9 @@ async def sqlite_insert(table: str, req: Request):
     """Insert a row into a table."""
     if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table):
         return JSONResponse({'ok': False, 'error': 'Invalid table name'}, status_code=400)
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     row = body.get('row', {})
     if not row:
         return {'ok': False, 'error': 'row data required'}
@@ -590,10 +590,9 @@ async def sqlite_delete_row(table: str, req: Request):
     """Delete rows matching a condition."""
     if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table):
         return JSONResponse({'ok': False, 'error': 'Invalid table name'}, status_code=400)
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     pk = body.get('pk_column', 'id')
     value = body.get('pk_value')
     if value is None:
@@ -643,10 +642,9 @@ def sqlite_schema():
 @router.post('/sqlite/table/create')
 async def create_table(req: Request):
     """Create a new table from a natural language description or raw SQL."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     sql = body.get('sql', '')
     name = body.get('name', '')
     cols = body.get('columns', [])  # [{name, type, pk, nullable}]
@@ -711,10 +709,9 @@ def _strip_markdown_sql(text: str) -> str:
 @router.post('/sqlite/ai-schema')
 async def ai_schema_designer(req: Request):
     """Generate a SQL schema from natural language description."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     desc = (body.get('description') or '').strip()
     if not desc:
         return {'ok': False, 'error': 'description required'}
@@ -914,10 +911,9 @@ async def supabase_tables():
 @router.post('/supabase/query')
 async def supabase_query(req: Request):
     """Run a query against Supabase using PostgREST."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     table = body.get('table', '')
     select = body.get('select', '*')
     filters = body.get('filters', {})
@@ -956,10 +952,9 @@ async def supabase_query(req: Request):
 @router.post('/supabase/insert')
 async def supabase_insert(req: Request):
     """Execute or process supabase insert operation."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     table = body.get('table', '')
     row = body.get('row', {})
     url, key = _supabase_url(), _supabase_key()
@@ -981,10 +976,9 @@ async def supabase_insert(req: Request):
 @router.post('/supabase/ai-setup')
 async def supabase_ai_setup(req: Request):
     """AI-powered Supabase schema generation from app description."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     desc = (body.get('description') or '').strip()
     if not desc:
         return {'ok': False, 'error': 'description required'}

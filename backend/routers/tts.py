@@ -23,6 +23,8 @@ log = logging.getLogger('agentic.tts')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 CACHE_DIR = ROOT / 'memory' / 'tts_cache'
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -101,10 +103,9 @@ async def speak(req: Request):
     Body: {text, agent_id?, voice?, rate?, cache?}
     Returns: audio/mpeg stream (MP3)
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     text = (body.get('text') or '').strip()
     agent_id = (body.get('agent_id') or 'default').strip()
     voice = (body.get('voice') or '').strip()
@@ -255,10 +256,9 @@ def get_agent_voice(agent_id: str):
 @router.patch('/voices/{agent_id}')
 async def set_agent_voice(agent_id: str, req: Request):
     """Set preferred voice for an agent (persisted to disk)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     voice = (body.get('voice') or DEFAULT_VOICE).strip()
     if voice not in EDGE_VOICES:
         return {'ok': False, 'error': f"Unknown voice '{voice}'. Options: {list(EDGE_VOICES.keys())}"}
@@ -332,10 +332,9 @@ def tts_status():
 @router.post('/elevenlabs/speak')
 async def elevenlabs_speak(req: Request):
     """Speak using ElevenLabs API (requires ELEVENLABS_API_KEY)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     text = (body.get('text') or '').strip()[:2000]
     voice_id = body.get('voice_id', '21m00Tcm4TlvDq8ikWAM')  # default Rachel voice
     model = body.get('model', 'eleven_monolingual_v1')

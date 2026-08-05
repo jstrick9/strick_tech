@@ -23,6 +23,8 @@ log = logging.getLogger('agentic.deploy')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
+
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
 
@@ -34,10 +36,9 @@ async def deploy_vercel(req: Request):
     Deploy preview/ directory to Vercel via their API.
     Requires VERCEL_TOKEN in .env or Vault.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     token = os.getenv('VERCEL_TOKEN', '') or body.get('token', '')
     project = body.get('project_name', 'agentic-os-preview')
     team_id = body.get('team_id', '')
@@ -118,10 +119,9 @@ async def deploy_vercel(req: Request):
 @router.post('/netlify')
 async def deploy_netlify(req: Request):
     """Deploy to Netlify Drop (no account needed for drag-drop deploys)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     token = os.getenv('NETLIFY_TOKEN', '') or body.get('token', '')
 
     if not token:

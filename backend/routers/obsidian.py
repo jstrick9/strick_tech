@@ -25,6 +25,7 @@ log = logging.getLogger('agentic.obsidian')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -169,10 +170,9 @@ async def index_vault(req: Request):
     Scan vault for .md files and ingest them into Memory Galaxy.
     Respects frontmatter tags. Skips already-indexed notes (unless re_index=true).
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     try:
         max_notes = min(int(body.get('max_notes', 500)), 2000)
     except (TypeError, ValueError):
@@ -238,10 +238,9 @@ async def index_vault(req: Request):
 @router.post('/export')
 async def export_to_vault(req: Request):
     """Export recent memories to a markdown note in the vault."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     source = (body.get('source') or '').strip()
     try:
         limit = min(int(body.get('limit', 50)), 200)
@@ -435,10 +434,9 @@ def read_note(path: str):
 @router.post('/note')
 async def write_note(req: Request):
     """Write a note to the vault (inside agentic-os subfolder)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     content = body.get('content', '')
 
     path, err = validate_note_path(body.get('path'))
@@ -475,10 +473,9 @@ async def write_note(req: Request):
 @router.delete('/note')
 async def delete_note(req: Request):
     """Delete a note from the vault (restricted to agentic-os subfolder)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     path, err = validate_note_path(body.get('path'))
     if err:
         status = 403 if 'traversal' in err.lower() else 400

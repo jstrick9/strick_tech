@@ -31,6 +31,7 @@ log = logging.getLogger('agentic.imagegen')
 
 from backend.config import get_data_dir
 
+from ..services.request_body import json_body_or_error
 from ..services.safe_paths import safe_path
 
 ROOT = get_data_dir()
@@ -399,10 +400,9 @@ def _err(exc: ImageGenError) -> JSONResponse:
 @router.post('/generate')
 async def generate_image(req: Request):
     """Generate an image from a text prompt."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     size = body.get('size', '1024x1024')
     style = (body.get('style') or '').strip()
@@ -577,10 +577,9 @@ async def list_models():
 @router.post('/inject-into-code')
 async def inject_image_into_code(req: Request):
     """Generate images and insert them into a file at placeholder locations."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     filepath = (body.get('filepath') or 'index.html').lstrip('/')
 
     target = _safe_preview_path(filepath)
@@ -651,10 +650,9 @@ async def inject_image_into_code(req: Request):
 @router.post('/figma/import')
 async def figma_import(req: Request):
     """Import a Figma design by URL and reconstruct it as HTML/CSS code."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     figma_url = (body.get('url') or '').strip()
     framework = (body.get('framework') or 'html').strip()
 
@@ -764,10 +762,9 @@ def image_styles():
 @router.post('/style-transfer')
 async def style_transfer(req: Request):
     """Apply a visual style to a prompt using AI-enhanced prompt engineering."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     source_prompt = (body.get('source_prompt') or body.get('prompt') or '').strip()
     style_id = (body.get('style') or 'cinematic').strip()
     custom_style = (body.get('custom_style') or '').strip()
@@ -835,10 +832,9 @@ async def style_transfer(req: Request):
 @router.post('/inpaint')
 async def inpaint_image(req: Request):
     """Inpainting — fill or replace part of an image described by a mask description."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     mask_desc = (body.get('mask_description') or 'the selected area').strip()
     fill_with = (body.get('fill_with') or '').strip()
@@ -865,10 +861,9 @@ async def inpaint_image(req: Request):
 @router.post('/enhance-prompt')
 async def enhance_prompt(req: Request):
     """AI-powered prompt enhancement without generating an image."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     style = (body.get('style') or '').strip()
     goal = (body.get('goal') or 'general').strip()
@@ -932,10 +927,9 @@ async def enhance_prompt(req: Request):
 @router.post('/variations')
 async def generate_variations(req: Request):
     """Generate N variations of a prompt with slight modifications."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = (body.get('prompt') or '').strip()
     # BUG FIX: int(body.get('count')) raised ValueError on any non-numeric
     # input, surfacing as a bare HTTP 500. Verified live with count="abc".

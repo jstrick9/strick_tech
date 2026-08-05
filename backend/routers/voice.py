@@ -6,12 +6,13 @@ Uses browser WebSpeech API on frontend; backend handles command routing.
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import time
 
 from fastapi import APIRouter, Request
+
+from ..services.request_body import json_body_or_error
 
 router = APIRouter(prefix='/api/voice', tags=['voice'])
 log = logging.getLogger('agentic.voice')
@@ -239,10 +240,9 @@ PANE_ALIASES = {
 @router.post('/parse')
 async def parse_voice_command(req: Request):
     """Parse a voice transcript into an actionable command."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     transcript = (body.get('transcript') or '').strip()
 
     if not transcript:
@@ -300,10 +300,9 @@ async def parse_voice_command(req: Request):
 @router.post('/parse/batch')
 async def parse_batch(req: Request):
     """Parse multiple transcripts in one call."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     transcripts = body.get('transcripts', [])
     if not transcripts or not isinstance(transcripts, list):
         return {'ok': False, 'error': 'transcripts list required'}
@@ -386,10 +385,9 @@ def get_session():
 @router.post('/synthesize')
 async def synthesize_speech(req: Request):
     """Synthesize text to speech for voice feedback (delegates to TTS router)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     text = (body.get('text') or '').strip()[:500]
     voice = (body.get('voice') or 'aria').strip()
     rate = (body.get('rate') or '+0%').strip()

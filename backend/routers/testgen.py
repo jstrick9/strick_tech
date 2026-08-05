@@ -21,6 +21,7 @@ log = logging.getLogger('agentic.testgen')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -42,10 +43,9 @@ async def generate_tests(req: Request):
     Body: {filepath, framework, context?}
     Streams the generated test file.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     filepath = (body.get('filepath') or '').strip().lstrip('/')
     framework = body.get('framework', 'jest').lower()
     context = body.get('context', '')
@@ -131,10 +131,9 @@ File: {filepath}
 @router.post('/generate-for-project')
 async def generate_project_tests(req: Request):
     """Generate tests for all files in the project."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     framework = body.get('framework', 'jest')
     max_files = min(int(body.get('max_files', 5)), 10)
 
@@ -188,10 +187,9 @@ def list_frameworks():
 @router.post('/run')
 async def run_tests(req: Request):
     """Run tests using the MCP shell tool."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     framework = body.get('framework', 'jest')
     test_file = body.get('test_file', '')
 

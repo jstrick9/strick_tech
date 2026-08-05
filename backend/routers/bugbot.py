@@ -28,6 +28,7 @@ log = logging.getLogger('agentic.bugbot')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -149,10 +150,9 @@ def list_reviews(limit: int = 20):
 @router.post('/review/diff')
 async def review_diff(req: Request):
     """Review a raw diff pasted directly."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     diff = (body.get('diff') or '').strip()
     context = body.get('context') or ''
     title = (body.get('title') or 'Manual Review')[:200]
@@ -202,10 +202,9 @@ async def review_diff(req: Request):
 @router.post('/review/diff/stream')
 async def review_diff_stream(req: Request):
     """Stream a review of a diff."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     diff = (body.get('diff') or '').strip()
     context = body.get('context') or ''
     title = (body.get('title') or 'Streaming Review')[:200]
@@ -275,10 +274,9 @@ async def review_diff_stream(req: Request):
 @router.post('/review/git')
 async def review_git_diff(req: Request):
     """Review the current local git diff (unstaged or staged)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     staged = body.get('staged', False)
     branch = body.get('branch', '')
 
@@ -344,10 +342,9 @@ async def review_git_diff(req: Request):
 @router.post('/review/github-pr')
 async def review_github_pr(req: Request):
     """Fetch and review a GitHub PR diff."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     pr_url = (body.get('pr_url') or '').strip()
     auto_post = body.get('auto_post_comment', False)
 
@@ -523,10 +520,9 @@ def get_review(review_id: str):
 @router.post('/reviews/{review_id}/feedback')
 async def submit_feedback(review_id: str, req: Request):
     """Submit feedback on a BugBot review (helps it learn)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     issue_idx = int(body.get('issue_index', 0))
     feedback = body.get('feedback', 'correct')  # correct|wrong|helpful|not_helpful
     note = (body.get('note', ''))[:500]
@@ -548,10 +544,9 @@ async def submit_feedback(review_id: str, req: Request):
 @router.post('/review/file')
 async def review_file(req: Request):
     """Review a single file's content for issues."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     content = (body.get('content') or '').strip()
     filename = body.get('filename', 'unknown')
     if not content:

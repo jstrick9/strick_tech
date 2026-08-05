@@ -27,6 +27,7 @@ log = logging.getLogger('agentic.composer')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
+from ..services.request_body import json_body_or_error
 from ..services.safe_paths import safe_path
 
 ROOT = get_data_dir()
@@ -62,10 +63,9 @@ async def composer_run(req: Request):
     Body: {instruction, context?, files?, framework?, stream?}
     Stream events: plan_ready | file_start | file_chunk | file_done | done | error
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     instruction = (body.get('instruction') or '').strip()
     framework = body.get('framework', 'web')
     stream_out = body.get('stream', True)
@@ -237,10 +237,9 @@ async def screenshot_to_code(req: Request):
 
     Body: {image_b64, image_url?, framework?, filename?}
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     image_b64 = body.get('image_b64', '')
     image_url = body.get('image_url', '')
     framework = body.get('framework', 'web')
@@ -364,10 +363,9 @@ async def create_branch_preview(req: Request):
     Each branch/version gets its own preview URL like /preview/branches/{name}/
     Similar to Vercel's preview URLs.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     branch_name = normalize_branch(body.get('name') or f'preview-{int(time.time())}')
     if not branch_name:
         return JSONResponse(
