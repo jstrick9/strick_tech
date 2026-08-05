@@ -18,6 +18,33 @@ from playwright.sync_api import sync_playwright  # noqa: E402
 BASE = "http://127.0.0.1:8787"
 
 def _run_server():
+    # BUG: this server inherited PYTEST_CURRENT_TEST from the parent pytest
+    # process, and backend/app.py disables BOTH rate limiting and CSRF
+    # validation whenever that variable is set:
+    #
+    #     if request.method in ('POST',...) and not os.environ.get('PYTEST_CURRENT_TEST'):
+    #
+    # So every security assertion this suite made about a live browser was
+    # made against a server with those controls switched off.
+    # `test_a_post_without_a_csrf_token_is_refused` could therefore never
+    # pass -- a token-less POST returned 200, and the test reported "CSRF is
+    # not enforced" against a build where it is. Confirmed against the
+    # committed tree before any of this session's changes, so it is a
+    # harness bug, not a regression.
+    #
+    # A test that cannot pass is as bad as one that cannot fail: this one
+    # was the only guard on CSRF from a real browser, and it was dead.
+    #
+    # Clearing the variable in the CHILD only. The parent keeps it, so the
+    # rest of pytest is unaffected; multiprocessing on Linux forks, so this
+    # assignment does not leak back.
+    import os
+    os.environ.pop('PYTEST_CURRENT_TEST', None)
+    # Rate limiting keys off the same flag. The browser suite issues far more
+    # than the 300-request default, so raise the ceiling rather than
+    # reintroducing the blanket bypass this is removing.
+    os.environ.setdefault('RATE_LIMIT_MAX', '1000000')
+
     import uvicorn
     from backend.app import app
     uvicorn.run(app, host="127.0.0.1", port=8787, log_level="error")

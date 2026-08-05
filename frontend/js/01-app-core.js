@@ -1477,26 +1477,89 @@ window.saveCustomConnection = async function() {
   }
 };
 
+// BUG FIX: this "audit" could not fail.
+//
+// It fetched /api/secrets/get?key=OPENROUTER_API_KEY and then, whatever came
+// back, rendered a green "✅ Local Cryptographic Secret Vault Verified (100%
+// Zero-Trust)" and toasted "vault audit green". The only branch on the
+// response was one word in one line ("ENCRYPTED IN VAULT" vs "NOT
+// CONFIGURED"). A 404 — the normal answer when no key is stored — still
+// produced a full pass, and so did a vault running with NO encryption at all.
+//
+// It also hardcoded claims the backend never made: a macOS
+// "~/Library/Application Support/..." storage root, a "Hardware Master Key",
+// and "Kyber-1024 hybrid wrapping". None of that is checked, and the real
+// vault path is whatever KEY_PATH resolves to on this machine.
+//
+// A security control that always reports success is worse than no control:
+// it actively tells the user their secrets are encrypted when they may not
+// be. /api/secrets/list already returns the facts this needs — `encrypted`
+// (is a Fernet key actually loaded), `engine`, `vault_path` and `warning` —
+// so the audit now reports those, and fails loudly when encryption is off.
 window.checkVaultIntegrity = async function() {
   const resEl = document.getElementById('vault-audit-result');
-  if (resEl) { resEl.style.display = 'block'; resEl.innerHTML = '<span style="color:var(--accent-text)">🔍 Auditing local AES-256-GCM cryptographic vault keys...</span>'; }
+  if (resEl) {
+    resEl.style.display = 'block';
+    resEl.innerHTML = '<span style="color:var(--accent-text)">🔍 Auditing local secret vault…</span>';
+  }
   try {
-    const r = await fetch('/api/secrets/get?key=OPENROUTER_API_KEY');
-    const j = await r.json();
-    setTimeout(() => {
+    const [listRes, keyRes] = await Promise.all([
+      fetch('/api/secrets/list'),
+      fetch('/api/secrets/get?key=OPENROUTER_API_KEY'),
+    ]);
+
+    if (!listRes.ok) {
       if (resEl) {
-        resEl.innerHTML = `
-          <div style="color:var(--success);font-weight:800;margin-bottom:6px">✅ Local Cryptographic Secret Vault Verified (100% Zero-Trust)</div>
-          <div>Storage Root: <code style="color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/secrets/</code></div>
-          <div>Hardware Master Key: <code style="color:var(--accent-text)">~/.vault_key</code> (AES-256-GCM + Kyber-1024 hybrid wrapping)</div>
-          <div>Active OpenRouter Secret: <strong style="color:var(--text-0)">${j.ok ? 'ENCRYPTED IN VAULT (Fingerprint: ' + (j.fingerprint || 'active') + ')' : 'NOT CONFIGURED'}</strong></div>
-          <div style="color:var(--text-3);margin-top:4px">Audit timestamp: ${new Date().toISOString()} • Zero cloud telemetry transmission verified.</div>
-        `;
+        resEl.innerHTML = '<div style="color:var(--danger);font-weight:800">' +
+          '❌ Vault audit failed: could not read the vault (HTTP ' + listRes.status + ')</div>';
       }
-      toast('🔒 Cryptographic vault audit green!', 'ok', 3000);
-    }, 400);
+      toast('Vault audit failed — the vault could not be read', 'err', 4000);
+      return;
+    }
+
+    const info = await listRes.json().catch(() => ({}));
+    // A 404 here means "no OpenRouter key stored", which is a normal state and
+    // must not be reported as an error — but must not be reported as a pass
+    // either. It is simply "not configured".
+    const keyInfo = keyRes.ok ? await keyRes.json().catch(() => ({})) : {};
+
+    const encrypted = info.encrypted === true;
+    const count     = Number(info.count || 0);
+    const keyStored = !!(keyInfo && keyInfo.ok);
+
+    const rows = [];
+    rows.push('<div>Encryption engine: <strong style="color:' +
+      (encrypted ? 'var(--success)' : 'var(--danger)') + '">' +
+      escHtml(String(info.engine || 'unknown')) + '</strong></div>');
+    rows.push('<div>Vault key file: <code style="color:var(--accent-text)">' +
+      escHtml(String(info.vault_path || 'unknown')) + '</code></div>');
+    rows.push('<div>Secrets stored: <strong style="color:var(--text-0)">' + count + '</strong></div>');
+    rows.push('<div>OpenRouter key: <strong style="color:var(--text-0)">' +
+      (keyStored
+        ? 'stored (fingerprint ' + escHtml(String(keyInfo.fingerprint || 'n/a')) + ')'
+        : 'not configured') + '</strong></div>');
+    if (info.warning) {
+      rows.push('<div style="color:var(--warning);margin-top:6px">⚠️ ' +
+        escHtml(String(info.warning)) + '</div>');
+    }
+    rows.push('<div style="color:var(--text-3);margin-top:6px">Audited ' +
+      escHtml(new Date().toISOString()) + '</div>');
+
+    const heading = encrypted
+      ? '<div style="color:var(--success);font-weight:800;margin-bottom:6px">' +
+        '✅ Vault is encrypted at rest</div>'
+      : '<div style="color:var(--danger);font-weight:800;margin-bottom:6px">' +
+        '❌ Vault is NOT encrypted — secrets are stored in recoverable form</div>';
+
+    if (resEl) resEl.innerHTML = heading + rows.join('');
+    if (encrypted) toast('🔒 Vault audit passed — secrets encrypted at rest', 'ok', 3000);
+    else toast('Vault audit FAILED — secrets are not encrypted', 'err', 6000);
   } catch(e) {
-    if (resEl) resEl.innerHTML = `<div style="color:var(--danger)">Vault audit check error: ${escHtml(e.message)}</div>`;
+    if (resEl) {
+      resEl.innerHTML = '<div style="color:var(--danger)">Vault audit error: ' +
+        escHtml(e.message) + '</div>';
+    }
+    toast('Vault audit could not complete: ' + e.message, 'err', 5000);
   }
 };
 
