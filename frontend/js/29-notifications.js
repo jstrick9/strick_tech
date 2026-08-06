@@ -188,8 +188,14 @@ function updateNotifBadge(count) {
 
 async function markNotifRead(id) {
   try {
-    await fetch(`/api/notifications/mark-read/${encodeURIComponent(id)}`, { method: 'POST' });
-  } catch (e) {}
+    const r = await fetch(`/api/notifications/mark-read/${encodeURIComponent(id)}`, { method: 'POST' });
+    // Marking read is a real state change: if it fails the badge count is
+    // wrong and the notification comes back on the next poll, which reads as
+    // the app losing track rather than as an error.
+    if (!r.ok) toast(`Could not mark that notification read (HTTP ${r.status}).`, 'err', 4000);
+  } catch (e) {
+    toast('Could not mark that notification read: ' + (e && e.message ? e.message : 'network error'), 'err', 4000);
+  }
   
   // Update local sample notifications
   const notif = SAMPLE_NOTIFICATIONS.find(n => n.id === id);

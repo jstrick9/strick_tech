@@ -644,12 +644,30 @@ def revoke_permission(agent_id: str, action: str):
     """Revoke a permission from an agent."""
     con = _get_conn()
     try:
-        con.execute('DELETE FROM agent_permissions WHERE agent_id=? AND action=?', (agent_id, action))
-        _log_identity_event(con, agent_id, 'permission_revoked', f'{action}')
+        cur = con.execute(
+            'DELETE FROM agent_permissions WHERE agent_id=? AND action=?', (agent_id, action)
+        )
+        removed = cur.rowcount or 0
+        # Only record an audit event when something actually changed. Logging a
+        # revocation that revoked nothing pollutes the trail with events that
+        # never happened -- and this is an identity/permissions audit log, the
+        # one place that must not contain fiction.
+        if removed:
+            _log_identity_event(con, agent_id, 'permission_revoked', f'{action}')
         con.commit()
     finally:
         con.close()
-    return {'ok': True, 'agent_id': agent_id, 'action': action, 'revoked': True}
+    # `deleted` distinguishes "removed it" from "there was nothing to remove".
+    # Status stays 200 so the endpoint stays idempotent and safe to retry;
+    # without this flag the caller could not tell the two apart, and the UI
+    # reported success after a typo or a stale list.
+    return {
+        'ok': True,
+        'agent_id': agent_id,
+        'action': action,
+        'deleted': removed > 0,
+        'revoked': removed > 0,
+    }
 
 
 @router.get('/{agent_id}/audit')

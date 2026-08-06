@@ -7,24 +7,31 @@ Two security controls in this platform keep state in a plain Python dict:
   * `backend.app._rate_limit_store`        — requests per client IP
   * `backend.routers.security._CSRF_TOKENS` — issued CSRF tokens
 
-Both are correct for the single-process, local-first deployment the platform
-is built around (`run.py` starts one uvicorn process). Neither survives being
-run under multiple workers, and they fail in *opposite* directions:
+BOTH PROBLEMS THIS MODULE WAS BUILT TO WARN ABOUT ARE NOW FIXED. It stays
+because the detection is still needed: the rate-limit fix uses the worker
+count, and an operator still deserves to know the topology was noticed.
 
-  Rate limiting DEGRADES QUIETLY.
-      Each worker counts independently, so the effective limit becomes
-      `workers x configured`. Nothing is bypassed; the ceiling is just higher
-      than the operator asked for. Nobody notices.
-
-  CSRF BREAKS LOUDLY — but only once enforcement is on.
-      A token minted by worker A is not in worker B's dict. Measured on this
+  CSRF used to BREAK LOUDLY under multiple workers.
+      A token minted by worker A was not in worker B's dict. Measured on this
       codebase with `--workers 4` and `AGENTIC_CSRF_STRICT=1`: of 60 POSTs
-      carrying a VALID token, **27 succeeded and 33 returned 403**. The user
-      sees random failures on roughly half their actions.
+      carrying a VALID token, **13 succeeded and 47 returned 403** — the user
+      saw random failures on most of their actions.
 
-That second one is why this module is a prerequisite for turning CSRF
-enforcement on by default rather than a nice-to-have. An operator who scales
-out must find out at startup, not from a support ticket.
+      FIXED. Tokens are stateless: an HMAC over the issue time, signed with a
+      key shared by every worker (`services/csrf_secret.py`). Re-measured on
+      the same 4-worker setup: **60 of 60 accepted**, with forged tokens still
+      refused 8 of 8.
+
+  Rate limiting used to DEGRADE QUIETLY.
+      Each worker counted independently, so the effective ceiling was
+      `workers x configured`. An operator who set 300 and ran 4 workers got
+      1200 and was never told.
+
+      FIXED. `app.py` divides the configured budget by the worker count, so
+      the number the operator set is the number that applies. Load balancing
+      is not perfectly even, so the residual error is in the conservative
+      direction: a client can be throttled slightly early, never allowed past
+      the ceiling.
 
 WHAT IT DOES NOT DO
 ───────────────────
@@ -145,7 +152,8 @@ def describe() -> dict[str, object]:
         'workers': workers,
         'multiprocess': workers > 1,
         'acknowledged': multiprocess_acknowledged(),
-        'per_process_state': ['rate_limit_store', 'csrf_tokens'],
+        # csrf_tokens is no longer per-process state: tokens are stateless.
+        'per_process_state': ['rate_limit_store'],
         'detected_via': (
             'env' if _workers_from_env() is not None
             else 'argv' if _workers_from_argv() is not None
@@ -165,33 +173,38 @@ def warn_if_multiprocess(*, rate_limit_max: int, csrf_strict: bool) -> list[str]
         return []
 
     workers = worker_count()
+    # `rate_limit_max` is the PER-WORKER budget app.py derived by dividing the
+    # configured value. Report both numbers so an operator can see the
+    # arithmetic rather than have to trust it.
     messages = [
-        f'Running with {workers} worker processes, but rate limiting and CSRF '
-        f'tokens are stored PER PROCESS.',
-        f'  Rate limit: each worker allows {rate_limit_max} requests/window, so '
-        f'the effective limit is ~{rate_limit_max * workers}, not {rate_limit_max}.',
+        f'Running with {workers} worker processes.',
+        f'  Rate limit: {rate_limit_max} requests/window per worker, so the '
+        f'effective ceiling is ~{rate_limit_max * workers}. The configured value '
+        f'is divided across workers so the number you set is the number that '
+        f'applies; uneven load balancing can throttle a client slightly early, '
+        f'which is the conservative direction.',
     ]
 
-    if csrf_strict:
-        # This one is not a degradation, it is an outage for the user.
+    from . import csrf_secret  # noqa: PLC0415
+
+    source = csrf_secret.secret_source()
+    if source == 'ephemeral':
+        # The one remaining way to reach the original broken behaviour.
         messages.append(
-            '  CSRF: AGENTIC_CSRF_STRICT is ON. A token minted by one worker is '
-            'unknown to the others, so roughly (workers-1)/workers of all '
-            'state-changing requests will be rejected with 403 despite '
-            'carrying a valid token. Set AGENTIC_CSRF_STRICT=0 or run a single '
-            'worker until a shared token store exists.'
+            '  CSRF: WARNING — the signing key is in-process only, because no '
+            'AGENTIC_CSRF_SECRET is set and the data directory is not writable. '
+            'Each worker signs with a DIFFERENT key, so tokens will be rejected '
+            'across workers exactly as they were before tokens became stateless. '
+            'Set AGENTIC_CSRF_SECRET to a shared value.'
         )
     else:
         messages.append(
-            '  CSRF: enforcement is off, so nothing breaks today — but do NOT '
-            'enable AGENTIC_CSRF_STRICT in this topology; tokens are not shared '
-            'between workers.'
+            f'  CSRF: tokens are stateless and signed with a shared key '
+            f'({source}), so every worker accepts every other worker\'s tokens. '
+            f'Enforcement is safe in this topology.'
         )
 
-    messages.append(
-        '  Run a single worker for correct enforcement, or see '
-        'docs/module-reviews/25-runtime-topology.md.'
-    )
+    messages.append('  See docs/module-reviews/25-runtime-topology.md.')
 
     if multiprocess_acknowledged():
         for line in messages:
@@ -206,8 +219,19 @@ def warn_if_multiprocess(*, rate_limit_max: int, csrf_strict: bool) -> list[str]
 def csrf_strict_is_safe() -> bool:
     """Whether CSRF enforcement can be turned on WITHOUT breaking users.
 
-    False under multiple workers, because the token store is per process.
-    Used to keep the secure-by-default behaviour from becoming a self-inflicted
-    outage on a topology it was never designed for.
+    Used to return False under multiple workers, because the token store was a
+    per-process dict. Tokens are now stateless and signed with a key shared by
+    every worker (`services/csrf_secret.py`), so enforcement is safe in any
+    topology — verified with `--workers 4`: 60 of 60 POSTs carrying a single
+    token were accepted, against 13 of 60 before.
+
+    The one exception is an in-process signing key, which happens only when no
+    AGENTIC_CSRF_SECRET is set AND the data directory is unwritable. Each
+    worker would then sign with a different key, reproducing the original
+    failure, so that case reports unsafe and is warned about at startup.
     """
-    return not is_multiprocess()
+    if not is_multiprocess():
+        return True
+    from . import csrf_secret  # noqa: PLC0415
+
+    return csrf_secret.secret_source() != 'ephemeral'

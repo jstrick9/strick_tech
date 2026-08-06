@@ -141,13 +141,37 @@ def add_loop(
 def remove_loop(job_id: str) -> dict:
     """Delete or remove specified remove loop."""
     sched = get_scheduler()
-    try:
-        if sched:
+    existed = job_id in _jobs
+
+    # BUG FIX, two of them.
+    #
+    # 1. APScheduler raises JobLookupError when the job is not registered, so
+    #    deleting a loop that had already stopped returned
+    #    {'ok': False, 'error': "'No job by the id of X was found'"} -- and the
+    #    router passed that straight out with HTTP 200. A DELETE of something
+    #    already gone is a SUCCESS: the caller asked for it to not exist, and
+    #    it does not. It is now reported as such.
+    #
+    # 2. `_jobs.pop` was inside the try, AFTER the call that raises. So on that
+    #    same path the local registry was never cleaned up: the job stayed
+    #    listed in /api/loops forever, and every retry hit the same error. The
+    #    pop now happens regardless.
+    error: str | None = None
+    if sched:
+        try:
             sched.remove_job(job_id)
-        _jobs.pop(job_id, None)
-        return {'ok': True}
-    except Exception as e:
-        return {'ok': False, 'error': str(e)}
+        except Exception as exc:  # JobLookupError and anything else
+            message = str(exc)
+            # Only a genuine failure is reported; "no such job" is the
+            # idempotent case.
+            if 'No job by the id' not in message:
+                error = message
+
+    _jobs.pop(job_id, None)
+
+    if error:
+        return {'ok': False, 'error': error}
+    return {'ok': True, 'deleted': existed, 'job_id': job_id}
 
 
 _BUILTIN_JOB_IDS = frozenset({'memory_index', 'standup', 'cost_digest', 'status_cleanup'})

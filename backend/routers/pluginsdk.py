@@ -164,9 +164,14 @@ async def update_pack(pack_id: str, req: Request):
 def delete_pack(pack_id: str):
     """Delete or remove specified pack."""
     p = PACKS_DIR / f'{pack_id}.json'
-    if p.exists():
+    existed = p.exists()
+    if existed:
         p.unlink()
-    return {'ok': True}
+    # `deleted` distinguishes "removed it" from "there was nothing to remove".
+    # Status stays 200 so the endpoint stays idempotent and safe to retry;
+    # without this flag the caller could not tell the two apart, and the UI
+    # reported success after a typo or a stale list.
+    return {'ok': True, 'deleted': existed, 'pack_id': pack_id}
 
 
 # ── Validation ────────────────────────────────────────────────────────────────

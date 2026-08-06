@@ -474,11 +474,16 @@ def delete_run(run_id: str):
     con = get_conn()
     try:
         con.execute('DELETE FROM workflow_run_frames WHERE run_id=?', (run_id,))
-        con.execute('DELETE FROM workflow_runs WHERE id=?', (run_id,))
+        cur = con.execute('DELETE FROM workflow_runs WHERE id=?', (run_id,))
+        removed = cur.rowcount or 0
         con.commit()
     finally:
         con.close()
-    return {'ok': True}
+    # `deleted` distinguishes "removed it" from "there was nothing to remove".
+    # Status stays 200 so the endpoint stays idempotent and safe to retry;
+    # without this flag the caller could not tell the two apart, and the UI
+    # reported success after a typo or a stale list.
+    return {'ok': True, 'deleted': removed > 0, 'run_id': run_id}
 
 
 # ── Re-run from a specific frame ───────────────────────────────────────────────

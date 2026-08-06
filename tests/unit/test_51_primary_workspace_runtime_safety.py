@@ -11,7 +11,13 @@ def test_galaxy_libraries_are_loaded_as_browser_globals_after_monaco():
     assert 'async function loadGalaxyLibrary(src)' in CORE
     assert 'window.define = undefined;' in CORE
     assert 'window.require = undefined;' in CORE
-    assert "await loadGalaxyLibrary('https://cdn.jsdelivr.net/npm/3d-force-graph" in CORE
+    # UPDATED: three.js and 3d-force-graph are vendored under
+    # frontend/vendor/ and served from /static, so the five CDN origins could
+    # be dropped from script-src. The invariant this test exists for is
+    # unchanged -- the galaxy libraries are loaded as browser globals AFTER
+    # Monaco has released window.define/window.require -- only the URL moved.
+    assert "await loadGalaxyLibrary('/static/vendor/3d-force-graph.min.js')" in CORE
+    assert "await loadGalaxyLibrary('/static/vendor/three.min.js')" in CORE
 
 
 def test_primary_workspace_sweep_remains_in_live_product_smoke():

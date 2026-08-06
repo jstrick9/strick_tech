@@ -5,6 +5,8 @@ Provides CSRF token generation/validation and request ID trace tracking.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import secrets
 import time
 import uuid
@@ -15,9 +17,68 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix='/api/security', tags=['security'])
 
-# Global store for valid CSRF tokens with expiration (24 hours)
-_CSRF_TOKENS: dict[str, float] = {}
 _TOKEN_TTL = 86400  # 24 hours
+
+# ── Stateless CSRF tokens ─────────────────────────────────────────────────────
+# This used to be `_CSRF_TOKENS: dict[str, float]` — a PER-PROCESS dict. It was
+# correct for one uvicorn process and broke under several: a token minted by
+# worker A is unknown to worker B. Measured with `--workers 4` and enforcement
+# on: of 60 POSTs carrying a VALID token, 27 succeeded and 33 returned 403.
+#
+# The previous mitigation detected the topology and refused to enable
+# enforcement by default. That is a guard, not a fix — it left every
+# multi-worker deployment permanently unable to run with CSRF protection on.
+#
+# A CSRF token does not need a server-side record. It needs to be unforgeable
+# and to expire. An HMAC over the issue time gives both, and any worker can
+# verify any token because they share a key (see services/csrf_secret.py):
+#
+#     <issued_at>.<nonce>.<hmac_sha256(key, "issued_at.nonce")>
+#
+# Constant-time comparison throughout: a token check that leaks timing is a
+# token check an attacker can walk byte by byte.
+_TOKEN_PARTS = 3
+
+
+def _sign(payload: str) -> str:
+    from ..services.csrf_secret import get_secret  # noqa: PLC0415
+
+    return hmac.new(get_secret(), payload.encode(), hashlib.sha256).hexdigest()
+
+
+def mint_csrf_token() -> str:
+    """Issue a signed, self-describing CSRF token."""
+    payload = f'{int(time.time())}.{secrets.token_urlsafe(16)}'
+    return f'{payload}.{_sign(payload)}'
+
+
+def csrf_token_is_valid(token: str | None) -> bool:
+    """Whether a token is well formed, correctly signed and unexpired."""
+    if not token or not isinstance(token, str):
+        return False
+    parts = token.split('.')
+    if len(parts) != _TOKEN_PARTS:
+        return False
+    issued_raw, nonce, signature = parts
+    if not issued_raw or not nonce or not signature:
+        return False
+
+    # Verify the signature BEFORE trusting anything in the payload, including
+    # the timestamp — otherwise an attacker picks their own expiry.
+    if not hmac.compare_digest(_sign(f'{issued_raw}.{nonce}'), signature):
+        return False
+
+    try:
+        issued = int(issued_raw)
+    except (TypeError, ValueError):
+        return False
+
+    age = time.time() - issued
+    # A token from the future means a forged or clock-skewed payload. A small
+    # negative tolerance absorbs ordinary skew between hosts.
+    if age < -300:
+        return False
+    return age <= _TOKEN_TTL
 
 
 class CSRFValidateRequest(BaseModel):
@@ -27,11 +88,12 @@ class CSRFValidateRequest(BaseModel):
 
 
 def _clean_expired_tokens() -> None:
-    """Purge expired CSRF tokens from the global store."""
-    now = time.time()
-    expired = [tok for tok, ts in _CSRF_TOKENS.items() if now - ts > _TOKEN_TTL]
-    for tok in expired:
-        _CSRF_TOKENS.pop(tok, None)
+    """No-op, kept so existing callers and tests keep working.
+
+    Tokens carry their own expiry in a signed payload, so there is nothing to
+    sweep and no store to grow without bound.
+    """
+    return None
 
 
 # ── CSP violation reporting ────────────────────────────────────────────────────
@@ -111,9 +173,7 @@ def clear_csp_reports() -> dict[str, Any]:
 @router.get('/csrf-token')
 async def get_csrf_token(response: Response) -> dict[str, Any]:
     """Generate and return a new secure CSRF token, also setting an HttpOnly cookie."""
-    _clean_expired_tokens()
-    token = secrets.token_urlsafe(32)
-    _CSRF_TOKENS[token] = time.time()
+    token = mint_csrf_token()
     response.set_cookie(
         key='agentic_os_csrf',
         value=token,
@@ -130,9 +190,8 @@ async def validate_csrf_token(
     x_csrf_token:str | None = Header(None, alias='X-CSRF-Token'),
 ) -> dict[str, Any]:
     """Validate a provided CSRF token against active valid session tokens."""
-    _clean_expired_tokens()
     token_to_check = payload.csrf_token or x_csrf_token
-    if not token_to_check or token_to_check not in _CSRF_TOKENS:
+    if not csrf_token_is_valid(token_to_check):
         return {'ok': False, 'valid': False, 'error': 'Invalid or expired CSRF token'}
     return {'ok': True, 'valid': True}
 

@@ -60,18 +60,24 @@ def base_url() -> str:
 
 
 def mint_token() -> str:
-    """Create a CSRF token directly in the issuing store.
+    """Create a CSRF token locally.
 
-    An in-process dict write, not an HTTP round trip — calling the token
+    A local signing operation, not an HTTP round trip — calling the token
     endpoint over loopback to satisfy loopback CSRF would be circular.
+
+    This used to write into `security._CSRF_TOKENS`. That dict is gone: tokens
+    are now stateless HMACs over their own issue time, signed with a key shared
+    by every process reading the same data directory. Two consequences here,
+    both improvements:
+
+      * A token minted by THIS process is now accepted by any other process
+        serving the app, so the `_fetch_token_over_http` fallback below is a
+        fallback rather than a routine necessity.
+      * There is no store to write to, so nothing to leak or grow.
     """
-    import secrets
+    from ..routers.security import mint_csrf_token
 
-    from ..routers.security import _CSRF_TOKENS
-
-    token = secrets.token_urlsafe(32)
-    _CSRF_TOKENS[token] = time.time()
-    return token
+    return mint_csrf_token()
 
 
 _cached_token: str | None = None

@@ -254,11 +254,16 @@ def delete_pipeline(pipeline_id: str):
     try:
         con.execute('DELETE FROM rag_chunks WHERE pipeline_id=?', (pipeline_id,))
         con.execute('DELETE FROM rag_documents WHERE pipeline_id=?', (pipeline_id,))
-        con.execute('DELETE FROM rag_pipelines WHERE id=?', (pipeline_id,))
+        cur = con.execute('DELETE FROM rag_pipelines WHERE id=?', (pipeline_id,))
+        removed = cur.rowcount or 0
         con.commit()
     finally:
         con.close()
-    return {'ok': True}
+    # `deleted` distinguishes "removed it" from "there was nothing to remove".
+    # Status stays 200 so the endpoint stays idempotent and safe to retry;
+    # without this flag the caller could not tell the two apart, and the UI
+    # reported success after a typo or a stale list.
+    return {'ok': True, 'deleted': removed > 0, 'pipeline_id': pipeline_id}
 
 
 # ── Document ingestion ─────────────────────────────────────────────────────────
@@ -534,4 +539,8 @@ def delete_document(pipeline_id: str, doc_id: str):
         con.commit()
     finally:
         con.close()
-    return {'ok': True}
+    # `deleted` distinguishes "removed it" from "there was nothing to remove".
+    # Status stays 200 so the endpoint stays idempotent and safe to retry;
+    # without this flag the caller could not tell the two apart, and the UI
+    # reported success after a typo or a stale list.
+    return {'ok': True, 'deleted': doc is not None, 'doc_id': doc_id}

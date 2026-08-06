@@ -94,7 +94,11 @@ def test_describe_reports_how_it_decided(clean_env):
     d = rt.describe()
     assert d['detected_via'] == 'env'
     assert d['multiprocess'] is True
-    assert 'csrf_tokens' in d['per_process_state']
+    # `csrf_tokens` was per-process state and is no longer state at all --
+    # tokens are stateless HMACs. Claiming it here would be describing a
+    # problem that has been fixed, which is how stale warnings get ignored.
+    assert 'csrf_tokens' not in d['per_process_state']
+    assert 'rate_limit_store' in d['per_process_state']
 
 
 # ══ The warning ═══════════════════════════════════════════════════════════════
@@ -111,17 +115,41 @@ def test_warning_names_the_effective_rate_limit(clean_env):
     assert '300' in text and '1200' in text
 
 
-def test_warning_escalates_when_csrf_enforcement_is_on(clean_env):
-    """With enforcement on this stops being a degradation and becomes an
-    outage, so the message has to say so."""
-    clean_env.setenv('WEB_CONCURRENCY', '4')
-    on = ' '.join(rt.warn_if_multiprocess(rate_limit_max=300, csrf_strict=True))
-    assert '403' in on
-    assert 'AGENTIC_CSRF_STRICT=0' in on
+def test_the_warning_reports_csrf_as_safe_now_that_tokens_are_shared(clean_env):
+    """REWRITTEN, because the outage it warned about no longer happens.
 
-    off = ' '.join(rt.warn_if_multiprocess(rate_limit_max=300, csrf_strict=False))
-    assert '403' not in off
-    assert 'do NOT' in off
+    This used to require the message to mention 403s and tell the operator to
+    set AGENTIC_CSRF_STRICT=0, because a token minted by one worker was
+    unknown to the others. Tokens are now stateless and signed with a shared
+    key, so that advice would be actively wrong -- it would talk an operator
+    into disabling CSRF protection for no reason.
+
+    What must still be true: the message states that enforcement is safe, and
+    names where the shared key came from so the claim is checkable.
+    """
+    clean_env.setenv('WEB_CONCURRENCY', '4')
+    for strict in (True, False):
+        text = ' '.join(rt.warn_if_multiprocess(rate_limit_max=300, csrf_strict=strict))
+        assert 'Enforcement is safe' in text, text
+        assert 'AGENTIC_CSRF_STRICT=0' not in text, (
+            'the warning still advises disabling CSRF protection'
+        )
+        assert 'stateless' in text and 'shared key' in text
+
+
+def test_the_warning_still_escalates_when_workers_cannot_share_a_key(clean_env, monkeypatch):
+    """The one case that still reproduces the original failure must still shout."""
+    from backend.services import csrf_secret
+
+    clean_env.setenv('WEB_CONCURRENCY', '4')
+    csrf_secret.reset_for_tests()
+    monkeypatch.setattr(csrf_secret, 'secret_source', lambda: 'ephemeral')
+
+    text = ' '.join(rt.warn_if_multiprocess(rate_limit_max=300, csrf_strict=True))
+    assert 'WARNING' in text
+    assert 'DIFFERENT key' in text
+    assert 'AGENTIC_CSRF_SECRET' in text
+    csrf_secret.reset_for_tests()
 
 
 def test_acknowledgement_downgrades_severity_but_keeps_the_message(clean_env, caplog):
@@ -190,16 +218,53 @@ def test_csrf_is_enforced_by_default_on_a_single_worker(monkeypatch):
     assert _csrf_default(monkeypatch) is True
 
 
-def test_csrf_default_yields_to_off_under_multiple_workers(monkeypatch):
-    """Because _CSRF_TOKENS is per-process. Enforcing here would reject
-    roughly (workers-1)/workers of all mutations DESPITE a valid token."""
-    assert _csrf_default(monkeypatch, WEB_CONCURRENCY='4') is False
+def test_csrf_is_now_enforced_by_default_under_multiple_workers_too(monkeypatch):
+    """INVERTED, because the reason for the old answer is gone.
+
+    This used to assert False: the token store was a per-process dict, so
+    enforcing under N workers rejected roughly (workers-1)/workers of all
+    mutations DESPITE a valid token. Measured with `--workers 4`: of 60 POSTs
+    carrying one valid token, 13 succeeded and 47 returned 403.
+
+    Tokens are now stateless HMACs signed with a key shared by every process
+    reading the same data directory (`services/csrf_secret.py`), so any worker
+    accepts any worker's token. Re-measured on the same 4-worker setup: 60 of
+    60 accepted, forged tokens still refused 8 of 8.
+
+    Yielding to OFF here would now mean shipping multi-worker deployments with
+    CSRF protection disabled for no reason at all.
+    """
+    assert _csrf_default(monkeypatch, WEB_CONCURRENCY='4') is True
+
+
+def test_the_default_still_yields_when_workers_cannot_share_a_key(monkeypatch, tmp_path):
+    """The one case that still reproduces the original failure.
+
+    With no AGENTIC_CSRF_SECRET and an unwritable data directory, each worker
+    generates its own in-process key and signs with it — so tokens are rejected
+    across workers exactly as before. That case must still report unsafe.
+    """
+    from backend.services import csrf_secret, runtime_topology
+
+    monkeypatch.setenv('WEB_CONCURRENCY', '4')
+    monkeypatch.delenv('AGENTIC_CSRF_SECRET', raising=False)
+    monkeypatch.delenv('SECRET_KEY', raising=False)
+    monkeypatch.delenv('AGENTIC_OS_DATA_DIR', raising=False)
+    monkeypatch.delenv('AGENTIC_DATA_DIR', raising=False)
+
+    csrf_secret.reset_for_tests()
+    monkeypatch.setattr(csrf_secret, '_from_file', lambda: None)
+    csrf_secret.get_secret()
+    assert csrf_secret.secret_source() == 'ephemeral'
+    assert runtime_topology.csrf_strict_is_safe() is False
+    csrf_secret.reset_for_tests()
 
 
 @pytest.mark.parametrize('value', ['1', 'true', 'yes', 'on', 'TRUE', 'On'])
-def test_explicit_on_is_honoured_even_when_unsafe(monkeypatch, value):
-    """An operator who insists is allowed to — they may have a sticky-session
-    load balancer. They are warned loudly at startup."""
+def test_explicit_on_is_honoured(monkeypatch, value):
+    """Was "even when unsafe" — multiple workers are no longer unsafe, since
+    tokens are stateless and signed with a shared key. The explicit override
+    must still be honoured regardless of what the default would have been."""
     assert _csrf_default(monkeypatch, WEB_CONCURRENCY='4', AGENTIC_CSRF_STRICT=value) is True
 
 
@@ -218,8 +283,16 @@ def test_the_app_module_actually_uses_the_gate():
     import backend.app as app_mod
 
     src = inspect.getsource(app_mod)
-    assert 'runtime_topology.csrf_strict_is_safe()' in src
+    # The default no longer needs `csrf_strict_is_safe()` — it is True in every
+    # topology now that tokens are stateless — but the startup warning must
+    # still fire so an operator knows the topology was detected, and the
+    # rate-limit budget split depends on the worker count.
     assert 'runtime_topology.warn_if_multiprocess' in src
+    assert 'runtime_topology.worker_count()' in src
+    assert '_RATE_LIMIT_CONFIGURED // _rate_limit_workers' in src, (
+        'the per-worker rate-limit split is gone; N workers would again allow '
+        'N x the configured ceiling'
+    )
 
 
 # ══ The exemption list ════════════════════════════════════════════════════════

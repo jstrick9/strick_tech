@@ -3502,10 +3502,13 @@ function _disabled__s8NavBase(pane) {
 (function loadHLJS() {
   const link = document.createElement('link');
   link.rel  = 'stylesheet';
-  link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
+  // Vendored: see frontend/vendor/. Loading this from a CDN required
+  // https://cdnjs.cloudflare.com in style-src and script-src, and meant
+  // syntax highlighting silently stopped working offline.
+  link.href = '/static/vendor/highlight-github-dark.min.css';
   document.head.appendChild(link);
   const s = document.createElement('script');
-  s.src   = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
+  s.src   = '/static/vendor/highlight.min.js';
   s.onload = () => {
     if (window.hljs) {
       window.hljs.configure({ ignoreUnescapedHTML: true });
@@ -4359,9 +4362,13 @@ function studioLoadMonaco() {
   if (window.monaco) { studioSetupMonaco(); return; }
   const host = document.getElementById('studio-monaco-host');
   const s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.47.0/min/vs/loader.js';
+  // Vendored at 0.47.0. Besides removing cdn.jsdelivr.net from script-src,
+  // this fixes the two remaining CSP violations we could not otherwise
+  // address: Monaco injects inline <style>, and as a third-party script
+  // its hash changed whenever the CDN served a new build.
+  s.src = '/static/vendor/monaco/vs/loader.js';
   s.onload = () => {
-    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.47.0/min/vs' }});
+    require.config({ paths: { vs: '/static/vendor/monaco/vs' }});
     require(['vs/editor/editor.main'], studioSetupMonaco);
   };
   s.onerror = () => {
@@ -5539,12 +5546,17 @@ window.switchUIMode = async function(mode) {
     });
   }
 
+  // DELIBERATELY SILENT. The mode has already been applied locally and
+  // persisted to localStorage; this PATCH only mirrors it to the profile so it
+  // follows the user to another device. A toast here would interrupt a
+  // successful, visibly-completed action to report a background sync failure
+  // the user can do nothing about, and the next mode change retries it anyway.
   try {
     fetch('/api/profile', {
       method: 'PATCH', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ui_mode: mode})
     }).catch(()=>{});
-  } catch(e) {}
+  } catch(e) { /* see above: intentional */ }
 };
 
 // ── Settings Appearance helpers ────────────────────────────────────

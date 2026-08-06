@@ -844,7 +844,8 @@ def uninstall_pack(pack_id: str):
 
     con = get_conn()
     try:
-        con.execute('DELETE FROM mkt_installed WHERE pack_id=?', (pack_id,))
+        cur = con.execute('DELETE FROM mkt_installed WHERE pack_id=?', (pack_id,))
+        removed = cur.rowcount or 0
         con.commit()
     finally:
         con.close()
@@ -898,7 +899,7 @@ def uninstall_pack(pack_id: str):
             del p_inst[pack_id]
             _save_installed(p_inst)
 
-    return {'ok': True, 'pack_id': pack_id}
+    return {'ok': True, 'deleted': removed > 0, 'pack_id': pack_id}
 
 
 @router.get('/installed/list')

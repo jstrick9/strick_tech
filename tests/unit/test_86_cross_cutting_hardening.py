@@ -48,10 +48,27 @@ def test_missing_csrf_token_is_no_longer_a_free_pass():
 
 
 def test_a_bad_token_is_always_rejected_regardless_of_strict_mode():
-    """Strict mode governs MISSING tokens; a wrong one is never acceptable."""
+    """Strict mode governs MISSING tokens; a wrong one is never acceptable.
+
+    UPDATED: this asserted the literal source `if csrf_token not in
+    _CSRF_TOKENS`, which pinned the per-process dict in place. That dict was
+    the multi-worker CSRF bug — a token minted by worker A was unknown to
+    worker B, and 47 of 60 valid POSTs were rejected under `--workers 4`.
+    Tokens are now stateless HMACs validated by `csrf_token_is_valid()`.
+
+    The REQUIREMENT is unchanged and still asserted two ways: a bad token is
+    rejected, and that rejection is not nested under the strict-mode branch.
+    It is now asserted against behaviour rather than against one spelling of
+    the implementation, so the next refactor does not have to edit this test.
+    """
+    from backend.routers.security import csrf_token_is_valid, mint_csrf_token
+
+    assert csrf_token_is_valid(mint_csrf_token())
+    assert not csrf_token_is_valid('a-token-that-was-never-issued')
+
     idx = APP_PY.index('csrf_token = request.headers.get')
-    block = APP_PY[idx:idx + 1400]
-    assert "if csrf_token not in _CSRF_TOKENS" in block
+    block = APP_PY[idx:idx + 1800]
+    assert 'csrf_token_is_valid' in block, 'the middleware no longer validates the token'
     # The rejection must not be nested under the strict-mode branch.
     assert block.index('Invalid CSRF token') < block.index('_CSRF_STRICT')
 
