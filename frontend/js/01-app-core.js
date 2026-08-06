@@ -1282,7 +1282,7 @@ window.showNoviceApiGuide = function() {
           <div style="font-size:12.5px;color:var(--text-1);line-height:1.6;margin-bottom:12px">On the webpage that opened, sign in, click <strong style="color:var(--accent-text)">+ Create Key</strong>, give it any name (e.g. Agentic OS), and copy the key (it starts with sk-or-v1-...). Paste it right here:</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <input id="novice-guide-key-inp" type="password" placeholder="Paste sk-or-v1-... key right here" style="flex:1;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace">
-            <button data-act-click="hSaveNoviceKey()" class="btn-3d btn-primary" style="padding:10px 20px;background:#10b981;border:none;color:#fff;font-weight:800">⚡ 2. Save & Unlock All Models</button>
+            <button data-act-click="hSaveNoviceKey()" class="btn-3d btn-primary" style="padding:10px 20px;background:#0c855d;border:none;color:#fff;font-weight:800">⚡ 2. Save & Unlock All Models</button>
           </div>
         </div>
 
@@ -3258,8 +3258,15 @@ document.querySelectorAll('.nav-item').forEach(item => {
   if (sidebar) sidebar.setAttribute('aria-label', 'Main navigation');
 
   // Nav items
-  document.querySelectorAll('.nav-item').forEach(item => {
-    if (!item.getAttribute('role')) item.setAttribute('role', 'menuitem');
+  document.querySelectorAll('.nav-item:not(.fav-item)').forEach(item => {
+    // A row that has been split into .nav-open + star button is a container;
+    // the role belongs on the inner control, not the row.
+    const inner = item.querySelector(':scope > .nav-open');
+    if (inner) { item.removeAttribute('role'); item.removeAttribute('tabindex'); item = inner; }
+    // See frontend/js/11-ux-accessibility.js: menuitem is invalid here (no
+    // menu/menubar/group parent) and forbids aria-selected. These are
+    // navigation buttons inside the role="navigation" landmark.
+    if (!item.getAttribute('role')) item.setAttribute('role', 'button');
     const label = item.querySelector('.label')?.textContent;
     if (label && !item.getAttribute('aria-label')) item.setAttribute('aria-label', label);
   });
@@ -3348,12 +3355,17 @@ nav = function(pane) {
   // Update active state with smooth indicator
   document.querySelectorAll('.nav-item').forEach(el => {
     const isActive = el.dataset.nav === pane;
+    // .active drives the visual highlight and belongs on the ROW (it paints
+    // the whole strip). aria-current is the screen-reader cue and must go on
+    // the CONTROL — an aria-* attribute on a container with no role is
+    // ignored, which silently dropped the "you are here" announcement once
+    // the rows were split into .nav-open plus a sibling favourite button.
     el.classList.toggle('active', isActive);
-    if (isActive) {
-      el.setAttribute('aria-current', 'page');
-    } else {
-      el.removeAttribute('aria-current');
-    }
+    const control = el.querySelector(':scope > .nav-open') ||
+                    el.querySelector(':scope > .fav-open') || el;
+    if (isActive) control.setAttribute('aria-current', 'page');
+    else control.removeAttribute('aria-current');
+    if (control !== el) el.removeAttribute('aria-current');
   });
   _s9FinalNav(pane);
   // Update document title
@@ -4461,9 +4473,25 @@ async function studioLoadFileTree() {
     el.innerHTML = files.map(f => {
       const name = f.path.split('/').pop();
       const ext  = name.split('.').pop() || 'txt';
-      const extColors = {html:'#f08850',css:'#38c5d8',js:'#f0c060',jsx:'#5b8af8',
+      // BUG FIX: the badge used `background:${c}22` -- a 13%-alpha tint of its
+      // OWN text colour. Alpha means the row behind it shows through, so the
+      // contrast changed with the row state: on .active (--bg-4) the html
+      // badge measured 3.88:1, failing AA. Chasing it by lightening the
+      // colour does not converge, because lightening the text also lightens
+      // the backdrop it is composited over.
+      //
+      // Fixed structurally instead: the badge now has an OPAQUE --bg-0
+      // background with the accent colour as a border, so its contrast no
+      // longer depends on what is behind the row. Every extension colour
+      // clears AA against --bg-0.
+      const extColors = {html:'#f29b6c',css:'#38c5d8',js:'#f0c060',jsx:'#5b8af8',
                          ts:'#5b8af8',tsx:'#5b8af8',json:'#9ece6a',md:'#bb9af7',py:'#f7768e'};
-      const c = extColors[ext] || '#7a8aaa';
+      // BUG FIX: the fallback was #7a8aaa, which on its own 13%-alpha tint
+      // measures 4.30:1 -- below AA. Every named extension colour clears 5:1
+      // on the same treatment; only the unknown-type default failed, so every
+      // unrecognised file extension in the tree was unreadable. Lightened to
+      // keep the same neutral hue at 5.6:1.
+      const c = extColors[ext] || '#93a2be';
       // BUG FIX: DELETE /api/preview/delete has always existed on the backend
       // but the Studio file tree never exposed any way to call it — there
       // was no delete/remove affordance anywhere in the UI (only "+ New
@@ -4471,9 +4499,9 @@ async function studioLoadFileTree() {
       // propagation so it doesn't also trigger studioOpenFile on the row).
       return `<div class="file-row ${f.path===Studio.currentFile?'active':''}" data-path="${escHtml(f.path)}"
                data-act-click="studioOpenFile(${jsArg(f.path)})" title="${escHtml(f.path)}" style="display:flex;align-items:center;gap:0">
-        <span style="font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;background:${c}22;color:${c};flex-shrink:0">${ext}</span>
-        <span style="flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">${escHtml(name)}</span>
-        <span style="font-size:10px;color:var(--text-3)">${formatBytes(f.size)}</span>
+        <span style="font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;background:var(--bg-0);border:1px solid ${c}55;color:${c};flex-shrink:0">${ext}</span>
+        <span style="flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px;color:var(--text-0)">${escHtml(name)}</span>
+        <span style="font-size:10px;color:var(--text-2)">${formatBytes(f.size)}</span>
         <button type="button" class="file-row-delete-btn" title="Delete file" data-act-click="studioDeleteFile(${jsArg(f.path)})" data-stop="1" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:2px 4px;margin-left:2px;opacity:0;transition:opacity .15s">🗑</button>
       </div>`;
     }).join('') + `<div class="new-file-btn" data-act-click="openNewFileModal()" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">＋ New file</div>`;

@@ -137,7 +137,10 @@ function setupFavorites() {
   loadFavoritesFromBackend().then(favorites => {
     _favoritesCache = favorites;
     if (favorites.length > 0) createFavoritesSection(favorites);
-    document.querySelectorAll('.nav-item[data-nav]').forEach(item => addFavoriteButton(item));
+    // :not(.fav-item) -- the favourites rows already carry their own remove
+    // button and correct structure; adding a second star button inside them
+    // reintroduced nested interactive controls.
+    document.querySelectorAll('.nav-item[data-nav]:not(.fav-item)').forEach(item => addFavoriteButton(item));
   });
 }
 
@@ -188,10 +191,57 @@ function getFavorites() {
   return _favoritesCache;
 }
 
+// Move the row's own interactive role onto an inner wrapper so the star button
+// becomes a SIBLING of the navigation control rather than a child of it.
+//
+// BUG FIX (nested-interactive, axe serious, 162 nodes / 24 panes): every
+// sidebar row was role="button" + tabindex="0" AND contained a real <button>
+// for favouriting. A control inside a control is ambiguous to assistive tech:
+// the inner button's text is absorbed into the outer control's accessible
+// name, and which one activates is unpredictable. Restructuring at runtime
+// rather than editing 27 static rows in index.html keeps the two sidebars
+// (static rows and generated favourites) on one implementation.
+function splitNavItemControl(navItem) {
+  // Favourites rows are BUILT in the correct shape already (.fav-open control
+  // + .fav-remove-btn sibling). Wrapping them again produced a .nav-open
+  // around both, i.e. a control containing two controls -- 84 measured
+  // nested-interactive nodes, the exact violation this function removes.
+  if (navItem.classList.contains('fav-item')) return navItem.querySelector('.fav-open');
+  // Idempotence guard. addFavoriteButton() can be called again on the same
+  // row (re-render, favourites refresh), and without checking for a wrapper
+  // ANYWHERE in the subtree the second call wrapped the first wrapper --
+  // producing .nav-open inside .nav-open, which is itself a
+  // nested-interactive violation. Measured: 84 such nodes.
+  const existing = navItem.querySelector('.nav-open');
+  if (existing) return existing;
+
+  const open = document.createElement('span');
+  open.className = 'nav-open';
+  // Carry across everything that made the row a control.
+  for (const attr of ['role', 'tabindex', 'data-act-click', 'data-keys',
+                      'data-self-click', 'aria-label', 'data-tooltip', 'aria-current']) {
+    const v = navItem.getAttribute(attr);
+    if (v !== null) { open.setAttribute(attr, v); navItem.removeAttribute(attr); }
+  }
+  if (!open.getAttribute('role')) open.setAttribute('role', 'button');
+  if (!open.getAttribute('tabindex')) open.setAttribute('tabindex', '0');
+  // The blanket ARIA passes in 01-app-core.js and 11-ux-accessibility.js may
+  // run either side of this one, so the row is stripped defensively here too.
+  navItem.removeAttribute('role');
+  navItem.removeAttribute('tabindex');
+
+  // Everything already in the row (icon + label) belongs to the control.
+  while (navItem.firstChild) open.appendChild(navItem.firstChild);
+  navItem.appendChild(open);
+  return open;
+}
+
 function addFavoriteButton(navItem) {
   const navId = navItem.dataset.nav;
   if (!navId) return;
   if (navItem.querySelector('.nav-fav-btn')) return;
+
+  splitNavItemControl(navItem);
 
   const isFav = getFavorites().includes(navId);
   
@@ -202,6 +252,12 @@ function addFavoriteButton(navItem) {
   favBtn.title = isFav ? 'Remove from Favorites' : 'Add to Favorites';
   favBtn.setAttribute('data-nav-id', navId);
   favBtn.setAttribute('data-favorited', isFav ? 'true' : 'false');
+  // An icon-only control needs a real name; the glyph alone announces as
+  // "star" or nothing at all depending on the screen reader.
+  const navLabel = (navItem.querySelector('.label') || {}).textContent || navId;
+  favBtn.setAttribute('aria-label',
+    (isFav ? 'Remove ' : 'Add ') + navLabel.trim() + (isFav ? ' from favourites' : ' to favourites'));
+  favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
 
   // Show on hover, always show if favorited
   if (!isFav) {
@@ -247,11 +303,27 @@ function createFavoritesSection(favorites) {
     if (original) {
       const icon = original.querySelector('.icon')?.textContent || '📌';
       const label = original.querySelector('.label')?.textContent || navId;
+      // BUG FIX (nested-interactive, axe serious, 243 nodes / 24 panes):
+      // the row itself was a role="button" AND contained a real <button> to
+      // remove the favourite. A control inside a control is ambiguous to
+      // assistive tech -- the inner button is announced as part of the outer
+      // one's name, and activating either is unpredictable. The row is now a
+      // plain container holding two SIBLING controls.
+      //
+      // Note this replaced role="menuitem", which was itself invalid here:
+      // menuitem requires a menu/menubar/group parent and forbids the
+      // aria-selected the nav code set on it.
       html += `
-        <div class="nav-item fav-item" data-nav="${navId}" data-act-click="nav(${jsArg(navId)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
-          <span class="icon">${icon}</span>
-          <span class="label">${label}</span>
-          <button type="button" class="fav-remove-btn" title="Remove from Favorites" 
+        <div class="nav-item fav-item" data-nav="${navId}">
+          <span class="fav-open" role="button" tabindex="0"
+            data-act-click="nav(${jsArg(navId)})" data-keys="Enter,Space"
+            data-self-click="1" aria-label="${escHtml(label)}">
+            <span class="icon">${icon}</span>
+            <span class="label">${label}</span>
+          </span>
+          <button type="button" class="fav-remove-btn"
+            aria-label="Remove ${escHtml(label)} from favourites"
+            title="Remove from Favorites"
             data-act-click="removeFromFavorites(${jsArg(navId)})" data-stop="1">✕</button>
         </div>
       `;
@@ -280,6 +352,10 @@ function refreshSidebarFavorites(pinnedPanes) {
     favBtn.innerHTML = isFav ? '★' : '☆';
     favBtn.title = isFav ? 'Remove from Favorites' : 'Add to Favorites';
     favBtn.setAttribute('data-favorited', isFav ? 'true' : 'false');
+    favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+    const lbl = ((item.querySelector('.label') || {}).textContent || navId).trim();
+    favBtn.setAttribute('aria-label',
+      (isFav ? 'Remove ' + lbl + ' from favourites' : 'Add ' + lbl + ' to favourites'));
     favBtn.classList.toggle('visible', isFav);
   });
   createFavoritesSection(_favoritesCache);
@@ -390,6 +466,16 @@ sidebarStyles.textContent = `
   }
 
   /* Favorite button ☆/★ */
+  /* The row is a flex container; .nav-open is the navigation control and
+     .nav-fav-btn its sibling. Before this the button was INSIDE the control. */
+  .nav-item > .nav-open {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+  }
   .nav-fav-btn {
     background: none;
     border: none;
@@ -429,6 +515,17 @@ sidebarStyles.textContent = `
     padding: 6px 12px;
     position: relative;
   }
+  /* The row is now a flex container of two sibling controls rather than a
+     button containing a button. */
+  #sidebar-favorites-section .fav-item { display: flex; align-items: center; }
+  .fav-open {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+  }
   .fav-remove-btn {
     background: none;
     border: none;
@@ -436,11 +533,16 @@ sidebarStyles.textContent = `
     cursor: pointer;
     font-size: 12px;
     padding: 2px 4px;
-    opacity: 0;
+    /* BUG FIX: this was opacity:0 revealed only by :hover, so a keyboard
+       user could Tab to the remove button but never see it, and a touch user
+       (no hover) could not reveal it at all. It is now always visible but
+       de-emphasised, and reaches full strength on hover OR keyboard focus. */
+    opacity: 0.55;
     transition: opacity 0.15s;
     margin-left: auto;
   }
-  .fav-item:hover .fav-remove-btn {
+  .fav-item:hover .fav-remove-btn,
+  .fav-remove-btn:focus-visible {
     opacity: 1;
   }
   .fav-remove-btn:hover {

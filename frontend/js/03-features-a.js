@@ -61,7 +61,9 @@ async function renderWorkflow() {
         <h3>Node Palette</h3>
         <input class="wf-search" id="wf-palette-search" placeholder="🔍 Filter nodes…" data-act-input="wfFilterPalette($value)">
       </div>
-      <div class="wf-node-palette" id="wf-node-palette">
+      <!-- tabindex/role: a scrollable region with no focusable child cannot be
+           scrolled by keyboard at all, so its lower entries were unreachable. -->
+      <div class="wf-node-palette" id="wf-node-palette" tabindex="0" role="group" aria-label="Workflow node palette">
         <!-- Populated by wfLoadNodeTypes() -->
       </div>
 
@@ -2328,7 +2330,7 @@ async function renderTauriStatus() {
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-primary btn-3d" data-act-click="tauriBuildStart()" ${!rustOk||!tauriOk?'disabled title="Install prerequisites first"':''}>🔨 Build Desktop App (.app / .dmg)</button>
           <button class="btn-sm btn-ghost btn-3d" data-act-click="tauriDevStart()" ${!rustOk||!tauriOk?'disabled':''}>▶ Dev Mode</button>
-          ${!rustOk||!tauriOk?`<button class="btn-sm btn-primary btn-3d" style="background:#10b981;border:none;color:#fff" data-act-click="installTauriPrerequisites()">⚡ Auto-Install Rust & Tauri CLI</button>`:''}
+          ${!rustOk||!tauriOk?`<button class="btn-sm btn-primary btn-3d" style="background:#0c855d;border:none;color:#fff" data-act-click="installTauriPrerequisites()">⚡ Auto-Install Rust & Tauri CLI</button>`:''}
           <button class="btn-sm btn-ghost btn-3d" data-act-click="window.open(${jsArg('/api/tauri/build/log?_=' + (Date.now()) + '')},'_blank')">📋 Build Log</button>
         </div>
         <div style="margin-top:8px;font-size:11px;color:var(--text-3)">

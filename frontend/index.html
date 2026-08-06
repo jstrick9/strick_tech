@@ -58,16 +58,16 @@
      be brightened because 46 controls put white text ON it -- #fff on #6366f1
      is already only 4.47:1, and lightening the fill drops that to 2.98:1. So
      the fill keeps its value and text gets its own token below. */
-  --accent: #6366f1;
+  --accent: #6a6df2;
   --accent-hi: #818cf8;
   /* Accessible accent for TEXT and icons on dark surfaces: 6.01:1 on --bg-1,
      4.81:1 on --bg-3. Use var(--accent-text) for coloured text/links and
      var(--accent) for fills. */
   --accent-text: #818cf8;
-  --accent-glow: rgba(99,102,241,0.15);
+  --accent-glow: rgba(106,109,242,0.15);
   --success: #22c55e;
   --warning: #eab308;
-  --danger: #ef4444;
+  --danger: #f26565;
   --info: #3b82f6;
   --green: var(--success);
   --red: var(--danger);
@@ -1313,7 +1313,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
 
     <!-- Command Palette Search (center) -->
     <button type="button" id="palette-btn" data-act-click="openPalette()">
-      <span style="opacity:0.6">⌘K</span> <span class="btn-text">Search anything…</span>
+      <span style="opacity:0.85">⌘K</span> <span class="btn-text">Search anything…</span>
     </button>
 
     <div class="spacer"></div>
@@ -1422,7 +1422,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
           <span style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px">Agents</span>
           <button type="button" data-act-click="openAgentModal()" style="background:none;border:none;color:var(--accent-text);cursor:pointer;font-size:14px;padding:0;line-height:1" title="Add Agent">+</button>
         </div>
-        <div class="agent-list" id="agent-list" style="max-height:120px;overflow-y:auto"></div>
+        <div class="agent-list" id="agent-list" tabindex="0" role="group" aria-label="Agents" style="max-height:120px;overflow-y:auto"></div>
       </div>
 
     </div>
@@ -2554,7 +2554,7 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
                 <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
                   <input id="settings-api-ollama-url" type="text" value="http://localhost:11434" style="flex:1;min-width:240px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="Ollama server URL">
                   <button type="button" data-act-click="testOllamaConnection()" class="btn-ghost btn-3d" style="padding:11px 22px;border-radius:10px">⚡ Check & Auto-Discover Models</button>
-                  <button type="button" data-act-click="hotReloadBackendEngine()" class="btn-primary btn-3d" style="padding:11px 18px;border-radius:10px;background:#10b981;border:none;color:#fff" title="Reload internal Python AI services in RAM to ensure exact endpoint sync">⚡ Reload Engine & Sync</button>
+                  <button type="button" data-act-click="hotReloadBackendEngine()" class="btn-primary btn-3d" style="padding:11px 18px;border-radius:10px;background:#0c855d;border:none;color:#fff" title="Reload internal Python AI services in RAM to ensure exact endpoint sync">⚡ Reload Engine & Sync</button>
                   <button type="button" data-act-click="hardRebootBackendEngine()" class="btn-ghost btn-3d" style="padding:11px 16px;border-radius:10px;color:var(--warning);border-color:var(--warning)" title="Perform clean application engine restart">🛑 Hard Restart Engine</button>
                 </div>
 

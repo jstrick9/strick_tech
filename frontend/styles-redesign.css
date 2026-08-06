@@ -24,13 +24,24 @@
   --text-2: #a0a0a0;
   --text-3: #949494;
 
-  --accent: #6366f1;
+  /* BUG FIX: #6366f1 could not carry an accessible foreground at all.
+     Measured with axe-core in Chromium: --on-accent (#0b1020) on it is
+     4.23:1 and white on it is 4.47:1 -- BOTH fail WCAG AA 4.5:1, so no
+     choice of text colour could fix it. 127 of the 138 remaining
+     color-contrast violations were this one pairing, on the primary button,
+     which is why it appeared on nearly every pane. Nudged two steps lighter
+     at the same hue and saturation: --on-accent now reaches 4.58:1. */
+  --accent: #6a6df2;
   --accent-hi: #818cf8;
   --accent-glow: rgba(99,102,241,0.15);
 
   --success: #22c55e;
   --warning: #eab308;
-  --danger: #ef4444;
+  /* BUG FIX: #ef4444 as TEXT measured 4.43:1 on --bg-2 and 3.72:1 on the
+     tinted error-badge background -- both below AA. Error text is exactly
+     the content a user most needs to be able to read. Lightened at the same
+     hue: 5.42:1 and 4.56:1 respectively. */
+  --danger: #f26565;
   --info: #3b82f6;
 
   --green: var(--success);
@@ -72,7 +83,14 @@
   --text-2: #5f6672;
   --text-3: #5d6573;
 
-  --accent: #6366f1;
+  /* BUG FIX: #6366f1 could not carry an accessible foreground at all.
+     Measured with axe-core in Chromium: --on-accent (#0b1020) on it is
+     4.23:1 and white on it is 4.47:1 -- BOTH fail WCAG AA 4.5:1, so no
+     choice of text colour could fix it. 127 of the 138 remaining
+     color-contrast violations were this one pairing, on the primary button,
+     which is why it appeared on nearly every pane. Nudged two steps lighter
+     at the same hue and saturation: --on-accent now reaches 4.58:1. */
+  --accent: #6a6df2;
   --accent-hi: #4f46e5;
   --accent-glow: rgba(99,102,241,0.1);
 
@@ -431,7 +449,13 @@ body {
 
 .btn-primary {
   background: var(--accent);
-  color: white;
+  /* BUG FIX: this was `color: white`, which discarded --on-accent -- the
+     token whose entire purpose is to be the accessible foreground for this
+     fill. Measured in Chromium: white on the default accent #6366f1 is
+     4.46:1 and on #38bdf8 is 2.14:1, both failing WCAG AA, while
+     --on-accent on #38bdf8 is 8.84:1. The most important control in the
+     product had the worst contrast in it. */
+  color: var(--on-accent, #fff);
   border-color: var(--accent);
 }
 
@@ -728,9 +752,11 @@ body {
     }
     .wf-toolbar button:hover { background:var(--bg-3);color:var(--text-0) }
     .wf-toolbar button:disabled { opacity:.4;cursor:not-allowed }
-    .wf-toolbar button.primary { background:var(--accent);color:#fff }
+    .wf-toolbar button.primary { background:var(--accent);color:var(--on-accent,#fff) }
     .wf-toolbar button.primary:hover { background:#4a78e8 }
-    .wf-toolbar button.success { background:var(--success);color:#fff }
+    /* white on --success #22c55e measures 2.28:1 -- one of the worst pairings in
+   the app. #0f2a18 is the same hue dark enough to reach AA on that fill. */
+    .wf-toolbar button.success { background:var(--success);color:#0f2a18 }
     .wf-toolbar .wf-divider { width:1px;height:20px;background:var(--border);margin:0 2px }
     .wf-toolbar .wf-name { font-size:12px;font-weight:600;color:var(--text-0);padding:4px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
 

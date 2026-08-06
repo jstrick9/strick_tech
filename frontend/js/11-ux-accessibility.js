@@ -37,8 +37,23 @@
       const title = labelEl ? labelEl.textContent.trim() : pane;
       window.announceToScreenReader(`Switched to ${title} pane view.`);
       // Set aria-current / active on nav items
-      document.querySelectorAll('.nav-item').forEach(el => {
-        el.setAttribute('aria-selected', el.getAttribute('data-nav') === pane ? 'true' : 'false');
+      // Target the CONTROL, not the row. After sidebar-enhancements.js splits a
+      // row into .nav-open + star button, the row is a plain container and
+      // aria-current on it is ignored (it has no role), which silently dropped
+      // the "you are here" cue for screen-reader users.
+      document.querySelectorAll(
+        '.nav-item > .nav-open, .fav-item .fav-open, .nav-item:not(:has(> .nav-open)):not(.fav-item)'
+      ).forEach(el => {
+        // aria-selected is invalid here (see the role note in applyAriaPass).
+        // aria-current="page" is the correct way to mark the active
+        // destination in a navigation landmark, and unlike aria-selected it is
+        // removed rather than set to "false" — a false value still gets
+        // announced by some screen readers on every unselected item.
+        const navOf = el.getAttribute('data-nav') ||
+          (el.closest('[data-nav]') ? el.closest('[data-nav]').getAttribute('data-nav') : '');
+        if (navOf === pane) el.setAttribute('aria-current', 'page');
+        else el.removeAttribute('aria-current');
+        el.removeAttribute('aria-selected');
       });
     };
   }
@@ -198,9 +213,41 @@
   function applyAriaPass() {
     try {
       // Nav items
-      document.querySelectorAll('.nav-item').forEach(el => {
+      // `.fav-item` is EXCLUDED: it is a container of two sibling controls
+      // (open + remove), not a control itself. Giving it a role here put a
+      // button inside a button and produced 243 nested-interactive
+      // violations -- see frontend/js/sidebar-enhancements.js.
+      document.querySelectorAll('.nav-item:not(.fav-item)').forEach(el => {
         try {
-          el.setAttribute('role', 'menuitem');
+          // If sidebar-enhancements.js has already split this row into a
+          // .nav-open control plus a sibling star button, the ROW is a
+          // container and must not be given a role of its own -- doing so
+          // recreates the nested-interactive violation this pass exists to
+          // avoid. Re-point at the inner control instead.
+          const inner = el.querySelector(':scope > .nav-open');
+          if (inner) {
+            el.removeAttribute('role');
+            el.removeAttribute('tabindex');
+            el = inner;
+          }
+          // BUG FIX: this set role="menuitem", which axe flagged on 243 nodes
+          // across 24 panes under two CRITICAL rules simultaneously:
+          //   aria-required-parent — a menuitem must be inside a menu, menubar
+          //     or group. The real parents (#group-core, #group-build,
+          //     #sidebar-favorites-section, ...) are all role="none".
+          //   aria-allowed-attr — aria-selected is not permitted on menuitem,
+          //     and window.nav sets it on every item on every navigation.
+          // An orphaned menuitem is not exposed as a menu item by assistive
+          // tech; the role is simply discarded, so the sidebar announced as
+          // unstructured text.
+          //
+          // menuitem is also semantically wrong: it means an item in an
+          // application menu (the File/Edit kind) and implies typeahead and
+          // arrow-key navigation this sidebar does not implement. These are
+          // links to panes, so they are buttons inside the existing
+          // role="navigation" landmark, with aria-current marking the active
+          // destination — the pattern WAI-ARIA APG specifies for exactly this.
+          el.setAttribute('role', 'button');
           if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
           const label = el.getAttribute('data-tooltip') || (el.querySelector('.label') ? el.querySelector('.label').textContent.trim() : '');
           if (label && !el.hasAttribute('aria-label')) el.setAttribute('aria-label', label);

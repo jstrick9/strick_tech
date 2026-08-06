@@ -197,9 +197,25 @@ def test_navigation_works_by_click(loaded):
 
 def test_navigation_works_by_keyboard(loaded):
     """The 86-control keyboard fix, verified with real key events rather than
-    a synthetic dispatch."""
-    loaded.focus('[data-nav="galaxy"]')
-    focused = loaded.evaluate('document.activeElement.getAttribute("data-nav")')
+    a synthetic dispatch.
+
+    UPDATED: the focusable element is now the CONTROL inside the row, not the
+    row. Sidebar rows contain a second control (the ★ favourite button), and a
+    control inside a control is an axe `nested-interactive` violation — 243
+    nodes across 24 panes. The row is now a container holding two siblings:
+    `.nav-open` (navigate) and `.nav-fav-btn` (favourite).
+
+    The user-facing requirement is unchanged and still asserted here: focus
+    lands on the destination and Enter activates it. Only the element carrying
+    `tabindex` moved, so this resolves the row's control before focusing.
+    """
+    loaded.eval_on_selector(
+        '.nav-item[data-nav="galaxy"]:not(.fav-item)',
+        'el => (el.querySelector(":scope > .nav-open") || el).focus()')
+    focused = loaded.evaluate(
+        '() => { const a = document.activeElement;'
+        '        const r = a && a.closest("[data-nav]");'
+        '        return r ? r.getAttribute("data-nav") : null; }')
     assert focused == 'galaxy', f'nav item is not focusable (got {focused!r})'
 
     loaded.keyboard.press('Enter')
@@ -214,18 +230,27 @@ def test_navigation_works_by_keyboard(loaded):
 
 def test_every_nav_item_is_reachable_by_tab(loaded):
     """`tabindex` present in the markup is necessary but not sufficient — an
-    element can still be unreachable if it is hidden or covered."""
+    element can still be unreachable if it is hidden or covered.
+
+    UPDATED for the same restructure as the test above: each row's focusable
+    CONTROL is resolved (`.nav-open` / `.fav-open`, falling back to the row for
+    any row not yet split), because the row itself is now a plain container.
+    Every destination must still be reachable — that is the assertion.
+    """
     unreachable = loaded.evaluate("""
         () => [...document.querySelectorAll('.nav-item')]
-            .filter(el => {
+            .filter(row => {
+                const el = row.querySelector(':scope > .nav-open')
+                        || row.querySelector(':scope > .fav-open')
+                        || row;
                 if (el.tabIndex < 0) return true;
-                const r = el.getBoundingClientRect();
+                const r = row.getBoundingClientRect();
                 // Collapsed groups are legitimately not rendered.
                 if (r.width === 0 && r.height === 0) return false;
                 el.focus();
                 return document.activeElement !== el;
             })
-            .map(el => el.getAttribute('data-nav'))
+            .map(row => row.getAttribute('data-nav'))
     """)
     assert not unreachable, f'nav items that cannot take focus: {unreachable}'
 
@@ -528,8 +553,15 @@ def test_a_focus_ring_is_declared_and_renders(loaded):
 
     for _ in range(120):
         loaded.keyboard.press('Tab')
+        # UPDATED: the tab stop is the control INSIDE the row (.nav-open /
+        # .fav-open) since the rows were split to remove nested interactive
+        # controls. Accept either, so this keeps working whichever element
+        # carries the tabindex.
         if loaded.evaluate(
-            "() => document.activeElement.classList.contains('nav-item')"
+            "() => { const a = document.activeElement;"
+            "        return !!a && (a.classList.contains('nav-item')"
+            "                    || a.classList.contains('nav-open')"
+            "                    || a.classList.contains('fav-open')); }"
         ):
             break
     else:

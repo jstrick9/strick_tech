@@ -137,7 +137,12 @@ def test_choosing_a_destination_navigates_and_closes_the_drawer(page):
     page.wait_for_timeout(400)
     assert page.evaluate(_PROBE)['open'] is True
 
-    page.eval_on_selector('#sidebar .nav-item[data-nav="kanban"]', 'e => e.click()')
+    # The clickable CONTROL is inside the row (.nav-open / .fav-open) since the
+    # rows were split to remove nested interactive controls; the row itself is
+    # now a plain container with no handler.
+    page.eval_on_selector(
+        '#sidebar .nav-item[data-nav="kanban"]',
+        'el => (el.querySelector(":scope > .nav-open") || el.querySelector(".fav-open") || el).click()')
     page.wait_for_timeout(800)
     after = page.evaluate(_PROBE)
 
