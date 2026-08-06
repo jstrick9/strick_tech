@@ -407,6 +407,32 @@ def provision_all_agents() -> list[dict]:
 
 
 # ── API Routes ─────────────────────────────────────────────────────────────────
+
+def _agent_exists(agent_id: str) -> bool:
+    """Is this a provisioned agent identity?
+
+    Checks the identity table first, then falls back to the built-in agent
+    roster -- the platform ships agents (orchestrator, brain, builder...) that
+    are real and addressable without having a row in agent_identities.
+    """
+    con = _get_conn()
+    try:
+        row = con.execute(
+            'SELECT 1 FROM agent_identities WHERE agent_id=?', (agent_id,)).fetchone()
+        if row:
+            return True
+    except Exception:
+        pass
+    finally:
+        con.close()
+    try:
+        from ..services import memory_db
+
+        return any(a.get('id') == agent_id for a in (memory_db.agents_list() or []))
+    except Exception:
+        return False
+
+
 @router.get('')
 def list_identities():
     """List all agent identities."""
@@ -617,6 +643,15 @@ async def grant_permission(agent_id: str, req: Request):
 
     action = as_text(body.get('action'))
     resource = (as_text(body.get('resource')) or '*')
+
+    # BUG FIX: this granted a permission to ANY agent_id, existing or not, and
+    # the row persisted -- GET on the same ghost id returned it afterwards. In
+    # a permissions table that is worse than untidy: a grant that references no
+    # real identity is invisible in every agent view, so it can never be
+    # reviewed or revoked through the UI that lists agents.
+    if not _agent_exists(agent_id):
+        return JSONResponse(
+            {'ok': False, 'error': f"Unknown agent '{agent_id}'"}, status_code=404)
     granted_by = (as_text(body.get('granted_by')) or 'user')
 
     if not action:

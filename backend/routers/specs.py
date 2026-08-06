@@ -274,10 +274,19 @@ async def generate_requirements(spec_id: str, req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
+
+    # A missing SPEC and a missing DESCRIPTION are different failures. This
+    # already called _get_spec() but ignored a None result and fell through to
+    # "description required" -- so a deleted or mistyped spec id was reported
+    # as a validation problem with the request body, sending the user off to
+    # fix a field that was never the issue.
+    spec = _get_spec(spec_id)
+    if not spec:
+        return JSONResponse({'ok': False, 'error': 'Spec not found'}, status_code=404)
+
     desc = (body.get('description') or body.get('prompt') or '').strip()
     if not desc:
-        spec = _get_spec(spec_id)
-        desc = spec.get('description', '') if spec else ''
+        desc = spec.get('description', '')
     if not desc:
         return {'ok': False, 'error': 'description required'}
 
@@ -330,6 +339,13 @@ Be specific, measurable, and unambiguous. Every requirement must be testable."""
 @router.post('/{spec_id}/design')
 async def generate_design(spec_id: str, req: Request):
     """Generate design.md from requirements."""
+    # A missing SPEC and a missing ARTIFACT are different failures. Without
+    # this check the artifact gate below answers "Generate design first" for a
+    # spec that does not exist -- workflow advice about something that is not
+    # there. Deleted-in-another-tab and stale-URL both land here.
+    if not _get_spec(spec_id):
+        return JSONResponse({'ok': False, 'error': 'Spec not found'}, status_code=404)
+
     requirements = _load_artifact(spec_id, 'requirements.md')
     if not requirements:
         return {'ok': False, 'error': 'Generate requirements first'}
@@ -381,6 +397,13 @@ Be precise. Include actual field names, types, and method signatures."""
 @router.post('/{spec_id}/tasks')
 async def generate_tasks(spec_id: str, req: Request):
     """Generate dependency-mapped task list from design."""
+    # A missing SPEC and a missing ARTIFACT are different failures. Without
+    # this check the artifact gate below answers "Generate design first" for a
+    # spec that does not exist -- workflow advice about something that is not
+    # there. Deleted-in-another-tab and stale-URL both land here.
+    if not _get_spec(spec_id):
+        return JSONResponse({'ok': False, 'error': 'Spec not found'}, status_code=404)
+
     design = _load_artifact(spec_id, 'design.md')
     reqs = _load_artifact(spec_id, 'requirements.md')
     if not design:

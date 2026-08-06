@@ -570,6 +570,15 @@ async def add_milestone(goal_id: str, req: Request):
 
     ms_id = f'ms_{uuid.uuid4().hex[:8]}'
     con = _get_conn()
+    # BUG FIX: adding a milestone to a non-existent goal raised
+    # `sqlite3.IntegrityError: FOREIGN KEY constraint failed` and surfaced as a
+    # bare HTTP 500 "Internal Server Error" -- the database enforcing a rule the
+    # application should have checked. A stale goal id in an open tab is the
+    # ordinary way to hit this, and 500 tells the user nothing actionable.
+    exists = con.execute('SELECT 1 FROM goals_v2 WHERE id=?', (goal_id,)).fetchone()
+    if not exists:
+        con.close()
+        return JSONResponse({'ok': False, 'error': 'Goal not found'}, status_code=404)
     try:
         con.execute(
             """
