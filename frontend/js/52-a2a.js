@@ -222,7 +222,7 @@ async function a2aRenderTasks(container) {
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
       <strong style="font-size:13px;color:var(--text-0)">${_a2aTasks.length} tasks</strong>
       <span style="font-size:11px;color:var(--text-3)">(inbound + outbound)</span>
-      <button class="a2a-btn" data-act-click="hRenderA2ATasks()" style="margin-left:auto">↺</button>
+      <button class="a2a-btn u-6d000617" data-act-click="hRenderA2ATasks()" >↺</button>
     </div>
     <table class="a2a-task-table">
       <thead><tr>
@@ -234,10 +234,10 @@ async function a2aRenderTasks(container) {
           const isOutbound = t.direction === 'outbound';
           return `<tr data-act-click="a2aViewTask(${JSON.stringify(t.task_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <td style="font-family:monospace;font-size:10px;color:var(--text-3)">${t.task_id.slice(0,18)}…</td>
-            <td style="font-size:10px">${isOutbound?'📤 outbound':'📥 inbound'}</td>
+            <td class="u-0d5be05f">${isOutbound?'📤 outbound':'📥 inbound'}</td>
             <td style="color:var(--accent-text);font-size:11px">${escHtml(isOutbound?t.target_agent_id:t.target_agent_id)}</td>
             <td><span class="a2a-state" style="background:${sc}22;color:${sc}">${t.state}</span></td>
-            <td style="font-size:10px">${t.progress_pct||0}%</td>
+            <td class="u-0d5be05f">${t.progress_pct||0}%</td>
             <td style="font-size:10px;color:var(--text-3)">${new Date(t.created_at).toLocaleString()}</td>
             <td data-stop="1">
               ${!['completed','failed','canceled'].includes(t.state) ?

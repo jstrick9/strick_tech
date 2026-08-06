@@ -154,7 +154,7 @@ async function fusionRun() {
 
   const results = document.getElementById('fusion-results');
   if (results) results.innerHTML = `
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px" id="fusion-live">
+    <div class="u-534c2d64" id="fusion-live">
       <div style="font-size:12px;font-weight:700;margin-bottom:8px">🔀 Fusion Running (${preset} preset)…</div>
       <div id="fusion-panel-responses" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
       <div style="font-size:12px;font-weight:700;color:var(--accent-text);margin-bottom:6px" id="fusion-judge-label" style="display:none">🧑‍⚖️ Synthesizing…</div>
@@ -234,7 +234,7 @@ async function fusionRunSimple() {
     const d = await r.json();
     if (!d.ok) { if (results) results.innerHTML = `<div style="color:var(--danger)">${escHtml(d.error||'Unknown error')}</div>`; return; }
     if (results) results.innerHTML = `
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+      <div class="u-534c2d64">
         <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">Preset: ${escHtml(d.preset||preset)} · ${d.total_ms||0}ms</div>
         <div style="font-size:13px;line-height:1.7;color:var(--text-0);white-space:pre-wrap">${escHtml(d.synthesis||'')}</div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">

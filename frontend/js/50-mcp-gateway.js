@@ -422,7 +422,7 @@ function prbRenderBuilderTab(container) {
           <input type="number" id="prb-cond-end-hour" min="1" max="24" value="17" class="prb-input" style="width:64px;padding:4px 6px">
           <span style="font-size:10px;color:var(--text-3)">(24h)</span>
         </div>
-        <div class="prb-condition-item" style="margin-top:8px">
+        <div class="prb-condition-item u-8a77e5a3" >
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-1)">
             <input type="checkbox" id="prb-cond-days-enabled" style="accent-color:var(--accent-text)" data-act-change="prbToggleDaysCondition()">
             Active only on specific days
@@ -694,9 +694,9 @@ function prbRenderSimulatorTab(container) {
             return `<tr class="${isWinner?'prb-trace-winner':''}" ${isWinner?'style="font-weight:600"':''}>
               <td style="color:var(--text-3)">${t.priority||'—'}</td>
               <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(t.name)}">${isWinner?'🏆 ':''} ${escHtml(t.name)}</td>
-              <td class="${t.agent_match?'prb-match-yes':'prb-match-no'}">${t.agent_match?'✓':'✗'} <span style="font-size:10px">${escHtml((t.agent_id||'').slice(0,12))}</span></td>
-              <td class="${t.server_match?'prb-match-yes':'prb-match-no'}">${t.server_match?'✓':'✗'} <span style="font-size:10px">${escHtml((t.server_id||'').replace('srv_','').slice(0,12))}</span></td>
-              <td class="${t.tool_match?'prb-match-yes':'prb-match-no'}">${t.tool_match?'✓':'✗'} <span style="font-size:10px">${escHtml((t.tool_pattern||'').slice(0,12))}</span></td>
+              <td class="${t.agent_match?'prb-match-yes':'prb-match-no'}">${t.agent_match?'✓':'✗'} <span class="u-0d5be05f">${escHtml((t.agent_id||'').slice(0,12))}</span></td>
+              <td class="${t.server_match?'prb-match-yes':'prb-match-no'}">${t.server_match?'✓':'✗'} <span class="u-0d5be05f">${escHtml((t.server_id||'').replace('srv_','').slice(0,12))}</span></td>
+              <td class="${t.tool_match?'prb-match-yes':'prb-match-no'}">${t.tool_match?'✓':'✗'} <span class="u-0d5be05f">${escHtml((t.tool_pattern||'').slice(0,12))}</span></td>
               <td>${t.matched ? '<span class="prb-match-yes">✓ MATCH</span>' : '<span class="prb-match-no">✗</span>'}</td>
               <td><span class="prb-action-chip" style="background:${ac.bg};color:${ac.text}">${ac.icon} ${t.action||'—'}</span></td>
             </tr>`;
@@ -800,7 +800,7 @@ function prbRenderConflictsTab(container) {
       const sev = PRB_CONFLICT_SEVERITY[c.severity] || PRB_CONFLICT_SEVERITY.info;
       return `<div class="prb-conflict-card" style="border-left-color:${sev.color}">
         <div class="prb-conflict-head">
-          <span style="font-size:16px">${sev.icon}</span>
+          <span class="u-1444c6ea">${sev.icon}</span>
           <span class="prb-conflict-type" style="background:${sev.color}22;color:${sev.color}">${sev.label}</span>
           <span style="font-size:11px;font-weight:700;color:var(--text-0)">${c.type.charAt(0).toUpperCase()+c.type.slice(1)}</span>
         </div>

@@ -63,7 +63,7 @@ function renderPluginGrid(list = pluginRegistry) {
          data-hover="bc:var(--border-hi)" data-hover-out="bc:${installed?'var(--accent)':'var(--border)'}">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <span style="font-size:28px">${p.emoji||'🧩'}</span>
-        <div style="flex:1;min-width:0">
+        <div class="u-59eddc67">
           <div style="font-weight:800;font-size:15px">${escHtml(p.name)}</div>
           <div style="font-size:11px;color:var(--text-2)">by ${escHtml(p.author||'Community')} · v${p.version||'1.0'}</div>
         </div>

@@ -30,7 +30,7 @@ async function renderComposer() {
             'Dashboard with charts and sidebar',
             'Mobile-first portfolio site',
             'E-commerce product page with cart',
-          ].map(p => `<button data-act-click="hSetFieldValue('comp-instruction',${jsArg(p)})" class="chat-tool" style="font-size:11px">${p.slice(0,30)}…</button>`).join('')}
+          ].map(p => `<button data-act-click="hSetFieldValue('comp-instruction',${jsArg(p)})" class="chat-tool u-11a50812" >${p.slice(0,30)}…</button>`).join('')}
         </div>
         <button data-act-click="runComposer()" class="btn btn-primary" style="width:100%" id="comp-run-btn">🪄 Build with AI</button>
         <div id="comp-status" style="font-size:12px;color:var(--text-2);margin-top:8px;min-height:18px"></div>
@@ -275,7 +275,7 @@ async function loadBranchPreviews() {
     }
     el.innerHTML = j.branches.map(b => `
       <div style="background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;gap:8px">
-        <div style="flex:1;min-width:0">
+        <div class="u-59eddc67">
           <div style="font-size:12.5px;font-weight:600">${escHtml(b.title||b.name)}</div>
           <div style="font-size:11px;color:var(--text-3)">${b.files} files · ${(b.created_at||'').slice(0,16)}</div>
         </div>

@@ -260,7 +260,7 @@ function bddRenderAgents(container) {
               <span class="bdd-gauge-val" style="color:${sc.border};font-size:13px">${a.drift_score.toFixed(0)}</span>
               <span class="bdd-gauge-lbl" style="color:${sc.border};font-size:7px">${sc.label}</span>
             </div>
-            <div style="flex:1;min-width:0">
+            <div class="u-59eddc67">
               <div style="font-weight:700;font-size:13px;color:var(--text-0)">${escHtml(a.agent_id)}</div>
               <div style="font-size:10px;color:${DRIFT_TREND_COLORS[a.trend]||'var(--text-3)'}">
                 ${DRIFT_TREND_ICONS[a.trend]||'?'} ${a.trend}
@@ -329,7 +329,7 @@ async function bddRenderAgentDetail(container, agentId) {
 
   container.innerHTML = `
     <!-- Back button -->
-    <div style="margin-bottom:12px">
+    <div class="u-da12f285">
       <button class="bdd-header-btn" data-act-click="hResetDriftSelection()">← Back to All Agents</button>
     </div>
 
@@ -339,7 +339,7 @@ async function bddRenderAgentDetail(container, agentId) {
         <span class="bdd-gauge-val" style="color:${sc.border}">${(ls.drift_score||0).toFixed(1)}</span>
         <span class="bdd-gauge-lbl" style="color:${sc.border}">${sc.label}</span>
       </div>
-      <div style="flex:1">
+      <div class="u-97445a8d">
         <div style="font-size:18px;font-weight:800;color:var(--text-0)">${escHtml(agentId)}</div>
         <div style="font-size:12px;color:${DRIFT_TREND_COLORS[ls.trend]||'var(--text-3)'}">
           ${DRIFT_TREND_ICONS[ls.trend]||''} ${ls.trend||'—'} &nbsp;
@@ -560,7 +560,7 @@ async function bddRenderHistory(container) {
             <td><span class="bdd-lb-sev" style="background:${sc.bg};color:${sc.text}">${sc.label}</span></td>
             <td style="color:${tc}">${DRIFT_TREND_ICONS[h.trend||'stable']||''} ${h.trend||''}</td>
             <td style="font-size:10px;color:var(--text-3)">${escHtml((h.flags||[]).join(', ').slice(0,40))}</td>
-            <td style="font-size:10px">${h.action && h.action!=='none' ? `<span style="color:var(--warning)">${h.action}</span>` : '—'}</td>
+            <td class="u-0d5be05f">${h.action && h.action!=='none' ? `<span style="color:var(--warning)">${h.action}</span>` : '—'}</td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -716,7 +716,7 @@ function renderAgentMonitorCard(a, statusColor, statusIcon) {
       <div style="background:var(--bg-3);border-radius:5px;padding:4px 7px"><div style="color:var(--text-3)">Errors</div><div style="color:${a.errors_session>0?'var(--danger)':'var(--text-0)'}">${a.errors_session||0}</div></div>
     </div>
     <div style="display:flex;gap:5px">
-      <button class="btn-sm" data-act-click="bddViewAgent(${JSON.stringify(a.agent_id||a.id)})" style="font-size:10px">📊 Drift</button>
+      <button class="btn-sm u-0d5be05f" data-act-click="bddViewAgent(${JSON.stringify(a.agent_id||a.id)})" >📊 Drift</button>
       ${!a.is_killed ?
         `<button class="btn-sm" data-act-click="bddKillAgent(${JSON.stringify(a.agent_id||a.id)})" style="color:var(--danger);border-color:var(--danger);font-size:10px">🛑</button>` :
         `<button class="btn-sm" data-act-click="monitorReviveAgent(${JSON.stringify(a.agent_id||a.id)})" style="color:var(--success);font-size:10px">♻️</button>`}

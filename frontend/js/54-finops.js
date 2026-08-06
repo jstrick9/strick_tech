@@ -36,7 +36,7 @@ async function renderFinOps() {
         ['⚠️','Alerts',dash.unresolved_alerts||0,dash.unresolved_alerts>0?'var(--danger)':'var(--text-3)'],
       ].map(([icon,label,val,col])=>`
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:18px">${icon}</div>
+          <div class="u-4ff818ff">${icon}</div>
           <div style="font-size:9px;color:var(--text-3);text-transform:uppercase">${label}</div>
           <div style="font-size:16px;font-weight:700;color:${col}">${val}</div>
         </div>`).join('')}
@@ -122,7 +122,7 @@ async function renderFinOps() {
         <div style="font-size:12px;font-weight:700;margin-bottom:12px">💸 Cost by Source</div>
         ${(dash.by_source_type||[]).map(s=>`
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span style="font-size:16px">${srcIcons[s.source_type]||'⚙️'}</span>
+            <span class="u-1444c6ea">${srcIcons[s.source_type]||'⚙️'}</span>
             <span style="font-size:12px;flex:1">${escHtml(s.source_type)}</span>
             <span style="font-size:11px;color:var(--text-3)">${s.n} calls</span>
             <span style="font-weight:700;font-size:12px;color:var(--accent-text)">$${(s.c||0).toFixed(5)}</span>

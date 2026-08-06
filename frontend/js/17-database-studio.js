@@ -330,10 +330,10 @@ async function renderSupabaseTab(el) {
 
   el.innerHTML = `<div class="settings-card">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-      <span style="font-size:24px">☁️</span>
+      <span class="u-81351bd1">☁️</span>
       <div><div style="font-weight:800">Supabase Connected</div>
       <div style="font-size:12px;color:var(--accent-text)">${escHtml(s.url||'')}</div></div>
-      <span class="tag green" style="margin-left:auto">✅ Connected</span>
+      <span class="tag green u-6d000617" >✅ Connected</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <button data-act-click="supaGenerateSchema()" class="btn btn-primary">🤖 AI Schema Designer</button>

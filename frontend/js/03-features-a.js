@@ -1530,7 +1530,7 @@ async function renderProfiler() {
 
       <!-- DB stats -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div class="u-f132e9db">
           <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700">🗄️ Database Tables</div>
           <div style="padding:12px;max-height:280px;overflow-y:auto">
             ${(db.tables||[]).map(t => `
@@ -1544,7 +1544,7 @@ async function renderProfiler() {
             </div>
           </div>
         </div>
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div class="u-f132e9db">
           <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700">🤖 Agent Timings</div>
           <div style="padding:12px;max-height:280px;overflow-y:auto">
             ${(at.timings||[]).map(t => `
@@ -1562,7 +1562,7 @@ async function renderProfiler() {
       </div>
 
       <!-- Memory history -->
-      <div id="mem-snapshots-area" style="margin-top:16px"></div>
+      <div id="mem-snapshots-area" class="u-1b0f4999"></div>
 
       <!-- FIX 6: Code Profiler panel -->
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-top:16px;overflow:hidden">
@@ -1729,7 +1729,7 @@ async function renderPluginSDK() {
                 padding:12px;margin-bottom:8px;cursor:pointer;transition:all .12s;
               " data-hover="bc:var(--accent)" data-hover-out="bc:var(--border)">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-                  <span style="font-size:20px">${p.icon||'🔧'}</span>
+                  <span class="u-b9199e22">${p.icon||'🔧'}</span>
                   <div>
                     <div style="font-weight:600;font-size:13px">${escHtml(p.name)}</div>
                     <div style="font-size:10px;color:var(--text-3)">v${p.version||'1.0.0'} · ${(p.skills||[]).length} skills</div>
@@ -1830,9 +1830,9 @@ async function sdkSelectPack(packId) {
     
     const pack = _sdkCurrentPack;
     area.innerHTML = `
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div class="u-f132e9db">
         <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-          <span style="font-size:24px">${pack.icon||'🔧'}</span>
+          <span class="u-81351bd1">${pack.icon||'🔧'}</span>
           <div>
             <div style="font-weight:700;font-size:15px">${escHtml(pack.name)}</div>
             <div style="font-size:11px;color:var(--text-3)">v${pack.version} · ID: ${pack.id}</div>
@@ -1851,7 +1851,7 @@ async function sdkSelectPack(packId) {
             ${(pack.skills||[]).map((s,i) => `
               <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px">
                 <span>${s.icon||'⚡'}</span>
-                <div style="flex:1">
+                <div class="u-97445a8d">
                   <div style="font-size:13px;font-weight:600">${escHtml(s.name||s.id)}</div>
                   <div style="font-size:11px;color:var(--text-3)">${escHtml((s.description||'').slice(0,60))}</div>
                 </div>
@@ -1860,17 +1860,17 @@ async function sdkSelectPack(packId) {
               </div>
             `).join('') || '<div style="color:var(--text-3);font-size:12px">No skills yet</div>'}
           </div>
-          <button class="btn-sm sdk-add-skill" data-pack-id="${escHtml(packId)}" style="margin-top:8px">＋ Add Skill</button>
+          <button class="btn-sm sdk-add-skill u-8a77e5a3" data-pack-id="${escHtml(packId)}" >＋ Add Skill</button>
 
           <!-- Pack JSON editor -->
-          <div style="margin-top:16px">
+          <div class="u-1b0f4999">
             <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Pack JSON</div>
             <textarea id="sdk-json-editor" rows="14" style="
               width:100%;font-family:monospace;font-size:11px;
               background:var(--bg-3);border:1px solid var(--border);border-radius:8px;
               color:var(--text-0);padding:10px;resize:vertical;
             ">${JSON.stringify(pack, null, 2)}</textarea>
-            <button class="btn sdk-save" data-pack-id="${escHtml(packId)}" style="margin-top:8px">💾 Save JSON</button>
+            <button class="btn sdk-save u-8a77e5a3" data-pack-id="${escHtml(packId)}" >💾 Save JSON</button>
           </div>
         </div>
       </div>
@@ -2315,7 +2315,7 @@ async function renderTauriStatus() {
 
         <!-- Artifacts -->
         ${d.artifacts?.length ? `
-          <div style="margin-bottom:12px">
+          <div class="u-da12f285">
             <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Built Artifacts</div>
             ${d.artifacts.map(a=>`
               <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:12px">
@@ -2620,9 +2620,9 @@ window.renderPQCVault = async function() {
             <span style="font-size:12px;color:var(--text-2)">Real-time visual proof of Module-Lattice Key Encapsulation Mechanism (ML-KEM-1024 / FIPS 203)</span>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button data-act-click="pqcTestEncapsulation()" class="btn-3d btn-primary btn-sm" style="padding:6px 14px">🔒 Test Encapsulation</button>
-            <button data-act-click="pqcExportAuditCertificate()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">📜 Export Audit Certificate</button>
-            <button data-act-click="toggleSplitWorkspace(true,'pqc')" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">🗂️ Secondary Dock</button>
+            <button data-act-click="pqcTestEncapsulation()" class="btn-3d btn-primary btn-sm u-6c51dbca" >🔒 Test Encapsulation</button>
+            <button data-act-click="pqcExportAuditCertificate()" class="btn-3d btn-ghost btn-sm u-6c51dbca" >📜 Export Audit Certificate</button>
+            <button data-act-click="toggleSplitWorkspace(true,'pqc')" class="btn-3d btn-ghost btn-sm u-6c51dbca" >🗂️ Secondary Dock</button>
           </div>
         </div>
         <div id="pqc-lattice-container" style="position:relative;background:#04060f;border:1px solid var(--border-hi);border-radius:12px;padding:16px;overflow:hidden;min-height:240px;display:flex;flex-direction:column;gap:12px">
@@ -2827,8 +2827,8 @@ window.renderFinetuneWorkstation = async function() {
             <span style="font-size:12px;color:var(--text-2)">Convert 4-Tier IVREN folders (about_me, about_my_business, about_my_voice) into instruction-response JSONL training examples</span>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button data-act-click="finetuneConvertIVREN()" class="btn-3d btn-primary btn-sm" style="padding:6px 14px">⚡ Convert IVREN to JSONL</button>
-            <button data-act-click="toggleSplitWorkspace(true,'finetune')" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">🗂️ Secondary Dock</button>
+            <button data-act-click="finetuneConvertIVREN()" class="btn-3d btn-primary btn-sm u-6c51dbca" >⚡ Convert IVREN to JSONL</button>
+            <button data-act-click="toggleSplitWorkspace(true,'finetune')" class="btn-3d btn-ghost btn-sm u-6c51dbca" >🗂️ Secondary Dock</button>
           </div>
         </div>
         <div id="lora-drop-zone" style="background:#04060f;border:2px dashed rgba(56,189,248,0.4);border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:all 0.2s"
@@ -2843,7 +2843,7 @@ window.renderFinetuneWorkstation = async function() {
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
           <h3 style="margin:0;font-size:16px;color:var(--text-0)">Prepared Datasets & Training Controls</h3>
           <div style="display:flex;gap:8px">
-            <button data-act-click="finetuneCreateChatDataset()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">＋ From Chat History</button>
+            <button data-act-click="finetuneCreateChatDataset()" class="btn-3d btn-ghost btn-sm u-6c51dbca" >＋ From Chat History</button>
             ${(ds.datasets && ds.datasets.length) ? `<button data-act-click="finetuneStartJob(${jsArg(ds.datasets[0].id)})" class="btn-3d btn-primary btn-sm" style="padding:6px 16px;background:var(--success);border:none;color:#fff">⚡ Train on ${escHtml(ds.datasets[0].name || ds.datasets[0].id)}</button>` : ''}
           </div>
         </div>

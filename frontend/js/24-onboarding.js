@@ -68,10 +68,10 @@ function showOnboarding() {
     agentsArea.style.display = 'block';
     agentsArea.innerHTML = S.agents.slice(0,6).map(a =>
       `<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg-3);border-radius:var(--radius-sm);margin-bottom:6px">
-        <span style="font-size:20px">${a.avatar||'🤖'}</span>
+        <span class="u-b9199e22">${a.avatar||'🤖'}</span>
         <div><div style="font-weight:600;font-size:13px">${escHtml(a.name)}</div>
         <div style="font-size:11px;color:var(--text-2)">${escHtml(a.role||'')}</div></div>
-        <span class="tag" style="margin-left:auto">${a.model||'default'}</span>
+        <span class="tag u-6d000617" >${a.model||'default'}</span>
       </div>`).join('');
   } else if (step.id === 'theme') {
     themeArea.style.display = 'flex';
@@ -243,17 +243,17 @@ window.showQuickSetup = async function() {
     const recEl = document.getElementById('qs-recommended');
     if (rec.backend === 'ollama') {
       recEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:24px">🖥️</span>
+        <span class="u-81351bd1">🖥️</span>
         <div><strong style="color:var(--success)">Ready!</strong> <span style="font-size:13px;color:var(--text-1)">${escHtml(rec.message)}</span></div>
       </div>`;
     } else if (rec.backend === 'openrouter') {
       recEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:24px">☁️</span>
+        <span class="u-81351bd1">☁️</span>
         <div><strong style="color:var(--accent-text)">Connected!</strong> <span style="font-size:13px;color:var(--text-1)">${escHtml(rec.message)}</span></div>
       </div>`;
     } else {
       recEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:24px">💡</span>
+        <span class="u-81351bd1">💡</span>
         <div><strong>Setup needed:</strong> <span style="font-size:13px;color:var(--text-1)">${escHtml(rec.message)}</span></div>
       </div>`;
       document.getElementById('qs-continue').textContent = 'Open Settings →';

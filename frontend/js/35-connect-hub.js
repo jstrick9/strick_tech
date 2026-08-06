@@ -128,12 +128,12 @@ function connectRenderBody() {
 
 function connectCard(i) {
   const badge = i.ready
-    ? '<span class="tag green" style="font-size:10px">Ready</span>'
+    ? '<span class="tag green u-0d5be05f" >Ready</span>'
     : '<span class="tag" style="font-size:10px;color:var(--orange,#e0821c)">Setup needed</span>';
   return `<div style="background:var(--bg-2);border:1px solid ${i.ready?'var(--border)':'var(--orange,#e0821c)'};border-radius:var(--radius-lg);padding:14px;display:flex;flex-direction:column">
     <div style="display:flex;align-items:flex-start;gap:9px;margin-bottom:6px">
       <span style="font-size:22px;line-height:1">${i.icon || '🔧'}</span>
-      <div style="flex:1;min-width:0">
+      <div class="u-59eddc67">
         <div style="font-weight:700;font-size:13.5px;word-break:break-word">${escHtml(i.name)}</div>
         <div style="font-size:10.5px;color:var(--text-3)">${escHtml(i.kind)} · ${escHtml(i.category)}</div>
       </div>
@@ -145,9 +145,9 @@ function connectCard(i) {
       ${(i.actions||[]).length>4?`<span style="color:var(--text-3)"> +${i.actions.length-4}</span>`:''}
     </div>` : ''}
     <div style="display:flex;gap:6px">
-      <button data-item="${escHtml(i.id)}" data-act-click="connectShowDetail($data.item)" class="btn btn-ghost btn-sm" style="flex:1">Details</button>
+      <button data-item="${escHtml(i.id)}" data-act-click="connectShowDetail($data.item)" class="btn btn-ghost btn-sm u-97445a8d" >Details</button>
       ${i.needs_setup
-        ? `<button data-item="${escHtml(i.id)}" data-act-click="connectShowSetup($data.item)" class="btn btn-primary btn-sm" style="flex:1">Set up</button>`
+        ? `<button data-item="${escHtml(i.id)}" data-act-click="connectShowSetup($data.item)" class="btn btn-primary btn-sm u-97445a8d" >Set up</button>`
         : `<button data-item="${escHtml(i.id)}" data-act-click="connectTest($data.item)" class="btn btn-ghost btn-sm">Test</button>`}
     </div>
   </div>`;
@@ -165,7 +165,7 @@ async function connectShowDetail(id) {
       <div data-stop="1" style="width:min(520px,100%);height:100%;overflow-y:auto;background:var(--bg-1);border-left:1px solid var(--border);padding:22px">
         <div style="display:flex;align-items:flex-start;gap:12px">
           <span style="font-size:32px">${d.icon || '🔧'}</span>
-          <div style="flex:1"><div style="font-size:18px;font-weight:800">${escHtml(d.name)}</div>
+          <div class="u-97445a8d"><div style="font-size:18px;font-weight:800">${escHtml(d.name)}</div>
             <div style="font-size:12px;color:var(--text-3)">${escHtml(d.kind)} · ${escHtml(d.category)} · ${d.ready?'ready':'needs setup'}</div></div>
           <button data-act-click="connectClose()" class="btn btn-ghost btn-sm">✕</button>
         </div>
@@ -177,7 +177,7 @@ async function connectShowDetail(id) {
           <div>${(d.actions||[]).map(a=>`<span class="tag" style="margin:0 4px 4px 0;display:inline-block">${escHtml(a)}</span>`).join('')}</div>` : ''}
         ${d.setup ? connectSetupHtml(d.id, d.setup) : ''}
         <div style="margin-top:16px;display:flex;gap:8px">
-          <button data-item="${escHtml(d.id)}" data-act-click="connectTest($data.item)" class="btn btn-ghost" style="flex:1">Test connection</button>
+          <button data-item="${escHtml(d.id)}" data-act-click="connectTest($data.item)" class="btn btn-ghost u-97445a8d" >Test connection</button>
         </div>
         <div id="connect-test-result" style="margin-top:10px"></div>
       </div>

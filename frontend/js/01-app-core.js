@@ -330,8 +330,8 @@ function renderAgentList() {
   if (sl && S.agents) {
     sl.innerHTML = S.agents.map(a => `
       <div style="display:flex;align-items:center;gap:10px;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 12px;">
-        <span style="font-size:18px">${a.avatar||'🤖'}</span>
-        <div style="flex:1">
+        <span class="u-4ff818ff">${a.avatar||'🤖'}</span>
+        <div class="u-97445a8d">
           <div style="font-weight:600;font-size:13px">${escHtml(a.name)}</div>
           <div style="font-size:11px;color:var(--text-2)">${escHtml(a.role||'')} • ${a.model||'default'}</div>
         </div>
@@ -1295,7 +1295,7 @@ window.showNoviceApiGuide = function() {
 
       <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:14px;font-size:11.5px;color:var(--text-3);flex-wrap:wrap;gap:8px">
         <span>🔒 100% Zero-Trust Local Hardware Encryption</span>
-        <button data-close="id:novice-api-guide-modal" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">I already have a key / Close</button>
+        <button data-close="id:novice-api-guide-modal" class="btn-3d btn-ghost btn-sm u-6c51dbca" >I already have a key / Close</button>
       </div>
     </div>
   `;
@@ -2654,7 +2654,7 @@ function showE2ETrace(run) {
   const summary = steps.map(s => {
     const icon = s.status === 'pass' ? '✅' : s.status === 'warn' ? '⚠️' : s.status === 'skip' ? '⏭' : '❌';
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;font-size:12px;${s.status!=='pass'?'background:var(--bg-3)':''}">
-      <span>${icon}</span><span style="flex:1">${escHtml(s.step||s.step_name||'')}</span>
+      <span>${icon}</span><span class="u-97445a8d">${escHtml(s.step||s.step_name||'')}</span>
       <span style="color:var(--text-3)">${s.duration_ms||0}ms</span>
       ${s.error?`<span style="color:var(--red);font-size:10.5px">${escHtml((s.error||'').slice(0,60))}</span>`:''}
     </div>`;
@@ -2953,7 +2953,7 @@ function skeletonList(rows = 4) {
   return Array.from({length: rows}, (_,i) => `
     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div class="skeleton" style="width:32px;height:32px;border-radius:50%;flex-shrink:0"></div>
-      <div style="flex:1">
+      <div class="u-97445a8d">
         <div class="skeleton skeleton-text" style="width:${60+i*8}%"></div>
         <div class="skeleton skeleton-text" style="width:${35+i*5}%;height:10px"></div>
       </div>
@@ -3125,7 +3125,7 @@ function withSkeleton(paneId, asyncFn) {
     try {
       await asyncFn();
     } catch(e) {
-      pane.innerHTML = `<div style="flex:1">${pageHeader({title:'Error'})}<div class="page-content">
+      pane.innerHTML = `<div class="u-97445a8d">${pageHeader({title:'Error'})}<div class="page-content">
         ${emptyState({icon:'⚠️', title:'Something went wrong', body: escHtml(e.message || 'Unknown error'),
           actions:[{label:'Retry', action:`nav('${paneId}')`, primary:true}]})}
       </div></div>`;
@@ -3318,7 +3318,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     `;
     banner.innerHTML = `
       <span style="font-size:28px;flex-shrink:0">👋</span>
-      <div style="flex:1;min-width:0">
+      <div class="u-59eddc67">
         <div style="font-weight:700;font-size:13.5px;color:var(--text-0);margin-bottom:3px">Welcome to Agentic OS!</div>
         <div style="font-size:12px;color:var(--text-2);line-height:1.5">Press <kbd style="background:var(--bg-4);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:10px">⌘K</kbd> anytime to search, or start typing in the chat below.</div>
       </div>
@@ -3424,7 +3424,7 @@ function showLoadingSkeleton(containerId, count = 3) {
   for (let i = 0; i < count; i++) {
     html += `<div style="display:flex;gap:12px;padding:12px 0;align-items:flex-start">
       <div class="skeleton skeleton-avatar"></div>
-      <div style="flex:1">
+      <div class="u-97445a8d">
         <div class="skeleton skeleton-text" style="width:${60 + Math.random()*30}%"></div>
         <div class="skeleton skeleton-text" style="width:${40 + Math.random()*40}%"></div>
         <div class="skeleton skeleton-text" style="width:${20 + Math.random()*30}%"></div>
@@ -3563,9 +3563,9 @@ function renderMarkdownEnhanced(text) {
   // Links
   t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent-text);text-decoration:underline">$1</a>');
   // Line breaks
-  t = t.replace(/\n\n/g, '</p><p style="margin-bottom:8px">');
+  t = t.replace(/\n\n/g, '</p><p class="u-fdf33f23">');
   t = t.replace(/\n/g, '<br>');
-  return '<p style="margin-bottom:8px">' + t + '</p>';
+  return '<p class="u-fdf33f23">' + t + '</p>';
 }
 
 function copyCodeBlock(id) {
@@ -3960,7 +3960,7 @@ function showMentionDropdown(query, atIdx) {
     '<div style="padding:5px 10px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase">Agents</div>',
     ...agentMatches.slice(0, 6).map(a =>
       `<div class="mention-item" data-act-click="selectMention(${jsArg('@' + (a.name) + '')})" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:var(--transition)" data-hover="bg:var(--bg-3)" data-hover-out="bg:" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
-        <span style="font-size:16px">${a.avatar||'🤖'}</span>
+        <span class="u-1444c6ea">${a.avatar||'🤖'}</span>
         <div><div style="font-size:13px;font-weight:600">${escHtml(a.name)}</div><div style="font-size:10.5px;color:var(--text-3)">${escHtml(a.role||'')}</div></div>
       </div>`),
   ].join('');

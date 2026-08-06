@@ -150,7 +150,7 @@ function hubCollectionsHtml() {
       ${hubCollections.map(c => {
         const done = c.installed_count >= c.available && c.available > 0;
         return `<div style="background:var(--bg-2);border:1px solid ${c.recommended?'var(--accent)':'var(--border)'};border-radius:var(--radius-lg);padding:14px">
-          <div style="font-size:22px">${c.icon}</div>
+          <div class="u-881f70f9">${c.icon}</div>
           <div style="font-weight:700;margin-top:4px">${escHtml(c.name)}</div>
           <div style="font-size:12px;color:var(--text-2);line-height:1.45;margin:4px 0 10px;min-height:34px">${escHtml(c.description)}</div>
           <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">${c.available} plugin(s) · ${c.skill_total} skills · ${c.installed_count} installed</div>
@@ -169,25 +169,25 @@ function hubCardHtml(p) {
   return `<div style="background:var(--bg-2);border:1px solid ${p.installed?'var(--accent)':'var(--border)'};border-radius:var(--radius-lg);padding:16px;display:flex;flex-direction:column">
     <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">
       <span style="font-size:26px;line-height:1">${p.icon || '🧩'}</span>
-      <div style="flex:1;min-width:0">
+      <div class="u-59eddc67">
         <div style="font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:5px">
           ${escHtml(p.name)}
           ${p.verified ? '<span title="Verified publisher" style="color:var(--accent-text)">✓</span>' : ''}
         </div>
         <div style="font-size:11px;color:var(--text-3)">by ${escHtml(p.author)} · v${escHtml(p.version)}</div>
       </div>
-      ${p.installed ? '<span class="tag green" style="font-size:10px">Installed</span>' : ''}
+      ${p.installed ? '<span class="tag green u-0d5be05f" >Installed</span>' : ''}
     </div>
     <p style="font-size:12.5px;color:var(--text-2);line-height:1.5;margin:0 0 10px;flex:1">${escHtml(p.description)}</p>
     <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-3);margin-bottom:10px">
-      <span class="tag" style="font-size:10px">${escHtml(p.category)}</span>
+      <span class="tag u-0d5be05f" >${escHtml(p.category)}</span>
       <span>${p.skill_count} skill${p.skill_count === 1 ? '' : 's'}</span>
     </div>
     <div style="display:flex;gap:6px">
-      <button data-pack="${escHtml(p.id)}" data-act-click="hubShowDetail($data.pack)" class="btn btn-ghost btn-sm" style="flex:1">Preview</button>
+      <button data-pack="${escHtml(p.id)}" data-act-click="hubShowDetail($data.pack)" class="btn btn-ghost btn-sm u-97445a8d" >Preview</button>
       ${p.installed
         ? `<button data-pack="${escHtml(p.id)}" data-act-click="hubUninstall($data.pack)" class="btn btn-ghost btn-sm">Remove</button>`
-        : `<button data-pack="${escHtml(p.id)}" data-act-click="hubInstall($data.pack)" class="btn btn-primary btn-sm" style="flex:1">Install</button>`}
+        : `<button data-pack="${escHtml(p.id)}" data-act-click="hubInstall($data.pack)" class="btn btn-primary btn-sm u-97445a8d" >Install</button>`}
     </div>
   </div>`;
 }
@@ -206,7 +206,7 @@ async function hubShowDetail(packId) {
       <div data-stop="1" style="width:min(560px,100%);height:100%;overflow-y:auto;background:var(--bg-1);border-left:1px solid var(--border);padding:22px">
         <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:6px">
           <span style="font-size:34px">${d.icon || '🧩'}</span>
-          <div style="flex:1">
+          <div class="u-97445a8d">
             <div style="font-size:19px;font-weight:800">${escHtml(d.name)}</div>
             <div style="font-size:12px;color:var(--text-3)">by ${escHtml(d.author)} · v${escHtml(d.version)} · ${escHtml(d.category)}</div>
           </div>
@@ -224,7 +224,7 @@ async function hubShowDetail(packId) {
             <div style="font-weight:600;font-size:13px">${s.emoji || '⚡'} ${escHtml(s.name || s.id || '')}</div>
             ${s.description ? `<div style="font-size:12px;color:var(--text-2);margin-top:3px">${escHtml(s.description)}</div>` : ''}
             ${(s.inputs || []).length ? `<div style="font-size:11px;color:var(--text-3);margin-top:6px">Asks for: ${(s.inputs || []).map(i => escHtml(i.label || i.id)).join(', ')}</div>` : ''}
-            ${s.prompt_template ? `<details style="margin-top:8px">
+            ${s.prompt_template ? `<details class="u-8a77e5a3">
               <summary style="font-size:11px;color:var(--text-3);cursor:pointer">Show prompt</summary>
               <pre style="white-space:pre-wrap;font-size:11px;color:var(--text-2);background:var(--bg-0);padding:8px;border-radius:4px;margin-top:6px">${escHtml(s.prompt_template)}</pre>
             </details>` : ''}

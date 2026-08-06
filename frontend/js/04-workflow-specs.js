@@ -289,7 +289,7 @@ function showSidebarCustomizer() {
   overlay.innerHTML = `
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:720px;width:100%;max-height:82vh;overflow:hidden;display:flex;flex-direction:column">
       <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">
-        <span style="font-size:18px">🎛️</span>
+        <span class="u-4ff818ff">🎛️</span>
         <h3 style="margin:0;color:var(--text-0)">Customize Sidebar</h3>
         <span style="font-size:11px;color:var(--text-3);margin-left:4px">${totalPanes} panes</span>
         <button type="button" id="sidebar-customizer-close-x" style="margin-left:auto;background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
@@ -539,7 +539,7 @@ async function showTierPlans() {
           <div style="font-size:12px;color:var(--text-2);margin-bottom:16px">${t.description}</div>
           <div style="margin-bottom:14px">
             ${t.features.map((f) =>`<div style="font-size:11px;color:var(--text-1);padding:3px 0">✅ ${f}</div>`).join('')}
-            ${t.locked.length?`<div style="margin-top:8px">${t.locked.map((f) =>`<div style="font-size:11px;color:var(--text-3);padding:2px 0">🔒 ${f}</div>`).join('')}</div>`:''}
+            ${t.locked.length?`<div class="u-8a77e5a3">${t.locked.map((f) =>`<div style="font-size:11px;color:var(--text-3);padding:2px 0">🔒 ${f}</div>`).join('')}</div>`:''}
           </div>
           <button data-act-click="handlePlanCTA(${JSON.stringify(t.id)},${JSON.stringify(t.cta)})" style="width:100%;padding:10px;background:${t.highlight?'var(--accent)':'var(--bg-4)'};border:1px solid ${t.highlight?'var(--accent)':'var(--border)'};border-radius:8px;color:${t.highlight?'#fff':'var(--text-0)'};font-weight:700;cursor:pointer;font-size:13px">
             ${t.cta}
@@ -579,7 +579,7 @@ function showLicenseActivation() {
       <input id="license-key-input" placeholder="PRO-XXXX-XXXX-XXXX or ENT-XXXX-XXXX" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:10px 12px;box-sizing:border-box;margin-bottom:10px;font-family:monospace" data-act-keydown="activateLicense()" data-keys="Enter">
       <div style="display:flex;gap:8px">
         <button data-close="id:license-activation-modal" class="btn-sm">Cancel</button>
-        <button data-act-click="activateLicense()" class="btn" style="flex:1">✅ Activate</button>
+        <button data-act-click="activateLicense()" class="btn u-97445a8d" >✅ Activate</button>
       </div>
     </div>`;
   modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
@@ -623,7 +623,7 @@ async function showSetUserModal() {
       <input id="set-user-org"   placeholder="Organization (opt)"value="${escHtml(existing.org||'')}"   style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:9px 12px;box-sizing:border-box;margin-bottom:14px">
       <div style="display:flex;gap:8px">
         <button data-close="id:set-user-modal" class="btn-sm">Cancel</button>
-        <button data-act-click="saveSetUser()" class="btn" style="flex:1">Save Details</button>
+        <button data-act-click="saveSetUser()" class="btn u-97445a8d" >Save Details</button>
       </div>
     </div>`;
   modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
@@ -745,7 +745,7 @@ const ONBOARDING_STEPS = [
           {id:'explore',icon:'🚀',title:'Just explore everything',desc:'Start with the full platform tour'},
         ].map(t=>`
           <button data-act-click="selectTemplate(${JSON.stringify(t.id)})" id="obt-${t.id}" style="padding:12px 14px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;color:var(--text-0);cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;transition:all .12s">
-            <span style="font-size:22px">${t.icon}</span>
+            <span class="u-881f70f9">${t.icon}</span>
             <div><div style="font-weight:600;font-size:13px">${t.title}</div><div style="font-size:11px;color:var(--text-2)">${t.desc}</div></div>
           </button>`).join('')}
       </div>`,
@@ -765,7 +765,7 @@ const ONBOARDING_STEPS = [
             ['❓','Contextual help','Every pane has a ? button with instant help'],
           ].map(([icon,title,desc])=>`
             <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-3);border-radius:9px">
-              <span style="font-size:18px">${icon}</span>
+              <span class="u-4ff818ff">${icon}</span>
               <div><div style="font-weight:600;font-size:13px;color:var(--text-0)">${title}</div><div style="font-size:12px;color:var(--text-2)">${desc}</div></div>
             </div>`).join('')}
         </div>
@@ -1193,7 +1193,7 @@ async function docsTab(tab, el) {
         ${features.map((f, idx) =>`
           <div class="feature-card" data-feature-idx="${idx}">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-              <span style="font-size:20px">${f.icon||'🔧'}</span>
+              <span class="u-b9199e22">${f.icon||'🔧'}</span>
               <span style="font-weight:600;color:var(--text-0);font-size:13px">${escHtml(f.title||'')}</span>
               <span style="margin-left:auto;font-size:9px;padding:1px 5px;border-radius:3px;background:${f.tier==='free'?'rgba(61,186,122,.15)':f.tier==='enterprise'?'rgba(240,192,96,.15)':'rgba(91,138,248,.15)'};color:${f.tier==='free'?'var(--success)':f.tier==='enterprise'?'#f0c060':'var(--accent)'}">
                 ${f.tier?.toUpperCase()||'PRO'}
@@ -1368,7 +1368,7 @@ async function docsShowQuickStart(qsId) {
       ${(qs.steps||[]).map(s =>`
         <div style="display:flex;gap:14px;margin-bottom:16px;background:var(--bg-2);padding:14px;border-radius:12px;border:1px solid var(--border)">
           <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--on-accent);flex-shrink:0;margin-top:2px">${s.step}</div>
-          <div style="flex:1">
+          <div class="u-97445a8d">
             <div style="font-weight:700;color:var(--text-0);font-size:14px;margin-bottom:4px">${escHtml(s.title||'')}</div>
             <div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:6px">${escHtml(s.desc||'')}</div>
             ${s.tip?`<div style="font-size:11px;background:rgba(91,138,248,.1);border:1px solid var(--accent)33;border-radius:6px;padding:6px 10px;color:var(--accent-text)">💡 Pro Tip: ${escHtml(s.tip)}</div>`:''}
@@ -1384,7 +1384,7 @@ async function docsShowQuickStart(qsId) {
       if (btn) docsShowQuickStart(btn.dataset.relatedQsId);
     });
   } catch(ex) {
-    content.innerHTML = `<div style="color:var(--danger);padding:20px">${escHtml(ex?.message||String(ex))}<br><button type="button" class="btn-sm btn-3d" id="docs-qs-retry-btn" style="margin-top:8px">Retry</button></div>`;
+    content.innerHTML = `<div style="color:var(--danger);padding:20px">${escHtml(ex?.message||String(ex))}<br><button type="button" class="btn-sm btn-3d u-8a77e5a3" id="docs-qs-retry-btn" >Retry</button></div>`;
     document.getElementById('docs-qs-retry-btn')?.addEventListener('click', () => docsShowQuickStart(qsId));
   }
 }
@@ -1464,8 +1464,8 @@ window.docsShowVideoGuide = function(video) {
 
       <h4 style="margin:0 0 10px;font-size:15px;color:var(--text-0)">Video Script & Key Takeaways</h4>
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:16px;font-size:13px;color:var(--text-2);line-height:1.7">
-        <div style="margin-bottom:8px"><strong>0:00 - Introduction:</strong> Welcome to ${escHtml(video.title)}. In this quick guide, we cover step-by-step best practices.</div>
-        <div style="margin-bottom:8px"><strong>1:10 - Core Concepts:</strong> How to configure your workspace, attach context files, and trigger the right specialist agent.</div>
+        <div class="u-fdf33f23"><strong>0:00 - Introduction:</strong> Welcome to ${escHtml(video.title)}. In this quick guide, we cover step-by-step best practices.</div>
+        <div class="u-fdf33f23"><strong>1:10 - Core Concepts:</strong> How to configure your workspace, attach context files, and trigger the right specialist agent.</div>
         <div><strong>2:00 - Pro Tip:</strong> Use <code style="color:var(--accent-text)">⌘K</code> anytime to jump directly to this component or run automated actions.</div>
       </div>
     </div>
@@ -1563,7 +1563,7 @@ window.openInspectionDrawer = function(doc) {
   drawer.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--bg-2);border-bottom:1px solid var(--border);flex-shrink:0">
       <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:24px">${escHtml(doc.icon||'📘')}</span>
+        <span class="u-81351bd1">${escHtml(doc.icon||'📘')}</span>
         <div>
           <h3 style="margin:0;font-size:15px;font-weight:800;color:var(--text-0)">${escHtml(doc.title||'Workstation Inspection')}</h3>
           <span style="font-size:11px;color:var(--accent-text);font-weight:700">${escHtml((doc.tier||'PRO').toUpperCase())} TIER WORKSTATION</span>

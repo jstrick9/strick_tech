@@ -31,7 +31,7 @@ async function renderHITL() {
         ['📊','Approval Rate',`${stats.approval_rate||0}%`,'var(--accent)'],
       ].map(([icon,label,val,col])=>`
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:22px">${icon}</div>
+          <div class="u-881f70f9">${icon}</div>
           <div style="font-size:10px;color:var(--text-3);text-transform:uppercase">${label}</div>
           <div style="font-size:20px;font-weight:700;color:${col}">${val}</div>
         </div>`).join('')}
@@ -69,8 +69,8 @@ async function renderHITL() {
           <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
             <div style="display:flex;gap:8px">
               <button class="btn-3d btn-primary btn-sm" data-act-click="hitlDecide(${JSON.stringify(item.id)},'approve')" style="background:var(--success);border:none;color:#fff;padding:6px 14px">✅ Approve & Continue</button>
-              <button class="btn-3d btn-ghost btn-sm" data-act-click="hitlModify(${JSON.stringify(item.id)})" style="padding:6px 14px">✏ Modify Parameters</button>
-              <button class="btn-3d btn-danger btn-sm" data-act-click="hitlDecide(${JSON.stringify(item.id)},'reject')" style="padding:6px 14px">🛑 Abort & Revert</button>
+              <button class="btn-3d btn-ghost btn-sm u-6c51dbca" data-act-click="hitlModify(${JSON.stringify(item.id)})" >✏ Modify Parameters</button>
+              <button class="btn-3d btn-danger btn-sm u-6c51dbca" data-act-click="hitlDecide(${JSON.stringify(item.id)},'reject')" >🛑 Abort & Revert</button>
             </div>
             <button data-act-click="toggleSplitWorkspace(true,'hitl')" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:11px">🗂️ Secondary Dock</button>
           </div>
@@ -106,8 +106,8 @@ async function renderHITL() {
           ['🔍','Read & Search','read_file,web_search,read_memory','Always auto-approve'],
         ].map(([icon,label,actions,defaultVal])=>`
           <div style="background:var(--bg-3);border-radius:8px;padding:10px;display:flex;align-items:center;gap:8px">
-            <span style="font-size:16px">${icon}</span>
-            <div style="flex:1">
+            <span class="u-1444c6ea">${icon}</span>
+            <div class="u-97445a8d">
               <div style="font-weight:600">${label}</div>
               <div style="font-size:10px;color:var(--text-3)">${defaultVal}</div>
             </div>

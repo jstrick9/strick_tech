@@ -159,7 +159,7 @@ function crcRenderDashboard(container) {
         <div class="crc-chain-status" style="color:${chainOk?'var(--success)':'var(--danger)'}">${chainOk?'Chain Integrity Verified ✓':'Chain Integrity Issue Detected ⚠️'}</div>
         <div class="crc-chain-detail" style="color:var(--text-3)">${(s.chain_entries||0).toLocaleString()} entries verified · Last report: ${s.last_report_at ? new Date(s.last_report_at).toLocaleDateString() + ' (' + s.last_report_framework + ')' : 'None yet'}</div>
       </div>
-      <button class="crc-action-btn" data-act-click="crcVerifyChain()" style="margin-left:auto">🔍 Verify Now</button>
+      <button class="crc-action-btn u-6d000617" data-act-click="crcVerifyChain()" >🔍 Verify Now</button>
     </div>
 
     <!-- Stats grid -->
@@ -214,7 +214,7 @@ function crcRenderGenerator(container) {
       <!-- Left: Framework + Format -->
       <div>
         <!-- Framework -->
-        <div class="crc-gen-panel" style="margin-bottom:12px">
+        <div class="crc-gen-panel u-da12f285" >
           <div class="crc-panel-title">⚖️ Compliance Framework</div>
           <div class="crc-fw-grid">
             ${CRC_FRAMEWORKS.map(fw => `
@@ -227,7 +227,7 @@ function crcRenderGenerator(container) {
         </div>
 
         <!-- Format -->
-        <div class="crc-gen-panel" style="margin-bottom:12px">
+        <div class="crc-gen-panel u-da12f285" >
           <div class="crc-panel-title">📁 Output Format</div>
           <div class="crc-fmt-row">
             ${[['pdf','📄 PDF','Formatted, signable'],['json','{ } JSON','Machine-readable'],['csv','📊 CSV','Spreadsheet']].map(([id,label,desc]) => `
@@ -253,13 +253,13 @@ function crcRenderGenerator(container) {
       <!-- Right: Scope + Title + Generate -->
       <div>
         <!-- Title -->
-        <div class="crc-gen-panel" style="margin-bottom:12px">
+        <div class="crc-gen-panel u-da12f285" >
           <div class="crc-panel-title">✏️ Report Title</div>
           <input class="crc-title-input" id="crc-report-title" value="Compliance Audit — ${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long'})}" placeholder="Report title…">
         </div>
 
         <!-- Scope -->
-        <div class="crc-gen-panel" style="margin-bottom:12px">
+        <div class="crc-gen-panel u-da12f285" >
           <div class="crc-panel-title">🔍 Included Sections</div>
           <div class="crc-scope-list" id="crc-scope-list">
             ${CRC_SECTIONS.map(s => `
@@ -276,7 +276,7 @@ function crcRenderGenerator(container) {
         </div>
 
         <!-- Preview -->
-        <div class="crc-gen-panel" style="margin-bottom:12px">
+        <div class="crc-gen-panel u-da12f285" >
           <div class="crc-panel-title">👁️ Report Preview</div>
           <div class="crc-preview-box" id="crc-preview-box">${crcBuildPreview()}</div>
         </div>
@@ -431,7 +431,7 @@ function crcRenderHistory(container) {
   container.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <strong style="font-size:13px;color:var(--text-0)">${_crcReports.length} Reports</strong>
-      <button class="crc-action-btn" data-act-click="crcSetTab('generate')" style="margin-left:auto">+ New Report</button>
+      <button class="crc-action-btn u-6d000617" data-act-click="crcSetTab('generate')" >+ New Report</button>
     </div>
     ${_crcReports.map(r => crcReportCard(r)).join('')}
   `;
@@ -513,7 +513,7 @@ async function crcRenderAuditChain(container) {
   container.innerHTML = `
     <!-- Chain status -->
     <div style="background:${chainOk?'rgba(61,186,122,.1)':'rgba(232,82,82,.1)'};border:1px solid ${chainOk?'var(--success)':'var(--danger)'};border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
-      <span style="font-size:20px">${chainOk?'🔗':'⚠️'}</span>
+      <span class="u-b9199e22">${chainOk?'🔗':'⚠️'}</span>
       <div>
         <div style="font-weight:700;font-size:13px;color:${chainOk?'var(--success)':'var(--danger)'}">${verifyR.message||'Chain status unknown'}</div>
         <div style="font-size:10px;color:var(--text-3)">Entries verified: ${(verifyR.verified||0).toLocaleString()} · Chain tip: <code style="font-size:9px">${chainTip}</code></div>
@@ -557,9 +557,9 @@ async function crcRenderAuditChain(container) {
           ${_crcAuditEntries.map(e => `
           <tr data-act-click="crcShowEntry(${JSON.stringify(e.entry_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <td style="font-family:monospace;color:var(--text-3)">${e.seq}</td>
-            <td>${CRC_OUTCOME_ICONS[e.outcome]||'❓'} <span style="font-size:10px">${escHtml(e.outcome||'')}</span></td>
+            <td>${CRC_OUTCOME_ICONS[e.outcome]||'❓'} <span class="u-0d5be05f">${escHtml(e.outcome||'')}</span></td>
             <td style="color:var(--accent-text)">${escHtml((e.agent_name||e.agent_id||'').slice(0,16))}</td>
-            <td style="font-size:10px">${escHtml((e.action_type||'').slice(0,20))}</td>
+            <td class="u-0d5be05f">${escHtml((e.action_type||'').slice(0,20))}</td>
             <td style="font-size:10px;color:var(--text-2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((e.action_detail||'').slice(0,80))}</td>
             <td><span class="crc-risk-chip" style="background:${CRC_RISK_COLORS[e.risk_level]||'var(--text-3)'}22;color:${CRC_RISK_COLORS[e.risk_level]||'var(--text-3)'}">${e.risk_level||''}</span></td>
             <td><span class="crc-hash">${(e.entry_hash||'').slice(0,8)}…</span></td>

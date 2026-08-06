@@ -46,7 +46,7 @@ async function renderEvals() {
         ['⏱','Avg Latency',`${Math.round(s.avg_latency||0)}ms`,'var(--text-2)'],
       ].map(([icon,label,val,col])=>`
         <div class="eval-metric-card">
-          <div style="font-size:20px">${icon}</div>
+          <div class="u-b9199e22">${icon}</div>
           <div style="font-size:10px;color:var(--text-3);text-transform:uppercase">${label}</div>
           <div style="font-size:18px;font-weight:700;color:${col}">${val}</div>
         </div>`).join('')}
@@ -98,7 +98,7 @@ async function renderEvals() {
       <div id="eval-datasets-list">
         ${(datasets.datasets||[]).map(ds=>`
           <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
-            <div style="flex:1">
+            <div class="u-97445a8d">
               <div style="font-weight:600;color:var(--text-0)">${escHtml(ds.name||'')}</div>
               <div style="font-size:11px;color:var(--text-3)">${ds.case_count||0} test cases</div>
             </div>
@@ -215,7 +215,7 @@ async function evalLoadHistory() {
     const r=await fetch('/api/evals/runs?limit=30');
     const d=await r.json();
     el.innerHTML=`
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div class="u-f132e9db">
         <div style="display:grid;grid-template-columns:1fr 60px 70px 70px 70px;padding:8px 14px;background:var(--bg-3);font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase">
           <div>Prompt</div><div>Score</div><div>Status</div><div>Faithful</div><div>Halluc</div>
         </div>
@@ -300,7 +300,7 @@ async function evalRunAB() {
         try{const d=JSON.parse(part.slice(5).trim());
           if(d.type==='ab_done'&&el){
             el.innerHTML=`
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+              <div class="u-534c2d64">
                 <div style="font-size:16px;font-weight:700;color:var(--text-0);margin-bottom:12px">
                   Winner: <span style="color:${d.winner==='A'?'var(--accent)':'#9d74f5'}">Prompt ${d.winner}</span>
                   <span style="font-size:12px;color:var(--text-3)"> (+${d.diff} points)</span>
@@ -342,7 +342,7 @@ async function evalRunRedTeam() {
           if(d.type==='attack_result'){results.push(d);}
           if(d.type==='redteam_done'&&el){
             el.innerHTML=`
-              <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+              <div class="u-534c2d64">
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
                   <div style="font-size:40px;font-weight:800;color:${d.safety_score>=80?'var(--success)':d.safety_score>=60?'var(--warning)':'var(--danger)'}">${d.safety_score}</div>
                   <div>
@@ -352,7 +352,7 @@ async function evalRunRedTeam() {
                 </div>
                 ${results.map(r=>`
                   <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:12px">
-                    <span style="font-size:16px">${r.status==='PASSED'?'✅':'❌'}</span>
+                    <span class="u-1444c6ea">${r.status==='PASSED'?'✅':'❌'}</span>
                     <span style="font-weight:600;color:var(--text-0)">${escHtml(r.name||'')}</span>
                     <span style="color:var(--text-3)">${escHtml(r.category||'')}</span>
                     ${r.manipulated?`<span style="color:var(--danger);font-size:11px;margin-left:auto">VULNERABLE: ${escHtml(r.evidence||'')?.slice(0,50)}</span>`:'<span style="color:var(--success);margin-left:auto">Resistant</span>'}
@@ -416,7 +416,7 @@ async function renderObservability() {
         ['❌',`${s.error_rate||0}%`,'Error Rate'],
       ].map(([icon,val,label])=>`
         <div class="obs-metric">
-          <div style="font-size:18px">${icon}</div>
+          <div class="u-4ff818ff">${icon}</div>
           <div style="font-size:18px;font-weight:700;color:var(--text-0)">${val}</div>
           <div style="font-size:10px;color:var(--text-3)">${label}</div>
         </div>`).join('')}
@@ -448,7 +448,7 @@ async function renderObservability() {
           change_failure_rate: dora.change_failure_rate,
           mttr_ms: dora.mttr_ms,
         }).map(([key,m])=>`
-          <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+          <div class="u-534c2d64">
             <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">${key.replace(/_/g,' ')}</div>
             <div style="font-size:24px;font-weight:800;color:var(--text-0)">${m?.value||0}</div>
             <div style="font-size:12px;color:var(--text-2)">${m?.label||''}</div>
@@ -463,7 +463,7 @@ async function renderObservability() {
 
     <!-- By Model -->
     <div id="obs-pane-models" style="display:none">
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div class="u-f132e9db">
         <div style="display:grid;grid-template-columns:1fr 60px 80px 80px 80px;padding:8px 14px;background:var(--bg-3);font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase">
           <div>Model</div><div>Calls</div><div>Avg Ms</div><div>Tokens</div><div>Cost</div>
         </div>
@@ -488,11 +488,11 @@ async function renderObservability() {
           <div style="font-size:11px;color:var(--text-3);margin-top:3px">${compliance.note||''}</div>
         </div>
       </div>
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div class="u-f132e9db">
         ${(compliance.checks||[]).map((c) =>`
           <div class="compliance-check">
-            <span style="font-size:18px">${c.status==='compliant'?'✅':c.status==='partial'?'⚠️':'❌'}</span>
-            <div style="flex:1">
+            <span class="u-4ff818ff">${c.status==='compliant'?'✅':c.status==='partial'?'⚠️':'❌'}</span>
+            <div class="u-97445a8d">
               <div style="font-weight:600;color:var(--text-0)">${escHtml(c.article||'')} — ${escHtml(c.name||'')}</div>
               <div style="font-size:11px;color:var(--text-2)">${escHtml(c.description||'')}</div>
               <div style="font-size:10px;color:var(--text-3);margin-top:2px">${escHtml(c.detail||'')}</div>
@@ -523,7 +523,7 @@ async function obsLoadTraces(q='') {
     const r=await fetch(url);
     const d=await r.json();
     el.innerHTML=`
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div class="u-f132e9db">
         <div style="display:grid;grid-template-columns:1fr 80px 80px 70px 70px;padding:8px 14px;background:var(--bg-3);font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase">
           <div>Trace</div><div>Agent</div><div>Latency</div><div>Tokens</div><div>Status</div>
         </div>
@@ -673,22 +673,22 @@ async function kgShowEntity(entityId) {
   if(!d){el.innerHTML='<div style="color:var(--danger)">Failed to load entity</div>';return;}
 
   el.innerHTML=`
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+    <div class="u-534c2d64">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span class="kg-type-badge" style="font-size:11px">${d.type||'concept'}</span>
+        <span class="kg-type-badge u-11a50812" >${d.type||'concept'}</span>
         <h3 style="margin:0;color:var(--text-0)">${escHtml(d.name||'')}</h3>
         <span style="margin-left:auto;font-size:11px;color:var(--text-3)">Confidence: ${Math.round((d.confidence||1)*100)}%</span>
       </div>
       ${d.description?`<p style="font-size:13px;color:var(--text-2);margin:0 0 12px">${escHtml(d.description)}</p>`:''}
 
       ${d.facts?.length?`
-        <div style="margin-bottom:12px">
+        <div class="u-da12f285">
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Facts</div>
           ${d.facts.map((f) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)"><strong>${escHtml(f.predicate||'')}</strong>: ${escHtml(f.object_text||'')}</div>`).join('')}
         </div>`:''}
 
       ${d.outgoing_relations?.length?`
-        <div style="margin-bottom:12px">
+        <div class="u-da12f285">
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Outgoing Relations</div>
           ${d.outgoing_relations.map((r) =>`<div style="font-size:12px;color:var(--text-1);padding:4px 0;border-bottom:1px solid var(--border)">→ <strong>${escHtml(r.relation||'')}</strong> → <span style="color:var(--accent-text);cursor:pointer" data-act-click="kgShowEntity(${jsArg(r.to_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(r.to_name||'')}</span></div>`).join('')}
         </div>`:''}
@@ -715,7 +715,7 @@ async function kgQuery() {
     const r=await fetch('/api/knowledge-graph/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});
     const d=await r.json();
     if(el) el.innerHTML=`
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+      <div class="u-534c2d64">
         <div style="font-size:13px;color:var(--text-0);line-height:1.7;white-space:pre-wrap;margin-bottom:14px">${escHtml(d.answer||'')}</div>
         ${(d.entities_found||[]).length?`
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Entities Found</div>
@@ -767,7 +767,7 @@ async function kgTraverse(entityId) {
   const d=await r.json();
   const el=document.getElementById('kg-detail');
   if(el) el.innerHTML=`
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+    <div class="u-534c2d64">
       <h4 style="margin:0 0 12px;color:var(--text-0)">Graph Traversal (2 hops) — ${d.node_count} nodes, ${d.edge_count} edges</h4>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
         ${(d.nodes||[]).map((n) =>`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--text-1)" data-act-click="kgShowEntity(${JSON.stringify(n.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(n.name||'')} <span style="color:var(--text-3)">(${n.type})</span></span>`).join('')}
@@ -801,8 +801,8 @@ async function renderRAG() {
         ${(pipelines.pipelines||[]).map((p) =>`
           <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-              <span style="font-size:24px">📚</span>
-              <div style="flex:1">
+              <span class="u-81351bd1">📚</span>
+              <div class="u-97445a8d">
                 <div style="font-weight:700;color:var(--text-0);font-size:14px">${escHtml(p.name||'')}</div>
                 <div style="font-size:11px;color:var(--text-3)">${p.doc_count||0} docs · ${p.chunk_count||0} chunks · ${p.chunk_strategy} chunks @ ${p.chunk_size}</div>
               </div>
@@ -876,7 +876,7 @@ async function ragOpenPipeline(pipelineId, name) {
       </div>`:''}
 
     <!-- Query -->
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+    <div class="u-534c2d64">
       <div style="font-size:13px;font-weight:700;margin-bottom:10px">🔍 Query</div>
       <div style="display:flex;gap:8px">
         <input id="rag-query" placeholder="Ask your documents…" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:9px 12px" data-act-keydown="ragQuery(${jsArg(pipelineId)})" data-keys="Enter">

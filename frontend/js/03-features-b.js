@@ -456,7 +456,7 @@ async function renderHooks() {
       <!-- Event types quick filter -->
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
         ${(events.events||[]).map((e) =>`
-          <button class="btn-sm" data-act-click="hookFilterEvent(${JSON.stringify(e.id)})" id="hfbtn-${e.id}" style="font-size:11px">${e.label}</button>
+          <button class="btn-sm u-11a50812" data-act-click="hookFilterEvent(${JSON.stringify(e.id)})" id="hfbtn-${e.id}" >${e.label}</button>
         `).join('')}
       </div>
 
@@ -485,7 +485,7 @@ function hookCardHTML(h, eventMap) {
     <div class="hook-card" id="hook-${h.id}">
       <div style="display:flex;align-items:flex-start;gap:10px">
         <button class="hook-toggle ${isOn?'on':''}" data-act-click="hookToggle(${JSON.stringify(h.id)},$this)" title="${isOn?'Enabled':'Disabled'}"></button>
-        <div style="flex:1">
+        <div class="u-97445a8d">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
             <strong style="color:var(--text-0);font-size:13px">${escHtml(h.name)}</strong>
             <span class="hook-event-tag">${escHtml(evLbl)}</span>
@@ -675,7 +675,7 @@ async function renderCodeIndex() {
           <div style="font-size:13px;max-width:340px;text-align:center;line-height:1.6">
             Like Windsurf Codemaps & Augment Code — index your project to see a live dependency graph, find complex functions, detect dead code.
           </div>
-          <button class="btn" data-act-click="ciIndexNow()" style="margin-top:16px">🔄 Index Now</button>
+          <button class="btn u-1b0f4999" data-act-click="ciIndexNow()" >🔄 Index Now</button>
         </div>
         <div id="ci-node-tooltip" style="position:absolute;display:none;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--text-0);pointer-events:none;z-index:10;max-width:220px"></div>
       </div>
@@ -916,7 +916,7 @@ async function ciShowStats(el) {
         ['📞','Calls',d.total_calls],['🔥','Avg Complexity',d.avg_complexity],
       ].map(([icon,label,val])=>`
         <div class="ci-stat-card">
-          <div style="font-size:24px">${icon}</div>
+          <div class="u-81351bd1">${icon}</div>
           <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">${label}</div>
           <div style="font-size:22px;font-weight:700;color:var(--text-0)">${val}</div>
         </div>
@@ -1035,7 +1035,7 @@ async function renderArena() {
       <div class="arena-layout" id="arena-battle-area" style="flex:1;overflow:hidden;display:grid">
         <div class="arena-side">
           <div class="arena-side-hdr">
-            <span style="font-size:16px">🤖</span>
+            <span class="u-1444c6ea">🤖</span>
             <strong id="arena-label-a" style="color:var(--accent-text)">Model A</strong>
             <span id="arena-lat-a" style="margin-left:auto;font-size:10px;color:var(--text-3)"></span>
           </div>
@@ -1044,7 +1044,7 @@ async function renderArena() {
         </div>
         <div class="arena-side">
           <div class="arena-side-hdr">
-            <span style="font-size:16px">🤖</span>
+            <span class="u-1444c6ea">🤖</span>
             <strong id="arena-label-b" style="color:#9d74f5">Model B</strong>
             <span id="arena-lat-b" style="margin-left:auto;font-size:10px;color:var(--text-3)"></span>
           </div>
@@ -1069,7 +1069,7 @@ async function renderArena() {
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">
         <span style="font-weight:700;font-size:13px">🏆 ELO Leaderboard</span>
         <span style="font-size:11px;color:var(--text-3)">Based on your votes</span>
-        <button class="btn-sm" data-act-click="arenaAutoJudge()" style="margin-left:auto">🤖 Auto-Judge Last</button>
+        <button class="btn-sm u-6d000617" data-act-click="arenaAutoJudge()" >🤖 Auto-Judge Last</button>
       </div>
       <div class="arena-lb" id="arena-lb">
         ${(lb.leaderboard||[]).length ? lb.leaderboard.map((m, i) => {

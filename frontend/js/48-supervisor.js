@@ -199,9 +199,9 @@ async function renderSupervisor() {
           <span style="font-size:12px;color:var(--text-2)">Zero-latency edge sharding across localized Apple Silicon & inference server nodes</span>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button data-act-click="clusterAddNode()" class="btn-3d btn-primary btn-sm" style="padding:6px 14px">＋ Add Edge Node</button>
-          <button data-act-click="clusterScanLAN()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">📡 Scan Local Network</button>
-          <button data-act-click="clusterRebalanceLoad()" class="btn-3d btn-ghost btn-sm" style="padding:6px 14px">⚡ Rebalance Swarm Load</button>
+          <button data-act-click="clusterAddNode()" class="btn-3d btn-primary btn-sm u-6c51dbca" >＋ Add Edge Node</button>
+          <button data-act-click="clusterScanLAN()" class="btn-3d btn-ghost btn-sm u-6c51dbca" >📡 Scan Local Network</button>
+          <button data-act-click="clusterRebalanceLoad()" class="btn-3d btn-ghost btn-sm u-6c51dbca" >⚡ Rebalance Swarm Load</button>
         </div>
       </div>
 
@@ -432,7 +432,7 @@ function dagRenderRunList() {
     return `<div class="dag-run-card ${isActive?'active':''}" data-run-id="${escHtml(r.run_id)}">
       <div class="dag-run-card-top">
         <span class="dag-badge" style="background:${col}22;color:${col}">${icon} ${r.status}</span>
-        ${isRunning ? '<div class="dag-live-dot" style="margin-left:auto"></div>' : ''}
+        ${isRunning ? '<div class="dag-live-dot u-6d000617" ></div>' : ''}
       </div>
       <div class="dag-run-name">${escHtml((r.goal_title || r.goal_text || '').slice(0, 55))}</div>
       <div class="dag-run-meta">${r.task_count} tasks · ${ts}${r.duration_ms?` · ${(r.duration_ms/1000).toFixed(1)}s`:''}</div>

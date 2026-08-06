@@ -35,7 +35,7 @@ async function renderEvalFramework() {
         ['🤖','Agents Evaluated',(stats.by_agent||[]).length,'var(--success)'],
       ].map(([icon,label,val,col])=>`
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:18px">${icon}</div>
+          <div class="u-4ff818ff">${icon}</div>
           <div style="font-size:9px;color:var(--text-3);text-transform:uppercase">${label}</div>
           <div style="font-size:18px;font-weight:700;color:${col}">${val}</div>
         </div>`).join('')}

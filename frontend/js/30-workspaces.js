@@ -17,7 +17,7 @@ async function renderWorkspaces() {
         ${ws.map(w=>`<div class="card ${w.is_current?'':'card-interactive lift'}" style="${w.is_current?'border-color:var(--accent-text)':''}">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
             <div style="width:36px;height:36px;border-radius:8px;background:${w.color||'var(--accent)'}22;border:1px solid ${w.color||'var(--accent)'}44;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${w.emoji||'📁'}</div>
-            <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px">${escHtml(w.name)}</div>
+            <div class="u-59eddc67"><div style="font-weight:700;font-size:13.5px">${escHtml(w.name)}</div>
             <div style="font-size:11px;color:var(--text-2)">${w.file_count||0} files · ${w.framework||'web'}</div></div>
             ${w.is_current?`<span class="badge badge-accent">Active</span>`:''}
           </div>
@@ -43,9 +43,9 @@ async function renderWorkspaces() {
            Distinct from the per-project ZIP export above, which only
            captures one workspace's preview/ files, not the shared
            app-wide SQLite database. -->
-      <div class="card" style="margin-top:16px">
+      <div class="card u-1b0f4999" >
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-          <span style="font-size:20px">💾</span>
+          <span class="u-b9199e22">💾</span>
           <div style="font-weight:700;font-size:14px">Full Backup &amp; Restore</div>
         </div>
         <div style="font-size:12px;color:var(--text-2);margin-bottom:12px">Export your entire Agentic OS database — agents, chat history, memory, tasks, prompts, and skills — as one portable JSON file. Restore it here or on another machine.</div>

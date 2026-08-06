@@ -57,7 +57,7 @@ window.renderSwarmDAG = function(runs = [], winner = '', isRunning = false, acti
                 return `
                 <div class="card-elevated ${hasWinner ? 'surface-z4' : 'surface-z2'}" style="flex:1;min-width:240px;border:${hasWinner ? '2px solid var(--accent)' : '1px solid var(--border)'};background:${hasWinner ? 'var(--accent-glow)' : 'var(--bg-1)'}">
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                    <span style="font-size:16px">⚖️</span>
+                    <span class="u-1444c6ea">⚖️</span>
                     <span style="font-weight:800;font-size:13px;color:var(--text-0)">Judge Consensus Hub</span>
                     <span class="badge ${hasWinner ? 'badge-success' : 'badge-default'}">${hasWinner ? '✅ CONSENSUS REACHED' : 'AWAITING BRANCHES'}</span>
                   </div>
@@ -82,7 +82,7 @@ window.renderSwarmDAG = function(runs = [], winner = '', isRunning = false, acti
                 data-swarm-node-id="${escHtml(nid)}">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
                   <div style="display:flex;align-items:center;gap:6px">
-                    <span style="font-size:18px">${nodeAgent.avatar||'🤖'}</span>
+                    <span class="u-4ff818ff">${nodeAgent.avatar||'🤖'}</span>
                     <span style="font-weight:800;font-size:12.5px;color:var(--text-0)">${escHtml(nodeAgent.name)}</span>
                   </div>
                   <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:${runData ? 'rgba(16,185,129,0.15)' : (isRunning && isSelected ? 'var(--accent-glow)' : 'var(--bg-3)')};color:${runData ? '#10b981' : (isRunning && isSelected ? 'var(--accent)' : 'var(--text-3)')};font-weight:700">
@@ -149,14 +149,14 @@ function renderSwarm() {
             <span style="font-weight:800;font-size:13px;color:var(--accent-text)">🕸️ Directed Acyclic Graph (DAG) Network</span>
             <span class="badge badge-accent">LIVE ORCHESTRATION</span>
           </div>
-          <div id="swarm-dag-host" style="flex:1"></div>
+          <div id="swarm-dag-host" class="u-97445a8d"></div>
         </div>
         <div id="sw-runs" class="swarm-grid" style="display:none"></div>
         <div id="sw-winner-box" style="display:none" class="swarm-winner-box">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-            <span style="font-size:20px">🏆</span>
+            <span class="u-b9199e22">🏆</span>
             <span style="font-weight:700;font-size:14px" id="sw-winner-title">Winner</span>
-            <button data-act-click="copyWinner()" class="btn btn-ghost btn-sm" style="margin-left:auto">📋 Copy</button>
+            <button data-act-click="copyWinner()" class="btn btn-ghost btn-sm u-6d000617" >📋 Copy</button>
             <button data-act-click="acceptWinnerToMonaco()" class="btn btn-primary btn-sm">→ Editor</button>
           </div>
           <div style="font-size:12px;color:var(--text-2);margin-bottom:8px" id="sw-winner-reason"></div>
@@ -215,7 +215,7 @@ async function runSwarm() {
       const a = (S.agents||[]).find(x=>x.id===aid)||{name:aid,avatar:'🤖',color:'#5b8af8'};
       return `<div class="swarm-card" id="sw-card-${aid}">
         <div class="swarm-card-head">
-          <span style="font-size:18px">${a.avatar||'🤖'}</span>
+          <span class="u-4ff818ff">${a.avatar||'🤖'}</span>
           <span style="font-weight:700">${escHtml(a.name)}</span>
           <span style="margin-left:auto;font-size:11px;color:var(--text-2)" id="sw-meta-${aid}">running…</span>
         </div>

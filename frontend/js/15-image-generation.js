@@ -88,7 +88,7 @@ async function renderImageGen() {
             <input id="img-save-to" class="input" placeholder="Save as: hero.png" style="font-size:12px">
           </div>
           <div style="display:flex;gap:6px;margin-bottom:8px">
-            <button data-act-click="generateImage()" class="btn btn-primary" style="flex:1" id="img-gen-btn">🎨 Generate</button>
+            <button data-act-click="generateImage()" class="btn btn-primary u-97445a8d"  id="img-gen-btn">🎨 Generate</button>
             <button data-act-click="igEnhancePrompt()" class="btn-sm" title="AI-enhance the prompt">✨ Enhance</button>
             <button data-act-click="igVariations()" class="btn-sm" title="Generate 4 variations">⊞ Vary</button>
           </div>
@@ -108,7 +108,7 @@ async function renderImageGen() {
         <div style="display:flex;flex-direction:column;gap:12px">
           <!-- Figma Import -->
           <div class="card">
-            <h3 style="margin-bottom:8px">🔗 Figma Import</h3>
+            <h3 class="u-fdf33f23">🔗 Figma Import</h3>
             <p style="font-size:11px;color:var(--text-2);margin-bottom:8px">AI reconstructs your Figma design as working code.</p>
             <input id="figma-url" class="input" placeholder="https://www.figma.com/design/…" style="margin-bottom:6px;font-size:12px">
             <div style="display:flex;gap:6px;margin-bottom:6px">
@@ -124,7 +124,7 @@ async function renderImageGen() {
 
           <!-- Style Transfer -->
           <div class="card">
-            <h3 style="margin-bottom:8px">🎨 Style Transfer</h3>
+            <h3 class="u-fdf33f23">🎨 Style Transfer</h3>
             <input id="st-prompt" class="input" placeholder="Describe your subject…" style="margin-bottom:6px;font-size:12px">
             <div style="display:flex;gap:6px">
               <select id="st-style" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none">
@@ -178,7 +178,7 @@ async function renderImageGen() {
 
   } catch(ex) {
     pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Error loading Image Gen: ${escHtml(ex?.message||String(ex))}<br>
-      <button class="btn-sm" data-act-click="renderImageGen()" style="margin-top:8px">↻ Retry</button></div>`;
+      <button class="btn-sm u-8a77e5a3" data-act-click="renderImageGen()" >↻ Retry</button></div>`;
   }
 }
 

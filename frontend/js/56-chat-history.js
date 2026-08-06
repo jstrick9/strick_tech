@@ -485,7 +485,7 @@
       var ds=item.danger?'color:var(--danger)':'';
       html+='<div class="ctx-item" data-idx="'+i+'" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-radius:8px;font-size:12.5px;color:var(--text-1);transition:background .1s;'+ds+'">'
         +'<span style="font-size:14px;width:18px;text-align:center;flex-shrink:0">'+(item.icon||'')+'</span>'
-        +'<span style="flex:1">'+(item.label||'')+'</span>'
+        +'<span class="u-97445a8d">'+(item.label||'')+'</span>'
         +(item.shortcut?'<span style="font-size:10px;color:var(--text-3);font-family:monospace">'+item.shortcut+'</span>':'')
         +'</div>';
     }

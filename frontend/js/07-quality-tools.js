@@ -50,7 +50,7 @@ async function renderBugBot() {
         ['🚨','Critical',stats.by_severity?.critical||0],
       ].map(([icon,label,val])=>`
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:22px">${icon}</div>
+          <div class="u-881f70f9">${icon}</div>
           <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">${label}</div>
           <div style="font-size:20px;font-weight:700;color:var(--text-0)">${val}</div>
         </div>`).join('')}
@@ -97,7 +97,7 @@ async function renderBugBot() {
           <button class="btn-sm" data-act-click="bbLoadCurrentFile()">← Load current preview file</button>
         </div>
         <textarea id="bb-file-content" rows="12" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;color:var(--text-0);font-size:12px;font-family:monospace;padding:12px;resize:vertical;box-sizing:border-box" placeholder="Paste file content to review…"></textarea>
-        <button class="btn" data-act-click="bbReviewFile()" style="margin-top:8px">📁 Review File</button>
+        <button class="btn u-8a77e5a3" data-act-click="bbReviewFile()" >📁 Review File</button>
       </div>
       <div id="bb-pane-pr" style="display:none">
         <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Review a GitHub Pull Request (requires GITHUB_TOKEN)</div>
@@ -115,7 +115,7 @@ async function renderBugBot() {
             <div style="width:44px;height:44px;border-radius:50%;background:var(--bg-3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:${r.score>=80?'var(--success)':r.score>=60?'var(--warning)':'var(--danger)'}">
               ${r.score}
             </div>
-            <div style="flex:1">
+            <div class="u-97445a8d">
               <div style="font-weight:600;color:var(--text-0)">${escHtml(r.title||'Untitled')}</div>
               <div style="font-size:11px;color:var(--text-3)">${new Date(r.created_at).toLocaleString()}</div>
             </div>
@@ -124,7 +124,7 @@ async function renderBugBot() {
       </div>
     </div>
 
-    <div id="bb-results" style="margin-top:16px"></div>
+    <div id="bb-results" class="u-1b0f4999"></div>
   </div>`;
 }
 
@@ -311,9 +311,9 @@ async function renderHealth() {
           const col   = score>=80?'var(--success)':score>=60?'var(--warning)':'var(--danger)';
           const dets  = (h.details||{})[key]||[];
           return `
-            <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+            <div class="u-534c2d64">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-                <span style="font-size:20px">${dim_icons[key]||'📊'}</span>
+                <span class="u-b9199e22">${dim_icons[key]||'📊'}</span>
                 <span style="font-weight:600;color:var(--text-0)">${dim_labels[key]||key}</span>
                 <span style="margin-left:auto;font-size:18px;font-weight:700;color:${col}">${score}</span>
               </div>
@@ -326,7 +326,7 @@ async function renderHealth() {
       </div>
 
       <!-- Quick actions -->
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+      <div class="u-534c2d64">
         <div style="font-size:13px;font-weight:700;margin-bottom:10px">⚡ Quick Fixes</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn-sm" data-act-click="nav('bugbot')">🐛 Run Code Review</button>
@@ -338,7 +338,7 @@ async function renderHealth() {
       </div>
 
       <!-- History -->
-      <div style="margin-top:16px" id="health-history"></div>
+      <div class="u-1b0f4999" id="health-history"></div>
     </div>`;
 
     bbLoadHealthHistory();
@@ -417,7 +417,7 @@ async function renderGitAI() {
         <button class="btn" data-act-click="gitaiNLRun()">Ask</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-        ${['show last 10 commits','what changed today?','create branch feature/payments','stage all changes','show diff of HEAD~1','revert last commit'].map(s=>`<button class="btn-sm" data-act-click="hSetFieldAndRun('gitai-nl-input',${jsArg(s)},'gitaiNLRun')" style="font-size:11px">${s}</button>`).join('')}
+        ${['show last 10 commits','what changed today?','create branch feature/payments','stage all changes','show diff of HEAD~1','revert last commit'].map(s=>`<button class="btn-sm u-11a50812" data-act-click="hSetFieldAndRun('gitai-nl-input',${jsArg(s)},'gitaiNLRun')" >${s}</button>`).join('')}
       </div>
       <div id="gitai-nl-result"></div>
     </div>
@@ -595,7 +595,7 @@ async function gitaiRunSecurity() {
           <div class="bb-issue-card ${v.severity||'low'}">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
               <span class="bb-severity-badge ${v.severity}">${v.severity}</span>
-              <strong style="font-size:11px">${escHtml(v.name||'')}</strong>
+              <strong class="u-11a50812">${escHtml(v.name||'')}</strong>
               <span style="font-size:10px;color:var(--text-3);margin-left:auto">${escHtml(v.file||'')}:${v.line||0}</span>
             </div>
             <div style="font-size:11px;color:var(--text-2)">${escHtml(v.description||'')}</div>
@@ -642,7 +642,7 @@ async function renderAmbient() {
         ['🔄',tasks.tasks?.filter(t=>t.status==='pending'||t.status==='running').length||0,'Running Tasks'],
       ].map(([icon,count,label])=>`
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:8px">
-          <span style="font-size:18px">${icon}</span>
+          <span class="u-4ff818ff">${icon}</span>
           <div><div style="font-size:18px;font-weight:700;color:var(--text-0)">${count}</div><div style="font-size:10px;color:var(--text-3)">${label}</div></div>
         </div>`).join('')}
     </div>
@@ -670,7 +670,7 @@ async function renderAmbient() {
         <div class="amb-card">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:14px">${t.status==='done'?'✅':t.status==='failed'?'❌':'🔄'}</span>
-            <div style="flex:1">
+            <div class="u-97445a8d">
               <div style="font-weight:600;color:var(--text-0);font-size:12px">${escHtml(t.name||'')}</div>
               <div style="font-size:10px;color:var(--text-3)">${t.status} · ${new Date(t.created_at).toLocaleTimeString()}</div>
             </div>

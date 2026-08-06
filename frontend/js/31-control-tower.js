@@ -26,13 +26,13 @@ async function refreshControlTower() {
       ${pageHeader({title:'🎛️ Control Tower', subtitle:'Live agent traces · kill switch · budget guardrails', badge: active.length > 0 ? active.length + ' LIVE' : ''})}
       <div class="page-content">
       ${active.length > 0 ? `<div style="background:rgba(232,82,82,.08);border:1px solid rgba(232,82,82,.3);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:14px">
-        <span style="font-size:20px">🔴</span>
-        <div style="flex:1"><div style="font-weight:700;color:#e85252">${active.length} agent${active.length>1?'s':''} running</div>
+        <span class="u-b9199e22">🔴</span>
+        <div class="u-97445a8d"><div style="font-weight:700;color:#e85252">${active.length} agent${active.length>1?'s':''} running</div>
         <div style="font-size:11.5px;color:var(--text-2)">Total cost: $${active.reduce((a,r)=>a+(r.total_cost||0),0).toFixed(4)}</div></div>
         <button data-act-click="killAllRuns()" class="btn btn-danger btn-sm">🛑 Kill All</button>
       </div>` : ''}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:20px">
-        ${[['Total Runs',stats.total_runs||0],['Active',stats.active_runs||0],['Today Cost','$'+(stats.today_cost||0).toFixed(4)],['Total Cost','$'+(stats.total_cost||0).toFixed(4)],['Errors',stats.error_count||0],['Killed',stats.killed_count||0]].map(([l,v])=>`<div class="stat-card"><div class="stat-card__label">${l}</div><div class="stat-card__value" style="font-size:20px">${v}</div></div>`).join('')}
+        ${[['Total Runs',stats.total_runs||0],['Active',stats.active_runs||0],['Today Cost','$'+(stats.today_cost||0).toFixed(4)],['Total Cost','$'+(stats.total_cost||0).toFixed(4)],['Errors',stats.error_count||0],['Killed',stats.killed_count||0]].map(([l,v])=>`<div class="stat-card"><div class="stat-card__label">${l}</div><div class="stat-card__value u-b9199e22" >${v}</div></div>`).join('')}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
         <div>
@@ -44,7 +44,7 @@ async function refreshControlTower() {
               return `<div class="card card-interactive" data-act-click="showRunTrace(${jsArg(r.run_id)})" style="padding:9px 12px" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
                 <div style="display:flex;align-items:center;gap:9px">
                   <span style="color:${sCol};font-size:9px">●</span>
-                  <div style="flex:1;min-width:0">
+                  <div class="u-59eddc67">
                     <div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(r.agent_name||r.agent_id||'?')}</div>
                     <div style="font-size:11px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml((r.prompt||'').slice(0,50))}</div>
                   </div>
@@ -66,7 +66,7 @@ async function refreshControlTower() {
           <div style="display:flex;flex-direction:column;gap:5px">
             ${rules.length === 0 ? `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:12px">No rules — agents run unlimited</div>` :
             rules.map(r=>`<div class="card" style="padding:9px 12px;display:flex;align-items:center;gap:10px">
-              <div style="flex:1"><div style="font-size:12.5px;font-weight:600">${escHtml(r.name)}</div>
+              <div class="u-97445a8d"><div style="font-size:12.5px;font-weight:600">${escHtml(r.name)}</div>
               <div style="font-size:11px;color:var(--text-2)">Max $${r.max_cost} · ${r.action}</div></div>
               <span class="badge ${r.enabled?'badge-success':'badge-default'}">${r.enabled?'On':'Off'}</span>
               <button data-act-click="deleteBudgetRule(${JSON.stringify(r.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer">🗑</button>

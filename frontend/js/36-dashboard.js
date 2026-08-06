@@ -93,7 +93,7 @@ function renderDashBody(d) {
   const bar = (label, val, max, color) => {
     color = color || 'var(--accent)';
     const pct = max ? Math.min(100, Math.round(val / max * 100)) : 0;
-    return `<div style="margin-bottom:8px">
+    return `<div class="u-fdf33f23">
       <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px">
         <span style="color:var(--text-1)">${escHtml(String(label))}</span>
         <span style="color:var(--text-2)">${val}</span>

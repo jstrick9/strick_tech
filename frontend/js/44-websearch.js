@@ -229,7 +229,7 @@ async function grounded() {
     const d = await r.json();
     if (!d.ok) throw new Error(d.error || 'Search failed');
     if (el) el.innerHTML = `
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+      <div class="u-534c2d64">
         <div style="font-size:13px;color:var(--text-0);line-height:1.7;white-space:pre-wrap;margin-bottom:14px">${escHtml(d.answer||'')}</div>
         <div style="border-top:1px solid var(--border);padding-top:10px">
           <div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:6px">SOURCES (${d.sources||0})</div>
@@ -250,7 +250,7 @@ async function groundedStream() {
   const q = $('ws-grounded-q')?.value?.trim();
   if (!q) return;
   const el = $('ws-grounded-result');
-  if (el) el.innerHTML = '<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px"><div style="font-size:13px;color:var(--text-1);line-height:1.7;white-space:pre-wrap" id="ws-stream-txt">🔍 Searching…</div></div>';
+  if (el) el.innerHTML = '<div class="u-534c2d64"><div style="font-size:13px;color:var(--text-1);line-height:1.7;white-space:pre-wrap" id="ws-stream-txt">🔍 Searching…</div></div>';
   try {
     const resp = await fetch('/api/websearch/grounded-completion/stream', {
       method: 'POST', headers: {'Content-Type':'application/json'},
@@ -377,7 +377,7 @@ async function loadHistory() {
     // escHtml()'d into text/attribute-safe positions for display.
     el.innerHTML = state.history.map((item, idx) => `
       <div data-ws-replay-idx="${idx}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--bg-2);margin-bottom:6px;cursor:pointer">
-        <span style="font-size:16px">${KIND_ICONS[item.kind] || '🔎'}</span>
+        <span class="u-1444c6ea">${KIND_ICONS[item.kind] || '🔎'}</span>
         <span style="flex:1;font-size:13px;color:var(--text-0)">${escHtml(item.query)}</span>
         <span style="font-size:11px;color:var(--text-3)">${item.results} results</span>
         <button type="button" class="btn-sm" data-ws-delete-idx="${idx}" style="font-size:10px;padding:2px 6px;color:var(--danger)">✕</button>

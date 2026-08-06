@@ -79,9 +79,9 @@ async function runPipeline() {
   results.innerHTML = stages.map(s => `
     <div id="pipe-card-${s}" class="settings-card" style="margin-bottom:12px;opacity:.5">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="font-size:16px">${{goal:'🏛️',research:'🔭',code:'⚡',review:'🔨',ship:'🚀'}[s]||'⚙️'}</span>
+        <span class="u-1444c6ea">${{goal:'🏛️',research:'🔭',code:'⚡',review:'🔨',ship:'🚀'}[s]||'⚙️'}</span>
         <span style="font-weight:700;text-transform:uppercase;font-size:12px">${s}</span>
-        <span id="pipe-badge-${s}" class="tag" style="margin-left:auto">waiting</span>
+        <span id="pipe-badge-${s}" class="tag u-6d000617" >waiting</span>
       </div>
       <div id="pipe-out-${s}" style="font-size:12.5px;color:var(--text-2);line-height:1.6">…</div>
     </div>`).join('');
