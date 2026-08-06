@@ -361,6 +361,26 @@ async def upload_document(pipeline_id: str, file: UploadFile = File(...)):
 
 
 # ── Retrieval ──────────────────────────────────────────────────────────────────
+def _pipeline_missing(pipeline_id: str):
+    """404 response if the pipeline does not exist, else None.
+
+    Returning "no relevant documents" for a pipeline that does not exist tells
+    the user their corpus is empty when the container itself is gone -- so they
+    go and re-upload into nothing. /documents already 404s; query and retrieve
+    did not, so the same feature disagreed with itself.
+    """
+    from ..services.memory_db import get_conn
+
+    con = get_conn()
+    try:
+        row = con.execute('SELECT 1 FROM rag_pipelines WHERE id=?', (pipeline_id,)).fetchone()
+    finally:
+        con.close()
+    if row:
+        return None
+    return JSONResponse({'ok': False, 'error': 'Pipeline not found'}, status_code=404)
+
+
 @router.post('/pipelines/{pipeline_id}/retrieve')
 async def retrieve(pipeline_id: str, req: Request):
     """Retrieve relevant chunks for a query."""
@@ -371,6 +391,9 @@ async def retrieve(pipeline_id: str, req: Request):
     k = _safe_rag_int(body.get('k', 5), 5, 1, 20)
     if not query:
         return JSONResponse({'ok': False, 'error': 'query required'}, status_code=400)
+    missing = _pipeline_missing(pipeline_id)
+    if missing:
+        return missing
     chunks = _retrieve_chunks(pipeline_id, query[:4000], k)
     return {'ok': True, 'query': query, 'chunks': chunks, 'count': len(chunks)}
 
@@ -384,6 +407,9 @@ async def rag_query(pipeline_id: str, req: Request):
     query = as_text(body.get('query'))
     k = _safe_rag_int(body.get('k', 5), 5, 1, 20)
     agent_id = str(body.get('agent_id', 'builder'))[:64]
+    missing = _pipeline_missing(pipeline_id)
+    if missing:
+        return missing
     if not query:
         return JSONResponse({'ok': False, 'error': 'query required'}, status_code=400)
 

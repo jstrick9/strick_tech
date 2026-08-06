@@ -426,6 +426,15 @@ async def add_case(suite_id: str, req: Request):
         return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
     case_id = f'case_{uuid.uuid4().hex[:8]}'
     con = _get_conn()
+    # BUG FIX: this accepted a case against ANY suite_id and persisted it --
+    # verified by GET on the same ghost id returning the case afterwards. An
+    # orphaned eval case never appears under any real suite, so it can never be
+    # run or deleted through the UI, but it still counts toward totals and sits
+    # in the table forever. A stale suite id from a closed tab is the ordinary
+    # way to produce one.
+    if not con.execute('SELECT 1 FROM eval_suites WHERE suite_id=?', (suite_id,)).fetchone():
+        con.close()
+        return JSONResponse({'ok': False, 'error': 'Suite not found'}, status_code=404)
     try:
         con.execute(
             """INSERT INTO eval_cases (case_id,suite_id,prompt,expected,criteria,difficulty,created_at)
