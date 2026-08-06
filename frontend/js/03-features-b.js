@@ -23,7 +23,11 @@ async function renderSpecs() {
         <h3>📋 Specs</h3>
         <button data-act-click="specNew()" style="width:100%;padding:7px;background:var(--accent);border:none;border-radius:7px;color:var(--on-accent);font-size:12px;font-weight:600;cursor:pointer">＋ New Spec</button>
       </div>
+      <input id="spec-search" type="search" placeholder="Search specs…" aria-label="Search specs"
+        data-act-input="specSearch($value)" data-no-busy="1"
+        style="width:100%;margin:6px 0;padding:6px 9px;background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;box-sizing:border-box">
       <div class="spec-list" id="spec-list"><div style="color:var(--text-3);font-size:12px;padding:8px">Loading…</div></div>
+      <div id="spec-list-footer" style="padding:6px 8px;font-size:11px;color:var(--text-2);border-top:1px solid var(--border)"></div>
     </div>
     <div class="spec-main">
       <div class="spec-topbar">
@@ -51,11 +55,39 @@ async function renderSpecs() {
   await specLoadList();
 }
 
-async function specLoadList() {
+// Paging state. The list used to fetch EVERY spec and render all of them into
+// innerHTML in one pass -- measured at 331 specs: 81KB in one response, 331
+// rows in the DOM, no cap, no search, no indication that a list could ever be
+// incomplete. It does not freeze at that size, but it grows without bound.
+//
+// The opposite mistake is already on record in 26-autonomous-hunt.md: goals
+// were capped at 100 of 724 and the UI said nothing, so 624 were unreachable.
+// Both are the same bug -- the UI never told the user what it was NOT showing.
+// Hence the footer: it always states "showing X of Y".
+const SPEC_PAGE_SIZE = 50;
+let _specQuery = '';
+let _specTotal = 0;
+let _specSearchTimer = null;
+
+async function specLoadList(opts) {
+  const append = !!(opts && opts.append);
   try {
-    const r = await fetch('/api/specs');
+    const offset = append ? _specList.length : 0;
+    const params = new URLSearchParams({ limit: String(SPEC_PAGE_SIZE), offset: String(offset) });
+    if (_specQuery) params.set('q', _specQuery);
+    const r = await fetch('/api/specs?' + params.toString());
+    if (!r.ok) {
+      const list0 = document.getElementById('spec-list');
+      if (list0 && !append) {
+        list0.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:8px">' +
+          'Could not load specs (HTTP ' + r.status + ')</div>';
+      }
+      return;
+    }
     const d = await r.json();
-    _specList = d.specs || [];
+    const batch = d.specs || [];
+    _specTotal = typeof d.total === 'number' ? d.total : batch.length;
+    _specList = append ? _specList.concat(batch) : batch;
     const list = document.getElementById('spec-list');
     if (!list) return;
     list.innerHTML = _specList.map((s, idx) => `
@@ -67,10 +99,47 @@ async function specLoadList() {
         </div>
         <div style="font-size:10px;color:var(--text-3)">${new Date(s.updated_at).toLocaleDateString()}</div>
       </div>
-    `).join('') || '<div style="color:var(--text-3);font-size:12px">No specs yet</div>';
+    `).join('') || (_specQuery
+      ? '<div style="color:var(--text-3);font-size:12px;padding:8px">No specs match “' +
+        escHtml(_specQuery) + '”</div>'
+      : '<div style="color:var(--text-3);font-size:12px;padding:8px">No specs yet</div>');
+    specRenderListFooter();
     specWireListEvents();
-  } catch(e) {}
+  } catch(e) {
+    const list = document.getElementById('spec-list');
+    if (list && !append) {
+      list.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:8px">' +
+        'Could not load specs: ' + escHtml(e && e.message ? e.message : 'network error') + '</div>';
+    }
+  }
 }
+
+// "Showing X of Y" plus a Load more control. This is the part that makes a
+// capped list honest: without it, a truncated list is indistinguishable from a
+// complete one.
+function specRenderListFooter() {
+  const foot = document.getElementById('spec-list-footer');
+  if (!foot) return;
+  if (!_specTotal) { foot.textContent = ''; return; }
+  const shown = _specList.length;
+  const more = shown < _specTotal;
+  foot.innerHTML =
+    '<span>Showing ' + shown + ' of ' + _specTotal + (_specQuery ? ' matching' : '') + '</span>' +
+    (more
+      ? ' <button type="button" data-act-click="specLoadMore()" ' +
+        'style="margin-left:6px;background:none;border:1px solid var(--border);border-radius:6px;' +
+        'color:var(--accent-text);font-size:11px;padding:2px 8px;cursor:pointer">Load more</button>'
+      : '');
+}
+
+window.specLoadMore = function() { specLoadList({ append: true }); };
+
+// Debounced so typing does not fire a request per keystroke.
+window.specSearch = function(term) {
+  _specQuery = (term || '').trim();
+  clearTimeout(_specSearchTimer);
+  _specSearchTimer = setTimeout(() => specLoadList(), 250);
+};
 
 // Delegated listener on the #spec-list container — replaces
 // onclick="specSelect(${JSON.stringify(s.id)})" /

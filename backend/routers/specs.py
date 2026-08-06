@@ -135,18 +135,38 @@ def _update_spec(spec_id: str, **kwargs):
 
 # ── REST CRUD ─────────────────────────────────────────────────────────────────
 @router.get('')
-def list_specs(workspace_id: str = 'default'):
-    """Retrieve and return list specs."""
+def list_specs(workspace_id: str = 'default', limit: int = 100, offset: int = 0, q: str = ''):
+    """List specs, paginated and searchable.
+
+    This returned EVERY spec with no cap. Measured with 331 seeded: 81 KB in
+    one response, all 331 rendered into innerHTML by specLoadList() with no
+    paging and no search. It grows without bound and never tells the user
+    anything is missing. See services/pagination.py for the envelope contract.
+    """
     from ..services.memory_db import get_conn
+    from ..services.pagination import clamp_limit, clamp_offset, count_rows, page
+
+    limit = clamp_limit(limit)
+    offset = clamp_offset(offset)
+    term = (q or '').strip()
+
+    where = 'workspace_id=?'
+    params: list = [workspace_id]
+    if term:
+        where += ' AND title LIKE ?'
+        params.append(f'%{term}%')
 
     con = get_conn()
     try:
+        total = count_rows(con, 'specs', where, tuple(params))
         rows = con.execute(
-            'SELECT * FROM specs WHERE workspace_id=? ORDER BY updated_at DESC', (workspace_id,)
+            f'SELECT * FROM specs WHERE {where} ORDER BY updated_at DESC LIMIT ? OFFSET ?',
+            (*params, limit, offset),
         ).fetchall()
     finally:
         con.close()
-    return {'specs': [dict(r) for r in rows], 'count': len(rows)}
+    return page([dict(r) for r in rows], key='specs', total=total,
+                limit=limit, offset=offset, q=term)
 
 
 @router.post('')
