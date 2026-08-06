@@ -1,0 +1,18 @@
+/* Extracted from frontend/index.html by scripts/extract_style_blocks.py.
+ *
+ * `style-src 'self'` blocks an inline <style> element entirely -- not a
+ * declaration, the whole block. These three held 57 KB of core styling
+ * (layout, sidebar, topbar, terminal pane); with them inline and the strict
+ * policy on, Chromium dropped all three and 96,541 computed properties
+ * differed across 24 panes.
+ *
+ * A <link> to a same-origin file satisfies 'self'. The CSS is unchanged and
+ * the link sits where the first block sat, so cascade order is preserved.
+ */
+
+#sidebar, #topbar, #statusbar, #toast-container, #notif-panel,
+  .topbar-btn, .icon-btn, .btn { display: none !important; }
+  #content, #main { width: 100%; }
+  .pane { display: block !important; }
+  .pane:not(.active) { display: none !important; }
+  body { background: white; color: black; }

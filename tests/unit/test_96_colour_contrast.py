@@ -142,8 +142,19 @@ def test_new_tokens_are_applied_by_applytheme():
 
 
 def test_default_stylesheet_declares_the_tokens():
-    """applyTheme runs after first paint; the :root fallback covers the gap."""
+    """applyTheme runs after first paint; the :root fallback covers the gap.
+
+    UPDATED: the :root block used to live in an inline <style> in index.html.
+    `style-src 'self'` drops an inline <style> element whole, so the three
+    blocks (57 KB) were extracted to styles-extracted.css. The tokens are
+    unchanged; only the file holding them moved. Reading BOTH keeps this test
+    correct wherever they end up next.
+    """
     html = INDEX.read_text(encoding='utf-8')
+    for extra in ('styles-extracted.css', 'styles-unified.css', 'styles-redesign.css'):
+        path = ROOT / 'frontend' / extra
+        if path.exists():
+            html += path.read_text(encoding='utf-8')
     assert '--accent-text:' in html
     assert re.search(r'--text-3:\s*#a0a0a0', html), (
         'the :root fallback for --text-3 was not raised to the accessible value'

@@ -63,6 +63,34 @@
 
   function showOnboarding() {
     try { if (localStorage.getItem('agentic_os_onboarded')) return; } catch(e) {}
+
+    // BUG FIX: TWO onboarding dialogs rendered on top of each other on first
+    // run. This module builds `#onboarding-overlay` (z-index 99999) while
+    // 24-onboarding.js shows `#onboarding-modal` from index.html (z-index
+    // 29000), and neither knew about the other.
+    //
+    // Measured in Chromium on a fresh profile: both were `display:flex`
+    // simultaneously. The visible result is the mode-picker card floating over
+    // the wizard, and Playwright refused to click this card's × with
+    // "#onboarding-modal intercepts pointer events" -- the two overlays fight
+    // over the same pixels, so which control is clickable depends on stacking
+    // rather than on what the user can see.
+    //
+    // The wizard is the richer flow (API-driven steps, theme choice,
+    // preferences), so it wins. This mode picker only appears when the wizard
+    // is not being shown.
+    if (document.getElementById('onboarding-modal')) {
+      var wiz = document.getElementById('onboarding-modal');
+      var shown = wiz && getComputedStyle(wiz).display !== 'none';
+      if (shown) return;
+      // The wizard may still be deciding (it awaits /api/onboarding/status).
+      // Re-check shortly rather than racing it.
+      if (!window.__obModeRetried) {
+        window.__obModeRetried = true;
+        setTimeout(showOnboarding, 1500);
+        return;
+      }
+    }
     var overlay = document.createElement('div');
     overlay.id = 'onboarding-overlay';
     overlay.className = 'onboarding-back';

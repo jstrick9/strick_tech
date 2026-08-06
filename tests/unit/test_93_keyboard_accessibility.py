@@ -35,6 +35,21 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 INDEX = ROOT / 'frontend' / 'index.html'
+
+
+def _all_css() -> str:
+    """index.html plus every stylesheet it links.
+
+    The three inline <style> blocks (57 KB) that used to live in index.html
+    were extracted to styles-extracted.css, because `style-src 'self'` drops an
+    inline <style> element whole. The CSS is unchanged; only its file moved.
+    Tests that assert on stylesheet CONTENT read both, so they stay correct
+    wherever a rule lives.
+    """
+    parts = [INDEX.read_text(encoding='utf-8')]
+    parts += [p.read_text(encoding='utf-8')
+              for p in sorted((ROOT / 'frontend').glob('*.css'))]
+    return '\n'.join(parts)
 JS_DIR = ROOT / 'frontend' / 'js'
 
 CLICKABLE_TAG = re.compile(r'<(div|span|li|td|tr)\b([^>]*)>')
@@ -314,7 +329,7 @@ def test_reduced_motion_preference_is_honoured():
     vestibular disorders that motion can cause real nausea, and the OS-level
     'reduce motion' setting is how they ask software to stop. Nothing honoured
     it before (WCAG 2.3.3)."""
-    css = INDEX.read_text(encoding='utf-8')
+    css = _all_css()
     assert 'prefers-reduced-motion' in css, 'no reduced-motion support'
     block = css[css.index('prefers-reduced-motion'):][:600]
     assert 'animation-duration' in block
@@ -327,7 +342,7 @@ def test_reduced_motion_preference_is_honoured():
 def test_reduced_motion_shortens_rather_than_removes_transitions():
     """Setting transition-duration to 0 rather than removing the transition
     keeps transitionend firing, so anything sequenced on it still runs."""
-    css = INDEX.read_text(encoding='utf-8')
+    css = _all_css()
     block = css[css.index('prefers-reduced-motion'):][:600]
     assert '0.01ms' in block, (
         'transitions should be near-instant, not removed — removing them '
@@ -338,7 +353,7 @@ def test_reduced_motion_shortens_rather_than_removes_transitions():
 def test_the_global_focus_ring_is_not_suppressed_for_navigation():
     """86 elements became tabbable in this review. A tab stop with no visible
     ring is arguably worse than no tab stop at all (WCAG 2.4.7)."""
-    css = INDEX.read_text(encoding='utf-8')
+    css = _all_css()
     assert re.search(r':focus-visible\{outline:\s*2px solid', css), (
         'no global focus-visible ring'
     )
