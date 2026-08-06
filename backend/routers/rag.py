@@ -215,16 +215,36 @@ async def create_pipeline(req: Request):
 
 
 @router.get('/pipelines')
-def list_pipelines():
-    """Retrieve and return list pipelines."""
+def list_pipelines(limit: int = 100, offset: int = 0, q: str = ''):
+    """List RAG pipelines, paginated and searchable.
+
+    Previously unbounded -- see services/pagination.py.
+    """
     from ..services.memory_db import get_conn
+    from ..services.pagination import clamp_limit, clamp_offset, count_rows, page
+
+    limit = clamp_limit(limit)
+    offset = clamp_offset(offset)
+    term = (q or '').strip()
+
+    where = ''
+    params: list = []
+    if term:
+        where = 'name LIKE ?'
+        params.append(f'%{term}%')
 
     con = get_conn()
     try:
-        rows = con.execute('SELECT * FROM rag_pipelines ORDER BY updated_at DESC').fetchall()
+        total = count_rows(con, 'rag_pipelines', where, tuple(params))
+        sql = 'SELECT * FROM rag_pipelines'
+        if where:
+            sql += f' WHERE {where}'
+        sql += ' ORDER BY updated_at DESC LIMIT ? OFFSET ?'
+        rows = con.execute(sql, (*params, limit, offset)).fetchall()
     finally:
         con.close()
-    return {'pipelines': [dict(r) for r in rows]}
+    return page([dict(r) for r in rows], key='pipelines', total=total,
+                limit=limit, offset=offset, q=term)
 
 
 @router.get('/pipelines/{pipeline_id}')
