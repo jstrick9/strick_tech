@@ -231,14 +231,20 @@ def delete_spec(spec_id: str):
     con = get_conn()
     try:
         con.execute('DELETE FROM spec_tasks WHERE spec_id=?', (spec_id,))
-        con.execute('DELETE FROM specs WHERE id=?', (spec_id,))
+        # rowcount is the only thing that distinguishes "deleted your spec"
+        # from "there was no such spec". Returning a bare ok:true threw it
+        # away and left the UI reporting success after a typo or a stale list.
+        cur = con.execute('DELETE FROM specs WHERE id=?', (spec_id,))
+        removed = cur.rowcount or 0
         con.commit()
     finally:
         con.close()
     import shutil
 
     shutil.rmtree(_spec_dir(spec_id), ignore_errors=True)
-    return {'ok': True}
+    # 200 either way: a DELETE of something already absent has achieved what
+    # the caller asked for, and keeping it idempotent makes retries safe.
+    return {'ok': True, 'deleted': removed > 0, 'spec_id': spec_id}
 
 
 # ── Phase 1: Generate Requirements ────────────────────────────────────────────

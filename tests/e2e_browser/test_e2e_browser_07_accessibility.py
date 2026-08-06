@@ -149,7 +149,19 @@ def test_every_pane_has_no_accessibility_violations(audited_page, axe_source):
         pg.evaluate("p => window.nav(p)", pane)
         pg.wait_for_timeout(700)
         pg.evaluate("src => { if (!window.axe) (0, eval)(src); }", axe_source)
+
+        # Sample twice, ~900ms apart.
+        #
+        # A single sample is not enough for animated elements: the "⚡ LIVE"
+        # badge in Studio pulsed opacity to .4, so its contrast swung between
+        # 6.76:1 and 2.44:1 across a 2s cycle. An earlier sweep happened to
+        # sample a bright frame and reported the pane clean, and the real
+        # failure only surfaced later in CI. Two samples at different phases
+        # catch that class of bug instead of flaking on it.
         v = pg.evaluate(_RUN, RULES)
+        if not v:
+            pg.wait_for_timeout(900)
+            v = pg.evaluate(_RUN, RULES)
         if v:
             failures.append(_format(pane, v))
 

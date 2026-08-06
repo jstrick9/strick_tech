@@ -23,8 +23,8 @@ async function initGalaxy() {
   if (gxInited) { refreshGalaxy(); gxLoadStats(); return; }
   gxInited = true;
   try {
-    await loadGalaxyLibrary('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js');
-    await loadGalaxyLibrary('https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.0/dist/3d-force-graph.min.js');
+    await loadGalaxyLibrary('/static/vendor/three.min.js');
+    await loadGalaxyLibrary('/static/vendor/3d-force-graph.min.js');
     setupGxGraph();
     refreshGalaxy();
     gxLoadStats();

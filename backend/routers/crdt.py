@@ -543,11 +543,16 @@ def delete_doc(doc_id: str):
     con = get_conn()
     try:
         con.execute('DELETE FROM crdt_ops WHERE doc_id=?', (doc_id,))
-        con.execute('DELETE FROM crdt_docs WHERE id=?', (doc_id,))
+        cur = con.execute('DELETE FROM crdt_docs WHERE id=?', (doc_id,))
+        removed = cur.rowcount or 0
         con.commit()
     finally:
         con.close()
-    return {'ok': True}
+    # `deleted` distinguishes "removed it" from "there was nothing to remove".
+    # Status stays 200 so the endpoint stays idempotent and safe to retry;
+    # without this flag the caller could not tell the two apart, and the UI
+    # reported success after a typo or a stale list.
+    return {'ok': True, 'deleted': removed > 0, 'doc_id': doc_id}
 
 
 @router.get('/docs/{doc_id}/ops')

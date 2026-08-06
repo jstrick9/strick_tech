@@ -290,11 +290,16 @@ def delete_memory(key: str):
     """Delete or remove specified memory."""
     con = memory_db.get_conn()
     try:
-        con.execute('DELETE FROM project_memory WHERE key=?', (key,))
+        cur = con.execute('DELETE FROM project_memory WHERE key=?', (key,))
+        removed = cur.rowcount or 0
         con.commit()
     finally:
         con.close()
-    return {'ok': True}
+    # `deleted` distinguishes "removed it" from "there was nothing to remove".
+    # Status stays 200 so the endpoint stays idempotent and safe to retry;
+    # without this flag the caller could not tell the two apart, and the UI
+    # reported success after a typo or a stale list.
+    return {'ok': True, 'deleted': removed > 0, 'key': key}
 
 
 # ── Smart Next-Action Suggestions ─────────────────────────────────────────────

@@ -121,10 +121,28 @@ async function specNew() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({title, description:desc})
     });
+    // BUG FIX: this swallowed everything. Three separate failures were
+    // invisible -- a non-2xx response, a body that is not JSON, and a
+    // successful response with no `spec` (which throws on `d.spec.id`). In
+    // every case the dialog closed, the list did not change, and the user was
+    // left believing their spec had been created.
+    if (!r.ok) {
+      let detail = '';
+      try { detail = (await r.json()).error || ''; } catch (_) { /* not JSON */ }
+      toast('Could not create the spec' + (detail ? ': ' + detail : ` (HTTP ${r.status})`), 'err', 6000);
+      return;
+    }
     const d = await r.json();
+    if (!d || !d.spec || !d.spec.id) {
+      toast('The server accepted the spec but returned no id, so it cannot be opened.', 'err', 6000);
+      await specLoadList();
+      return;
+    }
     await specLoadList();
     specSelect(d.spec.id, desc);
-  } catch(e) {}
+  } catch(e) {
+    toast('Could not create the spec: ' + (e && e.message ? e.message : 'network error'), 'err', 6000);
+  }
 }
 
 async function specDelete(specId, title) {

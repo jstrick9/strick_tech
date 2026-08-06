@@ -182,13 +182,18 @@ def close_tab(tab_id: str):
     tabs = _get_tabs()
     if tab_id in tabs and tabs[tab_id].get('pinned'):
         return {'ok': False, 'error': 'Cannot close pinned tab'}
+    existed = tab_id in tabs
     tabs.pop(tab_id, None)
     # Activate first remaining tab
     if tabs:
         next_tab = next(iter(tabs.values()))
         next_tab['active'] = True
     _save_tabs()
-    return {'ok': True}
+    # `deleted` distinguishes "removed it" from "there was nothing to remove".
+    # Status stays 200 so the endpoint stays idempotent and safe to retry;
+    # without this flag the caller could not tell the two apart, and the UI
+    # reported success after a typo or a stale list.
+    return {'ok': True, 'deleted': existed, 'tab_id': tab_id}
 
 
 @router.post('/tabs/{tab_id}/activate')

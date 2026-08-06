@@ -506,11 +506,15 @@ async function usePrompt(pid, content) {
     const pLocal = promptsData.find(x => x.id === pid);
     if (pLocal) pLocal.use_count = (pLocal.use_count||0) + 1;
   } else {
+    // DELIBERATELY SILENT. This is a usage counter, not the user's action --
+    // the prompt has already been applied. Failing to increment a statistic is
+    // not worth an error message, and the local count is updated regardless so
+    // the UI stays consistent within the session.
     try {
       fetch(`/api/prompts/${encodeURIComponent(pid)}/use`, {method:'POST'}).catch(()=>{});
       const p = promptsData.find(x => x.id === pid);
       if (p) p.use_count = (p.use_count||0) + 1;
-    } catch(e) {}
+    } catch(e) { /* see above: intentional */ }
   }
   nav('chat');
   setTimeout(() => {

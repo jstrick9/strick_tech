@@ -204,7 +204,7 @@ async def lifespan(app: FastAPI):
     log.info(
         'CSRF enforcement: %s (AGENTIC_CSRF_STRICT=%s)',
         'ON' if _CSRF_STRICT else 'OFF',
-        os.getenv('AGENTIC_CSRF_STRICT', '<unset — defaults to ON for a single worker>'),
+        os.getenv('AGENTIC_CSRF_STRICT', '<unset — defaults to ON in every topology>'),
     )
     log.info('Agentic OS ready → http://localhost:%s', os.getenv('AGENTIC_OS_PORT', '8787'))
     yield
@@ -370,7 +370,11 @@ if _csrf_strict_env in ('1', 'true', 'yes', 'on'):
 elif _csrf_strict_env in ('0', 'false', 'no', 'off'):
     _CSRF_STRICT = False
 else:
-    _CSRF_STRICT = runtime_topology.csrf_strict_is_safe()
+    # Previously `runtime_topology.csrf_strict_is_safe()`, which returned False
+    # under multiple workers because the token store was per process. Tokens are
+    # now stateless and signed with a shared key, so every worker accepts every
+    # other worker's tokens and enforcement is safe in any topology.
+    _CSRF_STRICT = True
 
 # Endpoints that legitimately receive cross-origin POSTs and authenticate by
 # other means. Webhook deliveries carry an HMAC signature (see routers/
@@ -398,9 +402,35 @@ _CSRF_EXEMPT = frozenset({
 
 
 try:
-    _RATE_LIMIT_MAX = max(10, int(os.getenv('RATE_LIMIT_MAX', '300')))
+    _RATE_LIMIT_CONFIGURED = max(10, int(os.getenv('RATE_LIMIT_MAX', '300')))
 except (TypeError, ValueError):
-    _RATE_LIMIT_MAX = 300
+    _RATE_LIMIT_CONFIGURED = 300
+
+# Divide the budget across workers so the CONFIGURED ceiling is the one that
+# actually applies.
+#
+# The counter is a per-process dict, so with N workers each one independently
+# allowed the full limit and the real ceiling was N x configured. An operator
+# who set RATE_LIMIT_MAX=300 and ran 4 workers got 1200 and was never told --
+# the control degraded silently, which is the worst way for a limit to be
+# wrong. Dividing restores the operator's intent.
+#
+# WHAT THIS IS AND IS NOT. Load balancers do not distribute perfectly evenly,
+# so a client whose requests land disproportionately on one worker can be
+# limited early. That is the conservative direction: the failure mode is "a
+# heavy client is throttled slightly sooner", not "the limit does not apply".
+# A shared counter (Redis) would be exact, and is still the answer for a
+# deployment that needs exactness -- but it imposes an operational dependency
+# on every single-process local-first user to serve a topology most of them
+# never run. The trigger for revisiting is in
+# docs/module-reviews/25-runtime-topology.md.
+#
+# A floor of 10 keeps a high worker count from producing an unusable limit.
+_rate_limit_workers = runtime_topology.worker_count()
+if _rate_limit_workers > 1:
+    _RATE_LIMIT_MAX = max(10, _RATE_LIMIT_CONFIGURED // _rate_limit_workers)
+else:
+    _RATE_LIMIT_MAX = _RATE_LIMIT_CONFIGURED
 # Secure deployment mode is opt-in so existing local-first usage remains
 # frictionless. When enabled, every API route except health checks requires
 # Authorization: Bearer $AGENTIC_OS_AUTH_TOKEN.
@@ -508,9 +538,16 @@ SECURITY_HEADERS = {
         "base-uri 'self'; "
         "form-action 'self'; "
         "frame-ancestors 'self'; "
-        "script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://cdn.monaco-editor.net; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
-        "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; "
+        # All five CDN origins are gone: three.js, 3d-force-graph, highlight.js and
+        # Monaco are vendored under frontend/vendor/ and served from /static.
+        # 'self' plus five CDNs is materially weaker than 'self' -- each is an
+        # origin that can execute script with full same-origin privileges, so a
+        # compromise or DNS hijack of any one of them is a full application
+        # compromise. It also means the product now works offline, which matters
+        # for something that markets itself as a local-first agentic OS.
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "font-src 'self' data:; "
         "img-src 'self' data: blob: https:; "
         # BUG FIX: connect-src did not allow `blob:`, while img-src/
         # worker-src/frame-src all explicitly did. Image Generator's
@@ -538,7 +575,26 @@ SECURITY_HEADERS = {
         # allowance never took effect; and the console noise trained
         # anyone debugging to ignore CSP errors. Corrected to the legal
         # form, which covers jira.<site>.atlassian.net as intended.
-        "connect-src 'self' blob: ws: wss: http://127.0.0.1:* http://localhost:* https://api.github.com https://openrouter.ai https://slack.com https://gmail.googleapis.com https://graph.microsoft.com https://oauth2.googleapis.com https://www.googleapis.com https://*.atlassian.net https://api.notion.com; "
+        # TIGHTENED. This listed nine external origins -- api.github.com,
+        # openrouter.ai, slack.com, gmail.googleapis.com,
+        # graph.microsoft.com, oauth2.googleapis.com, www.googleapis.com,
+        # *.atlassian.net, api.notion.com -- and the BROWSER never contacted
+        # a single one of them. Verified two ways: a source scan for
+        # fetch()/XHR/WebSocket to an absolute external URL returns nothing
+        # (the only occurrences of these hostnames in frontend/ are link
+        # hrefs and help text), and a Chromium run across every pane recorded
+        # zero external requests.
+        #
+        # Every one of those integrations is called SERVER-side with httpx,
+        # where CSP does not apply at all. So the allowances bought nothing
+        # and cost real security: connect-src is the directive that limits
+        # where injected script can exfiltrate data to, and each extra origin
+        # is another channel out. api.github.com and the Google endpoints in
+        # particular accept arbitrary query strings that an attacker controls.
+        #
+        # Kept: 'self' for the app's own API, blob:/ws:/wss: for streaming and
+        # live updates, and the loopback origins for a locally running Ollama.
+        "connect-src 'self' blob: ws: wss: http://127.0.0.1:* http://localhost:*; "
         "worker-src 'self' blob:; "
         "frame-src 'self' blob: data:; "
     ),
@@ -572,8 +628,7 @@ CSP_REPORT_ONLY = (
     "form-action 'self'; "
     "frame-ancestors 'self'; "
     # The whole point: no 'unsafe-inline' on script-src.
-    "script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
-    "https://cdn.tailwindcss.com https://unpkg.com https://cdn.monaco-editor.net; "
+    "script-src 'self'; "
     # REPORT-ONLY RATCHET. This header exists to measure the NEXT tightening
     # before enforcing it, which is the job it stopped doing the moment the
     # enforcing policy caught up: after 461ba07 the two were byte-identical
@@ -584,13 +639,10 @@ CSP_REPORT_ONLY = (
     # Browsers keep enforcing the permissive policy, so nothing breaks; every
     # style that WOULD be refused is reported to /api/security/csp-report
     # instead. That converts an estimate into a measurement.
-    "style-src 'self' https://fonts.googleapis.com "
-    "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
-    "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net "
-    "https://cdnjs.cloudflare.com data:; "
+    "style-src 'self'; "
+    "font-src 'self' data:; "
     "img-src 'self' data: blob: https:; "
-    "connect-src 'self' blob: ws: wss: http://127.0.0.1:* http://localhost:* "
-    "https://api.github.com https://openrouter.ai; "
+    "connect-src 'self' blob: ws: wss: http://127.0.0.1:* http://localhost:*; "
     "worker-src 'self' blob:; "
     "frame-src 'self' blob: data:; "
     "report-uri /api/security/csp-report"
@@ -663,14 +715,17 @@ async def _security_middleware(request: Request, call_next):
     # off, a missing token is allowed but LOGGED, giving operators a way to see
     # what would break before switching it on. A bad token is always rejected.
     if request.method in ('POST', 'PUT', 'PATCH', 'DELETE') and not os.environ.get('PYTEST_CURRENT_TEST'):
-        from .routers.security import _CSRF_TOKENS
+        # Stateless validation: verifies an HMAC signature rather than looking
+        # the token up in a per-process dict, so every worker accepts every
+        # worker's tokens. See services/csrf_secret.py.
+        from .routers.security import csrf_token_is_valid
 
         csrf_token = request.headers.get('X-CSRF-Token')
         csrf_exempt = path in _CSRF_EXEMPT or path.startswith('/api/webhooks/')
 
         if not csrf_exempt:
             if csrf_token:
-                if csrf_token not in _CSRF_TOKENS:
+                if not csrf_token_is_valid(csrf_token):
                     from fastapi.responses import JSONResponse
 
                     return JSONResponse(

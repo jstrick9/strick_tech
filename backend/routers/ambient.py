@@ -306,11 +306,13 @@ def clear_suggestions():
 
     con = get_conn()
     try:
-        con.execute('DELETE FROM ambient_suggestions')
+        cur = con.execute('DELETE FROM ambient_suggestions')
+        removed = cur.rowcount or 0
         con.commit()
     finally:
         con.close()
-    return {'ok': True}
+    # A bulk clear reports HOW MANY went, which is the number the UI wants.
+    return {'ok': True, 'deleted': removed > 0, 'count': removed}
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -675,8 +677,13 @@ def delete_task(task_id: str):
 
     con = get_conn()
     try:
-        con.execute('DELETE FROM background_tasks WHERE id=?', (task_id,))
+        cur = con.execute('DELETE FROM background_tasks WHERE id=?', (task_id,))
+        removed = cur.rowcount or 0
         con.commit()
     finally:
         con.close()
-    return {'ok': True}
+    # `deleted` distinguishes "removed it" from "there was nothing to remove".
+    # Status stays 200 so the endpoint stays idempotent and safe to retry;
+    # without this flag the caller could not tell the two apart, and the UI
+    # reported success after a typo or a stale list.
+    return {'ok': True, 'deleted': removed > 0, 'task_id': task_id}

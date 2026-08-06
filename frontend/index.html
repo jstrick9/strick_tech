@@ -20,9 +20,13 @@
 <meta name="apple-mobile-web-app-title" content="AgenticOS">
 
 <!-- Load Inter font from Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- Inter is vendored under frontend/vendor/fonts/ (7 woff2 subsets + the
+     @font-face css, all rewritten to relative paths). Loading it from Google
+     required fonts.googleapis.com in style-src and fonts.gstatic.com in
+     font-src, leaked every page load to a third party, and meant the UI fell
+     back to a system font offline -- for a product that describes itself as
+     local-first. With this the app makes NO external requests at all. -->
+<link href="/static/vendor/fonts/inter.css" rel="stylesheet">
 
 <!-- Unified Design System -->
 <link rel="stylesheet" href="/static/styles-unified.css">
@@ -749,7 +753,22 @@
 .hmr-badge{
   font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;
   border:1px solid var(--green);color:var(--green);background:#0d2a1a;
-  animation:pulse 2s ease-in-out infinite;
+  /* BUG FIX: this used `animation:pulse`, which fades opacity to .4 at the
+     midpoint. The COLOUR passes comfortably -- --green on #0d2a1a is 6.76:1 --
+     but opacity multiplies it, so for most of every 2s cycle the badge sat at
+     2.44:1, far below the 4.5:1 minimum. Contrast that depends on animation
+     phase also makes the audit itself unreliable: an earlier sweep sampled a
+     bright frame and reported the pane clean.
+     Pulsing the BORDER GLOW instead keeps the "live" affordance while the text
+     stays at full opacity and a fixed, passing ratio. */
+  animation:hmr-glow 2s ease-in-out infinite;
+}
+@keyframes hmr-glow{
+  0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0.45)}
+  50%    {box-shadow:0 0 0 3px rgba(34,197,94,0)}
+}
+@media (prefers-reduced-motion: reduce){
+  .hmr-badge{animation:none}
 }
 .hmr-badge.off{border-color:var(--text-3);color:var(--text-3);background:transparent;animation:none}
 

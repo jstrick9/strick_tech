@@ -46,6 +46,11 @@ EDGE_VOICES: dict[str, str] = {
 }
 DEFAULT_VOICE = 'aria'
 
+# Ceiling on stored per-agent voice preferences. The file is rewritten in full
+# on every PATCH, so an unbounded dict is both a disk-growth and a
+# write-amplification problem.
+_MAX_VOICE_PREFS = 500
+
 # Agent → voice mapping (customisable, persisted to DB)
 AGENT_VOICES: dict[str, str] = {
     'brain': 'aria',
@@ -261,8 +266,39 @@ async def set_agent_voice(agent_id: str, req: Request):
         return _body_err
     voice = (as_text(body.get('voice')) or DEFAULT_VOICE)
     if voice not in EDGE_VOICES:
-        return {'ok': False, 'error': f"Unknown voice '{voice}'. Options: {list(EDGE_VOICES.keys())}"}
-    AGENT_VOICES[agent_id.lower()] = voice
+        # BUG FIX: this returned HTTP 200 with ok:false. A client checking the
+        # status code -- which is most of them, and every generic HTTP helper --
+        # read a rejected write as a success. Same 200-on-failure pattern
+        # already corrected across ~180 other endpoints in this review.
+        return JSONResponse(
+            {'ok': False, 'error': f"Unknown voice '{voice}'. Options: {list(EDGE_VOICES.keys())}"},
+            status_code=400,
+        )
+
+    # BUG FIX: this accepted ANY agent_id and persisted it to disk. It was
+    # previously judged acceptable because "it is only a preference store", but
+    # the store is written to a JSON file with no bound: a loop over generated
+    # ids grows that file until the disk fills, and every subsequent startup
+    # pays the parse cost. Nothing legitimate needs a 10,000th agent voice.
+    key = agent_id.strip().lower()
+    if not key or len(key) > 128:
+        return JSONResponse(
+            {'ok': False, 'error': 'agent_id must be 1-128 characters.'},
+            status_code=400,
+        )
+    if key not in AGENT_VOICES and len(AGENT_VOICES) >= _MAX_VOICE_PREFS:
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': (
+                    f'Voice preferences are limited to {_MAX_VOICE_PREFS} agents '
+                    f'({len(AGENT_VOICES)} stored). Delete one before adding another.'
+                ),
+            },
+            status_code=409,
+        )
+
+    AGENT_VOICES[key] = voice
     _save_voice_prefs()
     from ..services.memory_db import audit_log
 
@@ -273,10 +309,21 @@ async def set_agent_voice(agent_id: str, req: Request):
 @router.delete('/voices/{agent_id}')
 def reset_agent_voice(agent_id: str):
     """Reset an agent's voice to default."""
-    if agent_id in AGENT_VOICES and agent_id != 'default':
-        del AGENT_VOICES[agent_id]
+    # BUG FIX: this looked up the RAW agent_id while the PATCH handler stores
+    # `agent_id.strip().lower()`. So a preference saved as "Researcher" could
+    # never be reset by DELETE /voices/Researcher -- the key did not match, the
+    # branch was skipped, and the endpoint still answered ok:true. The setting
+    # silently persisted while the UI showed it as cleared.
+    key = agent_id.strip().lower()
+    existed = key in AGENT_VOICES and key != 'default'
+    if existed:
+        del AGENT_VOICES[key]
         _save_voice_prefs()
-    return {'ok': True, 'agent_id': agent_id, 'voice': DEFAULT_VOICE}
+    # `deleted` distinguishes "removed it" from "there was nothing to remove".
+    # Status stays 200 so the endpoint stays idempotent and safe to retry;
+    # without this flag the caller could not tell the two apart, and the UI
+    # reported success after a typo or a stale list.
+    return {'ok': True, 'agent_id': agent_id, 'deleted': existed, 'voice': DEFAULT_VOICE}
 
 
 @router.delete('/cache')

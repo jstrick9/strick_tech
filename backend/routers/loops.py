@@ -8,6 +8,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from ..services import scheduler as sched_svc
 from ..services.request_body import as_text, json_body_or_error
@@ -53,8 +54,18 @@ async def create_loop(req: Request):
 def delete_loop(job_id: str):
     """Stop and remove a loop."""
     if job_id in _BUILTIN_JOB_IDS:
-        return {'ok': False, 'error': f"'{job_id}' is a protected system job and cannot be deleted"}
-    return sched_svc.remove_loop(job_id)
+        # BUG FIX: refusing a delete with HTTP 200 told every status-code-aware
+        # client the protected job had been removed. 403 is the accurate answer
+        # -- the request was understood and deliberately refused.
+        return JSONResponse(
+            {'ok': False, 'error': f"'{job_id}' is a protected system job and cannot be deleted"},
+            status_code=403,
+        )
+    result = sched_svc.remove_loop(job_id)
+    # A real scheduler failure is a 500, not a 200 carrying ok:false.
+    if not result.get('ok'):
+        return JSONResponse(result, status_code=500)
+    return result
 
 
 @router.post('/{job_id}/pause')
