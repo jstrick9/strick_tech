@@ -6,7 +6,9 @@ def test_preview_sibling_path_is_rejected(client):
         '/api/preview/save',
         json={'path': '../preview_evil/escaped.html', 'content': 'must not write'},
     )
-    assert response.status_code == 200
+    # A rejected path traversal answering 400 is strictly better than 200.
+    # Asserting 200 here was pinning the 200-on-failure bug in place.
+    assert response.status_code == 400
     assert response.json().get('ok') is False
 
 

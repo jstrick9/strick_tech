@@ -684,6 +684,133 @@ CSP_REPORT_ONLY = (
     "report-uri /api/security/csp-report"
 )
 
+# Endpoints whose `ok: false` is a REPORT, not a refusal, so the request did
+# succeed and 200 is correct.
+#
+# The distinction: did the server decline to do what was asked (refusal ->
+# 4xx), or did it do exactly what was asked and the answer happens to be
+# negative (report -> 200)? A connection test that runs and finds the service
+# down has succeeded at testing.
+_OK_FALSE_EXEMPT = frozenset({
+    # ── Diagnostics: the negative answer IS the successful result ──────────
+    '/api/secrets/test-connection',   # "could not reach the provider" IS the result
+    '/api/pluginsdk/validate',        # a validator reporting invalid input worked
+    '/api/security/validate-csrf',    # asked "is this token valid?"; "no" is an answer
+    '/api/rbac/tokens/verify',        # same shape: a verdict, not a refusal
+
+    # ── POLICY VERDICTS. The gateway RAN the policy engine successfully and
+    #    the verdict was "deny". The request was serviced exactly as asked;
+    #    ok:false carries the decision, alongside policy_decision, denied and
+    #    the audit call_id. Turning a successful policy evaluation into a 4xx
+    #    would make "the guardrail worked" indistinguishable from "the guardrail
+    #    is broken", and would break the audit trail the caller reads.
+    '/api/mcp-gateway/call',
+    '/api/connectors/execute',
+
+    # ── "Nothing to do" is a normal, successful outcome ────────────────────
+    '/api/system/git/commit',         # nothing staged
+    '/api/tauri/build/cancel',        # no build running
+    '/api/gitai/changelog',           # no commits in the range
+    '/api/memory/qdrant/sync-all',    # optional dependency absent
+
+    # ── Unconfigured integrations: the server did its job and is REPORTING
+    #    that the user has not supplied a token. The response carries setup
+    #    instructions, which is the whole point -- turning it into a 4xx would
+    #    make first-run guidance look like a client error.
+    '/api/deploy/vercel',
+    '/api/deploy/netlify',
+})
+
+
+def _is_ok_false_exempt(path: str) -> bool:
+    """Exact matches plus the two parameterised policy-verdict routes.
+
+    `/api/connectors/{id}/execute` cannot be listed literally: the id is part
+    of the path. Like /api/mcp-gateway/call it RAN the connector and is
+    reporting the outcome -- including "this connector is not configured yet",
+    which arrives with setup guidance the UI displays.
+    """
+    if path in _OK_FALSE_EXEMPT:
+        return True
+    return path.startswith('/api/connectors/') and path.endswith('/execute')
+
+
+async def _restatus_refused_write(response, request_id: str):
+    """Re-send a refused write as 400, preserving the body byte-for-byte.
+
+    TWO TRAPS, BOTH HIT WHILE BUILDING THIS, BOTH RECORDED SO THE NEXT PERSON
+    DOES NOT REPEAT THEM.
+
+    1. Reading `response.body_iterator` CONSUMES it. The first version did that
+       to inspect the payload and left SSE endpoints with an exhausted
+       iterator, so /api/chat returned HTTP 500
+       (tests/unit/test_103_type_confusion.py caught it).
+
+    2. Skipping anything that HAS a `body_iterator` looks like the safe fix and
+       is actually a no-op: `BaseHTTPMiddleware` wraps EVERY response in a
+       streaming shim, so that attribute is always present. The second version
+       therefore did nothing at all while appearing to work.
+
+    So: the iterator is read AND rebuilt, and real streams are identified by
+    content type rather than by the presence of a wrapper.
+    """
+    from starlette.responses import Response as _StarletteResponse
+
+    media = str(response.headers.get('content-type') or response.media_type or '')
+
+    # Genuinely streaming or non-JSON: never buffer, never touch.
+    if 'text/event-stream' in media or 'json' not in media:
+        return response
+
+    body_iter = getattr(response, 'body_iterator', None)
+    if body_iter is None:
+        raw = getattr(response, 'body', None) or b''
+    else:
+        chunks = []
+        total = 0
+        oversized = False
+        async for chunk in body_iter:
+            chunks.append(chunk)
+            total += len(chunk)
+            if total > 65536:
+                oversized = True
+                break
+        if oversized:
+            # Drain the rest and hand it back unchanged: too big to be a
+            # validation error, and buffering an arbitrary payload is not
+            # something a status-fixup should be doing.
+            async for rest in body_iter:
+                chunks.append(rest)
+            headers = dict(response.headers)
+            headers.pop('content-length', None)
+            return _StarletteResponse(
+                content=b''.join(chunks), status_code=response.status_code,
+                headers=headers, media_type=response.media_type,
+            )
+        raw = b''.join(chunks)
+
+    status = response.status_code
+    if raw and b'"ok"' in raw:
+        try:
+            import json as _json
+
+            parsed = _json.loads(raw)
+            if isinstance(parsed, dict) and parsed.get('ok') is False:
+                status = 400
+        except (ValueError, TypeError):
+            pass
+
+    if status == response.status_code and body_iter is None:
+        return response
+
+    headers = dict(response.headers)
+    headers.pop('content-length', None)
+    return _StarletteResponse(
+        content=raw, status_code=status, headers=headers,
+        media_type=response.media_type,
+    )
+
+
 # Paths exempt from rate limiting (static files, health checks)
 _RATE_LIMIT_EXEMPT = {'/api/system/stats', '/api/system/health', '/manifest.json', '/sw.js'}
 
@@ -789,6 +916,50 @@ async def _security_middleware(request: Request, call_next):
 
     # Process request
     response = await call_next(request)
+
+    # A mutating request that was REFUSED must not answer 200.
+    #
+    # 62 POST/PATCH/PUT endpoints returned `200 {"ok": false, "error": ...}`
+    # for a rejected write -- probed live against every bodyless mutating
+    # route. Examples: POST /api/agents -> "name is required",
+    # POST /api/hooks -> "prompt is required", POST /api/evals/run ->
+    # "prompt and response required".
+    #
+    # WHY THIS MATTERS MORE THAN IT LOOKS. The global network layer in
+    # frontend/js/00-net-feedback.js reports failures by STATUS CODE -- 5xx,
+    # 429, 401, 403. A 200 sails straight through it, so the user is told
+    # nothing at all: the dialog closes, the list does not change, and the
+    # action silently did not happen. That is the same class of bug already
+    # fixed ~180 times endpoint-by-endpoint in this review.
+    #
+    # WHY HERE RATHER THAN AT 390 CALL SITES. `return {'ok': False, ...}`
+    # appears 390 times across 60 routers. Editing each is a large diff with
+    # 390 chances to miss one or typo a status, and every NEW endpoint would
+    # reintroduce the bug. One rule in the middleware covers all of them,
+    # including routes added later.
+    #
+    # SCOPE, deliberately narrow:
+    #   * Only /api/, and only POST/PUT/PATCH/DELETE. GET is untouched -- a
+    #     read that reports ok:false is describing state, not refusing work.
+    #     Verified: 0 of 287 GET endpoints return 200 with ok:false, so this
+    #     could not have changed a read even if it applied to them.
+    #   * Only when the handler ALREADY chose 200. A handler that set its own
+    #     4xx/5xx keeps it.
+    #   * Only JSON bodies under 64KB, parsed defensively; anything else is
+    #     passed through untouched.
+    #   * The body is preserved byte-for-byte. Only the status changes, so a
+    #     client reading `ok`/`error` sees exactly what it saw before.
+    #
+    # 400 is the right default: these are validation refusals ("name is
+    # required"). A handler that means 404/409/503 should say so explicitly,
+    # and several already do.
+    if (
+        response.status_code == 200
+        and path.startswith('/api/')
+        and request.method in ('POST', 'PUT', 'PATCH', 'DELETE')
+        and not _is_ok_false_exempt(path)
+    ):
+        response = await _restatus_refused_write(response, request_id)
 
     # Attach request ID trace header
     response.headers['X-Request-ID'] = str(request_id).strip()

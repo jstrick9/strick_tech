@@ -17,7 +17,9 @@ def test_marketplace_zip_rejects_path_traversal(client):
         '../../escaped.txt': 'must not escape',
     })
     response = client.post('/api/marketplace/upload', files={'file': ('pack.zip', data, 'application/zip')})
-    assert response.status_code == 200
+    # 400, not 200: the upload was refused. The containment assertion below is
+    # the one that matters and is unchanged.
+    assert response.status_code == 400
     assert response.json().get('ok') is False
     from backend.routers.marketplace import PACKS_DIR
     assert not (PACKS_DIR / 'boundary-pack').exists()
@@ -26,7 +28,8 @@ def test_marketplace_zip_rejects_path_traversal(client):
 def test_marketplace_zip_requires_manifest(client):
     data = _zip({'README.md': 'missing manifest'})
     response = client.post('/api/marketplace/upload', files={'file': ('pack.zip', data, 'application/zip')})
-    assert response.status_code == 200
+    # A pack with no manifest is rejected; 400 says so, 200 did not.
+    assert response.status_code == 400
     assert response.json().get('ok') is False
 
 

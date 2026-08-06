@@ -168,23 +168,32 @@ async def browser_status():
 
 @router.post('/setup/auto-install')
 async def auto_install_browser():
-    """Trigger background installation of Playwright and Chromium."""
-    import subprocess
+    """Start installing Playwright + Chromium, and TRACK the job.
+
+    BUG FIX: this spawned the installer and discarded the handle, so nothing
+    captured output and nothing ever saw the exit code. It reported ok:true
+    whenever Popen did not raise -- which it essentially never does -- so a
+    failed install looked identical to a successful one. See
+    services/install_jobs.py and the /setup/stream fix below.
+    """
     import sys
-    commands = [
-        [sys.executable, '-m', 'pip', 'install', 'playwright'],
-        [sys.executable, '-m', 'playwright', 'install', 'chromium'],
-    ]
+
+    from ..services import install_jobs
+
     install_script = (
         'import subprocess,sys; '
         'subprocess.check_call([sys.executable, "-m", "pip", "install", "playwright"]); '
         'subprocess.check_call([sys.executable, "-m", "playwright", "install", "chromium"])'
     )
-    try:
-        subprocess.Popen([sys.executable, '-c', install_script], start_new_session=True)
-        return {'ok': True, 'commands': commands, 'message': 'Playwright installation spawned in background'}
-    except Exception as e:
-        return {'ok': False, 'command': commands, 'error': str(e)}
+    job = install_jobs.start('browser', [sys.executable, '-u', '-c', install_script])
+    if job['status'] == 'failed':
+        return JSONResponse({'ok': False, 'error': job['error']}, status_code=500)
+    return {
+        'ok': True,
+        'status': job['status'],
+        'message': 'Installing Playwright and Chromium (~130MB). Watch '
+                   '/api/browser/setup/stream for live progress.',
+    }
 
 
 @router.get('/setup/stream')
@@ -195,16 +204,54 @@ async def stream_browser_setup():
 
     from fastapi.responses import StreamingResponse
 
+    from ..services import install_jobs
+
+    # BUG FIX: this used to emit four hardcoded percentages 0.5s apart and then
+    # claim "✅ Playwright & Chromium installation complete! Ready for E2E."
+    # having verified nothing. Downloading Chromium is ~130MB; the UI declared
+    # success in about two seconds. It now reports the real process: actual
+    # output lines, the actual exit code, and an explicit "nothing is running"
+    # when there is no job.
+    MILESTONES = [
+        (15, 'Collecting playwright'),
+        (35, 'Installing collected packages'),
+        (50, 'Successfully installed'),
+        (70, 'Downloading Chromium'),
+        (90, 'chromium'),
+    ]
+
     async def event_generator():
-        steps = [
-            (20, 'Checking Python site-packages and Playwright requirements...'),
-            (45, 'Executing pip install playwright inside virtual workspace...'),
-            (75, 'Downloading headless Chromium web browser binaries (130MB)...'),
-            (100, '✅ Playwright & Chromium installation complete! Ready for E2E.'),
-        ]
-        for pct, msg in steps:
-            yield f'data: {json.dumps({"progress": pct, "message": msg, "done": pct == 100})}\n\n'
-            await asyncio.sleep(0.5)
+        sent = 0
+        last_pct = 0
+        while True:
+            snap = install_jobs.snapshot('browser')
+
+            if snap['status'] == 'idle':
+                yield f'data: {json.dumps({"progress": 0, "message": "No installation is running. Start one from the Browser Agent panel.", "done": True, "ok": False, "idle": True})}\n\n'
+                return
+
+            lines = snap['lines']
+            for line in lines[sent:]:
+                yield f'data: {json.dumps({"progress": last_pct, "message": line[:400], "log": True})}\n\n'
+            sent = len(lines)
+
+            blob = '\n'.join(lines[-80:])
+            for pct, needle in MILESTONES:
+                if needle in blob and pct > last_pct:
+                    last_pct = pct
+
+            if snap['status'] == 'done':
+                msg = 'Playwright and Chromium are installed (' + str(snap['elapsed']) + 's).'
+                yield f'data: {json.dumps({"progress": 100, "message": msg, "done": True, "ok": True})}\n\n'
+                return
+            if snap['status'] == 'failed':
+                err = 'Installation FAILED: ' + str(snap['error'] or 'unknown error')
+                yield f'data: {json.dumps({"progress": last_pct, "message": err, "done": True, "ok": False, "returncode": snap["returncode"]})}\n\n'
+                return
+
+            wait_msg = 'Installing… ' + str(snap['elapsed']) + 's elapsed'
+            yield f'data: {json.dumps({"progress": last_pct, "message": wait_msg, "done": False})}\n\n'
+            await asyncio.sleep(1.0)
 
     return StreamingResponse(sse_guard(event_generator()),
         media_type='text/event-stream',

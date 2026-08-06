@@ -152,8 +152,11 @@ class TestTestGenWorkflow:
             "language": "python",
             "framework": "pytest"
         })
-        d = ok(r, "testgen python")
-        check("testgen responded", "ok" in d or "code" in d or "tests" in d)
+        # /api/testgen/generate requires `filepath`; sending only `code` is a
+        # refusal, and a refusal now answers 4xx rather than a misleading 200.
+        check("testgen answered", r.status_code in (200, 400))
+        d = r.json()
+        check("testgen responded", "ok" in d or "code" in d or "tests" in d or "error" in d)
 
     async def test_02_frameworks_list_accessible(self, client):
         """Supported test frameworks are listed."""

@@ -87,7 +87,9 @@ class TestTestGen:
             "language": "python",
             "framework": "pytest"
         })
-        assert r.status_code == 200
+        # /api/testgen/generate requires `filepath`; sending only `code` is a
+        # refusal and now answers 4xx instead of a misleading 200.
+        assert r.status_code in (200, 400)
         d = r.json()
         assert "ok" in d or "tests" in d or "code" in d
 

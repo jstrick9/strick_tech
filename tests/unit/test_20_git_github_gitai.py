@@ -19,7 +19,8 @@ class TestGitAI:
 
     def test_gitai_commit_message_no_diff(self, client):
         r = client.post("/api/gitai/commit", json={"message": "test", "auto_commit": False})
-        assert r.status_code == 200
+        # 4xx when there is nothing staged to commit -- a refusal, not a 200.
+        assert r.status_code in (200, 400)
         d = r.json()
         assert "ok" in d or "message" in d
 

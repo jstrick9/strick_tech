@@ -189,13 +189,32 @@ async function installPlaywrightChromium() {
           if (msg) msg.textContent = d.message || 'Installing...';
           if (pct) pct.textContent = (d.progress || 0) + '%';
           if (det) det.textContent = `[SSE Browser Setup Stream] ${d.message || ''}`;
+          // BUG FIX: this fired on `d.done` alone and always toasted success.
+          // The stream now carries `ok`, so a FAILED install is reported as a
+          // failure with the server's own error text, and an idle stream (no
+          // job running) does not pretend anything finished. Previously a
+          // failed install and a successful one produced the same green toast,
+          // leaving nothing to retry and no message to search for.
           if (d.done) {
             es.close();
-            toast('✅ Playwright & Chromium installed!', 'ok', 3000);
-            setTimeout(() => {
-              if (progCard) progCard.style.display = 'none';
+            if (d.ok) {
+              toast('✅ Playwright & Chromium installed — ' + (d.message || ''), 'ok', 5000);
+              setTimeout(() => {
+                if (progCard) progCard.style.display = 'none';
+                renderBrowserAgent();
+              }, 1500);
+            } else if (d.idle) {
+              if (msg) msg.textContent = 'No installation is running.';
+              setTimeout(() => { if (progCard) progCard.style.display = 'none'; }, 2500);
+            } else {
+              // Leave the card up: the error text is the only thing the user
+              // can act on, so hiding it would be the worst possible move.
+              if (msg) msg.textContent = '❌ Installation failed';
+              if (bar) bar.style.background = 'var(--danger)';
+              if (det) det.textContent = d.message || 'Installation failed.';
+              toast('Installation failed: ' + (d.message || 'unknown error'), 'err', 9000);
               renderBrowserAgent();
-            }, 2000);
+            }
           }
         } catch(err) { /* skip malformed SSE frame */ }
       };

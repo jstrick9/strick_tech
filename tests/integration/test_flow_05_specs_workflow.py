@@ -147,7 +147,9 @@ class TestSpecDrivenDev:
                     {"title": "Task 2", "description": "Second task", "wave": 1},
                 ]
             })
-            assert r2.status_code in (200, 404, 422)
+            # 400: seeding tasks before the design phase exists is a refusal
+            # ("Generate design first"), which now says so in the status.
+            assert r2.status_code in (200, 400, 404, 422)
 
             # List tasks
             r3 = await GET(client, f"/api/specs/{spid}/tasks")
