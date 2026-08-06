@@ -99,7 +99,16 @@ def test_the_first_run_overlay_is_dismissible(page):
     if not overlay or not overlay.is_visible():
         pytest.skip('no first-run overlay in this state')
 
-    close = page.query_selector('#onboarding-overlay button')
+    # There used to be TWO onboarding dialogs on first run --
+    # `#onboarding-overlay` from 91-mode-switcher.js on top of
+    # `#onboarding-modal` from 24-onboarding.js -- and this selector picked a
+    # button under the other one, so Playwright refused the click with
+    # "#onboarding-modal intercepts pointer events". That was a real product
+    # bug (two overlays fighting for the same pixels), now fixed in
+    # 91-mode-switcher.js. Whichever dialog is showing, its close control must
+    # be clickable.
+    close = page.query_selector('#onboarding-modal button') or \
+        page.query_selector('#onboarding-overlay button')
     assert close and close.is_visible(), 'the welcome modal has no visible close control'
     close.click()
     page.wait_for_timeout(700)

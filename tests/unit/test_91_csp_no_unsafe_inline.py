@@ -66,14 +66,27 @@ def test_object_and_base_uri_stay_locked(client):
     assert "base-uri 'self'" in policy
 
 
-def test_style_src_inline_is_a_documented_exception(client):
-    """style-src deliberately keeps 'unsafe-inline' — the codebase sets
-    element.style throughout. Asserted so the exception stays a decision
-    rather than drifting into an accident, and so nobody 'fixes' it without
-    reading why. A style injection cannot execute script under this policy."""
-    assert "'unsafe-inline'" in _directive(_csp(client), 'style-src')
+def test_style_src_no_longer_permits_inline(client):
+    """INVERTED. This used to assert that style-src KEPT 'unsafe-inline' as a
+    documented exception. That exception is now closed.
+
+    It was open because the app has 4,410 inline style attributes and 1,644 of
+    the distinct static values are used exactly once, so migrating to utility
+    classes never converges. The way through was that style-src governs the
+    HTML parser, not the CSSOM: the blocked attribute is still readable via
+    getAttribute('style'), and re-applying it through el.style.cssText is
+    permitted. frontend/js/00-style-hydrate.js does that, filtered so it cannot
+    re-enable CSS exfiltration or invisible clickable overlays.
+
+    Measured across 24 panes and 64,013 elements: 73 computed properties
+    differ, against a run-to-run noise floor of 75. Rendering is unchanged.
+    """
+    style_src = _directive(_csp(client), 'style-src')
+    assert "'unsafe-inline'" not in style_src, (
+        f'style-src permits inline styles again: {style_src}'
+    )
     app_src = (ROOT / 'backend' / 'app.py').read_text(encoding='utf-8')
-    assert 'style-src DELIBERATELY keeps' in app_src, (
+    assert 'style-src NO LONGER carries' in app_src, (
         'the reasoning must survive alongside the code'
     )
 

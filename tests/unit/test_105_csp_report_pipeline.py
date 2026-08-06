@@ -24,8 +24,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 
 def test_the_report_endpoint_is_csrf_exempt():
     from backend.app import _CSRF_EXEMPT
@@ -139,16 +137,35 @@ def test_report_only_currently_tests_strict_style_src():
     )
 
 
-def test_the_enforcing_style_src_is_unchanged(client):
-    """Report-Only must not accidentally become enforcing. Dropping
-    style-src 'unsafe-inline' for real would break 4494 static inline styles
-    across the product."""
-    csp = client.get('/api/health').headers.get('content-security-policy', '')
-    style = next(d for d in csp.split(';') if d.strip().startswith('style-src'))
-    assert "'unsafe-inline'" in style, (
-        'style-src was tightened in the ENFORCING policy; that is a separate, '
-        'much larger migration'
+def test_the_report_only_policy_is_a_ratchet_not_a_copy(client):
+    """REPLACED. This asserted the enforcing style-src still had
+    'unsafe-inline', on the grounds that dropping it "would break 4494 static
+    inline styles". It has now been dropped, and nothing broke -- see
+    frontend/js/00-style-hydrate.js and
+    tests/e2e_browser/test_e2e_browser_08_strict_style_src.py.
+
+    What must remain true is the reason this header exists: Report-Only is for
+    measuring the NEXT tightening. The moment it matches the enforcing policy
+    it reports on rules already in force and collects nothing, which is the
+    trap it fell into once before. It must differ in at least one directive.
+    """
+    resp = client.get('/api/health')
+    enforcing = resp.headers.get('content-security-policy', '')
+    report_only = resp.headers.get('content-security-policy-report-only', '')
+    assert report_only, 'the Report-Only header is gone'
+
+    def directives(policy):
+        return {d.strip().split(' ')[0]: d.strip() for d in policy.split(';') if d.strip()}
+
+    enf, ro = directives(enforcing), directives(report_only)
+    differing = [k for k in ro if k in enf and ro[k] != enf[k]]
+    assert differing, (
+        'Report-Only is identical to the enforcing policy, so it measures '
+        'nothing. Point it at the next directive to tighten.'
     )
+    # It is currently pointed at img-src, which still allows `https:` -- the
+    # last directive that lets a request leave the machine.
+    assert 'img-src' in differing, f'expected img-src to be the ratchet, got {differing}'
 
 
 # ══ The dashboard ═════════════════════════════════════════════════════════════

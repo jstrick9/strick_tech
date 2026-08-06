@@ -330,9 +330,11 @@ def test_unsafe_inline_has_been_removed_and_the_history_documented():
     handlers and 5 inline <script> blocks that were blocking it, so the
     directive itself is gone.
 
-    The reasoning stays in app.py deliberately: a future reader needs to know
-    why style-src still carries 'unsafe-inline' and what re-adding it to
-    script-src would cost.
+    UPDATED: style-src no longer carries 'unsafe-inline' either, so this now
+    asserts BOTH directives are clean. The reasoning stays in app.py
+    deliberately -- a future reader needs to know what re-adding either would
+    cost, and how the 4,410 inline style attributes were dealt with instead
+    (frontend/js/00-style-hydrate.js).
     """
     from backend.app import SECURITY_HEADERS
 
@@ -341,7 +343,15 @@ def test_unsafe_inline_has_been_removed_and_the_history_documented():
         if d.strip().startswith('script-src')
     )
     assert "'unsafe-inline'" not in script_src
-    assert 'style-src DELIBERATELY keeps' in APP_PY
+
+    style_src = next(
+        d for d in SECURITY_HEADERS['Content-Security-Policy'].split(';')
+        if d.strip().startswith('style-src')
+    )
+    assert "'unsafe-inline'" not in style_src, (
+        f'style-src permits inline styles again: {style_src}'
+    )
+    assert 'style-src NO LONGER carries' in APP_PY
     assert 'delegation shim' in APP_PY
 
 
