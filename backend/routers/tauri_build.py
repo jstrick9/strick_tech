@@ -15,7 +15,7 @@ import shutil
 import subprocess
 
 from fastapi import APIRouter
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 router = APIRouter(prefix='/api/tauri', tags=['tauri'])
 log = logging.getLogger('agentic.tauri')
@@ -127,35 +127,99 @@ def _missing_steps(rust_ok: bool, tauri_ok: bool) -> list[str]:
 
 @router.post('/setup/auto-install')
 async def auto_install_tauri_prereqs():
-    """Trigger background installation of Rust and Tauri CLI."""
-    import subprocess
+    """Start installing Rust and the Tauri CLI, and TRACK the job.
+
+    BUG FIX: this used bare `subprocess.Popen(cmd, shell=True)` and threw the
+    handle away. Nothing captured stdout, nothing waited, and nothing ever
+    learned the exit code -- so it returned ok:true whenever Popen itself did
+    not raise, which is essentially always, even when the command was missing
+    or exited 1. Paired with a fake progress stream (see /setup/stream), the
+    user was told the install had succeeded seconds after starting it.
+    """
+    from ..services import install_jobs
+
     cmd = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source $HOME/.cargo/env && cargo install tauri-cli --version '^2'"
-    try:
-        subprocess.Popen(cmd, shell=True, executable='/bin/bash')
-        return {'ok': True, 'command': cmd, 'message': 'Rust and Tauri CLI installation spawned in background'}
-    except Exception as e:
-        return {'ok': False, 'command': cmd, 'error': str(e)}
+    job = install_jobs.start('tauri', [], shell_cmd=cmd)
+    if job['status'] == 'failed':
+        return JSONResponse(
+            {'ok': False, 'command': cmd, 'error': job['error']}, status_code=500
+        )
+    return {
+        'ok': True,
+        'command': cmd,
+        'status': job['status'],
+        'message': 'Installing Rust and the Tauri CLI. This usually takes several '
+                   'minutes; watch /api/tauri/setup/stream for live progress.',
+    }
 
 
 @router.get('/setup/stream')
 async def stream_tauri_setup():
-    """Stream SSE live progress for Rust and Tauri CLI installation."""
+    """Stream the REAL progress of the Rust / Tauri CLI install.
+
+    BUG FIX: this used to be theatre. It slept 0.6s between five hardcoded
+    percentages and then emitted "✅ Setup complete! Rust & Tauri CLI are
+    ready." having checked nothing at all. The UI drove a progress bar off it
+    and toasted success roughly THREE SECONDS after the click, while
+    `cargo install tauri-cli` takes on the order of ten minutes. A user acting
+    on that told-you-so pressed Build and got a confusing failure, and a real
+    install failure was reported as success with nothing to retry.
+
+    It now reports what the process is actually doing: real stdout lines, the
+    real exit code, and -- when there is no job at all -- says so instead of
+    inventing one. Percentage is derived from observable milestones in the
+    output, and never reaches 100 unless the process exited 0.
+    """
     import asyncio
     import json
 
     from fastapi.responses import StreamingResponse
 
+    from ..services import install_jobs
+
+    # Milestones the rustup/cargo output actually prints, in order. Progress is
+    # "furthest milestone seen", so it only moves when something really happened.
+    MILESTONES = [
+        (10, 'info: downloading installer'),
+        (25, 'info: default toolchain'),
+        (40, 'Rust is installed now'),
+        (55, 'Updating crates.io index'),
+        (70, 'Downloading crates'),
+        (85, 'Compiling'),
+        (95, 'Installing tauri-cli'),
+    ]
+
     async def event_generator():
-        steps = [
-            (15, 'Checking system architecture and Xcode command line tools...'),
-            (35, "Downloading Rust toolchain via rustup ('https://sh.rustup.rs')..."),
-            (60, 'Configuring CPython 3.12 embedded target environment...'),
-            (85, "Installing Tauri CLI package ('cargo install tauri-cli v2')..."),
-            (100, '✅ Setup complete! Rust & Tauri CLI are ready.'),
-        ]
-        for pct, msg in steps:
-            yield f'data: {json.dumps({"progress": pct, "message": msg, "done": pct == 100})}\n\n'
-            await asyncio.sleep(0.6)
+        sent = 0
+        last_pct = 0
+        while True:
+            snap = install_jobs.snapshot('tauri')
+
+            if snap['status'] == 'idle':
+                yield f'data: {json.dumps({"progress": 0, "message": "No installation is running. Start one from the Tauri panel.", "done": True, "ok": False, "idle": True})}\n\n'
+                return
+
+            lines = snap['lines']
+            for line in lines[sent:]:
+                yield f'data: {json.dumps({"progress": last_pct, "message": line[:400], "log": True})}\n\n'
+            sent = len(lines)
+
+            blob = '\n'.join(lines[-80:])
+            for pct, needle in MILESTONES:
+                if needle in blob and pct > last_pct:
+                    last_pct = pct
+
+            if snap['status'] == 'done':
+                msg = 'Rust and the Tauri CLI are installed (' + str(snap['elapsed']) + 's).'
+                yield f'data: {json.dumps({"progress": 100, "message": msg, "done": True, "ok": True})}\n\n'
+                return
+            if snap['status'] == 'failed':
+                yield f'data: {json.dumps({"progress": last_pct, "message": "Installation FAILED: " + str(snap["error"] or "unknown error"), "done": True, "ok": False, "returncode": snap["returncode"]})}\n\n'
+                return
+
+            wait_msg = 'Installing… ' + str(snap['elapsed']) + 's elapsed'
+            yield f'data: {json.dumps({"progress": last_pct, "message": wait_msg, "done": False})}\n\n'
+            await asyncio.sleep(1.0)
 
     return StreamingResponse(
         event_generator(),

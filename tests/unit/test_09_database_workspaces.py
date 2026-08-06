@@ -77,7 +77,7 @@ class TestDatabaseStudio:
 
     def test_ai_schema_endpoint(self, client):
         r = client.post("/api/db/sqlite/ai-schema", json={})
-        assert r.status_code in (200, 404, 405, 422)  # POST endpoint
+        assert r.status_code in (200, 400, 404, 405, 422)  # 400: "description required" is a refusal
 
     def test_query_multiple_rows(self, client):
         r = post_json(client, "/api/db/sqlite/query",

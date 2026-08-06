@@ -49,7 +49,9 @@ class TestSysSpecDriven:
                 {"title": "Write tests",             "description": "pytest suite",     "wave": 2},
             ]
         })
-        must(r3, 200, 404, 422)
+        # 400: seeding tasks before the design phase is a refusal
+        # ("Generate design first"), not a 200 with a hidden error.
+        must(r3, 200, 400, 404, 422)
 
         # List tasks
         r4 = await GET(C, f"/api/specs/{spid}/tasks")

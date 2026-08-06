@@ -64,7 +64,9 @@ class TestImageGen:
         r = client.post("/api/imagegen/generate", json={
             "prompt": "A blue circle on white background, simple test image"
         })
-        assert r.status_code == 200
+        # 200 when generation works, 4xx when it is refused (no API key in a
+        # bare test env). Both are honest; a refusal answering 200 was not.
+        assert r.status_code in (200, 400, 402, 503)
         d = r.json()
         assert "ok" in d or "url" in d or "image_url" in d or "error" in d
 

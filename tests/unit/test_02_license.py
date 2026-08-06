@@ -142,7 +142,7 @@ class TestLicenseActivate:
                         content="not json",
                         headers={"Content-Type": "application/json"})
         # Should return ok:false not 500
-        assert r.status_code in (200, 422)
+        assert r.status_code in (200, 400, 422)  # 400: a refused activation is not a 200
         if r.status_code == 200:
             assert r.json()["ok"] is False
 
