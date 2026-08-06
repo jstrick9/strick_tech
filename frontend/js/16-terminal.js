@@ -221,8 +221,8 @@ async function renderSecretsVault() {
 
     <!-- Encryption status banner -->
     <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--radius-lg);margin-bottom:20px;background:${encrypted?'rgba(61,186,122,.08)':'rgba(232,162,55,.08)'};border:1px solid ${encrypted?'rgba(61,186,122,.3)':'rgba(232,162,55,.3)'}">
-      <span style="font-size:22px">${encrypted?'🔒':'⚠️'}</span>
-      <div style="flex:1">
+      <span class="u-881f70f9">${encrypted?'🔒':'⚠️'}</span>
+      <div class="u-97445a8d">
         <div style="font-weight:700;color:${encrypted?'var(--success)':'var(--warning)'}">
           ${encrypted?'AES-256 Fernet Encryption Active':'Encryption Not Available'}
         </div>
@@ -230,7 +230,7 @@ async function renderSecretsVault() {
         ${warning?`<div style="font-size:11px;color:var(--warning);margin-top:4px">${escHtml(warning)}</div>`:''}
       </div>
       <div style="font-size:11px;color:var(--text-3);text-align:right">
-        Key file: <code style="font-size:10px">${escHtml(data.vault_path||'')}</code>
+        Key file: <code class="u-0d5be05f">${escHtml(data.vault_path||'')}</code>
       </div>
     </div>
 
@@ -249,14 +249,14 @@ async function renderSecretsVault() {
         </div>
       </div>
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
-        <div style="flex:1">
+        <div class="u-97445a8d">
           <label style="font-size:11px;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:4px">Scope</label>
           <select id="vault-scope-select" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text-0);font-size:13px;outline:none">
             <option value="global">global — all agents</option>
             <option value="agent">agent — specific agent</option>
           </select>
         </div>
-        <div style="flex:1">
+        <div class="u-97445a8d">
           <label style="font-size:11px;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:4px">Agent (if scoped)</label>
           <input id="vault-agent-input" class="vault-input" placeholder="builder, reviewer, …">
         </div>

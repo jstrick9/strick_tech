@@ -122,7 +122,7 @@
       renderTemplateGrid();
     } catch(ex) {
       var g = document.getElementById('tmpl-grid');
-      if (g) g.innerHTML = '<div style="color:var(--danger);grid-column:1/-1">Failed to load templates: ' + escHtml(ex.message) + '<br><button class="btn-sm" data-act-click="renderTemplates()" style="margin-top:8px">↻ Retry</button></div>';
+      if (g) g.innerHTML = '<div style="color:var(--danger);grid-column:1/-1">Failed to load templates: ' + escHtml(ex.message) + '<br><button class="btn-sm u-8a77e5a3" data-act-click="renderTemplates()" >↻ Retry</button></div>';
     }
   }
 

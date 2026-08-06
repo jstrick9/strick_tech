@@ -67,7 +67,7 @@ function createNotifPanel() {
   p.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:16px">🔔</span>
+        <span class="u-1444c6ea">🔔</span>
         <span style="font-weight:700;font-size:14px;color:var(--text-0)">Notifications</span>
         <span id="notif-count-badge" style="font-size:10px;background:var(--accent);color:var(--on-accent);padding:1px 6px;border-radius:99px;font-weight:700;display:none">0</span>
       </div>
@@ -160,7 +160,7 @@ async function refreshNotifications() {
            data-hover-out="bg:${unread ? 'rgba(99,102,241,0.06)' : 'transparent'}">
         <div style="display:flex;gap:10px">
           <span style="font-size:16px;flex-shrink:0;margin-top:2px">${icons[n.type] || '🔔'}</span>
-          <div style="flex:1;min-width:0">
+          <div class="u-59eddc67">
             <div style="font-size:13px;font-weight:${unread ? 600 : 500};color:var(--text-0);margin-bottom:3px">${escapeHtml(title)}</div>
             <div style="font-size:12px;color:var(--text-2);line-height:1.5">${escapeHtml(body)}</div>
             <div style="font-size:10px;color:var(--text-3);margin-top:4px">${timeStr}</div>

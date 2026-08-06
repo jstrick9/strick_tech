@@ -575,7 +575,7 @@ function kanbanOpenEditModal(taskId) {
           </div>
           <div class="kanban-modal-footer">
             <button type="button" class="kanban-btn-delete" id="kanban-delete-btn">Delete</button>
-            <div style="flex:1"></div>
+            <div class="u-97445a8d"></div>
             <button type="button" class="kanban-btn-cancel" id="kanban-cancel-btn">Cancel</button>
             <button type="submit" class="kanban-btn-primary">Save Changes</button>
           </div>

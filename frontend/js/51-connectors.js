@@ -41,7 +41,7 @@ async function renderConnectors() {
         ['📂','Categories',Object.keys(stats.by_category||{}).length,'#9d74f5'],
       ].map(([icon,label,val,col])=>`
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:18px">${icon}</div>
+          <div class="u-4ff818ff">${icon}</div>
           <div style="font-size:9px;color:var(--text-3);text-transform:uppercase">${label}</div>
           <div style="font-size:18px;font-weight:700;color:${col}">${val}</div>
         </div>`).join('')}
@@ -70,10 +70,10 @@ function renderConnectorCard(c, statusColor) {
   const sCol = statusColor[c.status]||'var(--text-3)';
   const caps = Array.isArray(c.capabilities) ? c.capabilities : [];
   return `
-  <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+  <div class="u-534c2d64">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <span style="font-size:24px">${c.icon||'🔌'}</span>
-      <div style="flex:1">
+      <span class="u-81351bd1">${c.icon||'🔌'}</span>
+      <div class="u-97445a8d">
         <div style="font-weight:700;font-size:13px">${escHtml(c.name)}</div>
         <span style="font-size:10px;padding:1px 6px;border-radius:4px;font-weight:700;background:${sCol}22;color:${sCol}">${c.status}</span>
       </div>
@@ -88,7 +88,7 @@ function renderConnectorCard(c, statusColor) {
     </div>
 
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      ${c.status==='unconfigured'?`<button class="btn" data-connector-id="${escHtml(c.connector_id)}" data-connector-name="${escHtml(c.name)}" data-connector-auth="${escHtml(c.auth_type)}" data-act-click="connectorConfigure($data.connectorId,$data.connectorName,$data.connectorAuth)" style="flex:1">⚙️ Configure</button>`:
+      ${c.status==='unconfigured'?`<button class="btn u-97445a8d" data-connector-id="${escHtml(c.connector_id)}" data-connector-name="${escHtml(c.name)}" data-connector-auth="${escHtml(c.auth_type)}" data-act-click="connectorConfigure($data.connectorId,$data.connectorName,$data.connectorAuth)" >⚙️ Configure</button>`:
         `<button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-connector-caps='${JSON.stringify(caps).replace(/\'/g, "&#39;")}' data-act-click="connectorExecute($data.connectorId,$data.connectorName,$json.connectorCaps)">▶ Execute</button>
          <button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-act-click="connectorHistory($data.connectorId)">📋 History</button>
          <button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-act-click="connectorTest($data.connectorId)">🧪 Test</button>`}

@@ -64,7 +64,7 @@ function renderGitHubBody(s) {
           <a href="${safeUrl(u.html_url)}" target="_blank" style="font-size:12px;color:var(--accent-text)">@${escHtml(u.login||'')}</a>
           <div style="font-size:11px;color:var(--text-2)">${u.public_repos||0} repos · ${escHtml(u.plan||'free')} plan</div>
         </div>
-        <span class="tag green" style="margin-left:auto">✅ Connected</span>
+        <span class="tag green u-6d000617" >✅ Connected</span>
       </div>
 
       <!-- Quick actions -->
@@ -97,7 +97,7 @@ function renderGitHubBody(s) {
                style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition)"
                data-hover="bg:var(--bg-3)" data-hover-out="bg:">
             <span style="font-size:12px">${r.private?'🔒':'📂'}</span>
-            <div style="flex:1;min-width:0">
+            <div class="u-59eddc67">
               <div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(r.name)}</div>
               <div style="font-size:10.5px;color:var(--text-3)">${r.default_branch} · ${r.updated_at}</div>
             </div>
@@ -107,7 +107,7 @@ function renderGitHubBody(s) {
   </div>
 
   <!-- Action result area -->
-  <div id="gh-action-result" style="margin-top:16px"></div>`;
+  <div id="gh-action-result" class="u-1b0f4999"></div>`;
 }
 
 function ghSetRepo(fullName) {
@@ -167,7 +167,7 @@ async function createGHRepo() {
     if (res) res.innerHTML = `<div class="settings-card">
       <h3>✅ Repository Created!</h3>
       <p><a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent-text)">${j.repo} ↗</a></p>
-      <div style="font-size:12.5px;color:var(--text-2)">Clone URL: <code style="font-size:11px">${escHtml(j.clone_url)}</code></div>
+      <div style="font-size:12.5px;color:var(--text-2)">Clone URL: <code class="u-11a50812">${escHtml(j.clone_url)}</code></div>
       <button data-act-click="showGHPush()" class="btn btn-primary btn-sm" style="margin-top:10px">⬆ Push code now</button>
     </div>`;
     toast(`📦 Repository created: ${j.repo}`, 'ok', 4000);
@@ -323,7 +323,7 @@ async function showGHPull() {
         <h3>⬇ Pulled from GitHub!</h3>
         <p>${j.files_pulled} files pulled from <strong>${escHtml(repo)}</strong> (${escHtml(j.branch||'main')})</p>
         <div style="font-size:12px;color:var(--text-2);margin-top:6px">Files are now in preview/</div>
-        <button data-act-click="studioLoadFileTree()" class="btn btn-ghost btn-sm" style="margin-top:8px">📂 Refresh File Tree</button>
+        <button data-act-click="studioLoadFileTree()" class="btn btn-ghost btn-sm u-8a77e5a3" >📂 Refresh File Tree</button>
       </div>`;
       toast(`⬇ Pulled ${j.files_pulled} files from GitHub`, 'ok', 3000);
       studioLoadFileTree?.();

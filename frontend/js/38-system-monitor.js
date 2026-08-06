@@ -80,7 +80,7 @@ function renderSystemBody(h, m, g) {
     <div class="settings-card">
       <h3>🗂 Git Status</h3>
       ${g.ok ? `
-        <div style="margin-bottom:8px">
+        <div class="u-fdf33f23">
           <span class="tag ${g.dirty?'yellow':'green'}">${g.dirty?'Modified':'Clean'}</span>
           <span class="tag blue" style="margin-left:6px">⎇ ${escHtml(g.branch||'')}</span>
         </div>
@@ -100,7 +100,7 @@ function renderSystemBody(h, m, g) {
   </div>
 
   ${(h.processes||[]).length ? `
-  <div class="settings-card" style="margin-top:16px">
+  <div class="settings-card u-1b0f4999" >
     <h3>⚙️ Key Processes</h3>
     <div style="display:flex;flex-direction:column;gap:4px">
       ${(h.processes||[]).map(p => `

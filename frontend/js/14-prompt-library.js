@@ -145,7 +145,7 @@ async function renderPrompts() {
 
   } catch(ex) {
     pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Error loading prompts: ${escHtml(ex?.message||String(ex))}<br>
-      <button class="btn-sm" data-act-click="renderPrompts()" style="margin-top:8px">↻ Retry</button></div>`;
+      <button class="btn-sm u-8a77e5a3" data-act-click="renderPrompts()" >↻ Retry</button></div>`;
   }
 }
 
@@ -221,13 +221,13 @@ function renderPromptCards() {
   );
   if (!filtered.length) return `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-3)">
     No prompts found${q?' matching "'+escHtml(q)+'"':''}.
-    ${!promptsData.length?'<br><button type="button" class="btn btn-primary btn-sm" data-prompt-action="create-first" style="margin-top:8px">＋ Create First Prompt</button>':''}
+    ${!promptsData.length?'<br><button type="button" class="btn btn-primary btn-sm u-8a77e5a3" data-prompt-action="create-first" >＋ Create First Prompt</button>':''}
   </div>`;
 
   return filtered.map(p => `
     <div class="prompt-card ${p.is_favorite?'favorite':''}" style="position:relative">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">
-        <div style="flex:1;min-width:0">
+        <div class="u-59eddc67">
           <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escHtml(p.title)}">${escHtml(p.title)}</div>
           <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap">
             <span style="font-size:10px;padding:1px 7px;border-radius:99px;background:var(--bg-3);color:var(--text-2)">${escHtml(p.category||'general')}</span>
@@ -244,7 +244,7 @@ function renderPromptCards() {
       </div>
       <p style="font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:10px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${escHtml(p.content)}</p>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        <button type="button" data-prompt-action="use" data-prompt-id="${escHtml(p.id)}" class="btn btn-primary btn-sm" style="flex:1" title="Load in chat">→ Use</button>
+        <button type="button" data-prompt-action="use" data-prompt-id="${escHtml(p.id)}" class="btn btn-primary btn-sm u-97445a8d"  title="Load in chat">→ Use</button>
         <button type="button" data-prompt-action="edit" data-prompt-id="${escHtml(p.id)}" class="btn btn-ghost btn-sm" title="Edit">✏️</button>
         <button type="button" data-prompt-action="duplicate" data-prompt-id="${escHtml(p.id)}" class="btn btn-ghost btn-sm" title="Duplicate">⧉</button>
         <button type="button" data-prompt-action="history" data-prompt-id="${escHtml(p.id)}" class="btn btn-ghost btn-sm" title="Version history">🕘</button>
@@ -715,7 +715,7 @@ async function reviewCurrentFile(){
     if(issuesEl)issuesEl.innerHTML=!issues.length?'<div style="text-align:center;padding:20px;color:var(--success)">✅ No issues!</div>':issues.map(i=>`
       <div class="review-issue">
         <span class="review-issue-sev ${i.severity||'info'}"></span>
-        <div style="flex:1;min-width:0">
+        <div class="u-59eddc67">
           <div style="font-size:12px;font-weight:600">Line ${i.line||'?'} — ${escHtml(i.message||'')}</div>
           ${i.fix?`<div style="font-size:11.5px;color:var(--text-2)">Fix: ${escHtml(i.fix)}</div>`:''}
         </div>

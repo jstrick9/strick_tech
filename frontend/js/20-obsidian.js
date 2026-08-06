@@ -13,7 +13,7 @@ async function renderObsidian() {
     renderObsidianBody(s);
   } catch(e) {
     const el = document.getElementById('obs-body');
-    if (el) el.innerHTML = `<div style="color:var(--danger)">Error loading Obsidian status: ${escHtml(e?.message||String(e))}<br><button class="btn-sm" data-act-click="renderObsidian()" style="margin-top:8px">↻ Retry</button></div>`;
+    if (el) el.innerHTML = `<div style="color:var(--danger)">Error loading Obsidian status: ${escHtml(e?.message||String(e))}<br><button class="btn-sm u-8a77e5a3" data-act-click="renderObsidian()" >↻ Retry</button></div>`;
   }
 }
 
@@ -41,7 +41,7 @@ function renderObsidianBody(s) {
           <button data-act-click="createDailyNote()" class="btn btn-ghost">📅 Create Daily Note</button>
           <button data-act-click="exportMemories()" class="btn btn-ghost">📤 Export Memories → Vault</button>
           <div style="display:flex;gap:6px">
-            <button data-act-click="startVaultWatch()" class="btn btn-ghost" id="obs-watch-btn" style="flex:1">👁 Start Auto-Watch</button>
+            <button data-act-click="startVaultWatch()" class="btn btn-ghost u-97445a8d" id="obs-watch-btn" >👁 Start Auto-Watch</button>
             <button data-act-click="stopVaultWatch()" class="btn-sm" title="Stop watcher" style="color:var(--danger)">■ Stop</button>
           </div>
         </div>
@@ -176,7 +176,7 @@ async function loadObsidianNotes(q='') {
            data-hover="bg:var(--bg-3)" data-hover-out="bg:"
            data-act-click="viewNote(${JSON.stringify(n.path)})">
         <span style="font-size:12px">${n.folder==='Daily'?'📅':'📄'}</span>
-        <div style="flex:1;min-width:0">
+        <div class="u-59eddc67">
           <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(n.name)}</div>
           <div style="font-size:10px;color:var(--text-3)">${n.modified}${n.folder?' · '+escHtml(n.folder):''}</div>
         </div>
@@ -214,7 +214,7 @@ async function viewNote(path) {
           <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:7px;align-items:center">
             <button class="btn-sm" data-act-click="navigator.clipboard.writeText(${JSON.stringify(j.content||'')})">📋 Copy</button>
             <button class="btn-sm" style="color:var(--danger)" data-act-click="obsDeleteNote(${JSON.stringify(path)})" data-close="closest:[style*=fixed]">🗑 Delete</button>
-            <button class="btn-sm" style="margin-left:auto" data-close="closest:[style*=fixed]">Close</button>
+            <button class="btn-sm u-6d000617"  data-close="closest:[style*=fixed]">Close</button>
           </div>
         </div>`;
       overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };

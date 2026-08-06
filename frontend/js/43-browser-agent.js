@@ -88,7 +88,7 @@ async function renderBrowserAgent() {
         <button type="button" class="btn-sm" data-ba-action="screenshot" title="Quick screenshot of start URL">📸</button>
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${QUICK_TASKS.map((t, i) => `<button type="button" class="btn-sm" data-ba-quick-task="${i}" style="font-size:10px">${escHtml(t.slice(0,42))}…</button>`).join('')}
+        ${QUICK_TASKS.map((t, i) => `<button type="button" class="btn-sm u-0d5be05f" data-ba-quick-task="${i}" >${escHtml(t.slice(0,42))}…</button>`).join('')}
       </div>
     </div>
     <div style="display:flex;flex:1;overflow:hidden">
@@ -373,7 +373,7 @@ async function loadHistory() {
             <div style="color:var(--text-3)">${escHtml((s.url||'').slice(0,60))} · ${escHtml((s.created_at||'').slice(0,16))}</div>
             ${s.error?`<div style="color:var(--danger);font-size:10px;margin-top:2px">⚠️ ${escHtml(s.error.slice(0,80))}</div>`:''}
             <div style="margin-top:6px;display:flex;gap:4px">
-              <button type="button" class="btn-sm" data-ba-view-idx="${idx}" style="font-size:10px">View</button>
+              <button type="button" class="btn-sm u-0d5be05f" data-ba-view-idx="${idx}" >View</button>
               <button type="button" class="btn-sm" data-ba-delete-idx="${idx}" style="font-size:10px;color:var(--danger);border-color:var(--danger)">Delete</button>
             </div>
           </div>`).join('')}

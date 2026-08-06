@@ -96,7 +96,7 @@
         <div id="account-settings-rail" style="width:220px;flex-shrink:0;background:var(--bg-2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto">
           <div style="padding:18px 16px 10px;font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.8px">Account Settings</div>
           <div id="account-settings-tabs" style="display:flex;flex-direction:column;gap:2px;padding:0 8px"></div>
-          <div style="flex:1"></div>
+          <div class="u-97445a8d"></div>
           <div style="padding:12px;border-top:1px solid var(--border)">
             <button type="button" id="account-settings-close-btn" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-2);cursor:pointer;font-size:12px;font-weight:700">Close</button>
           </div>
@@ -192,10 +192,10 @@
 
       <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px">
         <div id="acct-avatar-display" style="width:64px;height:64px;border-radius:50%;background:var(--bg-3);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;overflow:hidden">${p.avatar && p.avatar.startsWith('data:') ? `<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover" alt="">` : esc(p.avatar || '👤')}</div>
-        <div style="flex:1">
+        <div class="u-97445a8d">
           <div style="display:flex;gap:8px;margin-bottom:8px">
             <input type="file" id="acct-avatar-file" accept="image/*" style="display:none">
-            <button type="button" id="acct-upload-picture-btn" class="btn-3d btn-sm" style="font-size:11px">📸 Upload Picture</button>
+            <button type="button" id="acct-upload-picture-btn" class="btn-3d btn-sm u-11a50812" >📸 Upload Picture</button>
           </div>
           <div id="acct-avatar-picker" style="display:flex;flex-wrap:wrap;gap:4px;max-width:340px"></div>
         </div>

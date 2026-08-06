@@ -40,12 +40,12 @@ async function renderDeploy() {
     const btnLabel = ready ? `🚀 Deploy to ${name}` : `⚙️ Setup ${name}`;
     return `<div style="background:var(--bg-2);border:1px solid ${ready?'var(--accent)':'var(--border)'};border-radius:var(--radius-lg);padding:20px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <span style="font-size:24px">${icon}</span>
+        <span class="u-81351bd1">${icon}</span>
         <div>
           <div style="font-weight:700;font-size:15px">${name}</div>
           <div style="font-size:11.5px;color:var(--text-2)">${hint}</div>
         </div>
-        <span class="tag ${ready?'green':''}" style="margin-left:auto">${ready?'Ready':'Setup needed'}</span>
+        <span class="tag ${ready?'green':''} u-6d000617" >${ready?'Ready':'Setup needed'}</span>
       </div>
       ${!ready ? `<div style="background:var(--bg-1);border-radius:var(--radius-sm);padding:10px;font-size:12px;margin-bottom:10px;color:var(--text-2)">
         Save <code style="background:var(--bg-0);padding:1px 5px;border-radius:3px">${token_key}</code> via the 🔐 Vault tab (takes effect immediately), or add it to your .env file (requires an app restart).
@@ -74,10 +74,10 @@ async function renderDeploy() {
   </div>
   <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <span style="font-size:24px">☁️</span>
+      <span class="u-81351bd1">☁️</span>
       <div><div style="font-weight:700">Cloudflare Tunnel</div>
       <div style="font-size:12px;color:var(--text-2)">Share localhost:8787 publicly via HTTPS — no signup needed</div></div>
-      <span class="tag ${p.cloudflare?.ready?'green':''}" style="margin-left:auto">
+      <span class="tag ${p.cloudflare?.ready?'green':''} u-6d000617" >
         ${p.cloudflare?.ready?'cloudflared installed':'Not installed'}
       </span>
     </div>
@@ -157,7 +157,7 @@ async function startTunnel() {
         <button data-act-click="stopTunnel()" class="btn btn-ghost btn-sm" style="margin-top:8px;color:var(--danger)">⛔ Stop Tunnel</button>`;
       toast(j.already_active ? '🌐 Tunnel already running — reusing it' : '🌐 Tunnel started — share the URL!', 'ok', 6000);
     } else {
-      const installs = j.install ? Object.entries(j.install).map(([k,v])=>`<div><strong>${k}:</strong> <code style="font-size:11px">${escHtml(v)}</code></div>`).join('') : '';
+      const installs = j.install ? Object.entries(j.install).map(([k,v])=>`<div><strong>${k}:</strong> <code class="u-11a50812">${escHtml(v)}</code></div>`).join('') : '';
       const then_ = j.then ? `<div style="margin-top:6px;color:var(--text-2);font-size:12px">${escHtml(j.then)}</div>` : '';
       res.innerHTML = `<div style="color:var(--yellow)">⚠️ ${escHtml(j.error||'')}</div>${installs}${then_}`;
     }

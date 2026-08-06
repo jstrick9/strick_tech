@@ -659,7 +659,7 @@ function ttdShowNodeDetail(nodeId, upToIdx) {
     <!-- Node identity -->
     <div class="ttd-detail-section">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <span style="font-size:20px">${icon}</span>
+        <span class="u-b9199e22">${icon}</span>
         <div>
           <div style="font-size:13px;font-weight:700;color:var(--text-0)">${escHtml(frame.node_label || nodeId)}</div>
           <div style="font-size:10px;color:${col};font-weight:600;text-transform:uppercase">${frame.node_type}</div>
@@ -1239,7 +1239,7 @@ async function renderCollabEdit() {
       </div>
 
       <div style="display:flex;flex:1;overflow:hidden">
-        <div class="ce-editor-wrap" style="flex:1">
+        <div class="ce-editor-wrap u-97445a8d" >
           <textarea class="ce-editor" id="ce-editor"
             placeholder="Start typing… collaborate in real-time with teammates."
             data-act-input="ceHandleInput()"
@@ -1269,7 +1269,7 @@ async function renderCollabEdit() {
         <span id="ce-sync-label">idle</span>
         <span>Rev: <strong id="ce-rev">0</strong></span>
         <span id="ce-peers-count">0 peers</span>
-        <span style="margin-left:auto" id="ce-word-count">0 words</span>
+        <span class="u-6d000617" id="ce-word-count">0 words</span>
       </div>
     </div>
   </div>`;
@@ -1725,7 +1725,7 @@ async function renderMarketplace() {
           </button>
         `).join('')}
 
-        <h4 style="margin-top:16px">Sort By</h4>
+        <h4 class="u-1b0f4999">Sort By</h4>
         <select class="mkt-sort-select" style="width:100%" data-act-change="mktChangeSort($value)">
           <option value="featured" selected>⭐ Featured</option>
           <option value="downloads">⬇ Most Downloaded</option>
@@ -1733,7 +1733,7 @@ async function renderMarketplace() {
           <option value="newest">🆕 Newest</option>
         </select>
 
-        <h4 style="margin-top:16px">Manage</h4>
+        <h4 class="u-1b0f4999">Manage</h4>
         <button class="btn-sm" style="width:100%;margin-bottom:6px" data-act-click="mktCheckUpdates()">🔄 Check Updates</button>
         <button class="btn-sm" style="width:100%;margin-bottom:6px" data-act-click="mktShowInstalled()">📦 Installed (${Object.keys(_mktInstalled).length})</button>
         <button class="btn-sm" style="width:100%" data-act-click="mktUploadPack()">⬆ Upload ZIP</button>
@@ -1991,8 +1991,8 @@ async function mktShowInstalled() {
     const d = await resp.json();
     const items = (d.installed||[]).map((i) =>`
       <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:12px">
-        <span style="font-size:18px">${i.icon||'🔧'}</span>
-        <div style="flex:1">
+        <span class="u-4ff818ff">${i.icon||'🔧'}</span>
+        <div class="u-97445a8d">
           <strong style="color:var(--text-0)">${escHtml(i.name||i.pack_id)}</strong>
           <div style="color:var(--text-3)">v${i.version}</div>
         </div>

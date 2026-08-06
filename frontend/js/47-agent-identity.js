@@ -35,7 +35,7 @@ async function renderAgentIdentity() {
         ['🛡️','Zero-Trust',sysStats.zero_trust_active?'ON':'OFF',sysStats.zero_trust_active?'var(--success)':'var(--danger)'],
       ].map(([icon,label,val,col])=>`
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:18px">${icon}</div>
+          <div class="u-4ff818ff">${icon}</div>
           <div style="font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">${label}</div>
           <div style="font-size:18px;font-weight:700;color:${col}">${val}</div>
         </div>`).join('')}
@@ -112,12 +112,12 @@ function renderIdentityCard(id) {
   const authColor = {minimal:'var(--text-3)',standard:'var(--success)',elevated:'var(--warning)',admin:'var(--danger)'};
   const authIcon  = {minimal:'🔵',standard:'🟢',elevated:'🟡',admin:'🔴'};
   return `
-  <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px">
+  <div class="u-534c2d64">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <div style="width:36px;height:36px;border-radius:50%;background:${(authColor[id.authority_level]||'var(--accent)')}22;display:flex;align-items:center;justify-content:center;font-size:18px">
         ${authIcon[id.authority_level]||'🤖'}
       </div>
-      <div style="flex:1">
+      <div class="u-97445a8d">
         <div style="font-weight:700;font-size:13px">${escHtml(id.display_name||id.agent_id)}</div>
         <div style="font-size:10px;color:var(--text-3)">${escHtml(id.agent_id)} · v${id.key_version}</div>
       </div>

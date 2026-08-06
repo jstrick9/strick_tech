@@ -958,3 +958,36 @@ body {
   /* Prevent the page behind the drawer scrolling while it is open. */
   body.mobile-nav-open { overflow: hidden; }
 }
+
+/* ==== BEGIN generated utility classes (scripts/migrate_inline_styles.py) ==== */
+/* Generated. Do not edit by hand -- run scripts/migrate_inline_styles.py.
+ *
+ * Each class is one repeated inline style attribute, lifted verbatim:
+ * same declarations, same order, flat 0-0-1-0 specificity, so the
+ * computed result is identical to the attribute it replaces.
+ *
+ * This exists to bring the inline-style count down far enough to enforce
+ * a strict style-src. See docs/module-reviews/28-csp-phase3.md.
+ */
+.u-0d5be05f { font-size:10px; }
+.u-11a50812 { font-size:11px; }
+.u-1444c6ea { font-size:16px; }
+.u-1b0f4999 { margin-top:16px; }
+.u-2b1d86c3 { overflow:auto; padding:20px; background:var(--bg-0); }
+.u-49faf7ff { overflow:auto; background:var(--bg-0); }
+.u-4ff818ff { font-size:18px; }
+.u-534c2d64 { background:var(--bg-2); border:1px solid var(--border); border-radius:12px; padding:16px; }
+.u-59eddc67 { flex:1; min-width:0; }
+.u-6c51dbca { padding:6px 14px; }
+.u-6d000617 { margin-left:auto; }
+.u-81351bd1 { font-size:24px; }
+.u-881f70f9 { font-size:22px; }
+.u-8a77e5a3 { margin-top:8px; }
+.u-97445a8d { flex:1; }
+.u-a5031edb { padding:20px 24px 16px; border-bottom:1px solid var(--border); background:var(--bg-1); flex-shrink:0; }
+.u-b9199e22 { font-size:20px; }
+.u-ce4ff4ed { padding:20px; flex:1; }
+.u-da12f285 { margin-bottom:12px; }
+.u-f132e9db { background:var(--bg-2); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.u-fdf33f23 { margin-bottom:8px; }
+/* ==== END generated utility classes ==== */

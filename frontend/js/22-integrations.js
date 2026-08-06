@@ -37,13 +37,13 @@ async function renderIntegrations() {
         ${ints.map(i=>`
           <div class="card card-interactive" id="int-card-${i.id}" data-category="${i.category}">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-              <span style="font-size:22px">${i.emoji}</span>
+              <span class="u-881f70f9">${i.emoji}</span>
               <div><div style="font-weight:700;font-size:13px">${escHtml(i.name)}</div>
               <span style="font-size:10px;padding:2px 7px;border-radius:99px;background:${catColors[i.category]||'var(--bg-4)'}22;color:${catColors[i.category]||'var(--text-2)'}">${i.category}</span></div>
             </div>
             <p style="font-size:12px;color:var(--text-2);margin-bottom:8px;line-height:1.5;min-height:28px">${escHtml(i.description)}</p>
             <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">${i.env_vars.slice(0,2).map(v=>`<code style="font-size:10px;background:var(--bg-0);padding:1px 5px;border-radius:3px;color:var(--text-2)">${v}</code>`).join('')}${i.env_vars.length>2?`<span style="font-size:10px;color:var(--text-3)">+${i.env_vars.length-2}</span>`:''}</div>
-            <div style="display:flex;gap:5px"><button data-act-click="scaffoldIntegration(${JSON.stringify(i.id)})" class="btn btn-primary btn-sm" style="flex:1">⚡ Scaffold</button><a href="${safeUrl(i.docs_url)}" target="_blank" class="btn btn-ghost btn-sm">Docs ↗</a></div>
+            <div style="display:flex;gap:5px"><button data-act-click="scaffoldIntegration(${JSON.stringify(i.id)})" class="btn btn-primary btn-sm u-97445a8d" >⚡ Scaffold</button><a href="${safeUrl(i.docs_url)}" target="_blank" class="btn btn-ghost btn-sm">Docs ↗</a></div>
             <div id="int-status-${i.id}" style="font-size:11px;color:var(--text-2);margin-top:5px;display:none"></div>
           </div>`).join('')}
       </div>
@@ -51,13 +51,13 @@ async function renderIntegrations() {
     <div id="int-tab-docs" style="display:none">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="card">
-          <h3 style="margin-bottom:12px">Auto-generate documentation</h3>
+          <h3 class="u-da12f285">Auto-generate documentation</h3>
           <div style="display:flex;flex-direction:column;gap:7px">
             ${docTypes.map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-3);border-radius:var(--radius-sm);padding:9px 12px"><div><div style="font-size:13px;font-weight:600">${d.label}</div><div style="font-size:11.5px;color:var(--text-2)">${d.desc}</div></div><button data-act-click="generateDoc(${JSON.stringify(d.id)})" class="btn btn-primary btn-sm" id="docbtn-${d.id}">Generate</button></div>`).join('')}
           </div>
           <div id="doc-status" style="font-size:12px;color:var(--text-2);margin-top:10px"></div>
         </div>
-        <div class="card"><h3 style="margin-bottom:8px">Preview</h3><div id="docs-preview" style="font-size:12px;color:var(--text-3)">Generate a doc to see it here</div></div>
+        <div class="card"><h3 class="u-fdf33f23">Preview</h3><div id="docs-preview" style="font-size:12px;color:var(--text-3)">Generate a doc to see it here</div></div>
       </div>
     </div>
     <div id="int-tab-rules" style="display:none">
@@ -66,7 +66,7 @@ async function renderIntegrations() {
           <h3 style="margin-bottom:6px">📋 .agenticrules</h3>
           <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">Like Cursor's .cursorrules — all AI agents read these rules before every response.</p>
           <textarea id="rules-editor" style="width:100%;min-height:280px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical;outline:none;line-height:1.6">${escHtml(rules.content||'')}</textarea>
-          <div style="display:flex;gap:8px;margin-top:8px"><button data-act-click="saveProjectRules()" class="btn btn-primary" style="flex:1">💾 Save</button><button data-act-click="loadDefaultRules()" class="btn btn-ghost btn-sm">Reset</button></div>
+          <div style="display:flex;gap:8px;margin-top:8px"><button data-act-click="saveProjectRules()" class="btn btn-primary u-97445a8d" >💾 Save</button><button data-act-click="loadDefaultRules()" class="btn btn-ghost btn-sm">Reset</button></div>
         </div>
         <div class="card">
           <h3 style="margin-bottom:10px">How rules work</h3>

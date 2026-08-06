@@ -18,9 +18,9 @@ async function renderWebhooks() {
         <div>
           <div style="font-weight:700;margin-bottom:10px">Your Webhooks</div>
           ${whs.length===0 ? emptyState({icon:'🌐',title:'No webhooks yet',body:'Create a webhook to trigger agents from external services.',actions:[{label:'Create Webhook',action:'createWebhook()',primary:true}]}) :
-          whs.map(w=>`<div class="card" style="margin-bottom:8px">
+          whs.map(w=>`<div class="card u-fdf33f23" >
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-              <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${escHtml(w.name)}</div>
+              <div class="u-59eddc67"><div style="font-weight:600;font-size:13px">${escHtml(w.name)}</div>
               <div style="font-size:11px;color:var(--text-2)">Agent: ${w.agent_id} · ${w.trigger_count||0} triggers</div></div>
               <span class="badge ${w.enabled?'badge-success':'badge-default'}">${w.enabled?'Active':'Off'}</span>
             </div>
@@ -55,7 +55,7 @@ async function createWebhook() {
     if (!r.ok) { toast('Create failed: server error ' + r.status, 'err'); return; }
     const j = await r.json();
     if (j.ok) {
-      await gmAlert('✅ Webhook Created!',`<div style="margin-bottom:8px">Endpoint:</div>
+      await gmAlert('✅ Webhook Created!',`<div class="u-fdf33f23">Endpoint:</div>
         <code style="display:block;background:var(--bg-0);padding:8px;border-radius:4px;font-size:12px;word-break:break-all">http://localhost:8787/api/webhooks/${j.id}/trigger</code>
         <div style="margin-top:8px;font-size:12px;color:var(--text-2)">Header: <code>X-Webhook-Secret: ${j.secret}</code></div>`);
       renderWebhooks();

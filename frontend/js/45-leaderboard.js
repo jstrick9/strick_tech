@@ -30,7 +30,7 @@ async function renderLeaderboard() {
         ['❌',`${gov.error_rate_7d||0}%`,'Error Rate'],
       ].map(([icon,val,label])=>`
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:18px">${icon}</div>
+          <div class="u-4ff818ff">${icon}</div>
           <div style="font-size:18px;font-weight:700;color:var(--text-0)">${val}</div>
           <div style="font-size:10px;color:var(--text-3)">${label}</div>
         </div>`).join('')}
@@ -56,11 +56,11 @@ async function renderLeaderboard() {
           <option value="code">Code</option><option value="research">Research</option>
           <option value="chat">Chat</option><option value="analysis">Analysis</option>
         </select>
-        <button class="btn-sm" data-act-click="lbExport()" style="margin-left:auto">⬇ Export</button>
+        <button class="btn-sm u-6d000617" data-act-click="lbExport()" >⬇ Export</button>
       </div>
       <div id="lb-table-container">
       ${(lb.leaderboard||[]).length ? `
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div class="u-f132e9db">
           <div style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:8px 14px;background:var(--bg-3);font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px">
             <div>#</div><div></div><div>Name</div><div>Success%</div><div>Calls</div><div>Avg Lat</div><div>Cost</div><div>Rating</div>
           </div>
@@ -73,7 +73,7 @@ async function renderLeaderboard() {
                    data-hover="bg:var(--bg-3)" data-hover-out="bg:"
                    data-act-click="lbViewAgent(${JSON.stringify(a.agent_id)})">
                 <div style="font-weight:700;color:var(--text-3);font-size:12px">${medal||('#'+(i+1))}</div>
-                <div style="font-size:20px">${a.avatar||'🤖'}</div>
+                <div class="u-b9199e22">${a.avatar||'🤖'}</div>
                 <div>
                   <div style="font-weight:600;color:var(--text-0);font-size:13px">${escHtml(a.name||a.agent_id)}</div>
                   <div style="font-size:10px;color:var(--text-3)">${escHtml(a.agent_id)}</div>
@@ -97,13 +97,13 @@ async function renderLeaderboard() {
 
     <!-- Discover tab -->
     <div id="lb-tab-discover" style="display:none">
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div class="u-f132e9db">
         ${(discovered.agents||[]).length ? (discovered.agents||[]).map((a) =>`
           <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer"
                data-hover="bg:var(--bg-3)" data-hover-out="bg:"
                data-act-click="lbViewAgent(${JSON.stringify(a.id||a.agent_id)})">
-            <span style="font-size:22px">${a.avatar||'🤖'}</span>
-            <div style="flex:1;min-width:0">
+            <span class="u-881f70f9">${a.avatar||'🤖'}</span>
+            <div class="u-59eddc67">
               <div style="font-weight:600;color:var(--text-0);font-size:13px">${escHtml(a.name||a.id)}</div>
               <div style="font-size:11px;color:var(--text-3)">${a.total_calls||0} calls · ${a.success_rate||0}% success · Last: ${(a.last_active||'never').slice(0,16)}</div>
             </div>
@@ -175,7 +175,7 @@ function lbRenderPolicies(policies) {
   const el = document.getElementById('lb-policies-list');
   if (!el) return;
   el.innerHTML = `
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+    <div class="u-f132e9db">
       ${policies.length ? policies.map((p) =>`
         <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px">
           <span style="background:var(--bg-3);padding:1px 6px;border-radius:4px;font-family:monospace;color:var(--accent-text);flex-shrink:0">${escHtml(p.agent_id||'*')}</span>
@@ -252,7 +252,7 @@ async function lbChangeDays(days) {
       return;
     }
     container.innerHTML = `
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div class="u-f132e9db">
         <div style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:8px 14px;background:var(--bg-3);font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase">
           <div>#</div><div></div><div>Name</div><div>Success%</div><div>Calls</div><div>Avg Lat</div><div>Cost</div><div>Rating</div>
         </div>
@@ -264,7 +264,7 @@ async function lbChangeDays(days) {
                        data-hover="bg:var(--bg-3)" data-hover-out="bg:"
                        data-act-click="lbViewAgent(${JSON.stringify(a.agent_id)})">
             <div style="font-weight:700;color:var(--text-3);font-size:12px">${medal||('#'+(i+1))}</div>
-            <div style="font-size:20px">${a.avatar||'🤖'}</div>
+            <div class="u-b9199e22">${a.avatar||'🤖'}</div>
             <div>
               <div style="font-weight:600;color:var(--text-0);font-size:13px">${escHtml(a.name||a.agent_id)}</div>
               <div style="font-size:10px;color:var(--text-3)">${escHtml(a.agent_id)}</div>

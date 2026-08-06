@@ -47,7 +47,7 @@ async function renderSkills() {
       <p id="srm-desc" style="font-size:13px;color:var(--text-2);margin-bottom:18px"></p>
       <div id="srm-inputs" style="margin-bottom:16px"></div>
       <div style="display:flex;gap:8px;margin-bottom:16px">
-        <button data-act-click="execSkill()" class="btn btn-primary" style="flex:1" id="srm-run">▶ Run Skill</button>
+        <button data-act-click="execSkill()" class="btn btn-primary u-97445a8d"  id="srm-run">▶ Run Skill</button>
         <button data-act-click="closeSkillModal()" class="btn btn-ghost">Cancel</button>
       </div>
       <div id="srm-result" style="display:none;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-size:13px;line-height:1.6;max-height:400px;overflow-y:auto"></div>
@@ -115,7 +115,7 @@ function openSkillModal(skillId) {
   // Build inputs
   const inputsEl = document.getElementById('srm-inputs');
   inputsEl.innerHTML = (activeSkill.inputs||[]).map(inp => `
-    <div style="margin-bottom:12px">
+    <div class="u-da12f285">
       <label style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">
         ${escHtml(inp.label)}${inp.required?` <span style="color:var(--red)">*</span>`:''}
       </label>
@@ -168,7 +168,7 @@ async function execSkill() {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <span style="color:${j.ok?'var(--green)':'var(--red)'};">${j.ok?'✅':'❌'}</span>
         <span style="font-size:12px;color:var(--text-2)">${escHtml(j.agent||'')} · ${j.latency_ms||0}ms · ${j.tokens||0} tokens · $${(j.cost||0).toFixed(5)}</span>
-        <button type="button" id="srm-listen-btn" class="btn btn-ghost btn-sm" style="margin-left:auto">🔊 Listen</button>
+        <button type="button" id="srm-listen-btn" class="btn btn-ghost btn-sm u-6d000617" >🔊 Listen</button>
       </div>
       <div style="white-space:pre-wrap;line-height:1.6">${renderMarkdown(skillOutput||'(empty)')}</div>`;
     // BUG FIX: this used to be onclick="speakText(${JSON.stringify(

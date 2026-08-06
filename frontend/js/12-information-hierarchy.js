@@ -356,7 +356,7 @@
 
       ${(patternsData.patterns||[]).length ? `
       <div style="margin-top:20px;font-size:13px;font-weight:700;margin-bottom:10px">🧠 Learned Patterns (${patternsData.count||0})</div>
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div class="u-f132e9db">
         ${(patternsData.patterns||[]).slice(0,10).map(p=>`
           <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px">
             <span style="color:var(--text-3);width:140px;flex-shrink:0">${escHtml(p.pattern_key||'')}</span>
