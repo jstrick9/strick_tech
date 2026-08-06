@@ -31,7 +31,14 @@
   --text-3: #929292;
 
   /* Accent — Refined indigo */
-  --accent: #6366f1;
+  /* BUG FIX: #6366f1 could not carry an accessible foreground at all.
+     Measured with axe-core in Chromium: --on-accent (#0b1020) on it is
+     4.23:1 and white on it is 4.47:1 -- BOTH fail WCAG AA 4.5:1, so no
+     choice of text colour could fix it. 127 of the 138 remaining
+     color-contrast violations were this one pairing, on the primary button,
+     which is why it appeared on nearly every pane. Nudged two steps lighter
+     at the same hue and saturation: --on-accent now reaches 4.58:1. */
+  --accent: #6a6df2;
   --accent-hi: #818cf8;
   --accent-lo: #4f46e5;
   --accent-glow: rgba(99,102,241,0.15);
@@ -41,7 +48,11 @@
   --success-bg: rgba(34,197,94,0.15);
   --warning: #eab308;
   --warning-bg: rgba(234,179,8,0.15);
-  --danger: #ef4444;
+  /* BUG FIX: #ef4444 as TEXT measured 4.43:1 on --bg-2 and 3.72:1 on the
+     tinted error-badge background -- both below AA. Error text is exactly
+     the content a user most needs to be able to read. Lightened at the same
+     hue: 5.42:1 and 4.56:1 respectively. */
+  --danger: #f26565;
   --danger-bg: rgba(239,68,68,0.15);
   --info: #3b82f6;
   --info-bg: rgba(59,130,246,0.15);
@@ -837,7 +848,13 @@ body {
 
 .btn-primary {
   background: var(--accent);
-  color: white;
+  /* BUG FIX: this was `color: white`, which discarded --on-accent -- the
+     token whose entire purpose is to be the accessible foreground for this
+     fill. Measured in Chromium: white on the default accent #6366f1 is
+     4.46:1 and on #38bdf8 is 2.14:1, both failing WCAG AA, while
+     --on-accent on #38bdf8 is 8.84:1. The most important control in the
+     product had the worst contrast in it. */
+  color: var(--on-accent, #fff);
   border-color: var(--accent);
 }
 
@@ -1366,7 +1383,10 @@ body {
 }
 
 .kanban-filter-btn.active {
-  color: var(--text-0);
+  /* Was --text-0 (#f5f5f5) on --accent = 4.09:1, failing AA. Same class of
+     bug as .btn-primary: a foreground chosen independently of the fill
+     instead of the token that exists to pair with it. */
+  color: var(--on-accent, #fff);
   background: var(--accent);
 }
 
@@ -1378,7 +1398,8 @@ body {
   border: none;
   border-radius: var(--radius);
   background: var(--accent);
-  color: white;
+  /* Was `white` = 4.46:1 on --accent, failing AA by 0.04. */
+  color: var(--on-accent, #fff);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;

@@ -49,7 +49,7 @@ async function renderSQLiteTab(el) {
   }
   el.innerHTML = `<div style="display:grid;grid-template-columns:200px 1fr;gap:16px;height:calc(100vh - 200px)">
     <!-- Table list -->
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px;overflow-y:auto" id="db-table-list">
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px;overflow-y:auto" id="db-table-list" tabindex="0" role="group" aria-label="Database tables">
       <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Tables (${tables.length})</div>
       ${tables.map((t, idx) => `
         <div data-table-idx="${idx}" title="${t.restricted ? 'Protected — holds credential material' : (t.sensitive_columns||[]).length ? 'Contains masked columns: ' + escHtml((t.sensitive_columns||[]).join(', ')) : ''}"

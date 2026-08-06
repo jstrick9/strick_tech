@@ -93,7 +93,12 @@
     } else if (pane === 'control') {
       subEl.innerHTML = '<span style="color:var(--warning)">Control Tower:</span> Live Execution Traces & HITL Approval Queue';
     } else {
-      subEl.innerHTML = meta.desc ? `<span style="opacity:.8">${escHtml(meta.desc)}</span>` : '';
+      // BUG FIX: opacity:.8 on 11.5px --text-3 computed to #7b7b7b on #171717
+      // = 4.23:1, failing WCAG AA. opacity is invisible to a token-level
+      // contrast audit: it silently multiplies whatever ratio the token
+      // achieved, so a token that passes on its own can still fail on screen.
+      // --text-3 is already tuned for this surface; it needs no dimming.
+      subEl.innerHTML = meta.desc ? `<span>${escHtml(meta.desc)}</span>` : '';
     }
   }
 

@@ -206,7 +206,9 @@ function setTab(tab) {
     if (p) p.style.display = t === tab ? 'block' : 'none';
     if (b) {
       b.style.background = t === tab ? 'var(--accent)' : '';
-      b.style.color      = t === tab ? '#fff' : '';
+      // --on-accent, not '#fff': white on the accent fill measures 4.13:1,
+      // below AA. The token is computed per theme to pair with that fill.
+      b.style.color      = t === tab ? 'var(--on-accent, #fff)' : '';
     }
   });
   if (tab === 'history') loadHistory();
