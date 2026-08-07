@@ -672,6 +672,52 @@ if (!open) return;
 event.preventDefault();
 dispatch(open.getAttribute('data-act-click'), open, event);
 }, true);
+var KEYBOARDABLE_SELECTOR = '[data-act-click]';
+function makeKeyboardOperable(root) {
+var scope = (root && root.querySelectorAll) ? root : document;
+var nodes = scope.querySelectorAll(KEYBOARDABLE_SELECTOR);
+for (var i = 0; i < nodes.length; i++) {
+var el = nodes[i];
+if (NATIVELY_CLICKABLE.test(el.tagName)) continue;
+if (el.hasAttribute('tabindex')) continue;
+var role = el.getAttribute('role');
+if (role && role !== 'button') continue;
+if (el.getAttribute('data-click-self') === '1') continue;
+el.setAttribute('tabindex', '0');
+if (!role) el.setAttribute('role', 'button');
+}
+}
+var upgradeQueued = false;
+function queueUpgrade() {
+if (upgradeQueued) return;
+upgradeQueued = true;
+setTimeout(function () {
+upgradeQueued = false;
+try { makeKeyboardOperable(document); } catch (e) {  }
+}, 50);
+}
+if (typeof MutationObserver === 'function') {
+new MutationObserver(queueUpgrade).observe(document.documentElement, {
+childList: true, subtree: true,
+});
+}
+if (document.readyState === 'loading') {
+document.addEventListener('DOMContentLoaded', queueUpgrade);
+} else {
+queueUpgrade();
+}
+document.addEventListener('keydown', function (event) {
+if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return;
+var el = event.target;
+if (!el || !el.getAttribute) return;
+if (NATIVELY_CLICKABLE.test(el.tagName)) return;
+if (el.getAttribute('role') !== 'button') return;
+if (!el.hasAttribute('data-act-click')) return;
+if (el.getAttribute('data-self-click') === '1') return;
+event.preventDefault();
+dispatch(el.getAttribute('data-act-click'), el, event);
+});
+window.__makeKeyboardOperable = makeKeyboardOperable;
 window.__delegateDispatch = dispatch;
 window.__delegateHandle = handle;
 })();

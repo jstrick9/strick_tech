@@ -1,6 +1,6 @@
 {
   "head": "head.8f62aefef2be.js",
-  "body": "app.b8b86c6b43a6.js",
+  "body": "app.9c98b95cb9be.js",
   "minified": true,
   "modules": 46,
   "head_modules": [
@@ -53,18 +53,18 @@
     "92-pane-error-boundary.js",
     "93-shortcuts-overlay.js"
   ],
-  "raw_bytes": 1299017,
-  "bundled_bytes": 999922,
+  "raw_bytes": 1302876,
+  "bundled_bytes": 1001543,
   "compressed": {
     "head.8f62aefef2be.js": {
       "raw": 6508,
       "gzip": 2376,
       "brotli": 2015
     },
-    "app.b8b86c6b43a6.js": {
-      "raw": 993414,
-      "gzip": 242052,
-      "brotli": 183322
+    "app.9c98b95cb9be.js": {
+      "raw": 995035,
+      "gzip": 242358,
+      "brotli": 183656
     },
     "chunks.39bbc4e65253.js": {
       "raw": 1575,

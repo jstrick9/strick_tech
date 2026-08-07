@@ -516,6 +516,90 @@
     dispatch(open.getAttribute('data-act-click'), open, event);
   }, true);
 
+  // ── Keyboard operability for non-native clickable elements ────────────────
+  //
+  // 884 rendered elements carried `data-act-click` on a plain <div> or <span>
+  // with no tabindex and no role -- most of them `.agent-row`, which is how
+  // you choose which agent to chat with. They were mouse-only: unreachable by
+  // Tab, invisible to screen readers as controls, and inoperable by anyone
+  // using keyboard, switch or voice input. That is a core interaction, not a
+  // corner of the UI.
+  //
+  // Fixed here rather than at ~890 render sites for the same reason the
+  // renderer registry is hooked centrally elsewhere in this codebase: a rule
+  // applied at one call site is a rule the next call site will forget. Any
+  // markup that becomes clickable in future is covered automatically.
+  //
+  // Native controls are deliberately excluded -- a <button> already turns
+  // Enter and Space into a real click, and adding a synthetic one fires the
+  // handler twice for a single key press.
+  var KEYBOARDABLE_SELECTOR = '[data-act-click]';
+
+  function makeKeyboardOperable(root) {
+    var scope = (root && root.querySelectorAll) ? root : document;
+    var nodes = scope.querySelectorAll(KEYBOARDABLE_SELECTOR);
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (NATIVELY_CLICKABLE.test(el.tagName)) continue;
+      if (el.hasAttribute('tabindex')) continue;
+      // An explicit role means the author already described this element.
+      var role = el.getAttribute('role');
+      if (role && role !== 'button') continue;
+      // Backdrops use data-act-click for click-outside-to-close. They are not
+      // controls, and making them tab stops would put a focus ring on the
+      // dimmed background of every modal.
+      if (el.getAttribute('data-click-self') === '1') continue;
+
+      el.setAttribute('tabindex', '0');
+      if (!role) el.setAttribute('role', 'button');
+    }
+  }
+
+  // Re-apply after renders. Panes rebuild their innerHTML constantly, so a
+  // one-shot pass at load would cover almost nothing.
+  var upgradeQueued = false;
+  function queueUpgrade() {
+    if (upgradeQueued) return;
+    upgradeQueued = true;
+    // Coalesce the burst of mutations a single render produces into one pass.
+    setTimeout(function () {
+      upgradeQueued = false;
+      try { makeKeyboardOperable(document); } catch (e) { /* never break a render */ }
+    }, 50);
+  }
+
+  if (typeof MutationObserver === 'function') {
+    new MutationObserver(queueUpgrade).observe(document.documentElement, {
+      childList: true, subtree: true,
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', queueUpgrade);
+  } else {
+    queueUpgrade();
+  }
+
+  // Enter and Space activate them, matching native button behaviour.
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return;
+    var el = event.target;
+    if (!el || !el.getAttribute) return;
+    if (NATIVELY_CLICKABLE.test(el.tagName)) return;
+    if (el.getAttribute('role') !== 'button') return;
+    if (!el.hasAttribute('data-act-click')) return;
+    // `data-self-click="1"` elements are already handled by the older shim
+    // above, which re-dispatches a real click on Enter/Space. Activating them
+    // here too runs the handler twice for one key press -- exactly the
+    // double-fire this module is careful to avoid for native controls.
+    // Caught by tests/unit/test_93_keyboard_accessibility.py.
+    if (el.getAttribute('data-self-click') === '1') return;
+    // Space scrolls the page by default; Enter may submit an ancestor form.
+    event.preventDefault();
+    dispatch(el.getAttribute('data-act-click'), el, event);
+  });
+
+  window.__makeKeyboardOperable = makeKeyboardOperable;
+
   // Exposed for tests and for callers that need to trigger the same path.
   window.__delegateDispatch = dispatch;
   window.__delegateHandle = handle;
