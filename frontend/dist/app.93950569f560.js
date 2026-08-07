@@ -171,6 +171,78 @@ return () => listeners.delete(fn);
 window.NavigationState = state;
 })();
 
+;/* 00-error-copy.js */
+'use strict';
+(function () {
+var BY_STATUS = {
+400: 'The app sent something the server could not read.',
+401: 'You need to sign in again.',
+403: 'You do not have permission to do that.',
+404: 'That is no longer here — it may have been deleted or renamed.',
+408: 'The server took too long to respond.',
+409: 'Someone else changed this first. Reload to get the latest version.',
+413: 'That is too large to upload.',
+422: 'Some of the details were not valid.',
+429: 'Too many requests at once — wait a moment and try again.',
+500: 'The server ran into a problem.',
+502: 'The server is not reachable right now.',
+503: 'The service is temporarily unavailable.',
+504: 'The server took too long to respond.',
+};
+var RUNTIME_NOISE = /(is not a function|Cannot read propert|Cannot set propert|undefined is not|null is not|NetworkError|Failed to fetch|Load failed|Unexpected token|JSON\.parse|is not valid JSON)/i;
+function statusSentence(status) {
+if (!status) return null;
+if (BY_STATUS[status]) return BY_STATUS[status];
+if (status >= 500) return 'The server ran into a problem.';
+if (status >= 400) return 'That request could not be completed.';
+return null;
+}
+function humanError(err, opts) {
+opts = opts || {};
+var status = null;
+var technical = '';
+if (err && typeof err === 'object') {
+if (typeof err.status === 'number') status = err.status;
+technical = err.message || err.statusText || '';
+} else if (typeof err === 'string') {
+technical = err;
+}
+if (!status && technical) {
+var m = technical.match(/\b(?:HTTP\s*)?(\d{3})\b/);
+if (m) {
+var code = parseInt(m[1], 10);
+if (code >= 400 && code <= 599) status = code;
+}
+}
+var lead = opts.action
+? 'Couldn\u2019t ' + opts.action + '.'
+: 'Something went wrong.';
+var why = statusSentence(status);
+if (!why && RUNTIME_NOISE.test(technical)) {
+why = 'The response from the server was not what the app expected.';
+}
+var parts = [lead];
+if (why) parts.push(why);
+if (opts.dataSafe) parts.push('Nothing was lost.');
+var sentence = parts.join(' ');
+if (opts.detail !== false && technical) {
+var shown = String(technical).trim().slice(0, 120);
+if (!/^(HTTP\s*)?\d{3}$/.test(shown)) sentence += ' (' + shown + ')';
+}
+return sentence;
+}
+function httpError(response, action) {
+var e = new Error(
+(response && response.statusText) || ('Request failed (' + (response && response.status) + ')')
+);
+e.status = response && response.status;
+e.action = action;
+return e;
+}
+window.humanError = humanError;
+window.httpError = httpError;
+})();
+
 ;/* 00-connection-status.js */
 'use strict';
 (function () {
@@ -8001,7 +8073,7 @@ pane.innerHTML = `
               </div>
             `).join('')}
             <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3)">
-              DB size: ${db.db_size_kb} KB
+              DB size: ${Number.isFinite(Number(db.db_size_kb)) ? db.db_size_kb + ' KB' : 'unavailable'}
             </div>
           </div>
         </div>
@@ -9322,7 +9394,7 @@ if (!r.ok) {
 const list0 = document.getElementById('spec-list');
 if (list0 && !append) {
 list0.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:8px">' +
-'Could not load specs (HTTP ' + r.status + ')</div>';
+escHtml(humanError(httpError(r), {action:'load your specs', dataSafe:true})) + '</div>';
 }
 return;
 }
@@ -9351,7 +9423,7 @@ specWireListEvents();
 const list = document.getElementById('spec-list');
 if (list && !append) {
 list.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:8px">' +
-'Could not load specs: ' + escHtml(e && e.message ? e.message : 'network error') + '</div>';
+escHtml(humanError(e, {action:'load your specs', dataSafe:true})) + '</div>';
 }
 }
 }
@@ -14009,7 +14081,7 @@ ttdPopulateWfFilter();
 ttdRenderRunList();
 } catch(e) {
 const list = document.getElementById('ttd-run-list');
-if (list) list.innerHTML = `<div style="color:var(--danger);font-size:12px;padding:10px">Failed to load runs: ${escHtml(e.message)}</div>`;
+if (list) list.innerHTML = `<div style="color:var(--danger);font-size:12px;padding:10px">${escHtml(humanError(e, {action:'load your runs', dataSafe:true}))}</div>`;
 }
 }
 function ttdPopulateWfFilter() {
@@ -15368,14 +15440,14 @@ try {
 const params = new URLSearchParams({q,sort,limit:'48'});
 if (category) params.set('category',category);
 const r = await fetch(`/api/marketplace?${encodeURIComponent(params)}`);
-if (!r.ok) { grid.innerHTML = `<div style="color:var(--danger);padding:12px">Failed to load (HTTP ${r.status})</div>`; return; }
+if (!r.ok) { grid.innerHTML = `<div style="color:var(--danger);padding:12px">${escHtml(humanError(httpError(r), {action:'load this view', dataSafe:true}))}</div>`; return; }
 const d = await r.json();
 const cnt = document.getElementById('mkt-result-count');
 if (cnt) cnt.textContent = `${d.total||0} result${d.total!==1?'s':''}`;
 grid.innerHTML = (d.packs||[]).map((p) =>mktCardHTML(p)).join('') ||
 '<div style="color:var(--text-3);padding:20px;text-align:center">No packs found matching your criteria</div>';
 } catch(e) {
-grid.innerHTML = `<div style="color:var(--danger);padding:12px">Failed to load: ${escHtml(e?.message||String(e))}</div>`;
+grid.innerHTML = `<div style="color:var(--danger);padding:12px">${escHtml(humanError(e, {action:'load this view', dataSafe:true}))}</div>`;
 }
 }
 function mktSearch(q) {
@@ -16166,7 +16238,7 @@ pane.innerHTML = `
 wireCategoryFilterEvents();
 wirePromptGridEvents();
 } catch(ex) {
-pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Error loading prompts: ${escHtml(ex?.message||String(ex))}<br>
+pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(ex, {action:'load your prompts', dataSafe:true}))}<br>
       <button class="btn-sm u-8a77e5a3" data-act-click="renderPrompts()" >↻ Retry</button></div>`;
 }
 }
@@ -18117,7 +18189,7 @@ if (gxGraph) gxGraph.graphData(data);
 if (statsEl) statsEl.textContent =
 `${data.total_memories} memories · ${data.links.length} links · ${data.sources?.length||0} sources`;
 } catch(e) {
-if (statsEl) statsEl.textContent = 'Load failed — ' + (e?.message||String(e));
+if (statsEl) statsEl.textContent = humanError(e, {action:'load the memory graph'});
 }
 }
 function fitGalaxy() { if (gxGraph) gxGraph.zoomToFit(600, 60); }
@@ -19139,7 +19211,7 @@ try {
 const r = await fetch(`/api/analytics/dashboard?days=${days}`);
 if (!r.ok) {
 const el = document.getElementById('dash-body');
-if (el) el.innerHTML = `<div style="color:var(--danger)">Failed to load analytics (HTTP ${r.status})<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
+if (el) el.innerHTML = `<div style="color:var(--danger)">${escHtml(humanError(httpError(r), {action:'load your analytics', dataSafe:true}))}<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
 return;
 }
 dashData = await r.json();

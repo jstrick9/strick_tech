@@ -295,7 +295,7 @@ window.gmAlert('Screenshot error: ' + (ex?.message||String(ex)));
 async function loadHistory() {
 try {
 const r = await fetch('/api/browser/sessions?limit=20');
-if (!r.ok) { toast('Failed to load history: HTTP '+r.status, 'err'); return; }
+if (!r.ok) { toast(humanError(httpError(r), {action:'load your browsing history'}), 'err'); return; }
 const d = await r.json();
 const sessions = d.sessions || [];
 if (!sessions.length) { window.gmAlert('No browser sessions yet. Run a task first!'); return; }

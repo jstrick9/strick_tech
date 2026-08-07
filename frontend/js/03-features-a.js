@@ -1540,7 +1540,7 @@ async function renderProfiler() {
               </div>
             `).join('')}
             <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3)">
-              DB size: ${db.db_size_kb} KB
+              DB size: ${Number.isFinite(Number(db.db_size_kb)) ? db.db_size_kb + ' KB' : 'unavailable'}
             </div>
           </div>
         </div>

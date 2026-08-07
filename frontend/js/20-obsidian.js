@@ -13,7 +13,7 @@ async function renderObsidian() {
     renderObsidianBody(s);
   } catch(e) {
     const el = document.getElementById('obs-body');
-    if (el) el.innerHTML = `<div style="color:var(--danger)">Error loading Obsidian status: ${escHtml(e?.message||String(e))}<br><button class="btn-sm u-8a77e5a3" data-act-click="renderObsidian()" >↻ Retry</button></div>`;
+    if (el) el.innerHTML = `<div style="color:var(--danger)">${escHtml(humanError(e, {action:'check your Obsidian vault', dataSafe:true}))}<br><button class="btn-sm u-8a77e5a3" data-act-click="renderObsidian()" >↻ Retry</button></div>`;
   }
 }
 

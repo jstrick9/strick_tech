@@ -159,7 +159,7 @@ async function saveProjectRules() {
 async function loadDefaultRules() {
   try {
     const r = await fetch('/api/integrations/rules');
-    if (!r.ok) { showToast('Failed to load rules: HTTP '+r.status); return; }
+    if (!r.ok) { showToast(humanError(httpError(r), {action:'load your project rules'})); return; }
     const j = await r.json();
     const e = document.getElementById('rules-editor');
     if (e && j.content) { e.value = j.content; showToast('📋 Rules loaded'); }

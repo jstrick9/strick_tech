@@ -229,7 +229,7 @@ async function ttdLoadRuns() {
     ttdRenderRunList();
   } catch(e) {
     const list = document.getElementById('ttd-run-list');
-    if (list) list.innerHTML = `<div style="color:var(--danger);font-size:12px;padding:10px">Failed to load runs: ${escHtml(e.message)}</div>`;
+    if (list) list.innerHTML = `<div style="color:var(--danger);font-size:12px;padding:10px">${escHtml(humanError(e, {action:'load your runs', dataSafe:true}))}</div>`;
   }
 }
 
@@ -1819,14 +1819,14 @@ async function mktLoadPacks(q='', category='', sort='featured') {
     const params = new URLSearchParams({q,sort,limit:'48'});
     if (category) params.set('category',category);
     const r = await fetch(`/api/marketplace?${encodeURIComponent(params)}`);
-    if (!r.ok) { grid.innerHTML = `<div style="color:var(--danger);padding:12px">Failed to load (HTTP ${r.status})</div>`; return; }
+    if (!r.ok) { grid.innerHTML = `<div style="color:var(--danger);padding:12px">${escHtml(humanError(httpError(r), {action:'load this view', dataSafe:true}))}</div>`; return; }
     const d = await r.json();
     const cnt = document.getElementById('mkt-result-count');
     if (cnt) cnt.textContent = `${d.total||0} result${d.total!==1?'s':''}`;
     grid.innerHTML = (d.packs||[]).map((p) =>mktCardHTML(p)).join('') ||
       '<div style="color:var(--text-3);padding:20px;text-align:center">No packs found matching your criteria</div>';
   } catch(e) {
-    grid.innerHTML = `<div style="color:var(--danger);padding:12px">Failed to load: ${escHtml(e?.message||String(e))}</div>`;
+    grid.innerHTML = `<div style="color:var(--danger);padding:12px">${escHtml(humanError(e, {action:'load this view', dataSafe:true}))}</div>`;
   }
 }
 

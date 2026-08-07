@@ -285,7 +285,7 @@ async function lbChangeDays(days) {
 async function lbViewAgent(agentId) {
   try {
     const r = await fetch(`/api/agent-leaderboard/agent/${encodeURIComponent(agentId)}`);
-    if (!r.ok) { gmAlert('Failed to load agent stats: HTTP '+r.status); return; }
+    if (!r.ok) { gmAlert(humanError(httpError(r), {action:'load agent statistics'})); return; }
     const d = await r.json();
     const s = d.summary || {};
     const byType = (d.by_type||[]).map(t =>

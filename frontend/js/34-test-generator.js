@@ -13,8 +13,14 @@ async function renderTestGen() {
   pane.innerHTML = skeletonPage();
   try {
     const [fr, fwr] = await Promise.all([fetch('/api/preview/files'), fetch('/api/testgen/frameworks')]);
+    if (!fr.ok || !fwr.ok) {
+      throw new Error('The server could not return your project files.');
+    }
     const [files, fws] = await Promise.all([fr.json(), fwr.json()]);
-    const codeFiles = files.filter(f=>/\.(js|jsx|ts|tsx|py)$/.test(f.path));
+    // A failed request returns an error object, not a list. Calling .filter()
+    // on it threw "files.filter is not a function" into the pane.
+    const fileList = Array.isArray(files) ? files : (files && files.files) || [];
+    const codeFiles = fileList.filter(f => /\.(js|jsx|ts|tsx|py)$/.test(f.path));
     pane.innerHTML = `
       ${pageHeader({title:'🧪 Test Generator', subtitle:'AI writes comprehensive test suites for any file',actions:[]})}
       <div class="page-content">

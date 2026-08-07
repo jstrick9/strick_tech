@@ -39,7 +39,7 @@ async function renderDashboard() {
     const r = await fetch(`/api/analytics/dashboard?days=${days}`);
     if (!r.ok) {
       const el = document.getElementById('dash-body');
-      if (el) el.innerHTML = `<div style="color:var(--danger)">Failed to load analytics (HTTP ${r.status})<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
+      if (el) el.innerHTML = `<div style="color:var(--danger)">${escHtml(humanError(httpError(r), {action:'load your analytics', dataSafe:true}))}<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
       return;
     }
     dashData = await r.json();
