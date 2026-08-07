@@ -113,19 +113,28 @@ def test_bundle_is_not_stale():
         'Run: python3 scripts/build_bundle.py')
 
 
-def test_every_module_in_index_html_is_in_the_bundle():
-    """No module may be silently dropped -- that is a whole pane going dark."""
+def test_every_module_in_index_html_is_shipped():
+    """No module may be silently dropped -- that is a whole pane going dark.
+
+    Since per-pane code splitting landed, a module ships either in the core
+    bundle or in exactly one lazy chunk, so both are counted here.
+    """
     manifest = json.loads((DIST / 'manifest.json').read_text(encoding='utf-8'))
-    bundled = set(manifest['head_modules']) | set(manifest['body_modules'])
+    core = set(manifest['head_modules']) | set(manifest['body_modules'])
+    chunked = {m for c in manifest.get('chunks', {}).values()
+               for m in c['modules']}
+    shipped = core | chunked
 
     html = (FRONTEND / 'index.html').read_text(encoding='utf-8')
     referenced = {m.group('src') for m in build_bundle.SCRIPT_RE.finditer(html)}
 
-    assert referenced == bundled, (
-        f'in HTML but not bundled: {sorted(referenced - bundled)}; '
-        f'bundled but not in HTML: {sorted(bundled - referenced)}')
-    assert bundled == {p.name for p in JS_FILES}, (
+    assert referenced == shipped, (
+        f'in HTML but not shipped: {sorted(referenced - shipped)}; '
+        f'shipped but not in HTML: {sorted(shipped - referenced)}')
+    assert shipped == {p.name for p in JS_FILES}, (
         'frontend/js contains modules the page never loads, or vice versa')
+    assert not (core & chunked), 'a module ships both eagerly and lazily'
+
 
 
 def test_head_scripts_stay_in_the_head():
@@ -214,7 +223,8 @@ def test_minifier_actually_shrinks_the_code():
 # ──────────────────────────────────────────────────────────────────────
 #  The HTML rewrite
 # ──────────────────────────────────────────────────────────────────────
-def test_rewrite_collapses_79_tags_into_two():
+def test_rewrite_collapses_80_tags_into_three():
+    """80 module tags become head bundle + chunk manifest + body bundle."""
     html = (FRONTEND / 'index.html').read_text(encoding='utf-8')
     manifest = json.loads((DIST / 'manifest.json').read_text(encoding='utf-8'))
 
@@ -223,8 +233,9 @@ def test_rewrite_collapses_79_tags_into_two():
 
     out = asset_bundle.rewrite_html(html, manifest)
     assert '/static/js/' not in out, 'individual module tags survived the rewrite'
-    assert out.count('<script src="/static/dist/') == 2
+    assert out.count('<script src="/static/dist/') == 3
     assert f'/static/dist/{manifest["head"]}' in out
+    assert f'/static/dist/{manifest["chunk_manifest"]}" defer' in out
     assert f'/static/dist/{manifest["body"]}" defer' in out, (
         'the body bundle must keep defer, or it blocks parsing')
 
@@ -271,6 +282,52 @@ def test_missing_bundle_falls_back_to_individual_modules():
 # ──────────────────────────────────────────────────────────────────────
 #  Compression and caching
 # ──────────────────────────────────────────────────────────────────────
+def test_brotli_variants_are_built_and_beat_gzip():
+    """Brotli is ~26% smaller than gzip on this bundle (391 KB -> 288 KB)."""
+    manifest = json.loads((DIST / 'manifest.json').read_text(encoding='utf-8'))
+    body = DIST / manifest['body']
+    br = body.with_name(body.name + '.br')
+    gz = body.with_name(body.name + '.gz')
+    assert br.is_file(), (
+        'no .br beside the bundle. Brotli is in requirements.txt and is used '
+        'at build time only; run: python3 scripts/build_bundle.py')
+    assert br.stat().st_size < gz.stat().st_size, 'brotli should beat gzip'
+
+
+@pytest.mark.parametrize('header,expected', [
+    ('br',                        'br'),
+    ('gzip, deflate, br',         'br'),
+    ('gzip',                      'gzip'),
+    ('*',                         'br'),
+    # `br;q=0` means "do NOT send brotli". A substring check for 'br' serves
+    # it anyway, and the client receives binary garbage it cannot decode.
+    # This was a real bug: the first implementation used `token not in accept`.
+    ('br;q=0, gzip',              'gzip'),
+    ('gzip;q=1.0, br;q=0.5',      'gzip'),
+    ('identity',                  None),
+])
+def test_content_encoding_honours_q_values(client, header, expected):
+    manifest = json.loads((DIST / 'manifest.json').read_text(encoding='utf-8'))
+    r = client.get(f'/static/dist/{manifest["body"]}',
+                   headers={'Accept-Encoding': header} if header else {})
+    assert r.status_code == 200
+    assert r.headers.get('content-encoding') == expected, (
+        f'Accept-Encoding: {header!r} should yield {expected!r}')
+
+
+def test_no_accept_encoding_header_means_uncompressed():
+    """Asserted on the parser, not through TestClient.
+
+    httpx injects `Accept-Encoding: gzip, deflate, br` into every request it
+    builds, so a test that omitted the header would silently be testing the
+    brotli path instead. The function is where the behaviour lives.
+    """
+    assert asset_bundle._acceptable_encodings('') == []
+    assert asset_bundle._acceptable_encodings('identity') == []
+    assert asset_bundle._acceptable_encodings('br') == ['br']
+    assert asset_bundle._acceptable_encodings('br;q=0, gzip') == ['gzip']
+
+
 def test_precompressed_variants_exist_and_are_much_smaller():
     """The bundle was being served uncompressed: 1.6 MB for ~390 KB of gzip."""
     manifest = json.loads((DIST / 'manifest.json').read_text(encoding='utf-8'))
@@ -333,5 +390,5 @@ def test_bundle_lookup_rejects_anything_but_a_plain_filename():
 def test_index_route_serves_the_bundled_html(client):
     r = client.get('/')
     assert r.status_code == 200
-    assert r.text.count('<script src="/static/dist/') == 2
+    assert r.text.count('<script src="/static/dist/') == 3
     assert '/static/js/' not in r.text
