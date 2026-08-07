@@ -102,7 +102,17 @@ def rewrite_html(html: str, manifest: dict) -> str:
     head_tag = (
         f'<script src="/static/dist/{manifest["head"]}"></script>\n'
     )
-    body_tag = (
+
+    # The chunk manifest must be defined before the body bundle runs, because
+    # 00-chunk-loader.js reads window.__CHUNK_MANIFEST__ as it installs its
+    # registry wrappers. It is a separate file rather than an inline script:
+    # under the enforced `script-src 'self'` an inline <script> is refused, and
+    # loosening that policy for it would undo work from CSP phases 1-3.
+    chunk_manifest = manifest.get('chunk_manifest')
+    body_tag = ''
+    if chunk_manifest:
+        body_tag += f'<script src="/static/dist/{chunk_manifest}" defer></script>\n'
+    body_tag += (
         f'<script src="/static/dist/{manifest["body"]}" defer></script>\n'
     )
 
@@ -175,6 +185,50 @@ def clear_cache() -> None:
 _ENCODINGS = (('br', '.br'), ('gzip', '.gz'))
 
 
+def _acceptable_encodings(accept_encoding: str) -> list[str]:
+    """Parse an Accept-Encoding header into encodings the client will accept.
+
+    Returned in the client's order of preference (highest q first), with
+    anything explicitly refused removed.
+
+    A plain substring test is not good enough here, and the difference is not
+    theoretical: `Accept-Encoding: br;q=0, gzip` means "I do NOT want brotli,
+    send me gzip". A substring check sees "br" in the header and serves a
+    brotli body the client just told us it cannot decode -- which arrives as
+    binary garbage rather than a clean failure. RFC 9110 also defines `*` and
+    lets a q-value order the preferences, so both are honoured.
+    """
+    prefs: dict[str, float] = {}
+    for part in (accept_encoding or '').split(','):
+        part = part.strip()
+        if not part:
+            continue
+        token, _, params = part.partition(';')
+        token = token.strip().lower()
+        quality = 1.0
+        for param in params.split(';'):
+            key, _, value = param.partition('=')
+            if key.strip().lower() == 'q':
+                try:
+                    quality = float(value.strip())
+                except ValueError:
+                    quality = 0.0
+        prefs[token] = quality
+
+    star = prefs.get('*')
+    accepted = []
+    for token, _suffix in _ENCODINGS:
+        quality = prefs.get(token, star)
+        if quality is not None and quality > 0:
+            accepted.append((quality, token))
+
+    # Sort by client preference, breaking ties in our own order (brotli first,
+    # since it is materially smaller).
+    order = {token: i for i, (token, _) in enumerate(_ENCODINGS)}
+    accepted.sort(key=lambda item: (-item[0], order[item[1]]))
+    return [token for _q, token in accepted]
+
+
 def bundle_response(frontend_dir: Path, filename: str, accept_encoding: str):
     """Serve a built bundle, preferring a precompressed variant.
 
@@ -197,10 +251,9 @@ def bundle_response(frontend_dir: Path, filename: str, accept_encoding: str):
         'Vary': 'Accept-Encoding',
     }
 
-    for token, suffix in _ENCODINGS:
-        if token not in accept:
-            continue
-        variant = base.with_name(base.name + suffix)
+    suffixes = dict(_ENCODINGS)
+    for token in _acceptable_encodings(accept):
+        variant = base.with_name(base.name + suffixes[token])
         if not variant.is_file():
             continue
         return Response(

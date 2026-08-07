@@ -1,8 +1,8 @@
 {
   "head": "head.8f62aefef2be.js",
-  "body": "app.657ff61bd714.js",
+  "body": "app.c22b320d404f.js",
   "minified": true,
-  "modules": 79,
+  "modules": 62,
   "head_modules": [
     "00-style-hydrate.js",
     "00-theme-boot.js"
@@ -19,6 +19,7 @@
     "00-mobile-nav.js",
     "00-pane-registry.js",
     "00-workstations.js",
+    "00-chunk-loader.js",
     "00-errors.js",
     "01-app-core.js",
     "02-studio.js",
@@ -31,7 +32,6 @@
     "08-replay-collab.js",
     "09-voice-tts.js",
     "11-ux-accessibility.js",
-    "12-information-hierarchy.js",
     "13-ui-ergonomics.js",
     "14-prompt-library.js",
     "15-image-generation.js",
@@ -43,8 +43,6 @@
     "21-template-gallery.js",
     "22-integrations.js",
     "23-plugin-marketplace.js",
-    "34-plugin-hub.js",
-    "35-connect-hub.js",
     "24-onboarding.js",
     "25-skills.js",
     "26-swarm.js",
@@ -63,6 +61,256 @@
     "38-system-monitor.js",
     "39-mcp-panel.js",
     "40-loops.js",
+    "56-chat-history.js",
+    "57-account-settings.js",
+    "58-csp-monitor.js",
+    "90-sidebar-shortcut.js",
+    "91-mode-switcher.js",
+    "92-pane-error-boundary.js",
+    "93-shortcuts-overlay.js"
+  ],
+  "raw_bytes": 1571959,
+  "bundled_bytes": 1239727,
+  "compressed": {
+    "head.8f62aefef2be.js": {
+      "raw": 6508,
+      "gzip": 2376,
+      "brotli": 2015
+    },
+    "app.c22b320d404f.js": {
+      "raw": 1233219,
+      "gzip": 294960,
+      "brotli": 220456
+    },
+    "chunks.6aae04efa2cf.js": {
+      "raw": 860,
+      "gzip": 465,
+      "brotli": 403
+    },
+    "pane-a2a.b35d81dd06c5.js": {
+      "raw": 26249,
+      "gzip": 7069,
+      "brotli": 6080
+    },
+    "pane-agent-identity.bb479ce038e8.js": {
+      "raw": 12990,
+      "gzip": 3754,
+      "brotli": 3146
+    },
+    "pane-agent-monitor.343a28c7ca9b.js": {
+      "raw": 35861,
+      "gzip": 8720,
+      "brotli": 7623
+    },
+    "pane-audit-log.10182a04295e.js": {
+      "raw": 31759,
+      "gzip": 8390,
+      "brotli": 7257
+    },
+    "pane-browser.f36cc7dea41b.js": {
+      "raw": 23925,
+      "gzip": 6511,
+      "brotli": 5540
+    },
+    "pane-connectors.40b36d55929a.js": {
+      "raw": 9244,
+      "gzip": 3293,
+      "brotli": 2778
+    },
+    "pane-eval-framework.d48b760348e5.js": {
+      "raw": 10704,
+      "gzip": 3446,
+      "brotli": 2883
+    },
+    "pane-finops.d129517563ec.js": {
+      "raw": 15165,
+      "gzip": 4213,
+      "brotli": 3576
+    },
+    "pane-fusion.25e4b2301309.js": {
+      "raw": 23822,
+      "gzip": 5274,
+      "brotli": 4459
+    },
+    "pane-goals.4f77d34b78bd.js": {
+      "raw": 43223,
+      "gzip": 10741,
+      "brotli": 9164
+    },
+    "pane-hierarchy.cb8ddf42daef.js": {
+      "raw": 37112,
+      "gzip": 8494,
+      "brotli": 7345
+    },
+    "pane-hitl.6a525b0ffcf4.js": {
+      "raw": 16637,
+      "gzip": 5025,
+      "brotli": 4215
+    },
+    "pane-leaderboard.9e267a1679d3.js": {
+      "raw": 21913,
+      "gzip": 5483,
+      "brotli": 4718
+    },
+    "pane-mcp.d19bb2a238e6.js": {
+      "raw": 12054,
+      "gzip": 3725,
+      "brotli": 3142
+    },
+    "pane-mcp-gateway.c61180a003db.js": {
+      "raw": 50241,
+      "gzip": 12196,
+      "brotli": 10486
+    },
+    "pane-plugins.0811dda1ee5b.js": {
+      "raw": 14038,
+      "gzip": 4088,
+      "brotli": 3492
+    },
+    "pane-supervisor.67f34323288b.js": {
+      "raw": 45753,
+      "gzip": 12548,
+      "brotli": 10830
+    },
+    "pane-websearch.2e11669aebd0.js": {
+      "raw": 17197,
+      "gzip": 4471,
+      "brotli": 3809
+    }
+  },
+  "chunks": {
+    "a2a": {
+      "file": "pane-a2a.b35d81dd06c5.js",
+      "modules": [
+        "52-a2a.js"
+      ],
+      "bytes": 26249
+    },
+    "agent-identity": {
+      "file": "pane-agent-identity.bb479ce038e8.js",
+      "modules": [
+        "47-agent-identity.js"
+      ],
+      "bytes": 12990
+    },
+    "agent-monitor": {
+      "file": "pane-agent-monitor.343a28c7ca9b.js",
+      "modules": [
+        "53-agent-monitor.js"
+      ],
+      "bytes": 35861
+    },
+    "audit-log": {
+      "file": "pane-audit-log.10182a04295e.js",
+      "modules": [
+        "46-compliance-report.js"
+      ],
+      "bytes": 31759
+    },
+    "browser": {
+      "file": "pane-browser.f36cc7dea41b.js",
+      "modules": [
+        "43-browser-agent.js"
+      ],
+      "bytes": 23925
+    },
+    "connectors": {
+      "file": "pane-connectors.40b36d55929a.js",
+      "modules": [
+        "51-connectors.js"
+      ],
+      "bytes": 9244
+    },
+    "eval-framework": {
+      "file": "pane-eval-framework.d48b760348e5.js",
+      "modules": [
+        "55-eval-framework.js"
+      ],
+      "bytes": 10704
+    },
+    "finops": {
+      "file": "pane-finops.d129517563ec.js",
+      "modules": [
+        "54-finops.js"
+      ],
+      "bytes": 15165
+    },
+    "fusion": {
+      "file": "pane-fusion.25e4b2301309.js",
+      "modules": [
+        "41-fusion.js"
+      ],
+      "bytes": 23822
+    },
+    "goals": {
+      "file": "pane-goals.4f77d34b78bd.js",
+      "modules": [
+        "49-goals.js"
+      ],
+      "bytes": 43223
+    },
+    "hierarchy": {
+      "file": "pane-hierarchy.cb8ddf42daef.js",
+      "modules": [
+        "12-information-hierarchy.js"
+      ],
+      "bytes": 37112
+    },
+    "hitl": {
+      "file": "pane-hitl.6a525b0ffcf4.js",
+      "modules": [
+        "42-hitl.js"
+      ],
+      "bytes": 16637
+    },
+    "leaderboard": {
+      "file": "pane-leaderboard.9e267a1679d3.js",
+      "modules": [
+        "45-leaderboard.js"
+      ],
+      "bytes": 21913
+    },
+    "mcp": {
+      "file": "pane-mcp.d19bb2a238e6.js",
+      "modules": [
+        "35-connect-hub.js"
+      ],
+      "bytes": 12054
+    },
+    "mcp-gateway": {
+      "file": "pane-mcp-gateway.c61180a003db.js",
+      "modules": [
+        "50-mcp-gateway.js"
+      ],
+      "bytes": 50241
+    },
+    "plugins": {
+      "file": "pane-plugins.0811dda1ee5b.js",
+      "modules": [
+        "34-plugin-hub.js"
+      ],
+      "bytes": 14038
+    },
+    "supervisor": {
+      "file": "pane-supervisor.67f34323288b.js",
+      "modules": [
+        "48-supervisor.js"
+      ],
+      "bytes": 45753
+    },
+    "websearch": {
+      "file": "pane-websearch.2e11669aebd0.js",
+      "modules": [
+        "44-websearch.js"
+      ],
+      "bytes": 17197
+    }
+  },
+  "chunk_manifest": "chunks.6aae04efa2cf.js",
+  "lazy_modules": [
+    "12-information-hierarchy.js",
+    "34-plugin-hub.js",
+    "35-connect-hub.js",
     "41-fusion.js",
     "42-hitl.js",
     "43-browser-agent.js",
@@ -77,25 +325,7 @@
     "52-a2a.js",
     "53-agent-monitor.js",
     "54-finops.js",
-    "55-eval-framework.js",
-    "56-chat-history.js",
-    "57-account-settings.js",
-    "58-csp-monitor.js",
-    "90-sidebar-shortcut.js",
-    "91-mode-switcher.js",
-    "92-pane-error-boundary.js",
-    "93-shortcuts-overlay.js"
+    "55-eval-framework.js"
   ],
-  "raw_bytes": 2068163,
-  "bundled_bytes": 1683612,
-  "compressed": {
-    "head.8f62aefef2be.js": {
-      "raw": 6508,
-      "gzip": 2376
-    },
-    "app.657ff61bd714.js": {
-      "raw": 1677104,
-      "gzip": 391336
-    }
-  }
+  "lazy_bytes": 447887
 }

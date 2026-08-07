@@ -28,6 +28,13 @@ pillow==11.0.0
 # ── Templates ─────────────────────────────────────────────────────────────────
 jinja2==3.1.4
 
+# ── Brotli compression for the built frontend bundle ──────────────────────────
+# Used at BUILD time only (scripts/build_bundle.py), never in the request path.
+# Produces .br files alongside .gz; roughly 15% smaller than gzip on this
+# bundle. The build degrades gracefully to gzip-only if this is missing, so a
+# constrained install can drop it without breaking anything.
+Brotli==1.2.0
+
 # ── Dev / CLI output ──────────────────────────────────────────────────────────
 rich==13.9.4
 

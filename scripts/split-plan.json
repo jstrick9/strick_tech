@@ -1,0 +1,186 @@
+{
+  "lazy": {
+    "a2a": [
+      "52-a2a.js"
+    ],
+    "agent-identity": [
+      "47-agent-identity.js"
+    ],
+    "agent-monitor": [
+      "53-agent-monitor.js"
+    ],
+    "audit-log": [
+      "46-compliance-report.js"
+    ],
+    "browser": [
+      "43-browser-agent.js"
+    ],
+    "connectors": [
+      "51-connectors.js"
+    ],
+    "eval-framework": [
+      "55-eval-framework.js"
+    ],
+    "finops": [
+      "54-finops.js"
+    ],
+    "fusion": [
+      "41-fusion.js"
+    ],
+    "goals": [
+      "49-goals.js"
+    ],
+    "hierarchy": [
+      "12-information-hierarchy.js"
+    ],
+    "hitl": [
+      "42-hitl.js"
+    ],
+    "leaderboard": [
+      "45-leaderboard.js"
+    ],
+    "mcp": [
+      "35-connect-hub.js"
+    ],
+    "mcp-gateway": [
+      "50-mcp-gateway.js"
+    ],
+    "plugins": [
+      "34-plugin-hub.js"
+    ],
+    "supervisor": [
+      "48-supervisor.js"
+    ],
+    "websearch": [
+      "44-websearch.js"
+    ]
+  },
+  "lazyFiles": [
+    "12-information-hierarchy.js",
+    "34-plugin-hub.js",
+    "35-connect-hub.js",
+    "41-fusion.js",
+    "42-hitl.js",
+    "43-browser-agent.js",
+    "44-websearch.js",
+    "45-leaderboard.js",
+    "46-compliance-report.js",
+    "47-agent-identity.js",
+    "48-supervisor.js",
+    "49-goals.js",
+    "50-mcp-gateway.js",
+    "51-connectors.js",
+    "52-a2a.js",
+    "53-agent-monitor.js",
+    "54-finops.js",
+    "55-eval-framework.js"
+  ],
+  "blocked": {
+    "04-workflow-specs.js": [
+      "01-app-core.js",
+      "02-studio.js",
+      "03-features-a.js",
+      "03-features-b.js",
+      "05-evals-observability.js",
+      "06-sprint-features.js",
+      "07-quality-tools.js",
+      "08-replay-collab.js",
+      "12-information-hierarchy.js",
+      "14-prompt-library.js",
+      "15-image-generation.js",
+      "19-composer.js",
+      "21-template-gallery.js",
+      "24-onboarding.js",
+      "26-swarm.js",
+      "27-galaxy.js",
+      "29-notifications.js",
+      "32-collaboration.js",
+      "41-fusion.js",
+      "42-hitl.js",
+      "43-browser-agent.js",
+      "44-websearch.js",
+      "45-leaderboard.js",
+      "46-compliance-report.js",
+      "47-agent-identity.js",
+      "48-supervisor.js",
+      "49-goals.js",
+      "50-mcp-gateway.js",
+      "51-connectors.js",
+      "52-a2a.js",
+      "53-agent-monitor.js",
+      "54-finops.js",
+      "55-eval-framework.js",
+      "91-mode-switcher.js"
+    ],
+    "15-image-generation.js": [
+      "01-app-core.js"
+    ],
+    "17-database-studio.js": [
+      "01-app-core.js"
+    ],
+    "18-github.js": [
+      "01-app-core.js"
+    ],
+    "19-composer.js": [
+      "01-app-core.js"
+    ],
+    "20-obsidian.js": [
+      "01-app-core.js"
+    ],
+    "21-template-gallery.js": [
+      "01-app-core.js"
+    ],
+    "22-integrations.js": [
+      "01-app-core.js"
+    ],
+    "23-plugin-marketplace.js": [
+      "01-app-core.js",
+      "32-collaboration.js"
+    ],
+    "25-skills.js": [
+      "01-app-core.js"
+    ],
+    "26-swarm.js": [
+      "01-app-core.js"
+    ],
+    "27-galaxy.js": [
+      "01-app-core.js"
+    ],
+    "28-kanban.js": [
+      "01-app-core.js"
+    ],
+    "30-workspaces.js": [
+      "01-app-core.js"
+    ],
+    "31-control-tower.js": [
+      "01-app-core.js"
+    ],
+    "33-webhooks.js": [
+      "01-app-core.js"
+    ],
+    "34-test-generator.js": [
+      "01-app-core.js"
+    ],
+    "35-deploy.js": [
+      "01-app-core.js"
+    ],
+    "36-dashboard.js": [
+      "01-app-core.js"
+    ],
+    "37-pipeline.js": [
+      "01-app-core.js"
+    ],
+    "38-system-monitor.js": [
+      "01-app-core.js"
+    ],
+    "39-mcp-panel.js": [
+      "01-app-core.js"
+    ],
+    "40-loops.js": [
+      "01-app-core.js"
+    ]
+  },
+  "unresolvedPanes": [],
+  "lazyBytes": 504456,
+  "totalBytes": 2076415
+}
