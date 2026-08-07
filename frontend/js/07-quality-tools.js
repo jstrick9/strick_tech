@@ -281,6 +281,9 @@ async function renderHealth() {
 
   try {
     const h = await fetch('/api/ambient/health').then(r=>r.ok?r.json().catch(()=>{}):null);
+    // Same shape as the hooks bug: a failed fetch resolves to null and
+    // `h.grade` threw "Cannot read properties of null" into the pane.
+    if (!h) throw new Error('The server could not return a health report.');
     const grade_color = h.grade==='A'?'var(--success)':h.grade==='B'?'var(--info)':h.grade==='C'?'var(--warning)':'var(--danger)';
     const dim_icons = {complexity:'🔥',security:'🔒',debt:'💳',docs:'📚',deps:'📦'};
     const dim_labels = {complexity:'Complexity',security:'Security',debt:'Tech Debt',docs:'Documentation',deps:'Dependencies'};

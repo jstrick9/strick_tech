@@ -9765,9 +9765,9 @@ const [hooks, events] = await Promise.all([
 fetch('/api/hooks').then(r=>r.ok?r.json().catch(()=>{}):null),
 fetch('/api/hooks/events/types').then(r=>r.ok?r.json().catch(()=>{}):null),
 ]);
-const hookList = hooks.hooks || [];
+const hookList = hooks?.hooks || [];
 const eventMap = {};
-(events.events||[]).forEach((e) =>{ eventMap[e.id]=e.label; });
+(events?.events || []).forEach((e) =>{ eventMap[e.id]=e.label; });
 pane.innerHTML = `
     
     <div style="padding:20px;max-width:900px;margin:0 auto">
@@ -9784,7 +9784,7 @@ pane.innerHTML = `
 
       <!-- Event types quick filter -->
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
-        ${(events.events||[]).map((e) =>`
+        ${(events?.events || []).map((e) =>`
           <button class="btn-sm u-11a50812" data-act-click="hookFilterEvent(${JSON.stringify(e.id)})" id="hfbtn-${e.id}" >${e.label}</button>
         `).join('')}
       </div>
@@ -13443,6 +13443,7 @@ if (!pane) return;
 pane.innerHTML = '<div style="padding:20px;color:var(--text-2)">Computing project health…</div>';
 try {
 const h = await fetch('/api/ambient/health').then(r=>r.ok?r.json().catch(()=>{}):null);
+if (!h) throw new Error('The server could not return a health report.');
 const grade_color = h.grade==='A'?'var(--success)':h.grade==='B'?'var(--info)':h.grade==='C'?'var(--warning)':'var(--danger)';
 const dim_icons = {complexity:'🔥',security:'🔒',debt:'💳',docs:'📚',deps:'📦'};
 const dim_labels = {complexity:'Complexity',security:'Security',debt:'Tech Debt',docs:'Documentation',deps:'Dependencies'};
