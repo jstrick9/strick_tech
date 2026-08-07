@@ -22,7 +22,7 @@ async function renderComposer() {
           <option value="sveltekit">🔥 SvelteKit</option>
           <option value="expo">📱 Expo React Native</option>
         </select>
-        <textarea id="comp-instruction" placeholder="Build a SaaS dashboard with a sidebar nav, stats cards, a data table, and a dark mode toggle. Make it production-ready with Tailwind CSS." style="width:100%;min-height:100px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;resize:none;outline:none;font-family:inherit;margin-bottom:10px"></textarea>
+        <textarea id="comp-instruction" data-draft="composer-instruction" placeholder="Build a SaaS dashboard with a sidebar nav, stats cards, a data table, and a dark mode toggle. Make it production-ready with Tailwind CSS." style="width:100%;min-height:100px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;resize:none;outline:none;font-family:inherit;margin-bottom:10px"></textarea>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px" id="comp-prompts">
           ${[
             'Dark mode landing page with hero, features, pricing',

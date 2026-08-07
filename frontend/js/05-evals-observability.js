@@ -66,11 +66,11 @@ async function renderEvals() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px">
         <div>
           <label style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px">Prompt / Task</label>
-          <textarea id="eval-prompt" rows="4" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;padding:10px;resize:vertical;box-sizing:border-box" placeholder="What did the agent ask?"></textarea>
+          <textarea id="eval-prompt" data-draft="eval-prompt" rows="4" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;padding:10px;resize:vertical;box-sizing:border-box" placeholder="What did the agent ask?"></textarea>
         </div>
         <div>
           <label style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px">Agent Response</label>
-          <textarea id="eval-response" rows="4" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;padding:10px;resize:vertical;box-sizing:border-box" placeholder="What did the agent respond?"></textarea>
+          <textarea id="eval-response" data-draft="eval-response" rows="4" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;padding:10px;resize:vertical;box-sizing:border-box" placeholder="What did the agent respond?"></textarea>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
