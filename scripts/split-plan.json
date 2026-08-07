@@ -15,8 +15,20 @@
     "browser": [
       "43-browser-agent.js"
     ],
+    "composer": [
+      "19-composer.js"
+    ],
     "connectors": [
       "51-connectors.js"
+    ],
+    "control": [
+      "31-control-tower.js"
+    ],
+    "dbstudio": [
+      "17-database-studio.js"
+    ],
+    "deploy": [
+      "35-deploy.js"
     ],
     "eval-framework": [
       "55-eval-framework.js"
@@ -27,6 +39,9 @@
     "fusion": [
       "41-fusion.js"
     ],
+    "github": [
+      "18-github.js"
+    ],
     "goals": [
       "49-goals.js"
     ],
@@ -36,29 +51,84 @@
     "hitl": [
       "42-hitl.js"
     ],
+    "imagegen": [
+      "15-image-generation.js"
+    ],
+    "integrations": [
+      "22-integrations.js"
+    ],
+    "kanban": [
+      "28-kanban.js"
+    ],
     "leaderboard": [
       "45-leaderboard.js"
     ],
+    "loops": [
+      "40-loops.js"
+    ],
     "mcp": [
-      "35-connect-hub.js"
+      "35-connect-hub.js",
+      "39-mcp-panel.js"
     ],
     "mcp-gateway": [
       "50-mcp-gateway.js"
     ],
+    "obsidian": [
+      "20-obsidian.js"
+    ],
+    "pipeline": [
+      "37-pipeline.js"
+    ],
     "plugins": [
       "34-plugin-hub.js"
+    ],
+    "skills": [
+      "25-skills.js"
     ],
     "supervisor": [
       "48-supervisor.js"
     ],
+    "system": [
+      "38-system-monitor.js"
+    ],
+    "templates": [
+      "21-template-gallery.js"
+    ],
+    "testgen": [
+      "34-test-generator.js"
+    ],
+    "webhooks": [
+      "33-webhooks.js"
+    ],
     "websearch": [
       "44-websearch.js"
+    ],
+    "workspaces": [
+      "30-workspaces.js"
     ]
   },
   "lazyFiles": [
     "12-information-hierarchy.js",
+    "15-image-generation.js",
+    "17-database-studio.js",
+    "18-github.js",
+    "19-composer.js",
+    "20-obsidian.js",
+    "21-template-gallery.js",
+    "22-integrations.js",
+    "25-skills.js",
+    "28-kanban.js",
+    "30-workspaces.js",
+    "31-control-tower.js",
+    "33-webhooks.js",
     "34-plugin-hub.js",
+    "34-test-generator.js",
     "35-connect-hub.js",
+    "35-deploy.js",
+    "37-pipeline.js",
+    "38-system-monitor.js",
+    "39-mcp-panel.js",
+    "40-loops.js",
     "41-fusion.js",
     "42-hitl.js",
     "43-browser-agent.js",
@@ -112,33 +182,8 @@
       "55-eval-framework.js",
       "91-mode-switcher.js"
     ],
-    "15-image-generation.js": [
-      "01-app-core.js"
-    ],
-    "17-database-studio.js": [
-      "01-app-core.js"
-    ],
-    "18-github.js": [
-      "01-app-core.js"
-    ],
-    "19-composer.js": [
-      "01-app-core.js"
-    ],
-    "20-obsidian.js": [
-      "01-app-core.js"
-    ],
-    "21-template-gallery.js": [
-      "01-app-core.js"
-    ],
-    "22-integrations.js": [
-      "01-app-core.js"
-    ],
     "23-plugin-marketplace.js": [
-      "01-app-core.js",
       "32-collaboration.js"
-    ],
-    "25-skills.js": [
-      "01-app-core.js"
     ],
     "26-swarm.js": [
       "01-app-core.js"
@@ -146,41 +191,11 @@
     "27-galaxy.js": [
       "01-app-core.js"
     ],
-    "28-kanban.js": [
-      "01-app-core.js"
-    ],
-    "30-workspaces.js": [
-      "01-app-core.js"
-    ],
-    "31-control-tower.js": [
-      "01-app-core.js"
-    ],
-    "33-webhooks.js": [
-      "01-app-core.js"
-    ],
-    "34-test-generator.js": [
-      "01-app-core.js"
-    ],
-    "35-deploy.js": [
-      "01-app-core.js"
-    ],
     "36-dashboard.js": [
-      "01-app-core.js"
-    ],
-    "37-pipeline.js": [
-      "01-app-core.js"
-    ],
-    "38-system-monitor.js": [
-      "01-app-core.js"
-    ],
-    "39-mcp-panel.js": [
-      "01-app-core.js"
-    ],
-    "40-loops.js": [
       "01-app-core.js"
     ]
   },
   "unresolvedPanes": [],
-  "lazyBytes": 504456,
-  "totalBytes": 2087263
+  "lazyBytes": 797211,
+  "totalBytes": 2086681
 }

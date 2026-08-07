@@ -2457,7 +2457,7 @@ function handleWSMessage(msg) {
       document.getElementById('sb-mem').textContent = `${msg.sqlite_memories} memories`;
   }
   if (msg.type === 'task_update') {
-    if (document.getElementById('pane-kanban')?.classList.contains('active')) renderKanban();
+    if (document.getElementById('pane-kanban')?.classList.contains('active')) window.renderKanban?.();
   }
   if (msg.type === 'toast') {
     toast(msg.message, msg.kind || 'ok');
@@ -2474,11 +2474,6 @@ connectWS();
 const _origNav = nav;
 nav = function(pane) {
   _origNav(pane);
-  if (pane === 'mcp')       renderMCP();
-  if (pane === 'loops')     renderLoops();
-  if (pane === 'dashboard') renderDashboard();
-  if (pane === 'skills')    renderSkills();
-  if (pane === 'deploy')    renderDeploy();
 };
 
 // ── Voice agent (Web Speech API) ──────────────────────────────────
@@ -2873,9 +2868,6 @@ async function gmDanger(title, body, confirmLabel='Delete') {
 const _s3Nav = nav;
 nav = function(pane) {
   _s3Nav(pane);
-  if (pane === 'pipeline') renderPipeline();
-  if (pane === 'obsidian') renderObsidian();
-  if (pane === 'system')   renderSystem();
 };
 
 // ── HMR — flash status-bar indicator when files change (global, runs
@@ -3176,25 +3168,20 @@ function withSkeleton(paneId, asyncFn) {
   };
 }
 
-// Wrap key renderers with skeleton
-const wrappedRenders = {
-  dashboard: typeof renderDashboard === 'function' ? renderDashboard : null,
-  skills:    typeof renderSkills    === 'function' ? renderSkills    : null,
-  plugins:   typeof renderPlugins   === 'function' ? renderPlugins   : null,
-  templates: typeof renderTemplates === 'function' ? renderTemplates : null,
-  obsidian:  typeof renderObsidian  === 'function' ? renderObsidian  : null,
-  system:    typeof renderSystem    === 'function' ? renderSystem    : null,
-  deploy:    typeof renderDeploy    === 'function' ? renderDeploy    : null,
-  pipeline:  typeof renderPipeline  === 'function' ? renderPipeline  : null,
-  composer:  typeof renderComposer  === 'function' ? renderComposer  : null,
-};
-// Don't wrap with skeleton — they handle their own loading
-// Just ensure they exist
-Object.entries(wrappedRenders).forEach(([key, fn]) => {
-  if (fn && !window[`render${key.charAt(0).toUpperCase()+key.slice(1)}`]) {
-    window[`render${key.charAt(0).toUpperCase()+key.slice(1)}`] = fn;
-  }
-});
+// NOTE: a `wrappedRenders` block used to sit here. It built an object of nine
+// renderer references during boot and then copied each onto
+// `window.render<Name>` "just to ensure they exist".
+//
+// It never did anything: these modules are plain global scripts, so a
+// top-level `function renderDashboard(){}` IS `window.renderDashboard`
+// already. Verified in a live browser -- all nine were `typeof 'function'`
+// on window before the block ran.
+//
+// It was not harmless, though. Capturing the references during boot made
+// those nine modules undeferrable: the code-splitting analysis correctly
+// refuses to lazy-load a module whose names are read at load time, because
+// the captured value would be `null`. Deleting a no-op freed nine more
+// modules to load on demand. See docs/module-reviews/44-core-refactor.md.
 
 // ── Micro-interactions ─────────────────────────────────────────────
 
@@ -3533,7 +3520,6 @@ console.debug(
 const _s8NavBase = function(){}; // nav chain disabled — master nav handles all
 function _disabled__s8NavBase(pane) {
   _s8NavBase(pane);
-  if (pane === 'templates') renderTemplates();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4338,9 +4324,6 @@ function updateConsolePanel() {
 const _s7NavBase = function(){}; // nav chain disabled — master nav handles all
 function _disabled__s7NavBase(pane) {
   _s7NavBase(pane);
-  if (pane === 'github')   renderGitHub();
-  if (pane === 'dbstudio') renderDBStudio();
-  if (pane === 'composer') renderComposer();
 }
 
 // Add GitHub/DB/Composer to command palette
@@ -5450,7 +5433,6 @@ setInterval(updateCostBar, 30000);
 const _s4Nav = nav;
 nav = function(pane) {
   _s4Nav(pane);
-  if (pane === 'plugins') renderPlugins();
 };
 
 // ── Preferences & Theme ───────────────────────────────────────────
@@ -5686,10 +5668,6 @@ window.showKeyboardShortcuts = function() {
 const _s10NavBase = function(){}; // nav chain disabled — master nav handles all
 function _disabled__s10NavBase(pane) {
   _s10NavBase(pane);
-  if (pane === 'control')    renderControlTower();
-  if (pane === 'workspaces') renderWorkspaces();
-  if (pane === 'webhooks')   renderWebhooks();
-  if (pane === 'testgen')    renderTestGen();
 }
 
 // ── Extend nav for Sprint 12 ────────────────────────────────────
@@ -5700,8 +5678,6 @@ function _disabled__s10NavBase(pane) {
     if (pane === 'terminal')     renderTerminal?.();
     else { document.getElementById('term-suggestions')?.remove(); }  // FIX 13: cleanup suggestions on nav
     if (pane === 'secrets')       renderSecretsVault?.();
-    if (pane === 'integrations') renderIntegrations?.();
-    if (pane === 'imagegen')     renderImageGen?.();
   };
 })();
 
@@ -5722,10 +5698,10 @@ if (typeof PALETTE_CMDS !== 'undefined') {
     {icon:'💻', label:'Terminal',         desc:'Run shell commands',                action:()=>nav('terminal')},
     {icon:'🎨', label:'Image Generator',  desc:'Generate AI images',               action:()=>nav('imagegen')},
     {icon:'🔌', label:'Integrations',     desc:'Stripe, Auth, Email setup',        action:()=>nav('integrations')},
-    {icon:'📋', label:'Project Rules',    desc:'.agenticrules — guide all agents', action:()=>{nav('integrations');setTimeout(()=>switchIntTab?.('rules'),300)}},
-    {icon:'📖', label:'Generate README',  desc:'AI documentation writer',          action:()=>{nav('integrations');setTimeout(()=>{switchIntTab?.('docs');generateDoc?.('readme')},300)}},
-    {icon:'💳', label:'Stripe Scaffold',  desc:'Add payments to project',          action:()=>scaffoldIntegration?.('stripe-payments')},
-    {icon:'🔐', label:'Auth Scaffold',    desc:'Add authentication',               action:()=>scaffoldIntegration?.('auth-clerk')},
+    {icon:'📋', label:'Project Rules',    desc:'.agenticrules — guide all agents', action:()=>{nav('integrations');setTimeout(()=>window.switchIntTab?.('rules'),300)}},
+    {icon:'📖', label:'Generate README',  desc:'AI documentation writer',          action:()=>{nav('integrations');setTimeout(()=>{window.switchIntTab?.('docs');window.generateDoc?.('readme')},300)}},
+    {icon:'💳', label:'Stripe Scaffold',  desc:'Add payments to project',          action:()=>window.scaffoldIntegration?.('stripe-payments')},
+    {icon:'🔐', label:'Auth Scaffold',    desc:'Add authentication',               action:()=>window.scaffoldIntegration?.('auth-clerk')},
     {icon:'🔗', label:'Import Figma',     desc:'Figma URL → code',                action:()=>nav('imagegen')},
   );
 }
