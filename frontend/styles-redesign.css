@@ -1059,3 +1059,158 @@ html :focus:not(:focus-visible) {
 .skip-link:focus-visible {
   top: 8px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CONNECTION STATUS BANNER
+   ═══════════════════════════════════════════════════════════════════════
+   Shown by frontend/js/00-connection-status.js when API failures cluster.
+   334 fetch sites turn an outage into an innocent-looking empty list; this
+   is the one place that tells the user the truth.
+
+   Anchored bottom-centre rather than top: a top banner would push the whole
+   layout down and reflow whatever the user was reading at the moment things
+   started failing. */
+.connection-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(680px, calc(100vw - 32px));
+  padding: 12px 14px 12px 18px;
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-2, #16171f);
+  border: 1px solid var(--warning, #e8a237);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, .45);
+  color: var(--text-0, #f2f3f7);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.connection-banner__text { flex: 1; }
+.connection-banner__retry { flex-shrink: 0; }
+
+.connection-banner__dismiss {
+  flex-shrink: 0;
+  min-width: 32px;
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+@media (max-width: 560px) {
+  .connection-banner {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    transform: none;
+    max-width: none;
+    flex-wrap: wrap;
+  }
+  .connection-banner__text { flex-basis: 100%; }
+}
+
+/* Respect a user's reduced-motion preference: no entrance animation is
+   defined, but keep the banner static if one is added later. */
+@media (prefers-reduced-motion: reduce) {
+  .connection-banner { transition: none; animation: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TOUCH TARGET SIZING
+   ═══════════════════════════════════════════════════════════════════════
+   On a 390px phone, 48 interactive controls measured under the 44x44 CSS px
+   minimum from WCAG 2.5.5 (Target Size) and the Apple HIG -- the notification
+   bell and settings gear were 27x32. A 27px target is a genuinely difficult
+   tap; the surrounding controls are close enough together that a miss hits
+   the wrong one.
+
+   Scoped to `pointer: coarse` so the desktop layout, where the density was
+   deliberately tuned and a mouse is precise, is untouched. This is a
+   hit-area change, not a visual one: padding grows, icon and font sizes do
+   not, so the controls look the same and simply become reachable. */
+@media (pointer: coarse) {
+  .icon-btn,
+  .topbar button,
+  .topbar a,
+  .nav-item,
+  .ws-tab,
+  .btn-sm,
+  .btn.btn-sm,
+  button.btn-sm,
+  [role="tab"],
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Inline controls inside dense rows should grow vertically without
+     forcing a 44px-wide column that would break the row layout. */
+  .table-actions button,
+  .list-row button,
+  .card-actions button {
+    min-height: 44px;
+  }
+
+  /* Checkboxes and radios are drawn small by the platform; enlarge the
+     control itself rather than only its label. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  /* The top bar holds ~8 icon buttons in a fixed-width row. Widening each to
+     44px overflows a 390px phone, so let the row wrap and shrink instead.
+     (The selector here is `#topbar-actions` -- an earlier version used a
+     `.topbar__actions` class that does not exist in this markup, so the rule
+     silently did nothing while the widened buttons pushed the row 
+     off-screen.) */
+  #topbar-actions {
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+  #topbar-actions > * { flex-shrink: 0; }
+
+  /* Remaining named controls measured under 44px on a 390px phone. Listed
+     explicitly rather than with a blanket `button { min-height: 44px }`,
+     which would also inflate buttons inside dense generated tables and
+     change layouts this change is not trying to touch. */
+  .settings-nav-item,
+  .nav-fav-btn,
+  .fav-remove-btn,
+  .ctx-help-btn,
+  .logo,
+  select {
+    min-height: 44px;
+  }
+
+  /* Star / remove affordances sit inside a nav row; give them width too,
+     since they are icon-only and otherwise ~18px across. */
+  .nav-fav-btn,
+  .fav-remove-btn {
+    min-width: 44px;
+  }
+}
+
+/* The app title is the document's <h1>.
+   It was a <span>, which left the page with no h1 at all -- assistive tech
+   reported no top-level heading and heading navigation began at h2 with
+   nothing above it. Promoting it to h1 is a semantics change only: these
+   rules strip the UA's default block display, margin and font-size so the
+   logo renders exactly as before. */
+h1.app-title-h1 {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}

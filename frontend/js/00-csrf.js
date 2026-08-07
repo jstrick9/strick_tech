@@ -77,7 +77,20 @@
       }
     }
 
-    let response = await originalFetch(input, init);
+    const _requestUrl = (typeof input === 'string') ? input
+                      : (input && input.url) ? input.url : '';
+
+    let response;
+    try {
+      response = await originalFetch(input, init);
+    } catch (err) {
+      // Report network-level failures (offline, DNS, refused) to the
+      // connection watcher, then rethrow untouched.
+      if (window.connectionStatus && window.connectionStatus.observeNetworkError) {
+        try { window.connectionStatus.observeNetworkError(_requestUrl); } catch (_) {}
+      }
+      throw err;
+    }
 
     // A token can expire (24h TTL) or be dropped by a server restart, which
     // would otherwise surface as an unexplained 403 mid-session. Refresh once
@@ -94,6 +107,14 @@
           response = await originalFetch(input, Object.assign({}, init, { headers }));
         }
       }
+    }
+
+    // This is the app's single fetch wrapper, so it is also where the
+    // connection watcher learns whether requests are succeeding. Keeping the
+    // observation here rather than adding a second window.fetch wrapper
+    // means one owner for the global (see scripts/lint_globals.py).
+    if (window.connectionStatus && window.connectionStatus.observeResponse) {
+      try { window.connectionStatus.observeResponse(_requestUrl, response); } catch (_) {}
     }
 
     return response;

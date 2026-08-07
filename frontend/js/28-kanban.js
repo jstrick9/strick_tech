@@ -25,6 +25,9 @@ const KANBAN_AGENTS = {
 
 // ── State ────────────────────────────────────────────────────────
 let kanbanTasks = [];
+// Set when the last load failed, so the board can say so instead of
+// silently showing an empty (or worse, fabricated) list.
+let kanbanLoadError = null;
 let kanbanDraggedTaskId = null;
 let kanbanActiveFilter = null;
 let kanbanModalOpen = false;
@@ -78,11 +81,21 @@ async function kanbanFetchTasks() {
           });
         }
       }
+      kanbanLoadError = null;
     } else {
-      kanbanTasks = kanbanGetSampleTasks();
+      // NEVER substitute fabricated tasks for a failed load.
+      //
+      // This used to fall back to kanbanGetSampleTasks() on both the non-ok
+      // branch and the catch. Verified live with the API returning 500: the
+      // board rendered "6 tasks" of invented work, with no indication
+      // anything had gone wrong. A user could drag, edit or delete cards that
+      // do not exist, and would believe real tasks had been lost. An outage
+      // must look like an outage.
+      throw new Error(`HTTP ${response.status}`);
     }
   } catch (e) {
-    kanbanTasks = kanbanGetSampleTasks();
+    kanbanTasks = [];
+    kanbanLoadError = e && e.message ? e.message : String(e);
   }
 }
 
@@ -98,7 +111,25 @@ function kanbanRenderBoard() {
   }
 
   if (countEl) {
-    countEl.textContent = `${filteredTasks.length} task${filteredTasks.length !== 1 ? 's' : ''}`;
+    countEl.textContent = kanbanLoadError
+      ? 'unavailable'
+      : `${filteredTasks.length} task${filteredTasks.length !== 1 ? 's' : ''}`;
+  }
+
+  if (kanbanLoadError) {
+    // Distinguish "the board is empty" from "we could not load the board".
+    // Rendering empty columns here would repeat the original bug in a
+    // quieter form: the user still could not tell that their tasks exist.
+    board.innerHTML = `
+      <div class="empty-state" role="alert" style="grid-column:1/-1">
+        <div class="empty-state__icon">⚠️</div>
+        <div class="empty-state__title">Couldn't load your tasks</div>
+        <div class="empty-state__body">Your tasks are safe — this is a
+          connection problem, not lost work. (${escHtml(kanbanLoadError)})</div>
+        <button type="button" class="btn btn-primary btn-sm"
+                data-act-click="renderKanban()">↻ Try again</button>
+      </div>`;
+    return;
   }
 
   board.innerHTML = KANBAN_COLUMNS.map(col => {
@@ -750,16 +781,12 @@ function kanbanCloseModal() {
 }
 
 // ── Sample Tasks ──────────────────────────────────────────────────
-function kanbanGetSampleTasks() {
-  return [
-    { id: 1001, title: 'Design new landing page', description: 'Create a modern landing page with hero section', status: 'todo', priority: 'high', agent: 'builder' },
-    { id: 1002, title: 'Fix authentication bug', description: 'Users getting logged out unexpectedly', status: 'doing', priority: 'high', agent: 'brain' },
-    { id: 1003, title: 'Write API documentation', description: 'Document all REST endpoints', status: 'todo', priority: 'medium', agent: 'researcher' },
-    { id: 1004, title: 'Implement dark mode', description: 'Add theme switching capability', status: 'blocked', priority: 'low', agent: 'builder' },
-    { id: 1005, title: 'Optimize database queries', description: 'Slow queries on user dashboard', status: 'done', priority: 'high', agent: 'brain' },
-    { id: 1006, title: 'Add unit tests', description: 'Increase test coverage to 80%', status: 'todo', priority: 'medium', agent: 'builder' }
-  ];
-}
+// NOTE: kanbanGetSampleTasks() was deleted here. It manufactured six
+// plausible-looking tasks and was installed as the fallback for BOTH the
+// non-ok branch and the catch of kanbanFetchTasks(). With the API down the
+// board therefore showed invented work as if it were real. Nothing calls it
+// any more; a failed load now reports the failure.
+
 
 // ── Utility Functions ─────────────────────────────────────────────
 function kanbanEscapeHtml(text) {

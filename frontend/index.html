@@ -57,7 +57,7 @@
   <div id="topbar">
     <a class="logo" href="#" data-act-click="hNavChat()">
       <div class="neural-orb-3d" id="agent-status-orb" title="Neural Core: Online & Active"></div>
-      <span id="custom-app-title">Strick Tech Agentic OS</span>
+      <h1 id="custom-app-title" class="app-title-h1">Strick Tech Agentic OS</h1>
       <span id="custom-app-subtitle" style="display:none">MISSION CONTROL</span>
     </a>
 
@@ -202,7 +202,7 @@
                   <button type="button" id="folder-settings-btn" title="Folder settings" style="background:none;border:1px solid var(--border);color:var(--text-2);cursor:pointer;font-size:13px;padding:2px 6px;border-radius:6px;transition:all .12s">⚙</button>
                 </div>
               </div>
-              <input type="text" id="chat-sessions-search" placeholder="🔍 Search chats..." data-act-input="filterChatSessions($value)" style="width:100%; background:var(--bg-2); border:1px solid var(--border-hi); border-radius:8px; padding:6px 10px; color:var(--text-0); font-size:12px; outline:none" aria-label="Search chats">
+              <input type="text" id="chat-sessions-search" autocomplete="off" placeholder="🔍 Search chats..." data-act-input="filterChatSessions($value)" style="width:100%; background:var(--bg-2); border:1px solid var(--border-hi); border-radius:8px; padding:6px 10px; color:var(--text-0); font-size:12px; outline:none" aria-label="Search chats">
               <!-- View toggle -->
               <div style="display:flex; gap:2px; margin-top:8px; background:var(--bg-2); border-radius:6px; padding:2px; border:1px solid var(--border)">
                 <button type="button" id="view-folders-btn" data-act-click="switchChatView('folders')" style="flex:1;padding:4px 8px;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;transition:all .12s;background:var(--accent);color:var(--on-accent)">📁 Folders</button>
@@ -1302,7 +1302,7 @@
                 </div>
                 <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Use models that run on your Mac. Your conversations stay on this device. Check once and your available models will appear in Chat.</p>
                 <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-                  <input id="settings-api-ollama-url" type="text" value="http://localhost:11434" style="flex:1;min-width:240px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="Ollama server URL">
+                  <input id="settings-api-ollama-url" autocomplete="url" type="text" value="http://localhost:11434" style="flex:1;min-width:240px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="Ollama server URL">
                   <button type="button" data-act-click="testOllamaConnection()" class="btn-ghost btn-3d" style="padding:11px 22px;border-radius:10px">⚡ Check & Auto-Discover Models</button>
                   <button type="button" data-act-click="hotReloadBackendEngine()" class="btn-primary btn-3d" style="padding:11px 18px;border-radius:10px;background:#0c855d;border:none;color:#fff" title="Reload internal Python AI services in RAM to ensure exact endpoint sync">⚡ Reload Engine & Sync</button>
                   <button type="button" data-act-click="hardRebootBackendEngine()" class="btn-ghost btn-3d" style="padding:11px 16px;border-radius:10px;color:var(--warning);border-color:var(--warning)" title="Perform clean application engine restart">🛑 Hard Restart Engine</button>
@@ -1321,7 +1321,7 @@
                       <option value="nomic-embed-text">Nomic Embed Text (Knowledge Search / 274 MB)</option>
                       <option value="custom">Custom Model Name...</option>
                     </select>
-                    <input id="ollama-custom-pull-inp" type="text" placeholder="e.g. phi3:3.8b" style="display:none;width:150px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-family:monospace" aria-label="Model name to pull">
+                    <input id="ollama-custom-pull-inp" autocomplete="off" type="text" placeholder="e.g. phi3:3.8b" style="display:none;width:150px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:8px;padding:8px 12px;color:var(--text-0);font-size:12.5px;font-family:monospace" aria-label="Model name to pull">
                     <button type="button" data-act-click="quickPullSelectedOllamaModel()" class="btn-primary btn-3d btn-sm" style="padding:8px 16px;border-radius:8px">⚡ Pull Model to Mac</button>
                   </div>
                 </div>
@@ -1346,8 +1346,8 @@
                   <button type="button" data-act-click="hSetGroqPreset()" class="btn-3d btn-ghost btn-sm u-11a50812" >⚡ Preset: Groq Cloud</button>
                 </div>
                 <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-                  <input id="custom-api-base-url" type="text" placeholder="http://localhost:1234/v1" style="flex:2;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="API base URL">
-                  <input id="custom-api-key" type="password" placeholder="API Key (if required by endpoint)" style="flex:1;min-width:160px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="API key">
+                  <input id="custom-api-base-url" autocomplete="url" type="text" placeholder="http://localhost:1234/v1" style="flex:2;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="API base URL">
+                  <input id="custom-api-key" autocomplete="off" type="password" placeholder="API Key (if required by endpoint)" style="flex:1;min-width:160px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="API key">
                   <button type="button" data-act-click="saveCustomConnection()" class="btn-primary btn-3d" style="padding:11px 22px;border-radius:10px">🔗 Connect & Sync</button>
                 </div>
                 <div id="custom-api-status-msg" style="font-size:12.5px;color:var(--text-2);padding:10px;background:var(--bg-2);border-radius:8px;border:1px solid var(--border);display:none"></div>
@@ -1512,7 +1512,7 @@
                   <span id="ollama-status" style="font-size:12px;font-weight:700;color:var(--text-2)">Checking…</span>
                 </div>
                 <div style="display:flex;gap:10px;margin-bottom:14px">
-                  <input id="ollama-url-input" type="text" value="http://localhost:11434" style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="Ollama server URL">
+                  <input id="ollama-url-input" autocomplete="url" type="text" value="http://localhost:11434" style="flex:1;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:10px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="Ollama server URL">
                   <button type="button" data-act-click="testOllamaConnection()" class="btn btn-primary" style="padding:10px 20px;background:var(--accent);border:none;border-radius:10px;color:var(--on-accent);font-weight:700;cursor:pointer">⚡ Check Connection</button>
                 </div>
                 <div id="ollama-models" style="font-size:12px;color:var(--text-2);padding:10px;background:var(--bg-2);border-radius:8px"></div>
@@ -1645,7 +1645,7 @@
 </div><!-- /shell -->
 
 <!-- ── Command Palette ──────────────────────────────────────── -->
-<div role="dialog" aria-modal="true" id="palette-modal" data-act-click="closePalette()" data-click-self="1">
+<div role="dialog" aria-modal="true" aria-label="Command palette" id="palette-modal" data-act-click="closePalette()" data-click-self="1">
   <div id="palette-box">
     <input id="palette-input" aria-label="Search commands and agents" placeholder="Search commands, agents, files, memories…" data-act-input="filterPalette()" data-act-keydown="paletteKey($event)" autocomplete="off">
     <div id="palette-results"></div>
@@ -1653,7 +1653,7 @@
 </div>
 
 <!-- ── Agent Modal ──────────────────────────────────────────── -->
-<div role="dialog" aria-modal="true" id="agent-modal" style="display:none" class="modal-back" data-act-click="closeAgentModal()" data-click-self="1">
+<div role="dialog" aria-modal="true" aria-labelledby="agent-modal-title" aria-describedby="agent-modal-desc" id="agent-modal" style="display:none" class="modal-back" data-act-click="closeAgentModal()" data-click-self="1">
   <div class="modal">
     <h2 id="agent-modal-title">🤖 Create Agent</h2>
     <p id="agent-modal-desc">Design a custom AI agent with its own name, model, and personality.</p>
@@ -1746,7 +1746,7 @@
 <div id="toast-container" aria-live="polite" aria-atomic="false" role="status"></div>
 
 <!-- ── Onboarding Wizard ──────────────────────────────────────────── -->
-<div role="dialog" aria-modal="true" id="onboarding-modal" style="display:none;position:fixed;inset:0;background:rgba(2,4,10,.95);z-index:29000;align-items:center;justify-content:center;backdrop-filter:blur(12px)" data-act-click="closeOnboardingModal()" data-click-self="1">
+<div role="dialog" aria-modal="true" aria-label="Welcome and setup" id="onboarding-modal" style="display:none;position:fixed;inset:0;background:rgba(2,4,10,.95);z-index:29000;align-items:center;justify-content:center;backdrop-filter:blur(12px)" data-act-click="closeOnboardingModal()" data-click-self="1">
   <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:20px;width:100%;max-width:560px;padding:32px;box-shadow:0 40px 100px rgba(0,0,0,.8);animation:slideUp .25s ease;position:relative">
     <button type="button" data-act-click="closeOnboardingModal()" style="position:absolute;top:16px;right:20px;background:none;border:none;color:var(--text-2);font-size:24px;cursor:pointer;line-height:1">×</button>
     <!-- Progress dots -->
@@ -1812,6 +1812,7 @@
 <script src="/static/js/00-store.js"></script>
 <script src="/static/js/00-api-client.js"></script>
 <script src="/static/js/00-navigation-state.js"></script>
+<script src="/static/js/00-connection-status.js"></script>
 <script src="/static/js/00-csrf.js"></script>
 <script src="/static/js/00-delegate.js"></script>
 <script src="/static/js/00-handlers.js"></script>
