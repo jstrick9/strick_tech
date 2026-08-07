@@ -17,14 +17,14 @@ async function renderMCP() {
           <option value="">Loading tools…</option>
         </select>
         <label style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Args (JSON)</label>
-        <textarea id="mcp-args" placeholder='{"path": "index.html"}' style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;color:var(--text-0);font-size:13px;resize:none;min-height:60px;outline:none;font-family:monospace;margin:6px 0 10px"></textarea>
+        <textarea id="mcp-args" data-draft="mcp-args" placeholder='{"path": "index.html"}' style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;color:var(--text-0);font-size:13px;resize:none;min-height:60px;outline:none;font-family:monospace;margin:6px 0 10px"></textarea>
         <button data-act-click="runMCPTool()" class="btn btn-primary" style="width:100%">▶ Call Tool</button>
         <div id="mcp-result" style="margin-top:12px;background:var(--bg-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-family:monospace;font-size:12px;color:var(--text-1);white-space:pre-wrap;max-height:300px;overflow-y:auto;display:none"></div>
       </div>
       <div class="settings-card">
         <h3>Agentic Run</h3>
         <p>Give an agent a task and let it autonomously use tools to complete it.</p>
-        <textarea id="mcp-agent-prompt" placeholder="Research the latest React 19 features and write a summary to index.html" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;color:var(--text-0);font-size:13px;resize:none;min-height:80px;outline:none;font-family:inherit;margin:6px 0 10px"></textarea>
+        <textarea id="mcp-agent-prompt" data-draft="mcp-agent-prompt" placeholder="Research the latest React 19 features and write a summary to index.html" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;color:var(--text-0);font-size:13px;resize:none;min-height:80px;outline:none;font-family:inherit;margin:6px 0 10px"></textarea>
         <div style="display:flex;gap:8px;margin-bottom:10px">
           <select id="mcp-agent-sel" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px;color:var(--text-0);font-size:12.5px;outline:none">
             ${S.agents.map(a=>`<option value="${a.id}">${a.avatar||'🤖'} ${escHtml(a.name)}</option>`).join('')}

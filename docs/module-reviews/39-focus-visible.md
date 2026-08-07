@@ -126,3 +126,60 @@ way).
 | `regression` + `system` + `integration` + `uat` | **1044 passed, 17 skipped, 0 failed** |
 | axe-core a11y sweep + focus ring | **13 passed** |
 | ruff · inline-handler · globals linters | pass |
+
+---
+
+# 39b — Draft protection coverage
+
+Same batch, found by driving every pane and inspecting each visible textarea.
+
+## The gap
+
+`00-drafts.js` saves and restores any field tagged `data-draft="<key>"`, and it
+observes nodes added after load. **The mechanism was fine; the coverage was
+not.**
+
+| | Count |
+|---|---|
+| Visible long-form inputs across 28 panes | 14 |
+| Protected by `data-draft` | **5** |
+| Unprotected | **9** |
+
+And the unprotected ones were where users write the most:
+
+| Field | Pane |
+|---|---|
+| `#comp-instruction` | Composer — the entire point of the pane |
+| `#t1-editor-textarea` | Hierarchy note editor |
+| `#img-prompt` | Image generator prompt |
+| `#eval-prompt`, `#eval-response` | Evals — hand-written test material |
+| `#mcp-agent-prompt`, `#mcp-args` | MCP task + hand-written JSON args |
+
+Losing a carefully composed Composer instruction to a stray Cmd+R is precisely
+the failure `00-drafts.js` was built to prevent. These fields never opted in.
+
+**5 → 12 protected.** The two still unprotected are the Studio fallback
+textarea, excluded deliberately: Code Studio already autosaves its buffer 600ms
+after the last keystroke, so a draft copy would be a second source of truth
+that can disagree with the file on disk.
+
+## Verified as a journey, not an attribute
+
+A `data-draft` tag proves nothing on its own — the save can be debounced away,
+the restore can run before the pane renders, the key can collide. Tested the
+whole path in Chromium:
+
+```
+typed into composer            -> ok
+saved to localStorage          -> ['agentic_draft:composer-instruction']
+reload
+restored after reload          -> exact match
+```
+
+## Tests
+
+`tests/e2e_browser/test_e2e_browser_10_drafts.py` — 8 tests, including the full
+type → reload → restore journey and a **coverage floor** (≥75% of long-form
+inputs protected) so a newly added textarea cannot quietly regress it.
+
+**Proven to catch the gap: with the five files reverted, all 8 fail.**
