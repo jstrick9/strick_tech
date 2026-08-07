@@ -991,3 +991,71 @@ body {
 .u-f132e9db { background:var(--bg-2); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
 .u-fdf33f23 { margin-bottom:8px; }
 /* ==== END generated utility classes ==== */
+
+
+/* ══════════════════════════════════════════════════════════════════
+   KEYBOARD FOCUS RING — must win over every `outline: none`
+   ══════════════════════════════════════════════════════════════════
+   Measured in Chromium with real Tab presses: 11 of 40 tab stops matched
+   :focus-visible and rendered NO ring, including #chat-input, #chat-send
+   and #chat-model-select -- the three most-used controls in the product.
+
+   Cause: `*:focus-visible` is specificity 0-0-1-0, and 17 rules set
+   `outline: none` to hide the default ring on inputs. Several are ID
+   selectors (1-0-0-0), which beat it outright:
+
+       #chat-input { border:none; outline:none; }
+
+   A tab stop with no ring is worse than no tab stop -- focus is somewhere
+   the user cannot see. WCAG 2.4.7.
+
+   axe-core cannot catch this: it does not evaluate :focus-visible styling.
+   The existing test asserted such a rule EXISTS, not that it WINS.
+
+   This sets outline only, only on :focus-visible (mouse clicks unaffected),
+   and leaves the `outline: none` declarations in place for the unfocused
+   state. */
+html :focus-visible,
+html [id]:focus-visible,
+html [class]:focus-visible {
+  outline: 2px solid var(--accent-text, var(--accent)) !important;
+  outline-offset: 2px !important;
+}
+
+/* An outline sits outside the border box; on a control flush against a
+   container edge the offset can clip it. A matching shadow guarantees the
+   ring is visible even when the outline is cropped. */
+html :focus-visible {
+  box-shadow: 0 0 0 4px var(--accent-glow, rgba(56,189,248,0.25));
+}
+
+/* Never show the ring for pointer interaction -- :focus-visible already
+   handles that, this is belt and braces for engines that disagree. */
+html :focus:not(:focus-visible) {
+  outline: none;
+}
+
+
+/* ── Skip links (WCAG 2.4.1 Bypass Blocks) ─────────────────────────
+   Off-screen until focused rather than display:none -- a display:none
+   element is not focusable at all, which is the most common way this
+   pattern is got wrong. */
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 8px;
+  z-index: 100000;
+  padding: 10px 16px;
+  background: var(--bg-2);
+  color: var(--text-0);
+  border: 2px solid var(--accent-text, var(--accent));
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: top 0.12s ease;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 8px;
+}

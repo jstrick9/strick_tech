@@ -45,6 +45,12 @@
 
 </head>
 <body>
+<!-- Skip links: WCAG 2.4.1 (Bypass Blocks). A keyboard user otherwise tabs
+     through 12+ chrome controls before reaching content, on every navigation,
+     because this is a single page and the chrome never unmounts. Visually
+     hidden until focused. -->
+<a class="skip-link" href="#content" data-act-click="skipTo('content')">Skip to main content</a>
+<a class="skip-link" href="#sidebar" data-act-click="skipTo('sidebar')">Skip to navigation</a>
 <div id="shell">
 
   <!-- ── Simplified Topbar (ChatGPT/Claude style) ──────────── -->
@@ -173,7 +179,7 @@
     <div id="sidebar-resizer"></div>
 
     <!-- ── Content ─────────────────────────────────────── -->
-    <div id="content">
+    <div id="content" tabindex="-1">
       <!-- Sticky Contextual Breadcrumb Bar (Phase A) -->
       <div id="sticky-breadcrumb-bar" style="background:var(--bg-1);border-bottom:1px solid var(--border);padding:8px 24px;font-size:12.5px;color:var(--text-2);display:flex;align-items:center;gap:8px;flex-shrink:0;user-select:none">
         <span data-act-click="nav('chat')" style="cursor:pointer;color:var(--accent-text);font-weight:600;display:flex;align-items:center;gap:4px" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">🏠 Mission Control</span>

@@ -296,3 +296,18 @@
     if (panel) panel.remove();
   });
 })();
+
+// Skip-link target focus.
+//
+// A bare href="#content" scrolls but does NOT move focus in most browsers, so
+// the next Tab continues from the link -- back into the chrome the user just
+// asked to skip. Moving focus explicitly is the whole point of the pattern.
+window.skipTo = function (id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+  try { el.focus({ preventScroll: false }); } catch (e) { el.focus(); }
+  if (typeof el.scrollIntoView === 'function') {
+    el.scrollIntoView({ block: 'start', behavior: 'auto' });
+  }
+};
