@@ -1167,24 +1167,68 @@ html :focus:not(:focus-visible) {
     min-width: 44px;
   }
 
-  /* Inline links in a sentence must NOT become 44px blocks -- that would
-     break paragraph flow. They are excluded here and rely on line-height
-     for their hit area, which is the standard compromise for inline text. */
+  /* `min-width`/`min-height` are INERT on a `display: inline` box.
+     
+     The rule above was applied to every control, but silently did nothing to
+     inline ones. Measured across all 68 panes: 22 interactive elements were
+     still under 44px purely because they were inline, the worst being a 6x12
+     link on the A2A pane -- about 1/27th of the recommended area, and the
+     smallest target in the product.
+
+     Promoting them to inline-block is what makes the minimum take effect.
+     Prose links are deliberately left `inline`: a link inside a sentence must
+     keep wrapping with the text, and a 44px block in the middle of a
+     paragraph would break the line box. Those rely on line-height for their
+     hit area, which is the standard compromise for inline text. */
+  a[href],
+  [role="button"] {
+    display: inline-block;
+  }
+
   p a[href],
   li a[href],
   .prose a[href],
+  td a[href],
   a[href].inline-link {
     min-width: 0;
     min-height: 0;
     display: inline;
   }
 
-  /* Checkboxes and radios are drawn by the platform at ~13px. Enlarging the
-     control itself rather than only its label is what makes them tappable. */
+  /* Checkboxes and radios are drawn by the platform at ~13px. 24x24 roughly
+     triples that area and satisfies WCAG 2.5.8 (AA).
+
+     They are deliberately NOT grown to 44x44. An earlier note in this review
+     claimed they sat in "dense tables"; measuring found that is wrong -- they
+     are in <label> wrappers (Swarm) and list rows (MCP Gateway, Replay). A
+     44px checkbox next to 13px body text would dominate those rows visually
+     for no gain, because the fix below gives the whole row a comfortable
+     target instead. */
   input[type="checkbox"],
   input[type="radio"] {
     min-width: 24px;
     min-height: 24px;
+  }
+
+  /* Make the ROW the target, not just the box.
+     A label wrapping a checkbox is already clickable in HTML -- the browser
+     forwards the click -- so giving it a 44px min-height turns the entire
+     row into a comfortable tap target while the control keeps its 24px
+     visual weight. This is the better answer than inflating the checkbox:
+     bigger hit area, unchanged design. */
+  .prb-policy-item,
+  .ttd-run-card-top {
+    min-height: 44px;
+  }
+
+  /* `:has()` is kept in its OWN rule on purpose. A selector list is parsed as
+     a unit: if any selector in it is unsupported the whole rule is discarded,
+     so grouping this with the plain class selectors above would silently drop
+     their row sizing too on an older engine. Isolated, an unsupporting
+     browser loses only this enhancement. */
+  label:has(> input[type="checkbox"]),
+  label:has(> input[type="radio"]) {
+    min-height: 44px;
   }
 
   /* Inline controls in dense generated rows grow vertically only, so a
