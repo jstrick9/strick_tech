@@ -57,26 +57,37 @@ def test_enforcing_policy_no_longer_permits_inline_script():
     assert "'unsafe-eval'" not in script_src
 
 
-def test_report_only_now_measures_strict_style_src():
-    """This asserted the OPPOSITE — that Report-Only kept style-src
-    'unsafe-inline' — which was right while the header's job was to preview
-    dropping it from SCRIPT-src. That shipped in 461ba07, at which point the
-    two policies became byte-identical apart from report-uri and the header
-    was measuring nothing.
+def test_report_only_is_one_ratchet_ahead_of_the_enforcing_policy():
+    """INVERTED TWICE, and the history is the point.
 
-    Its purpose is to be one ratchet ahead of what is enforced. It now previews
-    strict style-src, and the ENFORCING policy still allows inline styles —
-    asserted separately in test_105 — so nothing breaks while the cost of that
-    migration is measured from real usage.
+    v1 asserted Report-Only KEPT style-src 'unsafe-inline' (correct while it
+    was previewing the script-src tightening).
+    v2 asserted it DROPPED 'unsafe-inline' (correct while strict style-src was
+    the next ratchet).
+    v3 -- this one -- strict style-src is now ENFORCED, so previewing it
+    collects nothing AND actively harms: with Report-Only still governing
+    styles, every attribute the hydrator re-applies emitted a violation report.
+    Measured at 662 reports on a single page load, 86% of all load traffic.
+
+    The invariant that survived all three: Report-Only must DIFFER from the
+    enforcing policy in at least one directive, or it measures nothing. The
+    specific directive is now img-src.
     """
-    from backend.app import CSP_REPORT_ONLY
+    from backend.app import CSP_REPORT_ONLY, SECURITY_HEADERS
 
-    style_src = next(
-        d for d in CSP_REPORT_ONLY.split(';') if d.strip().startswith('style-src')
-    )
-    assert "'unsafe-inline'" not in style_src, (
-        'Report-Only is no longer ahead of the enforcing policy; it would '
-        'collect nothing actionable'
+    def directives(policy):
+        return {d.strip().split(' ')[0]: d.strip() for d in policy.split(';') if d.strip()}
+
+    ro = directives(CSP_REPORT_ONLY)
+    enf = directives(SECURITY_HEADERS['Content-Security-Policy'])
+    differing = [k for k in ro if k in enf and ro[k] != enf[k]]
+    assert differing, 'Report-Only matches the enforcing policy; it measures nothing'
+    assert 'img-src' in differing, f'expected img-src as the ratchet, got {differing}'
+
+    # And it must NOT re-report the already-enforced, already-handled style-src.
+    assert "'unsafe-inline'" in ro.get('style-src', ''), (
+        'Report-Only restricts styles again -- every hydrated attribute will '
+        'fire a violation report (662 per load when this last happened)'
     )
 
 

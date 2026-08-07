@@ -125,15 +125,30 @@ def test_report_only_is_stricter_than_the_enforcing_policy():
     )
 
 
-def test_report_only_currently_tests_strict_style_src():
-    """The specific next ratchet, so a future edit that loosens it is visible."""
+def test_report_only_does_not_re_report_the_enforced_style_src():
+    """UPDATED: strict style-src is now ENFORCED, so previewing it in
+    Report-Only collects nothing and floods the endpoint.
+
+    00-style-hydrate.js re-applies each refused style attribute through the
+    CSSOM, but the parser refuses it FIRST -- so every one of ~660 attributes
+    emitted a violation report. Measured: 662 reports per page load, 86% of all
+    load traffic, burying every real signal in the dashboard.
+
+    style-src must be listed EXPLICITLY as permissive here. Merely omitting it
+    falls back to `default-src 'self'`, which still governs styles -- that was
+    tried first and changed nothing.
+    """
     from backend.app import CSP_REPORT_ONLY
 
     style = next(
-        d for d in CSP_REPORT_ONLY.split(';') if d.strip().startswith('style-src')
+        (d for d in CSP_REPORT_ONLY.split(';') if d.strip().startswith('style-src')), None
     )
-    assert "'unsafe-inline'" not in style, (
-        'Report-Only should be measuring what strict style-src would break'
+    assert style is not None, (
+        'style-src must be listed explicitly; omitting it falls back to '
+        "default-src 'self' and the reports keep firing"
+    )
+    assert "'unsafe-inline'" in style, (
+        f'Report-Only restricts styles again, which floods the endpoint: {style}'
     )
 
 

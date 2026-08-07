@@ -109,6 +109,19 @@ _CSP_REPORTS: dict[str, dict] = {}
 _CSP_REPORT_CAP = 500
 
 
+# Per-signature report ceiling.
+#
+# The buffer already de-duplicates by signature, but the REQUESTS still arrive:
+# a directive matching hundreds of nodes produces hundreds of POSTs per load,
+# each running the full middleware stack. Measured at 662 on one load before
+# style-src was dropped from the Report-Only policy.
+#
+# Keeping the first N per signature preserves everything the measurement needs
+# -- what was violated, where, and that it is frequent -- while bounding the
+# cost. Beyond the ceiling the count keeps incrementing but the work stops.
+_CSP_REPORT_CEILING = 25
+
+
 @router.post('/csp-report')
 async def csp_report(request: Request) -> dict[str, Any]:
     """Collect a CSP violation report. Always 200: a browser will not retry."""
@@ -130,6 +143,12 @@ async def csp_report(request: Request) -> dict[str, Any]:
     if entry:
         entry['count'] += 1
         entry['last_seen'] = time.time()
+        # Past the ceiling the count keeps rising but nothing else is touched.
+        # The measurement needs "what, where, and how often" -- it does not need
+        # the thousandth identical copy, and each one costs a full request
+        # through the middleware stack.
+        if entry['count'] > _CSP_REPORT_CEILING:
+            entry['throttled'] = True
     elif len(_CSP_REPORTS) < _CSP_REPORT_CAP:
         _CSP_REPORTS[key] = {
             'directive': r.get('effective-directive') or r.get('violated-directive', ''),
