@@ -44,7 +44,7 @@ async function renderSQLiteTab(el) {
     const data = await r.json();
     tables = Array.isArray(data) ? data : (Array.isArray(data?.tables) ? data.tables : []);
   } catch(ex) {
-    el.innerHTML = `<div style="color:var(--red);padding:16px">Error loading tables: ${escHtml(ex.message)}</div>`;
+    el.innerHTML = `<div style="color:var(--red);padding:16px">${escHtml(humanError(ex, {action:'load your tables', dataSafe:true}))}</div>`;
     return;
   }
   el.innerHTML = `<div style="display:grid;grid-template-columns:200px 1fr;gap:16px;height:calc(100vh - 200px)">
@@ -605,7 +605,7 @@ async function renderDBAuditTab(el) {
     const v = await fetch('/api/audit-log/verify').then(r => r.ok ? r.json() : null).catch(() => null);
     verified = v;
   } catch (ex) {
-    el.innerHTML = `<div style="color:var(--red);padding:16px">Error loading audit trail: ${escHtml(ex.message)}</div>`;
+    el.innerHTML = `<div style="color:var(--red);padding:16px">${escHtml(humanError(ex, {action:'load the audit trail', dataSafe:true}))}</div>`;
     return;
   }
 

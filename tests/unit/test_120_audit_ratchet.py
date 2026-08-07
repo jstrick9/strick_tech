@@ -126,6 +126,7 @@ def test_source_patterns_has_not_regressed():
     ('touch_targets', 'touch-targets-under-44px'),
     ('responsive', 'responsive-overflow'),
     ('failure_honesty', 'failure-honesty'),
+    ('concurrency', 'concurrent-duplicate-writes'),
 ])
 def test_browser_audit_has_not_regressed(module, key):
     """Skips cleanly when there is no live server, rather than failing.

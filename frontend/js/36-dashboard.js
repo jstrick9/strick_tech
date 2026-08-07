@@ -46,7 +46,7 @@ async function renderDashboard() {
     renderDashBody(dashData);
   } catch(ex) {
     const el = document.getElementById('dash-body');
-    if (el) el.innerHTML = `<div style="color:var(--danger)">Failed to load: ${escHtml(ex?.message||String(ex))}<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
+    if (el) el.innerHTML = `<div style="color:var(--danger)">${escHtml(humanError(ex, {action:'load your dashboard', dataSafe:true}))}<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
   }
   // Auto-refresh every 30s
   clearTimeout(_dashRefreshTimer);

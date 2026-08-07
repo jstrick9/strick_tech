@@ -7,7 +7,10 @@ async function renderWorkspaces() {
   try {
     const r = await fetch('/api/workspaces');
     if (!r.ok) throw new Error('Workspaces API error ' + r.status);
-    const ws = await r.json();
+    const wsRaw = await r.json();
+    // A 200 with an unexpected shape threw "ws.map is not a function" into
+    // the pane. Confirmed live.
+    const ws = Array.isArray(wsRaw) ? wsRaw : (wsRaw?.workspaces || []);
     pane.innerHTML = `
       ${pageHeader({title:'📁 Workspaces', subtitle:'Separate projects — each has its own files, settings, and preview',
         actions:[{label:'Import GitHub',action:'importFromGitHub()'},{label:'Export ZIP',action:'exportCurrentZip()'},{label:'＋ New Project',action:'createNewWorkspace()',primary:true}]})}

@@ -2955,7 +2955,8 @@ window.openNewFileModal = async function() {
 // loadSwarmHistory (was alert)
 window.loadSwarmHistory = async function() {
   const r = await fetch('/api/swarm/history?limit=10');
-  const j = await r.json();
+  const jRaw = await r.json();
+  const j = Array.isArray(jRaw) ? jRaw : (jRaw?.history || []);
   if (!j.length) { toast('No swarm history yet', 'warn', 2000); return; }
   const lines = j.map((h,i) => `${i+1}. [${h.ts}] ${h.winner||'?'} won (${h.strategy})\n   ${(h.prompt||'').slice(0,80)}`).join('\n\n');
   await gmAlert('🌀 Swarm History (last 10)', `<pre style="font-size:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto">${escHtml(lines)}</pre>`);
@@ -5639,7 +5640,8 @@ async function showShortcuts() {
       const r = await fetch('/api/onboarding/shortcuts');
       if (!r.ok) { list.innerHTML = '<div style="color:var(--danger)">Failed to load shortcuts</div>'; }
       else {
-        const shortcuts = await r.json();
+        const shortcutsRaw = await r.json();
+        const shortcuts = Array.isArray(shortcutsRaw) ? shortcutsRaw : (shortcutsRaw?.shortcuts || []);
         list.innerHTML = shortcuts.map(s =>
           `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
             <span style="font-size:13px;color:var(--text-1)">${escHtml(s.label)}</span>

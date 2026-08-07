@@ -25,7 +25,7 @@ import uuid
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.websockets import WebSocket
 from starlette.websockets import WebSocketDisconnect
@@ -841,6 +841,42 @@ async def _security_middleware(request: Request, call_next):
     path = request.url.path
     now = _time.time()
 
+    # ── Idempotency ──────────────────────────────────────────────────────
+    # Measured before this existed: 5 concurrent identical POSTs to
+    # /api/specs created 5 records, and an Idempotency-Key header was ignored
+    # entirely. A double-click, a retry after a flaky connection, or two open
+    # tabs all produce that shape.
+    #
+    # Handled here rather than per endpoint because there are ~390 write
+    # routes; a rule applied at one call site is a rule the next one forgets.
+    # See backend/services/idempotency.py for the contract.
+    idem_key = idempotency.normalise_key(
+        request.headers.get('Idempotency-Key'), request.method, path)
+    if idem_key:
+        state, record = idempotency.begin(idem_key)
+        if state == 'replay':
+            replayed = Response(
+                content=record.body,
+                status_code=record.status,
+                media_type=record.media_type,
+            )
+            replayed.headers['Idempotency-Replayed'] = 'true'
+            replayed.headers['X-Request-ID'] = str(request_id).strip()
+            return replayed
+        if state == 'conflict':
+            # An identical request is still running. Returning 409 rather
+            # than queuing keeps concurrent double-submits safe, which is the
+            # case a sequential-only guard misses.
+            conflict = JSONResponse(
+                status_code=409,
+                content={
+                    'ok': False,
+                    'error': 'A request with this Idempotency-Key is already in progress.',
+                },
+            )
+            conflict.headers['X-Request-ID'] = str(request_id).strip()
+            return conflict
+
     # Secure deployment mode: keep health probes public, require a bearer
     # token for every other API route. Static frontend delivery remains public
     # so the application shell can load and then authenticate its API calls.
@@ -976,6 +1012,24 @@ async def _security_middleware(request: Request, call_next):
     ):
         response = await _restatus_refused_write(response, request_id)
 
+    # Record the outcome so a repeat of this key replays it instead of acting
+    # again. Only 2xx is stored (see idempotency.finish): replaying a failure
+    # would block a legitimate retry.
+    if idem_key:
+        try:
+            recorded = b''
+            if hasattr(response, 'body'):
+                recorded = response.body or b''
+            idempotency.finish(
+                idem_key,
+                response.status_code,
+                recorded,
+                response.media_type or 'application/json',
+            )
+        except Exception:
+            # Never let bookkeeping break a real response.
+            idempotency.release(idem_key)
+
     # Attach request ID trace header
     response.headers['X-Request-ID'] = str(request_id).strip()
 
@@ -1042,7 +1096,7 @@ for _candidate in _possible_frontends:
         break
 
 from backend.config import get_data_dir
-from backend.services import asset_bundle
+from backend.services import asset_bundle, idempotency
 
 _data_root = get_data_dir()
 PREVIEW_DIR = _data_root / 'preview'

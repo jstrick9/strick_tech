@@ -287,7 +287,7 @@ async function bddRenderAgentDetail(container, agentId) {
   const d = await fetch(`/api/drift/agent/${encodeURIComponent(agentId)}`)
     .then(r=>r.ok?r.json():null).catch(()=>null);
   if (!d || !d.ok) {
-    container.innerHTML = `<div style="color:var(--danger);padding:20px">Failed to load agent: ${escHtml(agentId)}</div>`;
+    container.innerHTML = `<div style="color:var(--danger);padding:20px">Couldn’t load that agent (${escHtml(agentId)}). It may have been removed.</div>`;
     return;
   }
 

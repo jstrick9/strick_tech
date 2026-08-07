@@ -310,7 +310,8 @@ function acceptWinnerToMonaco() {
 
 async function loadSwarmHistory() {
   try {
-    const j = await AgenticAPI.get('/api/swarm/history?limit=10');
+    const jRaw = await AgenticAPI.get('/api/swarm/history?limit=10');
+    const j = Array.isArray(jRaw) ? jRaw : (jRaw?.history || []);
     if (!j.length) { toast('No swarm history yet','warn'); return; }
     const items = j.map(h => `${h.ts} — ${h.winner||'?'} won — ${h.strategy} — agents: ${(h.agents||[]).join(', ')}\n  ${h.prompt?.slice(0,80)||''}`).join('\n\n');
     await gmAlert('🌀 Swarm History (last 10)', `<pre style="font-size:12px;white-space:pre-wrap;max-height:340px;overflow-y:auto">${escHtml(items)}</pre>`);

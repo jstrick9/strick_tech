@@ -38,9 +38,11 @@ verifiable. "No bugs exist" is not.
 | Touch targets | `touch_targets.py` | 0 | 41 undersized types; a 6×12px link (1/27th of the minimum) |
 | Responsive overflow | `responsive.py` | 0 | 611px horizontal document overflow on Goals |
 | DOM semantics / a11y structure | `semantics.py` | 0 | No `<h1>` at all; 3 unnamed dialogs incl. a nested one |
+| Concurrency / double-submit | `concurrency.py` | 0 | 5 concurrent identical POSTs created 5 records; `Idempotency-Key` ignored entirely |
 
-`source-patterns` is at **17**, not 0 — six unguarded array accesses and eleven
-raw-error headlines remain. They are the next thing to clear.
+**All eight audits are at 0.** `source-patterns` was cleared from 17 (six
+unguarded array accesses, eleven raw-error headlines); the fixes and three
+detector corrections are in `docs/module-reviews/50-*`.
 
 ---
 
@@ -68,7 +70,6 @@ even once.
 
 | Seam | Why it matters | Cheap first probe |
 |---|---|---|
-| **Concurrency / double-submit** | 5 identical POSTs create 5 records; `Idempotency-Key` is ignored. Known, never fixed | Fire N concurrent identical writes, count rows |
 | **Screen reader announcement** | Structure is audited, but nothing checks what is actually *announced* — live regions, dynamic updates | Drive with an accessibility-tree dump |
 | **Slow / flaky network** | Only "up" and "hard 500" tested. Never 3s latency, partial responses, mid-stream disconnects | CDP throttling + abort mid-body |
 | **Large data volumes** | Tested with tiny fixtures. 10k memories, 500 agents, a 50MB file are all untested | Seed at scale, measure render time |
@@ -106,6 +107,8 @@ encoded in `scripts/audit/_harness.py` so no future probe has to remember them.
 
 | Trap | What it cost |
 |---|---|
+| A probe whose writes were all rejected | The concurrency audit reported `0 records created` as a **PASS**; every POST had 403'd on a missing CSRF token. An audit measuring nothing looks identical to one finding nothing |
+| A fixed idempotency key across runs | The second run replayed the first run's cached response, created nothing, and passed for the wrong reason |
 | Reading computed style after programmatic `.focus()` | `:focus-visible` does not match — reported a missing focus ring **twice, in two batches** |
 | Reading style mid-transition | 150ms transitions report the start value: a 2px ring measured as 0px |
 | Measuring only the landing pane | Touch targets reported "48 → 6" when 41 types were broken elsewhere |
