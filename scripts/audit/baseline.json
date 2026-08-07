@@ -4,7 +4,9 @@
   "keyboard-operability": 0,
   "pane-health": 0,
   "responsive-overflow": 0,
+  "screen-reader-announcements": 0,
   "semantics": 0,
+  "slow-and-flaky-network": 0,
   "source-patterns": 0,
   "touch-targets-under-44px": 0
 }

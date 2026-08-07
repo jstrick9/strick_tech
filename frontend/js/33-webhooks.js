@@ -54,7 +54,19 @@ async function renderWebhooks() {
         </div>
       </div>
       </div>`;
-  } catch(e) { pane.innerHTML=`<div class="page-content">${emptyState({icon:'⚠️',title:'Error',body:e.message})}</div>`; }
+  } catch(e) {
+    // `e.message` here is often a raw parse failure ("Unterminated string in
+    // JSON at position 29") when a connection drops mid-body. That is a stack
+    // detail, not an explanation, and it also left the skeleton in place when
+    // the message was empty. humanError() gives a sentence and keeps the
+    // detail in trailing parentheses.
+    pane.innerHTML = `<div class="page-content">${emptyState({
+      icon: '⚠️',
+      title: 'Couldn\u2019t load this',
+      body: humanError(e, {action: 'load your webhooks', dataSafe: true}),
+      actions: [{label: '\u21bb Try again', action: 'renderWebhooks()', primary: true}],
+    })}</div>`;
+  }
 }
 async function createWebhook() {
   const name = await gmPrompt('Webhook Name','e.g. GitHub Push Handler','');

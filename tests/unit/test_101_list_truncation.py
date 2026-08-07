@@ -71,6 +71,11 @@ const src = fs.readFileSync('frontend/js/49-goals.js','utf8');
 const s = src.indexOf('function gmRenderList');
 const e = src.indexOf('\\n}', src.indexOf('.join(', s)) + 2;
 W.eval('var _goalList=[],_goalTotal=0,_goalSelected=null;'
+  // UPDATED: gmRenderList now checks _goalLoadError first, so that a dropped
+  // connection is not rendered as "No goals match these filters". The stub
+  // must declare it or the extracted function throws and every test in this
+  // file skips with an opaque node error.
+  + 'var _goalLoadError=null;'
   + 'var GOAL_PRIORITY_COLORS={},GOAL_STATUS_COLORS={},GOAL_DOMAIN_ICONS={};'
   + src.slice(s, e)
   + '\\nwindow.__drive=function(l,t){_goalList=l;_goalTotal=t;gmRenderList();};');

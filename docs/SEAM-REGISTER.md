@@ -39,8 +39,10 @@ verifiable. "No bugs exist" is not.
 | Responsive overflow | `responsive.py` | 0 | 611px horizontal document overflow on Goals |
 | DOM semantics / a11y structure | `semantics.py` | 0 | No `<h1>` at all; 3 unnamed dialogs incl. a nested one |
 | Concurrency / double-submit | `concurrency.py` | 0 | 5 concurrent identical POSTs created 5 records; `Idempotency-Key` ignored entirely |
+| Screen-reader announcement | `announcements.py` | 0 | Verified nav, toasts and dialogs all announce correctly |
+| Slow / flaky networks | `slow_network.py` | 0 | Goals blank 3s with no pending state; truncated responses leaked `Unterminated string in JSON`; Goals rendered a dropped connection as "no goals" |
 
-**All eight audits are at 0.** `source-patterns` was cleared from 17 (six
+**All ten audits are at 0.** `source-patterns` was cleared from 17 (six
 unguarded array accesses, eleven raw-error headlines); the fixes and three
 detector corrections are in `docs/module-reviews/50-*`.
 
@@ -70,8 +72,6 @@ even once.
 
 | Seam | Why it matters | Cheap first probe |
 |---|---|---|
-| **Screen reader announcement** | Structure is audited, but nothing checks what is actually *announced* — live regions, dynamic updates | Drive with an accessibility-tree dump |
-| **Slow / flaky network** | Only "up" and "hard 500" tested. Never 3s latency, partial responses, mid-stream disconnects | CDP throttling + abort mid-body |
 | **Large data volumes** | Tested with tiny fixtures. 10k memories, 500 agents, a 50MB file are all untested | Seed at scale, measure render time |
 | **Browser back / forward** | Deep links work; history navigation across workstation tabs is unverified | Scripted back/forward walk |
 | **Session expiry / auth loss** | What happens mid-edit when a token expires? | Invalidate the token, then act |
@@ -109,6 +109,10 @@ encoded in `scripts/audit/_harness.py` so no future probe has to remember them.
 |---|---|
 | A probe whose writes were all rejected | The concurrency audit reported `0 records created` as a **PASS**; every POST had 403'd on a missing CSRF token. An audit measuring nothing looks identical to one finding nothing |
 | A fixed idempotency key across runs | The second run replayed the first run's cached response, created nothing, and passed for the wrong reason |
+| `time.sleep()` in a sync Playwright route handler | Blocks the driver's own event loop; the slow-network audit deadlocked for 8 minutes before being cancelled |
+| Falling back to "the visible pane" when a pane is merely EMPTY | The workstation host's content satisfied the check, so removing a pane's loading state produced no finding at all |
+| Judging the whole message instead of the headline | Flagged `Couldn't load your specs. Nothing was lost. (Unterminated string…)` as a raw parse error — punishing the fix |
+| Expecting a live region to announce a dialog | Dialogs are announced by focus moving into a named `role=dialog`; the command palette was wrongly reported as silent |
 | Reading computed style after programmatic `.focus()` | `:focus-visible` does not match — reported a missing focus ring **twice, in two batches** |
 | Reading style mid-transition | 150ms transitions report the start value: a 2px ring measured as 0px |
 | Measuring only the landing pane | Touch targets reported "48 → 6" when 41 types were broken elsewhere |
