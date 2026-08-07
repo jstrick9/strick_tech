@@ -23,9 +23,9 @@ import asyncio
 import json
 import uuid
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.websockets import WebSocket
 from starlette.websockets import WebSocketDisconnect
@@ -1005,6 +1005,19 @@ async def _security_middleware(request: Request, call_next):
         response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
         response.headers['Content-Disposition'] = 'inline; filename="image.svg"'
 
+    # Built bundles under /static/dist/ are content-hashed, so their contents
+    # can never change under a given name: a code change produces a different
+    # filename. They are therefore safe -- and important -- to cache forever.
+    #
+    # The blanket no-store rule below predates them and applies to every .js
+    # path, which meant the frontend was re-downloaded in full on every single
+    # visit, cache or no cache. That is the right default for hand-edited
+    # module files during development; it is pure waste for a hashed artifact.
+    # The route handler sets the immutable Cache-Control, so we simply do not
+    # overwrite it here.
+    if path.startswith('/static/dist/'):
+        return response
+
     # Prevent aggressive caching of HTML/JS/CSS during development and updates
     if path == '/' or path.endswith(('.html', '.js', '.css')):
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
@@ -1029,12 +1042,27 @@ for _candidate in _possible_frontends:
         break
 
 from backend.config import get_data_dir
+from backend.services import asset_bundle
 
 _data_root = get_data_dir()
 PREVIEW_DIR = _data_root / 'preview'
 PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
 if not (PREVIEW_DIR / 'index.html').exists():
     (PREVIEW_DIR / 'index.html').write_text('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Agentic OS Preview</title></head><body style="background:#07080f;color:#64748b;font-family:sans-serif;padding:30px;text-align:center"><h3>⚡ Agentic OS Live Preview</h3><p>Open Studio or run scaffold to view your app here.</p></body></html>', encoding='utf-8')
+
+@app.get('/static/dist/{filename}')
+def bundled_asset(filename: str, request: Request):
+    """Serve a built JS bundle, using the precompressed variant when possible.
+
+    Registered ahead of the /static mount so it wins the route match. Falls
+    through to the mount for anything that is not a built artifact.
+    """
+    resp = asset_bundle.bundle_response(
+        FRONTEND_DIR, filename, request.headers.get('accept-encoding', ''))
+    if resp is None:
+        raise HTTPException(status_code=404, detail='Not found')
+    return resp
+
 
 app.mount('/static', StaticFiles(directory=str(FRONTEND_DIR)), name='static')
 app.mount('/preview', StaticFiles(directory=str(PREVIEW_DIR), html=True), name='preview')
@@ -1296,8 +1324,21 @@ async def hitl_ws_endpoint(ws: WebSocket):
 # ── Core routes ────────────────────────────────────────────────────────────────
 @app.get('/')
 def index():
-    """Execute or process index operation."""
-    return FileResponse(FRONTEND_DIR / 'index.html', headers={'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0', 'Pragma': 'no-cache', 'Expires': '0'})
+    """Serve the application shell.
+
+    The HTML is rewritten to reference the two built JS bundles instead of
+    the 79 individual module files (see backend/services/asset_bundle.py).
+    That collapses 79 requests and ~2.0 MB into 2 requests. Set
+    AGENTIC_JS_BUNDLE=0 to serve the individual modules for debugging.
+
+    The document itself stays uncached because the bundle filenames are
+    content-hashed: the page must be re-fetched to learn the new hash, and
+    the bundles themselves are then cacheable forever.
+    """
+    return HTMLResponse(
+        asset_bundle.index_html(FRONTEND_DIR),
+        headers={'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0', 'Pragma': 'no-cache', 'Expires': '0'},
+    )
 
 
 @app.get('/manifest.json')

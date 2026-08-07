@@ -101,3 +101,9 @@ memory/digital_twin/anchors/
 # never committable, whatever a future harness does.
 workspaces/*/preview/
 !workspaces/71951640/
+
+# The built frontend JS bundle IS committed, deliberately: it lets a fresh
+# clone run `python run.py` and get the fast frontend with no build step.
+# The generic `dist/` rule above would otherwise exclude it.
+!frontend/dist/
+!frontend/dist/**
