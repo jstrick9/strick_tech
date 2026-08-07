@@ -1,8 +1,8 @@
 {
   "head": "head.8f62aefef2be.js",
-  "body": "app.c22b320d404f.js",
+  "body": "app.d23334d71016.js",
   "minified": true,
-  "modules": 62,
+  "modules": 63,
   "head_modules": [
     "00-style-hydrate.js",
     "00-theme-boot.js"
@@ -19,6 +19,7 @@
     "00-mobile-nav.js",
     "00-pane-registry.js",
     "00-workstations.js",
+    "00-render-dedupe.js",
     "00-chunk-loader.js",
     "00-errors.js",
     "01-app-core.js",
@@ -69,18 +70,18 @@
     "92-pane-error-boundary.js",
     "93-shortcuts-overlay.js"
   ],
-  "raw_bytes": 1571959,
-  "bundled_bytes": 1239727,
+  "raw_bytes": 1583289,
+  "bundled_bytes": 1241754,
   "compressed": {
     "head.8f62aefef2be.js": {
       "raw": 6508,
       "gzip": 2376,
       "brotli": 2015
     },
-    "app.c22b320d404f.js": {
-      "raw": 1233219,
-      "gzip": 294960,
-      "brotli": 220456
+    "app.d23334d71016.js": {
+      "raw": 1235246,
+      "gzip": 295431,
+      "brotli": 220840
     },
     "chunks.6aae04efa2cf.js": {
       "raw": 860,

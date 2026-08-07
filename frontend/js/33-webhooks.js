@@ -3,6 +3,12 @@
 // ── Webhooks ───────────────────────────────────────────────────────
 async function renderWebhooks() {
   const pane = document.getElementById('pane-webhooks');
+  // A renderer that assumes its pane exists takes the whole
+  // navigation down with it if anything ever removes that node --
+  // which is exactly how this file produced
+  // "Cannot set properties of null" on every visit. A missing pane
+  // is a no-op, not a crash.
+  if (!pane) return;
   pane.innerHTML = skeletonPage();
   try {
     const [wr, tr] = await Promise.all([fetch('/api/webhooks'), fetch('/api/webhooks/templates')]);

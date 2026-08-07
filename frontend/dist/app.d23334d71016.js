@@ -1408,7 +1408,11 @@ window.initWorkstation = function (host) {
 const children = window.WORKSTATIONS[host];
 if (!children) return false;
 const hostEl = document.getElementById('pane-' + host);
-if (!hostEl || hostEl.dataset.workstationReady === '1') return !!hostEl;
+if (!hostEl) return false;
+if (hostEl.querySelector(':scope > .ws-tabs') &&
+hostEl.querySelector(':scope > .ws-bodies')) {
+return true;
+}
 const tabs = [host].concat(children);
 const ownBody = document.createElement('div');
 ownBody.id = 'ws-body-' + host;
@@ -1447,20 +1451,25 @@ hostEl.appendChild(bodies);
 hostEl.dataset.workstationReady = '1';
 return true;
 };
+window.setWorkstationTab = function (host, pane) {
+window._activeWorkstationTab = window._activeWorkstationTab || {};
+window._activeWorkstationTab[host] = pane;
+};
 window.showWorkstationTab = function (host, pane) {
 if (!window.initWorkstation(host)) return;
 const hostEl = document.getElementById('pane-' + host);
 if (!hostEl) return;
 hostEl.querySelectorAll(':scope > .ws-bodies > .ws-body').forEach((el) => {
-el.style.display = (el.id === 'ws-body-' + host ? pane === host : el.id === 'pane-' + pane) ? '' : 'none';
+const on = (el.id === 'ws-body-' + host ? pane === host : el.id === 'pane-' + pane);
+el.style.display = on ? '' : 'none';
+el.classList.toggle('active', on);
 });
 hostEl.querySelectorAll(':scope > .ws-tabs > .ws-tab').forEach((btn) => {
 const on = btn.dataset.wsTab === pane;
 btn.classList.toggle('active', on);
 btn.setAttribute('aria-selected', on ? 'true' : 'false');
 });
-window._activeWorkstationTab = window._activeWorkstationTab || {};
-window._activeWorkstationTab[host] = pane;
+window.setWorkstationTab(host, pane);
 if (pane !== host) {
 const renderer = window.MASTER_PANE_REGISTRY && window.MASTER_PANE_REGISTRY[pane];
 if (typeof renderer === 'function') {
@@ -1469,6 +1478,62 @@ try { renderer(); } catch (e) { console.warn('Workstation renderer error for ' +
 }
 try { history.replaceState(null, '', '#/' + pane); } catch (e) {}
 };
+
+;/* 00-render-dedupe.js */
+'use strict';
+(function () {
+var WRAPPED = '__renderDedupeWrapped';
+var active = null;
+function scheduleClose() {
+setTimeout(function () { active = null; }, 0);
+}
+window.beginNavRender = function () {
+if (active) return;
+active = Object.create(null);
+scheduleClose();
+};
+function wrap(name) {
+var fn = window[name];
+if (typeof fn !== 'function' || fn[WRAPPED]) return;
+var wrapped = function () {
+if (active) {
+if (active[name]) {
+return active[name].result;
+}
+var entry = { result: undefined };
+active[name] = entry;
+entry.result = fn.apply(this, arguments);
+return entry.result;
+}
+return fn.apply(this, arguments);
+};
+wrapped[WRAPPED] = true;
+wrapped.__original = fn;
+try {
+Object.defineProperty(wrapped, 'name', { value: name, configurable: true });
+} catch (e) {  }
+window[name] = wrapped;
+}
+function rendererNames() {
+var registry = window.MASTER_PANE_REGISTRY || {};
+var names = {};
+Object.keys(registry).forEach(function (pane) {
+var source = String(registry[pane]);
+var re = /window\.([A-Za-z_$][\w$]*)/g;
+var m;
+while ((m = re.exec(source))) names[m[1]] = true;
+});
+return Object.keys(names);
+}
+window.installRenderDedupe = function () {
+rendererNames().forEach(wrap);
+};
+if (document.readyState === 'loading') {
+document.addEventListener('DOMContentLoaded', window.installRenderDedupe);
+} else {
+window.installRenderDedupe();
+}
+})();
 
 ;/* 00-chunk-loader.js */
 'use strict';
@@ -1488,7 +1553,12 @@ loaded[pane] = new Promise(function (resolve) {
 var script = document.createElement('script');
 script.src = url;
 script.async = false;
-script.onload = function () { resolve(true); };
+script.onload = function () {
+if (typeof window.installRenderDedupe === 'function') {
+window.installRenderDedupe();
+}
+resolve(true);
+};
 script.onerror = function () {
 delete loaded[pane];
 failed[pane] = true;
@@ -1803,6 +1873,7 @@ sb.classList.remove('collapsed');
 }
 window.nav = function(pane) {
 if (!pane) return;
+if (typeof window.beginNavRender === 'function') window.beginNavRender();
 if (pane === 'steering') {
 window.nav('hierarchy');
 setTimeout(() => { if (typeof window.switchHierarchyTab === 'function') window.switchHierarchyTab('guidelines'); }, 50);
@@ -1814,12 +1885,14 @@ return;
 }
 const wsHost = window.PANE_TO_WORKSTATION && window.PANE_TO_WORKSTATION[pane];
 if (wsHost && wsHost !== pane) {
+if (typeof window.setWorkstationTab === 'function') {
+window.setWorkstationTab(wsHost, pane);
+}
 window.nav(wsHost);
-if (typeof window.showWorkstationTab === 'function') window.showWorkstationTab(wsHost, pane);
 return;
 }
 if (window.NavigationState) window.NavigationState.set(pane);
-document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+document.querySelectorAll('.pane, .ws-body').forEach(p => p.classList.remove('active'));
 document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 let el = document.getElementById('pane-' + pane);
 if (!el) {
@@ -1839,13 +1912,21 @@ if (gid && typeof window.toggleSidebarGroup === 'function') {
 window.toggleSidebarGroup(gid, true);
 }
 const renderer = window.MASTER_PANE_REGISTRY[pane];
+let rendered;
 if (renderer) {
-try { renderer(); } catch(e) { console.warn('Master renderer error for ' + pane + ':', e); }
+try { rendered = renderer(); } catch(e) { console.warn('Master renderer error for ' + pane + ':', e); }
 }
 if (window.WORKSTATIONS && window.WORKSTATIONS[pane] && typeof window.initWorkstation === 'function') {
+const buildWorkstation = () => {
 window.initWorkstation(pane);
 const last = (window._activeWorkstationTab || {})[pane] || pane;
 window.showWorkstationTab(pane, last);
+};
+if (rendered && typeof rendered.then === 'function') {
+rendered.then(buildWorkstation, buildWorkstation);
+} else {
+buildWorkstation();
+}
 }
 if (typeof window.showSmartSuggestionsForPane === 'function') {
 try { window.showSmartSuggestionsForPane(pane); } catch(e) {}
@@ -22340,6 +22421,7 @@ else toast('Import failed: ' + (j.error||''), 'err');
 var controlRefreshTimer = null;
 async function renderControlTower() {
 const pane = document.getElementById('pane-control');
+if (!pane) return;
 pane.innerHTML = skeletonPage();
 clearInterval(controlRefreshTimer);
 await refreshControlTower();
@@ -22580,6 +22662,7 @@ applyPreferences(p);
 ;/* 33-webhooks.js */
 async function renderWebhooks() {
 const pane = document.getElementById('pane-webhooks');
+if (!pane) return;
 pane.innerHTML = skeletonPage();
 try {
 const [wr, tr] = await Promise.all([fetch('/api/webhooks'), fetch('/api/webhooks/templates')]);
@@ -22680,6 +22763,7 @@ else toast('Delete failed: ' + (j.error||''), 'err');
 let generatedTestCode = '';
 async function renderTestGen() {
 const pane = document.getElementById('pane-testgen');
+if (!pane) return;
 pane.innerHTML = skeletonPage();
 try {
 const [fr, fwr] = await Promise.all([fetch('/api/preview/files'), fetch('/api/testgen/frameworks')]);
@@ -23208,6 +23292,7 @@ await gmAlert('📋 Pipeline History', `<pre style="font-size:12px;white-space:p
 let sysRefreshTimer = null;
 async function renderSystem() {
 const pane = document.getElementById('pane-system');
+if (!pane) return;
 pane.innerHTML = `<div class="section-head">
     <div><h2>💻 System Monitor</h2><p>CPU · RAM · Disk · Processes · Git · HMR</p></div>
     <div style="display:flex;gap:8px">

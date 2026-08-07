@@ -51,7 +51,14 @@
       var script = document.createElement('script');
       script.src = url;
       script.async = false;   // preserve execution order against other chunks
-      script.onload = function () { resolve(true); };
+      script.onload = function () {
+        // The chunk just defined new renderer globals; wrap them too, or a
+        // lazily loaded pane escapes render deduplication.
+        if (typeof window.installRenderDedupe === 'function') {
+          window.installRenderDedupe();
+        }
+        resolve(true);
+      };
       script.onerror = function () {
         // Allow a retry on the next navigation rather than leaving the pane
         // permanently dead: a chunk fetch can fail for transient reasons

@@ -203,6 +203,11 @@ function setupSidebarResizer() {
 
 window.nav = function(pane) {
   if (!pane) return;
+  // Open the render-deduplication window for this navigation. 14 stacked
+  // nav() wrappers each re-invoke renderers the registry already ran; without
+  // this, 44 of 68 panes render 2-3 times per navigation. See
+  // frontend/js/00-render-dedupe.js.
+  if (typeof window.beginNavRender === 'function') window.beginNavRender();
   // MODULE MERGE: the standalone "AI Guidelines" (Steering Files) pane was
   // folded into the "AI Operating Manual" pane (hierarchy) as a third tab —
   // see 12-information-hierarchy.js. Redirect any remaining callers of the
@@ -239,12 +244,28 @@ window.nav = function(pane) {
   // still reachable and still addressable. See 00-workstations.js.
   const wsHost = window.PANE_TO_WORKSTATION && window.PANE_TO_WORKSTATION[pane];
   if (wsHost && wsHost !== pane) {
+    // Record the tab we want BEFORE navigating to the host, then let the
+    // host's own navigation open it.
+    //
+    // This used to call showWorkstationTab() immediately after nav(wsHost).
+    // That render was always thrown away: nav(wsHost) waits for the host's
+    // async renderer, which replaces the host's innerHTML, rebuilds the
+    // workstation and calls showWorkstationTab() again. So the absorbed
+    // pane rendered twice and refired all of its API calls -- measured as
+    // 15 redundant requests across 10 panes.
+    if (typeof window.setWorkstationTab === 'function') {
+      window.setWorkstationTab(wsHost, pane);
+    }
     window.nav(wsHost);
-    if (typeof window.showWorkstationTab === 'function') window.showWorkstationTab(wsHost, pane);
     return;
   }
   if (window.NavigationState) window.NavigationState.set(pane);
-  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  // Absorbed workstation panes are `.ws-body`, not `.pane`, so the original
+  // selector never deactivated them. Renderers that poll while visible use
+  // `active` as their stop condition -- refreshControlTower() re-runs every
+  // 5s until the class goes away -- so a stale `active` left the Control
+  // Tower polling forever after you navigated somewhere else.
+  document.querySelectorAll('.pane, .ws-body').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   
   let el = document.getElementById('pane-' + pane);
@@ -268,17 +289,39 @@ window.nav = function(pane) {
   }
 
   const renderer = window.MASTER_PANE_REGISTRY[pane];
+  let rendered;
   if (renderer) {
-    try { renderer(); } catch(e) { console.warn('Master renderer error for ' + pane + ':', e); }
+    try { rendered = renderer(); } catch(e) { console.warn('Master renderer error for ' + pane + ':', e); }
   }
 
-  // If this pane hosts a workstation, build its tab strip (idempotent) and
-  // restore whichever tab was last open. Runs AFTER the host's own renderer so
-  // panes that rebuild their innerHTML don't wipe the tab strip.
+  // If this pane hosts a workstation, build its tab strip and restore whichever
+  // tab was last open.
+  //
+  // This MUST wait for the host's own renderer to finish, not merely to be
+  // called. The previous version ran immediately after `renderer()` returned
+  // and the comment claimed that was "AFTER the host's own renderer so panes
+  // that rebuild their innerHTML don't wipe the tab strip". That reasoning
+  // only holds for synchronous renderers. Most host renderers are async: they
+  // return a pending promise, we built the workstation into the host, and then
+  // their `await` resolved and `pane.innerHTML = ...` deleted the tab strip and
+  // every absorbed pane along with it.
+  //
+  // Measured before this fix: 7 of 11 workstations were destroyed on first
+  // open, taking 28 absorbed panes out of the DOM entirely -- which is what
+  // produced the "Cannot set properties of null" errors from renderSystem,
+  // renderControlTower, renderWebhooks and renderTestGen. Their pane elements
+  // no longer existed.
   if (window.WORKSTATIONS && window.WORKSTATIONS[pane] && typeof window.initWorkstation === 'function') {
-    window.initWorkstation(pane);
-    const last = (window._activeWorkstationTab || {})[pane] || pane;
-    window.showWorkstationTab(pane, last);
+    const buildWorkstation = () => {
+      window.initWorkstation(pane);
+      const last = (window._activeWorkstationTab || {})[pane] || pane;
+      window.showWorkstationTab(pane, last);
+    };
+    if (rendered && typeof rendered.then === 'function') {
+      rendered.then(buildWorkstation, buildWorkstation);
+    } else {
+      buildWorkstation();
+    }
   }
 
   if (typeof window.showSmartSuggestionsForPane === 'function') {

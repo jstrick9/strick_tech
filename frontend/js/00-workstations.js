@@ -107,7 +107,23 @@ window.initWorkstation = function (host) {
   if (!children) return false;
 
   const hostEl = document.getElementById('pane-' + host);
-  if (!hostEl || hostEl.dataset.workstationReady === '1') return !!hostEl;
+  if (!hostEl) return false;
+
+  // Idempotency is decided by the DOM, not by a flag.
+  //
+  // This used to be `hostEl.dataset.workstationReady === '1'`, and that flag
+  // was a lie the moment the host's own renderer replaced the host's
+  // innerHTML: the attribute survives on the element, the tab strip and every
+  // absorbed pane inside it do not. initWorkstation then returned early
+  // forever, so the workstation could never rebuild itself, and 7 of the 11
+  // workstations were permanently destroyed the first time you opened them.
+  //
+  // Checking for the structure we actually need means a wiped workstation
+  // simply rebuilds on the next navigation.
+  if (hostEl.querySelector(':scope > .ws-tabs') &&
+      hostEl.querySelector(':scope > .ws-bodies')) {
+    return true;
+  }
 
   const tabs = [host].concat(children);
 
@@ -158,13 +174,36 @@ window.initWorkstation = function (host) {
 
 // Show one tab within a workstation, invoking that pane's registered renderer
 // the first time it is opened (and on every open, matching nav() semantics).
+// Remember which tab a workstation should open next.
+//
+// 00-workstations.js owns this state. nav() needs to set it too (it records
+// the wanted tab before navigating to the host), and having both files do
+// `window._activeWorkstationTab = window._activeWorkstationTab || {}` tripped
+// the duplicate-globals linter -- correctly, because two owners of one
+// mutable global is how they drift.
+window.setWorkstationTab = function (host, pane) {
+  window._activeWorkstationTab = window._activeWorkstationTab || {};
+  window._activeWorkstationTab[host] = pane;
+};
+
 window.showWorkstationTab = function (host, pane) {
   if (!window.initWorkstation(host)) return;
   const hostEl = document.getElementById('pane-' + host);
   if (!hostEl) return;
 
   hostEl.querySelectorAll(':scope > .ws-bodies > .ws-body').forEach((el) => {
-    el.style.display = (el.id === 'ws-body-' + host ? pane === host : el.id === 'pane-' + pane) ? '' : 'none';
+    const on = (el.id === 'ws-body-' + host ? pane === host : el.id === 'pane-' + pane);
+    el.style.display = on ? '' : 'none';
+    // Keep the `active` class in sync with visibility.
+    //
+    // initWorkstation() strips `active` when it absorbs a pane, because the
+    // class also drives the top-level pane layout. But several renderers use
+    // it as "am I on screen?" before doing work -- refreshControlTower() bails
+    // out entirely unless `pane-control` has it, which left the Control Tower
+    // stuck on its skeleton forever once it became a workstation tab. The
+    // class is the app's own visibility signal, so an absorbed pane that IS
+    // showing must carry it.
+    el.classList.toggle('active', on);
   });
   hostEl.querySelectorAll(':scope > .ws-tabs > .ws-tab').forEach((btn) => {
     const on = btn.dataset.wsTab === pane;
@@ -172,8 +211,7 @@ window.showWorkstationTab = function (host, pane) {
     btn.setAttribute('aria-selected', on ? 'true' : 'false');
   });
 
-  window._activeWorkstationTab = window._activeWorkstationTab || {};
-  window._activeWorkstationTab[host] = pane;
+  window.setWorkstationTab(host, pane);
 
   // Run the pane's own renderer. The host's renderer is driven by nav().
   if (pane !== host) {
