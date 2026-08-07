@@ -11,6 +11,9 @@
 // ── State ─────────────────────────────────────────────────────────
 let _goalFilter   = { status: '', domain: '', priority: '' };
 let _goalList     = [];           // cached goal array
+// Set when the last goal load failed, so the list can say so instead of
+// rendering an empty state that looks like "you have no goals".
+let _goalLoadError = null;
 let _goalTotal    = 0;            // true server-side count (may exceed the page)
 let _goalSelected = null;         // currently open goal detail {goal, milestones, checkins, decomposition, score_history}
 let _goalTab      = 'overview';   // 'overview' | 'decompose' | 'score' | 'history'
@@ -46,6 +49,20 @@ const GRADE_COLORS = {
 async function renderGoals() {
   const pane = document.getElementById('pane-goals');
   if (!pane) return;
+
+  // Show a pending state before awaiting anything. Measured on a 3s
+  // connection: this pane stayed blank for the whole request with no
+  // indication it was working, which is exactly when a user clicks the
+  // action again and creates a duplicate.
+  if (!pane.innerText.trim() && typeof skeletonPage === 'function') {
+    pane.innerHTML = skeletonPage();
+    pane.setAttribute('aria-busy', 'true');
+  }
+
+  // Content has arrived; clear the pending state set above. Leaving
+  // aria-busy set would be its own bug -- a screen reader would keep saying
+  // the region is updating forever.
+  pane.removeAttribute('aria-busy');
 
   pane.innerHTML = `
   
@@ -115,11 +132,22 @@ async function renderGoals() {
 
 // ── Load & render goal list ────────────────────────────────────────
 async function gmLoadGoals() {
+  // `.catch(() => ({goals: []}))` made a dropped connection look exactly like
+  // an empty goal list. Measured with a body truncated mid-JSON: the pane
+  // rendered its normal empty state and said nothing was wrong, so a user
+  // would reasonably conclude their goals had been deleted. The failure is
+  // now recorded and surfaced below.
+  _goalLoadError = null;
   const [statsR, goalsR] = await Promise.all([
     fetch('/api/goals/stats/summary').then(r=>r.ok?r.json():{}).catch(()=>({})),
-    fetch(`/api/goals?limit=100${_goalFilter.status?'&status='+encodeURIComponent(_goalFilter.status):''}${_goalFilter.domain?'&domain='+encodeURIComponent(_goalFilter.domain):''}${_goalFilter.priority?'&priority='+encodeURIComponent(_goalFilter.priority):''}`).then(r=>r.ok?r.json():{goals:[]}).catch(()=>({goals:[]})),
+    fetch(`/api/goals?limit=100${_goalFilter.status?'&status='+encodeURIComponent(_goalFilter.status):''}${_goalFilter.domain?'&domain='+encodeURIComponent(_goalFilter.domain):''}${_goalFilter.priority?'&priority='+encodeURIComponent(_goalFilter.priority):''}`)
+      .then(r => {
+        if (!r.ok) throw httpError(r);
+        return r.json();
+      })
+      .catch(e => { _goalLoadError = e; return {goals: []}; }),
   ]);
-  _goalList = goalsR.goals || [];
+  _goalList = (goalsR && goalsR.goals) || [];
   // The API caps at 100 but reports the true count. 724 goals existed in
   // testing while the list showed 100 and said nothing, so 624 were simply
   // unreachable -- the user has no way to know they are not seeing
@@ -139,6 +167,17 @@ function gmUpdateStats(stats) {
 function gmRenderList() {
   const list = document.getElementById('gm-goal-list');
   if (!list) return;
+  if (_goalLoadError) {
+    // Distinguish "no goals" from "we could not load your goals". Saying
+    // "No goals match these filters" after a failed request is a lie the
+    // user has no way to detect.
+    list.innerHTML = `<div role="alert" style="color:var(--text-2);font-size:12px;padding:12px;line-height:1.7">
+        ${escHtml(humanError(_goalLoadError, {action: 'load your goals', dataSafe: true}))}
+        <br><button type="button" class="btn btn-sm btn-primary" style="margin-top:8px"
+                    data-act-click="renderGoals()">↻ Try again</button>
+      </div>`;
+    return;
+  }
   if (!_goalList.length) {
     list.innerHTML = `<div style="color:var(--text-3);font-size:12px;padding:12px;line-height:1.7">No goals match these filters.</div>`;
     return;

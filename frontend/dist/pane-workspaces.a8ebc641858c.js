@@ -61,7 +61,14 @@ pane.innerHTML = `
       </div>
       </div>`;
 loadBackupStats();
-} catch(e) { pane.innerHTML=`<div class="page-content">${emptyState({icon:'⚠️',title:'Error',body:e.message})}</div>`; }
+} catch(e) {
+pane.innerHTML = `<div class="page-content">${emptyState({
+      icon: '⚠️',
+      title: 'Couldn\u2019t load this',
+      body: humanError(e, {action: 'load your workspaces', dataSafe: true}),
+      actions: [{label: '\u21bb Try again', action: 'renderWorkspaces()', primary: true}],
+    })}</div>`;
+}
 }
 async function loadBackupStats() {
 const el = document.getElementById('ws-backup-stats');

@@ -46,7 +46,14 @@ pane.innerHTML = `
         </div>
       </div>
       </div>`;
-} catch(e) { pane.innerHTML=`<div class="page-content">${emptyState({icon:'⚠️',title:'Error',body:e.message})}</div>`; }
+} catch(e) {
+pane.innerHTML = `<div class="page-content">${emptyState({
+      icon: '⚠️',
+      title: 'Couldn\u2019t load this',
+      body: humanError(e, {action: 'load your webhooks', dataSafe: true}),
+      actions: [{label: '\u21bb Try again', action: 'renderWebhooks()', primary: true}],
+    })}</div>`;
+}
 }
 async function createWebhook() {
 const name = await gmPrompt('Webhook Name','e.g. GitHub Push Handler','');

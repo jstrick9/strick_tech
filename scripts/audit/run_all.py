@@ -38,6 +38,8 @@ AUDITS = [
     'responsive',
     'failure_honesty',
     'concurrency',
+    'announcements',
+    'slow_network',
 ]
 
 

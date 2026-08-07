@@ -64,7 +64,19 @@ async function renderWorkspaces() {
       </div>
       </div>`;
     loadBackupStats();
-  } catch(e) { pane.innerHTML=`<div class="page-content">${emptyState({icon:'⚠️',title:'Error',body:e.message})}</div>`; }
+  } catch(e) {
+    // `e.message` here is often a raw parse failure ("Unterminated string in
+    // JSON at position 29") when a connection drops mid-body. That is a stack
+    // detail, not an explanation, and it also left the skeleton in place when
+    // the message was empty. humanError() gives a sentence and keeps the
+    // detail in trailing parentheses.
+    pane.innerHTML = `<div class="page-content">${emptyState({
+      icon: '⚠️',
+      title: 'Couldn\u2019t load this',
+      body: humanError(e, {action: 'load your workspaces', dataSafe: true}),
+      actions: [{label: '\u21bb Try again', action: 'renderWorkspaces()', primary: true}],
+    })}</div>`;
+  }
 }
 
 async function loadBackupStats() {

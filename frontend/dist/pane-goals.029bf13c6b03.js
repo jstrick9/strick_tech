@@ -3,6 +3,7 @@
 (function(S, nav, toast, escHtml, fetch, document, gmPrompt, gmConfirm, gmAlert) {
 let _goalFilter   = { status: '', domain: '', priority: '' };
 let _goalList     = [];
+let _goalLoadError = null;
 let _goalTotal    = 0;
 let _goalSelected = null;
 let _goalTab      = 'overview';
@@ -35,6 +36,11 @@ const GRADE_COLORS = {
 async function renderGoals() {
 const pane = document.getElementById('pane-goals');
 if (!pane) return;
+if (!pane.innerText.trim() && typeof skeletonPage === 'function') {
+pane.innerHTML = skeletonPage();
+pane.setAttribute('aria-busy', 'true');
+}
+pane.removeAttribute('aria-busy');
 pane.innerHTML = `
   
 
@@ -99,11 +105,17 @@ pane.innerHTML = `
 await gmLoadGoals();
 }
 async function gmLoadGoals() {
+_goalLoadError = null;
 const [statsR, goalsR] = await Promise.all([
 fetch('/api/goals/stats/summary').then(r=>r.ok?r.json():{}).catch(()=>({})),
-fetch(`/api/goals?limit=100${_goalFilter.status?'&status='+encodeURIComponent(_goalFilter.status):''}${_goalFilter.domain?'&domain='+encodeURIComponent(_goalFilter.domain):''}${_goalFilter.priority?'&priority='+encodeURIComponent(_goalFilter.priority):''}`).then(r=>r.ok?r.json():{goals:[]}).catch(()=>({goals:[]})),
+fetch(`/api/goals?limit=100${_goalFilter.status?'&status='+encodeURIComponent(_goalFilter.status):''}${_goalFilter.domain?'&domain='+encodeURIComponent(_goalFilter.domain):''}${_goalFilter.priority?'&priority='+encodeURIComponent(_goalFilter.priority):''}`)
+.then(r => {
+if (!r.ok) throw httpError(r);
+return r.json();
+})
+.catch(e => { _goalLoadError = e; return {goals: []}; }),
 ]);
-_goalList = goalsR.goals || [];
+_goalList = (goalsR && goalsR.goals) || [];
 _goalTotal = goalsR.total ?? _goalList.length;
 gmUpdateStats(statsR);
 gmRenderList();
@@ -117,6 +129,14 @@ s('gm-stat-avg',    Math.round(stats.avg_progress ?? 0) + '%');
 function gmRenderList() {
 const list = document.getElementById('gm-goal-list');
 if (!list) return;
+if (_goalLoadError) {
+list.innerHTML = `<div role="alert" style="color:var(--text-2);font-size:12px;padding:12px;line-height:1.7">
+        ${escHtml(humanError(_goalLoadError, {action: 'load your goals', dataSafe: true}))}
+        <br><button type="button" class="btn btn-sm btn-primary" style="margin-top:8px"
+                    data-act-click="renderGoals()">↻ Try again</button>
+      </div>`;
+return;
+}
 if (!_goalList.length) {
 list.innerHTML = `<div style="color:var(--text-3);font-size:12px;padding:12px;line-height:1.7">No goals match these filters.</div>`;
 return;
