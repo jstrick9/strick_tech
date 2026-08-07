@@ -1264,3 +1264,25 @@ html :focus:not(:focus-visible) {
   }
   #topbar-actions > * { flex-shrink: 0; }
 }
+
+/* ── Supervisor DAG containment ────────────────────────────────────
+   The dependency graph draws into an `<svg id="dag-svg">` with
+   `overflow: visible`, which lets edges extend beyond the canvas. That is
+   intentional for the drawing, but nothing above it was clipping, so on a
+   390px phone the graph pushed the DOCUMENT 611px sideways -- the whole app
+   scrolled horizontally.
+
+   The `.dag-viewport { overflow: hidden }` rule that would have contained it
+   exists only in frontend/styles.css, which is NOT linked by index.html (see
+   docs/module-reviews). So it never applied. Declared here, in the sheet that
+   is actually loaded. */
+.dag-viewport {
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.dag-canvas-wrap,
+.dag-canvas-inner {
+  max-width: 100%;
+}

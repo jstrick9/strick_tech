@@ -522,9 +522,13 @@ async function renderHooks() {
       fetch('/api/hooks/events/types').then(r=>r.ok?r.json().catch(()=>{}):null),
     ]);
 
-    const hookList = hooks.hooks || [];
+    // A failed fetch resolves to null here, and `hooks.hooks` then threw
+    // "Cannot read properties of null" straight into the pane as the user's
+    // explanation. Optional chaining makes a failed load render an empty
+    // list, and the surrounding try/catch still reports genuine errors.
+    const hookList = hooks?.hooks || [];
     const eventMap = {};
-    (events.events||[]).forEach((e) =>{ eventMap[e.id]=e.label; });
+    (events?.events || []).forEach((e) =>{ eventMap[e.id]=e.label; });
 
     pane.innerHTML = `
     
@@ -542,7 +546,7 @@ async function renderHooks() {
 
       <!-- Event types quick filter -->
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
-        ${(events.events||[]).map((e) =>`
+        ${(events?.events || []).map((e) =>`
           <button class="btn-sm u-11a50812" data-act-click="hookFilterEvent(${JSON.stringify(e.id)})" id="hfbtn-${e.id}" >${e.label}</button>
         `).join('')}
       </div>
