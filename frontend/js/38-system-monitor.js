@@ -4,6 +4,12 @@
 let sysRefreshTimer = null;
 async function renderSystem() {
   const pane = document.getElementById('pane-system');
+  // A renderer that assumes its pane exists takes the whole
+  // navigation down with it if anything ever removes that node --
+  // which is exactly how this file produced
+  // "Cannot set properties of null" on every visit. A missing pane
+  // is a no-op, not a crash.
+  if (!pane) return;
   pane.innerHTML = `<div class="section-head">
     <div><h2>💻 System Monitor</h2><p>CPU · RAM · Disk · Processes · Git · HMR</p></div>
     <div style="display:flex;gap:8px">

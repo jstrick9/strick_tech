@@ -83,8 +83,26 @@ class TestNavigationAndSettingsIntegrity:
             assert f"'{pane}':" in registry_js, f"{pane} lost its MASTER_PANE_REGISTRY entry"
 
         # 3. nav() redirects absorbed ids to their host workstation tab
+        #
+        # UPDATED (batch 30): this used to require the literal
+        # `window.showWorkstationTab(wsHost, pane)` on the redirect path. That
+        # eager call was removed because it was a bug, not a feature: nav(host)
+        # waits for the host's async renderer, which replaces the host's
+        # innerHTML, rebuilds the workstation and opens the wanted tab itself.
+        # Rendering the tab first meant every absorbed pane rendered twice and
+        # refired all of its API calls for nothing.
+        #
+        # The requirement being tested is unchanged -- an absorbed id must
+        # still reach its tab -- so the assertion now checks the behaviour
+        # (the wanted tab is recorded, then the host is opened) rather than
+        # the specific call that used to implement it.
         assert "window.PANE_TO_WORKSTATION[pane]" in core_js
-        assert "window.showWorkstationTab(wsHost, pane)" in core_js
+        redirect = core_js[core_js.index("PANE_TO_WORKSTATION[pane]"):]
+        redirect = redirect[:redirect.index("NavigationState")]
+        assert "setWorkstationTab(wsHost, pane)" in redirect, (
+            "the redirect must record which tab to open")
+        assert "window.nav(wsHost)" in redirect, (
+            "the redirect must navigate to the host workstation")
 
     def test_master_pane_registry_maps_all_nav_keys(self, html_soup, app_core_js):
         """Verify that MASTER_PANE_REGISTRY authoritatively registers every sidebar nav key."""
