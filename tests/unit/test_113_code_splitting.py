@@ -217,25 +217,57 @@ def test_modules_referenced_during_boot_are_not_deferred(plan, tmp_path):
         'a module captured by a top-level expression during boot was marked '
         'deferrable; the captured reference would be null at runtime')
 
-    # And the real plan must agree for the real file.
-    assert 'const wrappedRenders' in (JS_DIR / '01-app-core.js').read_text(
-        encoding='utf-8'), (
+    # And the real plan must agree for a real module that is still captured
+    # at load time.
+    #
+    # UPDATED (batch 31): this used to assert on `const wrappedRenders` in
+    # 01-app-core.js. That block was a verified no-op -- it copied
+    # `renderX` onto `window.renderX`, which these plain global scripts
+    # already are -- and its only real effect was to pin nine modules into
+    # the eager bundle. It has been deleted, so the assertion now uses
+    # 36-dashboard.js, which is still genuinely blocked by a different
+    # load-time capture (`renderDashBody = function(d){...}` at top level).
+    core = (JS_DIR / '01-app-core.js').read_text(encoding='utf-8')
+    assert 'renderDashBody = function' in core, (
         'the construct this guards has been renamed; re-check the analysis')
+    assert '36-dashboard.js' not in plan['lazyFiles']
     assert '26-swarm.js' not in plan['lazyFiles']
 
 
 @needs_acorn
-def test_modules_called_bare_from_nav_are_not_deferred(plan):
+def test_modules_called_bare_from_nav_are_not_deferred(plan, tmp_path):
     """Bug 2: `if (pane === 'mcp') renderMCP();` throws if not yet loaded.
 
     Verified live -- deferring these produced ReferenceError for renderMCP,
     renderLoops, renderIntegrations and renderImageGen.
     """
-    for module in ('39-mcp-panel.js', '40-loops.js', '22-integrations.js',
-                   '15-image-generation.js', '28-kanban.js'):
-        assert module not in plan['lazyFiles'], (
-            f'{module} is called by a bare identifier from nav(); deferring '
-            'it throws ReferenceError when its pane is opened')
+    # UPDATED (batch 31): the modules originally listed here -- 39-mcp-panel,
+    # 40-loops, 22-integrations, 15-image-generation, 28-kanban -- were
+    # blocked by *redundant* bare calls in the nav() wrappers, e.g.
+    # `if (pane === 'mcp') renderMCP();` duplicating what
+    # MASTER_PANE_REGISTRY already ran. Those 18 duplicate calls have been
+    # deleted, so those modules are now correctly deferrable and asserting
+    # they stay eager would pin the dead code back in place.
+    #
+    # The RULE is unchanged and still needs a guard, so this now asserts it
+    # against a synthetic fixture rather than against whichever modules
+    # happen to be affected today.
+    module = tmp_path / 'frontend' / 'js'
+    module.mkdir(parents=True)
+    (module / '00-pane-registry.js').write_text(
+        "window.MASTER_PANE_REGISTRY = {\n"
+        "  'thing': () => typeof window.renderThing === 'function' && window.renderThing(),\n"
+        "};\n", encoding='utf-8')
+    (module / '01-app-core.js').write_text(
+        "function navLike(pane){ if (pane === 'thing') renderThing(); }\n",
+        encoding='utf-8')
+    (module / '50-thing.js').write_text(
+        "function renderThing(){ return 1; }\n", encoding='utf-8')
+
+    out = _analyse_fixture(tmp_path)
+    assert '50-thing.js' not in out['lazyFiles'], (
+        'a module called by a bare identifier must stay eager; deferring it '
+        'throws ReferenceError when its pane is opened')
 
 
 @needs_acorn

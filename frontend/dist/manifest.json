@@ -1,8 +1,8 @@
 {
   "head": "head.8f62aefef2be.js",
-  "body": "app.d23334d71016.js",
+  "body": "app.dff1a955eca3.js",
   "minified": true,
-  "modules": 63,
+  "modules": 45,
   "head_modules": [
     "00-style-hydrate.js",
     "00-theme-boot.js"
@@ -35,33 +35,15 @@
     "11-ux-accessibility.js",
     "13-ui-ergonomics.js",
     "14-prompt-library.js",
-    "15-image-generation.js",
     "16-terminal.js",
-    "17-database-studio.js",
-    "18-github.js",
-    "19-composer.js",
-    "20-obsidian.js",
-    "21-template-gallery.js",
-    "22-integrations.js",
     "23-plugin-marketplace.js",
     "24-onboarding.js",
-    "25-skills.js",
     "26-swarm.js",
     "27-galaxy.js",
-    "28-kanban.js",
     "sidebar-enhancements.js",
     "29-notifications.js",
-    "30-workspaces.js",
-    "31-control-tower.js",
     "32-collaboration.js",
-    "33-webhooks.js",
-    "34-test-generator.js",
-    "35-deploy.js",
     "36-dashboard.js",
-    "37-pipeline.js",
-    "38-system-monitor.js",
-    "39-mcp-panel.js",
-    "40-loops.js",
     "56-chat-history.js",
     "57-account-settings.js",
     "58-csp-monitor.js",
@@ -70,23 +52,23 @@
     "92-pane-error-boundary.js",
     "93-shortcuts-overlay.js"
   ],
-  "raw_bytes": 1583289,
-  "bundled_bytes": 1241754,
+  "raw_bytes": 1289470,
+  "bundled_bytes": 995611,
   "compressed": {
     "head.8f62aefef2be.js": {
       "raw": 6508,
       "gzip": 2376,
       "brotli": 2015
     },
-    "app.d23334d71016.js": {
-      "raw": 1235246,
-      "gzip": 295431,
-      "brotli": 220840
+    "app.dff1a955eca3.js": {
+      "raw": 989103,
+      "gzip": 240997,
+      "brotli": 182481
     },
-    "chunks.6aae04efa2cf.js": {
-      "raw": 860,
-      "gzip": 465,
-      "brotli": 403
+    "chunks.f86640c793a0.js": {
+      "raw": 1575,
+      "gzip": 752,
+      "brotli": 652
     },
     "pane-a2a.b35d81dd06c5.js": {
       "raw": 26249,
@@ -113,10 +95,30 @@
       "gzip": 6511,
       "brotli": 5540
     },
+    "pane-composer.a55f589c4ce9.js": {
+      "raw": 14406,
+      "gzip": 4594,
+      "brotli": 3837
+    },
     "pane-connectors.40b36d55929a.js": {
       "raw": 9244,
       "gzip": 3293,
       "brotli": 2778
+    },
+    "pane-control.564eb8a392c6.js": {
+      "raw": 9256,
+      "gzip": 3168,
+      "brotli": 2665
+    },
+    "pane-dbstudio.a3c1d925d3c4.js": {
+      "raw": 31449,
+      "gzip": 8440,
+      "brotli": 7281
+    },
+    "pane-deploy.39a7d6bef7cc.js": {
+      "raw": 10565,
+      "gzip": 3382,
+      "brotli": 2829
     },
     "pane-eval-framework.d48b760348e5.js": {
       "raw": 10704,
@@ -133,6 +135,11 @@
       "gzip": 5274,
       "brotli": 4459
     },
+    "pane-github.c392d44db4bb.js": {
+      "raw": 19001,
+      "gzip": 5267,
+      "brotli": 4415
+    },
     "pane-goals.4f77d34b78bd.js": {
       "raw": 43223,
       "gzip": 10741,
@@ -148,35 +155,95 @@
       "gzip": 5025,
       "brotli": 4215
     },
+    "pane-imagegen.c00a155458ef.js": {
+      "raw": 22272,
+      "gzip": 6003,
+      "brotli": 5137
+    },
+    "pane-integrations.9153fe83f754.js": {
+      "raw": 12935,
+      "gzip": 4018,
+      "brotli": 3426
+    },
+    "pane-kanban.4a629b8669b8.js": {
+      "raw": 24573,
+      "gzip": 5671,
+      "brotli": 4860
+    },
     "pane-leaderboard.9e267a1679d3.js": {
       "raw": 21913,
       "gzip": 5483,
       "brotli": 4718
     },
-    "pane-mcp.d19bb2a238e6.js": {
-      "raw": 12054,
-      "gzip": 3725,
-      "brotli": 3142
+    "pane-loops.1808593435f3.js": {
+      "raw": 7361,
+      "gzip": 2433,
+      "brotli": 1952
+    },
+    "pane-mcp.07c33e98c8be.js": {
+      "raw": 20384,
+      "gzip": 5670,
+      "brotli": 4843
     },
     "pane-mcp-gateway.c61180a003db.js": {
       "raw": 50241,
       "gzip": 12196,
       "brotli": 10486
     },
+    "pane-obsidian.29469bda7f12.js": {
+      "raw": 13939,
+      "gzip": 3882,
+      "brotli": 3297
+    },
+    "pane-pipeline.998c4971d69f.js": {
+      "raw": 7149,
+      "gzip": 2709,
+      "brotli": 2227
+    },
     "pane-plugins.0811dda1ee5b.js": {
       "raw": 14038,
       "gzip": 4088,
       "brotli": 3492
+    },
+    "pane-skills.031fa10a4c8c.js": {
+      "raw": 10049,
+      "gzip": 3481,
+      "brotli": 2932
     },
     "pane-supervisor.67f34323288b.js": {
       "raw": 45753,
       "gzip": 12548,
       "brotli": 10830
     },
+    "pane-system.90ac3f328041.js": {
+      "raw": 7064,
+      "gzip": 2550,
+      "brotli": 2174
+    },
+    "pane-templates.0e1b755e824c.js": {
+      "raw": 23344,
+      "gzip": 6315,
+      "brotli": 5438
+    },
+    "pane-testgen.a735c427d5f6.js": {
+      "raw": 5343,
+      "gzip": 2126,
+      "brotli": 1735
+    },
+    "pane-webhooks.05848e4bddf6.js": {
+      "raw": 6493,
+      "gzip": 2266,
+      "brotli": 1845
+    },
     "pane-websearch.2e11669aebd0.js": {
       "raw": 17197,
       "gzip": 4471,
       "brotli": 3809
+    },
+    "pane-workspaces.b7dad03b4172.js": {
+      "raw": 10917,
+      "gzip": 3585,
+      "brotli": 2970
     }
   },
   "chunks": {
@@ -215,12 +282,40 @@
       ],
       "bytes": 23925
     },
+    "composer": {
+      "file": "pane-composer.a55f589c4ce9.js",
+      "modules": [
+        "19-composer.js"
+      ],
+      "bytes": 14406
+    },
     "connectors": {
       "file": "pane-connectors.40b36d55929a.js",
       "modules": [
         "51-connectors.js"
       ],
       "bytes": 9244
+    },
+    "control": {
+      "file": "pane-control.564eb8a392c6.js",
+      "modules": [
+        "31-control-tower.js"
+      ],
+      "bytes": 9256
+    },
+    "dbstudio": {
+      "file": "pane-dbstudio.a3c1d925d3c4.js",
+      "modules": [
+        "17-database-studio.js"
+      ],
+      "bytes": 31449
+    },
+    "deploy": {
+      "file": "pane-deploy.39a7d6bef7cc.js",
+      "modules": [
+        "35-deploy.js"
+      ],
+      "bytes": 10565
     },
     "eval-framework": {
       "file": "pane-eval-framework.d48b760348e5.js",
@@ -243,6 +338,13 @@
       ],
       "bytes": 23822
     },
+    "github": {
+      "file": "pane-github.c392d44db4bb.js",
+      "modules": [
+        "18-github.js"
+      ],
+      "bytes": 19001
+    },
     "goals": {
       "file": "pane-goals.4f77d34b78bd.js",
       "modules": [
@@ -264,6 +366,27 @@
       ],
       "bytes": 16637
     },
+    "imagegen": {
+      "file": "pane-imagegen.c00a155458ef.js",
+      "modules": [
+        "15-image-generation.js"
+      ],
+      "bytes": 22272
+    },
+    "integrations": {
+      "file": "pane-integrations.9153fe83f754.js",
+      "modules": [
+        "22-integrations.js"
+      ],
+      "bytes": 12935
+    },
+    "kanban": {
+      "file": "pane-kanban.4a629b8669b8.js",
+      "modules": [
+        "28-kanban.js"
+      ],
+      "bytes": 24573
+    },
     "leaderboard": {
       "file": "pane-leaderboard.9e267a1679d3.js",
       "modules": [
@@ -271,12 +394,20 @@
       ],
       "bytes": 21913
     },
-    "mcp": {
-      "file": "pane-mcp.d19bb2a238e6.js",
+    "loops": {
+      "file": "pane-loops.1808593435f3.js",
       "modules": [
-        "35-connect-hub.js"
+        "40-loops.js"
       ],
-      "bytes": 12054
+      "bytes": 7361
+    },
+    "mcp": {
+      "file": "pane-mcp.07c33e98c8be.js",
+      "modules": [
+        "35-connect-hub.js",
+        "39-mcp-panel.js"
+      ],
+      "bytes": 20384
     },
     "mcp-gateway": {
       "file": "pane-mcp-gateway.c61180a003db.js",
@@ -285,12 +416,33 @@
       ],
       "bytes": 50241
     },
+    "obsidian": {
+      "file": "pane-obsidian.29469bda7f12.js",
+      "modules": [
+        "20-obsidian.js"
+      ],
+      "bytes": 13939
+    },
+    "pipeline": {
+      "file": "pane-pipeline.998c4971d69f.js",
+      "modules": [
+        "37-pipeline.js"
+      ],
+      "bytes": 7149
+    },
     "plugins": {
       "file": "pane-plugins.0811dda1ee5b.js",
       "modules": [
         "34-plugin-hub.js"
       ],
       "bytes": 14038
+    },
+    "skills": {
+      "file": "pane-skills.031fa10a4c8c.js",
+      "modules": [
+        "25-skills.js"
+      ],
+      "bytes": 10049
     },
     "supervisor": {
       "file": "pane-supervisor.67f34323288b.js",
@@ -299,19 +451,72 @@
       ],
       "bytes": 45753
     },
+    "system": {
+      "file": "pane-system.90ac3f328041.js",
+      "modules": [
+        "38-system-monitor.js"
+      ],
+      "bytes": 7064
+    },
+    "templates": {
+      "file": "pane-templates.0e1b755e824c.js",
+      "modules": [
+        "21-template-gallery.js"
+      ],
+      "bytes": 23344
+    },
+    "testgen": {
+      "file": "pane-testgen.a735c427d5f6.js",
+      "modules": [
+        "34-test-generator.js"
+      ],
+      "bytes": 5343
+    },
+    "webhooks": {
+      "file": "pane-webhooks.05848e4bddf6.js",
+      "modules": [
+        "33-webhooks.js"
+      ],
+      "bytes": 6493
+    },
     "websearch": {
       "file": "pane-websearch.2e11669aebd0.js",
       "modules": [
         "44-websearch.js"
       ],
       "bytes": 17197
+    },
+    "workspaces": {
+      "file": "pane-workspaces.b7dad03b4172.js",
+      "modules": [
+        "30-workspaces.js"
+      ],
+      "bytes": 10917
     }
   },
-  "chunk_manifest": "chunks.6aae04efa2cf.js",
+  "chunk_manifest": "chunks.f86640c793a0.js",
   "lazy_modules": [
     "12-information-hierarchy.js",
+    "15-image-generation.js",
+    "17-database-studio.js",
+    "18-github.js",
+    "19-composer.js",
+    "20-obsidian.js",
+    "21-template-gallery.js",
+    "22-integrations.js",
+    "25-skills.js",
+    "28-kanban.js",
+    "30-workspaces.js",
+    "31-control-tower.js",
+    "33-webhooks.js",
     "34-plugin-hub.js",
+    "34-test-generator.js",
     "35-connect-hub.js",
+    "35-deploy.js",
+    "37-pipeline.js",
+    "38-system-monitor.js",
+    "39-mcp-panel.js",
+    "40-loops.js",
     "41-fusion.js",
     "42-hitl.js",
     "43-browser-agent.js",
@@ -328,5 +533,5 @@
     "54-finops.js",
     "55-eval-framework.js"
   ],
-  "lazy_bytes": 447887
+  "lazy_bytes": 692333
 }
