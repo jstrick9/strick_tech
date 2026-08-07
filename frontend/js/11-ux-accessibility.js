@@ -135,8 +135,37 @@
 
   function setupModalAccessibility(modalEl) {
     if (!modalEl) return;
+
+    // Do not nest one dialog inside another.
+    //
+    // Several modals are markup'd as a backdrop that already carries
+    // role="dialog" wrapping an inner `.modal` panel. Tagging the inner panel
+    // too produced a dialog inside a dialog, which screen readers announce
+    // twice and which has no accessible name of its own -- it was the last
+    // unlabelled dialog on the page. The outer element is the dialog; the
+    // inner one is just its panel.
+    const parentDialog = modalEl.parentElement
+      && modalEl.parentElement.closest('[role="dialog"]');
+    if (parentDialog) {
+      // Focus trapping still applies, driven by the outer element.
+      return setupModalAccessibility(parentDialog);
+    }
+
     if (!modalEl.hasAttribute('role')) modalEl.setAttribute('role', 'dialog');
     modalEl.setAttribute('aria-modal', 'true');
+
+    // A dialog with no accessible name is announced as just "dialog". Adopt
+    // the panel's own heading when one exists, which is the label a sighted
+    // user is already reading.
+    if (!modalEl.hasAttribute('aria-label') && !modalEl.hasAttribute('aria-labelledby')) {
+      const heading = modalEl.querySelector('h1, h2, h3, .modal-title');
+      if (heading) {
+        if (!heading.id) {
+          heading.id = 'modal-title-' + Math.random().toString(36).slice(2, 9);
+        }
+        modalEl.setAttribute('aria-labelledby', heading.id);
+      }
+    }
 
     // Observation of modal visibility transitions
     const observer = new MutationObserver(mutations => {

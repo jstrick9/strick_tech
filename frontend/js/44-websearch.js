@@ -405,6 +405,14 @@ function replaySearch(query, kind) {
 }
 
 async function deleteHistoryEntry(id) {
+  // Every other delete in this app confirms first; this one removed a
+  // history entry on a single click with no undo and no prompt.
+  if (typeof gmDanger === 'function') {
+    const ok = await gmDanger('Delete search',
+                              'Remove this search from your history?',
+                              'Delete');
+    if (!ok) return;
+  }
   try {
     const r = await fetch(`/api/websearch/history/${encodeURIComponent(id)}`, {method:'DELETE'});
     if (!r.ok) throw new Error(`HTTP ${r.status}`);

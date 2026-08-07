@@ -171,6 +171,115 @@ return () => listeners.delete(fn);
 window.NavigationState = state;
 })();
 
+;/* 00-connection-status.js */
+'use strict';
+(function () {
+var WINDOW_MS = 8000;
+var THRESHOLD = 3;
+var SNOOZE_MS = 60000;
+var failures = [];
+var snoozedUntil = 0;
+var bannerEl = null;
+var lastPaths = [];
+function isApiPath(url) {
+try {
+var u = new URL(url, location.origin);
+if (u.origin !== location.origin) return false;
+return u.pathname.indexOf('/api/') === 0;
+} catch (e) { return false; }
+}
+var IGNORED = [
+'/api/secrets/get',
+'/api/security/csp-report',
+];
+function ignored(path) {
+for (var i = 0; i < IGNORED.length; i++) {
+if (path.indexOf(IGNORED[i]) === 0) return true;
+}
+return false;
+}
+function record(path) {
+var now = Date.now();
+failures.push(now);
+lastPaths.push(path);
+if (lastPaths.length > 6) lastPaths.shift();
+failures = failures.filter(function (t) { return now - t < WINDOW_MS; });
+if (failures.length >= THRESHOLD && now >= snoozedUntil) show();
+}
+function clearFailures() {
+failures = [];
+}
+function show() {
+if (bannerEl) return;
+bannerEl = document.createElement('div');
+bannerEl.id = 'connection-banner';
+bannerEl.className = 'connection-banner';
+bannerEl.setAttribute('role', 'status');
+bannerEl.setAttribute('aria-live', 'polite');
+var text = document.createElement('span');
+text.className = 'connection-banner__text';
+text.textContent = 'Some data couldn\u2019t load. Your work is safe — this looks like a connection problem.';
+bannerEl.appendChild(text);
+var retry = document.createElement('button');
+retry.type = 'button';
+retry.className = 'btn btn-sm btn-primary connection-banner__retry';
+retry.textContent = '\u21bb Retry';
+retry.addEventListener('click', function () {
+clearFailures();
+hide();
+var active = document.querySelector('.pane.active, .ws-body.active');
+var pane = active && active.id ? active.id.replace(/^pane-/, '') : null;
+if (pane && typeof window.nav === 'function') window.nav(pane);
+else location.reload();
+});
+bannerEl.appendChild(retry);
+var dismiss = document.createElement('button');
+dismiss.type = 'button';
+dismiss.className = 'btn btn-sm btn-ghost connection-banner__dismiss';
+dismiss.setAttribute('aria-label', 'Dismiss connection warning');
+dismiss.textContent = '\u2715';
+dismiss.addEventListener('click', function () {
+snoozedUntil = Date.now() + SNOOZE_MS;
+clearFailures();
+hide();
+});
+bannerEl.appendChild(dismiss);
+document.body.appendChild(bannerEl);
+}
+function hide() {
+if (bannerEl && bannerEl.parentNode) bannerEl.parentNode.removeChild(bannerEl);
+bannerEl = null;
+}
+window.connectionStatus = {
+noteFailure: record,
+reset: function () { clearFailures(); hide(); },
+isShowing: function () { return !!bannerEl; },
+_state: function () { return { failures: failures.length, snoozedUntil: snoozedUntil }; },
+};
+window.connectionStatus.observeResponse = function (url, response) {
+if (!isApiPath(url)) return;
+var path;
+try { path = new URL(url, location.origin).pathname; } catch (e) { return; }
+if (ignored(path)) return;
+if (response.status >= 500 || response.status === 429 || response.status === 408) {
+record(path);
+} else if (response.ok) {
+clearFailures();
+}
+};
+window.connectionStatus.observeNetworkError = function (url) {
+if (isApiPath(url)) record(url);
+};
+window.addEventListener('offline', function () {
+failures = [Date.now(), Date.now(), Date.now()];
+if (Date.now() >= snoozedUntil) show();
+});
+window.addEventListener('online', function () {
+clearFailures();
+hide();
+});
+})();
+
 ;/* 00-csrf.js */
 (function () {
 'use strict';
@@ -217,7 +326,17 @@ if (!headers.has('X-CSRF-Token')) headers.set('X-CSRF-Token', token);
 init = Object.assign({}, init, { headers, credentials: init.credentials || 'same-origin' });
 }
 }
-let response = await originalFetch(input, init);
+const _requestUrl = (typeof input === 'string') ? input
+: (input && input.url) ? input.url : '';
+let response;
+try {
+response = await originalFetch(input, init);
+} catch (err) {
+if (window.connectionStatus && window.connectionStatus.observeNetworkError) {
+try { window.connectionStatus.observeNetworkError(_requestUrl); } catch (_) {}
+}
+throw err;
+}
 if (response.status === 403 && MUTATING.has(method) && sameOrigin) {
 let body = null;
 try { body = await response.clone().json(); } catch (_) {  }
@@ -230,6 +349,9 @@ headers.set('X-CSRF-Token', fresh);
 response = await originalFetch(input, Object.assign({}, init, { headers }));
 }
 }
+}
+if (window.connectionStatus && window.connectionStatus.observeResponse) {
+try { window.connectionStatus.observeResponse(_requestUrl, response); } catch (_) {}
 }
 return response;
 };
@@ -15619,8 +15741,22 @@ let lastFocusedElementBeforeModal = null;
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 function setupModalAccessibility(modalEl) {
 if (!modalEl) return;
+const parentDialog = modalEl.parentElement
+&& modalEl.parentElement.closest('[role="dialog"]');
+if (parentDialog) {
+return setupModalAccessibility(parentDialog);
+}
 if (!modalEl.hasAttribute('role')) modalEl.setAttribute('role', 'dialog');
 modalEl.setAttribute('aria-modal', 'true');
+if (!modalEl.hasAttribute('aria-label') && !modalEl.hasAttribute('aria-labelledby')) {
+const heading = modalEl.querySelector('h1, h2, h3, .modal-title');
+if (heading) {
+if (!heading.id) {
+heading.id = 'modal-title-' + Math.random().toString(36).slice(2, 9);
+}
+modalEl.setAttribute('aria-labelledby', heading.id);
+}
+}
 const observer = new MutationObserver(mutations => {
 mutations.forEach(m => {
 if (m.attributeName === 'class' || m.attributeName === 'style') {

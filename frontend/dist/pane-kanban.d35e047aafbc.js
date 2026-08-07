@@ -19,6 +19,7 @@ researcher: { label: 'Researcher', icon: '🔬' },
 orchestrator: { label: 'Orchestrator', icon: '🌀' }
 };
 let kanbanTasks = [];
+let kanbanLoadError = null;
 let kanbanDraggedTaskId = null;
 let kanbanActiveFilter = null;
 let kanbanModalOpen = false;
@@ -66,11 +67,13 @@ kanbanTasks.push({ ...task, status: status });
 });
 }
 }
+kanbanLoadError = null;
 } else {
-kanbanTasks = kanbanGetSampleTasks();
+throw new Error(`HTTP ${response.status}`);
 }
 } catch (e) {
-kanbanTasks = kanbanGetSampleTasks();
+kanbanTasks = [];
+kanbanLoadError = e && e.message ? e.message : String(e);
 }
 }
 function kanbanRenderBoard() {
@@ -82,7 +85,21 @@ if (kanbanActiveFilter) {
 filteredTasks = kanbanTasks.filter(t => t.priority === kanbanActiveFilter);
 }
 if (countEl) {
-countEl.textContent = `${filteredTasks.length} task${filteredTasks.length !== 1 ? 's' : ''}`;
+countEl.textContent = kanbanLoadError
+? 'unavailable'
+: `${filteredTasks.length} task${filteredTasks.length !== 1 ? 's' : ''}`;
+}
+if (kanbanLoadError) {
+board.innerHTML = `
+      <div class="empty-state" role="alert" style="grid-column:1/-1">
+        <div class="empty-state__icon">⚠️</div>
+        <div class="empty-state__title">Couldn't load your tasks</div>
+        <div class="empty-state__body">Your tasks are safe — this is a
+          connection problem, not lost work. (${escHtml(kanbanLoadError)})</div>
+        <button type="button" class="btn btn-primary btn-sm"
+                data-act-click="renderKanban()">↻ Try again</button>
+      </div>`;
+return;
 }
 board.innerHTML = KANBAN_COLUMNS.map(col => {
 const columnTasks = filteredTasks
@@ -566,16 +583,6 @@ function kanbanCloseModal() {
 kanbanModalOpen = false;
 const root = document.getElementById('kanban-modal-root');
 if (root) root.innerHTML = '';
-}
-function kanbanGetSampleTasks() {
-return [
-{ id: 1001, title: 'Design new landing page', description: 'Create a modern landing page with hero section', status: 'todo', priority: 'high', agent: 'builder' },
-{ id: 1002, title: 'Fix authentication bug', description: 'Users getting logged out unexpectedly', status: 'doing', priority: 'high', agent: 'brain' },
-{ id: 1003, title: 'Write API documentation', description: 'Document all REST endpoints', status: 'todo', priority: 'medium', agent: 'researcher' },
-{ id: 1004, title: 'Implement dark mode', description: 'Add theme switching capability', status: 'blocked', priority: 'low', agent: 'builder' },
-{ id: 1005, title: 'Optimize database queries', description: 'Slow queries on user dashboard', status: 'done', priority: 'high', agent: 'brain' },
-{ id: 1006, title: 'Add unit tests', description: 'Increase test coverage to 80%', status: 'todo', priority: 'medium', agent: 'builder' }
-];
 }
 function kanbanEscapeHtml(text) {
 if (!text) return '';

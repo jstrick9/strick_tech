@@ -310,6 +310,12 @@ if (inp) { inp.value = query; grounded(); }
 }
 }
 async function deleteHistoryEntry(id) {
+if (typeof gmDanger === 'function') {
+const ok = await gmDanger('Delete search',
+'Remove this search from your history?',
+'Delete');
+if (!ok) return;
+}
 try {
 const r = await fetch(`/api/websearch/history/${encodeURIComponent(id)}`, {method:'DELETE'});
 if (!r.ok) throw new Error(`HTTP ${r.status}`);
