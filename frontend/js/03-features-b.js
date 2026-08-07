@@ -80,7 +80,7 @@ async function specLoadList(opts) {
       const list0 = document.getElementById('spec-list');
       if (list0 && !append) {
         list0.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:8px">' +
-          'Could not load specs (HTTP ' + r.status + ')</div>';
+          escHtml(humanError(httpError(r), {action:'load your specs', dataSafe:true})) + '</div>';
       }
       return;
     }
@@ -109,7 +109,7 @@ async function specLoadList(opts) {
     const list = document.getElementById('spec-list');
     if (list && !append) {
       list.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:8px">' +
-        'Could not load specs: ' + escHtml(e && e.message ? e.message : 'network error') + '</div>';
+        escHtml(humanError(e, {action:'load your specs', dataSafe:true})) + '</div>';
     }
   }
 }

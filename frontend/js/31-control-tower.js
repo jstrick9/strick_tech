@@ -26,8 +26,17 @@ async function refreshControlTower() {
       fetch('/api/control/stats'), fetch('/api/control/runs?limit=20'),
       fetch('/api/control/budget-rules'), fetch('/api/control/notifications?limit=5'),
     ]);
+    if (!sr.ok || !rr.ok || !br.ok || !nr.ok) {
+      throw new Error('The server could not return Control Tower data.');
+    }
     const [stats, runs, rules, nd] = await Promise.all([sr.json(), rr.json(), br.json(), nr.json()]);
-    const active = runs.filter(r => r.status === 'running');
+    // Coerce to arrays before using array methods. A failed request returns
+    // an error OBJECT, and calling .filter() on it threw
+    // "runs.filter is not a function" straight into the pane -- a raw
+    // JavaScript error shown to the user as if it were an explanation.
+    const runList  = Array.isArray(runs)  ? runs  : [];
+    const ruleList = Array.isArray(rules) ? rules : [];
+    const active = runList.filter(r => r.status === 'running');
     pane.innerHTML = `
       ${pageHeader({title:'🎛️ Control Tower', subtitle:'Live agent traces · kill switch · budget guardrails', badge: active.length > 0 ? active.length + ' LIVE' : ''})}
       <div class="page-content">
@@ -44,8 +53,8 @@ async function refreshControlTower() {
         <div>
           <div style="font-weight:700;margin-bottom:10px">Agent Runs</div>
           <div style="display:flex;flex-direction:column;gap:5px">
-            ${runs.length === 0 ? emptyState({icon:'📊',title:'No runs yet',body:'Agent runs appear here with full traces and cost breakdown.'}) :
-            runs.slice(0,10).map(r=>{
+            ${runList.length === 0 ? emptyState({icon:'📊',title:'No runs yet',body:'Agent runs appear here with full traces and cost breakdown.'}) :
+            runList.slice(0,10).map(r=>{
               const sCol = {running:'var(--warning)',done:'var(--success)',error:'var(--danger)',killed:'var(--text-3)'}[r.status]||'var(--text-2)';
               return `<div class="card card-interactive" data-act-click="showRunTrace(${jsArg(r.run_id)})" style="padding:9px 12px" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
                 <div style="display:flex;align-items:center;gap:9px">
@@ -70,7 +79,7 @@ async function refreshControlTower() {
           </div>
           ${helpPanel({title:'Stop agents before costs run away',body:'Set limits per agent or globally. Warn or auto-stop when limit is hit.'})}
           <div style="display:flex;flex-direction:column;gap:5px">
-            ${rules.length === 0 ? `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:12px">No rules — agents run unlimited</div>` :
+            ${ruleList.length === 0 ? `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:12px">No rules — agents run unlimited</div>` :
             rules.map(r=>`<div class="card" style="padding:9px 12px;display:flex;align-items:center;gap:10px">
               <div class="u-97445a8d"><div style="font-size:12.5px;font-weight:600">${escHtml(r.name)}</div>
               <div style="font-size:11px;color:var(--text-2)">Max $${r.max_cost} · ${r.action}</div></div>

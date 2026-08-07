@@ -177,7 +177,7 @@ async function renderImageGen() {
     });
 
   } catch(ex) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Error loading Image Gen: ${escHtml(ex?.message||String(ex))}<br>
+    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(ex, {action:'open the image generator'}))}<br>
       <button class="btn-sm u-8a77e5a3" data-act-click="renderImageGen()" >↻ Retry</button></div>`;
   }
 }

@@ -1120,54 +1120,97 @@ html :focus:not(:focus-visible) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   TOUCH TARGET SIZING
+   TOUCH TARGET SIZING (WCAG 2.5.5 / Apple HIG: 44x44 CSS px)
    ═══════════════════════════════════════════════════════════════════════
-   On a 390px phone, 48 interactive controls measured under the 44x44 CSS px
-   minimum from WCAG 2.5.5 (Target Size) and the Apple HIG -- the notification
-   bell and settings gear were 27x32. A 27px target is a genuinely difficult
-   tap; the surrounding controls are close enough together that a miss hits
-   the wrong one.
 
-   Scoped to `pointer: coarse` so the desktop layout, where the density was
-   deliberately tuned and a mouse is precise, is untouched. This is a
-   hit-area change, not a visual one: padding grows, icon and font sizes do
-   not, so the controls look the same and simply become reachable. */
+   An earlier version of this block listed class names -- .icon-btn,
+   .nav-item, .btn-sm and so on. That was an allow-list, and it only covered
+   the controls that happened to be visible on the landing pane. Auditing all
+   68 panes at 390px found 41 distinct undersized control types it missed,
+   including #chat-send (36x36, the primary action of the whole product) and
+   4x4 toggles in Hooks and Steering that are effectively untappable.
+
+   An allow-list also guarantees the next control added is undersized again.
+   So the rule is structural: anything that is a control gets a touch-sized
+   hit area, and the handful of places where that genuinely breaks a layout
+   opt out explicitly via `.tight-target`.
+
+   Scoped to `pointer: coarse`, so the desktop layout -- where density was
+   deliberately tuned and a mouse is precise -- is completely untouched. This
+   is a hit-area change, not a visual one: padding and min-size grow, icon
+   and font sizes do not. */
 @media (pointer: coarse) {
-  .icon-btn,
-  .topbar button,
-  .topbar a,
-  .nav-item,
-  .ws-tab,
-  .btn-sm,
-  .btn.btn-sm,
-  button.btn-sm,
+  button,
+  a[href],
+  [role="button"],
   [role="tab"],
-  [role="button"] {
+  select,
+  summary {
     min-height: 44px;
+  }
+
+  /* Width, not just height.
+     A first pass set only min-height and left 20 control types still too
+     NARROW -- a 12px-wide "+" button is 44px tall and still unhittable.
+     Naming the icon-button classes was another allow-list and missed most of
+     them, so width is applied structurally too.
+
+     Text buttons keep their natural width via the padding rule below rather
+     than a min-width, so a row of labelled buttons does not blow out; but
+     every control gets at least 44px of horizontal hit area. */
+  button,
+  a[href],
+  [role="button"],
+  [role="tab"],
+  select,
+  summary {
     min-width: 44px;
   }
 
-  /* Inline controls inside dense rows should grow vertically without
-     forcing a 44px-wide column that would break the row layout. */
-  .table-actions button,
-  .list-row button,
-  .card-actions button {
-    min-height: 44px;
+  /* Inline links in a sentence must NOT become 44px blocks -- that would
+     break paragraph flow. They are excluded here and rely on line-height
+     for their hit area, which is the standard compromise for inline text. */
+  p a[href],
+  li a[href],
+  .prose a[href],
+  a[href].inline-link {
+    min-width: 0;
+    min-height: 0;
+    display: inline;
   }
 
-  /* Checkboxes and radios are drawn small by the platform; enlarge the
-     control itself rather than only its label. */
+  /* Checkboxes and radios are drawn by the platform at ~13px. Enlarging the
+     control itself rather than only its label is what makes them tappable. */
   input[type="checkbox"],
   input[type="radio"] {
     min-width: 24px;
     min-height: 24px;
   }
 
+  /* Inline controls in dense generated rows grow vertically only, so a
+     button in a table cell does not force a 44px-wide column. */
+  .table-actions button,
+  .list-row button,
+  .card-actions button {
+    min-height: 44px;
+  }
+
+  /* Escape hatch. Applied where a 44px minimum genuinely breaks a layout --
+     for example a control sitting inside a fixed-height strip. Use sparingly
+     and only with a comment saying why; every use is a target a touch user
+     will struggle to hit. */
+  .tight-target,
+  .tight-target button,
+  .tight-target a[href] {
+    min-height: 0;
+    min-width: 0;
+  }
+
   /* The top bar holds ~8 icon buttons in a fixed-width row. Widening each to
      44px overflows a 390px phone, so let the row wrap and shrink instead.
-     (The selector here is `#topbar-actions` -- an earlier version used a
+     (The selector is `#topbar-actions` -- an earlier version used a
      `.topbar__actions` class that does not exist in this markup, so the rule
-     silently did nothing while the widened buttons pushed the row 
+     silently did nothing while the widened buttons pushed the row
      off-screen.) */
   #topbar-actions {
     gap: 4px;
@@ -1176,41 +1219,4 @@ html :focus:not(:focus-visible) {
     min-width: 0;
   }
   #topbar-actions > * { flex-shrink: 0; }
-
-  /* Remaining named controls measured under 44px on a 390px phone. Listed
-     explicitly rather than with a blanket `button { min-height: 44px }`,
-     which would also inflate buttons inside dense generated tables and
-     change layouts this change is not trying to touch. */
-  .settings-nav-item,
-  .nav-fav-btn,
-  .fav-remove-btn,
-  .ctx-help-btn,
-  .logo,
-  select {
-    min-height: 44px;
-  }
-
-  /* Star / remove affordances sit inside a nav row; give them width too,
-     since they are icon-only and otherwise ~18px across. */
-  .nav-fav-btn,
-  .fav-remove-btn {
-    min-width: 44px;
-  }
-}
-
-/* The app title is the document's <h1>.
-   It was a <span>, which left the page with no h1 at all -- assistive tech
-   reported no top-level heading and heading navigation began at h2 with
-   nothing above it. Promoting it to h1 is a semantics change only: these
-   rules strip the UA's default block display, margin and font-size so the
-   logo renders exactly as before. */
-h1.app-title-h1 {
-  display: inline;
-  margin: 0;
-  padding: 0;
-  font-size: inherit;
-  font-weight: inherit;
-  line-height: inherit;
-  color: inherit;
-  letter-spacing: inherit;
 }

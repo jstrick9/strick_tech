@@ -68,7 +68,7 @@ async function refreshGalaxy() {
     if (statsEl) statsEl.textContent =
       `${data.total_memories} memories · ${data.links.length} links · ${data.sources?.length||0} sources`;
   } catch(e) {
-    if (statsEl) statsEl.textContent = 'Load failed — ' + (e?.message||String(e));
+    if (statsEl) statsEl.textContent = humanError(e, {action:'load the memory graph'});
   }
 }
 
