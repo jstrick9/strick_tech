@@ -1,6 +1,6 @@
 {
   "head": "head.8f62aefef2be.js",
-  "body": "app.c9f7baf108b0.js",
+  "body": "app.3b85829b6efb.js",
   "minified": true,
   "modules": 47,
   "head_modules": [
@@ -54,22 +54,22 @@
     "92-pane-error-boundary.js",
     "93-shortcuts-overlay.js"
   ],
-  "raw_bytes": 1309308,
-  "bundled_bytes": 1004346,
+  "raw_bytes": 1311825,
+  "bundled_bytes": 1005395,
   "compressed": {
     "head.8f62aefef2be.js": {
       "raw": 6508,
       "gzip": 2376,
       "brotli": 2015
     },
-    "app.c9f7baf108b0.js": {
-      "raw": 997838,
-      "gzip": 243486,
-      "brotli": 184356
+    "app.3b85829b6efb.js": {
+      "raw": 998887,
+      "gzip": 243847,
+      "brotli": 184741
     },
-    "chunks.a92beb68833c.js": {
+    "chunks.f417ddf8b12c.js": {
       "raw": 1575,
-      "gzip": 754,
+      "gzip": 752,
       "brotli": 652
     },
     "pane-a2a.b35d81dd06c5.js": {
@@ -82,10 +82,10 @@
       "gzip": 3754,
       "brotli": 3146
     },
-    "pane-agent-monitor.343a28c7ca9b.js": {
-      "raw": 35861,
-      "gzip": 8720,
-      "brotli": 7623
+    "pane-agent-monitor.cd524fc8a8a4.js": {
+      "raw": 35895,
+      "gzip": 8753,
+      "brotli": 7645
     },
     "pane-audit-log.10182a04295e.js": {
       "raw": 31759,
@@ -112,10 +112,10 @@
       "gzip": 3254,
       "brotli": 2749
     },
-    "pane-dbstudio.a3c1d925d3c4.js": {
-      "raw": 31449,
-      "gzip": 8440,
-      "brotli": 7281
+    "pane-dbstudio.48bff64ab885.js": {
+      "raw": 31500,
+      "gzip": 8471,
+      "brotli": 7307
     },
     "pane-deploy.39a7d6bef7cc.js": {
       "raw": 10565,
@@ -157,15 +157,15 @@
       "gzip": 5025,
       "brotli": 4215
     },
-    "pane-imagegen.9dd0aae6ba7b.js": {
-      "raw": 22275,
-      "gzip": 6018,
-      "brotli": 5148
+    "pane-imagegen.40c2c6c9f700.js": {
+      "raw": 22403,
+      "gzip": 6057,
+      "brotli": 5183
     },
-    "pane-integrations.6f67095206b6.js": {
-      "raw": 12957,
-      "gzip": 4042,
-      "brotli": 3463
+    "pane-integrations.49017b1a6f7a.js": {
+      "raw": 13335,
+      "gzip": 4142,
+      "brotli": 3542
     },
     "pane-kanban.d35e047aafbc.js": {
       "raw": 24308,
@@ -227,25 +227,25 @@
       "gzip": 6332,
       "brotli": 5459
     },
-    "pane-testgen.05b9ed81412b.js": {
-      "raw": 5521,
-      "gzip": 2212,
-      "brotli": 1808
+    "pane-testgen.e182e9565d11.js": {
+      "raw": 5597,
+      "gzip": 2230,
+      "brotli": 1833
     },
-    "pane-webhooks.05848e4bddf6.js": {
-      "raw": 6493,
-      "gzip": 2266,
-      "brotli": 1845
+    "pane-webhooks.cc5ee010f43e.js": {
+      "raw": 6657,
+      "gzip": 2330,
+      "brotli": 1900
     },
     "pane-websearch.031d76897f82.js": {
       "raw": 17349,
       "gzip": 4521,
       "brotli": 3843
     },
-    "pane-workspaces.b7dad03b4172.js": {
-      "raw": 10917,
-      "gzip": 3585,
-      "brotli": 2970
+    "pane-workspaces.e8bf30408793.js": {
+      "raw": 10989,
+      "gzip": 3617,
+      "brotli": 3001
     }
   },
   "chunks": {
@@ -264,11 +264,11 @@
       "bytes": 12990
     },
     "agent-monitor": {
-      "file": "pane-agent-monitor.343a28c7ca9b.js",
+      "file": "pane-agent-monitor.cd524fc8a8a4.js",
       "modules": [
         "53-agent-monitor.js"
       ],
-      "bytes": 35861
+      "bytes": 35895
     },
     "audit-log": {
       "file": "pane-audit-log.10182a04295e.js",
@@ -306,11 +306,11 @@
       "bytes": 9486
     },
     "dbstudio": {
-      "file": "pane-dbstudio.a3c1d925d3c4.js",
+      "file": "pane-dbstudio.48bff64ab885.js",
       "modules": [
         "17-database-studio.js"
       ],
-      "bytes": 31449
+      "bytes": 31500
     },
     "deploy": {
       "file": "pane-deploy.39a7d6bef7cc.js",
@@ -369,18 +369,18 @@
       "bytes": 16637
     },
     "imagegen": {
-      "file": "pane-imagegen.9dd0aae6ba7b.js",
+      "file": "pane-imagegen.40c2c6c9f700.js",
       "modules": [
         "15-image-generation.js"
       ],
-      "bytes": 22275
+      "bytes": 22403
     },
     "integrations": {
-      "file": "pane-integrations.6f67095206b6.js",
+      "file": "pane-integrations.49017b1a6f7a.js",
       "modules": [
         "22-integrations.js"
       ],
-      "bytes": 12957
+      "bytes": 13335
     },
     "kanban": {
       "file": "pane-kanban.d35e047aafbc.js",
@@ -468,18 +468,18 @@
       "bytes": 23369
     },
     "testgen": {
-      "file": "pane-testgen.05b9ed81412b.js",
+      "file": "pane-testgen.e182e9565d11.js",
       "modules": [
         "34-test-generator.js"
       ],
-      "bytes": 5521
+      "bytes": 5597
     },
     "webhooks": {
-      "file": "pane-webhooks.05848e4bddf6.js",
+      "file": "pane-webhooks.cc5ee010f43e.js",
       "modules": [
         "33-webhooks.js"
       ],
-      "bytes": 6493
+      "bytes": 6657
     },
     "websearch": {
       "file": "pane-websearch.031d76897f82.js",
@@ -489,14 +489,14 @@
       "bytes": 17349
     },
     "workspaces": {
-      "file": "pane-workspaces.b7dad03b4172.js",
+      "file": "pane-workspaces.e8bf30408793.js",
       "modules": [
         "30-workspaces.js"
       ],
-      "bytes": 10917
+      "bytes": 10989
     }
   },
-  "chunk_manifest": "chunks.a92beb68833c.js",
+  "chunk_manifest": "chunks.f417ddf8b12c.js",
   "lazy_modules": [
     "12-information-hierarchy.js",
     "15-image-generation.js",
@@ -535,5 +535,5 @@
     "54-finops.js",
     "55-eval-framework.js"
   ],
-  "lazy_bytes": 692729
+  "lazy_bytes": 693632
 }

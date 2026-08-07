@@ -11,7 +11,11 @@ fetch('/api/integrations/docs/types'),
 fetch('/api/integrations/rules'),
 ]);
 if (!iR.ok||!cR.ok||!dR.ok||!rR.ok) throw new Error('Failed to load integrations data');
-const [ints,cats,docTypes,rules]=await Promise.all([iR.json(),cR.json(),dR.json(),rR.json()]);
+const [intsRaw,catsRaw,docTypesRaw,rulesRaw]=await Promise.all([iR.json(),cR.json(),dR.json(),rR.json()]);
+const ints     = Array.isArray(intsRaw)     ? intsRaw     : (intsRaw?.integrations || []);
+const cats     = Array.isArray(catsRaw)     ? catsRaw     : (catsRaw?.categories   || []);
+const docTypes = Array.isArray(docTypesRaw) ? docTypesRaw : (docTypesRaw?.types     || []);
+const rules    = Array.isArray(rulesRaw)    ? rulesRaw    : (rulesRaw?.rules        || []);
 const catColors={payments:'#4cc98a',auth:'#5b8af8',backend:'#9d74f5',ai:'#e8a237',email:'#38c5d8',database:'#f08850',analytics:'#f06080'};
 pane.innerHTML=`
     ${pageHeader?.({title:'🔌 Integrations & Docs',subtitle:'Scaffold Stripe, Auth, Email. Generate docs. Set AI project rules.'})||'<div style="padding:20px"><h2>🔌 Integrations</h2></div>'}

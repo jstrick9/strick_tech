@@ -14,7 +14,11 @@ async function renderWebhooks() {
     const [wr, tr] = await Promise.all([fetch('/api/webhooks'), fetch('/api/webhooks/templates')]);
     if (!wr.ok) throw new Error('Webhooks API error ' + wr.status);
     if (!tr.ok) throw new Error('Templates API error ' + tr.status);
-    const [whs, tmpls] = await Promise.all([wr.json(), tr.json()]);
+    const [whsRaw, tmplsRaw] = await Promise.all([wr.json(), tr.json()]);
+    // See 22-integrations.js: a 200 with the wrong shape threw
+    // "whs.map is not a function" straight into the pane.
+    const whs   = Array.isArray(whsRaw)   ? whsRaw   : (whsRaw?.webhooks  || []);
+    const tmpls = Array.isArray(tmplsRaw) ? tmplsRaw : (tmplsRaw?.templates || []);
     pane.innerHTML = `
       ${pageHeader({title:'🌐 Webhooks', subtitle:'External events trigger agent runs — GitHub push, Stripe payment, form submit',
         actions:[{label:'＋ New Webhook', action:'createWebhook()', primary:true}]})}

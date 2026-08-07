@@ -17,10 +17,12 @@ fetch('/api/imagegen/styles'),
 fetch('/api/imagegen/gallery'),
 fetch('/api/imagegen/models'),
 ]);
-if (!sR.ok) throw new Error('Styles load failed: HTTP '+sR.status);
-if (!gR.ok) throw new Error('Gallery load failed: HTTP '+gR.status);
-const styles  = await sR.json();
-const gallery = await gR.json();
+if (!sR.ok) throw httpError(sR);
+if (!gR.ok) throw httpError(gR);
+const stylesRaw  = await sR.json();
+const galleryRaw = await gR.json();
+const styles  = Array.isArray(stylesRaw)  ? stylesRaw  : (stylesRaw?.styles  || []);
+const gallery = Array.isArray(galleryRaw) ? galleryRaw : (galleryRaw?.images || galleryRaw?.gallery || []);
 const models  = mR.ok ? await mR.json() : {models:[], api_key_set:false};
 pane.innerHTML = `
       ${pageHeader?.({title:'🎨 Image Generator', subtitle:'Generate AI images, import Figma designs, manage your asset library',

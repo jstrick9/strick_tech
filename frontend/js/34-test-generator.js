@@ -20,6 +20,9 @@ async function renderTestGen() {
     // A failed request returns an error object, not a list. Calling .filter()
     // on it threw "files.filter is not a function" into the pane.
     const fileList = Array.isArray(files) ? files : (files && files.files) || [];
+    // `fws` had the same exposure as `files` but was left unguarded when that
+    // fix went in -- "fws.map is not a function", verified live.
+    const fwList = Array.isArray(fws) ? fws : (fws && fws.frameworks) || [];
     const codeFiles = fileList.filter(f => /\.(js|jsx|ts|tsx|py)$/.test(f.path));
     pane.innerHTML = `
       ${pageHeader({title:'🧪 Test Generator', subtitle:'AI writes comprehensive test suites for any file',actions:[]})}
@@ -36,7 +39,7 @@ async function renderTestGen() {
           </div>
           <div class="form-group"><label class="form-label">Framework</label>
             <select id="tg-framework" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none">
-              ${fws.map(f=>`<option value="${f.id}">${f.id} — ${f.lang}</option>`).join('')}
+              ${fwList.map(f=>`<option value="${f.id}">${f.id} — ${f.lang}</option>`).join('')}
             </select>
           </div>
           <button data-act-click="generateTests()" class="btn btn-primary" style="width:100%" id="tg-gen-btn">🧪 Generate</button>

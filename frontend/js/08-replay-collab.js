@@ -1759,7 +1759,7 @@ async function renderMarketplace() {
 
     await mktLoadPacks();
   } catch(e) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Marketplace load failed: ${escHtml(e?.message||String(e))}</div>`;
+    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(e, {action:'load the marketplace'}))}</div>`;
   }
 }
 
@@ -2026,7 +2026,7 @@ function mktUploadPack() {
     fd.append('file',file);
     try {
       const r = await fetch('/api/marketplace/upload',{method:'POST',body:fd});
-      if (!r.ok) { gmAlert('Upload failed (HTTP '+r.status+')'); return; }
+      if (!r.ok) { gmAlert(humanError(httpError(r), {action:'upload that file'})); return; }
       const d = await r.json();
       if (d.ok) { gmAlert(`✅ Pack uploaded: ${d.pack_id} v${d.version}`); renderMarketplace(); }
       else gmAlert('Upload failed: '+(d.error||'Unknown error'));

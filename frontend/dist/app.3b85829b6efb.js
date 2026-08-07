@@ -381,6 +381,16 @@ return cachedToken;
 }
 return tokenPromise;
 }
+const IDEMPOTENCY_WINDOW_MS = 10000;
+function hashKey(text) {
+let h1 = 0x811c9dc5, h2 = 0x01000193;
+for (let i = 0; i < text.length; i++) {
+const c = text.charCodeAt(i);
+h1 = Math.imul(h1 ^ c, 0x01000193);
+h2 = Math.imul(h2 + c, 0x85ebca6b) ^ (h2 >>> 13);
+}
+return 'c-' + (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36);
+}
 const originalFetch = window.fetch.bind(window);
 window.fetch = async function (input, init) {
 init = init || {};
@@ -392,11 +402,20 @@ sameOrigin = url.origin === window.location.origin;
 } catch (_) { sameOrigin = true; }
 if (MUTATING.has(method) && sameOrigin) {
 const token = await getToken();
-if (token) {
 const headers = new Headers(init.headers || (typeof input === 'object' ? input.headers : undefined) || {});
-if (!headers.has('X-CSRF-Token')) headers.set('X-CSRF-Token', token);
-init = Object.assign({}, init, { headers, credentials: init.credentials || 'same-origin' });
+if (token && !headers.has('X-CSRF-Token')) headers.set('X-CSRF-Token', token);
+if (!headers.has('Idempotency-Key')) {
+try {
+const url = new URL(typeof input === 'string' ? input : input.url,
+window.location.origin);
+let bodyText = '';
+if (typeof init.body === 'string') bodyText = init.body;
+const bucket = Math.floor(Date.now() / IDEMPOTENCY_WINDOW_MS);
+headers.set('Idempotency-Key',
+hashKey(method + ' ' + url.pathname + ' ' + bodyText + ' ' + bucket));
+} catch (_) {  }
 }
+init = Object.assign({}, init, { headers, credentials: init.credentials || 'same-origin' });
 }
 const _requestUrl = (typeof input === 'string') ? input
 : (input && input.url) ? input.url : '';
@@ -4288,7 +4307,8 @@ else toast('Error: ' + (j.error || ''), 'err');
 };
 window.loadSwarmHistory = async function() {
 const r = await fetch('/api/swarm/history?limit=10');
-const j = await r.json();
+const jRaw = await r.json();
+const j = Array.isArray(jRaw) ? jRaw : (jRaw?.history || []);
 if (!j.length) { toast('No swarm history yet', 'warn', 2000); return; }
 const lines = j.map((h,i) => `${i+1}. [${h.ts}] ${h.winner||'?'} won (${h.strategy})\n   ${(h.prompt||'').slice(0,80)}`).join('\n\n');
 await gmAlert('🌀 Swarm History (last 10)', `<pre style="font-size:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto">${escHtml(lines)}</pre>`);
@@ -6355,7 +6375,8 @@ try {
 const r = await fetch('/api/onboarding/shortcuts');
 if (!r.ok) { list.innerHTML = '<div style="color:var(--danger)">Failed to load shortcuts</div>'; }
 else {
-const shortcuts = await r.json();
+const shortcutsRaw = await r.json();
+const shortcuts = Array.isArray(shortcutsRaw) ? shortcutsRaw : (shortcutsRaw?.shortcuts || []);
 list.innerHTML = shortcuts.map(s =>
 `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
             <span style="font-size:13px;color:var(--text-1)">${escHtml(s.label)}</span>
@@ -8113,7 +8134,7 @@ pane.innerHTML = `
     </div>`;
 renderFlamegraph();
 } catch(e) {
-pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Failed to load profiler: ${escHtml(e.message)}</div>`;
+pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(e, {action:'load the profiler', dataSafe:true}))}</div>`;
 }
 }
 async function renderFlamegraph() {
@@ -8308,7 +8329,7 @@ pane.innerHTML = `
       </div>
     </div>`;
 } catch(e) {
-pane.innerHTML = `<div style="padding:20px;color:var(--danger)">SDK load failed: ${escHtml(e.message)}</div>`;
+pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(e, {action:'load the plugin SDK'}))}</div>`;
 }
 }
 async function sdkNewPack() {
@@ -9802,7 +9823,7 @@ pane.innerHTML = `
     </div>`;
 hookLoadRuns();
 } catch(e) {
-pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Failed to load hooks: ${escHtml(e?.message||e)}</div>`;
+pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(e, {action:'load your hooks', dataSafe:true}))}</div>`;
 }
 }
 function hookCardHTML(h, eventMap) {
@@ -15385,7 +15406,7 @@ pane.innerHTML = `
     </div>`;
 await mktLoadPacks();
 } catch(e) {
-pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Marketplace load failed: ${escHtml(e?.message||String(e))}</div>`;
+pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(e, {action:'load the marketplace'}))}</div>`;
 }
 }
 function catIcon(cat) {
@@ -15638,7 +15659,7 @@ const fd = new FormData();
 fd.append('file',file);
 try {
 const r = await fetch('/api/marketplace/upload',{method:'POST',body:fd});
-if (!r.ok) { gmAlert('Upload failed (HTTP '+r.status+')'); return; }
+if (!r.ok) { gmAlert(humanError(httpError(r), {action:'upload that file'})); return; }
 const d = await r.json();
 if (d.ok) { gmAlert(`✅ Pack uploaded: ${d.pack_id} v${d.version}`); renderMarketplace(); }
 else gmAlert('Upload failed: '+(d.error||'Unknown error'));
@@ -18122,7 +18143,8 @@ navigator.clipboard.writeText(swarmLastWinner).then(()=>toast('Copied — paste 
 }
 async function loadSwarmHistory() {
 try {
-const j = await AgenticAPI.get('/api/swarm/history?limit=10');
+const jRaw = await AgenticAPI.get('/api/swarm/history?limit=10');
+const j = Array.isArray(jRaw) ? jRaw : (jRaw?.history || []);
 if (!j.length) { toast('No swarm history yet','warn'); return; }
 const items = j.map(h => `${h.ts} — ${h.winner||'?'} won — ${h.strategy} — agents: ${(h.agents||[]).join(', ')}\n  ${h.prompt?.slice(0,80)||''}`).join('\n\n');
 await gmAlert('🌀 Swarm History (last 10)', `<pre style="font-size:12px;white-space:pre-wrap;max-height:340px;overflow-y:auto">${escHtml(items)}</pre>`);
@@ -19219,7 +19241,7 @@ dashData = await r.json();
 renderDashBody(dashData);
 } catch(ex) {
 const el = document.getElementById('dash-body');
-if (el) el.innerHTML = `<div style="color:var(--danger)">Failed to load: ${escHtml(ex?.message||String(ex))}<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
+if (el) el.innerHTML = `<div style="color:var(--danger)">${escHtml(humanError(ex, {action:'load your dashboard', dataSafe:true}))}<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
 }
 clearTimeout(_dashRefreshTimer);
 _dashRefreshTimer = setTimeout(() => {

@@ -78,11 +78,59 @@ for (const f of fs.readdirSync(JS).filter(x => x.endsWith('.js')).sort()) {
     if (!['filter','map','forEach','reduce','slice','sort'].includes(method)) return;
     const obj = n.callee.object;
     if (obj.type !== 'Identifier') return;
-    // Was this identifier destructured from an await Promise.all([...json()])?
-    const decl = new RegExp('\\[[^\\]]*\\b' + obj.name + '\\b[^\\]]*\\]\\s*=\\s*await');
-    if (!decl.test(src)) return;
-    // Already guarded somewhere in the file?
-    if (new RegExp('Array\\.isArray\\(\\s*' + obj.name + '\\s*\\)').test(src)) return;
+    // Did this identifier come from an awaited response body? Two shapes:
+    //   const [a, b] = await Promise.all([r.json(), ...])
+    //   const a = await r.json()
+    // An earlier version matched only the first and therefore missed
+    // `const styles = await sR.json()` in 15-image-generation.js, which
+    // crashed the pane exactly like the ones it did catch.
+    // Follow ONE level of aliasing. `const wsRaw = await r.json();
+    // const ws = wsRaw;` puts the array method on a name that never
+    // syntactically touched `await`. Without this the detector went blind to
+    // a crash it had previously reported -- caught by reverting a real fix
+    // and checking the audit still fired.
+    const cameFromResponse = (nm) =>
+         new RegExp('\\[[^\\]]*\\b' + nm + '\\b[^\\]]*\\]\\s*=\\s*await').test(src)
+      || new RegExp('\\b(const|let|var)\\s+' + nm
+                    + '\\s*=\\s*await\\b[^;]*\\.json\\(\\)').test(src)
+      || new RegExp('\\b(const|let|var)\\s+' + nm
+                    + '\\s*=\\s*await\\s+AgenticAPI\\.').test(src);
+
+    let provenance = cameFromResponse(obj.name);
+    if (!provenance) {
+      const alias = src.match(new RegExp(
+        '\\b(?:const|let|var)\\s+' + obj.name + '\\s*=\\s*([A-Za-z_$][\\w$]*)\\s*;'));
+      if (alias) provenance = cameFromResponse(alias[1]);
+    }
+    if (!provenance) return;
+    // Is THIS name guarded, and is the guard between the assignment and the
+    // use? A whole-file search for `Array.isArray(` was too coarse in both
+    // directions: it cleared a file because some OTHER variable was guarded,
+    // and it flagged `const ws = Array.isArray(wsRaw) ? ...` because the
+    // coercion line itself contains the name. Both produced false positives
+    // that cost a round of pointless edits.
+    const guarded = new RegExp(
+      'Array\\.isArray\\(\\s*' + obj.name + '(Raw)?\\s*\\)');
+    if (guarded.test(src)) return;
+    // A `.length` check anywhere before this use proves the value is
+    // array-like: reading `.length` off a non-array object yields undefined,
+    // and `if (!x.length) return;` therefore bails out before reaching the
+    // array method. Five sites were flagged because an earlier version only
+    // searched up to the ASSIGNMENT rather than up to the USE, so a guard
+    // sitting between the two was invisible.
+    const lengthChecked = new RegExp(
+      '(!|\\.|\\()\\s*' + obj.name + '\\s*(\\?\\.)?\\s*\\.?length');
+    if (lengthChecked.test(src.slice(0, n.start))) return;
+    // Assigned from an explicit `|| []` fallback.
+    const defaulted = new RegExp(
+      '\\b' + obj.name + '\\s*=\\s*[^;\\n]*\\|\\|\\s*\\[\\]');
+    if (defaulted.test(src)) return;
+    // A parameter whose caller already defaulted it, e.g.
+    // renderKGList(d.entities || [], el)
+    const paramDefaulted = new RegExp(
+      '\\(\\s*[^)]*\\|\\|\\s*\\[\\][^)]*\\)');
+    const fnDecl = new RegExp('function\\s+\\w+\\s*\\([^)]*\\b' + obj.name + '\\b');
+    if (fnDecl.test(src) && paramDefaulted.test(src)) return;
     out.push({kind:'UNGUARDED', file:f, line:line(n),
               detail:obj.name + '.' + method + '() with no Array.isArray guard'});
   });
@@ -98,8 +146,18 @@ RAW_HEADLINE = re.compile(
     re.I)
 
 
-def _strip_comments(source: str) -> str:
-    source = re.sub(r'/\*.*?\*/', '', source, flags=re.S)
+def _blank_comments(source: str) -> str:
+    """Blank out comments while PRESERVING line positions.
+
+    An earlier version deleted comment lines outright, so every reported line
+    number was offset by however many comments preceded it -- which sent me
+    to the wrong line in all ten files. Replacing each comment with the same
+    number of newlines keeps `line = text[:pos].count('\\n') + 1` honest.
+    """
+    def _same_line_count(match: re.Match) -> str:
+        return '\n' * match.group(0).count('\n')
+
+    source = re.sub(r'/\*.*?\*/', _same_line_count, source, flags=re.S)
     return re.sub(r'(?m)^\s*//.*$', '', source)
 
 
@@ -126,7 +184,7 @@ def run() -> AuditResult:
         findings.append('SKIP  node not installed; AST patterns not checked')
 
     for path in sorted(JS_DIR.glob('*.js')):
-        code = _strip_comments(path.read_text(encoding='utf-8'))
+        code = _blank_comments(path.read_text(encoding='utf-8'))
         for match in RAW_HEADLINE.finditer(code):
             line = code[:match.start()].count('\n') + 1
             findings.append(

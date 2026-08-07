@@ -565,7 +565,7 @@ async function renderHooks() {
 
     hookLoadRuns();
   } catch(e) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Failed to load hooks: ${escHtml(e?.message||e)}</div>`;
+    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(e, {action:'load your hooks', dataSafe:true}))}</div>`;
   }
 }
 

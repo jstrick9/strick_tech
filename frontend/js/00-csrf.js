@@ -53,6 +53,25 @@
     return tokenPromise;
   }
 
+  // Requests identical in method, path and body inside this window are
+  // treated as the same user intent. Long enough to absorb a double-click and
+  // a retry; short enough that repeating an action deliberately still works.
+  const IDEMPOTENCY_WINDOW_MS = 10000;
+
+  // A short, stable, non-cryptographic digest. This only needs to avoid
+  // accidental collisions between different requests from one browser tab,
+  // not resist an attacker -- the server scopes every key by method and path
+  // as well.
+  function hashKey(text) {
+    let h1 = 0x811c9dc5, h2 = 0x01000193;
+    for (let i = 0; i < text.length; i++) {
+      const c = text.charCodeAt(i);
+      h1 = Math.imul(h1 ^ c, 0x01000193);
+      h2 = Math.imul(h2 + c, 0x85ebca6b) ^ (h2 >>> 13);
+    }
+    return 'c-' + (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36);
+  }
+
   const originalFetch = window.fetch.bind(window);
 
   window.fetch = async function (input, init) {
@@ -70,11 +89,35 @@
 
     if (MUTATING.has(method) && sameOrigin) {
       const token = await getToken();
-      if (token) {
-        const headers = new Headers(init.headers || (typeof input === 'object' ? input.headers : undefined) || {});
-        if (!headers.has('X-CSRF-Token')) headers.set('X-CSRF-Token', token);
-        init = Object.assign({}, init, { headers, credentials: init.credentials || 'same-origin' });
+      const headers = new Headers(init.headers || (typeof input === 'object' ? input.headers : undefined) || {});
+      if (token && !headers.has('X-CSRF-Token')) headers.set('X-CSRF-Token', token);
+
+      // Idempotency: derive a key from the request itself so a double-click,
+      // a retry, or the same action fired from two tabs collapses into ONE
+      // record instead of five. Measured before this existed: 5 concurrent
+      // identical POSTs to /api/specs created 5 specs.
+      //
+      // The key is a hash of method + path + body, bucketed to a short
+      // window. Identical requests inside the window share a key and are
+      // deduplicated by the server; the same action taken deliberately a
+      // minute later gets a new key and is allowed through, which is what
+      // keeps "create two identical items on purpose" possible.
+      //
+      // A caller that wants explicit control can set the header itself; this
+      // never overwrites one.
+      if (!headers.has('Idempotency-Key')) {
+        try {
+          const url = new URL(typeof input === 'string' ? input : input.url,
+                              window.location.origin);
+          let bodyText = '';
+          if (typeof init.body === 'string') bodyText = init.body;
+          const bucket = Math.floor(Date.now() / IDEMPOTENCY_WINDOW_MS);
+          headers.set('Idempotency-Key',
+                      hashKey(method + ' ' + url.pathname + ' ' + bodyText + ' ' + bucket));
+        } catch (_) { /* a key is an optimisation; never block the request */ }
       }
+
+      init = Object.assign({}, init, { headers, credentials: init.credentials || 'same-origin' });
     }
 
     const _requestUrl = (typeof input === 'string') ? input

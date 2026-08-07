@@ -37,6 +37,7 @@ AUDITS = [
     'touch_targets',
     'responsive',
     'failure_honesty',
+    'concurrency',
 ]
 
 

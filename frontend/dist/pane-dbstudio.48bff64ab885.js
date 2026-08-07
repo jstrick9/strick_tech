@@ -39,7 +39,7 @@ if (!r.ok) throw new Error('Tables API error ' + r.status);
 const data = await r.json();
 tables = Array.isArray(data) ? data : (Array.isArray(data?.tables) ? data.tables : []);
 } catch(ex) {
-el.innerHTML = `<div style="color:var(--red);padding:16px">Error loading tables: ${escHtml(ex.message)}</div>`;
+el.innerHTML = `<div style="color:var(--red);padding:16px">${escHtml(humanError(ex, {action:'load your tables', dataSafe:true}))}</div>`;
 return;
 }
 el.innerHTML = `<div style="display:grid;grid-template-columns:200px 1fr;gap:16px;height:calc(100vh - 200px)">
@@ -503,7 +503,7 @@ entries = results.flatMap(r => r.entries || []).sort((a, b) => (b.epoch_ms || 0)
 const v = await fetch('/api/audit-log/verify').then(r => r.ok ? r.json() : null).catch(() => null);
 verified = v;
 } catch (ex) {
-el.innerHTML = `<div style="color:var(--red);padding:16px">Error loading audit trail: ${escHtml(ex.message)}</div>`;
+el.innerHTML = `<div style="color:var(--red);padding:16px">${escHtml(humanError(ex, {action:'load the audit trail', dataSafe:true}))}</div>`;
 return;
 }
 const riskColor = r => r === 'critical' ? 'var(--red)' : r === 'high' ? 'var(--orange, #e0821c)' : 'var(--text-2)';

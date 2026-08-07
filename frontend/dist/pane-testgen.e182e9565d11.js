@@ -12,6 +12,7 @@ throw new Error('The server could not return your project files.');
 }
 const [files, fws] = await Promise.all([fr.json(), fwr.json()]);
 const fileList = Array.isArray(files) ? files : (files && files.files) || [];
+const fwList = Array.isArray(fws) ? fws : (fws && fws.frameworks) || [];
 const codeFiles = fileList.filter(f => /\.(js|jsx|ts|tsx|py)$/.test(f.path));
 pane.innerHTML = `
       ${pageHeader({title:'🧪 Test Generator', subtitle:'AI writes comprehensive test suites for any file',actions:[]})}
@@ -28,7 +29,7 @@ pane.innerHTML = `
           </div>
           <div class="form-group"><label class="form-label">Framework</label>
             <select id="tg-framework" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none">
-              ${fws.map(f=>`<option value="${f.id}">${f.id} — ${f.lang}</option>`).join('')}
+              ${fwList.map(f=>`<option value="${f.id}">${f.id} — ${f.lang}</option>`).join('')}
             </select>
           </div>
           <button data-act-click="generateTests()" class="btn btn-primary" style="width:100%" id="tg-gen-btn">🧪 Generate</button>

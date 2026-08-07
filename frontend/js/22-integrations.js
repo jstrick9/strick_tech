@@ -12,7 +12,15 @@ async function renderIntegrations() {
       fetch('/api/integrations/rules'),
     ]);
     if (!iR.ok||!cR.ok||!dR.ok||!rR.ok) throw new Error('Failed to load integrations data');
-    const [ints,cats,docTypes,rules]=await Promise.all([iR.json(),cR.json(),dR.json(),rR.json()]);
+    const [intsRaw,catsRaw,docTypesRaw,rulesRaw]=await Promise.all([iR.json(),cR.json(),dR.json(),rR.json()]);
+    // A 200 response with an unexpected shape passes the `!r.ok` check above
+    // and then throws "cats.map is not a function" into the pane as the
+    // user's explanation. Verified live. Coerce once, here, so every later
+    // use is safe rather than each call site needing its own guard.
+    const ints     = Array.isArray(intsRaw)     ? intsRaw     : (intsRaw?.integrations || []);
+    const cats     = Array.isArray(catsRaw)     ? catsRaw     : (catsRaw?.categories   || []);
+    const docTypes = Array.isArray(docTypesRaw) ? docTypesRaw : (docTypesRaw?.types     || []);
+    const rules    = Array.isArray(rulesRaw)    ? rulesRaw    : (rulesRaw?.rules        || []);
   const catColors={payments:'#4cc98a',auth:'#5b8af8',backend:'#9d74f5',ai:'#e8a237',email:'#38c5d8',database:'#f08850',analytics:'#f06080'};
   pane.innerHTML=`
     ${pageHeader?.({title:'🔌 Integrations & Docs',subtitle:'Scaffold Stripe, Auth, Email. Generate docs. Set AI project rules.'})||'<div style="padding:20px"><h2>🔌 Integrations</h2></div>'}
