@@ -40,6 +40,16 @@ OPENROUTER_MODELS = {
 OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
 OLLAMA_BASE = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
 
+# How long to wait for the FIRST token before telling the user something is
+# wrong. Distinct from the total timeout on purpose: a long answer that is
+# streaming steadily is healthy, while a provider that has sent nothing at all
+# is not, and only the second case should be interrupted.
+#
+# Measured before this existed: a provider that accepted the request and sent
+# nothing held the connection for 65+ seconds with zero bytes delivered and no
+# error -- an empty bubble with no way to tell thinking from dead.
+FIRST_TOKEN_TIMEOUT = float(os.getenv('AGENTIC_FIRST_TOKEN_TIMEOUT', '30'))
+
 
 # ── No-provider handling ───────────────────────────────────────────────────────
 # When no AI provider is reachable, complete() used to return a *placeholder*
@@ -841,9 +851,44 @@ async def _ollama_stream(messages, model, temperature, max_tokens, timeout) -> A
             async with httpx.AsyncClient(timeout=timeout) as client:
                 async with client.stream('POST', f'{base}/api/chat', json=payload_chat) as resp:
                     if resp.status_code == 200:
-                        async for line in resp.aiter_lines():
+                        # BOUND THE WAIT, don't check inside the loop.
+                        #
+                        # The first version of this guard tested the elapsed
+                        # time at the top of `async for line in
+                        # resp.aiter_lines()`. That body only runs when a line
+                        # ARRIVES -- which for a silent provider is never -- so
+                        # the check could not fire and the request still hung
+                        # for the full timeout. Verified live.
+                        #
+                        # Only the wait for the FIRST token is bounded. Once
+                        # tokens are flowing a slow answer is healthy and is
+                        # allowed to take as long as it needs.
+                        _iter = resp.aiter_lines().__aiter__()
+                        _first_token_seen = False
+                        while True:
+                            try:
+                                if _first_token_seen:
+                                    line = await _iter.__anext__()
+                                else:
+                                    line = await asyncio.wait_for(
+                                        _iter.__anext__(), FIRST_TOKEN_TIMEOUT)
+                            except StopAsyncIteration:
+                                break
+                            except (TimeoutError, asyncio.TimeoutError):
+                                yield 'data: ' + json.dumps({
+                                    'delta': (
+                                        f'The model has not responded in '
+                                        f'{int(FIRST_TOKEN_TIMEOUT)} seconds. It may be '
+                                        'loading or overloaded \u2014 try again, or pick '
+                                        'a smaller model in Settings.'),
+                                    'done': True,
+                                    'error': 'first_token_timeout',
+                                    'model': clean_model,
+                                }) + '\n\n'
+                                return
                             if not line:
                                 continue
+                            _first_token_seen = True
                             try:
                                 chunk = json.loads(line)
                                 delta = chunk.get('message', {}).get('content', '')
