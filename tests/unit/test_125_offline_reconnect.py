@@ -76,13 +76,32 @@ def test_only_one_module_shows_an_offline_message():
 
 def test_app_core_offline_handler_does_not_toast():
     """It kept the status dot -- the one job nothing else does -- and lost the
-    toast that duplicated the banner."""
+    toast that duplicated the banner.
+
+    UPDATED, NOT DELETED. The original version sliced from `const
+    offlineHandler` to the next `};` and asserted `sb-dot` appeared inside.
+    That held while the handler was an inline arrow body; a later batch
+    extracted the shared `setDot()` helper (so that going offline updates the
+    dot's aria-label as well as its colour, for forced-colors mode), and the
+    handler became a one-line delegation. The BEHAVIOUR is unchanged and
+    still correct, but the assertion was pinned to the old shape.
+
+    It now checks the pair that actually matters: the dot is still updated
+    somewhere in this module, and the offline handler still raises no toast.
+    """
+    assert 'sb-dot' in APP_CORE, 'the status dot must still be updated'
+
     handler = APP_CORE[APP_CORE.index('const offlineHandler'):]
-    handler = handler[:handler.index('};')]
-    assert 'sb-dot' in handler, 'the status dot must still be updated'
+    handler = handler[:handler.index('\n')]
     assert 'toast(' not in handler, (
         'app-core must not raise its own offline toast; 00-net-feedback.js '
         'owns that message')
+
+    # The helper it delegates to must not toast either, or the message is
+    # simply one indirection further away.
+    helper = APP_CORE[APP_CORE.index('const setDot'):]
+    helper = helper[:helper.index('};')]
+    assert 'toast(' not in helper
 
 
 def test_connection_banner_stands_down_while_offline():

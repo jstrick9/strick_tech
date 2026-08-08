@@ -47,6 +47,8 @@ verifiable. "No bugs exist" is not.
 | Offline / reconnect | `offline_reconnect.py` | 0 | **Three** independent `offline` listeners each raised their own message simultaneously, giving contradictory advice: "your work is safe" alongside "changes will not be saved" |
 | Long / adversarial input | `adversarial_input.py` | 0 | No XSS and no data loss (verified, not assumed); a 4,000-char title overflowed a 235px card by 1,900px while `documentElement.scrollWidth` stayed exactly 1440px |
 | Timezones & dates | `timezones.py` | 0 | SQLite `CURRENT_TIMESTAMP` (141 defaults) emits no timezone designator; `new Date()` reads that as LOCAL time, so a task created that second rendered as **"in 3 minutes"** in UTC+8:45 |
+| Reduced motion / high contrast / zoom 200% | `preferences.py` | 0 | Reduced motion clean; 2 indicators meaningful by colour alone; **5 containers overflowed a 640px viewport** — and the topbar's existing fix was inert inside `@media (pointer: coarse)`, which a zoomed desktop never matches |
+| Print/export & multi-tab | `print_and_multitab.py` | 0 | Multi-tab clean; **8,808px of tasks printed as 600px** with nothing saying the rest existed; body printed at luminance 0.04 |
 
 **All twelve audits are at 0.** `source-patterns` was cleared from 17 (six
 unguarded array accesses, eleven raw-error headlines); the fixes and three
@@ -71,17 +73,41 @@ regress unnoticed.
 
 ---
 
-## Never examined — **NEVER**
+## Never examined
 
-Ordered by my estimate of expected value. None of these have been looked at
-even once.
+**The register is empty. Every seam listed here has a committed audit sitting
+at its floor.**
+
+That is the stopping criterion agreed at the start of this effort, and it is
+worth being precise about what it does and does not claim:
+
+* It **does** mean every dimension anyone has thought to name has an
+  instrument, that instrument is committed, and the ratchet fails the build if
+  its number rises.
+* It **does not** mean the application is free of bugs. Every new bug class
+  found in this review required inventing a new way of looking; the register
+  is a record of the ways of looking that exist, not a proof that no others
+  are possible.
+
+**Adding a seam is the normal way this document grows.** When a new class of
+problem is found — by a user, by an incident, or by someone thinking of a
+question nobody has asked yet — add a row below, write a probe, commit it to
+`scripts/audit/`, register it in `run_all.py` and
+`tests/unit/test_120_audit_ratchet.py`, and set a baseline.
+
+Candidate seams that have been *considered* and judged low value for this
+codebase, recorded so the thinking is not repeated:
+
+| Considered | Why it was not pursued |
+|---|---|
+| Internationalisation / pseudo-localisation | The product ships one locale; RTL and emoji fidelity are already covered by `adversarial_input.py` |
+| Browser matrix (Firefox / WebKit) | No non-Chromium build is available in this sandbox, so any result would be unverifiable — the one thing this review does not do |
+| Load / soak testing | `large_data.py` covers realistic volumes; sustained load is an infrastructure question, not a UI seam |
+| Screen-reader end-to-end with a real AT | `announcements.py` covers the ARIA contract; driving NVDA/VoiceOver is not possible headless |
 
 | Seam | Why it matters | Cheap first probe |
 |---|---|---|
-| **Print / export** | `styles-print.css` exists but was never verified | Render to PDF, inspect |
-| **Reduced motion / high contrast** | `prefers-reduced-motion` partially honoured; forced-colors never tested | Emulate both media features |
-| **Zoom to 200%** | WCAG 1.4.4 requires no loss of content | Re-run responsive audit at 200% |
-| **Multi-tab / multi-window** | Two tabs editing the same record | Two contexts, same document |
+| *(none outstanding)* | | |
 
 ---
 
@@ -107,6 +133,9 @@ encoded in `scripts/audit/_harness.py` so no future probe has to remember them.
 
 | Trap | What it cost |
 |---|---|
+| A CSS fix scoped to the wrong media feature | The topbar's wrapping rule sat in `@media (pointer: coarse)`; a desktop user at 200% zoom has a FINE pointer, so it never matched. Second inert-CSS-fix in the same file — one is harder to spot than a missing fix, because review approves it |
+| Counting a closed off-canvas drawer as unreachable content | 24 sidebar links reported as WCAG failures, burying the real finding. Detect the drawer by GEOMETRY (and allow 1px: it parks at exactly right:0), not by parsing its transform string |
+| A vendored component matching a selector heuristic | `.monaco-status` is Monaco's own aria-live region, not a colour indicator. Exclude third-party UI explicitly |
 | Reading whatever the test database happens to contain | A gate-bug test read `/api/tasks`, found an empty list, and passed against the reverted fix. Create the row the assertion depends on, and assert that something was actually measured |
 | Testing a timezone bug in a whole-hour zone | An off-by-one-hour error and a correct rendering are indistinguishable when the server clock is near the hour. Use a 45-minute offset |
 | Measuring overflow only at the document level | A 4,000-char title spilled 1,900px out of its card while `documentElement.scrollWidth` stayed exactly 1440px. The page was perfect by the global measure and unreadable on screen. Check element-level `scrollWidth > clientWidth` too |

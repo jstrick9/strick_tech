@@ -16,3 +16,98 @@
   .pane { display: block !important; }
   .pane:not(.active) { display: none !important; }
   body { background: white; color: black; }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Gaps found by scripts/audit/print_and_multitab.py, measured with
+   emulate_media(media='print'). The rules above were written before several
+   of these elements existed.
+
+   This file is scoped by `media="print"` on its <link> (index.html), so it
+   needs no @media wrapper -- do not add one, and do not move these rules into
+   a screen stylesheet.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* 1. Interface chrome that postdates the original rule. #next-action-bar is
+      created at runtime by 04-workflow-specs.js and is `position: fixed`, so
+      it printed as a floating strip across the first page. */
+#next-action-bar,
+#session-banner,
+#connection-banner,
+#net-offline-banner,
+#studio-console-drawer,
+.studio-toolbar,
+.preview-toolbar {
+  display: none !important;
+}
+
+/* 2. THE ONE THAT LOSES DATA. A scroll container prints only the slice that
+      happens to be visible: #kanban-col-todo held 8,808px of tasks in a 600px
+      box, so the user got the first few and no indication the rest existed.
+      Nothing on the printed page says anything is missing, which makes this
+      strictly worse than a visible error.
+
+      Releasing the height everywhere is the only reliable fix; enumerating
+      scroll containers would miss every one added later. */
+* {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+/* Restore normal document flow for the app shell, which is a fixed-height
+   flex layout built for a viewport rather than for a page. */
+html,
+body,
+#shell,
+#main,
+#content,
+.pane,
+.pane.active {
+  height: auto !important;
+  min-height: 0 !important;
+  position: static !important;
+  overflow: visible !important;
+}
+
+/* 3. Dark theme on paper. `body { background: white; color: black }` above
+      set only the body; every card, panel and pill kept its dark background,
+      which prints as a full page of toner with light text on top of it.
+      Forcing the palette at the leaf level is what actually makes the output
+      legible. */
+* {
+  background: transparent !important;
+  background-image: none !important;
+  color: #000 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+body {
+  background: #fff !important;
+}
+
+/* Keep boundaries visible once the fills are gone, or the page becomes an
+   undifferentiated wall of text. */
+.card,
+[class*='-card'],
+[class*='-panel'],
+table,
+th,
+td {
+  border: 1px solid #999 !important;
+}
+
+/* Do not split a card across a page break. */
+.card,
+[class*='-card'],
+.kanban-card,
+tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* A link's destination is invisible on paper. */
+a[href^='http']::after {
+  content: ' (' attr(href) ')';
+  font-size: 90%;
+  word-break: break-all;
+}

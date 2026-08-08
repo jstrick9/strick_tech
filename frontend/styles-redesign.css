@@ -1390,3 +1390,119 @@ html :focus:not(:focus-visible) {
 .no-wrap-guard * {
   overflow-wrap: normal;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ZOOM TO 200% — WCAG 1.4.4 (AA)
+   ═══════════════════════════════════════════════════════════════════════
+   At 200% zoom on a 1280x1024 desktop the CSS viewport is 640x512. Measured
+   there, #topbar laid out to 838px in a 640px box with `overflow: visible`:
+   the notification bell, the settings gear and the profile button all sat
+   past the right edge with no way to scroll to them. Three controls, silently
+   unreachable, on every pane.
+
+   WHY THE EXISTING FIX DID NOT APPLY. A rule that wraps #topbar-actions
+   already existed -- inside `@media (pointer: coarse)`. A desktop user at 200%
+   zoom has a FINE pointer, so it never matched. That is the same class of
+   mistake recorded above this file's touch rules, where a selector referenced
+   a class that did not exist in the markup: a fix that is present, reasonable
+   and inert.
+
+   Keyed to width rather than to a pointer type, because the constraint here is
+   available width -- which is exactly what zoom reduces. */
+@media (max-width: 900px) {
+  #topbar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--topbar-h);
+    padding-top: 4px;
+    padding-bottom: 4px;
+    row-gap: 4px;
+  }
+
+  #topbar-actions {
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    min-width: 0;
+    /* Without this the actions row keeps its intrinsic width and pushes
+       itself out of the bar regardless of the bar wrapping. */
+    max-width: 100%;
+  }
+
+  #topbar-actions > * { flex-shrink: 0; }
+}
+
+/* Two containers that outrun a 640px viewport at 200% zoom.
+
+   #next-action-bar is created in JS with `left: var(--sidebar-w)` inline. That
+   is right while the sidebar occupies space, and wrong once the sidebar
+   becomes an off-canvas drawer: the bar keeps a 300px left inset that no
+   longer corresponds to anything, so its trailing control sat at x=715 in a
+   640px viewport. The inline style has to be beaten on specificity, hence
+   !important -- used deliberately and only here, because the declaration it
+   overrides is on the element itself.
+
+   .studio-sidebar is a fixed-width file panel; below this width it shares the
+   row with the editor and its controls (+, collapse, delete, Clear) landed at
+   673-706px, outside the viewport entirely. */
+@media (max-width: 900px) {
+  #next-action-bar {
+    left: 0 !important;
+  }
+
+  .studio-sidebar {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .studio-sidebar,
+  .studio-sidebar * {
+    overflow-wrap: anywhere;
+  }
+
+  /* Studio keeps a file panel and an editor side by side in
+     #studio-editor-row. At 640px there is no room for both, so the editor's
+     toolbar ran off to x=719 with Format, Find and Review unreachable.
+     Stacking is the only honest answer at this width -- shrinking further
+     would leave an editor too narrow to write in. */
+  #studio-editor-row {
+    flex-wrap: wrap;
+  }
+
+  #studio-editor-row > * {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+
+  /* The toolbars hold ~10 buttons each; let them wrap rather than overflow.
+     .preview-toolbar is listed separately because its device-size buttons
+     (Full / 375 / 768 / 1280) sat furthest out, at x=817. */
+  .studio-toolbar,
+  .studio-ai-input-row,
+  .preview-toolbar {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .studio-preview-panel,
+  .studio-editor-panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* The console drawer's header row (tabs + Linter / Clear / Collapse) ran to
+     x=844. Its children are wrapped in unclassed divs, so the rule targets the
+     drawer's descendants rather than a class that does not exist -- the same
+     mistake as the `.topbar__actions` selector recorded earlier in this file,
+     which pointed at markup that was never there and so did nothing. */
+  #studio-console-drawer,
+  #studio-console-drawer > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #studio-console-drawer > div > div {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+}

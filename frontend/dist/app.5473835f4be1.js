@@ -2348,7 +2348,9 @@ el.innerHTML = S.agents.map(a => `
           <div class="agent-name">${escHtml(a.name)}</div>
           <div class="agent-role">${escHtml(a.role || a.model || '')}</div>
         </div>
-        <div class="agent-status ${a.status || 'idle'}"></div>
+        <div class="agent-status ${a.status || 'idle'}" role="img"
+             aria-label="Status: ${a.status || 'idle'}"
+             title="${a.status || 'idle'}"></div>
       </div>
     `).join('');
 }
@@ -4793,14 +4795,16 @@ sb.style.cursor = 'pointer';
 sb.title = 'Agentic OS v6.0 — Click for system info';
 sb.addEventListener('click', () => nav('system'));
 }
-const offlineHandler = () => {
+const setDot = (colour, label) => {
 const dot = document.querySelector('.sb-dot');
-if (dot) { dot.style.background = 'var(--red)'; dot.title = 'Offline'; }
+if (!dot) return;
+dot.style.background = colour;
+dot.title = label;
+dot.setAttribute('role', 'img');
+dot.setAttribute('aria-label', 'Connection: ' + label);
 };
-const onlineHandler = () => {
-const dot = document.querySelector('.sb-dot');
-if (dot) { dot.style.background = 'var(--success)'; dot.title = 'Online'; }
-};
+const offlineHandler = () => setDot('var(--red)', 'Offline');
+const onlineHandler = () => setDot('var(--success)', 'Online');
 window.addEventListener('offline', offlineHandler);
 window.addEventListener('online', onlineHandler);
 })();

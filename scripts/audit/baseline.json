@@ -7,6 +7,7 @@
   "large-data-volumes": 0,
   "offline-reconnect": 0,
   "pane-health": 0,
+  "print-and-multitab": 0,
   "responsive-overflow": 0,
   "screen-reader-announcements": 0,
   "semantics": 0,
@@ -14,5 +15,6 @@
   "slow-and-flaky-network": 0,
   "source-patterns": 0,
   "timezone-correctness": 0,
-  "touch-targets-under-44px": 0
+  "touch-targets-under-44px": 0,
+  "user-preferences": 0
 }
