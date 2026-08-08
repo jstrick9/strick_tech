@@ -71,8 +71,28 @@ def run() -> AuditResult:
             if len(text) < 15 and controls == 0:
                 findings.append(f'BLANK  {pane}  ({len(text)} chars, no controls)')
 
+        # Reload before the workstation checks.
+        #
+        # The pane walk above visits all 68 panes, which builds every
+        # workstation as a side effect. Re-navigating to an already-built host
+        # then takes the idempotent early-return path and never exercises the
+        # build-then-wipe sequence -- so the check passed even with the host
+        # watcher removed. A fresh page reproduces what a real user does:
+        # arrive at a workstation for the first time.
+        page.reload(wait_until='domcontentloaded')
+        page.wait_for_timeout(3000)
+
         for host in page.evaluate("Object.keys(window.WORKSTATIONS || {})"):
+            # Wait past the host's LATER renders, not just its first.
+            #
+            # A host can re-render seconds after navigation -- on a poll, or a
+            # slow second pass -- and wipe the tab strip it was given.
+            # Measured with 250 seeded goals: renderSupervisor() ran again
+            # ~3s after nav() and destroyed a Goals tab that had already
+            # rendered 5,976 characters. A 900ms settle checked before the
+            # damage and reported the workstation healthy.
             visit(page, host, settle=900)
+            page.wait_for_timeout(3500)
             state = page.evaluate(WORKSTATION_JS, host)
             if state.get('missing'):
                 findings.append(f'LOST   {host}: host pane missing')

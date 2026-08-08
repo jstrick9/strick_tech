@@ -129,6 +129,8 @@ def test_source_patterns_has_not_regressed():
     ('concurrency', 'concurrent-duplicate-writes'),
     ('announcements', 'screen-reader-announcements'),
     ('slow_network', 'slow-and-flaky-network'),
+    ('history_navigation', 'history-navigation'),
+    ('large_data', 'large-data-volumes'),
 ])
 def test_browser_audit_has_not_regressed(module, key):
     """Skips cleanly when there is no live server, rather than failing.

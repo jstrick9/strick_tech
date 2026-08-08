@@ -15,6 +15,14 @@ let _goalList     = [];           // cached goal array
 // rendering an empty state that looks like "you have no goals".
 let _goalLoadError = null;
 let _goalTotal    = 0;            // true server-side count (may exceed the page)
+// How many goals to request. Grows via "Load more".
+//
+// The list previously capped at 100 and told the user to "narrow the filters"
+// to see the rest -- useless advice when all 250 match the current filters,
+// and the only escape route offered. Measured with 250 seeded goals: 150 were
+// unreachable through the UI.
+let _goalLimit    = 100;
+const GOAL_PAGE_SIZE = 100;
 let _goalSelected = null;         // currently open goal detail {goal, milestones, checkins, decomposition, score_history}
 let _goalTab      = 'overview';   // 'overview' | 'decompose' | 'score' | 'history'
 let _goalPollTimer = null;
@@ -140,7 +148,7 @@ async function gmLoadGoals() {
   _goalLoadError = null;
   const [statsR, goalsR] = await Promise.all([
     fetch('/api/goals/stats/summary').then(r=>r.ok?r.json():{}).catch(()=>({})),
-    fetch(`/api/goals?limit=100${_goalFilter.status?'&status='+encodeURIComponent(_goalFilter.status):''}${_goalFilter.domain?'&domain='+encodeURIComponent(_goalFilter.domain):''}${_goalFilter.priority?'&priority='+encodeURIComponent(_goalFilter.priority):''}`)
+    fetch(`/api/goals?limit=${_goalLimit}${_goalFilter.status?'&status='+encodeURIComponent(_goalFilter.status):''}${_goalFilter.domain?'&domain='+encodeURIComponent(_goalFilter.domain):''}${_goalFilter.priority?'&priority='+encodeURIComponent(_goalFilter.priority):''}`)
       .then(r => {
         if (!r.ok) throw httpError(r);
         return r.json();
@@ -164,6 +172,11 @@ function gmUpdateStats(stats) {
   s('gm-stat-avg',    Math.round(stats.avg_progress ?? 0) + '%');
 }
 
+window.gmLoadMoreGoals = function () {
+  _goalLimit += GOAL_PAGE_SIZE;
+  gmLoadGoals();
+};
+
 function gmRenderList() {
   const list = document.getElementById('gm-goal-list');
   if (!list) return;
@@ -186,7 +199,9 @@ function gmRenderList() {
   const truncationNote = hidden
     ? `<div role="status" style="padding:8px 12px;margin-bottom:8px;border-radius:6px;background:var(--bg-3);border:1px solid var(--border);font-size:11.5px;color:var(--text-2)">
          Showing ${_goalList.length} of ${_goalTotal} goals.
-         <span style="color:var(--text-3)">${hidden} more are hidden — narrow the filters to find them.</span>
+         <span style="color:var(--text-3)">${hidden} more not shown.</span>
+         <button type="button" class="btn btn-sm btn-ghost" style="margin-left:8px"
+                 data-act-click="gmLoadMoreGoals()">Load more</button>
        </div>`
     : '';
 
@@ -227,6 +242,9 @@ function gmFilterChange() {
   _goalFilter.status   = document.getElementById('gm-filter-status')?.value   || '';
   _goalFilter.domain   = document.getElementById('gm-filter-domain')?.value   || '';
   _goalFilter.priority = document.getElementById('gm-filter-priority')?.value || '';
+  // A new filter is a new list. Without this, narrowing the filters after
+  // pressing Load more keeps requesting the enlarged page size forever.
+  _goalLimit = GOAL_PAGE_SIZE;
   gmLoadGoals();
 }
 
@@ -973,7 +991,7 @@ async function goalProgress(goalId)     { if(_goalSelected?.goal?.id!==goalId) a
 async function goalDelete(goalId)       { if(_goalSelected?.goal?.id!==goalId) await gmSelectGoal(goalId); await gmDeleteGoal(); }
 async function goalReloadCards()        { await gmLoadGoals(); }
 function goalFilterChange()             { gmFilterChange(); }
-function goalDomainFilter(domain)       { _goalFilter.domain=_goalFilter.domain===domain?'':domain; gmLoadGoals(); }
+function goalDomainFilter(domain)       { _goalFilter.domain=_goalFilter.domain===domain?'':domain; _goalLimit=GOAL_PAGE_SIZE; gmLoadGoals(); }
 function renderGoalCard(g)              { return ''; } // no longer used standalone
 
 
