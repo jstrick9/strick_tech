@@ -52,6 +52,7 @@ AUDITS = [
     # one it reports 0 with an informational note rather than a result,
     # so including it here is safe but only meaningful on a fresh server.
     'first_run',
+    'task_completion',
 ]
 
 

@@ -140,3 +140,55 @@ it is dismissed the way a user dismisses it, via its own close control.
 | Ratchet on empty server | passes for real |
 | Revert all fixes | **10 of 17** tests fail |
 | Full suite | 3,353 unit (2 skipped) + 655 (10 skipped), 0 failures |
+
+---
+
+# 58b — Can a user actually finish a job?
+
+**Audit:** `scripts/audit/task_completion.py` · **key:** `task-completion` ·
+**baseline: 0**
+**Tests:** `tests/unit/test_131_task_completion.py` (8)
+
+## Why this is different from the other nineteen
+
+Every other probe inspects a **rendered state** — control size, announcements,
+timezone formatting. **None of them ever uses the product.** A screen can pass
+all nineteen and still be impossible to get a job done in.
+
+This one drives complete journeys through the real DOM and asserts the outcome
+the user expects: create → appears → survives a reload → delete → stays
+deleted.
+
+## Result: no defects — and that is a measured claim
+
+Verified independently at the data layer while developing the probe: **0 rows
+→ 1 → 0**, every step driven by clicking the UI.
+
+## Why the result is trustworthy: it was proven able to fail
+
+`POST /api/tasks` was stubbed to answer `200 {ok: true}` **without writing a
+row** — an optimistic-UI lie, and exactly what an API-level test cannot see,
+because the API said yes. The probe reported:
+
+```
+PERSIST-FAIL  kanban: the task appeared, then was gone after a reload --
+              the user was told it saved and it did not
+-- delete: nothing to delete; journey skipped
+```
+
+Both halves matter: it caught the lie, **and** declared the dependent journey
+skipped rather than counting it as a pass.
+
+## Design decisions that make it mean something
+
+- **Everything goes through the DOM.** A probe that POSTs to the API and then
+  checks the API has verified the server and learned nothing about the
+  product — the failure this whole review keeps finding is a working backend
+  behind a broken screen.
+- **Persistence uses a full page reload**, not a re-render: an in-memory list
+  will happily show a record the server never stored.
+- **Every journey verifies its precondition** and emits a `--` note if the
+  entry control is missing — the trap that let the concurrency audit report
+  `0 records created` as a PASS.
+- **A unique marker per run**, so leftovers cannot make a broken create look
+  successful.
