@@ -638,7 +638,15 @@ async function renderCodeSearch(){
       <input id="cs-input" class="input" placeholder="Search code, functions, variables, text…" style="flex:1;font-size:14px;height:42px" data-act-keydown="runCodeSearch()" data-keys="Enter" autocomplete="off">
       <button data-act-click="runCodeSearch()" class="btn btn-primary" id="cs-btn" style="height:42px">🔍 Search</button>
     </div>
-    <div id="cs-results" style="color:var(--text-3);text-align:center;padding:40px;font-size:13px">Type to search across all project files</div>
+    <div id="cs-results" class="pane-empty-intro">
+      <div class="pane-empty-intro__icon" aria-hidden="true">🔍</div>
+      <div class="pane-empty-intro__title">Search every file in your project</div>
+      <div class="pane-empty-intro__body">Find a function, a variable, a string —
+        anything, across the whole workspace, as you type. Results link straight
+        into the editor.</div>
+      <div class="pane-empty-intro__hint">Try <code>function</code>, a filename,
+        or a phrase you remember writing.</div>
+    </div>
     </div>`;
   document.getElementById('cs-input')?.focus();
 }

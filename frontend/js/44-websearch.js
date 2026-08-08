@@ -95,7 +95,17 @@ async function renderWebSearch() {
           <button type="button" class="btn-sm" data-ws-action="grounded-stream">⚡ Stream</button>
         </div>
       </div>
-      <div id="ws-grounded-result"></div>
+      <div id="ws-grounded-result">
+        <div class="pane-empty-intro">
+          <div class="pane-empty-intro__icon" aria-hidden="true">🌐</div>
+          <div class="pane-empty-intro__title">Answers grounded in live web results</div>
+          <div class="pane-empty-intro__body">Unlike a normal chat reply, this searches
+            the web first and then answers, citing every source it used — so you can
+            check where each claim came from.</div>
+          <div class="pane-empty-intro__hint">Good for anything recent: prices, releases,
+            documentation, current events.</div>
+        </div>
+      </div>
     </div>
 
     <!-- Raw search -->

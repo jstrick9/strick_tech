@@ -2070,6 +2070,11 @@ async function renderMultitab() {
       <button class="btn-sm" data-act-click="mtRefreshAll()">↻ All</button>
       <button class="btn-sm" data-act-click="mtOpenInBrowser()" title="Open in real browser">↗</button>
     </div>
+    <div class="mt-hint" id="mt-hint">
+      <strong>Multi-preview.</strong> Open several pages of your project side by side —
+      add tabs with <kbd>＋</kbd>, then hit <strong>⊞ Grid</strong> to see them all at once.
+      Useful for checking a change across pages, or one page at several sizes.
+    </div>
     <div class="mt-frame-area" id="mt-frame-area">
       <iframe class="mt-frame" id="mt-frame" src="/preview/index.html" allowfullscreen></iframe>
     </div>

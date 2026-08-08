@@ -152,3 +152,34 @@ def test_browser_audit_has_not_regressed(module, key):
         f"{key} rose from {expected} to {result['count']}.\n"
         + '\n'.join(result['findings'][:12])
     )
+
+
+def test_first_run_audit_has_not_regressed():
+    """The empty-account audit, ratcheted separately.
+
+    WHY NOT A ROW IN THE LIST ABOVE. Every other browser audit runs against
+    whatever server is on :8787, which in practice holds seeded data. This one
+    measures an EMPTY account, and against a seeded server it deliberately
+    reports 0 with an informational note instead of a result. Put in the shared
+    list it would pass on every run without ever measuring anything -- a test
+    that cannot fail, which is the pattern this review has now hit nine times.
+
+    So: it SKIPS, loudly, unless the server really is empty. A skip is visible
+    in the output; a vacuous pass is not.
+    """
+    result = _run_audit('first_run')
+    if result is None:
+        pytest.skip('first_run: no browser or no server on localhost:8787')
+
+    refused = any(str(f).startswith('-- the server has seeded data')
+                  for f in result['findings'])
+    if refused:
+        pytest.skip(
+            'first_run: server has seeded data; start one with an empty '
+            'AGENTIC_OS_DATA_DIR to ratchet the first-run experience')
+
+    expected = _baseline()['first-run-experience']
+    assert result['count'] <= expected, (
+        f"first-run-experience rose from {expected} to {result['count']}.\n"
+        + '\n'.join(result['findings'][:12])
+    )
