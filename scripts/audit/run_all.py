@@ -48,6 +48,10 @@ AUDITS = [
     'timezones',
     'preferences',
     'print_and_multitab',
+    # Needs a server started against an EMPTY data dir. Against a seeded
+    # one it reports 0 with an informational note rather than a result,
+    # so including it here is safe but only meaningful on a fresh server.
+    'first_run',
 ]
 
 

@@ -132,7 +132,13 @@ function kanbanRenderBoard() {
     return;
   }
 
-  board.innerHTML = KANBAN_COLUMNS.map(col => {
+  // A brand-new user sees four columns each saying "No tasks" and nothing
+  // explaining what the board is for. The first column carries the pitch and
+  // the entry point; the rest stay quiet, because repeating it four times on
+  // one screen is noise rather than help.
+  const boardIsEmpty = filteredTasks.length === 0;
+  board.innerHTML = KANBAN_COLUMNS.map((col, colIndex) => {
+    const isFirstColumn = colIndex === 0;
     // MISSING FEATURE: cards rendered in whatever order the API happened to
     // return and `sort_order` was never read, so dragging a card to a specific
     // position within a column had no effect — it only ever changed status.
@@ -163,12 +169,22 @@ function kanbanRenderBoard() {
              data-act-dragover="kanbanOnDragOver($event)"
              data-act-drop="kanbanOnDrop($event,${jsArg(col.id)})"
              data-act-dragleave="kanbanOnDragLeave($event)">
-          ${columnTasks.length > 0 
+          ${columnTasks.length > 0
             ? columnTasks.map(task => kanbanRenderCard(task)).join('')
-            : `<div class="kanban-empty-col">
-                 <span class="kanban-empty-icon">📋</span>
-                 <span>No tasks</span>
-               </div>`
+            : (isFirstColumn && boardIsEmpty
+                ? `<div class="kanban-empty-col kanban-empty-col--intro">
+                     <span class="kanban-empty-icon">📋</span>
+                     <span class="kanban-empty-title">Track work across the board</span>
+                     <span class="kanban-empty-hint">Add a task, then drag it between
+                       To&nbsp;Do, In&nbsp;Progress, Blocked and Done. Agents can pick
+                       tasks up from here too.</span>
+                     <button type="button" class="btn btn-primary btn-sm"
+                             data-act-click="kanbanOpenCreateModal('todo')">＋ Add your first task</button>
+                   </div>`
+                : `<div class="kanban-empty-col">
+                     <span class="kanban-empty-icon">📋</span>
+                     <span>No tasks</span>
+                   </div>`)
           }
         </div>
       </div>

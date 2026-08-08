@@ -1,6 +1,6 @@
 {
   "head": "head.8f62aefef2be.js",
-  "body": "app.5473835f4be1.js",
+  "body": "app.866f65fa9ccd.js",
   "minified": true,
   "modules": 48,
   "head_modules": [
@@ -55,22 +55,22 @@
     "92-pane-error-boundary.js",
     "93-shortcuts-overlay.js"
   ],
-  "raw_bytes": 1324701,
-  "bundled_bytes": 1009364,
+  "raw_bytes": 1325413,
+  "bundled_bytes": 1010076,
   "compressed": {
     "head.8f62aefef2be.js": {
       "raw": 6508,
       "gzip": 2376,
       "brotli": 2015
     },
-    "app.5473835f4be1.js": {
-      "raw": 1002856,
-      "gzip": 244577,
-      "brotli": 185218
+    "app.866f65fa9ccd.js": {
+      "raw": 1003568,
+      "gzip": 244887,
+      "brotli": 185637
     },
-    "chunks.7c4b0336c259.js": {
+    "chunks.d166dcecd645.js": {
       "raw": 1575,
-      "gzip": 750,
+      "gzip": 752,
       "brotli": 645
     },
     "pane-a2a.b35d81dd06c5.js": {
@@ -158,20 +158,20 @@
       "gzip": 5025,
       "brotli": 4215
     },
-    "pane-imagegen.40c2c6c9f700.js": {
-      "raw": 22403,
-      "gzip": 6057,
-      "brotli": 5183
+    "pane-imagegen.b7e1063b9726.js": {
+      "raw": 22629,
+      "gzip": 6118,
+      "brotli": 5250
     },
     "pane-integrations.49017b1a6f7a.js": {
       "raw": 13335,
       "gzip": 4142,
       "brotli": 3542
     },
-    "pane-kanban.d35e047aafbc.js": {
-      "raw": 24308,
-      "gzip": 5579,
-      "brotli": 4798
+    "pane-kanban.6beb9bae6be0.js": {
+      "raw": 25133,
+      "gzip": 5784,
+      "brotli": 4973
     },
     "pane-leaderboard.227a62746a13.js": {
       "raw": 21927,
@@ -238,10 +238,10 @@
       "gzip": 2410,
       "brotli": 1977
     },
-    "pane-websearch.031d76897f82.js": {
-      "raw": 17349,
-      "gzip": 4521,
-      "brotli": 3843
+    "pane-websearch.695644bbd35c.js": {
+      "raw": 17942,
+      "gzip": 4727,
+      "brotli": 4002
     },
     "pane-workspaces.a8ebc641858c.js": {
       "raw": 11184,
@@ -370,11 +370,11 @@
       "bytes": 16637
     },
     "imagegen": {
-      "file": "pane-imagegen.40c2c6c9f700.js",
+      "file": "pane-imagegen.b7e1063b9726.js",
       "modules": [
         "15-image-generation.js"
       ],
-      "bytes": 22403
+      "bytes": 22629
     },
     "integrations": {
       "file": "pane-integrations.49017b1a6f7a.js",
@@ -384,11 +384,11 @@
       "bytes": 13335
     },
     "kanban": {
-      "file": "pane-kanban.d35e047aafbc.js",
+      "file": "pane-kanban.6beb9bae6be0.js",
       "modules": [
         "28-kanban.js"
       ],
-      "bytes": 24308
+      "bytes": 25133
     },
     "leaderboard": {
       "file": "pane-leaderboard.227a62746a13.js",
@@ -483,11 +483,11 @@
       "bytes": 6848
     },
     "websearch": {
-      "file": "pane-websearch.031d76897f82.js",
+      "file": "pane-websearch.695644bbd35c.js",
       "modules": [
         "44-websearch.js"
       ],
-      "bytes": 17349
+      "bytes": 17942
     },
     "workspaces": {
       "file": "pane-workspaces.a8ebc641858c.js",
@@ -497,7 +497,7 @@
       "bytes": 11184
     }
   },
-  "chunk_manifest": "chunks.7c4b0336c259.js",
+  "chunk_manifest": "chunks.d166dcecd645.js",
   "lazy_modules": [
     "12-information-hierarchy.js",
     "15-image-generation.js",
@@ -536,5 +536,5 @@
     "54-finops.js",
     "55-eval-framework.js"
   ],
-  "lazy_bytes": 695055
+  "lazy_bytes": 696699
 }

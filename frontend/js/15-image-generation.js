@@ -60,7 +60,28 @@ async function renderImageGen() {
     const stylesRaw  = await sR.json();
     const galleryRaw = await gR.json();
     const styles  = Array.isArray(stylesRaw)  ? stylesRaw  : (stylesRaw?.styles  || []);
-    const gallery = Array.isArray(galleryRaw) ? galleryRaw : (galleryRaw?.images || galleryRaw?.gallery || []);
+    // Normalise to the OBJECT SHAPE the four call sites below expect
+    // ({images, count}), not to a bare array.
+    //
+    // An earlier defensive fix coerced this to an array to stop
+    // "gallery.map is not a function". That silenced one crash and created a
+    // worse one: `gallery.images` became undefined, so `gallery.images.length`
+    // on the very next line threw "Cannot read properties of undefined
+    // (reading 'length')" and the whole pane died with
+    // "Couldn't open the image generator."
+    //
+    // It was invisible against a seeded account and fired on EVERY empty one,
+    // i.e. for every new user, on their first visit to this pane. A guard that
+    // converts a shape the callers do not accept is not a guard.
+    const galleryImages = Array.isArray(galleryRaw)
+      ? galleryRaw
+      : (galleryRaw?.images || galleryRaw?.gallery || []);
+    const gallery = {
+      images: Array.isArray(galleryImages) ? galleryImages : [],
+      count: (galleryRaw && typeof galleryRaw.count === 'number')
+        ? galleryRaw.count
+        : (Array.isArray(galleryImages) ? galleryImages.length : 0),
+    };
     const models  = mR.ok ? await mR.json() : {models:[], api_key_set:false};
 
     pane.innerHTML = `

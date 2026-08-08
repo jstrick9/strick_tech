@@ -2,6 +2,7 @@
   "adversarial-input": 0,
   "concurrent-duplicate-writes": 0,
   "failure-honesty": 0,
+  "first-run-experience": 0,
   "history-navigation": 0,
   "keyboard-operability": 0,
   "large-data-volumes": 0,

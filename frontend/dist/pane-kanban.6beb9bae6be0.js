@@ -101,7 +101,9 @@ board.innerHTML = `
       </div>`;
 return;
 }
-board.innerHTML = KANBAN_COLUMNS.map(col => {
+const boardIsEmpty = filteredTasks.length === 0;
+board.innerHTML = KANBAN_COLUMNS.map((col, colIndex) => {
+const isFirstColumn = colIndex === 0;
 const columnTasks = filteredTasks
 .filter(t => t.status === col.id)
 .slice()
@@ -126,12 +128,22 @@ return `
              data-act-dragover="kanbanOnDragOver($event)"
              data-act-drop="kanbanOnDrop($event,${jsArg(col.id)})"
              data-act-dragleave="kanbanOnDragLeave($event)">
-          ${columnTasks.length > 0 
+          ${columnTasks.length > 0
             ? columnTasks.map(task => kanbanRenderCard(task)).join('')
-            : `<div class="kanban-empty-col">
-                 <span class="kanban-empty-icon">📋</span>
-                 <span>No tasks</span>
-               </div>`
+            : (isFirstColumn && boardIsEmpty
+                ? `<div class="kanban-empty-col kanban-empty-col--intro">
+                     <span class="kanban-empty-icon">📋</span>
+                     <span class="kanban-empty-title">Track work across the board</span>
+                     <span class="kanban-empty-hint">Add a task, then drag it between
+                       To&nbsp;Do, In&nbsp;Progress, Blocked and Done. Agents can pick
+                       tasks up from here too.</span>
+                     <button type="button" class="btn btn-primary btn-sm"
+                             data-act-click="kanbanOpenCreateModal('todo')">＋ Add your first task</button>
+                   </div>`
+                : `<div class="kanban-empty-col">
+                     <span class="kanban-empty-icon">📋</span>
+                     <span>No tasks</span>
+                   </div>`)
           }
         </div>
       </div>
