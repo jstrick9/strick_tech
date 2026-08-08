@@ -356,7 +356,7 @@ async function bddRenderAgentDetail(container, agentId) {
 
     <!-- Active alerts for this agent -->
     ${alts.length ? `
-    <div style="margin-bottom:14px">
+    <div class="u-2b583d73">
       ${alts.map(a => `
         <div class="bdd-alert-card" style="border-color:${DRIFT_SEV_COLORS[a.severity]?.border||'var(--border)'}">
           <span class="bdd-alert-icon">${a.severity==='critical'?'🔴':'🟡'}</span>
@@ -421,7 +421,7 @@ async function bddRenderAgentDetail(container, agentId) {
     </div>
 
     <!-- Sparkline chart -->
-    <div class="bdd-detail-panel" style="margin-top:14px">
+    <div class="bdd-detail-panel u-d6f2af6e" >
       <div class="bdd-panel-title">📈 Drift Score — Last 24h</div>
       ${hist.length >= 2 ? `
         <div class="bdd-sparkline-wrap">

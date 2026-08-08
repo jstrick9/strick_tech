@@ -60,6 +60,45 @@ _DQ = re.compile(r'style="([^"]*)"')
 _SQ = re.compile(r"style='([^']*)'")
 
 
+def existing_utilities() -> dict[str, str]:
+    """Classes emitted by a PREVIOUS run, read back out of the sheet.
+
+    WHY THIS IS NECESSARY. The generated block is rebuilt from the style
+    attributes that are inline right now. On a second run the attributes the
+    first run already converted no longer exist in the source, so their classes
+    are not regenerated -- and rewriting the block drops them.
+
+    Measured by running the tool twice: 21 classes were referenced in the JS
+    and defined nowhere, including `.u-4ff818ff { font-size:18px }`, which
+    showed up in the computed-style harness as `18px -> 14px` on the agent
+    panes.
+
+    Carrying the old definitions forward makes the tool idempotent, which is
+    the property it silently lacked.
+    """
+    if not os.path.exists(SHEET):
+        return {}
+    with open(SHEET, encoding='utf-8') as fh:
+        text = fh.read()
+    if BEGIN not in text or END not in text:
+        return {}
+    block = text.split(BEGIN, 1)[1].split(END, 1)[0]
+    out: dict[str, str] = {}
+    for match in re.finditer(
+            r'\.(u-[0-9a-f]{8})(?:\.u-[0-9a-f]{8})?\s*\{([^}]*)\}', block):
+        out[match.group(1)] = match.group(2).strip()
+    return out
+
+
+def referenced_classes() -> set[str]:
+    """Utility classes still mentioned anywhere in the source."""
+    seen: set[str] = set()
+    for path in TARGETS:
+        with open(path, encoding='utf-8') as fh:
+            seen |= set(re.findall(r'u-[0-9a-f]{8}', fh.read()))
+    return seen
+
+
 def runtime_read_properties() -> set[str]:
     """CSS properties that JavaScript READS BACK off `element.style`.
 
@@ -165,8 +204,21 @@ def build_css(chosen: dict[str, str]) -> str:
         '/* Generated. Do not edit by hand -- run scripts/migrate_inline_styles.py.',
         ' *',
         ' * Each class is one repeated inline style attribute, lifted verbatim:',
-        ' * same declarations, same order, flat 0-0-1-0 specificity, so the',
-        ' * computed result is identical to the attribute it replaces.',
+        ' * same declarations, in the same order.',
+        ' *',
+        ' * SPECIFICITY. The selector is doubled (`.u-x.u-x`, 0-0-2-0) rather',
+        ' * than flat 0-0-1-0. An inline `style` attribute beats every selector',
+        ' * in the cascade; a plain class does not, so a lifted declaration can',
+        ' * simply lose to a rule that never used to compete with it.',
+        ' *',
+        ' * That is not hypothetical -- it shipped. `<h2 style="font-size:20px">`',
+        ' * inside `.section-head` became `.u-89c33dcc`, and',
+        ' * `.section-head h2 { font-size:17px }` (0-0-1-1) beat it. The heading',
+        ' * silently shrank. Caught by scripts/audit/computed_style_diff.py.',
+        ' *',
+        ' * Doubling restores the "wins against ordinary component CSS" property',
+        ' * the attribute had, without resorting to !important, which would also',
+        ' * beat legitimate state rules like `.is-hidden` or `:hover`.',
         ' *',
         ' * This exists to bring the inline-style count down far enough to enforce',
         ' * a strict style-src. See docs/module-reviews/28-csp-phase3.md.',
@@ -174,7 +226,7 @@ def build_css(chosen: dict[str, str]) -> str:
     ]
     for value, name in sorted(chosen.items(), key=lambda kv: kv[1]):
         body = '; '.join(d for d in value.split(';') if d)
-        lines.append(f'.{name} {{ {body}; }}')
+        lines.append(f'.{name}.{name} {{ {body}; }}')
     lines.append(END)
     return '\n'.join(lines) + '\n'
 
@@ -273,9 +325,35 @@ def main() -> int:
         changed_total += apply_to_file(path, chosen)
     print(f'\nrewrote {changed_total} attributes across {len(TARGETS)} files')
 
+    # Carry forward classes emitted by a PREVIOUS run. build_css() only knows
+    # about values that are still inline, and after a run they are not -- so
+    # rewriting the block from `chosen` alone silently deletes every class the
+    # last run created. Measured by running the tool twice: 21 classes were
+    # referenced in the JS and defined nowhere, which the computed-style
+    # harness reported as `font-size: 18px -> 14px` on the agent panes.
+    #
+    # A class is dropped only when nothing references it any more.
     with open(SHEET, encoding='utf-8') as fh:
         sheet = fh.read()
+
+    still_used = referenced_classes()
+    inherited = {name: decls for name, decls in existing_utilities().items()
+                 if name in still_used and name not in set(chosen.values())}
+
     block = build_css(chosen)
+    if inherited:
+        carried = '\n'.join(f'.{name}.{name} {{ {decls} }}'
+                             for name, decls in sorted(inherited.items()))
+        # INSIDE the END marker, not after it. Appending past END put these
+        # classes outside the block that the next run replaces -- so they
+        # would be duplicated on one run and orphaned on the next, and
+        # test_106's "every reference is defined" check could not see them
+        # at all because it reads only between BEGIN and END.
+        insert = (
+            '\n/* carried forward from earlier runs (still referenced) */\n'
+            + carried + '\n')
+        block = block.replace(END, insert + END, 1)
+        print(f'carried forward {len(inherited)} class(es) from a previous run')
     if BEGIN in sheet:
         pre, rest = sheet.split(BEGIN, 1)
         _, post = rest.split(END, 1)

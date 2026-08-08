@@ -102,15 +102,15 @@
     card.style.cssText = 'background:var(--bg-2);border:1px solid var(--border-hi);border-radius:24px;padding:36px;max-width:560px;width:92%;box-shadow:0 30px 80px rgba(0,0,0,0.8);position:relative;text-align:center;color:var(--text-0);';
     card.innerHTML =
       '<button type="button" id="ob-close-top" data-act-click="dismissOnboarding(\'power\')" style="position:absolute;top:18px;right:20px;background:none;border:none;color:var(--text-2);font-size:24px;cursor:pointer;line-height:1">×</button>' +
-      '<div style="font-size:48px;margin-bottom:12px">\uD83E\uDDE0</div>' +
+      '<div class="u-5c383099">\uD83E\uDDE0</div>' +
       '<h2>Welcome to Agentic OS</h2>' +
       '<p style="color:var(--text-2);font-size:14px;margin-top:6px;line-height:1.5">Your local-first AI operating system. Chat with AI agents, build apps with live preview, manage tasks, and store everything in your Memory Galaxy.</p>' +
       '<div style="background:var(--bg-3);border-radius:14px;padding:18px;margin:20px 0;text-align:left">' +
         '<div style="font-size:13px;font-weight:700;color:var(--accent-text);margin-bottom:8px">Quick Start</div>' +
         '<div style="font-size:12px;color:var(--text-1);line-height:1.75">' +
-          '<div style="margin-bottom:6px">1. <strong>Add your API key</strong> in Settings (get a free key at openrouter.ai/keys)</div>' +
-          '<div style="margin-bottom:6px">2. <strong>Chat with an agent</strong> \u2014 try typing /help or ask any question</div>' +
-          '<div style="margin-bottom:6px">3. <strong>Explore the Studio</strong> \u2014 live code editor with AI-powered preview</div>' +
+          '<div class="u-4e420aff">1. <strong>Add your API key</strong> in Settings (get a free key at openrouter.ai/keys)</div>' +
+          '<div class="u-4e420aff">2. <strong>Chat with an agent</strong> \u2014 try typing /help or ask any question</div>' +
+          '<div class="u-4e420aff">3. <strong>Explore the Studio</strong> \u2014 live code editor with AI-powered preview</div>' +
           '<div>4. <strong>Try the Swarm</strong> \u2014 send one prompt to multiple AI models at once</div>' +
         '</div>' +
       '</div>' +

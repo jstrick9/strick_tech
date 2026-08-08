@@ -11,7 +11,7 @@ async function renderLeaderboard() {
   ]);
 
   pane.innerHTML = `
-  <div style="padding:20px;max-width:1000px;margin:0 auto">
+  <div class="u-50112d22">
     <div class="section-head">
       <div>
         <h2>🏆 Agent Leaderboard</h2>
@@ -29,7 +29,7 @@ async function renderLeaderboard() {
         ['📞',gov.calls_24h||0,'Calls (24h)'],
         ['❌',`${gov.error_rate_7d||0}%`,'Error Rate'],
       ].map(([icon,val,label])=>`
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+        <div class="u-d4cbd628">
           <div class="u-4ff818ff">${icon}</div>
           <div style="font-size:18px;font-weight:700;color:var(--text-0)">${val}</div>
           <div style="font-size:10px;color:var(--text-3)">${label}</div>
@@ -88,7 +88,7 @@ async function renderLeaderboard() {
         </div>
       ` : `
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:40px;text-align:center;color:var(--text-3)">
-          <div style="font-size:40px;margin-bottom:12px">🏆</div>
+          <div class="u-da61af79">🏆</div>
           <div style="font-size:15px;font-weight:600;margin-bottom:8px">No performance data yet</div>
           <div style="font-size:13px;max-width:340px;margin:0 auto">Use your agents and performance data will appear here. Click "Seed Test Data" to demo.</div>
         </div>`}

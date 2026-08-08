@@ -218,9 +218,9 @@
             </div>
             <!-- Pagination (only shown in date view) -->
             <div id="chat-sessions-pagination" style="padding:6px 10px; border-top:1px solid var(--border); background:var(--bg-1); display:none; align-items:center; justify-content:space-between; gap:4px; font-size:11px; color:var(--text-2); flex-shrink:0">
-              <button type="button" id="chat-page-prev" class="btn-3d btn-ghost btn-sm" data-act-click="changeChatPage(-1)" data-no-busy="1" style="padding:2px 8px; font-size:10.5px">◀ Prev</button>
+              <button type="button" id="chat-page-prev" class="btn-3d btn-ghost btn-sm u-1cb634c0" data-act-click="changeChatPage(-1)" data-no-busy="1" >◀ Prev</button>
               <span id="chat-page-indicator" style="font-weight:700; color:var(--text-0)">Page 1 of 1</span>
-              <button type="button" id="chat-page-next" class="btn-3d btn-ghost btn-sm" data-act-click="changeChatPage(1)" data-no-busy="1" style="padding:2px 8px; font-size:10.5px">Next ▶</button>
+              <button type="button" id="chat-page-next" class="btn-3d btn-ghost btn-sm u-1cb634c0" data-act-click="changeChatPage(1)" data-no-busy="1" >Next ▶</button>
             </div>
           </div>
           <div id="chat-drawer-resizer" style="width:4px;cursor:col-resize;flex-shrink:0;background:transparent;transition:background .15s;position:relative;z-index:10"></div>
@@ -253,7 +253,7 @@
                 <button type="button" id="chat-connection-status" class="connection-status checking u-0d5be05f" data-act-click="nav('settings');switchSettingsTab('api')" title="Check or change your AI connection" >●</button>
               </div>
 
-              <details id="chat-persona-details" style="position:relative">
+              <details id="chat-persona-details" class="u-d461c96d">
                 <summary style="display:flex;align-items:center;gap:4px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--text-2);list-style:none;font-weight:600" title="Select an AI agent persona">
                   <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Agent</span>
                   <span id="active-persona-icon">💬</span> <span id="active-persona-label">Direct Chat</span> <span style="font-size:10px;opacity:0.5">▾</span>
@@ -379,9 +379,9 @@
               <button type="button" data-act-click="studioAIEdit()" style="background:var(--accent);border:none;color:white;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:14px;flex-shrink:0">➤</button>
             </div>
             <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-              <button type="button" data-act-click="studioAIInput('Add a dark mode toggle')" class="chat-tool" style="font-size:10.5px">🌙 Dark mode</button>
-              <button type="button" data-act-click="studioAIInput('Make it mobile responsive')" class="chat-tool" style="font-size:10.5px">📱 Responsive</button>
-              <button type="button" data-act-click="studioAIInput('Fix any bugs in the code')" class="chat-tool" style="font-size:10.5px">🔧 Fix bugs</button>
+              <button type="button" data-act-click="studioAIInput('Add a dark mode toggle')" class="chat-tool u-4adef871" >🌙 Dark mode</button>
+              <button type="button" data-act-click="studioAIInput('Make it mobile responsive')" class="chat-tool u-4adef871" >📱 Responsive</button>
+              <button type="button" data-act-click="studioAIInput('Fix any bugs in the code')" class="chat-tool u-4adef871" >🔧 Fix bugs</button>
             </div>
           </div>
         </div>
@@ -496,14 +496,14 @@
           <div id="studio-console-drawer" style="display:flex;flex-direction:column;height:170px;flex-shrink:0;background:var(--bg-1);border-top:1px solid var(--border-hi);transition:height 0.2s ease">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 14px;background:var(--bg-2);border-bottom:1px solid var(--border);flex-shrink:0">
               <div style="display:flex;align-items:center;gap:6px">
-                <button type="button" class="studio-console-tab active btn-3d btn-sm" data-act-click="switchStudioConsoleTab('build')" id="con-tab-build" style="padding:4px 10px;font-size:11px">🖥️ Live Build Output</button>
-                <button type="button" class="studio-console-tab btn-3d btn-ghost btn-sm" data-act-click="switchStudioConsoleTab('lint')" id="con-tab-lint" style="padding:4px 10px;font-size:11px">🐍 Python Diagnostics (ruff)</button>
-                <button type="button" class="studio-console-tab btn-3d btn-ghost btn-sm" data-act-click="switchStudioConsoleTab('hmr')" id="con-tab-hmr" style="padding:4px 10px;font-size:11px">⚡ HMR Events (<span id="con-hmr-count">0</span>)</button>
+                <button type="button" class="studio-console-tab active btn-3d btn-sm u-884e19b1" data-act-click="switchStudioConsoleTab('build')" id="con-tab-build" >🖥️ Live Build Output</button>
+                <button type="button" class="studio-console-tab btn-3d btn-ghost btn-sm u-884e19b1" data-act-click="switchStudioConsoleTab('lint')" id="con-tab-lint" >🐍 Python Diagnostics (ruff)</button>
+                <button type="button" class="studio-console-tab btn-3d btn-ghost btn-sm u-884e19b1" data-act-click="switchStudioConsoleTab('hmr')" id="con-tab-hmr" >⚡ HMR Events (<span id="con-hmr-count">0</span>)</button>
               </div>
               <div style="display:flex;align-items:center;gap:6px">
-                <button type="button" data-act-click="runStudioConsoleLint()" class="btn-3d btn-ghost btn-sm" style="padding:3px 8px;font-size:10.5px" title="Run Linter Now">▶ Linter</button>
-                <button type="button" data-act-click="clearStudioConsole()" class="btn-3d btn-ghost btn-sm" style="padding:3px 8px;font-size:10.5px">🗑 Clear</button>
-                <button type="button" data-act-click="toggleStudioConsoleDrawer()" id="con-collapse-btn" class="btn-3d btn-ghost btn-sm" style="padding:3px 8px;font-size:10.5px" title="Toggle Console Height">▼ Collapse</button>
+                <button type="button" data-act-click="runStudioConsoleLint()" class="btn-3d btn-ghost btn-sm u-d2023503"  title="Run Linter Now">▶ Linter</button>
+                <button type="button" data-act-click="clearStudioConsole()" class="btn-3d btn-ghost btn-sm u-d2023503" >🗑 Clear</button>
+                <button type="button" data-act-click="toggleStudioConsoleDrawer()" id="con-collapse-btn" class="btn-3d btn-ghost btn-sm u-d2023503"  title="Toggle Console Height">▼ Collapse</button>
               </div>
             </div>
             <div id="con-panel-build" class="studio-console-panel" style="flex:1;overflow-y:auto;padding:12px;font-family:monospace;font-size:12px;background:#04060f;color:#a7f3d0">
@@ -1151,27 +1151,27 @@
       <!-- CODE SEARCH PANE -->
       <div class="pane u-49faf7ff" id="pane-codesearch" ></div>
       <!-- WORKFLOW BUILDER PANE -->
-      <div class="pane" id="pane-workflow" style="background:var(--bg-0);flex-direction:column;overflow:hidden"></div>
+      <div class="pane u-9efc49fa" id="pane-workflow" ></div>
       <!-- PROFILER PANE -->
       <div class="pane u-49faf7ff" id="pane-profiler" ></div>
       <!-- PLUGIN SDK PANE -->
       <div class="pane u-49faf7ff" id="pane-pluginsdk" ></div>
       <!-- MULTI-TAB PREVIEW PANE -->
-      <div class="pane" id="pane-multitab" style="background:var(--bg-0);flex-direction:column;overflow:hidden"></div>
+      <div class="pane u-9efc49fa" id="pane-multitab" ></div>
       <!-- REPLAY PANE -->
-      <div class="pane" id="pane-replay" style="background:var(--bg-0);flex-direction:column;overflow:hidden"></div>
+      <div class="pane u-9efc49fa" id="pane-replay" ></div>
       <!-- CRDT COLLAB EDITOR PANE -->
-      <div class="pane" id="pane-collabedit" style="background:var(--bg-0);flex-direction:column;overflow:hidden"></div>
+      <div class="pane u-9efc49fa" id="pane-collabedit" ></div>
       <!-- MARKETPLACE PANE -->
       <div class="pane u-49faf7ff" id="pane-marketplace" ></div>
       <!-- SPEC-DRIVEN DEV PANE -->
-      <div class="pane" id="pane-specs" style="background:var(--bg-0);flex-direction:column;overflow:hidden"></div>
+      <div class="pane u-9efc49fa" id="pane-specs" ></div>
       <!-- AGENT HOOKS PANE -->
       <div class="pane u-49faf7ff" id="pane-hooks" ></div>
       <!-- CODEBASE INDEX + DEPENDENCY GRAPH -->
-      <div class="pane" id="pane-codeindex" style="background:var(--bg-0);flex-direction:column;overflow:hidden"></div>
+      <div class="pane u-9efc49fa" id="pane-codeindex" ></div>
       <!-- ARENA MODE — A/B MODEL TESTING -->
-      <div class="pane" id="pane-arena" style="background:var(--bg-0);flex-direction:column;overflow:hidden"></div>
+      <div class="pane u-9efc49fa" id="pane-arena" ></div>
       <!-- BUGBOT PANE -->
       <div class="pane u-49faf7ff" id="pane-bugbot" ></div>
       <!-- HEALTH DASHBOARD PANE -->
@@ -1185,7 +1185,7 @@
       <!-- HITL PANE -->
       <div class="pane u-49faf7ff" id="pane-hitl" ></div>
       <!-- BROWSER AGENT PANE -->
-      <div class="pane" id="pane-browser" style="background:var(--bg-0);flex-direction:column;overflow:hidden"></div>
+      <div class="pane u-9efc49fa" id="pane-browser" ></div>
       <!-- WEB SEARCH PANE -->
       <div class="pane u-49faf7ff" id="pane-websearch" ></div>
       <!-- AGENT LEADERBOARD PANE -->
@@ -1217,7 +1217,7 @@
       <!-- OBSERVABILITY PANE -->
       <div class="pane u-49faf7ff" id="pane-observability" ></div>
       <!-- KNOWLEDGE GRAPH PANE -->
-      <div class="pane" id="pane-knowledge-graph" style="background:var(--bg-0);flex-direction:column;overflow:hidden"></div>
+      <div class="pane u-9efc49fa" id="pane-knowledge-graph" ></div>
       <!-- RAG PIPELINE PANE -->
       <div class="pane u-49faf7ff" id="pane-rag" ></div>
       <!-- SETTINGS PANE -->
@@ -1256,8 +1256,8 @@
             
             <!-- TAB 1: API Providers & Vault Secrets (Open WebUI 3-Card Connections Hub) -->
             <div id="settings-tab-api" class="settings-tab-pane active">
-              <div class="section-head" style="margin-bottom:24px">
-                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🔑 Connect AI</h2>
+              <div class="section-head u-8677744d" >
+                <h2 class="u-89c33dcc">🔑 Connect AI</h2>
                 <p style="color:var(--text-2);font-size:13.5px">Choose the simplest way to power Chat. Your available models appear automatically when a connection is ready.</p>
               </div>
 
@@ -1271,7 +1271,7 @@
               </section>
 
               <!-- CARD 1: Cloud connection -->
-              <div id="connection-cloud-card" class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
+              <div id="connection-cloud-card" class="settings-card card-elevated surface-z3 u-551ca63a" >
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
                   <div style="display:flex;align-items:center;gap:8px">
                     <span class="u-b9199e22">🌐</span>
@@ -1295,7 +1295,7 @@
               </div>
 
               <!-- CARD 2: Local Ollama Endpoint & Model Manager -->
-              <div id="connection-local-card" class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
+              <div id="connection-local-card" class="settings-card card-elevated surface-z3 u-551ca63a" >
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
                   <div style="display:flex;align-items:center;gap:8px">
                     <span class="u-b9199e22">🖥️</span>
@@ -1333,7 +1333,7 @@
               </div>
 
               <!-- CARD 3: Custom connection -->
-              <div id="connection-custom-card" class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:20px;box-shadow:var(--shadow)">
+              <div id="connection-custom-card" class="settings-card card-elevated surface-z3 u-551ca63a" >
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
                   <div style="display:flex;align-items:center;gap:8px">
                     <span class="u-b9199e22">🔌</span>
@@ -1367,9 +1367,9 @@
                 </div>
                 <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">All API keys, tokens, and custom headers are encrypted using local AES-256-GCM cryptography tied to your hardware master key (<code style="color:var(--accent-text);font-family:monospace">~/.vault_key</code> & <code style="color:var(--accent-text);font-family:monospace">~/Library/Application Support/com.stricktech.agenticos/secrets/vault.json</code>). No credentials ever leave your machine or transmit to third-party telemetry servers.</p>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-                  <button type="button" data-act-click="checkVaultIntegrity()" class="btn-3d btn-primary btn-sm" style="padding:8px 18px;border-radius:8px">🔍 Run Cryptographic Vault Audit</button>
-                  <button type="button" data-act-click="exportEncryptedVaultBackup()" class="btn-3d btn-ghost btn-sm" style="padding:8px 18px;border-radius:8px">📥 Backup Encrypted Secrets (.json)</button>
-                  <button type="button" data-act-click="clearAllSecrets()" class="btn-3d btn-danger btn-sm" style="padding:8px 18px;border-radius:8px">🗑 Clear All Local Credentials</button>
+                  <button type="button" data-act-click="checkVaultIntegrity()" class="btn-3d btn-primary btn-sm u-f18464ff" >🔍 Run Cryptographic Vault Audit</button>
+                  <button type="button" data-act-click="exportEncryptedVaultBackup()" class="btn-3d btn-ghost btn-sm u-f18464ff" >📥 Backup Encrypted Secrets (.json)</button>
+                  <button type="button" data-act-click="clearAllSecrets()" class="btn-3d btn-danger btn-sm u-f18464ff" >🗑 Clear All Local Credentials</button>
                 </div>
                 <div id="vault-audit-result" style="font-size:12px;color:var(--text-2);margin-top:12px;padding:12px;background:var(--bg-2);border-radius:8px;border:1px solid var(--border);display:none;font-family:monospace"></div>
               </div>
@@ -1391,48 +1391,48 @@
             <!-- TAB 2: Theme & Visual Aesthetics -->
             <div id="settings-tab-appearance" class="settings-tab-pane">
               <div id="settings-tab-theme"></div>
-              <div class="section-head" style="margin-bottom:24px">
-                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🎨 Theme & Visual Aesthetics</h2>
+              <div class="section-head u-8677744d" >
+                <h2 class="u-89c33dcc">🎨 Theme & Visual Aesthetics</h2>
                 <p style="color:var(--text-2);font-size:13.5px">Customize your visual interface palette, 2D/3D depth, and Workstation Complexity.</p>
               </div>
 
               <!-- 6 Themes Selector -->
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px">
+              <div class="settings-card u-b15fc6ae" >
                 <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:14px">Appearance Mode & Visual Palette</label>
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
                   <button type="button" data-act-click="applyTheme('light');toast('✨ Ultra-Techy Light Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #e2e8f0;background:#ffffff;color:#0f172a;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.05)">
-                    <div style="font-size:20px;margin-bottom:6px">☀️</div>
+                    <div class="u-52493b96">☀️</div>
                     Light (Default)
                   </button>
                   <button type="button" data-act-click="applyTheme('dark');toast('🌌 Cyber Dark Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #334155;background:#0f172a;color:#f8fafc;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
-                    <div style="font-size:20px;margin-bottom:6px">🌑</div>
+                    <div class="u-52493b96">🌑</div>
                     Dark Cyber
                   </button>
                   <button type="button" data-act-click="applyTheme('auto');toast('🌓 Auto appearance follows your device')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #94a3b8;background:linear-gradient(135deg,#ffffff 0%,#ffffff 48%,#0f172a 52%,#0f172a 100%);color:#0f172a;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.12)" title="Automatically follows your device light or dark appearance">
-                    <div style="font-size:20px;margin-bottom:6px">🌓</div>
+                    <div class="u-52493b96">🌓</div>
                     Auto (Device)
                   </button>
                   <button type="button" data-act-click="applyTheme('obsidian');toast('🪨 Obsidian Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #27272a;background:#09090b;color:#fafafa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
-                    <div style="font-size:20px;margin-bottom:6px">🪨</div>
+                    <div class="u-52493b96">🪨</div>
                     Obsidian Theme
                   </button>
                   <button type="button" data-act-click="applyTheme('jet');toast('✈️ Jet Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #3f3f4e;background:#000000;color:#f8fafc;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
-                    <div style="font-size:20px;margin-bottom:6px">✈️</div>
+                    <div class="u-52493b96">✈️</div>
                     Jet Theme
                   </button>
                   <button type="button" data-act-click="applyTheme('midnight');toast('✨ Midnight Blue Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #1e293b;background:#020617;color:#60a5fa;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
-                    <div style="font-size:20px;margin-bottom:6px">🌌</div>
+                    <div class="u-52493b96">🌌</div>
                     Midnight Blue
                   </button>
                   <button type="button" data-act-click="applyTheme('forest');toast('🌲 Forest Emerald Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #14532d;background:#052e16;color:#4ade80;font-weight:800;font-size:13px;cursor:pointer;text-align:center">
-                    <div style="font-size:20px;margin-bottom:6px">🌲</div>
+                    <div class="u-52493b96">🌲</div>
                     Forest Emerald
                   </button>
                 </div>
               </div>
 
               <!-- Workstation Mode Switcher -->
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px">
+              <div class="settings-card u-b15fc6ae" >
                 <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:14px">Workstation Operating Mode</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                   <button type="button" id="settings-simple-btn" data-act-click="switchUIMode('simple');updateSettingsModeButtons();toast('✨ Core Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
@@ -1467,13 +1467,13 @@
 
             <!-- TAB 3: Navigation & Layout -->
             <div id="settings-tab-layout" class="settings-tab-pane">
-              <div class="section-head" style="margin-bottom:24px">
-                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🧭 Navigation & Layout Architecture</h2>
+              <div class="section-head u-8677744d" >
+                <h2 class="u-89c33dcc">🧭 Navigation & Layout Architecture</h2>
                 <p style="color:var(--text-2);font-size:13.5px">Fine-tune your resizable navigation sidebar and responsive topbar layout behaviors.</p>
               </div>
 
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px">
-                <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">↔️ Resizable Navigation Sidebar</h3>
+              <div class="settings-card u-b15fc6ae" >
+                <h3 class="u-e0bd1cdc">↔️ Resizable Navigation Sidebar</h3>
                 <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px">You can drag the divider handle (`#sidebar-resizer`) directly between the sidebar and workspace to expand or shrink the navigation pane dynamically between 56px (icon mode) and 600px (deep folder hierarchy mode). Your exact width is automatically saved to local storage.</p>
                 <div style="display:flex;gap:12px">
                   <button type="button" data-act-click="toggleSidebar();toast('Sidebar toggled')" class="btn btn-primary btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);cursor:pointer">Toggle Collapsed Mode (56px)</button>
@@ -1481,8 +1481,8 @@
                 </div>
               </div>
 
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
-                <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">🧭 AI Context &amp; Guidelines Isolation</h3>
+              <div class="settings-card u-3e024d13" >
+                <h3 class="u-e0bd1cdc">🧭 AI Context &amp; Guidelines Isolation</h3>
                 <p style="font-size:13px;color:var(--text-2);line-height:1.6">When navigating away from the `2 Tier Hierarchy` panel (`#pane-hierarchy`), all split view panes and bottom sticky bars immediately vanish so your active studio or chat workspace gets 100% of the screen height.</p>
               </div>
             </div>
@@ -1491,25 +1491,25 @@
             <div id="settings-tab-agents" class="settings-tab-pane">
               <div class="section-head" style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between">
                 <div>
-                  <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🛡 AI Specialist Agents Swarm</h2>
+                  <h2 class="u-89c33dcc">🛡 AI Specialist Agents Swarm</h2>
                   <p style="color:var(--text-2);font-size:13.5px">Configure autonomous specialist agent personas, system prompts, and model routing.</p>
                 </div>
                 <button type="button" data-act-click="openAgentModal()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">＋ Create Specialist Agent</button>
               </div>
 
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
+              <div class="settings-card u-3e024d13" >
                 <div id="settings-agents-list" style="display:flex;flex-direction:column;gap:10px"></div>
               </div>
             </div>
 
             <!-- TAB 5: Local Ollama Server -->
             <div id="settings-tab-ollama" class="settings-tab-pane">
-              <div class="section-head" style="margin-bottom:24px">
-                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">⚡ Local LLM Server (Ollama Hub)</h2>
+              <div class="section-head u-8677744d" >
+                <h2 class="u-89c33dcc">⚡ Local LLM Server (Ollama Hub)</h2>
                 <p style="color:var(--text-2);font-size:13.5px">Run open-source neural models 100% offline, zero-latency, and privately on your Apple Silicon or Intel CPU.</p>
               </div>
 
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;margin-bottom:24px">
+              <div class="settings-card u-b15fc6ae" >
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
                   <label style="font-size:13px;font-weight:800;color:var(--text-0)">Ollama Endpoint URL</label>
                   <span id="ollama-status" style="font-size:12px;font-weight:700;color:var(--text-2)">Checking…</span>
@@ -1522,8 +1522,8 @@
               </div>
 
               <!-- One-click model auto-detect/puller -->
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
-                <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">📥 One-Click Local Model Auto-Puller</h3>
+              <div class="settings-card u-3e024d13" >
+                <h3 class="u-e0bd1cdc">📥 One-Click Local Model Auto-Puller</h3>
                 <p style="font-size:13px;color:var(--text-2);margin-bottom:16px">Click any model below to trigger an automatic local download into your Ollama engine directly from Agentic OS.</p>
                 
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
@@ -1556,11 +1556,11 @@
 
             <!-- TAB 6: System Storage & Database Backup -->
             <div id="settings-tab-security" class="settings-tab-pane">
-              <div class="section-head" style="margin-bottom:24px">
-                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">🛡️ Content Security Policy</h2>
+              <div class="section-head u-8677744d" >
+                <h2 class="u-89c33dcc">🛡️ Content Security Policy</h2>
                 <p style="color:var(--text-2);font-size:13.5px">The enforced policy blocks inline scripts outright. A second, stricter policy runs in report-only mode so the next tightening can be measured before it is applied — nothing below is currently being blocked.</p>
               </div>
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
+              <div class="settings-card u-3e024d13" >
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
                   <h3 style="font-size:16px;font-weight:800;margin:0;flex:1">Report-only violations</h3>
                   <button type="button" class="btn btn-ghost btn-sm" data-act-click="renderCspMonitor()">↺ Refresh</button>
@@ -1571,17 +1571,17 @@
             </div>
 
             <div id="settings-tab-system" class="settings-tab-pane">
-              <div class="section-head" style="margin-bottom:24px">
-                <h2 style="font-size:24px;font-weight:900;letter-spacing:-0.4px">💾 System Storage & Database Backup</h2>
+              <div class="section-head u-8677744d" >
+                <h2 class="u-89c33dcc">💾 System Storage & Database Backup</h2>
                 <p style="color:var(--text-2);font-size:13.5px">All your projects, chats, and vector memory live in a single compounding SQLite file on your disk.</p>
               </div>
 
-              <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px">
-                <h3 style="font-size:16px;font-weight:800;margin-bottom:8px">🗄️ agentic.db WAL Storage Snapshot</h3>
+              <div class="settings-card u-3e024d13" >
+                <h3 class="u-e0bd1cdc">🗄️ agentic.db WAL Storage Snapshot</h3>
                 <p style="font-size:13px;color:var(--text-2);margin-bottom:16px">Your SQLite database uses high-concurrency Write-Ahead Logging (WAL) and Full-Text Search 5 (FTS5).</p>
                 
                 <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;font-size:12.5px;color:var(--text-1)">
-                  <div style="margin-bottom:6px"><strong>Database Path:</strong> <code style="font-family:monospace;color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/memory/agentic.db</code></div>
+                  <div class="u-4e420aff"><strong>Database Path:</strong> <code style="font-family:monospace;color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/memory/agentic.db</code></div>
                   <div><strong>Encrypted Vault Key Path:</strong> <code style="font-family:monospace;color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/.vault_key</code></div>
                   <div id="system-info" style="margin-top:8px;color:var(--text-2);font-weight:600"></div>
                 </div>
@@ -1605,7 +1605,7 @@
     <div id="content-right" style="display:none;flex:1;overflow:hidden;flex-direction:column;min-width:280px;height:100% !important;background:var(--bg-0);border-left:1px solid var(--border)">
       <div class="split-header" style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--bg-1);border-bottom:1px solid var(--border);flex-shrink:0">
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:14px">🗂️</span>
+          <span class="u-433de30b">🗂️</span>
           <span style="font-size:12.5px;font-weight:800;color:var(--text-0)">Secondary Workstation Slot</span>
           <select id="split-pane-select" data-act-change="renderSplitPane($value)" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:6px;padding:4px 8px;color:var(--text-0);font-size:12px;font-weight:700;outline:none;cursor:pointer" aria-label="Pane to show alongside">
             <option value="studio">⚡ Studio Code Editor</option>
@@ -1621,9 +1621,9 @@
           </select>
         </div>
         <div style="display:flex;gap:6px">
-          <button type="button" data-act-click="swapSplitPanes()" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="Swap Left and Right Panes">↔ Swap</button>
-          <button type="button" data-act-click="setSplitRatio(0.5)" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="Equal 50/50 Split">50/50</button>
-          <button type="button" data-act-click="setSplitRatio(0.65)" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" title="65/35 Primary Split">65/35</button>
+          <button type="button" data-act-click="swapSplitPanes()" class="btn-3d btn-ghost btn-sm u-cd7c315b"  title="Swap Left and Right Panes">↔ Swap</button>
+          <button type="button" data-act-click="setSplitRatio(0.5)" class="btn-3d btn-ghost btn-sm u-cd7c315b"  title="Equal 50/50 Split">50/50</button>
+          <button type="button" data-act-click="setSplitRatio(0.65)" class="btn-3d btn-ghost btn-sm u-cd7c315b"  title="65/35 Primary Split">65/35</button>
           <button type="button" data-act-click="toggleSplitWorkspace(false)" class="btn-3d btn-primary btn-sm" style="padding:2px 8px;font-size:11px;background:var(--danger)" title="Close Split View">✕ Close</button>
         </div>
       </div>
@@ -1636,11 +1636,11 @@
   <!-- Status bar -->
   <div id="statusbar">
     <div class="sb-item"><span class="sb-dot" id="sb-status-dot" role="img" aria-label="Connection: Online" title="Online"></span><span id="sb-version">Agentic OS v11.5.0</span></div>
-    <div role="button" tabindex="0" class="sb-item" id="sb-model" style="cursor:pointer" data-act-click="nav('settings');switchSettingsTab('api')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="Click to change AI model">⚡ <span id="sb-model-name">No model</span></div>
-    <div role="button" tabindex="0" class="sb-item" id="sb-key" style="cursor:pointer" data-act-click="nav('settings');switchSettingsTab('api')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="AI connection status">🔑 <span id="sb-key-label">No key</span></div>
+    <div role="button" tabindex="0" class="sb-item u-3b6a3a65" id="sb-model"  data-act-click="nav('settings');switchSettingsTab('api')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="Click to change AI model">⚡ <span id="sb-model-name">No model</span></div>
+    <div role="button" tabindex="0" class="sb-item u-3b6a3a65" id="sb-key"  data-act-click="nav('settings');switchSettingsTab('api')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="AI connection status">🔑 <span id="sb-key-label">No key</span></div>
     <div class="sb-item" id="sb-cost" title="Session cost">💰 $0.00</div>
-    <div role="button" tabindex="0" class="sb-item" id="sb-mem" style="cursor:pointer" data-act-click="nav('galaxy')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="Click to open Memory">🧠 <span id="sb-mem-count">0</span></div>
-    <div role="button" tabindex="0" class="sb-item" id="sb-agents" style="cursor:pointer" data-act-click="nav('chat')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="Active agents">🤖 <span id="sb-agent-count">0</span></div>
+    <div role="button" tabindex="0" class="sb-item u-3b6a3a65" id="sb-mem"  data-act-click="nav('galaxy')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="Click to open Memory">🧠 <span id="sb-mem-count">0</span></div>
+    <div role="button" tabindex="0" class="sb-item u-3b6a3a65" id="sb-agents"  data-act-click="nav('chat')" data-keys="Enter,Space" data-prevent="1" data-self-click="1" title="Active agents">🤖 <span id="sb-agent-count">0</span></div>
     <div class="spacer"></div>
     <div class="sb-item" id="sb-time"></div>
   </div>

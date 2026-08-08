@@ -61,13 +61,13 @@ async function renderSupervisor() {
   pane.innerHTML = `
   <div class="section-head" style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg-1);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
     <div>
-      <h2 style="margin:0 0 4px;font-size:20px;font-weight:900">◈ Supervisor & Multi-Node Edge Swarm Radar (Phase 5)</h2>
+      <h2 class="u-451c1d40">◈ Supervisor & Multi-Node Edge Swarm Radar (Phase 5)</h2>
       <p style="margin:0;color:var(--text-2);font-size:12.5px">Autonomous goal DAG execution • Local LAN cluster grid • Distributed model sharding across Apple Silicon & edge nodes</p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button data-act-click="supervisorSwitchView('dag')" id="sup-btn-dag" class="btn-3d btn-primary btn-sm" style="padding:5px 12px">🧠 Supervisor DAGs</button>
-      <button data-act-click="supervisorSwitchView('cluster')" id="sup-btn-cluster" class="btn-3d btn-ghost btn-sm" style="padding:5px 12px">📡 Multi-Node Edge Radar</button>
-      <button data-act-click="toggleSplitWorkspace(true,'supervisor')" class="btn-3d btn-ghost btn-sm" style="padding:5px 12px">🗂️ Secondary Dock</button>
+      <button data-act-click="supervisorSwitchView('dag')" id="sup-btn-dag" class="btn-3d btn-primary btn-sm u-44fff1c0" >🧠 Supervisor DAGs</button>
+      <button data-act-click="supervisorSwitchView('cluster')" id="sup-btn-cluster" class="btn-3d btn-ghost btn-sm u-44fff1c0" >📡 Multi-Node Edge Radar</button>
+      <button data-act-click="toggleSplitWorkspace(true,'supervisor')" class="btn-3d btn-ghost btn-sm u-44fff1c0" >🗂️ Secondary Dock</button>
     </div>
   </div>
 
@@ -352,7 +352,7 @@ window.clusterScanLAN = async function() {
     await window.clusterRefresh();
     gmAlert(
       '📡 Cluster Status',
-      `Cluster <code style="font-family:monospace">${escHtml(d.cluster_id || 'unknown')}</code><br><br>` +
+      `Cluster <code class="u-72126da2">${escHtml(d.cluster_id || 'unknown')}</code><br><br>` +
       `Registered nodes: <strong style="color:var(--accent-text)">${d.node_count ?? 0}</strong><br>` +
       `Active (recent heartbeat): <strong>${d.active_nodes ?? 0}</strong><br>` +
       `Total VRAM reported: <strong>${d.total_vram_gb ?? 0} GB</strong><br><br>` +

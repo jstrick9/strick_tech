@@ -309,7 +309,7 @@
 
     host.innerHTML = `
     <div style="max-width:900px;margin:0 auto">
-      <div class="section-head" style="margin-bottom:16px">
+      <div class="section-head u-87c136df" >
         <div>
           <h2 style="font-size:18px;margin:0 0 4px">🧭 AI Guidelines — Coding & Project Rules</h2>
           <p style="color:var(--text-2);font-size:13px;margin:0">Freeform rules injected into every AI prompt alongside your Tier 1/2 context above — like Kiro steering, Cursor .cursorrules, or Windsurf Memories.</p>
@@ -321,9 +321,9 @@
         </div>
       </div>
 
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden">
+      <div class="u-3dca1cc8">
         <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-          <span style="font-weight:700;font-size:13px">📡 Compiled Guidelines Context</span>
+          <span class="u-88697aec">📡 Compiled Guidelines Context</span>
           <span style="font-size:11px;color:var(--text-3)">
             ${compiledData.llm_chars||compiledData.length||0} chars injected into every prompt
             ${compiledData.truncated_for_llm?'<span style="color:var(--warning)">⚠️ truncated</span>':''}
@@ -335,7 +335,7 @@
         <div style="padding:12px 16px;max-height:120px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--text-2);white-space:pre-wrap">${escHtml((compiledData.context||'').slice(0,800))}${(compiledData.length||0)>800?'…':''}</div>
       </div>
 
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px">Rule Files (${(filesData.files||[]).length})</div>
+      <div class="u-f9e226da">Rule Files (${(filesData.files||[]).length})</div>
       <div id="steer-file-list">
         ${(filesData.files||[]).map(f=>`
           <div class="steer-card" data-file-id="${escHtml(f.id)}">
@@ -403,7 +403,7 @@
     overlay.innerHTML=`
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;width:600px;max-height:80vh;display:flex;flex-direction:column;padding:20px;gap:12px">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <h3 style="margin:0">New Rule File: ${escHtml(title)}</h3>
+          <h3 class="u-11696618">New Rule File: ${escHtml(title)}</h3>
           <button data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         <textarea id="steer-new-content" rows="15" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;font-family:monospace;padding:10px;resize:none" placeholder="# ${escHtml(title)}\n\nWrite your project rules and conventions here..."></textarea>

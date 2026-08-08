@@ -127,8 +127,8 @@ function a2aRenderNetwork(container) {
     <div style="background:rgba(91,138,248,.06);border:1px solid rgba(91,138,248,.2);border-radius:10px;padding:12px 14px;margin-bottom:16px">
       <div style="font-size:12px;font-weight:700;color:var(--accent-text);margin-bottom:6px">🌐 A2A Protocol v1.0 — Agent-to-Agent</div>
       <div style="font-size:11px;color:var(--text-2);line-height:1.6">
-        Every agent exposes a signed <strong>Agent Card</strong> at <code style="background:var(--bg-3);padding:1px 5px;border-radius:3px">/.well-known/agent.json</code> and a
-        <strong>JSON-RPC 2.0 endpoint</strong> at <code style="background:var(--bg-3);padding:1px 5px;border-radius:3px">/a2a/{id}</code>.<br>
+        Every agent exposes a signed <strong>Agent Card</strong> at <code class="u-1b6531f7">/.well-known/agent.json</code> and a
+        <strong>JSON-RPC 2.0 endpoint</strong> at <code class="u-1b6531f7">/a2a/{id}</code>.<br>
         External platforms (Google ADK, LangChain, Strick Tech Swarm Framework, Microsoft Agent Framework) can delegate tasks to this platform via <code>tasks/send</code> or stream updates via <code>tasks/sendSubscribe</code>.
       </div>
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
@@ -173,7 +173,7 @@ function a2aRenderNetwork(container) {
       }).join('')}
       <!-- Add remote agent card -->
       <div class="a2a-agent-card" data-act-click="a2aOpenRegister()" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;min-height:160px;opacity:.7" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
-        <div style="font-size:28px;margin-bottom:8px">➕</div>
+        <div class="u-d137430a">➕</div>
         <div style="font-size:12px;font-weight:600;color:var(--text-1)">Register Remote Agent</div>
         <div style="font-size:10px;color:var(--text-3);margin-top:4px;text-align:center">Connect to any A2A-compatible platform</div>
       </div>
@@ -210,10 +210,10 @@ async function a2aRenderTasks(container) {
 
   if (!_a2aTasks.length) {
     container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-3)">
-      <div style="font-size:40px;margin-bottom:12px">📋</div>
+      <div class="u-da61af79">📋</div>
       <div style="font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:8px">No A2A Tasks Yet</div>
       <div style="font-size:12px;line-height:1.6">Tasks appear here when external agents delegate work to this platform, or when you delegate tasks to remote agents.</div>
-      <button class="a2a-btn primary" data-act-click="a2aOpenDelegate()" style="margin-top:14px">📤 Send Your First Task</button>
+      <button class="a2a-btn primary u-d6f2af6e" data-act-click="a2aOpenDelegate()" >📤 Send Your First Task</button>
     </div>`;
     return;
   }
@@ -260,8 +260,8 @@ async function a2aRenderCards(container) {
   container.innerHTML = `
     <div style="font-size:12px;color:var(--text-2);margin-bottom:14px;line-height:1.6">
       Each local agent exposes a signed <strong>A2A v1.0 Agent Card</strong> at two standard locations:
-      <br>• <code style="background:var(--bg-3);padding:1px 5px;border-radius:3px">/a2a/{id}/.well-known/agent.json</code> (spec-compliant)
-      <br>• <code style="background:var(--bg-3);padding:1px 5px;border-radius:3px">/a2a/{id}/card</code> (friendly alias)
+      <br>• <code class="u-1b6531f7">/a2a/{id}/.well-known/agent.json</code> (spec-compliant)
+      <br>• <code class="u-1b6531f7">/a2a/{id}/card</code> (friendly alias)
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:16px">
       ${localIds.map(id => `
@@ -270,7 +270,7 @@ async function a2aRenderCards(container) {
             <div style="font-size:16px;font-weight:800;color:var(--text-0)">${id}</div>
             <span style="font-size:9px;padding:1px 7px;border-radius:4px;background:rgba(61,186,122,.15);color:#3dba7a">LOCAL</span>
             <div style="margin-left:auto;display:flex;gap:5px">
-              <a href="/a2a/${id}/card" target="_blank" class="a2a-btn" style="text-decoration:none">🪪 View</a>
+              <a href="/a2a/${id}/card" target="_blank" class="a2a-btn u-80d654f9" >🪪 View</a>
               <button class="a2a-btn" data-act-click="a2aShowCard(${JSON.stringify(id)})">JSON</button>
             </div>
           </div>

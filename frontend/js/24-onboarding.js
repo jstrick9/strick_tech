@@ -69,7 +69,7 @@ function showOnboarding() {
     agentsArea.innerHTML = S.agents.slice(0,6).map(a =>
       `<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg-3);border-radius:var(--radius-sm);margin-bottom:6px">
         <span class="u-b9199e22">${a.avatar||'🤖'}</span>
-        <div><div style="font-weight:600;font-size:13px">${escHtml(a.name)}</div>
+        <div><div class="u-160b0675">${escHtml(a.name)}</div>
         <div style="font-size:11px;color:var(--text-2)">${escHtml(a.role||'')}</div></div>
         <span class="tag u-6d000617" >${a.model||'default'}</span>
       </div>`).join('');
@@ -196,7 +196,7 @@ window.showQuickSetup = async function() {
       </div>
 
       <div id="qs-results" style="display:none">
-        <div id="qs-backends" style="margin-bottom:16px"></div>
+        <div id="qs-backends" class="u-87c136df"></div>
         <div id="qs-recommended" style="padding:14px;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button data-close="id:quick-setup-modal" class="btn-3d btn-ghost btn-sm" style="padding:8px 16px">Skip</button>
@@ -232,7 +232,7 @@ window.showQuickSetup = async function() {
       const color = b.status === 'available' ? 'var(--success)' : 'var(--text-3)';
       html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;color:${color}">
         <span>${icon}</span>
-        <span style="font-weight:600">${escHtml(b.backend)}</span>
+        <span class="u-eed0f8fb">${escHtml(b.backend)}</span>
         <span style="flex:1;color:var(--text-3)">${escHtml(b.status)}${b.models ? ' (' + b.models + ' models)' : ''}</span>
       </div>`;
     }

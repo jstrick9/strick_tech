@@ -51,7 +51,7 @@
     html += '</div>';
     
     shortcuts.forEach(function(group) {
-      html += '<div style="margin-bottom:16px">';
+      html += '<div class="u-87c136df">';
       html += '<div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">' + group.group + '</div>';
       group.items.forEach(function(item) {
         html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0">';

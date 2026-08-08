@@ -75,7 +75,7 @@ async function renderDeploy() {
   <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <span class="u-81351bd1">☁️</span>
-      <div><div style="font-weight:700">Cloudflare Tunnel</div>
+      <div><div class="u-e3ec02ac">Cloudflare Tunnel</div>
       <div style="font-size:12px;color:var(--text-2)">Share localhost:8787 publicly via HTTPS — no signup needed</div></div>
       <span class="tag ${p.cloudflare?.ready?'green':''} u-6d000617" >
         ${p.cloudflare?.ready?'cloudflared installed':'Not installed'}

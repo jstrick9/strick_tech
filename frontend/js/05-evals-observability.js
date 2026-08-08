@@ -24,7 +24,7 @@ async function renderEvals() {
   pane.innerHTML = `
   
 
-  <div style="padding:20px;max-width:1100px;margin:0 auto">
+  <div class="u-8316cf9b">
     <div class="section-head">
       <div>
         <h2>🧮 Agent Evals</h2>
@@ -124,7 +124,7 @@ async function renderEvals() {
         <input id="ab-name" placeholder="Test name" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 10px">
         <button class="btn" data-act-click="evalRunAB()">⚡ Run A/B Test</button>
       </div>
-      <div id="ab-result" style="margin-top:12px"></div>
+      <div id="ab-result" class="u-56f43562"></div>
     </div>
 
     <!-- Red Team tab -->
@@ -202,7 +202,7 @@ function evalScoreHTML(d) {
             <div style="font-size:16px;font-weight:700;color:var(--text-0)">${val}</div>
           </div>`).join('')}
       </div>
-      ${(d.issues||[]).length?`<div style="margin-top:10px">
+      ${(d.issues||[]).length?`<div class="u-d2c171b1">
         ${(d.issues||[]).map((iss) =>`<div style="font-size:11px;padding:4px 8px;border-radius:5px;background:rgba(232,82,82,.1);color:var(--danger);margin-top:3px">⚠️ ${escHtml(iss.type||'')} — ${escHtml(iss.detail||'')}</div>`).join('')}
       </div>`:''}
     </div>`;
@@ -397,7 +397,7 @@ async function renderObservability() {
   pane.innerHTML = `
   
 
-  <div style="padding:20px;max-width:1100px;margin:0 auto">
+  <div class="u-8316cf9b">
     <div class="section-head">
       <div>
         <h2>👁️ Observability</h2>
@@ -610,7 +610,7 @@ async function renderKnowledgeGraph() {
           <button class="btn-sm" data-act-click="kgExtract()">🤖 Extract</button>
         </div>
       </div>
-      <div style="padding:8px">
+      <div class="u-e2c960fb">
         <input id="kg-search" placeholder="Search entities…" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 10px;box-sizing:border-box" data-act-input="kgSearch($value)">
       </div>
       <div style="flex:1;overflow-y:auto;padding:0 8px 8px" id="kg-entity-list">
@@ -636,8 +636,8 @@ async function renderKnowledgeGraph() {
       <!-- Detail / result area -->
       <div style="flex:1;overflow-y:auto;padding:16px" id="kg-detail">
         <div style="color:var(--text-3);text-align:center;margin-top:40px">
-          <div style="font-size:40px;margin-bottom:12px">🕸</div>
-          <div style="font-size:16px;font-weight:600;margin-bottom:8px">Knowledge Graph Memory</div>
+          <div class="u-da61af79">🕸</div>
+          <div class="u-5f73ae8a">Knowledge Graph Memory</div>
           <div style="font-size:13px;max-width:380px;margin:0 auto;line-height:1.7;color:var(--text-2)">
             Like Neo4j — entities and relationships that persist across all agent sessions. Extract facts from text, link concepts, and query the graph in natural language.
           </div>
@@ -787,7 +787,7 @@ async function renderRAG() {
   const pipelines=await fetch('/api/rag/pipelines').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({pipelines:[]}));
 
   pane.innerHTML=`
-  <div style="padding:20px;max-width:900px;margin:0 auto">
+  <div class="u-f8d5799a">
     <div class="section-head">
       <div>
         <h2>📚 RAG Pipeline Builder</h2>
@@ -815,8 +815,8 @@ async function renderRAG() {
       </div>
     ` : `
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:40px;text-align:center;color:var(--text-3)">
-        <div style="font-size:40px;margin-bottom:12px">📚</div>
-        <div style="font-size:16px;font-weight:600;margin-bottom:8px">No RAG Pipelines Yet</div>
+        <div class="u-da61af79">📚</div>
+        <div class="u-5f73ae8a">No RAG Pipelines Yet</div>
         <div style="font-size:13px;max-width:380px;margin:0 auto 16px;line-height:1.7;color:var(--text-2)">
           Create a pipeline to upload documents, chunk and index them, then query with AI using citations.
         </div>
@@ -845,7 +845,7 @@ async function ragOpenPipeline(pipelineId, name) {
   if(!d){renderRAG();return;}
 
   pane.innerHTML=`
-  <div style="padding:20px;max-width:900px;margin:0 auto">
+  <div class="u-f8d5799a">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
       <button class="btn-sm" data-act-click="renderRAG()">← Back</button>
       <h2 style="margin:0;flex:1">${escHtml(name)}</h2>
@@ -854,7 +854,7 @@ async function ragOpenPipeline(pipelineId, name) {
 
     <!-- Upload doc -->
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px">📄 Add Document</div>
+      <div class="u-f9e226da">📄 Add Document</div>
       <textarea id="rag-doc-content" rows="5" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;padding:10px;resize:vertical;box-sizing:border-box" placeholder="Paste document content here…"></textarea>
       <div style="display:flex;gap:8px;margin-top:8px">
         <input id="rag-doc-name" placeholder="Filename (e.g. fastapi_docs.txt)" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 10px">
@@ -864,7 +864,7 @@ async function ragOpenPipeline(pipelineId, name) {
 
     <!-- Documents list -->
     ${(d.documents||[]).length?`
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden">
+      <div class="u-3dca1cc8">
         <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px">📁 Documents</div>
         ${d.documents.map((doc) =>`
           <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px">
@@ -877,12 +877,12 @@ async function ragOpenPipeline(pipelineId, name) {
 
     <!-- Query -->
     <div class="u-534c2d64">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px">🔍 Query</div>
+      <div class="u-f9e226da">🔍 Query</div>
       <div style="display:flex;gap:8px">
         <input id="rag-query" placeholder="Ask your documents…" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:9px 12px" data-act-keydown="ragQuery(${jsArg(pipelineId)})" data-keys="Enter">
         <button class="btn" data-act-click="ragQuery(${JSON.stringify(pipelineId)})">Ask</button>
       </div>
-      <div id="rag-answer" style="margin-top:12px"></div>
+      <div id="rag-answer" class="u-56f43562"></div>
     </div>
   </div>`;
 }

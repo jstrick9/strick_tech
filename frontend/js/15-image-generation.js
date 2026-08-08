@@ -86,12 +86,12 @@ async function renderImageGen() {
 
     pane.innerHTML = `
       ${pageHeader?.({title:'🎨 Image Generator', subtitle:'Generate AI images, import Figma designs, manage your asset library',
-        actions:[{label:'⬆ Upload', action:'igUpload()', primary:false}]})||'<div style="padding:20px"><h2>🎨 Image Generator</h2></div>'}
+        actions:[{label:'⬆ Upload', action:'igUpload()', primary:false}]})||'<div class="u-769fed37"><h2>🎨 Image Generator</h2></div>'}
       <div class="page-content">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px">
         <!-- Generate panel -->
         <div class="card">
-          <h3 style="margin-bottom:10px">✨ Generate Image</h3>
+          <h3 class="u-761d3add">✨ Generate Image</h3>
           ${!models.api_key_set ? `<div style="background:rgba(232,162,55,.1);border:1px solid var(--warning);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--warning);margin-bottom:10px">
             ⚠️ No API key — you'll get a labelled placeholder, not a real image. Set <code>OPENROUTER_API_KEY</code> in Settings → Connect AI.
           </div>` : ''}
@@ -110,7 +110,7 @@ async function renderImageGen() {
               <option value="1792x1024">1792×1024 (Wide)</option>
               <option value="1024x1792">1024×1792 (Tall)</option>
             </select>
-            <input id="img-save-to" class="input" placeholder="Save as: hero.png" style="font-size:12px">
+            <input id="img-save-to" class="input u-6cb285c6" placeholder="Save as: hero.png" >
           </div>
           <div style="display:flex;gap:6px;margin-bottom:8px">
             <button data-act-click="generateImage()" class="btn btn-primary u-97445a8d"  id="img-gen-btn">🎨 Generate</button>

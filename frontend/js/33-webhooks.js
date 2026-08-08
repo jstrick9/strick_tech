@@ -26,11 +26,11 @@ async function renderWebhooks() {
       ${helpPanel({title:'Automate with webhooks',body:'Any service can trigger your agents. Get a unique URL, add it to GitHub/Stripe/Zapier.',steps:['Click + New Webhook','Copy the generated URL','Add it to your service','Agents run automatically on every event']})}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
         <div>
-          <div style="font-weight:700;margin-bottom:10px">Your Webhooks</div>
+          <div class="u-cbf73b78">Your Webhooks</div>
           ${whs.length===0 ? emptyState({icon:'🌐',title:'No webhooks yet',body:'Create a webhook to trigger agents from external services.',actions:[{label:'Create Webhook',action:'createWebhook()',primary:true}]}) :
           whs.map(w=>`<div class="card u-fdf33f23" >
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-              <div class="u-59eddc67"><div style="font-weight:600;font-size:13px">${escHtml(w.name)}</div>
+              <div class="u-59eddc67"><div class="u-160b0675">${escHtml(w.name)}</div>
               <div style="font-size:11px;color:var(--text-2)">Agent: ${w.agent_id} · ${w.trigger_count||0} triggers</div></div>
               <span class="badge ${w.enabled?'badge-success':'badge-default'}">${w.enabled?'Active':'Off'}</span>
             </div>
@@ -45,7 +45,7 @@ async function renderWebhooks() {
           </div>`).join('')}
         </div>
         <div>
-          <div style="font-weight:700;margin-bottom:10px">🚀 Templates</div>
+          <div class="u-cbf73b78">🚀 Templates</div>
           ${tmpls.map(t=>`<div class="card card-interactive lift" data-act-click="installWebhookTemplate(${JSON.stringify(t.id)})" style="margin-bottom:8px;padding:11px" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div style="font-weight:600;font-size:12.5px;margin-bottom:2px">${escHtml(t.name)}</div>
             <div style="font-size:11.5px;color:var(--text-2);margin-bottom:4px">${escHtml(t.description)}</div>

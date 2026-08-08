@@ -30,7 +30,7 @@ async function renderTestGen() {
       ${helpPanel({title:"AI generates tests you'd spend hours writing",body:'Select a file, choose your framework, get a complete test suite with happy paths, edge cases, mocks, and error handling.',steps:['Select a code file','Choose test framework','Click Generate','Review and save']})}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
         <div class="card">
-          <h3 style="margin-bottom:14px">Generate Tests</h3>
+          <h3 class="u-2b583d73">Generate Tests</h3>
           <div class="form-group"><label class="form-label">Source File</label>
             <select id="tg-file" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none">
               <option value="">Select a file…</option>

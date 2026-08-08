@@ -36,7 +36,7 @@ async function enhanceCommandPalette() {
         section.innerHTML = `<div class="palette-section">🌌 Memory Results</div>` +
           memories.map(m => `<div class="palette-item" data-act-click="hInsertAndClose(${jsArg((m.content||'').slice(0,50))})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <span class="p-icon">💾</span>
-            <span class="p-label" style="font-size:12px">${escHtml((m.content||'').slice(0,60))}…</span>
+            <span class="p-label u-6cb285c6" >${escHtml((m.content||'').slice(0,60))}…</span>
             <span class="p-desc">${escHtml(m.source||'')}</span>
           </div>`).join('');
         results.appendChild(section);

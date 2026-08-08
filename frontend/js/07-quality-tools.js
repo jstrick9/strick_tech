@@ -33,7 +33,7 @@ async function renderBugBot() {
   pane.innerHTML = `
   
 
-  <div style="padding:20px;max-width:1000px;margin:0 auto">
+  <div class="u-50112d22">
     <div class="section-head">
       <div>
         <h2>🐛 BugBot — AI Code Reviewer</h2>
@@ -229,7 +229,7 @@ function bbShowResults(d) {
           ${Object.entries(bySev).map(([s,c])=>`<span class="bb-severity-badge ${s}">${s}: ${c}</span>`).join('')}
         </div>
       </div>
-      <div style="padding:16px">
+      <div class="u-287f770e">
         ${issues.length===0?'<div style="color:var(--success);text-align:center;padding:12px">✅ No issues found!</div>':
           issues.map(i=>`
             <div class="bb-issue-card ${i.severity||'low'}">
@@ -289,7 +289,7 @@ async function renderHealth() {
     const dim_labels = {complexity:'Complexity',security:'Security',debt:'Tech Debt',docs:'Documentation',deps:'Dependencies'};
 
     pane.innerHTML = `
-    <div style="padding:20px;max-width:900px;margin:0 auto">
+    <div class="u-f8d5799a">
       <div class="section-head">
         <div><h2>💊 Project Health</h2><p>Automated scoring across complexity, security, tech debt, documentation, and dependencies</p></div>
         <button class="btn-sm" data-act-click="renderHealth()">🔄 Refresh</button>
@@ -330,7 +330,7 @@ async function renderHealth() {
 
       <!-- Quick actions -->
       <div class="u-534c2d64">
-        <div style="font-size:13px;font-weight:700;margin-bottom:10px">⚡ Quick Fixes</div>
+        <div class="u-f9e226da">⚡ Quick Fixes</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn-sm" data-act-click="nav('bugbot')">🐛 Run Code Review</button>
           <button class="btn-sm" data-act-click="bbRunSecurityScan()">🔒 Security Scan</button>
@@ -389,7 +389,7 @@ async function renderGitAI() {
   pane.innerHTML = `
   
 
-  <div style="padding:20px;max-width:900px;margin:0 auto">
+  <div class="u-f8d5799a">
     <div class="section-head">
       <div><h2>🌿 Git AI</h2><p>Natural language git, AI changelogs, dependency audits, and security scanning</p></div>
     </div>
@@ -488,7 +488,7 @@ async function gitaiNLRun() {
     const d = await r.json();
     if (!el) return;
     el.innerHTML=`
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px">
+      <div class="u-953490ed">
         <div style="font-size:12px;color:var(--text-0);font-weight:600;margin-bottom:8px">${escHtml(d.explanation||'')}</div>
         ${(d.commands||[]).map(c=>`<div class="gitai-cmd">${escHtml(c.cmd?.join(' ')||'')} ${c.safe?'':'⚠️ unsafe'}</div>`).join('<br>')}
         ${d.warnings?.length?`<div style="margin-top:8px;font-size:11px;color:var(--warning)">⚠️ ${d.warnings.join(' | ')}</div>`:''}
@@ -532,7 +532,7 @@ async function gitaiGenerateCommit(autoCommit) {
     const d = await r.json();
     window._gitaiLastCommitMsg = d.message||'';  // FIX 7: store for copy
     if(el) el.innerHTML=`
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px">
+      <div class="u-953490ed">
         <div style="font-size:13px;font-family:monospace;color:var(--text-0);padding:10px;background:var(--bg-3);border-radius:7px;margin-bottom:8px" id="gitai-commit-msg">${escHtml(d.message||'')}</div>
         ${d.committed?'<div style="color:var(--success)">✅ Committed!</div>':''}
         <button class="btn-sm" data-act-click="hCopyLastCommitMsg()">📋 Copy</button>  <!-- FIX 7 -->
@@ -549,7 +549,7 @@ async function gitaiChangelog() {
     const r = await fetch('/api/gitai/changelog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({version,since,limit:50})});
     const d = await r.json();
     if(el) el.innerHTML=`
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px">
+      <div class="u-953490ed">
         <div style="font-size:12px;color:var(--success);margin-bottom:8px">✅ ${d.commits_used} commits → ${escHtml(d.changelog_path||'')}</div>
         <div style="font-size:11px;font-family:monospace;white-space:pre-wrap;color:var(--text-1);max-height:300px;overflow-y:auto">${escHtml(d.entry||'')}</div>
       </div>`;
@@ -563,7 +563,7 @@ async function gitaiRunDepAudit() {
     const r = await fetch('/api/gitai/deps/audit');
     const d = await r.json();
     if(el) el.innerHTML=`
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px">
+      <div class="u-953490ed">
         <div style="font-size:12px;margin-bottom:10px"><strong>${d.packages_scanned||0}</strong> packages scanned · <strong>${d.issues_found||0}</strong> issues · <strong style="color:var(--danger)">${d.critical_count||0}</strong> critical</div>
         ${(d.findings||[]).map(f=>`
           <div style="padding:6px 0;border-top:1px solid var(--border);font-size:11px">
@@ -586,7 +586,7 @@ async function gitaiRunSecurity() {
     const d = await r.json();
     const col = d.security_score>=80?'var(--success)':d.security_score>=60?'var(--warning)':'var(--danger)';
     if(el) el.innerHTML=`
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px">
+      <div class="u-953490ed">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
           <div style="width:48px;height:48px;border-radius:50%;border:3px solid ${col};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:${col}">${d.security_score||0}</div>
           <div>
@@ -626,7 +626,7 @@ async function renderAmbient() {
   pane.innerHTML = `
   
 
-  <div style="padding:20px;max-width:900px;margin:0 auto">
+  <div class="u-f8d5799a">
     <div class="section-head">
       <div><h2>🌊 Ambient Agent</h2><p>Always-on background intelligence — proactive suggestions, background tasks, project scanning</p></div>
       <div style="display:flex;gap:8px">
@@ -672,7 +672,7 @@ async function renderAmbient() {
       ${(tasks.tasks||[]).map(t=>`
         <div class="amb-card">
           <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:14px">${t.status==='done'?'✅':t.status==='failed'?'❌':'🔄'}</span>
+            <span class="u-433de30b">${t.status==='done'?'✅':t.status==='failed'?'❌':'🔄'}</span>
             <div class="u-97445a8d">
               <div style="font-weight:600;color:var(--text-0);font-size:12px">${escHtml(t.name||'')}</div>
               <div style="font-size:10px;color:var(--text-3)">${t.status} · ${new Date(t.created_at).toLocaleTimeString()}</div>

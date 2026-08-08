@@ -127,11 +127,11 @@ function renderSwarm() {
           <textarea id="sw-prompt" placeholder="Write a marketing copy for an AI SaaS that helps solo founders…"
             style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);
             padding:10px;color:var(--text-0);font-size:13px;resize:none;min-height:80px;outline:none;font-family:inherit;margin-top:8px"></textarea>
-          <div style="margin-top:12px">
+          <div class="u-56f43562">
             <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Agents</div>
             <div id="sw-agent-grid" style="display:flex;flex-wrap:wrap;gap:8px"></div>
           </div>
-          <div style="margin-top:12px">
+          <div class="u-56f43562">
             <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Strategy</div>
             <select id="sw-strategy" style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none">
               <option value="judge">Judge — pick best (fast)</option>
@@ -190,7 +190,7 @@ async function renderSwarmAgents() {
     <label style="display:flex;align-items:center;gap:6px;background:var(--bg-3);border-radius:var(--radius-sm);
       padding:6px 10px;cursor:pointer;border:1px solid var(--border);font-size:12px;transition:var(--transition)"
       title="${escHtml(a.role||a.description||'')}">
-      <input type="checkbox" data-agent="${a.id}" ${defaultOn.has(a.id)?'checked':''} style="accent-color:var(--accent-text)">
+      <input type="checkbox" data-agent="${a.id}" ${defaultOn.has(a.id)?'checked':''} class="u-f1722f0d">
       <span>${a.avatar||'🤖'}</span><span>${escHtml(a.name)}</span>
     </label>`).join('');
 }
@@ -216,7 +216,7 @@ async function runSwarm() {
       return `<div class="swarm-card" id="sw-card-${aid}">
         <div class="swarm-card-head">
           <span class="u-4ff818ff">${a.avatar||'🤖'}</span>
-          <span style="font-weight:700">${escHtml(a.name)}</span>
+          <span class="u-e3ec02ac">${escHtml(a.name)}</span>
           <span style="margin-left:auto;font-size:11px;color:var(--text-2)" id="sw-meta-${aid}">running…</span>
         </div>
         <div class="swarm-card-body" id="sw-body-${aid}">

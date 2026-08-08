@@ -70,17 +70,17 @@ function renderGitHubBody(s) {
       <!-- Quick actions -->
       <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Quick Actions</div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        <button data-act-click="createGHRepo()" class="btn btn-primary btn-sm" style="text-align:left">📦 Create New Repository</button>
-        <button data-act-click="showGHPush()" class="btn btn-ghost btn-sm" style="text-align:left">⬆ Push preview/ to GitHub</button>
-        <button data-act-click="showGHPull()" class="btn btn-ghost btn-sm" style="text-align:left">⬇ Pull from GitHub → preview/</button>
-        <button data-act-click="showGHPages()" class="btn btn-ghost btn-sm" style="text-align:left">🌐 Deploy to GitHub Pages</button>
-        <button data-act-click="showGHPR()" class="btn btn-ghost btn-sm" style="text-align:left">🔀 Create Pull Request</button>
+        <button data-act-click="createGHRepo()" class="btn btn-primary btn-sm u-6be0d8ba" >📦 Create New Repository</button>
+        <button data-act-click="showGHPush()" class="btn btn-ghost btn-sm u-6be0d8ba" >⬆ Push preview/ to GitHub</button>
+        <button data-act-click="showGHPull()" class="btn btn-ghost btn-sm u-6be0d8ba" >⬇ Pull from GitHub → preview/</button>
+        <button data-act-click="showGHPages()" class="btn btn-ghost btn-sm u-6be0d8ba" >🌐 Deploy to GitHub Pages</button>
+        <button data-act-click="showGHPR()" class="btn btn-ghost btn-sm u-6be0d8ba" >🔀 Create Pull Request</button>
       </div>
     </div>
 
     <!-- Repo selector + recent repos -->
     <div class="settings-card">
-      <div style="font-weight:700;margin-bottom:10px">📂 Your Repositories</div>
+      <div class="u-cbf73b78">📂 Your Repositories</div>
       <div style="display:flex;gap:6px;margin-bottom:10px">
         <input id="gh-repo-input" placeholder="owner/repo-name" value="${escHtml(ghSelectedRepo)}"
           style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:12.5px;outline:none;font-family:monospace">
@@ -96,7 +96,7 @@ function renderGitHubBody(s) {
           <div data-act-click="ghSetRepo(${jsArg(r.full_name)})"
                style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition)"
                data-hover="bg:var(--bg-3)" data-hover-out="bg:">
-            <span style="font-size:12px">${r.private?'🔒':'📂'}</span>
+            <span class="u-6cb285c6">${r.private?'🔒':'📂'}</span>
             <div class="u-59eddc67">
               <div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(r.name)}</div>
               <div style="font-size:10.5px;color:var(--text-3)">${r.default_branch} · ${r.updated_at}</div>
@@ -168,7 +168,7 @@ async function createGHRepo() {
       <h3>✅ Repository Created!</h3>
       <p><a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent-text)">${j.repo} ↗</a></p>
       <div style="font-size:12.5px;color:var(--text-2)">Clone URL: <code class="u-11a50812">${escHtml(j.clone_url)}</code></div>
-      <button data-act-click="showGHPush()" class="btn btn-primary btn-sm" style="margin-top:10px">⬆ Push code now</button>
+      <button data-act-click="showGHPush()" class="btn btn-primary btn-sm u-d2c171b1" >⬆ Push code now</button>
     </div>`;
     toast(`📦 Repository created: ${j.repo}`, 'ok', 4000);
   } else {
@@ -197,7 +197,7 @@ function ghRenderPushPreview(plan) {
         <strong>${plan.would_push_count}</strong> file(s) will be published to
         <strong>${escHtml(plan.repo)}</strong> · ${escHtml(String(plan.total_bytes))} bytes
       </div>
-      <div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:10px">
+      <div class="u-5b71758f">
         ${(plan.would_push || []).map(f => fileRow(f, 'var(--text-1)')).join('') ||
           '<div style="color:var(--text-3);font-size:12px">Nothing to publish.</div>'}
       </div>
@@ -205,12 +205,12 @@ function ghRenderPushPreview(plan) {
         <div style="font-size:12px;color:var(--yellow);margin-bottom:4px">
           🔒 ${held.length} file(s) held back — these look like credentials and will NOT be uploaded:
         </div>
-        <div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:10px">
+        <div class="u-5b71758f">
           ${held.map(f => fileRow(f, 'var(--yellow)')).join('')}
         </div>` : ''}
       ${over.length ? `
         <div style="font-size:12px;color:var(--yellow);margin-bottom:4px">📦 ${over.length} too large to upload:</div>
-        <div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:10px">
+        <div class="u-5b71758f">
           ${over.map(f => fileRow(f, 'var(--yellow)')).join('')}
         </div>` : ''}
       ${plan.truncated ? `<div style="font-size:11.5px;color:var(--yellow)">

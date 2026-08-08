@@ -342,7 +342,7 @@
   // ── Folder Rename Form (inline, no prompt) ─────────────────────
   function showFolderRenameForm(oldName) {
     if (!_ctxMenu) createContextMenu();
-    _ctxMenu.innerHTML = '<div style="padding:8px">'
+    _ctxMenu.innerHTML = '<div class="u-e2c960fb">'
       + '<div style="font-size:12px;font-weight:700;color:var(--text-0);margin-bottom:8px">Rename Folder</div>'
       + '<input id="ctx-rename-folder-input" type="text" value="' + oldName.replace(/"/g, '&quot;') + '" style="width:100%;background:var(--bg-0);border:1px solid var(--accent);border-radius:6px;padding:6px 10px;color:var(--text-0);font-size:12px;outline:none;font-family:inherit;margin-bottom:10px">'
       + '<button id="ctx-rename-folder-btn" type="button" style="width:100%;padding:6px 12px;background:var(--accent);color:var(--on-accent);border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Rename</button>'
@@ -551,7 +551,7 @@
   function showNewFolderForm(session) {
     if (!_ctxMenu) createContextMenu();
     var selectedIcon = '📁';
-    _ctxMenu.innerHTML = '<div style="padding:8px">'
+    _ctxMenu.innerHTML = '<div class="u-e2c960fb">'
       + '<div style="font-size:12px;font-weight:700;color:var(--text-0);margin-bottom:8px">New Folder</div>'
       + '<input id="ctx-new-folder-name" type="text" placeholder="Folder name" style="width:100%;background:var(--bg-0);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text-0);font-size:12px;outline:none;font-family:inherit;margin-bottom:8px">'
       + '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px">Choose an icon:</div>'

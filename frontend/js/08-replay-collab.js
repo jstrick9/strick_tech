@@ -58,7 +58,7 @@ async function renderReplay() {
         <div style="color:var(--text-3);font-size:12px;padding:10px">Loading…</div>
       </div>
       <div class="ttd-sidebar-foot">
-        <button class="ttd-toolbar-btn" style="flex:1;justify-content:center" data-act-click="ttdOpenDiffMode()">↔ Diff Runs</button>
+        <button class="ttd-toolbar-btn u-2cc6475e"  data-act-click="ttdOpenDiffMode()">↔ Diff Runs</button>
         <button class="ttd-toolbar-btn" data-act-click="ttdLoadRuns()" title="Refresh">↺</button>
       </div>
     </div>
@@ -1700,8 +1700,8 @@ async function renderMarketplace() {
       <div class="mkt-search-row">
         <input class="mkt-search" id="mkt-search" placeholder="Search plugins…"
                data-act-input="mktSearch($value)" value="">
-        <button class="btn" data-act-click="hSearchMarketplace()" style="flex-shrink:0">Search</button>
-        <button class="btn-sm" data-act-click="nav('pluginsdk')" style="flex-shrink:0">🛠️ Publish Pack</button>
+        <button class="btn u-6ee0661e" data-act-click="hSearchMarketplace()" >Search</button>
+        <button class="btn-sm u-6ee0661e" data-act-click="nav('pluginsdk')" >🛠️ Publish Pack</button>
       </div>
       <div class="mkt-stats">
         <div class="mkt-stat"><strong>${stats.total_packs||0}</strong> packs</div>
@@ -1750,7 +1750,7 @@ async function renderMarketplace() {
         </div>
 
         <div class="mkt-toolbar">
-          <div class="mkt-section-title" style="margin:0">All Packs</div>
+          <div class="mkt-section-title u-11696618" >All Packs</div>
           <div style="margin-left:auto;font-size:11px;color:var(--text-3)" id="mkt-result-count"></div>
         </div>
         <div class="mkt-grid" id="mkt-grid">Loading…</div>
@@ -1922,7 +1922,7 @@ async function mktViewDetail(packId) {
           <button data-act-click="hCloseFixedPanel($this)" style="margin-left:auto;background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
         </div>
         <p style="color:var(--text-2);font-size:13px;line-height:1.6">${escHtml(d.description||'')}</p>
-        <div style="margin-bottom:16px">
+        <div class="u-87c136df">
           <h4 style="font-size:12px;color:var(--text-3);text-transform:uppercase">Skills (${(d.skills||[]).length})</h4>
           ${skills||'<div style="color:var(--text-3);font-size:12px">No skills listed</div>'}
         </div>

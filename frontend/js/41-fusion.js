@@ -13,7 +13,7 @@ async function renderFusion() {
   pane.innerHTML = `
   
 
-  <div style="padding:20px;max-width:1000px;margin:0 auto">
+  <div class="u-50112d22">
     <div class="section-head">
       <div>
         <h2>🔀 Model Fusion</h2>
@@ -56,36 +56,36 @@ Try: 'What are the best practices for building production-ready FastAPI services
 
     <!-- Smart Router -->
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-top:20px;overflow:hidden">
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px">🎯 Smart Router — Auto-Pick Best Model</div>
-      <div style="padding:16px">
+      <div class="u-6d452176">🎯 Smart Router — Auto-Pick Best Model</div>
+      <div class="u-287f770e">
         <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Ask anything and the router automatically picks the optimal model (free vs paid, code vs research vs chat)</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <input id="router-prompt" placeholder="Ask anything…" style="flex:1;min-width:200px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:8px 12px" data-act-keydown="fusionRoute()" data-keys="Enter">
           <button class="btn" data-act-click="fusionRoute()">🎯 Route</button>
           <button class="btn-sm" data-act-click="fusionClassify()">🏷️ Classify</button>
         </div>
-        <div id="router-result" style="margin-top:10px"></div>
+        <div id="router-result" class="u-d2c171b1"></div>
       </div>
     </div>
 
     <!-- Cost Optimizer -->
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-top:16px;overflow:hidden">
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px">💰 Cost Optimizer — Stay Within Budget</div>
-      <div style="padding:16px">
+    <div class="u-55258e1a">
+      <div class="u-6d452176">💰 Cost Optimizer — Stay Within Budget</div>
+      <div class="u-287f770e">
         <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Get the best model that fits your cost budget. Automatically downgrades to free models when needed.</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input id="cost-prompt" placeholder="Your prompt…" style="flex:1;min-width:200px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:8px 12px">
           <input id="cost-budget" type="number" value="0.01" min="0" step="0.001" style="width:90px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-0);font-size:12px;padding:6px 8px" placeholder="Budget $">
           <button class="btn" data-act-click="fusionOptimizeCost()">💰 Optimize</button>
         </div>
-        <div id="cost-result" style="margin-top:10px"></div>
+        <div id="cost-result" class="u-d2c171b1"></div>
       </div>
     </div>
 
     <!-- Subagent Delegation -->
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-top:16px;overflow:hidden">
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px">🤖 Subagent Delegation — Big Model → Many Small Models</div>
-      <div style="padding:16px">
+    <div class="u-55258e1a">
+      <div class="u-6d452176">🤖 Subagent Delegation — Big Model → Many Small Models</div>
+      <div class="u-287f770e">
         <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Like OpenRouter Subagent: orchestrator model breaks task into subtasks, delegates to cheaper workers</div>
         <textarea id="subagent-task" rows="3" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:10px;resize:none;box-sizing:border-box" placeholder="Complex task to delegate (e.g. 'Research FastAPI, write 3 code examples, explain authentication patterns')"></textarea>
         <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
@@ -93,14 +93,14 @@ Try: 'What are the best practices for building production-ready FastAPI services
           <input id="subagent-max" type="number" min="1" max="8" value="4" style="width:60px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-0);font-size:12px;padding:5px 8px">
           <button class="btn" data-act-click="fusionSubagent()">🤖 Delegate</button>
         </div>
-        <div id="subagent-result" style="margin-top:10px"></div>
+        <div id="subagent-result" class="u-d2c171b1"></div>
       </div>
     </div>
 
     <!-- Run History -->
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-top:16px;overflow:hidden">
+    <div class="u-55258e1a">
       <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <span style="font-weight:700;font-size:13px">📜 Run History</span>
+        <span class="u-88697aec">📜 Run History</span>
         <button class="btn-sm" data-act-click="fusionLoadHistory()">↻ Load</button>
       </div>
       <div id="fusion-history" style="padding:12px;font-size:12px;color:var(--text-3)">Click Load to show recent fusion runs.</div>
@@ -260,7 +260,7 @@ async function fusionRoute() {
       <div style="background:var(--bg-3);border-radius:8px;padding:12px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
           <span style="font-size:10px;background:var(--accent);color:var(--on-accent);padding:2px 8px;border-radius:4px">${escHtml(d.task_type||'')}</span>
-          <strong style="font-size:12px">${escHtml((d.model||'').split('/').pop())}</strong>
+          <strong class="u-6cb285c6">${escHtml((d.model||'').split('/').pop())}</strong>
           <span style="font-size:11px;color:var(--text-3)">${d.latency_ms||0}ms · ${d.tokens||0}t${d.error?' · ⚠️ error':''}</span>
         </div>
         <div style="font-size:12px;color:var(--text-2);margin-bottom:8px">${escHtml(d.reason||'')}</div>

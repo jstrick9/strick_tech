@@ -45,7 +45,7 @@ async function renderSkills() {
     <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-lg);width:100%;max-width:600px;padding:24px;max-height:85vh;overflow-y:auto">
       <h2 id="srm-title" style="font-size:18px;font-weight:800;margin-bottom:6px"></h2>
       <p id="srm-desc" style="font-size:13px;color:var(--text-2);margin-bottom:18px"></p>
-      <div id="srm-inputs" style="margin-bottom:16px"></div>
+      <div id="srm-inputs" class="u-87c136df"></div>
       <div style="display:flex;gap:8px;margin-bottom:16px">
         <button data-act-click="execSkill()" class="btn btn-primary u-97445a8d"  id="srm-run">▶ Run Skill</button>
         <button data-act-click="closeSkillModal()" class="btn btn-ghost">Cancel</button>
@@ -68,8 +68,8 @@ async function loadSkills() {
     // Render category pills
     const catEl = document.getElementById('skill-cats');
     if (catEl) catEl.innerHTML =
-      `<span class="tag ${skillCategory==='all'?'blue':''}" data-cat="all" style="cursor:pointer;padding:5px 12px" data-act-click="filterSkills('all')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">All (${allSkills.length})</span>` +
-      cats.map(c => `<span class="tag ${skillCategory===c.id?'blue':''}" data-cat="${c.id}" style="cursor:pointer;padding:5px 12px" data-act-click="filterSkills(${jsArg(c.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(c.id)} (${c.count})</span>`).join('');
+      `<span class="tag ${skillCategory==='all'?'blue':''} u-d2ed9c08" data-cat="all"  data-act-click="filterSkills('all')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">All (${allSkills.length})</span>` +
+      cats.map(c => `<span class="tag ${skillCategory===c.id?'blue':''} u-d2ed9c08" data-cat="${c.id}"  data-act-click="filterSkills(${jsArg(c.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(c.id)} (${c.count})</span>`).join('');
     renderSkillGrid();
   } catch(e) { console.warn('Failed to load skills:', e); toast('Loaded offline skills', 'ok'); }
 }

@@ -83,7 +83,7 @@ function renderDashBody(d) {
 
   const kpiCard = (icon, label, value, sub, color) => {
     color = color || 'var(--text-0)';
-    return `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
+    return `<div class="u-1a082645">
       <div style="font-size:11px;color:var(--text-2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${icon} ${label}</div>
       <div style="font-size:26px;font-weight:800;color:${color};line-height:1">${value}</div>
       ${sub?`<div style="font-size:11px;color:var(--text-2);margin-top:4px">${sub}</div>`:''}
@@ -121,12 +121,12 @@ function renderDashBody(d) {
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
-      <div style="font-weight:700;margin-bottom:12px;font-size:13px">🤖 Agent Activity</div>
+    <div class="u-1a082645">
+      <div class="u-bb4c250b">🤖 Agent Activity</div>
       ${agents.length ? agents.slice(0,8).map(a => bar((a.avatar||'🤖')+' '+(a.name||a.id||'?'), a.messages||0, maxMsgs, a.color||'var(--accent)')).join('') : '<div style="color:var(--text-3);font-size:12px">No agent activity yet</div>'}
     </div>
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
-      <div style="font-weight:700;margin-bottom:12px;font-size:13px">📋 Task Status</div>
+    <div class="u-1a082645">
+      <div class="u-bb4c250b">📋 Task Status</div>
       ${[['todo','To Do','var(--accent)'],['doing','Doing','var(--warning)'],['blocked','Blocked','var(--danger)'],['done','Done','var(--success)']].map(([s,l,c]) => bar(l, (d.tasks?.by_status||{})[s]||0, k.total_tasks||1, c)).join('')}
       <div style="margin-top:12px;font-weight:700;margin-bottom:8px;font-size:12px;color:var(--text-2)">By Agent</div>
       ${(d.tasks?.by_agent||[]).slice(0,5).map(a => bar(escHtml(a.agent||'?'), a.done||0, a.total||1, 'var(--success)')).join('')}
@@ -134,11 +134,11 @@ function renderDashBody(d) {
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
-      <div style="font-weight:700;margin-bottom:12px;font-size:13px">🌌 Memory Sources</div>
+    <div class="u-1a082645">
+      <div class="u-bb4c250b">🌌 Memory Sources</div>
       ${(d.memory?.by_source||[]).length ? (d.memory.by_source||[]).slice(0,8).map(s => bar(s.source||'?', s.count||0, d.memory?.total||1, 'var(--purple)')).join('') : '<div style="color:var(--text-3);font-size:12px">No memory data yet</div>'}
     </div>
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
+    <div class="u-1a082645">
       <div style="font-weight:700;margin-bottom:10px;font-size:13px">🧪 E2E &amp; Cost</div>
       ${bar('E2E Pass Rate', (d.e2e?.pass_count||0)+'/'+(d.e2e?.total_runs||0), Math.max(d.e2e?.total_runs||1,1), 'var(--success)')}
       <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:6px">💰 Cost by Agent</div>
@@ -147,11 +147,11 @@ function renderDashBody(d) {
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
+    <div class="u-1a082645">
       <div style="font-weight:700;margin-bottom:10px;font-size:13px">🌀 Swarm Wins</div>
       ${(d.swarm?.wins_by_agent||[]).length ? (d.swarm.wins_by_agent||[]).map(w => `<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;border-bottom:1px solid var(--border)"><span>${escHtml(w.winner||'?')}</span><span style="color:var(--warning);font-weight:700">${w.wins} wins</span></div>`).join('') : '<div style="color:var(--text-3);font-size:12px">Run a swarm to see winners here</div>'}
     </div>
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
+    <div class="u-1a082645">
       <div style="font-weight:700;margin-bottom:8px;font-size:13px">⚡ Recent Activity</div>
       ${(d.activity?.recent||[]).slice(0,8).map(a => `<div style="font-size:11.5px;padding:3px 0;color:var(--text-2);border-bottom:1px solid var(--border)"><span style="color:var(--accent-text)">${escHtml(a.action||'')}</span>${a.detail?` · ${escHtml((a.detail||'').slice(0,40))}`:''}<span style="float:right;color:var(--text-3)">${(a.ts||'').slice(11,16)}</span></div>`).join('') || '<div style="color:var(--text-3);font-size:12px">No recent activity</div>'}
     </div>

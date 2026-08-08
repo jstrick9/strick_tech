@@ -304,7 +304,7 @@ async function renderSecretsVault() {
     `}
 
     <!-- Quick-add common keys -->
-    <div style="margin-top:20px">
+    <div class="u-a26bda7d">
       ${helpPanel({title:'Common API Keys',body:'Click a key name to pre-fill the form.',steps:[]})}
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
         ${['OPENROUTER_API_KEY','GITHUB_TOKEN','VERCEL_TOKEN','NETLIFY_TOKEN','SUPABASE_URL','SUPABASE_ANON_KEY','STRIPE_SECRET_KEY','ANTHROPIC_API_KEY','OPENAI_API_KEY'].map(k=>

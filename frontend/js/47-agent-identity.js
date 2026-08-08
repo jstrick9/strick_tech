@@ -13,10 +13,10 @@ async function renderAgentIdentity() {
   const authIcon  = {minimal:'🔵',standard:'🟢',elevated:'🟡',admin:'🔴'};
 
   pane.innerHTML = `
-  <div style="padding:20px;max-width:1100px;margin:0 auto">
-    <div class="section-head" style="margin-bottom:20px">
+  <div class="u-8316cf9b">
+    <div class="section-head u-49f14f8f" >
       <div>
-        <h2 style="margin:0 0 4px">🪪 Agent Identity & Zero-Trust</h2>
+        <h2 class="u-58d955e1">🪪 Agent Identity & Zero-Trust</h2>
         <p style="margin:0;color:var(--text-2);font-size:13px">Cryptographic identity per agent · JIT access tokens · Least-privilege permissions · Zero-trust verification</p>
       </div>
       <div style="display:flex;gap:8px">
@@ -34,7 +34,7 @@ async function renderAgentIdentity() {
         ['🔑','Permissions',sysStats.total_permissions||0,'#7aa2f7'],
         ['🛡️','Zero-Trust',sysStats.zero_trust_active?'ON':'OFF',sysStats.zero_trust_active?'var(--success)':'var(--danger)'],
       ].map(([icon,label,val,col])=>`
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+        <div class="u-d4cbd628">
           <div class="u-4ff818ff">${icon}</div>
           <div style="font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">${label}</div>
           <div style="font-size:18px;font-weight:700;color:${col}">${val}</div>
@@ -53,7 +53,7 @@ async function renderAgentIdentity() {
 
     <!-- Add identity form -->
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:18px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:10px">➕ Provision New Agent Identity</div>
+      <div class="u-5cbb5569">➕ Provision New Agent Identity</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
         <div>
           <div style="font-size:11px;color:var(--text-3);margin-bottom:4px">Agent ID</div>
@@ -81,7 +81,7 @@ async function renderAgentIdentity() {
     ${list.count===0 ? `
       <div style="background:var(--bg-2);border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center">
         <div style="font-size:32px;margin-bottom:10px">🪪</div>
-        <div style="font-weight:700;margin-bottom:6px">No identities provisioned yet</div>
+        <div class="u-d3e5189a">No identities provisioned yet</div>
         <div style="color:var(--text-3);font-size:12px;margin-bottom:14px">Click "Provision All Agents" to generate cryptographic keypairs for all 8 default agents</div>
         <button class="btn" data-act-click="identityProvisionAll()">⚡ Provision All Agents Now</button>
       </div>` : `
@@ -91,7 +91,7 @@ async function renderAgentIdentity() {
 
     <!-- Authority level legend -->
     <div style="margin-top:20px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:10px">🔑 Authority Level Reference</div>
+      <div class="u-5cbb5569">🔑 Authority Level Reference</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;font-size:11px">
         ${[
           ['🔵','Minimal','Read memory, basic tool use only','var(--text-3)'],
@@ -100,7 +100,7 @@ async function renderAgentIdentity() {
           ['🔴','Admin','+ Delete files, deploy, manage policies, system config','var(--danger)'],
         ].map(([icon,level,perms,col])=>`
           <div style="background:var(--bg-3);border-radius:8px;padding:10px;border-left:3px solid ${col}">
-            <div style="font-weight:700;margin-bottom:4px">${icon} ${level}</div>
+            <div class="u-a848666e">${icon} ${level}</div>
             <div style="color:var(--text-2)">${perms}</div>
           </div>`).join('')}
       </div>
@@ -118,7 +118,7 @@ function renderIdentityCard(id) {
         ${authIcon[id.authority_level]||'🤖'}
       </div>
       <div class="u-97445a8d">
-        <div style="font-weight:700;font-size:13px">${escHtml(id.display_name||id.agent_id)}</div>
+        <div class="u-88697aec">${escHtml(id.display_name||id.agent_id)}</div>
         <div style="font-size:10px;color:var(--text-3)">${escHtml(id.agent_id)} · v${id.key_version}</div>
       </div>
       <span style="font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700;background:${(authColor[id.authority_level]||'var(--accent)')}22;color:${authColor[id.authority_level]||'var(--accent)'}">

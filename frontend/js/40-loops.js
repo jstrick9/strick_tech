@@ -34,7 +34,7 @@ async function renderLoops() {
           <div style="color:var(--text-3);font-size:13px">Loading…</div>
         </div>
       </div>
-      <div class="settings-card" style="margin-top:12px">
+      <div class="settings-card u-56f43562" >
         <h3>Built-in Auto-Jobs</h3>
         <p style="font-size:12px;color:var(--text-2)">These run automatically in the background.</p>
         <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
@@ -46,7 +46,7 @@ async function renderLoops() {
           ].map(([name,sched,agent])=>`
           <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg-3);border-radius:var(--radius-sm)">
             <span style="color:var(--green)">●</span>
-            <span style="flex:1;font-weight:600">${name}</span>
+            <span class="u-392bcb2a">${name}</span>
             <span style="color:var(--text-2)">${sched}</span>
             <span class="tag">${agent}</span>
           </div>`).join('')}

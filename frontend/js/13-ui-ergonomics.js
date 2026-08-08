@@ -74,7 +74,7 @@
     if (!paneEl || !subEl) return;
 
     const meta = PANE_METADATA[pane] || { icon: '🧭', title: pane.toUpperCase(), desc: '' };
-    paneEl.innerHTML = `<span style="font-size:14px">${meta.icon}</span> <span>${escHtml(meta.title)}</span>`;
+    paneEl.innerHTML = `<span class="u-433de30b">${meta.icon}</span> <span>${escHtml(meta.title)}</span>`;
 
     // Dynamic sub-context summaries
     if (pane === 'hierarchy') {

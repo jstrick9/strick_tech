@@ -128,7 +128,7 @@ async function refreshNotifications() {
       <div style="text-align:center;padding:40px 20px;color:var(--text-3)">
         <div style="font-size:32px;margin-bottom:12px">🔔</div>
         <div style="font-size:14px;font-weight:600;color:var(--text-2);margin-bottom:4px">No notifications</div>
-        <div style="font-size:12px">You're all caught up!</div>
+        <div class="u-6cb285c6">You're all caught up!</div>
       </div>
     `;
     return;

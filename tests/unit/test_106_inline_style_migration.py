@@ -72,7 +72,18 @@ def test_every_generated_class_is_referenced_and_every_reference_is_defined():
         import pytest
         pytest.skip('no generated block yet')
     block = sheet.split('BEGIN generated utility classes')[1].split('END generated')[0]
-    defined = set(re.findall(r'\.(u-[0-9a-f]{8})\s*\{', block))
+    # UPDATED, NOT DELETED. The pattern was `\.(u-xxxxxxxx)\s*\{`, which only
+    # matched a FLAT selector. The generated selector is now doubled
+    # (`.u-x.u-x`, 0-0-2-0) because a flat 0-0-1-0 class loses to any
+    # descendant rule, and an inline style attribute never did: `<h2
+    # style="font-size:20px">` inside `.section-head` silently shrank to 17px
+    # once it became a plain class. See the specificity note in
+    # scripts/migrate_inline_styles.py::build_css.
+    #
+    # Both forms are accepted so the assertion keeps working against classes
+    # carried forward from before that change.
+    defined = set(re.findall(
+        r'\.(u-[0-9a-f]{8})(?:\.u-[0-9a-f]{8})?\s*\{', block))
     assert defined, 'the generated block defines no classes'
 
     used = set()
@@ -101,3 +112,74 @@ def test_the_script_is_idempotent():
     # already-migrated values are gone from the markup, so a stable run reports
     # only values still above the threshold that were skipped as unsafe.
     assert 'static inline style attributes' in before.stdout
+
+
+def test_generated_classes_outrank_ordinary_component_css():
+    """A lifted declaration must not lose a fight the attribute always won.
+
+    An inline `style` attribute beats every selector in the cascade. A flat
+    `.u-xxxxxxxx` (0-0-1-0) does not, so migrating one can silently change the
+    rendered result -- which is exactly what happened:
+
+        <h2 style="margin:0 0 4px;font-size:20px;font-weight:900">
+
+    inside `.section-head` became `.u-89c33dcc`, and
+    `.section-head h2 { font-size:17px }` (0-0-1-1) won. Measured live in
+    Chromium: the heading rendered at 17px instead of 24px, with both rules
+    matching and the utility losing. Caught by
+    scripts/audit/computed_style_diff.py against a pre-migration baseline.
+
+    The selector is now doubled (`.u-x.u-x`, 0-0-2-0). Deliberately NOT
+    `!important`, which would also beat legitimate state rules such as a
+    `.is-hidden` toggle or a `:hover` treatment.
+    """
+    with open(os.path.join(REPO, 'frontend', 'styles-redesign.css'),
+              encoding='utf-8') as fh:
+        sheet = fh.read()
+    if 'BEGIN generated utility classes' not in sheet:
+        import pytest
+        pytest.skip('no generated block yet')
+    block = sheet.split('BEGIN generated utility classes')[1].split('END generated')[0]
+
+    flat = re.findall(r'^\.(u-[0-9a-f]{8})\s*\{', block, re.M)
+    assert not flat, (
+        'these classes use a flat 0-0-1-0 selector and can lose to ordinary '
+        f'component CSS: {sorted(set(flat))[:8]}')
+
+    doubled = re.findall(r'^\.(u-[0-9a-f]{8})\.\1\s*\{', block, re.M)
+    assert doubled, 'the generated block defines no doubled selectors'
+
+
+def test_generated_classes_do_not_use_important():
+    """`!important` would beat state rules the app relies on."""
+    with open(os.path.join(REPO, 'frontend', 'styles-redesign.css'),
+              encoding='utf-8') as fh:
+        sheet = fh.read()
+    if 'BEGIN generated utility classes' not in sheet:
+        import pytest
+        pytest.skip('no generated block yet')
+    block = sheet.split('BEGIN generated utility classes')[1].split('END generated')[0]
+    # Strip comments first: the block's own header explains WHY !important was
+    # rejected, and matching that sentence made this assertion fail against
+    # correct output. Twelfth time an assertion has matched its own fix
+    # comment in this review.
+    declarations = re.sub(r'/\*.*?\*/', '', block, flags=re.S)
+    assert '!important' not in declarations
+
+
+def test_carried_forward_classes_live_inside_the_generated_block():
+    """Appending past the END marker orphans them on the next run.
+
+    The first version of the carry-forward wrote them after END, so they sat
+    outside the region the next run replaces -- duplicated once, then deleted.
+    """
+    with open(os.path.join(REPO, 'frontend', 'styles-redesign.css'),
+              encoding='utf-8') as fh:
+        sheet = fh.read()
+    if 'carried forward from earlier runs' not in sheet:
+        return
+    end_marker = sheet.index('END generated')
+    carried = sheet.index('carried forward from earlier runs')
+    assert carried < end_marker, (
+        'carried-forward classes are outside the generated block and will be '
+        'dropped by the next run')
