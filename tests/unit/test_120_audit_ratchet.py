@@ -137,6 +137,7 @@ def test_source_patterns_has_not_regressed():
     ('timezones', 'timezone-correctness'),
     ('preferences', 'user-preferences'),
     ('print_and_multitab', 'print-and-multitab'),
+    ('task_completion', 'task-completion'),
 ])
 def test_browser_audit_has_not_regressed(module, key):
     """Skips cleanly when there is no live server, rather than failing.
