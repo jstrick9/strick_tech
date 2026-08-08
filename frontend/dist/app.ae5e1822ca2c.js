@@ -253,6 +253,7 @@ var failures = [];
 var snoozedUntil = 0;
 var bannerEl = null;
 var lastPaths = [];
+var browserOffline = false;
 function isApiPath(url) {
 try {
 var u = new URL(url, location.origin);
@@ -276,6 +277,7 @@ failures.push(now);
 lastPaths.push(path);
 if (lastPaths.length > 6) lastPaths.shift();
 failures = failures.filter(function (t) { return now - t < WINDOW_MS; });
+if (browserOffline) return;
 if (failures.length >= THRESHOLD && now >= snoozedUntil) show();
 }
 function clearFailures() {
@@ -343,10 +345,12 @@ window.connectionStatus.observeNetworkError = function (url) {
 if (isApiPath(url)) record(url);
 };
 window.addEventListener('offline', function () {
-failures = [Date.now(), Date.now(), Date.now()];
-if (Date.now() >= snoozedUntil) show();
+browserOffline = true;
+clearFailures();
+hide();
 });
 window.addEventListener('online', function () {
+browserOffline = false;
 clearFailures();
 hide();
 });
@@ -4792,7 +4796,6 @@ sb.addEventListener('click', () => nav('system'));
 const offlineHandler = () => {
 const dot = document.querySelector('.sb-dot');
 if (dot) { dot.style.background = 'var(--red)'; dot.title = 'Offline'; }
-toast('⚠️ You are offline — local features still work', 'warn', 4000);
 };
 const onlineHandler = () => {
 const dot = document.querySelector('.sb-dot');

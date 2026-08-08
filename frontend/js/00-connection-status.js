@@ -46,6 +46,9 @@
   var snoozedUntil = 0;
   var bannerEl = null;
   var lastPaths = [];
+  // Declared here rather than beside the listeners below because record()
+  // reads it and is defined first.
+  var browserOffline = false;
 
   function isApiPath(url) {
     try {
@@ -75,6 +78,10 @@
     lastPaths.push(path);
     if (lastPaths.length > 6) lastPaths.shift();
     failures = failures.filter(function (t) { return now - t < WINDOW_MS; });
+    // While the browser reports no network, the offline banner is the single
+    // owner of the message. Counting continues so that a reconnect which is
+    // still failing surfaces normally.
+    if (browserOffline) return;
     if (failures.length >= THRESHOLD && now >= snoozedUntil) show();
   }
 
@@ -172,12 +179,25 @@
     if (isApiPath(url)) record(url);
   };
 
-  // The browser's own signal is more reliable than counting, when present.
+  // The browser's own signal is more reliable than counting, when present --
+  // but this banner must NOT be the one that speaks for it.
+  //
+  // "Some data couldn't load. Your work is safe -- this looks like a
+  // connection problem" is the right message for a CLUSTER OF 5xx, which is
+  // what this module exists to detect. It is the wrong message when the
+  // browser is flatly offline: work in progress is emphatically not safe,
+  // and 00-net-feedback.js already says so in the banner it owns.
+  //
+  // Showing both put two different explanations of one event on screen at
+  // once. So going offline now HIDES this banner and suppresses it for the
+  // duration, rather than raising it.
   window.addEventListener('offline', function () {
-    failures = [Date.now(), Date.now(), Date.now()];
-    if (Date.now() >= snoozedUntil) show();
+    browserOffline = true;
+    clearFailures();
+    hide();
   });
   window.addEventListener('online', function () {
+    browserOffline = false;
     clearFailures();
     hide();
   });

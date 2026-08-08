@@ -44,6 +44,7 @@ verifiable. "No bugs exist" is not.
 | Browser back / forward | `history_navigation.py` | 0 | Every nav used `replaceState`; 4 navigations created 0 history entries and Back exited to `about:blank` |
 | Large data volumes | `large_data.py` | 0 | A host re-render destroyed 7 workstations' tabs; Goals capped at 100 of 250 with no way to reach the rest |
 | Session expiry / auth loss | `session_expiry.py` | 0 | Session tokens were **write-only** — `/login` issued a `ses_…` token that every endpoint rejected; every session was born already expired; no logout route existed; a dead session left a calm empty app with no signal and no way back in |
+| Offline / reconnect | `offline_reconnect.py` | 0 | **Three** independent `offline` listeners each raised their own message simultaneously, giving contradictory advice: "your work is safe" alongside "changes will not be saved" |
 
 **All twelve audits are at 0.** `source-patterns` was cleared from 17 (six
 unguarded array accesses, eleven raw-error headlines); the fixes and three
@@ -75,7 +76,6 @@ even once.
 
 | Seam | Why it matters | Cheap first probe |
 |---|---|---|
-| **Offline / reconnect** | A banner exists; recovery behaviour is unverified | Toggle offline, then online |
 | **Long / adversarial input** | 10k-char names, RTL text, emoji, `<script>` in every field | Fuzz every input |
 | **Timezones & dates** | All timestamps assume the server's zone | Run under `TZ=Pacific/Kiritimati` |
 | **Print / export** | `styles-print.css` exists but was never verified | Render to PDF, inspect |
@@ -107,6 +107,8 @@ encoded in `scripts/audit/_harness.py` so no future probe has to remember them.
 
 | Trap | What it cost |
 |---|---|
+| Searching the whole document for a status word | `/offline/` matched `Private • Ollama • Offline`, a product feature label. It produced a false finding — and worse, would have let a **total absence** of offline reporting pass the presence check. Scope to status surfaces |
+| Three overlapping owners of one message | Disabling any single offline handler left the audit clean, because two others still spoke. Redundancy makes every individual owner unprovable; consolidate, then re-verify the probe can fail |
 | An off-screen live region counted as visible signal | `#sr-announcer` holds a **copy** of the toast text at `position:absolute` off-screen. The session-expiry probe read it and reported NO-SIGNAL as clean while the user could see nothing at all |
 | Over-correcting by dropping every `[aria-live]` | The very next run deleted the new lost-session banner — an `aria-live="assertive"` alert — and reported NO-SIGNAL against a screen that plainly said so. **Visibility is the test, not the presence of an ARIA attribute** |
 | Waiting out a toast to find the resting state | Polling re-raises it, so "wait past 6000ms" does not prove the screen is at rest. Remove transient nodes instead of waiting |

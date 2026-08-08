@@ -43,6 +43,7 @@ AUDITS = [
     'history_navigation',
     'large_data',
     'session_expiry',
+    'offline_reconnect',
 ]
 
 

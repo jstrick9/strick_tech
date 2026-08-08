@@ -3436,11 +3436,23 @@ nav = function(pane) {
     sb.addEventListener('click', () => nav('system'));
   }
 
-  // Add online/offline indicator
+  // Add online/offline indicator.
+  //
+  // The toast that used to fire here has been removed. Three independent
+  // listeners each raised their own offline message and they CONTRADICTED
+  // each other on screen at the same moment:
+  //
+  //   this one            "local features still work"
+  //   connection-status   "your work is safe"
+  //   net-feedback        "changes will not be saved"
+  //
+  // "Your work is safe" and "changes will not be saved" cannot both be the
+  // advice. 00-net-feedback.js owns the offline banner because its message is
+  // the accurate one, so this handler now does only the thing nothing else
+  // does: colour the status dot.
   const offlineHandler = () => {
     const dot = document.querySelector('.sb-dot');
     if (dot) { dot.style.background = 'var(--red)'; dot.title = 'Offline'; }
-    toast('⚠️ You are offline — local features still work', 'warn', 4000);
   };
   const onlineHandler = () => {
     const dot = document.querySelector('.sb-dot');
