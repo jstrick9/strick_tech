@@ -1440,6 +1440,24 @@ def manifest():
     return FileResponse(FRONTEND_DIR / 'manifest.json', media_type='application/manifest+json')
 
 
+@app.get('/favicon.ico', include_in_schema=False)
+def favicon():
+    """Serve the tab icon.
+
+    Browsers request /favicon.ico unprompted on every page load, and the file
+    did not exist -- a 404 on every single visit. It was invisible in practice
+    because the console carries ~11,000 expected CSP style-src refusals per
+    session, so nobody was reading it. Found by scripts/audit/console_health.py,
+    which counts the noise precisely because noise is what hides the next real
+    error.
+
+    The manifest also advertised /static/icon-192.png and /static/icon-512.png,
+    neither of which existed: the PWA could be installed only without an icon.
+    All three are now committed under frontend/.
+    """
+    return FileResponse(FRONTEND_DIR / 'favicon.ico', media_type='image/x-icon')
+
+
 @app.get('/sw.js')
 def service_worker():
     """Execute or process service worker operation."""

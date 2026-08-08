@@ -1,6 +1,7 @@
 {
   "adversarial-input": 0,
   "concurrent-duplicate-writes": 0,
+  "console-health": 0,
   "failure-honesty": 0,
   "first-run-experience": 0,
   "history-navigation": 0,

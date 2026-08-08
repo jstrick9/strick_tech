@@ -53,6 +53,7 @@ AUDITS = [
     # so including it here is safe but only meaningful on a fresh server.
     'first_run',
     'task_completion',
+    'console_health',
 ]
 
 
