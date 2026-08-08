@@ -11,7 +11,7 @@ async function startCollab() {
 
   const url = `${location.origin}/?collab=${j.session_id}`;
   await gmAlert('🤝 Collaboration Session Created',
-    `<div style="margin-bottom:10px">Share this URL with collaborators:</div>
+    `<div class="u-761d3add">Share this URL with collaborators:</div>
      <code style="background:var(--bg-0);padding:8px 12px;border-radius:var(--radius-sm);display:block;font-size:12px;word-break:break-all">${url}</code>
      <div style="margin-top:10px;font-size:12px;color:var(--text-2)">They'll see your cursor, navigation, and can chat in real-time.</div>`
   );

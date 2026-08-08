@@ -81,7 +81,7 @@ function hubRenderStats(s) {
   if (!el || !s) return;
   const chip = (label, value) =>
     `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px">
-       <div style="font-size:18px;font-weight:800">${value}</div>
+       <div class="u-80b90e3a">${value}</div>
        <div style="font-size:11px;color:var(--text-2)">${escHtml(label)}</div>
      </div>`;
   el.innerHTML =
@@ -143,8 +143,8 @@ function hubSetCategory(c) {
 }
 
 function hubCollectionsHtml() {
-  return `<div style="margin-bottom:20px">
-    <div style="font-weight:700;margin-bottom:4px">Start here</div>
+  return `<div class="u-49f14f8f">
+    <div class="u-a848666e">Start here</div>
     <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Curated bundles — installs every plugin in the set.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
       ${hubCollections.map(c => {
@@ -221,7 +221,7 @@ async function hubShowDetail(packId) {
         <div style="font-weight:700;font-size:13px;margin:18px 0 8px">What you get</div>
         ${(d.skills || []).length ? (d.skills || []).map(s => `
           <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px">
-            <div style="font-weight:600;font-size:13px">${s.emoji || '⚡'} ${escHtml(s.name || s.id || '')}</div>
+            <div class="u-160b0675">${s.emoji || '⚡'} ${escHtml(s.name || s.id || '')}</div>
             ${s.description ? `<div style="font-size:12px;color:var(--text-2);margin-top:3px">${escHtml(s.description)}</div>` : ''}
             ${(s.inputs || []).length ? `<div style="font-size:11px;color:var(--text-3);margin-top:6px">Asks for: ${(s.inputs || []).map(i => escHtml(i.label || i.id)).join(', ')}</div>` : ''}
             ${s.prompt_template ? `<details class="u-8a77e5a3">

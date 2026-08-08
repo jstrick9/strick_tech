@@ -13,7 +13,7 @@ async function renderHITL() {
   const riskColors = {low:'var(--success)',medium:'var(--warning)',high:'var(--danger)',critical:'#ff4444'};
 
   pane.innerHTML = `
-  <div style="padding:20px;max-width:900px;margin:0 auto">
+  <div class="u-f8d5799a">
     <div class="section-head">
       <div>
         <h2>🛡️ Human-in-the-Loop</h2>
@@ -38,7 +38,7 @@ async function renderHITL() {
     </div>
 
     <!-- Pending queue with Side-by-Side Diff Verification (Phase 4) -->
-    <div style="font-size:13px;font-weight:700;margin-bottom:10px">⏳ Pending Approval & Diff Verification (${(queue.interrupts||[]).length})</div>
+    <div class="u-f9e226da">⏳ Pending Approval & Diff Verification (${(queue.interrupts||[]).length})</div>
     <div id="hitl-queue">
       ${(queue.interrupts||[]).map(item=>`
         <div class="card-elevated surface-z3" style="border:2px solid ${(item.confidence < 0.85) ? '#ff4444' : (riskColors[item.risk_level]||'var(--border)')};border-radius:14px;padding:18px;margin-bottom:14px;position:relative;box-shadow:${(item.confidence < 0.85) ? '0 0 28px rgba(255,68,68,0.22)' : 'var(--shadow)'}">
@@ -72,14 +72,14 @@ async function renderHITL() {
               <button class="btn-3d btn-ghost btn-sm u-6c51dbca" data-act-click="hitlModify(${JSON.stringify(item.id)})" >✏ Modify Parameters</button>
               <button class="btn-3d btn-danger btn-sm u-6c51dbca" data-act-click="hitlDecide(${JSON.stringify(item.id)},'reject')" >🛑 Abort & Revert</button>
             </div>
-            <button data-act-click="toggleSplitWorkspace(true,'hitl')" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:11px">🗂️ Secondary Dock</button>
+            <button data-act-click="toggleSplitWorkspace(true,'hitl')" class="btn-3d btn-ghost btn-sm u-884e19b1" >🗂️ Secondary Dock</button>
           </div>
         </div>`).join('') || '<div style="color:var(--text-3);padding:24px;text-align:center;background:var(--surface-z1);border-radius:12px;border:1px dashed var(--border)">No pending interruptions — autonomous agents operating safely within set confidence thresholds.</div>'}
     </div>
 
     <!-- Confidence threshold settings -->
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:12px">⚙️ Confidence Thresholds</div>
+    <div class="u-c1c293a9">
+      <div class="u-8eef54b3">⚙️ Confidence Thresholds</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
         ${[['Low Risk','Auto-approve if ≥70%','var(--success)'],['Medium Risk','Interrupt if <85%','var(--warning)'],['High Risk','Always interrupt','var(--danger)'],['Critical','Always + dual confirm','#ff4444']].map(([level,desc,col])=>`
           <div style="background:var(--bg-3);border-radius:8px;padding:10px;border-left:3px solid ${col}">
@@ -90,7 +90,7 @@ async function renderHITL() {
     </div>
 
     <!-- Sprint A: Delegation Profiles -->
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px">
+    <div class="u-c1c293a9">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="font-size:13px;font-weight:700">🎛️ Delegation Profiles</div>
         <button class="btn-sm" data-act-click="hitlSaveDelegation()">💾 Save Profile</button>
@@ -108,7 +108,7 @@ async function renderHITL() {
           <div style="background:var(--bg-3);border-radius:8px;padding:10px;display:flex;align-items:center;gap:8px">
             <span class="u-1444c6ea">${icon}</span>
             <div class="u-97445a8d">
-              <div style="font-weight:600">${label}</div>
+              <div class="u-eed0f8fb">${label}</div>
               <div style="font-size:10px;color:var(--text-3)">${defaultVal}</div>
             </div>
             <select class="hitl-deleg-sel" data-actions="${actions}" style="font-size:11px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text-0)">
@@ -121,26 +121,26 @@ async function renderHITL() {
     </div>
 
     <!-- Sprint A: Timeout Configuration -->
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px">⏱️ Approval Timeout Handling</div>
+    <div class="u-c1c293a9">
+      <div class="u-f9e226da">⏱️ Approval Timeout Handling</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12px">
-        <div style="background:var(--bg-3);border-radius:8px;padding:10px">
-          <div style="font-weight:600;margin-bottom:4px">Default Timeout</div>
+        <div class="u-fb336a29">
+          <div class="u-a27006d4">Default Timeout</div>
           <div style="display:flex;align-items:center;gap:6px">
             <input type="number" id="hitl-timeout" value="300" min="30" max="1800" style="width:70px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text-0);font-size:12px">
             <span style="color:var(--text-3)">seconds</span>
           </div>
         </div>
-        <div style="background:var(--bg-3);border-radius:8px;padding:10px">
-          <div style="font-weight:600;margin-bottom:4px">On Timeout</div>
+        <div class="u-fb336a29">
+          <div class="u-a27006d4">On Timeout</div>
           <select id="hitl-timeout-action" style="font-size:11px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text-0);width:100%">
             <option value="pause">Pause agent (safe default)</option>
             <option value="reject">Auto-reject action</option>
             <option value="escalate">Escalate to admin</option>
           </select>
         </div>
-        <div style="background:var(--bg-3);border-radius:8px;padding:10px">
-          <div style="font-weight:600;margin-bottom:4px">Notification</div>
+        <div class="u-fb336a29">
+          <div class="u-a27006d4">Notification</div>
           <div style="font-size:11px;color:var(--text-2)">
             🔔 Browser notification sent<br>
             📋 HITL queue badge shown<br>
@@ -155,8 +155,8 @@ async function renderHITL() {
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;overflow:hidden">
       ${(audit.audit||[]).map(a=>`
         <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px">
-          <span style="font-size:14px">${a.decision==='approve'?'✅':a.decision==='reject'?'❌':a.decision==='modify'?'✏️':'⚙️'}</span>
-          <span style="font-weight:600">${escHtml(a.action_type||'action')}</span>
+          <span class="u-433de30b">${a.decision==='approve'?'✅':a.decision==='reject'?'❌':a.decision==='modify'?'✏️':'⚙️'}</span>
+          <span class="u-eed0f8fb">${escHtml(a.action_type||'action')}</span>
           <span style="color:var(--text-3)">${escHtml(a.action_summary||'')?.slice(0,60)}</span>
           <span style="margin-left:auto;color:var(--text-3)">${new Date(a.created_at).toLocaleTimeString()}</span>
         </div>`).join('') || '<div style="color:var(--text-3);padding:12px;text-align:center">No decisions yet</div>'}

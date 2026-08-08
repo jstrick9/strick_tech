@@ -411,7 +411,7 @@ function gmTabDecompose() {
   if (!decomp.length) {
     return `
       <div style="text-align:center;padding:40px 20px">
-        <div style="font-size:40px;margin-bottom:12px">🧩</div>
+        <div class="u-da61af79">🧩</div>
         <div style="font-size:15px;font-weight:600;color:var(--text-1);margin-bottom:8px">No Decomposition Yet</div>
         <div style="font-size:12px;color:var(--text-3);line-height:1.6;margin-bottom:20px">
           Click "Decompose" to have the Brain agent break this goal into<br>
@@ -554,7 +554,7 @@ function gmTabScore() {
   if (score == null) {
     return `
       <div style="text-align:center;padding:40px 20px">
-        <div style="font-size:40px;margin-bottom:12px">⭐</div>
+        <div class="u-da61af79">⭐</div>
         <div style="font-size:15px;font-weight:600;color:var(--text-1);margin-bottom:8px">No Score Yet</div>
         <div style="font-size:12px;color:var(--text-3);line-height:1.6;margin-bottom:20px">
           Click "Score Outcome" to have the Evaluator agent assess this goal's<br>
@@ -626,8 +626,8 @@ function gmTabScore() {
     </div>`:''}
 
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-      <button class="gm-action-btn" data-act-click="gmScoreGoal()" style="flex:1;justify-content:center">↺ Re-score (Iteration ${(g.iteration||1)+1})</button>
-      <button class="gm-action-btn" data-act-click="gmSetTab('history')" style="flex:1;justify-content:center">📈 View History</button>
+      <button class="gm-action-btn u-2cc6475e" data-act-click="gmScoreGoal()" >↺ Re-score (Iteration ${(g.iteration||1)+1})</button>
+      <button class="gm-action-btn u-2cc6475e" data-act-click="gmSetTab('history')" >📈 View History</button>
     </div>
   `;
 }
@@ -912,7 +912,7 @@ function gmOpenCreate() {
           <button data-act-click="gcfAddMilestone()" style="margin-top:6px;font-size:11px;padding:4px 10px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">+ Add Milestone</button>
         </div>
         <div class="gm-form-group full" style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="gcf-auto-decompose" checked style="accent-color:var(--accent-text)">
+          <input type="checkbox" id="gcf-auto-decompose" checked class="u-f1722f0d">
           <label for="gcf-auto-decompose" style="font-size:12px;color:var(--text-1);cursor:pointer">Auto-decompose with Brain agent after creating</label>
         </div>
       </div>

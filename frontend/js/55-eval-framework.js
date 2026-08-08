@@ -13,10 +13,10 @@ async function renderEvalFramework() {
   const scoreColor = s => s>=0.8?'var(--success)':s>=0.6?'var(--warning)':'var(--danger)';
 
   pane.innerHTML = `
-  <div style="padding:20px;max-width:1100px;margin:0 auto">
-    <div class="section-head" style="margin-bottom:20px">
+  <div class="u-8316cf9b">
+    <div class="section-head u-49f14f8f" >
       <div>
-        <h2 style="margin:0 0 4px">🧪 Evaluation Framework</h2>
+        <h2 class="u-58d955e1">🧪 Evaluation Framework</h2>
         <p style="margin:0;color:var(--text-2);font-size:13px">Continuous eval pipeline — agents earn autonomy by demonstrating measured quality across task completion, faithfulness, safety, and hallucination scoring</p>
       </div>
       <div style="display:flex;gap:8px">
@@ -34,7 +34,7 @@ async function renderEvalFramework() {
         ['👁️','Pending Review',stats.pending_review||0,stats.pending_review>0?'var(--warning)':'var(--text-3)'],
         ['🤖','Agents Evaluated',(stats.by_agent||[]).length,'var(--success)'],
       ].map(([icon,label,val,col])=>`
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+        <div class="u-d4cbd628">
           <div class="u-4ff818ff">${icon}</div>
           <div style="font-size:9px;color:var(--text-3);text-transform:uppercase">${label}</div>
           <div style="font-size:18px;font-weight:700;color:${col}">${val}</div>
@@ -50,7 +50,7 @@ async function renderEvalFramework() {
     <!-- Human review queue -->
     ${(queue.queue||[]).length>0?`
     <div style="background:var(--bg-2);border:1px solid var(--warning);border-radius:10px;padding:14px;margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:10px">👁️ Human Review Queue (${queue.count||0} pending)</div>
+      <div class="u-5cbb5569">👁️ Human Review Queue (${queue.count||0} pending)</div>
       ${(queue.queue||[]).map(r=>`
         <div style="background:var(--bg-3);border-radius:8px;padding:10px;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px">
@@ -64,7 +64,7 @@ async function renderEvalFramework() {
     </div>`:''}
 
     <!-- Test suites -->
-    <div style="font-size:12px;font-weight:700;margin-bottom:10px">📚 Evaluation Suites</div>
+    <div class="u-5cbb5569">📚 Evaluation Suites</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:18px">
       ${(suites.suites||[]).map(s=>`
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px">
@@ -83,8 +83,8 @@ async function renderEvalFramework() {
 
     <!-- Agent eval leaderboard -->
     ${(stats.by_agent||[]).length>0?`
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:12px">🏆 Agent Eval Leaderboard</div>
+    <div class="u-07391746">
+      <div class="u-60a1db33">🏆 Agent Eval Leaderboard</div>
       <div style="display:grid;grid-template-columns:120px 1fr 80px 80px;gap:8px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;padding:0 8px;margin-bottom:6px">
         <span>Agent</span><span>Score Bar</span><span>Score</span><span>Pass Rate</span>
       </div>

@@ -46,7 +46,7 @@ async function renderSpecs() {
           <div style="font-size:13px;max-width:420px;line-height:1.7;color:var(--text-2)">
             Like Kiro + Windsurf Cascade — describe a feature, get structured Requirements → Design → Tasks → Code. Every decision is documented and traceable.
           </div>
-          <button class="spec-run-all-btn" data-act-click="specNew()" style="margin-top:20px">＋ Create Your First Spec</button>
+          <button class="spec-run-all-btn u-a26bda7d" data-act-click="specNew()" >＋ Create Your First Spec</button>
         </div>
       </div>
     </div>
@@ -282,7 +282,7 @@ function specShowPhase(phase, desc='') {
           <div style="font-size:13px;font-weight:700;color:var(--text-0)">🏗️ Design Document</div>
           <div style="font-size:12px;color:var(--text-2)">Architecture, data models, API contracts, sequence diagrams generated from your requirements.</div>
         </div>
-        <button class="btn" data-act-click="specGenDesign()" style="flex-shrink:0">🏗️ Generate Design</button>
+        <button class="btn u-6ee0661e" data-act-click="specGenDesign()" >🏗️ Generate Design</button>
       </div>
       ${existing ? `
       <div class="spec-artifact">
@@ -366,7 +366,7 @@ async function specLoadTasks() {
           <div style="font-size:13px;font-weight:700;color:var(--text-0)">✅ Implementation Tasks</div>
           <div style="font-size:12px;color:var(--text-2)">${d.count||0} tasks across ${waveCount} waves</div>
         </div>
-        <button class="btn-sm" data-act-click="specGenTasks()" style="flex-shrink:0">🔄 Regenerate Tasks</button>
+        <button class="btn-sm u-6ee0661e" data-act-click="specGenTasks()" >🔄 Regenerate Tasks</button>
       </div>
       <div class="spec-stream-log" id="spec-log" style="display:none"></div>
     `;
@@ -375,7 +375,7 @@ async function specLoadTasks() {
       html += `
         <div style="color:var(--text-3);font-size:12px;padding:20px;text-align:center">
           No tasks yet.<br>
-          <button class="btn" data-act-click="specGenTasks()" style="margin-top:12px">✅ Generate Tasks from Design</button>
+          <button class="btn u-56f43562" data-act-click="specGenTasks()" >✅ Generate Tasks from Design</button>
         </div>`;
     } else {
       for (const [wave, tasks] of Object.entries(waves)) {
@@ -385,7 +385,7 @@ async function specLoadTasks() {
           html += `
             <div class="spec-task-card ${done?'done':''}">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-                <span style="font-size:14px">${done?'✅':'⬜'}</span>
+                <span class="u-433de30b">${done?'✅':'⬜'}</span>
                 <strong style="color:var(--text-0);font-size:12px">${t.task_no}. ${escHtml(t.title)}</strong>
                 <span style="margin-left:auto;font-size:10px;background:var(--bg-3);padding:1px 6px;border-radius:4px;color:var(--text-3)">${escHtml(t.agent_id||'builder')}</span>
               </div>
@@ -532,7 +532,7 @@ async function renderHooks() {
 
     pane.innerHTML = `
     
-    <div style="padding:20px;max-width:900px;margin:0 auto">
+    <div class="u-f8d5799a">
       <div class="section-head">
         <div>
           <h2>⚡ Agent Hooks</h2>
@@ -558,7 +558,7 @@ async function renderHooks() {
 
       <!-- Recent runs -->
       <div style="margin-top:24px">
-        <div style="font-size:13px;font-weight:700;margin-bottom:10px">📋 Recent Hook Runs</div>
+        <div class="u-f9e226da">📋 Recent Hook Runs</div>
         <div id="hook-runs-list" style="font-size:11px;color:var(--text-2)">Loading…</div>
       </div>
     </div>`;
@@ -695,7 +695,7 @@ async function hookLoadRuns() {
     el.innerHTML = (d.runs||[]).map((run) => `
       <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--border)">
         <span style="font-size:10px;background:var(--bg-3);padding:1px 5px;border-radius:4px;color:var(--text-3)">${escHtml(run.event||'')}</span>
-        <span style="font-weight:600">${escHtml(run.hook_name||'')}</span>
+        <span class="u-eed0f8fb">${escHtml(run.hook_name||'')}</span>
         <span style="color:var(--text-3)">${run.duration_ms}ms</span>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-2)">${escHtml((run.output||'').slice(0,60))}</span>
         <span style="font-size:10px;color:var(--text-3)">${new Date(run.created_at).toLocaleTimeString()}</span>
@@ -761,8 +761,8 @@ async function renderCodeIndex() {
         <canvas id="ci-graph-canvas" class="ci-graph-canvas"></canvas>
         <div id="ci-tab-content" style="position:absolute;inset:0;overflow:auto;display:none;padding:16px;background:var(--bg-0)"></div>
         <div id="ci-empty-state" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-3)">
-          <div style="font-size:48px;margin-bottom:12px">🕸️</div>
-          <div style="font-size:16px;font-weight:600;margin-bottom:8px">Codebase Index</div>
+          <div class="u-5c383099">🕸️</div>
+          <div class="u-5f73ae8a">Codebase Index</div>
           <div style="font-size:13px;max-width:340px;text-align:center;line-height:1.6">
             Like Windsurf Codemaps & Augment Code — index your project to see a live dependency graph, find complex functions, detect dead code.
           </div>
@@ -968,14 +968,14 @@ async function ciShowComplexity(el) {
   const d = await fetch('/api/codeindex/complexity?min_complexity=3').then(r=>r.ok?r.json().catch(()=>{}):null);
   const max = Math.max(...(d.hotspots||[]).map((h) =>h.complexity), 10);
   el.innerHTML = `
-    <div style="font-size:13px;font-weight:700;margin-bottom:12px">🔥 High Complexity Functions (cyclomatic complexity ≥ 3)</div>
+    <div class="u-8eef54b3">🔥 High Complexity Functions (cyclomatic complexity ≥ 3)</div>
     ${(d.hotspots||[]).map((h) => {
       const pct=Math.round(h.complexity/max*100);
       const col=h.complexity>10?'var(--danger)':h.complexity>5?'var(--warning)':'var(--success)';
       return `
-        <div class="spec-task-card" style="margin-bottom:6px">
+        <div class="spec-task-card u-4e420aff" >
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <strong style="font-size:12px">${escHtml(h.symbol_name)}</strong>
+            <strong class="u-6cb285c6">${escHtml(h.symbol_name)}</strong>
             <span style="font-size:11px;color:${col};font-weight:700">CC: ${h.complexity}</span>
             <span style="font-size:10px;color:var(--text-3);margin-left:auto">${escHtml(h.filepath?.split('/').slice(-2).join('/'))}</span>
           </div>
@@ -987,7 +987,7 @@ async function ciShowComplexity(el) {
 async function ciShowDeadCode(el) {
   const d = await fetch('/api/codeindex/dead-code').then(r=>r.ok?r.json().catch(()=>{}):null);
   el.innerHTML = `
-    <div style="font-size:13px;font-weight:700;margin-bottom:12px">💀 Potentially Dead Code (${d.count} symbols unreferenced)</div>
+    <div class="u-8eef54b3">💀 Potentially Dead Code (${d.count} symbols unreferenced)</div>
     ${(d.dead_symbols||[]).slice(0,30).map((s) => `
       <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:12px">
         <span style="color:var(--danger)">💀</span>
@@ -1158,7 +1158,7 @@ async function renderArena() {
     <!-- Bottom: leaderboard -->
     <div style="background:var(--bg-1);border-top:2px solid var(--border);max-height:220px;overflow:hidden;display:flex;flex-direction:column;flex-shrink:0">
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">
-        <span style="font-weight:700;font-size:13px">🏆 ELO Leaderboard</span>
+        <span class="u-88697aec">🏆 ELO Leaderboard</span>
         <span style="font-size:11px;color:var(--text-3)">Based on your votes</span>
         <button class="btn-sm u-6d000617" data-act-click="arenaAutoJudge()" >🤖 Auto-Judge Last</button>
       </div>

@@ -71,7 +71,7 @@ function connectRenderStats(s) {
   if (!el) return;
   const chip = (label, value, accent) =>
     `<div style="background:var(--bg-2);border:1px solid ${accent||'var(--border)'};border-radius:var(--radius-sm);padding:8px 14px">
-       <div style="font-size:18px;font-weight:800">${value}</div>
+       <div class="u-80b90e3a">${value}</div>
        <div style="font-size:11px;color:var(--text-2)">${escHtml(label)}</div>
      </div>`;
   el.innerHTML =
@@ -111,7 +111,7 @@ function connectRenderBody() {
   // "6 apps need credentials" is actionable; a wall of 37 equal cards is not.
   const banner = (connectFilter === 'all' && needsSetup.length)
     ? `<div style="background:var(--bg-2);border:1px solid var(--orange,#e0821c);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:14px">
-        <div style="font-weight:700;font-size:13px">⚙️ ${needsSetup.length} app${needsSetup.length===1?'':'s'} need credentials</div>
+        <div class="u-88697aec">⚙️ ${needsSetup.length} app${needsSetup.length===1?'':'s'} need credentials</div>
         <div style="font-size:12px;color:var(--text-2);margin-top:3px">
           ${needsSetup.slice(0,6).map(i => escHtml(i.name)).join(' · ')}
         </div>
@@ -165,7 +165,7 @@ async function connectShowDetail(id) {
       <div data-stop="1" style="width:min(520px,100%);height:100%;overflow-y:auto;background:var(--bg-1);border-left:1px solid var(--border);padding:22px">
         <div style="display:flex;align-items:flex-start;gap:12px">
           <span style="font-size:32px">${d.icon || '🔧'}</span>
-          <div class="u-97445a8d"><div style="font-size:18px;font-weight:800">${escHtml(d.name)}</div>
+          <div class="u-97445a8d"><div class="u-80b90e3a">${escHtml(d.name)}</div>
             <div style="font-size:12px;color:var(--text-3)">${escHtml(d.kind)} · ${escHtml(d.category)} · ${d.ready?'ready':'needs setup'}</div></div>
           <button data-act-click="connectClose()" class="btn btn-ghost btn-sm">✕</button>
         </div>
@@ -179,7 +179,7 @@ async function connectShowDetail(id) {
         <div style="margin-top:16px;display:flex;gap:8px">
           <button data-item="${escHtml(d.id)}" data-act-click="connectTest($data.item)" class="btn btn-ghost u-97445a8d" >Test connection</button>
         </div>
-        <div id="connect-test-result" style="margin-top:10px"></div>
+        <div id="connect-test-result" class="u-d2c171b1"></div>
       </div>
     </div>`;
   } catch (ex) { toast('Error: ' + ex.message, 'err'); }

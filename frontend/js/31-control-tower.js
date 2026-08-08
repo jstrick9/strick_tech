@@ -51,7 +51,7 @@ async function refreshControlTower() {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
         <div>
-          <div style="font-weight:700;margin-bottom:10px">Agent Runs</div>
+          <div class="u-cbf73b78">Agent Runs</div>
           <div style="display:flex;flex-direction:column;gap:5px">
             ${runList.length === 0 ? emptyState({icon:'📊',title:'No runs yet',body:'Agent runs appear here with full traces and cost breakdown.'}) :
             runList.slice(0,10).map(r=>{
@@ -74,7 +74,7 @@ async function refreshControlTower() {
         </div>
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-weight:700">💰 Budget Guardrails</div>
+            <div class="u-e3ec02ac">💰 Budget Guardrails</div>
             <button data-act-click="addBudgetRule()" class="btn btn-primary btn-sm">＋ Rule</button>
           </div>
           ${helpPanel({title:'Stop agents before costs run away',body:'Set limits per agent or globally. Warn or auto-stop when limit is hit.'})}

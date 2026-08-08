@@ -130,7 +130,7 @@ async function renderWorkflow() {
         <button class="wf-zoom-btn" data-act-click="wfZoom(0.15)" title="Zoom in (⌘+)">＋</button>
         <div class="wf-zoom-label" id="wf-zoom-label">100%</div>
         <button class="wf-zoom-btn" data-act-click="wfZoom(-0.15)" title="Zoom out (⌘-)">−</button>
-        <button class="wf-zoom-btn" data-act-click="wfZoomReset()" title="Reset zoom" style="font-size:9px">1:1</button>
+        <button class="wf-zoom-btn u-fb2957a3" data-act-click="wfZoomReset()" title="Reset zoom" >1:1</button>
       </div>
 
       <!-- Minimap -->
@@ -1479,17 +1479,17 @@ async function renderProfiler() {
       </div>
 
       <!-- Flamegraph -->
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden">
+      <div class="u-3dca1cc8">
         <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-          <span style="font-weight:700">🔥 Flamegraph</span>
+          <span class="u-e3ec02ac">🔥 Flamegraph</span>
           <span style="font-size:11px;color:var(--text-3)">Relative execution time by function</span>
         </div>
         <div id="flamegraph-container" style="padding:16px;overflow-x:auto"></div>
       </div>
 
       <!-- Endpoint latency table -->
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden">
-        <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700">⏱️ Endpoint Latency (Top ${(ep.endpoints||[]).length})</div>
+      <div class="u-3dca1cc8">
+        <div class="u-e11aec3d">⏱️ Endpoint Latency (Top ${(ep.endpoints||[]).length})</div>
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:collapse;font-size:12px">
             <thead>
@@ -1531,7 +1531,7 @@ async function renderProfiler() {
       <!-- DB stats -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="u-f132e9db">
-          <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700">🗄️ Database Tables</div>
+          <div class="u-e11aec3d">🗄️ Database Tables</div>
           <div style="padding:12px;max-height:280px;overflow-y:auto">
             ${(db.tables||[]).map(t => `
               <div style="display:flex;justify-content:space-between;padding:5px 6px;border-radius:6px;font-size:12px">
@@ -1545,7 +1545,7 @@ async function renderProfiler() {
           </div>
         </div>
         <div class="u-f132e9db">
-          <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700">🤖 Agent Timings</div>
+          <div class="u-e11aec3d">🤖 Agent Timings</div>
           <div style="padding:12px;max-height:280px;overflow-y:auto">
             ${(at.timings||[]).map(t => `
               <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 6px;border-radius:6px;font-size:12px">
@@ -1565,9 +1565,9 @@ async function renderProfiler() {
       <div id="mem-snapshots-area" class="u-1b0f4999"></div>
 
       <!-- FIX 6: Code Profiler panel -->
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-top:16px;overflow:hidden">
-        <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700">⚡ Code Profiler</div>
-        <div style="padding:16px">
+      <div class="u-55258e1a">
+        <div class="u-e11aec3d">⚡ Code Profiler</div>
+        <div class="u-287f770e">
           <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Run a Python snippet and see cProfile stats (safe built-ins only)</div>
           <textarea id="profiler-code-input" rows="5" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;color:var(--text-0);font-family:monospace;font-size:12px;resize:vertical;box-sizing:border-box" placeholder="# Example:\nx = [i**2 for i in range(10000)]\nresult = sum(x)\nprint(f'Sum: {result}')"></textarea>
           <div style="display:flex;gap:8px;margin-top:8px">
@@ -1706,7 +1706,7 @@ async function renderPluginSDK() {
     const [packs, reg] = await Promise.all([packsR.json(), regR.json()]);
 
     pane.innerHTML = `
-    <div style="padding:20px;max-width:1100px;margin:0 auto">
+    <div class="u-8316cf9b">
       <div class="section-head">
         <div>
           <h2>🛠️ Plugin SDK</h2>
@@ -1731,7 +1731,7 @@ async function renderPluginSDK() {
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
                   <span class="u-b9199e22">${p.icon||'🔧'}</span>
                   <div>
-                    <div style="font-weight:600;font-size:13px">${escHtml(p.name)}</div>
+                    <div class="u-160b0675">${escHtml(p.name)}</div>
                     <div style="font-size:10px;color:var(--text-3)">v${p.version||'1.0.0'} · ${(p.skills||[]).length} skills</div>
                   </div>
                   ${p.published ? '<span style="margin-left:auto;font-size:10px;background:rgba(61,186,122,.15);color:var(--success);padding:2px 6px;border-radius:4px;border:1px solid var(--success)">Published</span>' : ''}
@@ -1747,7 +1747,7 @@ async function renderPluginSDK() {
               <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;font-size:12px">
                 <div style="display:flex;gap:6px;align-items:center">
                   <span>${p.icon||'🔧'}</span>
-                  <span style="font-weight:600">${escHtml(p.name)}</span>
+                  <span class="u-eed0f8fb">${escHtml(p.name)}</span>
                   <span style="color:var(--text-3);margin-left:auto">${(p.skills||[]).length} skills</span>
                 </div>
               </div>
@@ -1758,8 +1758,8 @@ async function renderPluginSDK() {
         <!-- Editor area -->
         <div id="sdk-editor-area">
           <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center;color:var(--text-3)">
-            <div style="font-size:40px;margin-bottom:12px">🛠️</div>
-            <div style="font-size:16px;font-weight:600;margin-bottom:8px">Plugin SDK</div>
+            <div class="u-da61af79">🛠️</div>
+            <div class="u-5f73ae8a">Plugin SDK</div>
             <div style="font-size:13px;max-width:380px;margin:0 auto 16px">
               Create and publish plugin packs that add custom AI skills, sidebar items, and integrations to Agentic OS.
             </div>
@@ -1767,8 +1767,8 @@ async function renderPluginSDK() {
           </div>
 
           <!-- Format reference -->
-          <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;margin-top:16px;overflow:hidden">
-            <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700">📋 Pack Format Reference</div>
+          <div class="u-55258e1a">
+            <div class="u-e11aec3d">📋 Pack Format Reference</div>
             <div style="padding:16px;font-size:11px;font-family:monospace;color:var(--text-1);overflow-x:auto;white-space:pre-wrap;max-height:300px;overflow-y:auto">${escHtml(`{
   "id": "my-plugin-pack",        // Unique ID (lowercase, hyphens)
   "name": "My Plugin Pack",      // Display name
@@ -1844,7 +1844,7 @@ async function sdkSelectPack(packId) {
             <button class="btn-sm sdk-delete" style="color:var(--danger);border-color:var(--danger)" data-pack-id="${escHtml(packId)}">🗑</button>
           </div>
         </div>
-        <div style="padding:16px">
+        <div class="u-287f770e">
           <!-- Skills list -->
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:8px">Skills (${(pack.skills||[]).length})</div>
           <div id="sdk-skills-list">
@@ -1852,7 +1852,7 @@ async function sdkSelectPack(packId) {
               <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px">
                 <span>${s.icon||'⚡'}</span>
                 <div class="u-97445a8d">
-                  <div style="font-size:13px;font-weight:600">${escHtml(s.name||s.id)}</div>
+                  <div class="u-eb673ec6">${escHtml(s.name||s.id)}</div>
                   <div style="font-size:11px;color:var(--text-3)">${escHtml((s.description||'').slice(0,60))}</div>
                 </div>
                 <button class="btn-sm sdk-test" data-pack-id="${escHtml(packId)}" data-skill-id="${escHtml(s.id)}">▶ Test</button>
@@ -2618,17 +2618,17 @@ window.renderPQCVault = async function() {
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px">
-        <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:16px;padding:20px">
+        <div class="settings-card u-b6c1d896" >
           <h3 style="margin:0 0 8px;font-size:15px;color:var(--text-0)">KEM Hybrid Engine</h3>
           <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">ML-KEM-1024 (Kyber-1024) combined with classical ECDH X25519 for FIPS 203 compliant zero-trust quantum resilience.</p>
           <span class="tech-badge" style="color:var(--success);border-color:var(--success)">ACTIVE · FIPS 203 COMPLIANT</span>
         </div>
-        <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:16px;padding:20px">
+        <div class="settings-card u-b6c1d896" >
           <h3 style="margin:0 0 8px;font-size:15px;color:var(--text-0)">Lattice Signatures</h3>
           <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">ML-DSA-87 (Dilithium-5) deterministic lattice signatures verifying all agentic memory state and audit commits.</p>
           <span class="tech-badge" style="color:var(--success);border-color:var(--success)">ACTIVE · FIPS 204 COMPLIANT</span>
         </div>
-        <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:16px;padding:20px">
+        <div class="settings-card u-b6c1d896" >
           <h3 style="margin:0 0 8px;font-size:15px;color:var(--text-0)">Vault Encryption Storage</h3>
           <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">Encrypted AES-256-GCM + Kyber KEM payload vault at <code style="font-family:monospace;color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/memory/pqc/</code></p>
           <span class="tech-badge" style="color:var(--accent-text);border-color:var(--accent-text)">HARDENED STORAGE</span>
@@ -2824,17 +2824,17 @@ window.renderFinetuneWorkstation = async function() {
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px">
-        <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:16px;padding:20px">
+        <div class="settings-card u-b6c1d896" >
           <h3 style="margin:0 0 8px;font-size:15px;color:var(--text-0)">Hardware Accelerator Check</h3>
           <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">${hw.is_apple_silicon ? 'Finetuning leverages Apple Metal accelerator and Unified Memory for zero-swap local training.' : 'CPU / CUDA VNNI multi-threading active for local LoRA adapter training.'}</p>
           <span class="tech-badge" style="color:var(--success);border-color:var(--success)">${hw.is_apple_silicon ? 'APPLE SILICON METAL ACCELERATED' : 'CPU MULTI-CORE ACTIVE'} (${hw.ram_total_gb} GB RAM)</span>
         </div>
-        <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:16px;padding:20px">
+        <div class="settings-card u-b6c1d896" >
           <h3 style="margin:0 0 8px;font-size:15px;color:var(--text-0)">LoRA Configuration</h3>
           <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">Rank (<code style="color:var(--accent-text)">r=16</code>), Alpha (<code style="color:var(--accent-text)">32</code>), Target modules (<code style="color:var(--accent-text)">q_proj, v_proj</code>) optimized for local inference.</p>
           <span class="tech-badge" style="color:var(--accent-text);border-color:var(--accent-text)">TARGET MODEL: ${escHtml(hw.recommended_model || 'llama3.1:8b')}</span>
         </div>
-        <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:16px;padding:20px">
+        <div class="settings-card u-b6c1d896" >
           <h3 style="margin:0 0 8px;font-size:15px;color:var(--text-0)">Adapter Export Storage</h3>
           <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">Exported adapter weights (.bin / GGUF) reside locally at <code style="font-family:monospace;color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/memory/finetune/adapters/</code></p>
           <span class="tech-badge" style="color:var(--warning);border-color:var(--warning)">LOCAL ZERO-CLOUD EXPORT</span>
@@ -2855,7 +2855,7 @@ window.renderFinetuneWorkstation = async function() {
         </div>
         <div id="lora-drop-zone" style="background:#04060f;border:2px dashed rgba(56,189,248,0.4);border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:all 0.2s"
           data-act-click="finetuneConvertIVREN()" data-hover="bc:var(--accent)" data-hover-out="bc:rgba(56,189,248,0.4)">
-          <div style="font-size:28px;margin-bottom:8px">🗂️ ➔ 📋</div>
+          <div class="u-d137430a">🗂️ ➔ 📋</div>
           <div style="font-weight:800;font-size:13.5px;color:var(--text-0);margin-bottom:4px">Click or drop IVREN Markdown files / JSONL corpora here</div>
           <div style="font-size:11.5px;color:var(--text-3);max-width:460px;margin:0 auto">Zero-shot instruction parsing formats all tier delta memories into <code style="color:var(--accent-text)">{"instruction": "...", "response": "..."}</code> ready for local Metal execution.</div>
         </div>

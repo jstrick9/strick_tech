@@ -381,7 +381,7 @@ function renderAgentList() {
       <div style="display:flex;align-items:center;gap:10px;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 12px;">
         <span class="u-4ff818ff">${a.avatar||'🤖'}</span>
         <div class="u-97445a8d">
-          <div style="font-weight:600;font-size:13px">${escHtml(a.name)}</div>
+          <div class="u-160b0675">${escHtml(a.name)}</div>
           <div style="font-size:11px;color:var(--text-2)">${escHtml(a.role||'')} • ${a.model||'default'}</div>
         </div>
         <button data-act-click="openAgentModal(${JSON.stringify(a.id)})" class="btn btn-ghost btn-sm">Edit</button>
@@ -3015,7 +3015,7 @@ function skeletonPage(_title = 'Loading…') {
       </div>
       <div class="page-content">
         ${skeletonStats(4)}
-        <div style="margin-top:20px">${skeletonList(5)}</div>
+        <div class="u-a26bda7d">${skeletonList(5)}</div>
       </div>
     </div>`;
 }
@@ -3603,9 +3603,9 @@ function renderMarkdownEnhanced(text) {
       <div style="display:flex;align-items:center;justify-content:space-between;background:#04060f;padding:6px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px">
         <span style="font-size:11px;font-weight:800;color:var(--accent-text);font-family:monospace">${escHtml(langLabel)}</span>
         <div style="display:flex;gap:6px;align-items:center">
-          <button data-act-click="openCodeInStudio(${JSON.stringify(id)},${jsArg(lang||'js')})" class="btn-3d btn-primary btn-sm" style="padding:2px 8px;font-size:10.5px" title="Load directly into primary Monaco editor buffer">⚡ Open in Studio ↗</button>
-          <button data-act-click="copyCodeBlock(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:10.5px">📋 Copy</button>
-          <button data-act-click="runCodeInTerminal(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm" style="padding:2px 8px;font-size:10.5px" title="Send snippet to System Terminal input">＞_ Terminal</button>
+          <button data-act-click="openCodeInStudio(${JSON.stringify(id)},${jsArg(lang||'js')})" class="btn-3d btn-primary btn-sm u-1cb634c0"  title="Load directly into primary Monaco editor buffer">⚡ Open in Studio ↗</button>
+          <button data-act-click="copyCodeBlock(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm u-1cb634c0" >📋 Copy</button>
+          <button data-act-click="runCodeInTerminal(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm u-1cb634c0"  title="Send snippet to System Terminal input">＞_ Terminal</button>
         </div>
       </div>
       ${lineNumHtml}<pre id="${id}" style="margin:0;padding:14px${lineCount > 1 ? ' 14px 14px 50px' : ''};background:#060814;overflow-x:auto;font-size:12.5px;line-height:1.65;font-family:'JetBrains Mono','Fira Code',monospace"><code class="hljs language-${langLabel}" data-raw="${encodeURIComponent(code)}">${highlightedCode}</code></pre>
@@ -4030,7 +4030,7 @@ function showMentionDropdown(query, atIdx) {
     ...agentMatches.slice(0, 6).map(a =>
       `<div class="mention-item" data-act-click="selectMention(${jsArg('@' + (a.name) + '')})" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:var(--transition)" data-hover="bg:var(--bg-3)" data-hover-out="bg:" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <span class="u-1444c6ea">${a.avatar||'🤖'}</span>
-        <div><div style="font-size:13px;font-weight:600">${escHtml(a.name)}</div><div style="font-size:10.5px;color:var(--text-3)">${escHtml(a.role||'')}</div></div>
+        <div><div class="u-eb673ec6">${escHtml(a.name)}</div><div style="font-size:10.5px;color:var(--text-3)">${escHtml(a.role||'')}</div></div>
       </div>`),
   ].join('');
 
@@ -4818,9 +4818,9 @@ async function studioRenderVersionHistory() {
     list.innerHTML = hist.map(v => `
       <div style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:5px;font-size:11px" data-hover="bg:var(--bg-3)" data-hover-out="bg:">
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-2)" title="${escHtml(v.message || '')}">v${v.id} · ${escHtml((v.ts||'').slice(5,16))} · ${escHtml(v.author||'')}</span>
-        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" data-act-click="studioPreviewVersion(${v.id})" title="Preview (load into editor)">👁</button>
-        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" data-act-click="studioDiffAgainstVersion(${v.id})" title="Compare with current live file">⇄</button>
-        <button type="button" class="btn-3d btn-ghost btn-sm" style="padding:2px 6px;font-size:10px" data-act-click="studioRestoreVersion(${v.id})" title="Restore this version">↶</button>
+        <button type="button" class="btn-3d btn-ghost btn-sm u-04562604"  data-act-click="studioPreviewVersion(${v.id})" title="Preview (load into editor)">👁</button>
+        <button type="button" class="btn-3d btn-ghost btn-sm u-04562604"  data-act-click="studioDiffAgainstVersion(${v.id})" title="Compare with current live file">⇄</button>
+        <button type="button" class="btn-3d btn-ghost btn-sm u-04562604"  data-act-click="studioRestoreVersion(${v.id})" title="Restore this version">↶</button>
       </div>`).join('');
   } catch(e) {
     list.innerHTML = '<div style="padding:8px;color:var(--danger)">Failed to load history.</div>';
@@ -5014,7 +5014,7 @@ async function studioQR() {
   const qrUrl = j.qr_web || '';
   if (qrUrl) {
     await gmAlert('📲 QR Code — Scan on your phone',
-      `<div style="text-align:center">
+      `<div class="u-91a87015">
         <img src="${qrUrl}" style="width:180px;height:180px;border-radius:10px;margin-bottom:10px" alt="QR code linking to the shared tunnel URL">
         <div style="font-size:12px;color:var(--text-2)">Make sure your phone is on the same Wi-Fi</div>
         <div style="font-size:11px;color:var(--accent-text);margin-top:4px">${j.urls?.web_preview||''}</div>

@@ -51,7 +51,7 @@ function renderObsidianBody(s) {
     <div>
       <div class="settings-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <h3 style="margin:0">📝 Notes <span id="obs-note-count" style="font-size:11px;color:var(--text-3);font-weight:400"></span></h3>
+          <h3 class="u-11696618">📝 Notes <span id="obs-note-count" style="font-size:11px;color:var(--text-3);font-weight:400"></span></h3>
           <button class="btn-sm" data-act-click="loadObsidianNotes()">↻ Refresh</button>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:8px">
@@ -59,7 +59,7 @@ function renderObsidianBody(s) {
         </div>
         <div id="obs-notes" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">Loading…</div>
       </div>
-      <div class="settings-card" style="margin-top:12px">
+      <div class="settings-card u-56f43562" >
         <h3>✏️ Quick Note</h3>
         <input id="obs-note-title" placeholder="Note title…" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none;margin-bottom:7px;box-sizing:border-box">
         <textarea id="obs-note-body" placeholder="Content (Markdown)…" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:12px;outline:none;resize:none;min-height:72px;font-family:monospace;box-sizing:border-box"></textarea>
@@ -175,7 +175,7 @@ async function loadObsidianNotes(q='') {
       <div style="display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer;transition:background .1s"
            data-hover="bg:var(--bg-3)" data-hover-out="bg:"
            data-act-click="viewNote(${JSON.stringify(n.path)})">
-        <span style="font-size:12px">${n.folder==='Daily'?'📅':'📄'}</span>
+        <span class="u-6cb285c6">${n.folder==='Daily'?'📅':'📄'}</span>
         <div class="u-59eddc67">
           <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(n.name)}</div>
           <div style="font-size:10px;color:var(--text-3)">${n.modified}${n.folder?' · '+escHtml(n.folder):''}</div>

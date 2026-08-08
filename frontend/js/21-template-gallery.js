@@ -46,7 +46,7 @@
       + '</div>'
       + '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap" id="tmpl-cats"></div>'
       + '</div>'
-      + '<div style="padding:20px">'
+      + '<div class="u-769fed37">'
       + '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">'
       + '<input id="tmpl-search" placeholder="Search templates…" data-act-input="filterTemplates()" '
       + 'style="flex:1;max-width:300px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-0);font-size:13px;outline:none">'
@@ -457,7 +457,7 @@
           'Replace existing files?',
           'Scaffolding <strong>' + escHtml(j.template || templateId) + '</strong> will replace ' +
           (j.conflicts || []).length + ' file(s) already in your workspace:<br><br>' +
-          '<code style="font-family:monospace">' + escHtml(files) + '</code><br><br>' +
+          '<code class="u-72126da2">' + escHtml(files) + '</code><br><br>' +
           'A backup is saved to Studio\u2019s version history first, so this can be undone.'
         );
         if (!proceed) { toast('Scaffold cancelled — nothing changed', 'ok', 2000); return; }

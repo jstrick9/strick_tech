@@ -23,7 +23,7 @@ async function renderIntegrations() {
     const rules    = Array.isArray(rulesRaw)    ? rulesRaw    : (rulesRaw?.rules        || []);
   const catColors={payments:'#4cc98a',auth:'#5b8af8',backend:'#9d74f5',ai:'#e8a237',email:'#38c5d8',database:'#f08850',analytics:'#f06080'};
   pane.innerHTML=`
-    ${pageHeader?.({title:'🔌 Integrations & Docs',subtitle:'Scaffold Stripe, Auth, Email. Generate docs. Set AI project rules.'})||'<div style="padding:20px"><h2>🔌 Integrations</h2></div>'}
+    ${pageHeader?.({title:'🔌 Integrations & Docs',subtitle:'Scaffold Stripe, Auth, Email. Generate docs. Set AI project rules.'})||'<div class="u-769fed37"><h2>🔌 Integrations</h2></div>'}
     <div class="page-content">
     <div style="display:flex;gap:2px;background:var(--bg-2);border-radius:var(--radius-sm);padding:3px;margin-bottom:16px;width:fit-content">
       <button data-act-click="switchIntTab('ints')" id="inttab-ints" class="btn btn-primary btn-sm">🔌 Integrations</button>
@@ -46,7 +46,7 @@ async function renderIntegrations() {
           <div class="card card-interactive" id="int-card-${i.id}" data-category="${i.category}">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
               <span class="u-881f70f9">${i.emoji}</span>
-              <div><div style="font-weight:700;font-size:13px">${escHtml(i.name)}</div>
+              <div><div class="u-88697aec">${escHtml(i.name)}</div>
               <span style="font-size:10px;padding:2px 7px;border-radius:99px;background:${catColors[i.category]||'var(--bg-4)'}22;color:${catColors[i.category]||'var(--text-2)'}">${i.category}</span></div>
             </div>
             <p style="font-size:12px;color:var(--text-2);margin-bottom:8px;line-height:1.5;min-height:28px">${escHtml(i.description)}</p>
@@ -61,7 +61,7 @@ async function renderIntegrations() {
         <div class="card">
           <h3 class="u-da12f285">Auto-generate documentation</h3>
           <div style="display:flex;flex-direction:column;gap:7px">
-            ${docTypes.map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-3);border-radius:var(--radius-sm);padding:9px 12px"><div><div style="font-size:13px;font-weight:600">${d.label}</div><div style="font-size:11.5px;color:var(--text-2)">${d.desc}</div></div><button data-act-click="generateDoc(${JSON.stringify(d.id)})" class="btn btn-primary btn-sm" id="docbtn-${d.id}">Generate</button></div>`).join('')}
+            ${docTypes.map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-3);border-radius:var(--radius-sm);padding:9px 12px"><div><div class="u-eb673ec6">${d.label}</div><div style="font-size:11.5px;color:var(--text-2)">${d.desc}</div></div><button data-act-click="generateDoc(${JSON.stringify(d.id)})" class="btn btn-primary btn-sm" id="docbtn-${d.id}">Generate</button></div>`).join('')}
           </div>
           <div id="doc-status" style="font-size:12px;color:var(--text-2);margin-top:10px"></div>
         </div>
@@ -71,15 +71,15 @@ async function renderIntegrations() {
     <div id="int-tab-rules" style="display:none">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="card">
-          <h3 style="margin-bottom:6px">📋 .agenticrules</h3>
+          <h3 class="u-4e420aff">📋 .agenticrules</h3>
           <p style="font-size:12px;color:var(--text-2);margin-bottom:10px">Like Cursor's .cursorrules — all AI agents read these rules before every response.</p>
           <textarea id="rules-editor" style="width:100%;min-height:280px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical;outline:none;line-height:1.6">${escHtml(rules.content||'')}</textarea>
           <div style="display:flex;gap:8px;margin-top:8px"><button data-act-click="saveProjectRules()" class="btn btn-primary u-97445a8d" >💾 Save</button><button data-act-click="loadDefaultRules()" class="btn btn-ghost btn-sm">Reset</button></div>
         </div>
         <div class="card">
-          <h3 style="margin-bottom:10px">How rules work</h3>
+          <h3 class="u-761d3add">How rules work</h3>
           <p style="font-size:12.5px;color:var(--text-2);line-height:1.65;margin-bottom:12px">Rules enforce consistency across all AI agents in your workspace — tech stack, code style, behavior patterns.</p>
-          <div style="font-size:12px">
+          <div class="u-6cb285c6">
             ${[['Tech Stack','- Framework: Next.js 15\n- CSS: Tailwind + shadcn'],['Code Style','- TypeScript always\n- async/await preferred'],['Behavior','- Complete code only\n- Add error handling']].map(([l,e])=>`<div style="margin-bottom:8px;background:var(--bg-3);border-radius:6px;padding:8px"><div style="font-weight:600;font-size:11px;color:var(--text-2);margin-bottom:3px">${l}</div><pre style="font-size:11px;color:var(--text-1);white-space:pre-wrap;font-family:monospace">${escHtml(e)}</pre></div>`).join('')}
           </div>
         </div>
@@ -132,7 +132,7 @@ async function generateDoc(type) {
     if (j.ok) {
       if (st)   st.textContent = `✅ ${escHtml(j.filename||type+'.md')} saved`;
       if (prev) prev.innerHTML = `
-        <div style="font-weight:700;margin-bottom:6px">${escHtml(j.filename||'')}</div>
+        <div class="u-d3e5189a">${escHtml(j.filename||'')}</div>
         <pre style="font-size:11px;white-space:pre-wrap;max-height:260px;overflow-y:auto;color:var(--text-1)">${escHtml((j.content||'').slice(0,1200))}</pre>`;
       showToast(`📄 ${j.filename} generated`);
       studioLoadFileTree?.();

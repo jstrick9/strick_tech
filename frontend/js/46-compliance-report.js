@@ -70,10 +70,10 @@ async function renderAuditLog() {
       <div style="padding:8px;font-size:10px;color:var(--text-3)">
         Quick exports:
       </div>
-      <a href="/api/audit-log/export/json?limit=5000" download style="text-decoration:none">
+      <a href="/api/audit-log/export/json?limit=5000" download class="u-80d654f9">
         <div class="crc-nav-item"><span class="crc-nav-icon">⬇</span> Export JSON</div>
       </a>
-      <a href="/api/audit-log/export/csv?limit=5000" download style="text-decoration:none">
+      <a href="/api/audit-log/export/csv?limit=5000" download class="u-80d654f9">
         <div class="crc-nav-item"><span class="crc-nav-icon">⬇</span> Export CSV</div>
       </a>
     </div>
@@ -421,7 +421,7 @@ function crcSetFwAndGenerate(fw) {
 function crcRenderHistory(container) {
   if (!_crcReports.length) {
     container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-3)">
-      <div style="font-size:40px;margin-bottom:12px">📄</div>
+      <div class="u-da61af79">📄</div>
       <div style="font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:8px">No Reports Generated Yet</div>
       <div style="font-size:12px;line-height:1.6;margin-bottom:20px">Generate your first compliance report from the Generate tab.</div>
       <button class="crc-gen-btn" style="width:auto;padding:10px 24px" data-act-click="crcSetTab('generate')">📄 Generate First Report</button>
@@ -516,12 +516,12 @@ async function crcRenderAuditChain(container) {
       <span class="u-b9199e22">${chainOk?'🔗':'⚠️'}</span>
       <div>
         <div style="font-weight:700;font-size:13px;color:${chainOk?'var(--success)':'var(--danger)'}">${verifyR.message||'Chain status unknown'}</div>
-        <div style="font-size:10px;color:var(--text-3)">Entries verified: ${(verifyR.verified||0).toLocaleString()} · Chain tip: <code style="font-size:9px">${chainTip}</code></div>
+        <div style="font-size:10px;color:var(--text-3)">Entries verified: ${(verifyR.verified||0).toLocaleString()} · Chain tip: <code class="u-fb2957a3">${chainTip}</code></div>
       </div>
       <div style="display:flex;gap:6px;margin-left:auto">
         <button class="crc-action-btn" data-act-click="crcVerifyChain()">🔍 Verify</button>
-        <a href="/api/audit-log/export/json?limit=5000" download class="crc-action-btn" style="text-decoration:none">⬇ JSON</a>
-        <a href="/api/audit-log/export/csv?limit=5000" download class="crc-action-btn" style="text-decoration:none">⬇ CSV</a>
+        <a href="/api/audit-log/export/json?limit=5000" download class="crc-action-btn u-80d654f9" >⬇ JSON</a>
+        <a href="/api/audit-log/export/csv?limit=5000" download class="crc-action-btn u-80d654f9" >⬇ CSV</a>
         <button class="crc-action-btn primary" data-act-click="crcQuickReport('pdf','General')">📄 PDF Report</button>
       </div>
     </div>

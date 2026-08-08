@@ -13,10 +13,10 @@ async function renderFinOps() {
   const srcIcons = {llm:'🤖',mcp:'🔀',connector:'🔌',supervisor:'🧠',loop:'♾️',system:'⚙️'};
 
   pane.innerHTML = `
-  <div style="padding:20px;max-width:1100px;margin:0 auto">
-    <div class="section-head" style="margin-bottom:20px">
+  <div class="u-8316cf9b">
+    <div class="section-head u-49f14f8f" >
       <div>
-        <h2 style="margin:0 0 4px">💰 FinOps — Cost Attribution</h2>
+        <h2 class="u-58d955e1">💰 FinOps — Cost Attribution</h2>
         <p style="margin:0;color:var(--text-2);font-size:13px">Unified cost tracking per agent, goal, and task · Spending caps · Burn rate projections · Compliance export</p>
       </div>
       <div style="display:flex;gap:8px">
@@ -35,7 +35,7 @@ async function renderFinOps() {
         ['📈','Daily Projection',`$${(dash.projected_daily||0).toFixed(4)}`,'#9ece6a'],
         ['⚠️','Alerts',dash.unresolved_alerts||0,dash.unresolved_alerts>0?'var(--danger)':'var(--text-3)'],
       ].map(([icon,label,val,col])=>`
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+        <div class="u-d4cbd628">
           <div class="u-4ff818ff">${icon}</div>
           <div style="font-size:9px;color:var(--text-3);text-transform:uppercase">${label}</div>
           <div style="font-size:16px;font-weight:700;color:${col}">${val}</div>
@@ -64,9 +64,9 @@ async function renderFinOps() {
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button data-act-click="finopsFilterHeatmap('model')" class="btn-3d btn-ghost btn-sm" id="fo-filter-model" style="padding:4px 10px;font-size:11px;background:var(--accent-glow);border-color:var(--accent-text)">By Model</button>
-          <button data-act-click="finopsFilterHeatmap('role')" class="btn-3d btn-ghost btn-sm" id="fo-filter-role" style="padding:4px 10px;font-size:11px">By Agent Role</button>
-          <button data-act-click="finopsFilterHeatmap('folder')" class="btn-3d btn-ghost btn-sm" id="fo-filter-folder" style="padding:4px 10px;font-size:11px">By Folder</button>
-          <button data-act-click="toggleSplitWorkspace(true,'finops')" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:11px">🗂️ Secondary Dock</button>
+          <button data-act-click="finopsFilterHeatmap('role')" class="btn-3d btn-ghost btn-sm u-884e19b1" id="fo-filter-role" >By Agent Role</button>
+          <button data-act-click="finopsFilterHeatmap('folder')" class="btn-3d btn-ghost btn-sm u-884e19b1" id="fo-filter-folder" >By Folder</button>
+          <button data-act-click="toggleSplitWorkspace(true,'finops')" class="btn-3d btn-ghost btn-sm u-884e19b1" >🗂️ Secondary Dock</button>
         </div>
       </div>
       <div id="finops-treemap-grid" style="display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:110px 110px;gap:10px;font-family:monospace">
@@ -118,8 +118,8 @@ async function renderFinOps() {
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
       <!-- Cost by source -->
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px">
-        <div style="font-size:12px;font-weight:700;margin-bottom:12px">💸 Cost by Source</div>
+      <div class="u-07391746">
+        <div class="u-60a1db33">💸 Cost by Source</div>
         ${(dash.by_source_type||[]).map(s=>`
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
             <span class="u-1444c6ea">${srcIcons[s.source_type]||'⚙️'}</span>
@@ -130,13 +130,13 @@ async function renderFinOps() {
       </div>
 
       <!-- Budget caps -->
-      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px">
-        <div style="font-size:12px;font-weight:700;margin-bottom:12px">🚦 Budget Caps</div>
+      <div class="u-07391746">
+        <div class="u-60a1db33">🚦 Budget Caps</div>
         ${(dash.budget_caps||[]).map(c=>{
           const pct = c.limit_usd>0 ? Math.min((c.current_usd/c.limit_usd)*100,100) : 0;
           const barColor = pct>=100?'var(--danger)':pct>=80?'var(--warning)':'var(--success)';
           return `
-          <div style="margin-bottom:10px">
+          <div class="u-761d3add">
             <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
               <span style="color:var(--text-1)">${escHtml(c.name)}</span>
               <span style="color:${barColor}">${Math.round(pct)}% · $${(c.current_usd||0).toFixed(4)}/$${c.limit_usd}</span>
@@ -151,7 +151,7 @@ async function renderFinOps() {
 
     <!-- Top agents by cost -->
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:12px">🤖 Cost by Agent</div>
+      <div class="u-60a1db33">🤖 Cost by Agent</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
         ${(dash.by_agent||[]).map(a=>`
           <div style="background:var(--bg-3);border-radius:8px;padding:8px 12px;font-size:11px">
@@ -163,8 +163,8 @@ async function renderFinOps() {
     </div>
 
     <!-- Record cost manually -->
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:14px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:10px">📝 Manual Cost Entry</div>
+    <div class="u-07391746">
+      <div class="u-5cbb5569">📝 Manual Cost Entry</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
         <div><div style="font-size:10px;color:var(--text-3);margin-bottom:3px">Agent</div>
           <input id="fo-agent" placeholder="builder" style="background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text-0);width:100px"></div>

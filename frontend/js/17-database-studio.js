@@ -56,7 +56,7 @@ async function renderSQLiteTab(el) {
              style="padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;margin-bottom:2px;${dbActiveTable===t.name?'background:var(--accent-glow);color:var(--accent-hi)':''}"
              data-hover="bg:var(--bg-3)" data-hover-out="bg:${dbActiveTable===t.name?'var(--accent-glow)':''}"
         >
-          <div style="font-weight:600">${t.restricted ? '🔒 ' : ''}${escHtml(t.name)}${(t.sensitive_columns||[]).length ? ' <span style="color:var(--orange,#e0821c);font-size:10px">🔒</span>' : ''}</div>
+          <div class="u-eed0f8fb">${t.restricted ? '🔒 ' : ''}${escHtml(t.name)}${(t.sensitive_columns||[]).length ? ' <span style="color:var(--orange,#e0821c);font-size:10px">🔒</span>' : ''}</div>
           <div style="font-size:10.5px;color:var(--text-3)">${t.row_count} rows</div>
         </div>`).join('')}
     </div>
@@ -94,8 +94,8 @@ async function dbLoadTable(name) {
     const r    = await fetch(`/api/db/sqlite/table/${encodeURIComponent(name)}?limit=100`);
     if (r.status === 403) {
       const err = await r.json().catch(() => ({}));
-      el.innerHTML = `<div style="padding:16px">
-        <div style="font-weight:700;margin-bottom:6px">🔒 Protected table</div>
+      el.innerHTML = `<div class="u-287f770e">
+        <div class="u-d3e5189a">🔒 Protected table</div>
         <div style="font-size:13px;color:var(--text-2)">${escHtml(err.error||'This table is not readable through Database Studio.')}</div>
       </div>`;
       return;
@@ -107,7 +107,7 @@ async function dbLoadTable(name) {
     const { columns, rows, total } = data;
     el.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg-1);flex-shrink:0">
-        <span style="font-weight:700;font-size:13px">${escHtml(name)}</span>
+        <span class="u-88697aec">${escHtml(name)}</span>
         <span style="font-size:11px;color:var(--text-2)">${total} rows · ${columns.length} columns</span>
         <div style="margin-left:auto;display:flex;gap:6px">
           <button data-act-click="dbInsertRow(${jsArg(name)})" class="btn btn-primary btn-sm">+ Row</button>
@@ -124,7 +124,7 @@ async function dbLoadTable(name) {
           </thead>
           <tbody>
             ${rows.map((row, idx) => `
-              <tr style="border-bottom:1px solid var(--border)" data-hover="bg:var(--bg-3)" data-hover-out="bg:">
+              <tr class="u-1008415a" data-hover="bg:var(--bg-3)" data-hover-out="bg:">
                 ${columns.map(c => `<td style="padding:6px 10px;color:var(--text-1);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(String(row[c]??''))}">${escHtml(String(row[c]??''))}</td>`).join('')}
                 <td style="padding:6px 10px"><button data-row-idx="${idx}" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button></td>
               </tr>`).join('')}
@@ -385,9 +385,9 @@ async function supaGenerateSchema() {
 
 function renderSQLEditorTab(el) {
   el.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">
-    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
+    <div class="u-1a082645">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="font-weight:700">💻 SQL Editor</div>
+        <div class="u-e3ec02ac">💻 SQL Editor</div>
         <div style="display:flex;gap:6px">
           <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
             <input type="checkbox" id="sql-allow-write" style="accent-color:var(--red)">
@@ -457,7 +457,7 @@ async function runSQL(opts) {
     const deltas = j.deltas || {};
     const keys = Object.keys(deltas);
     res.innerHTML = `<div style="border-left:3px solid var(--accent, #4c8dff);padding-left:10px">
-      <div style="font-weight:700;margin-bottom:4px">🔍 Dry run — nothing was committed</div>
+      <div class="u-a848666e">🔍 Dry run — nothing was committed</div>
       <div style="font-size:13px;color:var(--text-1)">${escHtml(j.message||'')}</div>
       <div style="font-size:12px;color:var(--text-2);margin-top:4px">Risk: <b style="color:${j.risk==='critical'?'var(--red)':'var(--text-1)'}">${escHtml(j.risk||'')}</b></div>
       ${keys.length ? `<div style="font-size:12px;margin-top:8px">${keys.map(t =>
@@ -480,7 +480,7 @@ async function runSQL(opts) {
     <div style="overflow:auto;max-height:300px">
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr>${cols.map(c=>`<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border);color:var(--text-2);font-weight:700">${escHtml(c)}</th>`).join('')}</tr></thead>
-        <tbody>${rows.map(row=>`<tr style="border-bottom:1px solid var(--border)">${cols.map(c=>`<td style="padding:5px 8px;color:var(--text-1)">${escHtml(String(row[c]??''))}</td>`).join('')}</tr>`).join('')}</tbody>
+        <tbody>${rows.map(row=>`<tr class="u-1008415a">${cols.map(c=>`<td style="padding:5px 8px;color:var(--text-1)">${escHtml(String(row[c]??''))}</td>`).join('')}</tr>`).join('')}</tbody>
       </table>
     </div>`;
   } catch(ex) { if (res) res.innerHTML = `<div style="color:var(--red)">Error: ${escHtml(ex.message)}</div>`; }
@@ -495,7 +495,7 @@ async function renderSchemaDesignerTab(el) {
       <button data-act-click="generateSchema('sqlite')" class="btn btn-primary">Generate SQLite</button>
       <button data-act-click="generateSchema('supabase')" class="btn btn-ghost">Generate Supabase SQL</button>
     </div>
-    <div id="schema-result" style="margin-top:14px"></div>
+    <div id="schema-result" class="u-d6f2af6e"></div>
   </div>`;
 }
 
@@ -520,7 +520,7 @@ async function generateSchema(type) {
     const plan = j.plan || {};
     const warns = plan.warnings || [];
     const blocked = warns.some(w => String(w).indexOf('will be refused') !== -1);
-    el.innerHTML = `<div style="position:relative">
+    el.innerHTML = `<div class="u-d461c96d">
       <pre style="background:var(--bg-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto">${escHtml(j.sql)}</pre>
       <div style="margin-top:10px;padding:10px;border-radius:var(--radius-sm);border:1px solid ${warns.length?'var(--red)':'var(--border)'};background:var(--bg-1)">
         <div style="font-weight:700;font-size:12px;margin-bottom:6px">${warns.length ? '⚠️ Review before running' : '✅ Review'}</div>
@@ -612,10 +612,10 @@ async function renderDBAuditTab(el) {
   const riskColor = r => r === 'critical' ? 'var(--red)' : r === 'high' ? 'var(--orange, #e0821c)' : 'var(--text-2)';
   const chainOk = verified && (verified.valid ?? verified.ok);
 
-  el.innerHTML = `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
+  el.innerHTML = `<div class="u-1a082645">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div>
-        <div style="font-weight:700">📜 Database Audit Trail</div>
+        <div class="u-e3ec02ac">📜 Database Audit Trail</div>
         <div style="font-size:12px;color:var(--text-2)">Every write, schema change, and refused statement, append-only and hash-chained.</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
@@ -633,7 +633,7 @@ async function renderDBAuditTab(el) {
           let sqlText = '';
           try { sqlText = (JSON.parse(e.metadata || '{}').sql) || e.action_detail || ''; }
           catch (_) { sqlText = e.action_detail || ''; }
-          return `<tr style="border-bottom:1px solid var(--border)">
+          return `<tr class="u-1008415a">
             <td style="padding:6px 8px;color:var(--text-2);white-space:nowrap">${escHtml(String(e.created_at || '').slice(0, 19).replace('T', ' '))}</td>
             <td style="padding:6px 8px;color:var(--text-1)">${escHtml(e.action_type || '')}</td>
             <td style="padding:6px 8px;color:${riskColor(e.risk_level)};font-weight:600">${escHtml(e.risk_level || '')}</td>

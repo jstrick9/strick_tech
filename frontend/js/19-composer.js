@@ -74,7 +74,7 @@ async function renderComposer() {
       <!-- Branch previews -->
       <div class="settings-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <h3 style="margin:0">🌿 Branch Previews</h3>
+          <h3 class="u-11696618">🌿 Branch Previews</h3>
           <button data-act-click="createBranchPreview()" class="btn btn-primary btn-sm">+ Snapshot</button>
         </div>
         <p style="font-size:12.5px;color:var(--text-2)">Snapshot current state as a named preview URL. Share with clients before making changes.</p>
@@ -131,7 +131,7 @@ async function runComposer() {
               const card = document.createElement('div');
               card.id   = `comp-file-${btoa(f.path).slice(0,8)}`;
               card.style.cssText = 'background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:6px;font-size:12px';
-              card.innerHTML = `<span style="font-family:monospace">${escHtml(f.path)}</span> <span style="color:var(--text-3)">⏳</span>`;
+              card.innerHTML = `<span class="u-72126da2">${escHtml(f.path)}</span> <span style="color:var(--text-3)">⏳</span>`;
               results.appendChild(card);
             });
           }

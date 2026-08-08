@@ -48,7 +48,7 @@ function renderSystemBody(h, m, g) {
   const db   = h.database || {};
 
   const meter = (label, pct, color='var(--accent)') =>
-    `<div style="margin-bottom:10px">
+    `<div class="u-761d3add">
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
         <span style="color:var(--text-1)">${label}</span>
         <span style="font-weight:700;color:${color}">${pct}%</span>
@@ -112,7 +112,7 @@ function renderSystemBody(h, m, g) {
       ${(h.processes||[]).map(p => `
         <div style="display:flex;gap:10px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--border)">
           <span style="color:var(--text-3);font-family:monospace">${p.pid}</span>
-          <span style="flex:1;font-weight:600">${escHtml(p.name)}</span>
+          <span class="u-392bcb2a">${escHtml(p.name)}</span>
           <span class="tag ${p.status==='running'?'green':''}">${p.status}</span>
           <span style="color:var(--text-2)">${p.ram_mb}MB</span>
         </div>`).join('')}

@@ -324,7 +324,7 @@ function showSidebarCustomizer() {
       row.id = `cust-row-${p.id}`;
       row.style.cssText = `display:flex;align-items:center;gap:6px;padding:7px 8px;background:var(--bg-3);border-radius:8px;border:1px solid ${isHidden ? 'var(--border)' : 'var(--border-hi)'}`;
       row.innerHTML = `
-        <span style="font-size:14px">${p.icon}</span>
+        <span class="u-433de30b">${p.icon}</span>
         <span style="font-size:12px;color:var(--text-1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.label)}</span>
         <button type="button" class="cust-toggle-btn" data-pane-id="${p.id}" style="font-size:11px;background:${isHidden ? 'var(--bg-4)' : 'rgba(91,138,248,.15)'};border:1px solid var(--border);border-radius:5px;color:var(--text-2);padding:2px 7px;cursor:pointer;flex-shrink:0;white-space:nowrap">${isHidden ? 'Show' : 'Hide'}</button>
         <button type="button" class="cust-pin-btn" data-pane-id="${p.id}" title="${isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}" style="font-size:11px;background:${isFavorited ? 'rgba(234,179,8,.15)' : 'none'};border:1px solid var(--border);border-radius:5px;color:${isFavorited ? 'var(--warning)' : 'var(--text-3)'};padding:2px 7px;cursor:pointer;flex-shrink:0;white-space:nowrap">${isFavorited ? '★ Favorited' : '☆ Favorite'}</button>`;
@@ -465,7 +465,7 @@ function showUpgradeModal(paneId, requiredTier='pro', currentTier='free') {
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
   modal.innerHTML = `
     <div style="background:var(--bg-2);border:2px solid ${reqColor}44;border-radius:20px;max-width:460px;width:100%;padding:28px;text-align:center">
-      <div style="font-size:48px;margin-bottom:12px">🔒</div>
+      <div class="u-5c383099">🔒</div>
       <h2 style="margin:0 0 8px;color:var(--text-0)">${paneLabel} is a ${tierNames[requiredTier]||'Pro'} Feature</h2>
       <p style="color:var(--text-2);font-size:13px;margin:0 0 20px;line-height:1.6">
         You're on the ${tierNames[currentTier]||'Free'} tier. Upgrade to <strong style="color:${reqColor}">${tierNames[requiredTier]}</strong>
@@ -537,7 +537,7 @@ async function showTierPlans() {
           <div style="font-size:22px;font-weight:800;color:var(--text-0);margin-bottom:4px">${t.name}</div>
           <div style="font-size:24px;font-weight:800;color:${t.highlight?'var(--accent)':'var(--text-0)'};margin-bottom:8px">${t.price}</div>
           <div style="font-size:12px;color:var(--text-2);margin-bottom:16px">${t.description}</div>
-          <div style="margin-bottom:14px">
+          <div class="u-2b583d73">
             ${t.features.map((f) =>`<div style="font-size:11px;color:var(--text-1);padding:3px 0">✅ ${f}</div>`).join('')}
             ${t.locked.length?`<div class="u-8a77e5a3">${t.locked.map((f) =>`<div style="font-size:11px;color:var(--text-3);padding:2px 0">🔒 ${f}</div>`).join('')}</div>`:''}
           </div>
@@ -675,7 +675,7 @@ const ONBOARDING_STEPS = [
     title:    'What should we call you?',
     subtitle: 'Personalize your experience',
     content:  `
-      <div style="padding:8px 0">
+      <div class="u-d8c02261">
         <label style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:6px">Your Name</label>
         <input id="ob-name" placeholder="Joshua Strickland, Strick Tech Leader, Senior Architect…" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;color:var(--text-0);font-size:15px;padding:12px 14px;box-sizing:border-box;margin-bottom:14px">
         <label style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:6px">What best describes you?</label>
@@ -695,13 +695,13 @@ const ONBOARDING_STEPS = [
     content:  `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:8px 0">
         <button data-act-click="selectMode('simple')" id="obmode-simple" style="padding:20px 16px;background:var(--bg-3);border:2px solid var(--accent);border-radius:14px;color:var(--text-0);cursor:pointer;text-align:left">
-          <div style="font-size:28px;margin-bottom:8px">✨</div>
+          <div class="u-d137430a">✨</div>
           <div style="font-weight:700;font-size:15px;margin-bottom:6px">Simple Mode</div>
           <div style="font-size:12px;color:var(--text-2);line-height:1.5">Clean interface with just the core features. Perfect for getting started quickly.</div>
           <div style="margin-top:10px;font-size:11px;color:var(--accent-text);font-weight:600">Recommended for beginners</div>
         </button>
         <button data-act-click="selectMode('power')" id="obmode-power" style="padding:20px 16px;background:var(--bg-3);border:2px solid var(--border);border-radius:14px;color:var(--text-0);cursor:pointer;text-align:left">
-          <div style="font-size:28px;margin-bottom:8px">⚡</div>
+          <div class="u-d137430a">⚡</div>
           <div style="font-weight:700;font-size:15px;margin-bottom:6px">Power Mode</div>
           <div style="font-size:12px;color:var(--text-2);line-height:1.5">Full access to all 50+ panes and advanced features from the start.</div>
           <div style="margin-top:10px;font-size:11px;color:var(--text-3);font-weight:600">For experienced users</div>
@@ -714,7 +714,7 @@ const ONBOARDING_STEPS = [
     title:    'Add your AI API key',
     subtitle: 'Required for AI chat and agents. Free to get — no credit card needed.',
     content:  `
-      <div style="padding:8px 0">
+      <div class="u-d8c02261">
         <div style="background:var(--bg-3);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text-2);line-height:1.7">
           <strong style="color:var(--text-0)">Get a free OpenRouter key:</strong><br>
           1. Visit <a href="https://openrouter.ai" target="_blank" style="color:var(--accent-text)">openrouter.ai</a><br>
@@ -746,7 +746,7 @@ const ONBOARDING_STEPS = [
         ].map(t=>`
           <button data-act-click="selectTemplate(${JSON.stringify(t.id)})" id="obt-${t.id}" style="padding:12px 14px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;color:var(--text-0);cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;transition:all .12s">
             <span class="u-881f70f9">${t.icon}</span>
-            <div><div style="font-weight:600;font-size:13px">${t.title}</div><div style="font-size:11px;color:var(--text-2)">${t.desc}</div></div>
+            <div><div class="u-160b0675">${t.title}</div><div style="font-size:11px;color:var(--text-2)">${t.desc}</div></div>
           </button>`).join('')}
       </div>`,
     action_label: 'Continue →',
@@ -756,7 +756,7 @@ const ONBOARDING_STEPS = [
     title:    'You\'re all set! 🎉',
     subtitle: 'Here\'s how to get the most out of Agentic OS',
     content:  `
-      <div style="padding:8px 0">
+      <div class="u-d8c02261">
         <div style="display:flex;flex-direction:column;gap:10px">
           ${[
             ['💬','Start chatting','Click Chat in the sidebar and type anything'],
@@ -1221,7 +1221,7 @@ async function docsTab(tab, el) {
       ${(d.faq||[]).map((f, i)=>`
         <div class="faq-item">
           <div class="faq-q" data-faq-toggle>
-            <span style="flex:1;font-weight:600">${escHtml(f.q||'')}</span>
+            <span class="u-392bcb2a">${escHtml(f.q||'')}</span>
             <span class="faq-arrow" style="color:var(--text-3);font-size:11px">▼</span>
           </div>
           <div class="faq-a">${escHtml(f.a||'')}</div>

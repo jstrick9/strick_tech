@@ -68,7 +68,7 @@ async function renderWebSearch() {
   if (!pane) return;
 
   pane.innerHTML = `
-  <div style="padding:20px;max-width:900px;margin:0 auto">
+  <div class="u-f8d5799a">
     <div class="section-head">
       <div>
         <h2>🔎 Web Search</h2>

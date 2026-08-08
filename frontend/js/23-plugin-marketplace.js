@@ -41,7 +41,7 @@ function renderPluginCats() {
   if (!el) return;
   const cats = [...new Set(pluginRegistry.map(p => p.category))];
   el.innerHTML = cats.map(c =>
-    `<span class="tag" style="cursor:pointer;padding:5px 12px" data-plugin-cat="${escHtml(c)}">${escHtml(c)}</span>`
+    `<span class="tag u-d2ed9c08"  data-plugin-cat="${escHtml(c)}">${escHtml(c)}</span>`
   ).join('');
   el.querySelectorAll('[data-plugin-cat]').forEach(btn => {
     btn.addEventListener('click', () => {

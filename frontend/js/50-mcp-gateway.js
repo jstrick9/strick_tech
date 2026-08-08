@@ -246,7 +246,7 @@ function prbRenderRulesTab(container) {
   }
   container.innerHTML = `<table class="prb-rules-table">
     <thead><tr>
-      <th style="width:28px"><input type="checkbox" id="prb-select-all" data-act-click="prbSelectAll($checked)" style="accent-color:var(--accent-text)"></th>
+      <th style="width:28px"><input type="checkbox" id="prb-select-all" data-act-click="prbSelectAll($checked)" class="u-f1722f0d"></th>
       <th>Priority</th>
       <th>Action</th>
       <th>Rule Name</th>
@@ -263,7 +263,7 @@ function prbRenderRulesTab(container) {
         const isChecked  = _prbSelIds.has(p.policy_id);
         const hasConditions = p.conditions && p.conditions !== '{}' && p.conditions !== '';
         return `<tr class="${!p.enabled?'disabled':''} ${isSelected?'selected':''}" data-policy-id="${escHtml(p.policy_id)}">
-          <td data-stop="1"><input type="checkbox" ${isChecked?'checked':''} data-policy-id="${escHtml(p.policy_id)}" data-act-click="prbToggleSelect($data.policyId,$checked)" style="accent-color:var(--accent-text)"></td>
+          <td data-stop="1"><input type="checkbox" ${isChecked?'checked':''} data-policy-id="${escHtml(p.policy_id)}" data-act-click="prbToggleSelect($data.policyId,$checked)" class="u-f1722f0d"></td>
           <td><span class="prb-priority-badge">${p.priority}</span></td>
           <td><span class="prb-action-chip" style="background:${ac.bg};color:${ac.text}">${ac.icon} ${p.action}</span></td>
           <td style="font-weight:600;color:var(--text-0);max-width:180px">
@@ -271,7 +271,7 @@ function prbRenderRulesTab(container) {
             ${hasConditions ? '<span title="Has conditions" style="margin-left:4px;font-size:10px">⏰</span>' : ''}
           </td>
           <td><span class="prb-code">${escHtml(p.agent_id)}</span></td>
-          <td><span class="prb-code" style="font-size:9px">${escHtml(p.server_id.replace('srv_',''))}</span></td>
+          <td><span class="prb-code u-fb2957a3" >${escHtml(p.server_id.replace('srv_',''))}</span></td>
           <td><span class="prb-code">${escHtml(p.tool_pattern)}</span></td>
           <td data-stop="1">
             <span class="prb-toggle" data-policy-id="${escHtml(p.policy_id)}" data-policy-enabled="${p.enabled}" data-act-click="hTogglePolicyEnabled($data.policyId,$data.policyEnabled)" title="${p.enabled?'Click to disable':'Click to enable'}" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
@@ -343,7 +343,7 @@ function prbRenderBuilderTab(container) {
     </div>
 
     <!-- Action selector -->
-    <div class="prb-form-group" style="margin-bottom:16px">
+    <div class="prb-form-group u-87c136df" >
       <label class="prb-form-label">Action <span class="required">*</span></label>
       <div class="prb-action-row" id="prb-action-row">
         ${Object.entries(PRB_ACTION_COLORS).map(([action, ac]) => {
@@ -403,7 +403,7 @@ function prbRenderBuilderTab(container) {
     </div>
 
     <!-- Conditions -->
-    <div class="prb-form-group" style="margin-bottom:16px">
+    <div class="prb-form-group u-87c136df" >
       <label class="prb-form-label">
         Conditions (optional)
         <span style="font-size:10px;font-weight:400;color:var(--text-3);margin-left:6px">⏰ Time-based activation</span>
@@ -411,7 +411,7 @@ function prbRenderBuilderTab(container) {
       <div class="prb-conditions">
         <div class="prb-condition-item">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-1)">
-            <input type="checkbox" id="prb-cond-time-enabled" style="accent-color:var(--accent-text)" data-act-change="prbToggleTimeCondition()">
+            <input type="checkbox" id="prb-cond-time-enabled" class="u-f1722f0d" data-act-change="prbToggleTimeCondition()">
             Active only during time window
           </label>
         </div>
@@ -424,14 +424,14 @@ function prbRenderBuilderTab(container) {
         </div>
         <div class="prb-condition-item u-8a77e5a3" >
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-1)">
-            <input type="checkbox" id="prb-cond-days-enabled" style="accent-color:var(--accent-text)" data-act-change="prbToggleDaysCondition()">
+            <input type="checkbox" id="prb-cond-days-enabled" class="u-f1722f0d" data-act-change="prbToggleDaysCondition()">
             Active only on specific days
           </label>
         </div>
         <div id="prb-cond-days-fields" style="display:none;margin-left:20px;margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
           ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d,i)=>
             `<label style="display:flex;align-items:center;gap:3px;font-size:11px;cursor:pointer">
-              <input type="checkbox" class="prb-day-check" value="${i}" checked style="accent-color:var(--accent-text)">${d}
+              <input type="checkbox" class="prb-day-check u-f1722f0d" value="${i}" checked >${d}
             </label>`).join('')}
         </div>
       </div>
@@ -691,7 +691,7 @@ function prbRenderSimulatorTab(container) {
           ${res.trace.map(t => {
             const isWinner = t.winner;
             const ac = PRB_ACTION_COLORS[t.action] || PRB_ACTION_COLORS.allow;
-            return `<tr class="${isWinner?'prb-trace-winner':''}" ${isWinner?'style="font-weight:600"':''}>
+            return `<tr class="${isWinner?'prb-trace-winner':''} u-eed0f8fb" ${isWinner?'':''}>
               <td style="color:var(--text-3)">${t.priority||'—'}</td>
               <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(t.name)}">${isWinner?'🏆 ':''} ${escHtml(t.name)}</td>
               <td class="${t.agent_match?'prb-match-yes':'prb-match-no'}">${t.agent_match?'✓':'✗'} <span class="u-0d5be05f">${escHtml((t.agent_id||'').slice(0,12))}</span></td>
@@ -780,7 +780,7 @@ function prbRenderConflictsTab(container) {
     container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-3)">
       <div style="font-size:36px;margin-bottom:12px">✅</div>
       <div style="font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:6px">No Conflicts Detected</div>
-      <div style="font-size:12px">All ${_prbPolicies.length} policy rules are consistent. Good governance!</div>
+      <div class="u-6cb285c6">All ${_prbPolicies.length} policy rules are consistent. Good governance!</div>
     </div>`;
     return;
   }
@@ -834,7 +834,7 @@ function prbRenderServersTab(container) {
   const custom   = _prbServers.filter(s => s.server_type === 'external');
 
   container.innerHTML = `
-  <div style="padding:16px">
+  <div class="u-287f770e">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <h3 style="margin:0;font-size:14px;font-weight:700;color:var(--text-0)">🖥️ MCP Servers</h3>
       <button data-act-click="prbRegisterServer()" style="padding:4px 12px;border-radius:6px;font-size:11px;background:var(--accent);border:none;color:var(--on-accent);cursor:pointer;margin-left:auto">+ Register Server</button>

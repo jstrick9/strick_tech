@@ -185,8 +185,8 @@
   function renderProfileTab(body) {
     const p = _state.profile || {};
     body.innerHTML = `
-      <div style="margin-bottom:22px">
-        <h2 style="margin:0 0 4px;font-size:20px;font-weight:900">👤 Profile</h2>
+      <div class="u-13f24e73">
+        <h2 class="u-451c1d40">👤 Profile</h2>
         <p style="margin:0;color:var(--text-2);font-size:12.5px">How you appear across chat, agents, and collaboration.</p>
       </div>
 
@@ -219,7 +219,7 @@
         </div>
       </div>
 
-      <div style="margin-bottom:20px">
+      <div class="u-49f14f8f">
         ${fieldLabel('Skill Level')}
         <select id="acct-skill" style="${textInputStyle()};cursor:pointer;max-width:220px">
           ${SKILL_LEVELS.map(s => `<option value="${s}" ${p.skill_level === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}
@@ -227,11 +227,11 @@
       </div>
 
       <div style="background:var(--bg-2);border-radius:10px;padding:12px 14px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div style="text-align:center">
+        <div class="u-91a87015">
           <div style="font-size:15px;font-weight:800;color:var(--text-0)">${p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}</div>
           <div style="font-size:10px;color:var(--text-3)">Joined</div>
         </div>
-        <div style="text-align:center">
+        <div class="u-91a87015">
           <div style="font-size:15px;font-weight:800;color:var(--text-0)">${p.onboarding_done ? '✅' : '⏳'}</div>
           <div style="font-size:10px;color:var(--text-3)">Onboarding</div>
         </div>
@@ -297,26 +297,26 @@
     const currentFontSize = _state.profile?.font_size || 'base';
 
     body.innerHTML = `
-      <div style="margin-bottom:22px">
-        <h2 style="margin:0 0 4px;font-size:20px;font-weight:900">🎨 Preferences</h2>
+      <div class="u-13f24e73">
+        <h2 class="u-451c1d40">🎨 Preferences</h2>
         <p style="margin:0;color:var(--text-2);font-size:12.5px">Theme, workstation complexity, typography, and layout.</p>
       </div>
 
-      <div style="margin-bottom:22px">
+      <div class="u-13f24e73">
         ${fieldLabel('Appearance Theme')}
         <div id="acct-theme-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:8px"></div>
       </div>
 
-      <div style="margin-bottom:22px">
+      <div class="u-13f24e73">
         ${fieldLabel('Workstation Mode')}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
           <button type="button" id="acct-mode-simple" style="padding:14px;border-radius:12px;border:2px solid ${currentMode === 'simple' ? 'var(--accent)' : 'var(--border)'};background:${currentMode === 'simple' ? 'rgba(91,138,248,.12)' : 'var(--bg-2)'};color:var(--text-0);cursor:pointer;text-align:left">
-            <div style="font-size:18px;margin-bottom:4px">⚡</div>
+            <div class="u-4e4fe8b3">⚡</div>
             <div style="font-weight:800;font-size:13px;margin-bottom:2px">Simple</div>
             <div style="font-size:11px;color:var(--text-2)">7 core features only</div>
           </button>
           <button type="button" id="acct-mode-power" style="padding:14px;border-radius:12px;border:2px solid ${currentMode === 'power' ? 'var(--accent)' : 'var(--border)'};background:${currentMode === 'power' ? 'rgba(91,138,248,.12)' : 'var(--bg-2)'};color:var(--text-0);cursor:pointer;text-align:left">
-            <div style="font-size:18px;margin-bottom:4px">🌌</div>
+            <div class="u-4e4fe8b3">🌌</div>
             <div style="font-weight:800;font-size:13px;margin-bottom:2px">Power</div>
             <div style="font-size:11px;color:var(--text-2)">All 65+ features</div>
           </button>
@@ -350,7 +350,7 @@
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.style.cssText = `padding:12px 8px;border-radius:10px;border:2px solid ${currentTheme === t.id ? 'var(--accent)' : 'var(--border)'};background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:center;font-size:12px;font-weight:700`;
-      btn.innerHTML = `<div style="font-size:18px;margin-bottom:4px">${t.icon}</div>${esc(t.label)}`;
+      btn.innerHTML = `<div class="u-4e4fe8b3">${t.icon}</div>${esc(t.label)}`;
       btn.addEventListener('click', () => {
         if (typeof window.applyTheme === 'function') window.applyTheme(t.id);
         fireToast(`✨ ${t.label} theme applied`, 'ok', 1800);
@@ -391,8 +391,8 @@
       {key: 'sound', label: 'Sound effects', checked: n.sound !== false},
     ];
     body.innerHTML = `
-      <div style="margin-bottom:22px">
-        <h2 style="margin:0 0 4px;font-size:20px;font-weight:900">🔔 Notifications</h2>
+      <div class="u-13f24e73">
+        <h2 class="u-451c1d40">🔔 Notifications</h2>
         <p style="margin:0;color:var(--text-2);font-size:12.5px">Choose what you want to be notified about.</p>
       </div>
       <div style="display:flex;flex-direction:column;gap:2px">
@@ -417,12 +417,12 @@
   function renderWorkspaceTab(body) {
     const prefs = _state.prefs || {};
     body.innerHTML = `
-      <div style="margin-bottom:22px">
-        <h2 style="margin:0 0 4px;font-size:20px;font-weight:900">🏷️ Workspace & Branding</h2>
+      <div class="u-13f24e73">
+        <h2 class="u-451c1d40">🏷️ Workspace & Branding</h2>
         <p style="margin:0;color:var(--text-2);font-size:12.5px">Customize the name shown in your topbar and browser tab.</p>
       </div>
 
-      <div style="margin-bottom:20px">
+      <div class="u-49f14f8f">
         ${fieldLabel('Workspace / App Name')}
         <input id="acct-workspace-name" type="text" value="${esc(prefs.workspace_name || '')}" placeholder="e.g. Strick Tech Command Center" style="${textInputStyle()}">
         <div style="font-size:11px;color:var(--text-3);margin-top:6px">Shown in the topbar title and browser tab.</div>
@@ -472,8 +472,8 @@
     const tierColors = {free: 'var(--text-3)', trial: 'var(--accent)', pro: 'var(--accent)', enterprise: '#f0c060'};
     const tierColor = tierColors[lic.tier || 'trial'] || 'var(--accent)';
     body.innerHTML = `
-      <div style="margin-bottom:22px">
-        <h2 style="margin:0 0 4px;font-size:20px;font-weight:900">💳 Plan</h2>
+      <div class="u-13f24e73">
+        <h2 class="u-451c1d40">💳 Plan</h2>
         <p style="margin:0;color:var(--text-2);font-size:12.5px">Your current tier and available upgrades.</p>
       </div>
 

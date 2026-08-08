@@ -76,7 +76,7 @@ async function renderPrompts() {
         {label:'＋ New Prompt',action:'openNewPromptModal()',primary:true},
         {label:'⬇ Export',action:'exportPrompts()'},
         {label:'⬆ Import',action:'importPrompts()'},
-      ]})||'<div style="padding:20px"><h2>💬 Prompt Library</h2></div>'}
+      ]})||'<div class="u-769fed37"><h2>💬 Prompt Library</h2></div>'}
       <div class="page-content">
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
         <input id="prompt-search" placeholder="Search prompts…" data-act-input="filterPrompts()"
@@ -108,14 +108,14 @@ async function renderPrompts() {
           <div class="form-group"><label class="form-label">Title *</label><input id="pm-title" class="input" placeholder="e.g. Security code review"></div>
           <div class="form-group"><label class="form-label">Prompt *</label><textarea id="pm-content" class="input" style="min-height:120px;font-family:monospace;font-size:12px" placeholder="The full prompt text… Use {placeholder} for variables."></textarea></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-            <div class="form-group" style="margin:0"><label class="form-label">Category</label>
+            <div class="form-group u-11696618" ><label class="form-label">Category</label>
               <select id="pm-category" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none">
                 <!-- Was a hardcoded list of the 12 built-ins, so a custom
                      category could never be selected even once it existed. -->
                 ${cats.map(c=>`<option value="${escHtml(c.id)}">${escHtml(c.label||c.id)}</option>`).join('')}
               </select>
             </div>
-            <div class="form-group" style="margin:0"><label class="form-label">Tags</label>
+            <div class="form-group u-11696618" ><label class="form-label">Tags</label>
               <input id="pm-tags" class="input" placeholder="security, api…">
             </div>
           </div>
@@ -131,7 +131,7 @@ async function renderPrompts() {
             </select>
           </div>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:14px;font-size:13px">
-            <input type="checkbox" id="pm-fav" style="accent-color:var(--accent-text)"> Mark as favorite
+            <input type="checkbox" id="pm-fav" class="u-f1722f0d"> Mark as favorite
           </label>
           <div style="display:flex;gap:8px;justify-content:flex-end">
             <button data-act-click="closePromptModal()" class="btn btn-ghost">Cancel</button>
@@ -225,7 +225,7 @@ function renderPromptCards() {
   </div>`;
 
   return filtered.map(p => `
-    <div class="prompt-card ${p.is_favorite?'favorite':''}" style="position:relative">
+    <div class="prompt-card ${p.is_favorite?'favorite':''} u-d461c96d" >
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">
         <div class="u-59eddc67">
           <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escHtml(p.title)}">${escHtml(p.title)}</div>
@@ -632,7 +632,7 @@ window.saveCurrentAsPrompt = async function() {
 async function renderCodeSearch(){
   const pane=document.getElementById('pane-codesearch');if(!pane)return;
   pane.innerHTML=`
-    ${pageHeader?.({title:'🔍 Code Search',subtitle:'Instant search across all project files'})||'<div style="padding:20px"><h2>🔍 Code Search</h2></div>'}
+    ${pageHeader?.({title:'🔍 Code Search',subtitle:'Instant search across all project files'})||'<div class="u-769fed37"><h2>🔍 Code Search</h2></div>'}
     <div class="page-content">
     <div style="display:flex;gap:8px;margin-bottom:14px">
       <input id="cs-input" class="input" placeholder="Search code, functions, variables, text…" style="flex:1;font-size:14px;height:42px" data-act-keydown="runCodeSearch()" data-keys="Enter" autocomplete="off">
@@ -701,7 +701,7 @@ async function reviewCurrentFile(){
   if(!overlay){
     overlay=document.createElement('div');overlay.id='review-overlay';overlay.className='review-overlay';
     overlay.innerHTML=`<div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg-2);display:flex;align-items:center;gap:8px;flex-shrink:0">
-      <span style="font-weight:700;font-size:13px">🔍 Code Review</span>
+      <span class="u-88697aec">🔍 Code Review</span>
       <span id="review-score" style="font-size:11px;color:var(--text-2)"></span>
       <div style="margin-left:auto;display:flex;gap:5px">
         <button data-act-click="reviewCurrentFile()" class="btn btn-ghost btn-sm">⟳</button>
@@ -770,7 +770,7 @@ async function shareProject(){
   b.id='share-btn';
   b.className='btn-3d btn-sm';
   b.title='Share App URL (⌘U)';
-  b.innerHTML='<span style="font-size:14px">📤</span> <span class="btn-text" style="font-size:12px;font-weight:700">Share App</span>';
+  b.innerHTML='<span class="u-433de30b">📤</span> <span class="btn-text" style="font-size:12px;font-weight:700">Share App</span>';
   b.style.cssText='background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#d8b4fe;padding:5px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:5px';
   b.onclick=shareProject;
   a.insertBefore(b,a.firstChild);
@@ -827,7 +827,7 @@ window.renderSplitPane = async function(paneId) {
       <div style="display:flex;flex-direction:column;height:100%;gap:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-1);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
           <span style="font-weight:800;color:var(--accent-text)">⚡ Studio Code Buffer (Secondary Dock)</span>
-          <button class="btn-3d btn-sm" data-act-click="nav('studio')" style="padding:4px 10px;font-size:11px">Open Full Studio ↗</button>
+          <button class="btn-3d btn-sm u-884e19b1" data-act-click="nav('studio')" >Open Full Studio ↗</button>
         </div>
         <div id="secondary-monaco-container" style="flex:1;min-height:320px;background:#04060f;border:1px solid var(--border-hi);border-radius:12px;padding:14px;font-family:monospace;font-size:12.5px;color:#a7f3d0;overflow:auto">
 // Strick Tech Studio — Secondary Editor Dock
