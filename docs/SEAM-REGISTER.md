@@ -46,6 +46,7 @@ verifiable. "No bugs exist" is not.
 | Session expiry / auth loss | `session_expiry.py` | 0 | Session tokens were **write-only** — `/login` issued a `ses_…` token that every endpoint rejected; every session was born already expired; no logout route existed; a dead session left a calm empty app with no signal and no way back in |
 | Offline / reconnect | `offline_reconnect.py` | 0 | **Three** independent `offline` listeners each raised their own message simultaneously, giving contradictory advice: "your work is safe" alongside "changes will not be saved" |
 | Long / adversarial input | `adversarial_input.py` | 0 | No XSS and no data loss (verified, not assumed); a 4,000-char title overflowed a 235px card by 1,900px while `documentElement.scrollWidth` stayed exactly 1440px |
+| Timezones & dates | `timezones.py` | 0 | SQLite `CURRENT_TIMESTAMP` (141 defaults) emits no timezone designator; `new Date()` reads that as LOCAL time, so a task created that second rendered as **"in 3 minutes"** in UTC+8:45 |
 
 **All twelve audits are at 0.** `source-patterns` was cleared from 17 (six
 unguarded array accesses, eleven raw-error headlines); the fixes and three
@@ -77,7 +78,6 @@ even once.
 
 | Seam | Why it matters | Cheap first probe |
 |---|---|---|
-| **Timezones & dates** | All timestamps assume the server's zone | Run under `TZ=Pacific/Kiritimati` |
 | **Print / export** | `styles-print.css` exists but was never verified | Render to PDF, inspect |
 | **Reduced motion / high contrast** | `prefers-reduced-motion` partially honoured; forced-colors never tested | Emulate both media features |
 | **Zoom to 200%** | WCAG 1.4.4 requires no loss of content | Re-run responsive audit at 200% |
@@ -107,6 +107,8 @@ encoded in `scripts/audit/_harness.py` so no future probe has to remember them.
 
 | Trap | What it cost |
 |---|---|
+| Reading whatever the test database happens to contain | A gate-bug test read `/api/tasks`, found an empty list, and passed against the reverted fix. Create the row the assertion depends on, and assert that something was actually measured |
+| Testing a timezone bug in a whole-hour zone | An off-by-one-hour error and a correct rendering are indistinguishable when the server clock is near the hour. Use a 45-minute offset |
 | Measuring overflow only at the document level | A 4,000-char title spilled 1,900px out of its card while `documentElement.scrollWidth` stayed exactly 1440px. The page was perfect by the global measure and unreadable on screen. Check element-level `scrollWidth > clientWidth` too |
 | Searching innerHTML for `<script>` to detect XSS | Finds correctly-escaped values and misses `onerror=` entirely — it reports the safe case and misses the dangerous one. Detect a real side effect instead |
 | Searching the whole document for a status word | `/offline/` matched `Private • Ollama • Offline`, a product feature label. It produced a false finding — and worse, would have let a **total absence** of offline reporting pass the presence check. Scope to status surfaces |

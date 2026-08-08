@@ -59,7 +59,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _harness import AuditResult, BASE_URL, browser_page, emit, preflight, visit  # noqa: E402
+from _harness import BASE_URL, AuditResult, browser_page, emit, preflight, visit  # noqa: E402
 
 # Each payload names the property it is probing, so a finding says what broke.
 PAYLOADS = [
@@ -90,8 +90,13 @@ def _create_task(title: str, token: str) -> bool:
     concurrency audit (see docs/SEAM-REGISTER.md), so the result is checked.
     """
     payload = json.dumps({'title': title}).encode()
-    req = urllib.request.Request(
-        f'{BASE_URL}/api/tasks', data=payload, method='POST',
+    url = f'{BASE_URL}/api/tasks'
+    # BASE_URL is developer-supplied; rejecting other schemes keeps `file:`
+    # out of an audit that POSTs a body. Same guard as _harness.server_reachable.
+    if not url.startswith(('http://', 'https://')):
+        return False
+    req = urllib.request.Request(  # noqa: S310
+        url, data=payload, method='POST',
         headers={'Content-Type': 'application/json', 'X-CSRF-Token': token})
     try:
         with urllib.request.urlopen(req, timeout=15) as r:  # noqa: S310
@@ -182,7 +187,7 @@ def run() -> AuditResult:
             const el = document.getElementById('pane-kanban');
             return el ? el.innerText : document.body.innerText;
         })()""")
-        for name, value in written:
+        for name, _value in written:
             if name == 'apostrophe' and "Ali's Q3 plan" not in shown:
                 if '&#39;' in shown or '&amp;' in shown:
                     findings.append(

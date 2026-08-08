@@ -750,7 +750,10 @@ def _is_ok_false_exempt(path: str) -> bool:
     return path.startswith('/api/connectors/') and path.endswith('/execute')
 
 
-async def _restatus_refused_write(response, request_id: str):
+from .services import timestamps as _timestamps
+
+
+async def _restatus_refused_write(response, request_id: str, allow_restatus: bool = True):
     """Re-send a refused write as 400, preserving the body byte-for-byte.
 
     TWO TRAPS, BOTH HIT WHILE BUILDING THIS, BOTH RECORDED SO THE NEXT PERSON
@@ -805,15 +808,43 @@ async def _restatus_refused_write(response, request_id: str):
         raw = b''.join(chunks)
 
     status = response.status_code
-    if raw and b'"ok"' in raw:
+
+    # Two jobs share this one buffering pass, deliberately: the body is already
+    # decoded here, and a second middleware would have to buffer it all over
+    # again (with a second chance to break SSE, per the traps above).
+    #
+    #   1. A refused write must not answer 200.
+    #   2. A timestamp must not be ambiguous. SQLite CURRENT_TIMESTAMP -- 141
+    #      column defaults in this codebase -- emits "2026-08-08 14:42:08" with
+    #      no designator, and `new Date()` reads that as LOCAL time. Measured
+    #      with the browser in Australia/Eucla (UTC+8:45): a task created that
+    #      second rendered as "in 3 minutes". See services/timestamps.py.
+    parsed = None
+    if raw and len(raw) <= _timestamps.MAX_BYTES:
         try:
             import json as _json
 
             parsed = _json.loads(raw)
-            if isinstance(parsed, dict) and parsed.get('ok') is False:
-                status = 400
         except (ValueError, TypeError):
-            pass
+            parsed = None
+
+    # A read that reports ok:false is describing state, not refusing work --
+    # verified in an earlier batch across all 287 GET endpoints.
+    if allow_restatus and isinstance(parsed, dict) and parsed.get('ok') is False:
+        status = 400
+
+    if parsed is not None:
+        stamped = _timestamps.normalise(parsed)
+        if stamped is not parsed:
+            import json as _json
+
+            raw = _json.dumps(stamped).encode()
+            headers = dict(response.headers)
+            headers.pop('content-length', None)
+            return _StarletteResponse(
+                content=raw, status_code=status, headers=headers,
+                media_type=response.media_type,
+            )
 
     if status == response.status_code and body_iter is None:
         return response
@@ -1004,13 +1035,21 @@ async def _security_middleware(request: Request, call_next):
     # 400 is the right default: these are validation refusals ("name is
     # required"). A handler that means 404/409/503 should say so explicitly,
     # and several already do.
-    if (
-        response.status_code == 200
-        and path.startswith('/api/')
-        and request.method in ('POST', 'PUT', 'PATCH', 'DELETE')
-        and not _is_ok_false_exempt(path)
-    ):
-        response = await _restatus_refused_write(response, request_id)
+    # NOTE ON THE METHOD GATE. Restatusing a refused write only concerns
+    # mutating methods, and the original gate said so. Timestamp normalisation
+    # shares this buffering pass and applies to GET as well -- reads are where
+    # nearly all timestamps are returned, so keeping the mutating-only gate
+    # left the actual defect untouched. Verified: with the gate unchanged,
+    # /api/tasks still returned "2026-08-08 14:42:08".
+    #
+    # `_restatus_refused_write` itself remains safe on GET: it only changes a
+    # status when the body says `ok: false`, and that check is additionally
+    # limited to mutating methods inside the helper.
+    if response.status_code == 200 and path.startswith('/api/'):
+        mutating = request.method in ('POST', 'PUT', 'PATCH', 'DELETE')
+        if not (mutating and _is_ok_false_exempt(path)):
+            response = await _restatus_refused_write(
+                response, request_id, allow_restatus=mutating)
 
     # Record the outcome so a repeat of this key replays it instead of acting
     # again. Only 2xx is stored (see idempotency.finish): replaying a failure

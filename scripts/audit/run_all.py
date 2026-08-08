@@ -45,6 +45,7 @@ AUDITS = [
     'session_expiry',
     'offline_reconnect',
     'adversarial_input',
+    'timezones',
 ]
 
 
