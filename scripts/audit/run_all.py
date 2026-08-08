@@ -46,6 +46,8 @@ AUDITS = [
     'offline_reconnect',
     'adversarial_input',
     'timezones',
+    'preferences',
+    'print_and_multitab',
 ]
 
 

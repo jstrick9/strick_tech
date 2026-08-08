@@ -363,7 +363,9 @@ function renderAgentList() {
           <div class="agent-name">${escHtml(a.name)}</div>
           <div class="agent-role">${escHtml(a.role || a.model || '')}</div>
         </div>
-        <div class="agent-status ${a.status || 'idle'}"></div>
+        <div class="agent-status ${a.status || 'idle'}" role="img"
+             aria-label="Status: ${a.status || 'idle'}"
+             title="${a.status || 'idle'}"></div>
       </div>
     `).join('');
   }
@@ -3450,14 +3452,20 @@ nav = function(pane) {
   // advice. 00-net-feedback.js owns the offline banner because its message is
   // the accurate one, so this handler now does only the thing nothing else
   // does: colour the status dot.
-  const offlineHandler = () => {
+  // `title` alone is not an accessible name for an empty div, and under
+  // forced-colors (Windows High Contrast) the background is replaced by the
+  // system palette -- so a dot whose ONLY meaning is its colour becomes an
+  // unlabelled grey box. role=img + aria-label survives both.
+  const setDot = (colour, label) => {
     const dot = document.querySelector('.sb-dot');
-    if (dot) { dot.style.background = 'var(--red)'; dot.title = 'Offline'; }
+    if (!dot) return;
+    dot.style.background = colour;
+    dot.title = label;
+    dot.setAttribute('role', 'img');
+    dot.setAttribute('aria-label', 'Connection: ' + label);
   };
-  const onlineHandler = () => {
-    const dot = document.querySelector('.sb-dot');
-    if (dot) { dot.style.background = 'var(--success)'; dot.title = 'Online'; }
-  };
+  const offlineHandler = () => setDot('var(--red)', 'Offline');
+  const onlineHandler = () => setDot('var(--success)', 'Online');
   window.addEventListener('offline', offlineHandler);
   window.addEventListener('online', onlineHandler);
 })();

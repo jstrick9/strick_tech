@@ -135,6 +135,8 @@ def test_source_patterns_has_not_regressed():
     ('offline_reconnect', 'offline-reconnect'),
     ('adversarial_input', 'adversarial-input'),
     ('timezones', 'timezone-correctness'),
+    ('preferences', 'user-preferences'),
+    ('print_and_multitab', 'print-and-multitab'),
 ])
 def test_browser_audit_has_not_regressed(module, key):
     """Skips cleanly when there is no live server, rather than failing.
