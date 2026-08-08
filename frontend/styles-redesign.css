@@ -1337,3 +1337,56 @@ html :focus:not(:focus-visible) {
 .dag-canvas-inner {
   max-width: 100%;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LONG-VALUE CONTAINMENT
+   ═══════════════════════════════════════════════════════════════════════
+   A 4,000-character task title sat in a 235px card with scrollWidth 2137px
+   and `overflow: visible`, spilling straight across its neighbours and making
+   the column unreadable. Measured by scripts/audit/adversarial_input.py.
+
+   WHY THIS IS A STRUCTURAL RULE AND NOT A FIX TO .kanban-card-title.
+   Users paste long values into every text field in the product, so patching
+   the one card class that happened to be measured leaves the same bug in the
+   dozens of other places a title is rendered, and does nothing about the next
+   one written. The same reasoning produced the structural touch-target rule
+   in batch 34 after an allow-list approach missed 41 element types.
+
+   `overflow-wrap: anywhere` rather than `word-break: break-all`: break-all
+   chops ordinary words mid-letter even when they would fit, which makes
+   normal text ugly to fix a rare case. `anywhere` only breaks a run that has
+   no other way to fit -- exactly the pathological input, and nothing else.
+
+   `min-width: 0` on flex/grid children: a flex item's default `min-width:
+   auto` refuses to shrink below its content, so a long unbroken string forces
+   the whole row wider no matter what wrapping the child asks for. Without
+   this, the wrap rule above silently does nothing inside a flex row.
+
+   Opt out with `.no-wrap-guard` where a value genuinely must stay on one line
+   (a code token being copied, a table column with its own ellipsis). */
+.card,
+.card *,
+[class*='-title'],
+[class*='-name'],
+[class*='-desc'],
+[class*='-label'],
+[class*='-value'] {
+  overflow-wrap: anywhere;
+}
+
+/* Deliberately :not() interactive elements. The first version of this rule
+   applied min-width:0 to every child and immediately regressed the touch-target
+   audit from 0 to 9: it overrode the structural 44px rule from batch 34 and
+   collapsed buttons to 12-36px wide (a bulk-delete button became 12x44). A
+   containment rule must never shrink a tap target -- text needs to wrap, but a
+   control needs to stay hittable. */
+.card > *:not(button):not(a):not(input):not(select):not(textarea):not([role='button']),
+[class*='-row'] > *:not(button):not(a):not(input):not(select):not(textarea):not([role='button']),
+[class*='-header'] > *:not(button):not(a):not(input):not(select):not(textarea):not([role='button']) {
+  min-width: 0;
+}
+
+.no-wrap-guard,
+.no-wrap-guard * {
+  overflow-wrap: normal;
+}
