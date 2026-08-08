@@ -104,11 +104,21 @@ W.__drive([GOAL], 724);
 const html = D.getElementById('gm-goal-list').innerHTML;
 console.log(JSON.stringify({
   notice: /Showing 1 of 724/.test(html),
-  hidden: /723 more are hidden/.test(html),
+  // UPDATED: the wording changed from "723 more are hidden" to "723 more not
+  // shown" when a Load more control was added -- "hidden" implied the records
+  // were unreachable, which was true before and is not now. The REQUIREMENT
+  // is unchanged: the exact count must be stated, not just "some more".
+  hidden: /723 more/.test(html),
+  reachable: /Load more/i.test(html),
 }));
 """)
     assert out['notice'], 'a list showing 1 of 724 gave no indication of truncation'
     assert out['hidden'], 'the number of hidden records should be explicit'
+    assert out['reachable'], (
+        'stating the count is not enough -- the user needs a way to reach '
+        'the remaining records. "Narrow the filters" is not an escape route '
+        'when every record matches the current filters.'
+    )
 
 
 @requires_jsdom

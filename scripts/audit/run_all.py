@@ -40,6 +40,8 @@ AUDITS = [
     'concurrency',
     'announcements',
     'slow_network',
+    'history_navigation',
+    'large_data',
 ]
 
 

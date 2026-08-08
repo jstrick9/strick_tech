@@ -1,6 +1,6 @@
 {
   "head": "head.8f62aefef2be.js",
-  "body": "app.3b85829b6efb.js",
+  "body": "app.a113ebe58885.js",
   "minified": true,
   "modules": 47,
   "head_modules": [
@@ -54,23 +54,23 @@
     "92-pane-error-boundary.js",
     "93-shortcuts-overlay.js"
   ],
-  "raw_bytes": 1311825,
-  "bundled_bytes": 1005395,
+  "raw_bytes": 1315647,
+  "bundled_bytes": 1006531,
   "compressed": {
     "head.8f62aefef2be.js": {
       "raw": 6508,
       "gzip": 2376,
       "brotli": 2015
     },
-    "app.3b85829b6efb.js": {
-      "raw": 998887,
-      "gzip": 243847,
-      "brotli": 184741
+    "app.a113ebe58885.js": {
+      "raw": 1000023,
+      "gzip": 244120,
+      "brotli": 184974
     },
-    "chunks.64af73966579.js": {
+    "chunks.7c4b0336c259.js": {
       "raw": 1575,
-      "gzip": 751,
-      "brotli": 646
+      "gzip": 750,
+      "brotli": 645
     },
     "pane-a2a.b35d81dd06c5.js": {
       "raw": 26249,
@@ -142,10 +142,10 @@
       "gzip": 5267,
       "brotli": 4415
     },
-    "pane-goals.029bf13c6b03.js": {
-      "raw": 43936,
-      "gzip": 10995,
-      "brotli": 9399
+    "pane-goals.d73d017ed8eb.js": {
+      "raw": 44260,
+      "gzip": 11085,
+      "brotli": 9463
     },
     "pane-hierarchy.cb8ddf42daef.js": {
       "raw": 37112,
@@ -348,11 +348,11 @@
       "bytes": 19001
     },
     "goals": {
-      "file": "pane-goals.029bf13c6b03.js",
+      "file": "pane-goals.d73d017ed8eb.js",
       "modules": [
         "49-goals.js"
       ],
-      "bytes": 43936
+      "bytes": 44260
     },
     "hierarchy": {
       "file": "pane-hierarchy.cb8ddf42daef.js",
@@ -496,7 +496,7 @@
       "bytes": 11184
     }
   },
-  "chunk_manifest": "chunks.64af73966579.js",
+  "chunk_manifest": "chunks.7c4b0336c259.js",
   "lazy_modules": [
     "12-information-hierarchy.js",
     "15-image-generation.js",
@@ -535,5 +535,5 @@
     "54-finops.js",
     "55-eval-framework.js"
   ],
-  "lazy_bytes": 694731
+  "lazy_bytes": 695055
 }

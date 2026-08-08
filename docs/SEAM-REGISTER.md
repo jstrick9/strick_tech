@@ -41,8 +41,10 @@ verifiable. "No bugs exist" is not.
 | Concurrency / double-submit | `concurrency.py` | 0 | 5 concurrent identical POSTs created 5 records; `Idempotency-Key` ignored entirely |
 | Screen-reader announcement | `announcements.py` | 0 | Verified nav, toasts and dialogs all announce correctly |
 | Slow / flaky networks | `slow_network.py` | 0 | Goals blank 3s with no pending state; truncated responses leaked `Unterminated string in JSON`; Goals rendered a dropped connection as "no goals" |
+| Browser back / forward | `history_navigation.py` | 0 | Every nav used `replaceState`; 4 navigations created 0 history entries and Back exited to `about:blank` |
+| Large data volumes | `large_data.py` | 0 | A host re-render destroyed 7 workstations' tabs; Goals capped at 100 of 250 with no way to reach the rest |
 
-**All ten audits are at 0.** `source-patterns` was cleared from 17 (six
+**All twelve audits are at 0.** `source-patterns` was cleared from 17 (six
 unguarded array accesses, eleven raw-error headlines); the fixes and three
 detector corrections are in `docs/module-reviews/50-*`.
 
@@ -72,8 +74,6 @@ even once.
 
 | Seam | Why it matters | Cheap first probe |
 |---|---|---|
-| **Large data volumes** | Tested with tiny fixtures. 10k memories, 500 agents, a 50MB file are all untested | Seed at scale, measure render time |
-| **Browser back / forward** | Deep links work; history navigation across workstation tabs is unverified | Scripted back/forward walk |
 | **Session expiry / auth loss** | What happens mid-edit when a token expires? | Invalidate the token, then act |
 | **Offline / reconnect** | A banner exists; recovery behaviour is unverified | Toggle offline, then online |
 | **Long / adversarial input** | 10k-char names, RTL text, emoji, `<script>` in every field | Fuzz every input |
@@ -113,6 +113,10 @@ encoded in `scripts/audit/_harness.py` so no future probe has to remember them.
 | Falling back to "the visible pane" when a pane is merely EMPTY | The workstation host's content satisfied the check, so removing a pane's loading state produced no finding at all |
 | Judging the whole message instead of the headline | Flagged `Couldn't load your specs. Nothing was lost. (Unterminated string…)` as a raw parse error — punishing the fix |
 | Expecting a live region to announce a dialog | Dialogs are announced by focus moving into a named `role=dialog`; the command palette was wrongly reported as silent |
+| Querying an API with a higher limit than the UI uses | `?limit=1000` returned every row, so `len(rows) < total` was never true and the truncation check could never fire |
+| Conflating two facts in one check | "Showing X of Y" and "Load more" were tested together, so deleting the disclosure still passed because the button survived |
+| Timing a fixed sleep against a budget | A 2500ms `settle` measured against a 2500ms budget reported 2556ms — the sleep WAS the measurement |
+| Checking workstations after the pane walk | The walk builds every workstation, so re-navigating takes the idempotent early-return path and never exercises build-then-wipe. With a reload: 7 destroyed. Without: 0 |
 | Reading computed style after programmatic `.focus()` | `:focus-visible` does not match — reported a missing focus ring **twice, in two batches** |
 | Reading style mid-transition | 150ms transitions report the start value: a 2px ring measured as 0px |
 | Measuring only the landing pane | Touch targets reported "48 → 6" when 41 types were broken elsewhere |

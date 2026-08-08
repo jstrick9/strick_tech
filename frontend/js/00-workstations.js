@@ -150,7 +150,7 @@ window.initWorkstation = function (host) {
     btn.setAttribute('role', 'tab');
     btn.setAttribute('aria-selected', pane === host ? 'true' : 'false');
     btn.textContent = workstationLabel(pane);
-    btn.addEventListener('click', () => window.showWorkstationTab(host, pane));
+    btn.addEventListener('click', () => window.showWorkstationTab(host, pane, true));
     strip.appendChild(btn);
 
     if (pane === host) return;
@@ -169,6 +169,7 @@ window.initWorkstation = function (host) {
   hostEl.appendChild(strip);
   hostEl.appendChild(bodies);
   hostEl.dataset.workstationReady = '1';
+  window.watchWorkstationHost(host);
   return true;
 };
 
@@ -181,12 +182,76 @@ window.initWorkstation = function (host) {
 // `window._activeWorkstationTab = window._activeWorkstationTab || {}` tripped
 // the duplicate-globals linter -- correctly, because two owners of one
 // mutable global is how they drift.
+// Record a pane in the URL, creating a history entry for real navigation.
+//
+// THE BUG THIS FIXES
+// Every navigation used history.replaceState(), so four pane changes created
+// ZERO history entries. Pressing Back therefore left the application
+// entirely -- measured: about:blank, window.nav undefined, session gone. Back
+// is a reflex action, so the worst possible outcome is losing everything.
+//
+// A `hashchange` listener that routes correctly already existed in
+// 01-app-core.js; it simply never fired, because replaceState does not
+// produce a hashchange.
+//
+// `userInitiated` distinguishes a click from a programmatic restore. A
+// workstation re-opening its last tab must NOT add an entry, or Back would
+// step through states the user never chose.
+window.recordPaneInUrl = function (pane, userInitiated) {
+  const target = '#/' + pane;
+  try {
+    // Collapse duplicates. nav() runs repeatedly for the same pane
+    // (renderers re-navigate, workstation tabs re-open); stacking identical
+    // entries makes Back appear to do nothing several times in a row.
+    if (location.hash === target) return;
+    if (userInitiated) history.pushState(null, '', target);
+    else history.replaceState(null, '', target);
+  } catch (e) { /* history is unavailable in some embeds; never block nav */ }
+};
+
+// Rebuild a workstation whose host wiped its own innerHTML.
+//
+// Batch 30 fixed the FIRST render: nav() now waits for an async host renderer
+// before building the tab strip. But a host can re-render later -- on a poll,
+// a filter change, or a slow second pass. Measured with 250 seeded goals:
+// renderSupervisor() ran again ~3s after nav(), replaced #pane-supervisor's
+// innerHTML, and destroyed the Goals tab that had already rendered 5,976
+// characters. The user saw the Goals list appear and then vanish.
+//
+// initWorkstation() is idempotent and decides from the DOM, so re-running it
+// is safe and cheap. Observing the host is what makes this cover every
+// renderer rather than the one that happened to be caught.
+window.watchWorkstationHost = function (host) {
+  const hostEl = document.getElementById('pane-' + host);
+  if (!hostEl || hostEl.dataset.wsWatched === '1') return;
+  if (typeof MutationObserver !== 'function') return;
+  hostEl.dataset.wsWatched = '1';
+
+  let queued = false;
+  new MutationObserver(() => {
+    if (queued) return;
+    // The tab strip is gone but this host owns one: it was wiped.
+    if (hostEl.querySelector(':scope > .ws-tabs')) return;
+    queued = true;
+    // Coalesce the burst a single innerHTML assignment produces.
+    setTimeout(() => {
+      queued = false;
+      try {
+        if (hostEl.querySelector(':scope > .ws-tabs')) return;
+        window.initWorkstation(host);
+        const last = (window._activeWorkstationTab || {})[host] || host;
+        window.showWorkstationTab(host, last, false);
+      } catch (e) { /* never let recovery break a render */ }
+    }, 60);
+  }).observe(hostEl, {childList: true});
+};
+
 window.setWorkstationTab = function (host, pane) {
   window._activeWorkstationTab = window._activeWorkstationTab || {};
   window._activeWorkstationTab[host] = pane;
 };
 
-window.showWorkstationTab = function (host, pane) {
+window.showWorkstationTab = function (host, pane, userInitiated) {
   if (!window.initWorkstation(host)) return;
   const hostEl = document.getElementById('pane-' + host);
   if (!hostEl) return;
@@ -221,5 +286,5 @@ window.showWorkstationTab = function (host, pane) {
     }
   }
   // Keep the URL addressable per tab so deep links and back/forward work.
-  try { history.replaceState(null, '', '#/' + pane); } catch (e) {}
+  window.recordPaneInUrl(pane, !!userInitiated);
 };

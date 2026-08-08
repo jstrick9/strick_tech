@@ -1692,7 +1692,7 @@ btn.dataset.wsTab = pane;
 btn.setAttribute('role', 'tab');
 btn.setAttribute('aria-selected', pane === host ? 'true' : 'false');
 btn.textContent = workstationLabel(pane);
-btn.addEventListener('click', () => window.showWorkstationTab(host, pane));
+btn.addEventListener('click', () => window.showWorkstationTab(host, pane, true));
 strip.appendChild(btn);
 if (pane === host) return;
 let childEl = document.getElementById('pane-' + pane);
@@ -1708,13 +1708,43 @@ bodies.appendChild(childEl);
 hostEl.appendChild(strip);
 hostEl.appendChild(bodies);
 hostEl.dataset.workstationReady = '1';
+window.watchWorkstationHost(host);
 return true;
+};
+window.recordPaneInUrl = function (pane, userInitiated) {
+const target = '#/' + pane;
+try {
+if (location.hash === target) return;
+if (userInitiated) history.pushState(null, '', target);
+else history.replaceState(null, '', target);
+} catch (e) {  }
+};
+window.watchWorkstationHost = function (host) {
+const hostEl = document.getElementById('pane-' + host);
+if (!hostEl || hostEl.dataset.wsWatched === '1') return;
+if (typeof MutationObserver !== 'function') return;
+hostEl.dataset.wsWatched = '1';
+let queued = false;
+new MutationObserver(() => {
+if (queued) return;
+if (hostEl.querySelector(':scope > .ws-tabs')) return;
+queued = true;
+setTimeout(() => {
+queued = false;
+try {
+if (hostEl.querySelector(':scope > .ws-tabs')) return;
+window.initWorkstation(host);
+const last = (window._activeWorkstationTab || {})[host] || host;
+window.showWorkstationTab(host, last, false);
+} catch (e) {  }
+}, 60);
+}).observe(hostEl, {childList: true});
 };
 window.setWorkstationTab = function (host, pane) {
 window._activeWorkstationTab = window._activeWorkstationTab || {};
 window._activeWorkstationTab[host] = pane;
 };
-window.showWorkstationTab = function (host, pane) {
+window.showWorkstationTab = function (host, pane, userInitiated) {
 if (!window.initWorkstation(host)) return;
 const hostEl = document.getElementById('pane-' + host);
 if (!hostEl) return;
@@ -1735,7 +1765,7 @@ if (typeof renderer === 'function') {
 try { renderer(); } catch (e) { console.warn('Workstation renderer error for ' + pane + ':', e); }
 }
 }
-try { history.replaceState(null, '', '#/' + pane); } catch (e) {}
+window.recordPaneInUrl(pane, !!userInitiated);
 };
 
 ;/* 00-render-dedupe.js */
@@ -2179,7 +2209,7 @@ if (window.WORKSTATIONS && window.WORKSTATIONS[pane] && typeof window.initWorkst
 const buildWorkstation = () => {
 window.initWorkstation(pane);
 const last = (window._activeWorkstationTab || {})[pane] || pane;
-window.showWorkstationTab(pane, last);
+window.showWorkstationTab(pane, last, false);
 };
 if (rendered && typeof rendered.then === 'function') {
 rendered.then(buildWorkstation, buildWorkstation);
@@ -2193,7 +2223,9 @@ try { window.showSmartSuggestionsForPane(pane); } catch(e) {}
 if (pane === 'chat' && typeof window.loadChatSessions === 'function') {
 window.loadChatSessions();
 }
-try { history.replaceState(null, '', '#/' + pane); } catch(e) {}
+if (typeof window.recordPaneInUrl === 'function') {
+window.recordPaneInUrl(pane, !window._navFromHistory);
+}
 };
 async function loadAgents() {
 try {
@@ -4500,9 +4532,14 @@ const parts = h.slice(2).split('/');
 const p = parts[0];
 const sub = parts[1];
 if (p && window.MASTER_PANE_REGISTRY && window.MASTER_PANE_REGISTRY.hasOwnProperty(p)) {
+window._navFromHistory = true;
+try {
 window.nav(p);
 if (p === 'settings' && sub && typeof window.switchSettingsTab === 'function') {
 window.switchSettingsTab(sub);
+}
+} finally {
+setTimeout(() => { window._navFromHistory = false; }, 0);
 }
 }
 }

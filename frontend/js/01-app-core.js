@@ -315,7 +315,7 @@ window.nav = function(pane) {
     const buildWorkstation = () => {
       window.initWorkstation(pane);
       const last = (window._activeWorkstationTab || {})[pane] || pane;
-      window.showWorkstationTab(pane, last);
+      window.showWorkstationTab(pane, last, false);
     };
     if (rendered && typeof rendered.then === 'function') {
       rendered.then(buildWorkstation, buildWorkstation);
@@ -331,7 +331,11 @@ window.nav = function(pane) {
     window.loadChatSessions();
   }
 
-  try { history.replaceState(null, '', '#/' + pane); } catch(e) {}
+  // A user navigation gets a history entry so Back returns to the previous
+  // pane instead of leaving the app. See recordPaneInUrl in 00-workstations.js.
+  if (typeof window.recordPaneInUrl === 'function') {
+    window.recordPaneInUrl(pane, !window._navFromHistory);
+  }
 };
 
 // ── Agents ───────────────────────────────────────────────────────
@@ -3210,9 +3214,21 @@ window.initDeepLinkRouter = function() {
       const p = parts[0];
       const sub = parts[1];
       if (p && window.MASTER_PANE_REGISTRY && window.MASTER_PANE_REGISTRY.hasOwnProperty(p)) {
-        window.nav(p);
-        if (p === 'settings' && sub && typeof window.switchSettingsTab === 'function') {
-          window.switchSettingsTab(sub);
+        // Mark this navigation as coming FROM history.
+        //
+        // Without the flag, pressing Back triggers hashchange -> nav() ->
+        // pushState, which appends a new entry for the state the user just
+        // left. Back would then bounce between two panes forever and the
+        // user could never escape. The flag is cleared on the next tick,
+        // after nav() has finished its synchronous work.
+        window._navFromHistory = true;
+        try {
+          window.nav(p);
+          if (p === 'settings' && sub && typeof window.switchSettingsTab === 'function') {
+            window.switchSettingsTab(sub);
+          }
+        } finally {
+          setTimeout(() => { window._navFromHistory = false; }, 0);
         }
       }
     }
