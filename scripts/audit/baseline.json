@@ -1,4 +1,5 @@
 {
+  "adversarial-input": 0,
   "concurrent-duplicate-writes": 0,
   "failure-honesty": 0,
   "history-navigation": 0,

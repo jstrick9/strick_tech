@@ -44,6 +44,7 @@ AUDITS = [
     'large_data',
     'session_expiry',
     'offline_reconnect',
+    'adversarial_input',
 ]
 
 

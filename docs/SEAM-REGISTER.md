@@ -45,6 +45,7 @@ verifiable. "No bugs exist" is not.
 | Large data volumes | `large_data.py` | 0 | A host re-render destroyed 7 workstations' tabs; Goals capped at 100 of 250 with no way to reach the rest |
 | Session expiry / auth loss | `session_expiry.py` | 0 | Session tokens were **write-only** — `/login` issued a `ses_…` token that every endpoint rejected; every session was born already expired; no logout route existed; a dead session left a calm empty app with no signal and no way back in |
 | Offline / reconnect | `offline_reconnect.py` | 0 | **Three** independent `offline` listeners each raised their own message simultaneously, giving contradictory advice: "your work is safe" alongside "changes will not be saved" |
+| Long / adversarial input | `adversarial_input.py` | 0 | No XSS and no data loss (verified, not assumed); a 4,000-char title overflowed a 235px card by 1,900px while `documentElement.scrollWidth` stayed exactly 1440px |
 
 **All twelve audits are at 0.** `source-patterns` was cleared from 17 (six
 unguarded array accesses, eleven raw-error headlines); the fixes and three
@@ -76,7 +77,6 @@ even once.
 
 | Seam | Why it matters | Cheap first probe |
 |---|---|---|
-| **Long / adversarial input** | 10k-char names, RTL text, emoji, `<script>` in every field | Fuzz every input |
 | **Timezones & dates** | All timestamps assume the server's zone | Run under `TZ=Pacific/Kiritimati` |
 | **Print / export** | `styles-print.css` exists but was never verified | Render to PDF, inspect |
 | **Reduced motion / high contrast** | `prefers-reduced-motion` partially honoured; forced-colors never tested | Emulate both media features |
@@ -107,6 +107,8 @@ encoded in `scripts/audit/_harness.py` so no future probe has to remember them.
 
 | Trap | What it cost |
 |---|---|
+| Measuring overflow only at the document level | A 4,000-char title spilled 1,900px out of its card while `documentElement.scrollWidth` stayed exactly 1440px. The page was perfect by the global measure and unreadable on screen. Check element-level `scrollWidth > clientWidth` too |
+| Searching innerHTML for `<script>` to detect XSS | Finds correctly-escaped values and misses `onerror=` entirely — it reports the safe case and misses the dangerous one. Detect a real side effect instead |
 | Searching the whole document for a status word | `/offline/` matched `Private • Ollama • Offline`, a product feature label. It produced a false finding — and worse, would have let a **total absence** of offline reporting pass the presence check. Scope to status surfaces |
 | Three overlapping owners of one message | Disabling any single offline handler left the audit clean, because two others still spoke. Redundancy makes every individual owner unprovable; consolidate, then re-verify the probe can fail |
 | An off-screen live region counted as visible signal | `#sr-announcer` holds a **copy** of the toast text at `position:absolute` off-screen. The session-expiry probe read it and reported NO-SIGNAL as clean while the user could see nothing at all |
