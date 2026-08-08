@@ -352,6 +352,100 @@ hide();
 });
 })();
 
+;/* 00-session-status.js */
+'use strict';
+(function () {
+var THRESHOLD = 2;
+var WINDOW_MS = 10000;
+var hits = [];
+var paths = Object.create(null);
+var bannerEl = null;
+function isApiPath(url) {
+try {
+var u = new URL(url, location.origin);
+return u.origin === location.origin && u.pathname.indexOf('/api/') === 0;
+} catch (e) { return false; }
+}
+var IGNORED = ['/api/auth/login', '/api/auth/register', '/api/secrets/get'];
+function ignored(path) {
+for (var i = 0; i < IGNORED.length; i++) {
+if (path.indexOf(IGNORED[i]) === 0) return true;
+}
+return false;
+}
+function note(path) {
+var now = Date.now();
+hits.push(now);
+hits = hits.filter(function (t) { return now - t < WINDOW_MS; });
+paths[path] = now;
+if (hits.length >= THRESHOLD) show();
+}
+function clear() {
+hits = [];
+paths = Object.create(null);
+hide();
+}
+function show() {
+if (bannerEl && bannerEl.isConnected) return;
+bannerEl = document.createElement('div');
+bannerEl.id = 'session-banner';
+bannerEl.className = 'session-banner';
+bannerEl.setAttribute('role', 'alert');
+bannerEl.setAttribute('aria-live', 'assertive');
+var text = document.createElement('span');
+text.className = 'session-banner__text';
+text.textContent =
+'Your session has ended. Nothing was lost — sign in again to carry on.';
+bannerEl.appendChild(text);
+var signIn = document.createElement('button');
+signIn.type = 'button';
+signIn.className = 'btn btn-sm btn-primary session-banner__signin';
+signIn.textContent = 'Sign in';
+signIn.addEventListener('click', function () {
+if (window.MASTER_PANE_REGISTRY && window.MASTER_PANE_REGISTRY.settings
+&& typeof window.nav === 'function') {
+clear();
+window.nav('settings');
+} else {
+location.reload();
+}
+});
+bannerEl.appendChild(signIn);
+document.body.appendChild(bannerEl);
+try { signIn.focus({ preventScroll: true }); } catch (e) {  }
+}
+function hide() {
+if (bannerEl && bannerEl.parentNode) bannerEl.parentNode.removeChild(bannerEl);
+bannerEl = null;
+}
+window.sessionStatus = {
+noteUnauthorised: note,
+reset: clear,
+isShowing: function () { return !!(bannerEl && bannerEl.isConnected); },
+_state: function () { return { hits: hits.length }; },
+};
+function attach() {
+if (!window.connectionStatus) return false;
+var prior = window.connectionStatus.observeResponse;
+window.connectionStatus.observeResponse = function (url, response) {
+if (prior) { try { prior(url, response); } catch (e) {  } }
+if (!response || !isApiPath(url)) return;
+var path;
+try { path = new URL(url, location.origin).pathname; } catch (e) { return; }
+if (ignored(path)) return;
+if (response.status === 401) {
+note(path);
+} else if (response.ok) {
+clear();
+}
+};
+return true;
+}
+if (!attach()) {
+document.addEventListener('DOMContentLoaded', attach);
+}
+})();
+
 ;/* 00-csrf.js */
 (function () {
 'use strict';

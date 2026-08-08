@@ -1120,6 +1120,57 @@ html :focus:not(:focus-visible) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   LOST-SESSION BANNER
+   ═══════════════════════════════════════════════════════════════════════
+   Shown by frontend/js/00-session-status.js when API calls start answering
+   401. Deliberately distinct from .connection-banner: that one is a warning
+   ("your work is safe, try again"), this one is a refusal ("retrying will not
+   help, sign in"). Same geometry so they cannot both be mistaken for each
+   other's problem, different border colour so they are not mistaken for each
+   other at a glance.
+
+   Anchored TOP-centre, unlike the connection banner at the bottom, because
+   both can in principle be on screen at once and stacking them would hide
+   whichever lost the race. */
+.session-banner {
+  position: fixed;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(680px, calc(100vw - 32px));
+  padding: 12px 14px 12px 18px;
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-2, #16171f);
+  border: 1px solid var(--danger, #f26565);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, .45);
+  color: var(--text-0, #f2f3f7);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.session-banner__text { flex: 1; }
+.session-banner__signin { flex-shrink: 0; }
+
+@media (max-width: 560px) {
+  .session-banner {
+    left: 16px;
+    right: 16px;
+    transform: none;
+    max-width: none;
+    flex-wrap: wrap;
+  }
+  .session-banner__text { flex-basis: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-banner { transition: none; animation: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    TOUCH TARGET SIZING (WCAG 2.5.5 / Apple HIG: 44x44 CSS px)
    ═══════════════════════════════════════════════════════════════════════
 

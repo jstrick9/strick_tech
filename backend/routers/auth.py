@@ -9,7 +9,7 @@ import hashlib
 import hmac
 import logging
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -79,6 +79,61 @@ def _generate_session_token() -> str:
     return f'ses_{secrets.token_hex(32)}'
 
 
+# How long a login lasts. Long enough that a working day does not require a
+# second sign-in; short enough that a token left on a shared machine dies.
+SESSION_TTL_HOURS = 12
+
+
+def _session_expiry() -> str:
+    return (datetime.now(timezone.utc) + timedelta(hours=SESSION_TTL_HOURS)).isoformat()
+
+
+def _session_user_id(token: str) -> str | None:
+    """Resolve a `ses_…` token to a user, honouring its expiry.
+
+    WHY THIS EXISTS. `/api/auth/login` minted a session token and wrote it to
+    `auth_sessions`, but nothing in the codebase ever READ that table --
+    `require_api_key()` matched only `auth_users.api_key`. Verified against the
+    running server before this fix:
+
+        POST /api/auth/login             -> 200 {"token": "ses_d92ab226…"}
+        GET  /api/auth/me   Bearer ses_… -> 401 {"detail": "Invalid API key"}
+
+    The one credential the login flow hands the caller was rejected by every
+    endpoint, so the entire session mechanism was decorative.
+
+    Expired rows are deleted on the way past rather than merely refused, so the
+    table does not grow without bound in a long-running deployment.
+    """
+    if not token or not token.startswith('ses_'):
+        return None
+    con = get_conn()
+    try:
+        row = con.execute(
+            'SELECT user_id, expires_at FROM auth_sessions WHERE token=?',
+            (token,),
+        ).fetchone()
+        if not row:
+            return None
+        try:
+            expires = datetime.fromisoformat(row['expires_at'])
+        except (TypeError, ValueError):
+            # An unparseable expiry is treated as expired: failing closed is
+            # the only safe reading of a credential we cannot date.
+            expires = datetime.min.replace(tzinfo=timezone.utc)
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if expires <= datetime.now(timezone.utc):
+            con.execute('DELETE FROM auth_sessions WHERE token=?', (token,))
+            con.commit()
+            return None
+        return row['user_id']
+    except Exception:
+        return None
+    finally:
+        con.close()
+
+
 # ── API Key authentication dependency ──────────────────────────────────────
 async def require_api_key(request: Request) -> str | None:
     """FastAPI dependency: validates API key from header or query param.
@@ -103,6 +158,13 @@ async def require_api_key(request: Request) -> str | None:
     if not api_key:
         raise HTTPException(status_code=401, detail='API key required')
 
+    # A session token from /api/auth/login is a first-class credential. It is
+    # checked first because it is the one the UI actually holds; a long-lived
+    # api_key is the scripted-client path.
+    session_user = _session_user_id(api_key)
+    if session_user:
+        return session_user
+
     con = get_conn()
     try:
         user = con.execute('SELECT id FROM auth_users WHERE api_key=?', (api_key,)).fetchone()
@@ -110,7 +172,10 @@ async def require_api_key(request: Request) -> str | None:
         con.close()
 
     if not user:
-        raise HTTPException(status_code=401, detail='Invalid API key')
+        # Deliberately one message for "expired session", "revoked session" and
+        # "wrong key": distinguishing them tells an attacker which guesses are
+        # closer. The UI explains the likely cause; the server does not.
+        raise HTTPException(status_code=401, detail='Invalid or expired credentials')
     return user['id']
 
 
@@ -180,7 +245,12 @@ def login_user(req: LoginRequest):
             return JSONResponse({'ok': False, 'error': 'Invalid username or password'}, status_code=401)
 
         token = _generate_session_token()
-        expires = datetime.now(timezone.utc).isoformat()
+        # `expires_at` was `datetime.now(...)` -- the instant of issue, with no
+        # duration added, so every session was born already expired. Nothing
+        # read the column, so the app never noticed; the moment sessions began
+        # to be honoured, every login would have been dead on arrival.
+        expires = _session_expiry()
+        now = datetime.now(timezone.utc).isoformat()
 
         con.execute(
             'INSERT INTO auth_sessions (token, user_id, expires_at) VALUES (?,?,?)',
@@ -188,13 +258,16 @@ def login_user(req: LoginRequest):
         )
         con.execute(
             'UPDATE auth_users SET last_login=? WHERE id=?',
-            (expires, user['id'])
+            (now, user['id'])
         )
         con.commit()
 
         return {
             'ok': True,
             'token': token,
+            # Told to the client so the UI can warn before it happens rather
+            # than discovering expiry as a failed save.
+            'expires_at': expires,
             'user': {
                 'id': user['id'],
                 'username': user['username'],
@@ -204,6 +277,36 @@ def login_user(req: LoginRequest):
         }
     finally:
         con.close()
+
+
+@router.post('/logout')
+async def logout(request: Request):
+    """End the current session.
+
+    There was no logout route at all, so a session token could not be revoked:
+    on a shared machine it stayed valid until it expired. Deleting the row is
+    the whole mechanism -- `_session_user_id()` reads that table on every
+    request, so removal takes effect immediately across all workers.
+
+    Answers 200 for an unknown or already-deleted token on purpose. Logging out
+    twice, or with a token the server has already forgotten, is a normal thing
+    to do and must not produce an error the user has to think about; the
+    end state they asked for is the state they get.
+    """
+    token = (request.headers.get('Authorization', '').replace('Bearer ', '')
+             or request.headers.get('X-API-Key', ''))
+    revoked = 0
+    if token.startswith('ses_'):
+        con = get_conn()
+        try:
+            cur = con.execute('DELETE FROM auth_sessions WHERE token=?', (token,))
+            con.commit()
+            revoked = cur.rowcount or 0
+        except Exception:
+            revoked = 0
+        finally:
+            con.close()
+    return {'ok': True, 'revoked': revoked, 'message': 'Signed out.'}
 
 
 @router.get('/me')
