@@ -121,3 +121,61 @@ this audit had to use the Ollama path. Worth closing separately.
 | Revert both fixes | **8 of 13** tests fail |
 | No-provider path | unchanged (`done` + `stub: true`) |
 | Full suite | 3,390 unit (2 skipped) + 655 (10 skipped), 0 failures |
+
+---
+
+# 61b — Closing the testability gap on the primary provider
+
+The audit above had to drive all four failure modes down the **Ollama** path,
+because `OPENROUTER_BASE` was a hardcoded constant while `OLLAMA_BASE` was
+env-driven. The primary provider — the one almost every deployment actually
+uses — had **no seam for testing failure at all**.
+
+`OPENROUTER_BASE_URL` is now overridable (default unchanged). The fake provider
+learned the OpenAI SSE shape alongside Ollama's NDJSON, so the same four modes
+run against either path.
+
+## What that immediately found
+
+**The stall bug was on the primary path too, and the earlier fix had not
+covered it.** Measured with an 8-second budget configured: **40 seconds** of
+silence. The `_openrouter_stream` loop had its own `async for` with no bound.
+Now 40s → **8.04s**.
+
+**A raw exception as the headline:**
+
+```
+[OpenRouter disconnected (Server error '500 Internal Server Error' for
+ url 'http://127.0.0.1:11434/chat/completions'...). Auto-falling back...]
+```
+
+Reworded to lead with the explanation and demote the detail —
+`00-error-copy.js`'s convention, which the failure-honesty audit enforces on
+the frontend and this backend path predated.
+
+> _Couldn't reach the cloud model — switching to your local llama3.1:8b
+> instead. (…)_
+
+## A probe bug found in the same pass
+
+The `RAW-ERROR` check keyed on fixed tokens (`HTTP 500`, `localhost:11434`) and
+split the headline on `.`. Both were wrong:
+
+- The identical failure through `127.0.0.1` contains **neither token**, so a
+  raw exception headline passed. *A probe keyed on the accidental spelling of
+  one deployment is not measuring the property.*
+- Splitting on `.` cut `llama3.1:8b` at the version number, truncating a
+  **correct** message into a fragment that looked broken.
+
+It now strips trailing parenthesised detail and asks whether the headline reads
+as machine output or as a sentence addressed to a person. Verified both ways:
+the bad wording is flagged, the good one is not.
+
+## Coverage now
+
+| | truncate | stall | garbage | error500 |
+|---|---|---|---|---|
+| **Ollama** | 0 | 0 | 0 | 0 |
+| **OpenRouter** | 0 | 0 | 0 | 0 |
+
+Full suite: 3,396 unit (2 skipped) + 655 (10 skipped), 0 failures.

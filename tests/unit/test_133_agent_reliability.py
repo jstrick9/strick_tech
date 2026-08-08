@@ -204,3 +204,64 @@ def test_the_audit_is_registered_but_not_in_the_shared_walk():
     assert 'test_agent_reliability_audit_has_not_regressed' in ratchet
     baseline = json.loads((AUDIT / 'baseline.json').read_text(encoding='utf-8'))
     assert baseline.get('agent-reliability') == 0
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  The primary provider path
+# ──────────────────────────────────────────────────────────────────────
+def test_the_primary_provider_base_is_overridable():
+    """`OPENROUTER_BASE` was a hardcoded constant while `OLLAMA_BASE` was
+    env-driven, so the PRIMARY provider had no seam for testing failure at
+    all -- and turned out to carry the same stall bug, unmeasured, because
+    nothing could reach it.
+
+    Default unchanged, so no deployment behaves differently.
+    """
+    assert 'OPENROUTER_BASE_URL' in LLM
+    assert "'https://openrouter.ai/api/v1'" in LLM
+
+
+def test_both_provider_paths_bound_the_first_token_wait():
+    """The Ollama path was fixed first only because it had a seam. Measured on
+    the primary path once one existed: 40s of silence with an 8s budget."""
+    assert LLM_SRC.count('asyncio.wait_for') >= 2, (
+        'both the OpenRouter and Ollama stream loops must bound the wait')
+    assert LLM_SRC.count('first_token_timeout') >= 2
+
+
+def test_the_fallback_notice_leads_with_an_explanation():
+    """It led with the raw httpx exception repr:
+
+        [OpenRouter disconnected (Server error '500 Internal Server Error'
+         for url '...'). Auto-falling back to local llama3.1:8b...]
+
+    00-error-copy.js's convention is plain words first, detail in trailing
+    parentheses.
+    """
+    assert 'OpenRouter disconnected' not in LLM
+    assert 'switching to your' in LLM
+
+
+def test_the_terminal_failure_message_is_human():
+    assert '[stream error]' not in LLM_SRC
+    assert 'could not be reached' in LLM
+
+
+def test_the_probe_judges_the_headline_not_incidental_tokens():
+    """The first version searched for 'HTTP 500' and 'localhost:11434'. Those
+    are incidental -- the same failure through 127.0.0.1 contains neither, so a
+    raw exception headline passed. And splitting the headline on '.' cut
+    "llama3.1:8b" at the version number, truncating a correct message into a
+    fragment that looked wrong.
+    """
+    assert 'looks_machine' in PROBE
+    assert 'reads_human' in PROBE
+    assert "re.sub(r'\\([^)]*\\)'" in PROBE, (
+        'trailing parenthesised detail must be stripped, not split on')
+
+
+def test_the_fake_provider_speaks_both_protocols():
+    """OpenRouter is SSE with an OpenAI-shaped delta; Ollama is NDJSON. One
+    fake must serve both or only half the product can be exercised."""
+    assert 'openai_style' in FAKE
+    assert 'choices' in FAKE

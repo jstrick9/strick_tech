@@ -45,9 +45,11 @@ with:
 
 MEASUREMENT NOTES
 ─────────────────
-  * `OPENROUTER_BASE` is a hardcoded constant and cannot be redirected, so the
-    Ollama path is used. That asymmetry is itself worth noting: the primary
-    provider has no seam for testing failure at all.
+  * Both provider paths are exercised. `OPENROUTER_BASE` used to be a
+    hardcoded constant, so only Ollama could be tested -- and the primary path
+    turned out to have the SAME stall bug, unmeasured, because nothing could
+    reach it. It is now `OPENROUTER_BASE_URL`-overridable (default unchanged),
+    and PROVIDER=openrouter drives the same four modes down it.
   * The stall budget is checked against BYTES RECEIVED, not against wall
     clock. A server that streams a heartbeat is behaving correctly even if the
     answer is slow; one that sends nothing is not.
@@ -60,6 +62,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -150,6 +153,7 @@ def run() -> AuditResult:
             note='misbehaving-provider behaviour')
 
     mode = os.environ.get('MODE', '')
+    provider = os.environ.get('PROVIDER', 'ollama')
     token = _csrf()
     if not token:
         return AuditResult('agent-reliability', 0,
@@ -192,14 +196,37 @@ def run() -> AuditResult:
     elif mode == 'error500':
         raw, _ = _chat(token, timeout=40)
         text = ' '.join(f.get('delta', '') for f in _frames(raw))
-        leaked = [t for t in ('HTTP 500', 'Traceback', 'localhost:11434')
-                  if t in text]
-        headline = text.split('.')[0] if text else ''
-        if leaked and not any(
-                w in headline.lower()
-                for w in ('could not', "couldn't", 'unable', 'make sure')):
+        # Judge the HEADLINE, not the whole message: 00-error-copy.js
+        # deliberately keeps technical detail in trailing parentheses, and
+        # punishing that would punish the fix.
+        headline = re.sub(r'\([^)]*\)', '', text).strip()
+
+        # What makes a headline bad is that it reads as machine output rather
+        # than as a sentence addressed to a person.
+        #
+        # The first version searched for fixed tokens ('HTTP 500',
+        # 'localhost:11434'). Those are incidental -- the same failure through
+        # 127.0.0.1 contains neither, so a raw exception headline passed. A
+        # probe keyed on the accidental spelling of one deployment is not
+        # measuring the property.
+        JARGON = (
+            'disconnected (', '[stream error]', 'Traceback',
+            'Server error', 'HTTPStatusError', 'ConnectError',
+            'ReadTimeout', 'httpx.', 'Exception',
+        )
+        looks_machine = (
+            headline.startswith('[')
+            or any(j in headline for j in JARGON)
+        )
+        reads_human = any(
+            w in headline.lower()
+            for w in ('could not', "couldn't", 'couldn\u2019t', 'unable',
+                      'make sure', 'switching to your', 'try again',
+                      'has not responded')
+        )
+        if looks_machine and not reads_human:
             findings.append(
-                f'RAW-ERROR          internal detail is the headline: '
+                f'RAW-ERROR          the headline reads as machine output: '
                 f'{headline[:70]}')
 
     else:
@@ -209,7 +236,8 @@ def run() -> AuditResult:
         'agent-reliability',
         len([f for f in findings if not f.startswith('--')]),
         findings,
-        note=f'agentic core against a misbehaving provider (mode={mode or "unset"})',
+        note=(f'agentic core against a misbehaving provider '
+              f'(provider={provider}, mode={mode or "unset"})'),
     )
 
 

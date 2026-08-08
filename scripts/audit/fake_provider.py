@@ -29,6 +29,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         # Ollama probes /api/tags to decide whether the provider is alive.
+        if self.path.startswith('/models'):
+            body = json.dumps({'data': [{'id': 'fake/model'}]}).encode()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path.startswith('/api/tags'):
             body = json.dumps({'models': [{'name': 'fake:latest'}]}).encode()
             self.send_response(200)
@@ -43,6 +51,11 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers.get('Content-Length') or 0)
         self.rfile.read(length)
+        # OpenRouter speaks SSE with an OpenAI-shaped delta; Ollama speaks
+        # NDJSON. Both are served so the same four failure modes can be driven
+        # down EITHER provider path -- the primary one had no test seam at all
+        # until OPENROUTER_BASE_URL was made overridable.
+        self.openai_style = '/chat/completions' in self.path
 
         if MODE == 'error500':
             body = b'{"error":"provider exploded"}'
@@ -74,10 +87,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/x-ndjson')
         self.end_headers()
         for word in ('The ', 'answer ', 'is ', 'that '):
-            chunk = json.dumps({
-                'message': {'role': 'assistant', 'content': word},
-                'done': False,
-            }) + '\n'
+            if getattr(self, 'openai_style', False):
+                chunk = 'data: ' + json.dumps({
+                    'choices': [{'delta': {'content': word}}],
+                }) + '\n\n'
+            else:
+                chunk = json.dumps({
+                    'message': {'role': 'assistant', 'content': word},
+                    'done': False,
+                }) + '\n'
             try:
                 self.wfile.write(chunk.encode())
                 self.wfile.flush()

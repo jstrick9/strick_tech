@@ -37,7 +37,18 @@ OPENROUTER_MODELS = {
     'free': 'google/gemini-2.0-flash-exp:free',
 }
 
-OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
+# Overridable for the same reason OLLAMA_BASE_URL is: without a seam there is
+# no way to exercise what happens when the PRIMARY provider misbehaves, and
+# "the provider is configured, reachable, and failing mid-stream" is the
+# common production failure -- the one that produces a wrong answer rather
+# than an error message.
+#
+# scripts/audit/agent_reliability.py had to drive its four failure modes down
+# the Ollama path purely because this constant could not be redirected, which
+# left the primary path measured by nothing at all.
+#
+# Default unchanged, so no deployment behaves differently.
+OPENROUTER_BASE = os.getenv('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1').rstrip('/')
 OLLAMA_BASE = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
 
 # How long to wait for the FIRST token before telling the user something is
@@ -595,9 +606,40 @@ async def _stream_impl(
             ) as resp,
         ):
             resp.raise_for_status()
-            async for line in resp.aiter_lines():
+            # Bound the wait for the FIRST token here as well as on the Ollama
+            # path. Measured against a provider that accepts the request and
+            # sends nothing: 40 seconds of silence with an 8-second budget
+            # configured, because httpx's timeout is a socket read timeout and
+            # an open, silent connection satisfies it.
+            #
+            # Only the first token is bounded -- a long answer that is
+            # streaming steadily is healthy and must not be interrupted.
+            _iter = resp.aiter_lines().__aiter__()
+            _first_token_seen = False
+            while True:
+                try:
+                    if _first_token_seen:
+                        line = await _iter.__anext__()
+                    else:
+                        line = await asyncio.wait_for(
+                            _iter.__anext__(), FIRST_TOKEN_TIMEOUT)
+                except StopAsyncIteration:
+                    break
+                except (TimeoutError, asyncio.TimeoutError):
+                    yield 'data: ' + json.dumps({
+                        'delta': (
+                            f'The model has not responded in '
+                            f'{int(FIRST_TOKEN_TIMEOUT)} seconds. It may be '
+                            'overloaded \u2014 try again, or pick a different '
+                            'model in Settings.'),
+                        'done': True,
+                        'error': 'first_token_timeout',
+                        'model': model_str,
+                    }) + '\n\n'
+                    return
                 if not line or not line.startswith('data:'):
                     continue
+                _first_token_seen = True
                 raw = line[5:].strip()
                 if raw == '[DONE]':
                     final = {'delta': '', 'done': True, 'model': model_str}
@@ -636,14 +678,26 @@ async def _stream_impl(
             # string literal — only Python 3.12+ relaxed that rule. This
             # project targets 3.10+, so the message is composed as a plain
             # string first and just interpolated as a value.
-            fallback_notice = f' [OpenRouter disconnected ({e}). Auto-falling back to local {fallback_model}...]\n\n'
+            # Explanation first, technical detail demoted to trailing
+            # parentheses -- the convention in frontend/js/00-error-copy.js,
+            # which the failure-honesty audit enforces on the frontend and
+            # this backend path predates. The old wording led with the raw
+            # httpx exception repr.
+            fallback_notice = (
+                f' _Couldn\u2019t reach the cloud model \u2014 switching to your '
+                f'local {fallback_model} instead. ({e})_\n\n'
+            )
             yield f'data: {json.dumps({"delta": fallback_notice, "done": False})}\n\n'
             async for chunk in _ollama_stream(messages, fallback_model, temperature, max_tokens, timeout):
                 yield chunk
             return
         except Exception as fe:
             log.error('Local Ollama fallback stream also failed: %s', fe)
-        yield f'data: {json.dumps({"delta": f"[stream error]: {e}", "done": True, "error": str(e)})}\n\n'
+        _human = (
+            'The model could not be reached, and the local fallback did not '
+            f'respond either. Try again in a moment. ({e})'
+        )
+        yield f'data: {json.dumps({"delta": _human, "done": True, "error": str(e)})}\n\n'
 
 
 # ── Ollama ─────────────────────────────────────────────────────────────────────
