@@ -185,3 +185,33 @@ def test_first_run_audit_has_not_regressed():
         f"first-run-experience rose from {expected} to {result['count']}.\n"
         + '\n'.join(result['findings'][:12])
     )
+
+
+def test_agent_reliability_audit_has_not_regressed():
+    """The misbehaving-provider audit, ratcheted separately.
+
+    WHY NOT A ROW IN THE SHARED LIST. Every other browser audit runs against
+    whatever server is on :8787. This one needs a server pointed at
+    scripts/audit/fake_provider.py via OLLAMA_BASE_URL, and exercises one
+    failure MODE per invocation. In the shared list it would report 0 on every
+    ordinary run while measuring nothing -- a test that cannot fail, which is
+    the pattern this review has now hit nine times.
+
+    It therefore SKIPS, visibly, unless the fake provider is actually in use.
+    """
+    import os
+
+    if os.environ.get('AGENTIC_FAKE_PROVIDER') != '1':
+        pytest.skip(
+            'agent_reliability: needs a server against '
+            'scripts/audit/fake_provider.py with AGENTIC_FAKE_PROVIDER=1')
+
+    result = _run_audit('agent_reliability')
+    if result is None:
+        pytest.skip('agent_reliability: no server on localhost:8787')
+
+    expected = _baseline()['agent-reliability']
+    assert result['count'] <= expected, (
+        f"agent-reliability rose from {expected} to {result['count']}.\n"
+        + '\n'.join(result['findings'][:12])
+    )

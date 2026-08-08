@@ -6,6 +6,7 @@ Real LLM chat with streaming SSE, session history, slash command routing.
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 
 from fastapi import APIRouter, Request
@@ -460,47 +461,98 @@ async def chat_stream(req: Request):
         resolved_model = req_model or agent.get('model', '')
         # Only genuine model output is eligible for long-term memory ingestion.
         is_real_completion = True
+        # Whether a terminal frame was actually emitted. The client treats
+        # `done` as "the answer is complete", so if the stream simply stops
+        # a half-written reply renders as a finished one.
+        saw_done = False
+
         try:
-            async for chunk in llm.stream(
-                messages,
-                agent_id=agent_id if req_model else (agent.get('model') or agent_id),
-                model=req_model or agent.get('model', ''),
-                temperature=temperature,
-                max_tokens=max_tokens,
-                inject_steering=False,
-            ):
-                if want_stream:
-                    yield chunk
-                # accumulate text + usage for logging
-                try:
-                    data = json.loads(chunk.split('data: ', 1)[1])
-                    full_text += data.get('delta', '')
-                    if not want_stream and data.get('delta'):
-                        buffered.append(data['delta'])
-                    if data.get('done'):
-                        used_tokens = int(data.get('tokens', 0) or 0)
-                        used_cost = float(data.get('cost', 0.0) or 0.0)
-                        resolved_model = data.get('model') or resolved_model
-                        # llm.stream() flags placeholder replies (no API key
-                        # configured) with stub=True, and hard failures with
-                        # an 'error' key. Neither is real model output.
-                        if data.get('stub') or data.get('error'):
-                            is_real_completion = False
-                        if not want_stream:
-                            final_payload = {
-                                'delta': ''.join(buffered),
-                                'done': True,
-                                'model': resolved_model,
-                                'tokens': used_tokens,
-                                'cost': used_cost,
-                            }
-                            if data.get('stub'):
-                                final_payload['stub'] = True
-                            if data.get('error'):
-                                final_payload['error'] = data['error']
-                            yield f'data: {json.dumps(final_payload)}\n\n'
-                except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-                    pass
+            try:
+                async for chunk in llm.stream(
+                    messages,
+                    agent_id=agent_id if req_model else (agent.get('model') or agent_id),
+                    model=req_model or agent.get('model', ''),
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    inject_steering=False,
+                ):
+                    if want_stream:
+                        yield chunk
+                    # accumulate text + usage for logging
+                    try:
+                        data = json.loads(chunk.split('data: ', 1)[1])
+                        full_text += data.get('delta', '')
+                        if not want_stream and data.get('delta'):
+                            buffered.append(data['delta'])
+                        if data.get('done'):
+                            saw_done = True
+                            used_tokens = int(data.get('tokens', 0) or 0)
+                            used_cost = float(data.get('cost', 0.0) or 0.0)
+                            resolved_model = data.get('model') or resolved_model
+                            # llm.stream() flags placeholder replies (no API key
+                            # configured) with stub=True, and hard failures with
+                            # an 'error' key. Neither is real model output.
+                            if data.get('stub') or data.get('error'):
+                                is_real_completion = False
+                            if not want_stream:
+                                final_payload = {
+                                    'delta': ''.join(buffered),
+                                    'done': True,
+                                    'model': resolved_model,
+                                    'tokens': used_tokens,
+                                    'cost': used_cost,
+                                }
+                                if data.get('stub'):
+                                    final_payload['stub'] = True
+                                if data.get('error'):
+                                    final_payload['error'] = data['error']
+                                yield f'data: {json.dumps(final_payload)}\n\n'
+                    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+                        pass
+            except Exception as exc:                      # noqa: BLE001
+                # A provider that dies mid-stream raises HERE, inside the
+                # async generator. There was no `except`, only a `finally`,
+                # so the exception propagated and the response simply
+                # stopped: no error frame, no `done`.
+                logging.getLogger('agentic.chat').warning(
+                    'chat stream failed mid-response: %s', exc)
+
+            # THE TERMINAL-FRAME GUARANTEE.
+            #
+            # Three distinct provider failures all produced the same thing:
+            # a stream that stops with no `done` frame. Measured against a
+            # fake provider (scripts/audit/fake_provider.py):
+            #
+            #   hangs up mid-answer   -> the reply ended at "The answer is
+            #                            that " and was rendered as a
+            #                            COMPLETE answer
+            #   200, wrong body shape -> an entirely empty stream; the
+            #                            action looked like it did nothing
+            #   raises part-way       -> the same silent stop
+            #
+            # In every case the client waits for `done` and never gets it.
+            # Emitting one here means the UI always learns the outcome and
+            # can tell "finished" from "cut off", which it could not before.
+            if not saw_done:
+                is_real_completion = False
+                if full_text:
+                    notice = ('\n\n_The model stopped before finishing this '
+                              'reply. The text above may be incomplete \u2014 '
+                              'try sending it again._')
+                else:
+                    notice = ("The model didn't return anything. That is "
+                              'usually a provider problem rather than '
+                              'something you did \u2014 try again, or choose '
+                              'a different model in Settings.')
+                payload = {
+                    'delta': (''.join(buffered) + notice)
+                             if (not want_stream and buffered) else notice,
+                    'done': True,
+                    'truncated': True,
+                    'model': resolved_model,
+                }
+                full_text += notice
+                yield f'data: {json.dumps(payload)}\n\n'
         finally:
             # log assistant reply
             _log_chat(

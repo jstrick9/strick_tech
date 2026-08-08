@@ -54,6 +54,14 @@ AUDITS = [
     'first_run',
     'task_completion',
     'console_health',
+    # NOT in this list: agent_reliability. It needs a server started against
+    # scripts/audit/fake_provider.py with OLLAMA_BASE_URL pointed at it, and
+    # one MODE per invocation. Run it directly:
+    #
+    #   MODE=truncate AGENTIC_FAKE_PROVIDER=1 python3 scripts/audit/agent_reliability.py
+    #
+    # Included here it would report 0 on every normal run without measuring
+    # anything -- the vacuous-pass trap this review has hit nine times.
 ]
 
 
