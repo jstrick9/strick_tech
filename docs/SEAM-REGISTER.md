@@ -43,6 +43,7 @@ verifiable. "No bugs exist" is not.
 | Slow / flaky networks | `slow_network.py` | 0 | Goals blank 3s with no pending state; truncated responses leaked `Unterminated string in JSON`; Goals rendered a dropped connection as "no goals" |
 | Browser back / forward | `history_navigation.py` | 0 | Every nav used `replaceState`; 4 navigations created 0 history entries and Back exited to `about:blank` |
 | Large data volumes | `large_data.py` | 0 | A host re-render destroyed 7 workstations' tabs; Goals capped at 100 of 250 with no way to reach the rest |
+| Session expiry / auth loss | `session_expiry.py` | 0 | Session tokens were **write-only** — `/login` issued a `ses_…` token that every endpoint rejected; every session was born already expired; no logout route existed; a dead session left a calm empty app with no signal and no way back in |
 
 **All twelve audits are at 0.** `source-patterns` was cleared from 17 (six
 unguarded array accesses, eleven raw-error headlines); the fixes and three
@@ -74,7 +75,6 @@ even once.
 
 | Seam | Why it matters | Cheap first probe |
 |---|---|---|
-| **Session expiry / auth loss** | What happens mid-edit when a token expires? | Invalidate the token, then act |
 | **Offline / reconnect** | A banner exists; recovery behaviour is unverified | Toggle offline, then online |
 | **Long / adversarial input** | 10k-char names, RTL text, emoji, `<script>` in every field | Fuzz every input |
 | **Timezones & dates** | All timestamps assume the server's zone | Run under `TZ=Pacific/Kiritimati` |
@@ -107,6 +107,9 @@ encoded in `scripts/audit/_harness.py` so no future probe has to remember them.
 
 | Trap | What it cost |
 |---|---|
+| An off-screen live region counted as visible signal | `#sr-announcer` holds a **copy** of the toast text at `position:absolute` off-screen. The session-expiry probe read it and reported NO-SIGNAL as clean while the user could see nothing at all |
+| Over-correcting by dropping every `[aria-live]` | The very next run deleted the new lost-session banner — an `aria-live="assertive"` alert — and reported NO-SIGNAL against a screen that plainly said so. **Visibility is the test, not the presence of an ARIA attribute** |
+| Waiting out a toast to find the resting state | Polling re-raises it, so "wait past 6000ms" does not prove the screen is at rest. Remove transient nodes instead of waiting |
 | A probe whose writes were all rejected | The concurrency audit reported `0 records created` as a **PASS**; every POST had 403'd on a missing CSRF token. An audit measuring nothing looks identical to one finding nothing |
 | A fixed idempotency key across runs | The second run replayed the first run's cached response, created nothing, and passed for the wrong reason |
 | `time.sleep()` in a sync Playwright route handler | Blocks the driver's own event loop; the slow-network audit deadlocked for 8 minutes before being cancelled |

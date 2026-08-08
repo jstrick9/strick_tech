@@ -8,6 +8,7 @@
   "responsive-overflow": 0,
   "screen-reader-announcements": 0,
   "semantics": 0,
+  "session-expiry": 0,
   "slow-and-flaky-network": 0,
   "source-patterns": 0,
   "touch-targets-under-44px": 0
