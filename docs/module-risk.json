@@ -1,30 +1,13 @@
 [
   {
-    "pane": "collabedit",
-    "score": 53,
-    "file": "08-replay-collab.js",
-    "lines": 693,
-    "endpoints": 7,
-    "markers": 0,
-    "tested": false
-  },
-  {
-    "pane": "docs",
-    "score": 35,
-    "file": "04-workflow-specs.js",
-    "lines": 1801,
-    "endpoints": 15,
-    "markers": 1,
-    "tested": true
-  },
-  {
     "pane": "codesearch",
     "score": 34,
     "file": "01-app-core.js",
     "lines": 1945,
     "endpoints": 40,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "dashboard",
@@ -33,7 +16,8 @@
     "lines": 1945,
     "endpoints": 40,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "prompts",
@@ -42,7 +26,8 @@
     "lines": 1945,
     "endpoints": 40,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "ambient",
@@ -51,7 +36,8 @@
     "lines": 195,
     "endpoints": 16,
     "markers": 2,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "bugbot",
@@ -60,7 +46,8 @@
     "lines": 195,
     "endpoints": 16,
     "markers": 2,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "finetune",
@@ -69,7 +56,8 @@
     "lines": 501,
     "endpoints": 30,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "gitai",
@@ -78,16 +66,8 @@
     "lines": 195,
     "endpoints": 16,
     "markers": 2,
-    "tested": true
-  },
-  {
-    "pane": "health",
-    "score": 20,
-    "file": "07-quality-tools.js",
-    "lines": 195,
-    "endpoints": 16,
-    "markers": 2,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "kanban",
@@ -96,16 +76,8 @@
     "lines": 844,
     "endpoints": 4,
     "markers": 4,
-    "tested": true
-  },
-  {
-    "pane": "multitab",
-    "score": 20,
-    "file": "03-features-a.js",
-    "lines": 501,
-    "endpoints": 30,
-    "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "pluginsdk",
@@ -114,7 +86,8 @@
     "lines": 501,
     "endpoints": 30,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "pqc",
@@ -123,7 +96,8 @@
     "lines": 501,
     "endpoints": 30,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "profiler",
@@ -132,16 +106,8 @@
     "lines": 501,
     "endpoints": 30,
     "markers": 0,
-    "tested": true
-  },
-  {
-    "pane": "workflow",
-    "score": 20,
-    "file": "03-features-a.js",
-    "lines": 501,
-    "endpoints": 30,
-    "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "arena",
@@ -150,7 +116,8 @@
     "lines": 428,
     "endpoints": 16,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "codeindex",
@@ -159,7 +126,8 @@
     "lines": 428,
     "endpoints": 16,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "hooks",
@@ -168,7 +136,8 @@
     "lines": 428,
     "endpoints": 16,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "specs",
@@ -177,7 +146,8 @@
     "lines": 428,
     "endpoints": 16,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "hierarchy",
@@ -186,7 +156,8 @@
     "lines": 788,
     "endpoints": 11,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "evals",
@@ -195,7 +166,8 @@
     "lines": 242,
     "endpoints": 15,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "knowledge-graph",
@@ -204,7 +176,8 @@
     "lines": 242,
     "endpoints": 15,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "observability",
@@ -213,7 +186,8 @@
     "lines": 242,
     "endpoints": 15,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "rag",
@@ -222,7 +196,8 @@
     "lines": 242,
     "endpoints": 15,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "a2a",
@@ -231,7 +206,8 @@
     "lines": 7,
     "endpoints": 0,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "agent-identity",
@@ -240,7 +216,8 @@
     "lines": 7,
     "endpoints": 0,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "agent-monitor",
@@ -249,7 +226,8 @@
     "lines": 7,
     "endpoints": 0,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "audit-log",
@@ -258,16 +236,8 @@
     "lines": 7,
     "endpoints": 0,
     "markers": 0,
-    "tested": true
-  },
-  {
-    "pane": "browser",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
-    "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "connectors",
@@ -276,7 +246,8 @@
     "lines": 7,
     "endpoints": 0,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "eval-framework",
@@ -285,7 +256,8 @@
     "lines": 7,
     "endpoints": 0,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "finops",
@@ -294,7 +266,8 @@
     "lines": 7,
     "endpoints": 0,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "fusion",
@@ -303,7 +276,8 @@
     "lines": 7,
     "endpoints": 0,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "goals",
@@ -312,7 +286,8 @@
     "lines": 7,
     "endpoints": 0,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "hitl",
@@ -321,7 +296,8 @@
     "lines": 7,
     "endpoints": 0,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "leaderboard",
@@ -330,7 +306,8 @@
     "lines": 7,
     "endpoints": 0,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "mcp-gateway",
@@ -339,70 +316,38 @@
     "lines": 7,
     "endpoints": 0,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
-    "pane": "supervisor",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
-    "markers": 0,
-    "tested": true
-  },
-  {
-    "pane": "websearch",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
-    "markers": 0,
-    "tested": true
-  },
-  {
-    "pane": "dbstudio",
+    "pane": "collabedit",
     "score": 14,
-    "file": "17-database-studio.js",
-    "lines": 647,
-    "endpoints": 8,
+    "file": "08-replay-collab.js",
+    "lines": 701,
+    "endpoints": 7,
     "markers": 0,
-    "tested": true
-  },
-  {
-    "pane": "imagegen",
-    "score": 14,
-    "file": "15-image-generation.js",
-    "lines": 559,
-    "endpoints": 9,
-    "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "marketplace",
-    "score": 13,
+    "score": 14,
     "file": "08-replay-collab.js",
-    "lines": 693,
+    "lines": 701,
     "endpoints": 7,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "replay",
-    "score": 13,
+    "score": 14,
     "file": "08-replay-collab.js",
-    "lines": 693,
+    "lines": 701,
     "endpoints": 7,
     "markers": 0,
-    "tested": true
-  },
-  {
-    "pane": "templates",
-    "score": 11,
-    "file": "21-template-gallery.js",
-    "lines": 652,
-    "endpoints": 5,
-    "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "obsidian",
@@ -411,16 +356,8 @@
     "lines": 269,
     "endpoints": 8,
     "markers": 0,
-    "tested": true
-  },
-  {
-    "pane": "github",
-    "score": 9,
-    "file": "18-github.js",
-    "lines": 390,
-    "endpoints": 6,
-    "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "integrations",
@@ -429,25 +366,8 @@
     "lines": 226,
     "endpoints": 7,
     "markers": 0,
-    "tested": true
-  },
-  {
-    "pane": "workspaces",
-    "score": 8,
-    "file": "30-workspaces.js",
-    "lines": 209,
-    "endpoints": 6,
-    "markers": 0,
-    "tested": true
-  },
-  {
-    "pane": "plugins",
-    "score": 7,
-    "file": "34-plugin-hub.js",
-    "lines": 313,
-    "endpoints": 4,
-    "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "secrets",
@@ -456,16 +376,8 @@
     "lines": 206,
     "endpoints": 5,
     "markers": 0,
-    "tested": true
-  },
-  {
-    "pane": "terminal",
-    "score": 7,
-    "file": "16-terminal.js",
-    "lines": 206,
-    "endpoints": 5,
-    "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "deploy",
@@ -474,16 +386,8 @@
     "lines": 202,
     "endpoints": 4,
     "markers": 0,
-    "tested": true
-  },
-  {
-    "pane": "composer",
-    "score": 5,
-    "file": "19-composer.js",
-    "lines": 312,
-    "endpoints": 2,
-    "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "skills",
@@ -492,7 +396,8 @@
     "lines": 223,
     "endpoints": 3,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "swarm",
@@ -501,7 +406,8 @@
     "lines": 320,
     "endpoints": 2,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "system",
@@ -510,7 +416,8 @@
     "lines": 138,
     "endpoints": 4,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "testgen",
@@ -519,7 +426,8 @@
     "lines": 101,
     "endpoints": 4,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "control",
@@ -528,7 +436,8 @@
     "lines": 156,
     "endpoints": 3,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "mcp",
@@ -537,7 +446,8 @@
     "lines": 264,
     "endpoints": 2,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "pipeline",
@@ -546,7 +456,8 @@
     "lines": 162,
     "endpoints": 2,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "webhooks",
@@ -555,7 +466,8 @@
     "lines": 123,
     "endpoints": 2,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
   },
   {
     "pane": "loops",
@@ -564,6 +476,157 @@
     "lines": 139,
     "endpoints": 1,
     "markers": 0,
-    "tested": true
+    "tested": true,
+    "reviewed": false
+  },
+  {
+    "pane": "docs",
+    "score": 35,
+    "file": "04-workflow-specs.js",
+    "lines": 1828,
+    "endpoints": 15,
+    "markers": 1,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "health",
+    "score": 20,
+    "file": "07-quality-tools.js",
+    "lines": 195,
+    "endpoints": 16,
+    "markers": 2,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "multitab",
+    "score": 20,
+    "file": "03-features-a.js",
+    "lines": 501,
+    "endpoints": 30,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "workflow",
+    "score": 20,
+    "file": "03-features-a.js",
+    "lines": 501,
+    "endpoints": 30,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "browser",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "supervisor",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "websearch",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "dbstudio",
+    "score": 14,
+    "file": "17-database-studio.js",
+    "lines": 647,
+    "endpoints": 8,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "imagegen",
+    "score": 14,
+    "file": "15-image-generation.js",
+    "lines": 559,
+    "endpoints": 9,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "templates",
+    "score": 11,
+    "file": "21-template-gallery.js",
+    "lines": 652,
+    "endpoints": 5,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "github",
+    "score": 9,
+    "file": "18-github.js",
+    "lines": 390,
+    "endpoints": 6,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "workspaces",
+    "score": 8,
+    "file": "30-workspaces.js",
+    "lines": 209,
+    "endpoints": 6,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "plugins",
+    "score": 7,
+    "file": "34-plugin-hub.js",
+    "lines": 313,
+    "endpoints": 4,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "terminal",
+    "score": 7,
+    "file": "16-terminal.js",
+    "lines": 206,
+    "endpoints": 5,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "composer",
+    "score": 5,
+    "file": "19-composer.js",
+    "lines": 312,
+    "endpoints": 2,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
   }
 ]
