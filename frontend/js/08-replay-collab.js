@@ -1390,6 +1390,29 @@ function ceConnectWS(docId) {
         if (dot) { dot.className='ce-op-indicator'; }
         document.getElementById('ce-sync-label').textContent = 'synced';
       }
+      else if (msg.type === 'error') {
+        // The server now REFUSES a malformed edit instead of applying it
+        // (see backend/routers/crdt.py::_validate_op). Before that, four
+        // different malformed payloads were accepted, corrupted the shared
+        // document, were broadcast to every peer, and answered ok:true.
+        //
+        // With no handler here the refusal would be silently dropped and the
+        // editor would sit on "syncing" forever while the user's text was
+        // never saved -- a worse failure than the one being fixed. Say so,
+        // and put the sync indicator into a state that matches reality.
+        const dot = document.getElementById('ce-sync-dot');
+        if (dot) dot.className = 'ce-op-indicator err';
+        const label = document.getElementById('ce-sync-label');
+        if (label) label.textContent = 'not saved';
+        if (typeof msg.revision === 'number') {
+          _ceRevision = msg.revision;
+          const revEl = document.getElementById('ce-rev');
+          if (revEl) revEl.textContent = _ceRevision;
+        }
+        if (typeof toast === 'function') {
+          toast(msg.error || 'That edit could not be applied.', 'err', 6000);
+        }
+      }
       else if (msg.type === 'cursor') {
         if (_cePeers[msg.peer_id]) _cePeers[msg.peer_id].position = msg.position;
         ceRenderRemoteCursors();

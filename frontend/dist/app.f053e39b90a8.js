@@ -15237,6 +15237,20 @@ const dot = document.getElementById('ce-sync-dot');
 if (dot) { dot.className='ce-op-indicator'; }
 document.getElementById('ce-sync-label').textContent = 'synced';
 }
+else if (msg.type === 'error') {
+const dot = document.getElementById('ce-sync-dot');
+if (dot) dot.className = 'ce-op-indicator err';
+const label = document.getElementById('ce-sync-label');
+if (label) label.textContent = 'not saved';
+if (typeof msg.revision === 'number') {
+_ceRevision = msg.revision;
+const revEl = document.getElementById('ce-rev');
+if (revEl) revEl.textContent = _ceRevision;
+}
+if (typeof toast === 'function') {
+toast(msg.error || 'That edit could not be applied.', 'err', 6000);
+}
+}
 else if (msg.type === 'cursor') {
 if (_cePeers[msg.peer_id]) _cePeers[msg.peer_id].position = msg.position;
 ceRenderRemoteCursors();
