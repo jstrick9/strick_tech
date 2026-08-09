@@ -14,6 +14,7 @@ import json
 import logging
 import re
 import time
+from pathlib import Path
 
 from fastapi import APIRouter, Request
 
@@ -32,6 +33,49 @@ PREVIEW_DIR = ROOT / 'preview'
 
 
 # ── Code Search ────────────────────────────────────────────────────────────────
+def _search_roots() -> list[tuple[str, Path]]:
+    """(label, directory) pairs that Code Search should walk.
+
+    WHY THIS EXISTS. Both endpoints used to walk only PREVIEW_DIR, the GLOBAL
+    scaffold sandbox. Measured on a real machine: PREVIEW_DIR held 3 files (1
+    searchable) while workspaces/ held 1,290. Every per-workspace project lives
+    in `workspaces/<id>/preview/`, so searching `function` across a codebase
+    with 41,000 lines of JS returned 0 results and /api/project/files reported
+    `total_files: 1`.
+
+    The engine was never broken -- it was pointed at the wrong directory. And a
+    search that confidently answers "No results" is worse than a missing
+    feature: the user concludes their code does not contain the thing.
+
+    Only the ACTIVE workspace is included. Searching every workspace at once
+    would return hits from projects the user is not looking at, and the
+    workspace switcher already exists for changing that.
+    """
+    roots: list[tuple[str, Path]] = []
+
+    try:
+        from .workspaces import WS_DIR, _current_ws_id
+
+        ws_id = _current_ws_id() or ''
+        if ws_id:
+            # Projects are scaffolded into <workspace>/preview; fall back to
+            # the workspace root so a differently-shaped one is not skipped.
+            ws_preview = Path(WS_DIR) / ws_id / 'preview'
+            ws_root = ws_preview if ws_preview.exists() else Path(WS_DIR) / ws_id
+            if ws_root.exists():
+                roots.append(('workspace', ws_root))
+    except Exception:
+        # A missing workspaces module must degrade to "search the scaffold",
+        # never to a 500 on a read-only endpoint.
+        pass
+
+    if PREVIEW_DIR.exists() and not any(
+            r.resolve() == PREVIEW_DIR.resolve() for _, r in roots):
+        roots.append(('preview', PREVIEW_DIR))
+
+    return roots
+
+
 @router.get('/search')
 async def search_code(q: str = '', limit: int = 20, context_lines: int = 3):
     """
@@ -42,12 +86,14 @@ async def search_code(q: str = '', limit: int = 20, context_lines: int = 3):
         return {'results': [], 'query': q, 'total': 0}
 
     results = []
-    if not PREVIEW_DIR.exists():
+    roots = _search_roots()
+    if not roots:
         return {'results': [], 'query': q, 'total': 0}
 
     # Text search across all code files
     code_exts = {'.html', '.css', '.js', '.jsx', '.ts', '.tsx', '.py', '.json', '.md', '.yaml', '.yml', '.sql', '.sh'}
-    for fpath in sorted(PREVIEW_DIR.rglob('*')):
+    for scope, root in roots:
+      for fpath in sorted(root.rglob('*')):
         if not fpath.is_file():
             continue
         if '.git' in str(fpath) or 'branches' in str(fpath):
@@ -73,7 +119,10 @@ async def search_code(q: str = '', limit: int = 20, context_lines: int = 3):
                         score = 1  # fallback (shouldn't reach here)
                     results.append(
                         {
-                            'file': fpath.relative_to(PREVIEW_DIR).as_posix(),
+                            # Relative to its OWN root, so "open in editor"
+                            # keeps resolving for both scopes.
+                            'file': fpath.relative_to(root).as_posix(),
+                            'scope': scope,
                             'line': i + 1,
                             'match': line.strip(),
                             'context': lines[start:end],
@@ -110,13 +159,20 @@ async def search_code(q: str = '', limit: int = 20, context_lines: int = 3):
 @router.get('/files')
 def list_project_files(include_hidden: bool = False):
     """List all files in the current project with metadata."""
-    if not PREVIEW_DIR.exists():
+    # THE SECOND DOOR. /search was fixed to walk the active workspace as well
+    # as the global scaffold; this endpoint was not, and both are "the current
+    # project". The file tree drives Studio's sidebar and the search UI's
+    # grouping, so a hit in a file the tree does not list is a broken link.
+    roots = _search_roots()
+    if not roots:
         return {'files': [], 'stats': {}}
 
     files = []
     ext_counts: dict[str, int] = {}
+    seen: set[str] = set()
 
-    for fpath in sorted(PREVIEW_DIR.rglob('*')):
+    for scope, root in roots:
+      for fpath in sorted(root.rglob('*')):
         if not fpath.is_file():
             continue
         if not include_hidden and '.git' in str(fpath):
@@ -124,13 +180,21 @@ def list_project_files(include_hidden: bool = False):
         if 'branches' in str(fpath):
             continue
 
-        rel = fpath.relative_to(PREVIEW_DIR).as_posix()
+        rel = fpath.relative_to(root).as_posix()
+        # The workspace copy wins over an identically-named scaffold file:
+        # roots are ordered workspace-first, and listing one path twice would
+        # render a duplicate row in the tree.
+        if rel in seen:
+            continue
+        seen.add(rel)
+
         ext = fpath.suffix.lower() or '.txt'
         stat = fpath.stat()
         ext_counts[ext] = ext_counts.get(ext, 0) + 1
         files.append(
             {
                 'path': rel,
+                'scope': scope,
                 'size': stat.st_size,
                 'ext': ext,
                 'modified': int(stat.st_mtime),

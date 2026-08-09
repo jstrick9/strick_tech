@@ -1810,3 +1810,35 @@ html :focus:not(:focus-visible) {
   color: var(--accent-text, #a5a8ff);
   font-style: normal;
 }
+
+/* Code Search: which project a hit came from.
+   Results can come from the active workspace or the shared preview scaffold,
+   and both can contain the same relative path — saying nothing made two
+   different files look like one. */
+.cs-scope {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  border: 1px solid var(--border, #262932);
+  color: var(--text-3, #6f7684);
+  background: var(--bg-2, #16171f);
+}
+
+.cs-scope--workspace {
+  color: var(--accent-text, #a5a8ff);
+  border-color: var(--accent, #6a6df2);
+}
+
+.cs-error {
+  padding: 14px 16px;
+  border: 1px solid var(--danger, #f26565);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-2, #16171f);
+  color: var(--text-1, #c7ccd6);
+  font-size: 13px;
+  line-height: 1.5;
+}
