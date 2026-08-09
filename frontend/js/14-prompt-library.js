@@ -659,12 +659,28 @@ async function runCodeSearch(){
     const r=await fetch(`/api/project/search?q=${encodeURIComponent(q)}&limit=30&context_lines=2`);
     const j=await r.json();const results=j.results||[];
     if(!results.length){res.innerHTML=`<div style="text-align:center;padding:40px;color:var(--text-3)"><div style="font-size:24px;margin-bottom:8px">🔍</div><div>No results for "${escHtml(q)}"</div></div>`;return;}
-    const byFile={};results.forEach(r=>{if(!byFile[r.file])byFile[r.file]=[];byFile[r.file].push(r);});
+    // Group by SCOPE + file. Hits can come from the active workspace or the
+    // global preview scaffold, and both can contain `index.html` -- grouping
+    // on the relative path alone merged two different files into one heading.
+    const byFile={};
+    results.forEach(r=>{
+      const key=(r.scope?r.scope+'\u0000':'')+r.file;
+      if(!byFile[key])byFile[key]=[];
+      byFile[key].push(r);
+    });
     res.innerHTML=`<div style="margin-bottom:12px;font-size:13px;color:var(--text-1);font-weight:600">${j.total} match${j.total!==1?'es':''} in ${Object.keys(byFile).length} file${Object.keys(byFile).length!==1?'s':''}${j.summary?` — ${escHtml(j.summary)}`:''}
-    </div>${Object.entries(byFile).map(([file,hits])=>`
+    </div>${Object.entries(byFile).map(([key,hits])=>{
+      const file=hits[0].file;
+      const scope=hits[0].scope||'';
+      // "workspace" is the user's own project; "preview" is the shared
+      // scaffold sandbox. Saying nothing made them indistinguishable.
+      const scopeBadge = scope
+        ? `<span class="cs-scope cs-scope--${escHtml(scope)}">${scope==='workspace'?'project':'scaffold'}</span>`
+        : '';
+      return `
       <div style="margin-bottom:10px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
         <div style="padding:7px 12px;background:var(--bg-3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer" data-act-click="studioOpenFile(${jsArg(file)});nav('studio')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
-          <span style="font-size:11.5px;font-family:monospace;color:var(--accent-text);font-weight:600">${escHtml(file)}</span>
+          <span style="font-size:11.5px;font-family:monospace;color:var(--accent-text);font-weight:600">${escHtml(file)}</span>${scopeBadge}
           <span style="font-size:10.5px;color:var(--text-3);margin-left:auto">${hits.length} match${hits.length!==1?'es':''} · open →</span>
         </div>
         ${hits.map(hit=>{
@@ -682,8 +698,15 @@ async function runCodeSearch(){
             ${ctxHtml}
           </div>`;
         }).join('')}
-      </div>`).join('')}`;
-  }catch(e){res.innerHTML=`<div style="color:var(--danger);padding:12px">Error: ${escHtml(e.message)}</div>`;}
+      </div>`;}).join('')}`;
+  }catch(e){
+    // humanError() puts an explanation first and demotes the technical detail
+    // to trailing parentheses. This used to render `Error: Failed to fetch`.
+    const msg = (typeof humanError==='function')
+      ? humanError(e, 'Couldn\u2019t run that search.')
+      : 'Couldn\u2019t run that search. (' + (e && e.message || e) + ')';
+    res.innerHTML=`<div class="cs-error">${escHtml(msg)}</div>`;
+  }
   finally{btn.disabled=false;btn.textContent='🔍 Search';}
 }
 window.renderCodeSearch = renderCodeSearch;

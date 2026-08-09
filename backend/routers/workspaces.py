@@ -165,15 +165,66 @@ def _restore_shared(stash: Path, preview: Path, moved: list[str]) -> None:
 _activate_lock = threading.Lock()
 
 
-def _current_ws_id() -> str:
-    if CURRENT_FILE.exists():
-        return CURRENT_FILE.read_text().strip()
+def _ws_exists(ws_id: str) -> bool:
+    """Is this workspace real -- on disk or in the database?"""
+    if not ws_id:
+        return False
+    if (WS_DIR / ws_id).exists():
+        return True
     con = get_conn()
     try:
-        row = con.execute('SELECT id FROM workspaces WHERE is_active=1 LIMIT 1').fetchone()
+        return con.execute(
+            'SELECT 1 FROM workspaces WHERE id=? LIMIT 1', (ws_id,)
+        ).fetchone() is not None
+    except Exception:
+        return False
     finally:
         con.close()
-    return row['id'] if row else ''
+
+
+def _current_ws_id() -> str:
+    """The active workspace id, validated before it is trusted.
+
+    THE BUG THIS FIXES. This returned the contents of `.current` whenever the
+    FILE existed, without checking the workspace it names still does. Measured
+    on a real machine:
+
+        workspaces/.current        -> '6b27c178'  (no such directory)
+        workspaces DB is_active=1  -> '71951640'  ('My Project')
+
+    The file won, so the whole application believed the active workspace was a
+    phantom. `builder.py` alone uses this id in 8+ places to scope
+    `file_versions` queries, so version history and restore silently returned
+    nothing for files the user had definitely edited -- an empty list, no
+    error.
+
+    A pointer to a deleted workspace is exactly what deleting the workspace
+    you are in leaves behind, so this is reachable by ordinary use.
+
+    The file is HEALED rather than merely ignored: leaving it stale means the
+    next reader disagrees with this one, and intermittent disagreement is
+    harder to diagnose than a consistently wrong answer.
+    """
+    if CURRENT_FILE.exists():
+        pointed = CURRENT_FILE.read_text().strip()
+        if pointed and _ws_exists(pointed):
+            return pointed
+
+    con = get_conn()
+    try:
+        row = con.execute(
+            'SELECT id FROM workspaces WHERE is_active=1 LIMIT 1').fetchone()
+    finally:
+        con.close()
+
+    resolved = row['id'] if row else ''
+    if resolved:
+        try:
+            CURRENT_FILE.write_text(resolved)
+        except OSError:
+            # A read-only data dir must not break resolution.
+            pass
+    return resolved
 
 
 def _ensure_preview_index(directory: Path) -> None:
