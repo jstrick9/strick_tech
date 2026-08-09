@@ -74,6 +74,21 @@ API_PATH = re.compile(r"""['"`](/api/[A-Za-z0-9_\-/${}.]*)['"`]""")
 MARKER = re.compile(r'\b(TODO|FIXME|XXX|HACK|not implemented|coming soon)\b', re.I)
 
 
+def _strip_js(source: str) -> str:
+    """Source with comments AND string literals removed.
+
+    String literals matter as well as comments: `data-act-click="renderX()"`
+    inside a template would otherwise read as a call site strong enough to
+    claim the pane.
+    """
+    source = re.sub(r'/\*[\s\S]*?\*/', ' ', source)
+    source = re.sub(r'(?m)//.*$', ' ', source)
+    source = re.sub(r'`(?:[^`\\]|\\.)*`', ' `` ', source)
+    source = re.sub(r"'(?:[^'\\\n]|\\.)*'", " '' ", source)
+    source = re.sub(r'"(?:[^"\\\n]|\\.)*"', ' "" ', source)
+    return source
+
+
 def _strip_js_comments(source: str) -> str:
     source = re.sub(r'/\*[\s\S]*?\*/', '', source)
     return re.sub(r'(?m)//.*$', '', source)
@@ -121,16 +136,36 @@ def _pane_modules() -> dict[str, Path]:
                for f in sorted(JS_DIR.glob('*.js'))
                if f.name not in ('00-pane-registry.js', '00-render-dedupe.js')}
 
+    # Match against code with comments and string literals removed.
+    #
+    # THE BUG THIS FIXES. The search ran against raw source, so a COMMENT
+    # counted as a definition:
+    #
+    #     01-app-core.js:3183  // top-level `function renderDashboard(){}` IS
+    #                          // `window.renderDashboard`
+    #
+    # `dashboard` was attributed to 01-app-core.js (1,945 lines) rather than
+    # 36-dashboard.js (159) -- a 12x error in the size signal, which feeds the
+    # risk score. It inflated three panes to joint 3rd and would have kept
+    # misdirecting the queue.
+    stripped = {path: _strip_js(src) for path, src in sources.items()}
+
     out: dict[str, Path] = {}
     for pane, fn in renderers.items():
         if not fn:
             continue
-        for path, src in sources.items():
-            if re.search(rf'(async\s+)?function\s+{fn}\s*\(|'
-                         rf'\b{fn}\s*=\s*(async\s*)?(function|\()|'
-                         rf'window\.{fn}\s*=', src):
-                out[pane] = path
-                break
+        # A real definition beats a bare `window.renderX = ...` re-export: a
+        # module may legitimately re-export a function defined elsewhere, and
+        # the defining file is the one worth reviewing.
+        defines = re.compile(
+            rf'(async\s+)?function\s+{fn}\s*\(|\b{fn}\s*=\s*(async\s*)?(function|\()')
+        exports = re.compile(rf'window\.{fn}\s*=')
+
+        chosen = next((path for path, src in stripped.items() if defines.search(src)), None)
+        if chosen is None:
+            chosen = next((path for path, src in stripped.items() if exports.search(src)), None)
+        if chosen is not None:
+            out[pane] = chosen
     return out
 
 

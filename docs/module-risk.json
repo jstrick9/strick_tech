@@ -1,35 +1,5 @@
 [
   {
-    "pane": "codesearch",
-    "score": 34,
-    "file": "01-app-core.js",
-    "lines": 1945,
-    "endpoints": 40,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "dashboard",
-    "score": 34,
-    "file": "01-app-core.js",
-    "lines": 1945,
-    "endpoints": 40,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "prompts",
-    "score": 34,
-    "file": "01-app-core.js",
-    "lines": 1945,
-    "endpoints": 40,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
     "pane": "ambient",
     "score": 20,
     "file": "07-quality-tools.js",
@@ -160,6 +130,26 @@
     "reviewed": false
   },
   {
+    "pane": "mcp-gateway",
+    "score": 18,
+    "file": "50-mcp-gateway.js",
+    "lines": 1034,
+    "endpoints": 8,
+    "markers": 0,
+    "tested": true,
+    "reviewed": false
+  },
+  {
+    "pane": "collabedit",
+    "score": 17,
+    "file": "08-replay-collab.js",
+    "lines": 1052,
+    "endpoints": 7,
+    "markers": 0,
+    "tested": true,
+    "reviewed": false
+  },
+  {
     "pane": "evals",
     "score": 17,
     "file": "05-evals-observability.js",
@@ -200,21 +190,11 @@
     "reviewed": false
   },
   {
-    "pane": "a2a",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "agent-identity",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
+    "pane": "replay",
+    "score": 17,
+    "file": "08-replay-collab.js",
+    "lines": 1052,
+    "endpoints": 7,
     "markers": 0,
     "tested": true,
     "reviewed": false
@@ -222,129 +202,59 @@
   {
     "pane": "agent-monitor",
     "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
+    "file": "53-agent-monitor.js",
+    "lines": 754,
+    "endpoints": 8,
     "markers": 0,
     "tested": true,
     "reviewed": false
   },
   {
-    "pane": "audit-log",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
+    "pane": "codesearch",
+    "score": 14,
+    "file": "14-prompt-library.js",
+    "lines": 566,
+    "endpoints": 9,
     "markers": 0,
     "tested": true,
     "reviewed": false
   },
   {
-    "pane": "connectors",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "eval-framework",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "finops",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "fusion",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
+    "pane": "prompts",
+    "score": 14,
+    "file": "14-prompt-library.js",
+    "lines": 566,
+    "endpoints": 9,
     "markers": 0,
     "tested": true,
     "reviewed": false
   },
   {
     "pane": "goals",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
+    "score": 12,
+    "file": "49-goals.js",
+    "lines": 1001,
+    "endpoints": 2,
     "markers": 0,
     "tested": true,
     "reviewed": false
   },
   {
-    "pane": "hitl",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
+    "pane": "audit-log",
+    "score": 11,
+    "file": "46-compliance-report.js",
+    "lines": 631,
+    "endpoints": 5,
     "markers": 0,
     "tested": true,
     "reviewed": false
   },
   {
-    "pane": "leaderboard",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "mcp-gateway",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "collabedit",
-    "score": 14,
-    "file": "08-replay-collab.js",
-    "lines": 701,
-    "endpoints": 7,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "marketplace",
-    "score": 14,
-    "file": "08-replay-collab.js",
-    "lines": 701,
-    "endpoints": 7,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "replay",
-    "score": 14,
-    "file": "08-replay-collab.js",
-    "lines": 701,
-    "endpoints": 7,
+    "pane": "fusion",
+    "score": 10,
+    "file": "41-fusion.js",
+    "lines": 411,
+    "endpoints": 6,
     "markers": 0,
     "tested": true,
     "reviewed": false
@@ -370,6 +280,26 @@
     "reviewed": false
   },
   {
+    "pane": "leaderboard",
+    "score": 9,
+    "file": "45-leaderboard.js",
+    "lines": 419,
+    "endpoints": 5,
+    "markers": 0,
+    "tested": true,
+    "reviewed": false
+  },
+  {
+    "pane": "a2a",
+    "score": 8,
+    "file": "52-a2a.js",
+    "lines": 556,
+    "endpoints": 3,
+    "markers": 0,
+    "tested": true,
+    "reviewed": false
+  },
+  {
     "pane": "secrets",
     "score": 7,
     "file": "16-terminal.js",
@@ -380,11 +310,41 @@
     "reviewed": false
   },
   {
+    "pane": "agent-identity",
+    "score": 6,
+    "file": "47-agent-identity.js",
+    "lines": 231,
+    "endpoints": 4,
+    "markers": 0,
+    "tested": true,
+    "reviewed": false
+  },
+  {
     "pane": "deploy",
     "score": 6,
     "file": "35-deploy.js",
     "lines": 202,
     "endpoints": 4,
+    "markers": 0,
+    "tested": true,
+    "reviewed": false
+  },
+  {
+    "pane": "hitl",
+    "score": 6,
+    "file": "42-hitl.js",
+    "lines": 262,
+    "endpoints": 4,
+    "markers": 0,
+    "tested": true,
+    "reviewed": false
+  },
+  {
+    "pane": "finops",
+    "score": 5,
+    "file": "54-finops.js",
+    "lines": 242,
+    "endpoints": 3,
     "markers": 0,
     "tested": true,
     "reviewed": false
@@ -440,10 +400,30 @@
     "reviewed": false
   },
   {
+    "pane": "eval-framework",
+    "score": 4,
+    "file": "55-eval-framework.js",
+    "lines": 198,
+    "endpoints": 3,
+    "markers": 0,
+    "tested": true,
+    "reviewed": false
+  },
+  {
     "pane": "mcp",
     "score": 4,
     "file": "35-connect-hub.js",
     "lines": 264,
+    "endpoints": 2,
+    "markers": 0,
+    "tested": true,
+    "reviewed": false
+  },
+  {
+    "pane": "connectors",
+    "score": 3,
+    "file": "51-connectors.js",
+    "lines": 170,
     "endpoints": 2,
     "markers": 0,
     "tested": true,
@@ -520,31 +500,21 @@
     "reviewed": true
   },
   {
-    "pane": "browser",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
+    "pane": "dashboard",
+    "score": 18,
+    "file": "36-dashboard.js",
+    "lines": 170,
     "endpoints": 0,
-    "markers": 0,
+    "markers": 1,
     "tested": true,
     "reviewed": true
   },
   {
     "pane": "supervisor",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "websearch",
-    "score": 15,
-    "file": "06-sprint-features.js",
-    "lines": 7,
-    "endpoints": 0,
+    "score": 17,
+    "file": "48-supervisor.js",
+    "lines": 1141,
+    "endpoints": 6,
     "markers": 0,
     "tested": true,
     "reviewed": true
@@ -570,10 +540,30 @@
     "reviewed": true
   },
   {
+    "pane": "browser",
+    "score": 11,
+    "file": "43-browser-agent.js",
+    "lines": 524,
+    "endpoints": 6,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
     "pane": "templates",
     "score": 11,
     "file": "21-template-gallery.js",
     "lines": 652,
+    "endpoints": 5,
+    "markers": 0,
+    "tested": true,
+    "reviewed": true
+  },
+  {
+    "pane": "websearch",
+    "score": 10,
+    "file": "44-websearch.js",
+    "lines": 504,
     "endpoints": 5,
     "markers": 0,
     "tested": true,
