@@ -9,6 +9,8 @@ Supports: full-text search, contextual help (docs for current pane), categories,
 
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, HTTPException, Request
 
 from ..services.request_body import as_text
@@ -1002,25 +1004,72 @@ def get_shortcuts():
     return {'shortcuts': KEYBOARD_SHORTCUTS, 'count': len(KEYBOARD_SHORTCUTS)}
 
 
+# Words too common to carry meaning in a help query. Dropped so
+# "how do I add an API key" is scored on {add, api, key} rather than being
+# diluted by {how, do, i} -- which match nothing and drag every result down.
+_SEARCH_STOPWORDS = frozenset({
+    'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'can', 'do', 'does',
+    'for', 'from', 'get', 'how', 'i', 'in', 'is', 'it', 'me', 'my', 'of',
+    'on', 'or', 'the', 'to', 'use', 'what', 'when', 'where', 'which', 'why',
+    'with', 'you', 'your',
+})
+
+
+def _search_terms(query: str) -> list[str]:
+    """Meaningful lowercase tokens from a user's query.
+
+    If every word is a stop-word ("how do I?"), the stop-list is ignored
+    rather than returning nothing -- a query that scores zero because we threw
+    all of it away is indistinguishable from a query with no answer.
+    """
+    words = re.findall(r'[a-z0-9]+', query.lower())
+    terms = [w for w in words if w not in _SEARCH_STOPWORDS and len(w) > 1]
+    return terms or words
+
+
+def _match_score(text: str, terms: list[str], phrase: str, weight: int) -> int:
+    """Score `text` against the query.
+
+    WHY TOKENS AND NOT A SUBSTRING. Every match here used to be
+    `if qlow in text`, so a query matched only if it appeared VERBATIM.
+    Measured: 'agent' -> 20 results, but 'how do I add an API key' -> 0 and
+    'keyboard shortcuts' -> 0, though both are answered in the corpus. A help
+    search that returns nothing for a question asked in words tells the user
+    the product has no answer when it does.
+
+    The full phrase still scores a bonus, so exact matches keep ranking first
+    and the results for queries that already worked are unchanged.
+    """
+    if not text:
+        return 0
+    lowered = text.lower()
+    hits = sum(1 for term in terms if term in lowered)
+    if not hits:
+        return 0
+    score = weight * hits // max(len(terms), 1)
+    if phrase and phrase in lowered:
+        score += weight
+    return max(score, 1)
+
+
 @router.get('/search')
 def search_docs(q: str = '', limit: int = 20):
     """Full-text search across all docs content."""
     limit = max(1, min(int(limit), 50))  # clamp to sane range
     if not q:
         return {'results': [], 'query': q, 'count': 0}
-    qlow = q.lower()
+    qlow = q.lower().strip()
+    terms = _search_terms(qlow)
+    if not terms:
+        return {'results': [], 'query': q, 'count': 0}
     results: list[dict] = []
 
     # Search quick-starts
     for qs in QUICK_STARTS:
-        score = 0
-        if qlow in qs['title'].lower():
-            score += 10
+        score = _match_score(qs['title'], terms, qlow, 10)
         for step in qs.get('steps', []):
-            if qlow in step.get('title', '').lower():
-                score += 5
-            if qlow in step.get('desc', '').lower():
-                score += 2
+            score += _match_score(step.get('title', ''), terms, qlow, 5)
+            score += _match_score(step.get('desc', ''), terms, qlow, 2)
         if score > 0:
             results.append(
                 {
@@ -1035,16 +1084,11 @@ def search_docs(q: str = '', limit: int = 20):
 
     # Search feature docs
     for pane_id, doc in FEATURE_DOCS.items():
-        score = 0
-        if qlow in doc.get('title', '').lower():
-            score += 10
-        if qlow in doc.get('summary', '').lower():
-            score += 6
-        if qlow in doc.get('details', '').lower():
-            score += 3
+        score = _match_score(doc.get('title', ''), terms, qlow, 10)
+        score += _match_score(doc.get('summary', ''), terms, qlow, 6)
+        score += _match_score(doc.get('details', ''), terms, qlow, 3)
         for tip in doc.get('tips', []):
-            if qlow in tip.lower():
-                score += 2
+            score += _match_score(tip, terms, qlow, 2)
         if score > 0:
             results.append(
                 {
@@ -1059,22 +1103,27 @@ def search_docs(q: str = '', limit: int = 20):
 
     # Search FAQ
     for i, f in enumerate(FAQ):
-        score = 0
-        if qlow in f['q'].lower():
-            score += 10
-        if qlow in f['a'].lower():
-            score += 4
-        if any(qlow in t for t in f.get('tags', [])):
-            score += 3
+        score = _match_score(f['q'], terms, qlow, 10)
+        score += _match_score(f['a'], terms, qlow, 4)
+        score += _match_score(' '.join(f.get('tags', [])), terms, qlow, 3)
         if score > 0:
             results.append(
                 {'type': 'faq', 'score': score, 'title': f['q'], 'id': str(i), 'answer_preview': f['a'][:120]}
             )
 
     # Search shortcuts
-    for s in KEYBOARD_SHORTCUTS:
-        if qlow in s['desc'].lower():
-            results.append({'type': 'shortcut', 'score': 5, 'title': s['desc'], 'id': s['key'], 'shortcut': s['key']})
+    for sc in KEYBOARD_SHORTCUTS:
+        sc_score = _match_score(sc['desc'], terms, qlow, 5)
+        # "keyboard shortcuts" returned nothing at all, because no single
+        # shortcut DESCRIPTION contains the word "shortcut". The thing the
+        # user asked for is the list itself.
+        if any(t in ('shortcut', 'shortcuts', 'keyboard', 'hotkey', 'hotkeys')
+               for t in terms):
+            sc_score = max(sc_score, 5)
+        if sc_score > 0:
+            results.append({'type': 'shortcut', 'score': sc_score,
+                            'title': sc['desc'], 'id': sc['key'],
+                            'shortcut': sc['key']})
 
     results.sort(key=lambda x: x['score'], reverse=True)
     trimmed = results[:limit]

@@ -1778,3 +1778,35 @@ html :focus:not(:focus-visible) {
    corrupting the shared document. Distinct from .syncing, which pulses -- 
    this state is not going to resolve on its own. */
 .ce-op-indicator.err { background: var(--danger, #f26565); animation: none; }
+
+/* Docs search: hint and empty states.
+   The "no results" case used to be one grey line of text; a user searching
+   help is already stuck, so it now suggests what to try. */
+.docs-search-hint {
+  padding: 20px 4px;
+  color: var(--text-3, #6f7684);
+  font-size: 12.5px;
+}
+
+.docs-search-empty {
+  padding: 28px 16px;
+  text-align: center;
+}
+
+.docs-search-empty__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1, #c7ccd6);
+  margin-bottom: 6px;
+}
+
+.docs-search-empty__body {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-3, #6f7684);
+}
+
+.docs-search-empty__body em {
+  color: var(--accent-text, #a5a8ff);
+  font-style: normal;
+}

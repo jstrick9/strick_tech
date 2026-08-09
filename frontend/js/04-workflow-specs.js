@@ -1307,16 +1307,43 @@ async function docsTab(tab, el) {
 async function docsSearch(q) {
   if (!q) { const activeTab = document.querySelector('#pane-docs .docs-tab.active') || document.querySelector('#pane-docs .docs-tab'); docsTab('quickstarts', activeTab); return; }
   const content = document.getElementById('docs-content');
-  if (!content || q.length < 2) return;
+  if (!content) return;
+  // A single character used to return silently, leaving the previous view on
+  // screen -- indistinguishable from a broken search. Say what is needed.
+  if (q.length < 2) {
+    content.innerHTML =
+      '<div class="docs-search-hint">Keep typing \u2014 enter at least two '
+      + 'characters to search.</div>';
+    return;
+  }
 
   const d = await fetch(`/api/docs/search?q=${encodeURIComponent(q)}`).then(r=>r.ok?r.json():null).catch(()=>({results:[]}));
   const results = d.results || [];
 
+  // `count` is the TOTAL matched; `results.length` is what the server chose to
+  // return (capped at 20). Printing the latter as "N results" hid the cap:
+  // a query matching 21 items rendered "20 results" with nothing saying one
+  // was withheld. An unbounded list and a silently-capped one must not look
+  // the same.
+  const total = (typeof d?.count === 'number') ? d.count : results.length;
+  const truncated = total > results.length;
+
   content.innerHTML = `
+    ${results.length === 0 ? '' : `
     <div style="font-size:13px;color:var(--text-2);margin-bottom:12px">
-      ${results.length} results for "<strong style="color:var(--text-0)">${escHtml(q)}</strong>"
-    </div>
-    ${results.length===0?'<div style="color:var(--text-3);text-align:center;padding:24px">No results found. Try different keywords.</div>':''}
+      ${truncated
+        ? `Showing the top <strong style="color:var(--text-0)">${results.length}</strong>
+           of <strong style="color:var(--text-0)">${total}</strong> matches for`
+        : `<strong style="color:var(--text-0)">${total}</strong>
+           ${total === 1 ? 'result' : 'results'} for`}
+      "<strong style="color:var(--text-0)">${escHtml(q)}</strong>"
+    </div>`}
+    ${results.length === 0 ? `<div class="docs-search-empty">
+        <div class="docs-search-empty__title">No matches for \u201c${escHtml(q)}\u201d</div>
+        <div class="docs-search-empty__body">Try a single keyword \u2014
+          <em>agents</em>, <em>memory</em>, <em>deploy</em> \u2014 or browse the
+          tabs above.</div>
+      </div>` : ''}
     <div id="docs-search-results">
     ${results.map((r, idx) =>`
       <div data-search-result-idx="${idx}" style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:6px;cursor:pointer;transition:all .12s" data-hover="bc:var(--accent)" data-hover-out="bc:var(--border)">
