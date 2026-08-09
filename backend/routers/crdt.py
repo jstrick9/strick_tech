@@ -24,6 +24,7 @@ import time
 import uuid
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 
 from ..security_auth import require_websocket_auth
 
@@ -77,6 +78,69 @@ _ensure_schema()
 
 
 # ── Pure OT logic ──────────────────────────────────────────────────────────────
+class OpValidationError(ValueError):
+    """A malformed OT operation, with a message safe to show a user."""
+
+
+def _validate_op(op, doc_length: int) -> list:
+    """Return a normalised op, or raise OpValidationError.
+
+    THE WIRE FORMAT is a flat list of components:
+
+        int > 0    retain n characters
+        str        insert this text
+        int < 0    delete n characters
+
+    WHY THIS EXISTS. `_apply_op()` ignores components it does not recognise,
+    which is fine for a well-formed op and catastrophic otherwise: the op was
+    applied, persisted, broadcast to every peer and answered `ok: true`.
+    Measured live -- a dict body stored the string "typepostext" (a dict
+    iterates as its keys) and a bare string stored itself character by
+    character. In a COLLABORATIVE document a corrupt write is broadcast to
+    everyone and written to the op log, so the damage is shared and permanent.
+    """
+    if isinstance(op, (str, bytes)):
+        raise OpValidationError(
+            'An edit must be a list of operations, not a single string.')
+    if isinstance(op, dict):
+        raise OpValidationError(
+            'An edit must be a list of operations like [5, "text", -2], '
+            'not an object.')
+    if not isinstance(op, list):
+        raise OpValidationError('An edit must be a list of operations.')
+    if not op:
+        raise OpValidationError('An edit cannot be empty.')
+
+    consumed = 0
+    for index, component in enumerate(op):
+        # bool BEFORE int: isinstance(True, int) is True in Python, so [True]
+        # would otherwise be silently read as retain(1).
+        if isinstance(component, bool):
+            raise OpValidationError(
+                f'Operation {index} is a true/false value; expected a number '
+                'or text.')
+        if isinstance(component, int):
+            if component == 0:
+                raise OpValidationError(f'Operation {index} is zero-length.')
+            consumed += abs(component) if component < 0 else component
+        elif isinstance(component, str):
+            if not component:
+                raise OpValidationError(f'Operation {index} inserts nothing.')
+        else:
+            raise OpValidationError(
+                f'Operation {index} is a {type(component).__name__}; expected '
+                'a number (retain/delete) or text (insert).')
+
+    # An op that reads past the end of the document cannot be applied
+    # meaningfully; applying it anyway silently truncates other people's work.
+    if consumed > doc_length:
+        raise OpValidationError(
+            f'This edit refers to {consumed} characters but the document has '
+            f'{doc_length}. Your copy is out of date — reload to continue.')
+
+    return op
+
+
 def _apply_op(text: str, op: list) -> str:
     """Apply a list of OT operations to text. Returns new text."""
     result = []
@@ -574,9 +638,17 @@ async def submit_op(doc_id: str, req: Request):
     peer_name = body.get('peer_name', 'API')
 
     if not op:
-        return {'ok': False, 'error': 'op required'}
+        return JSONResponse({'ok': False, 'error': 'op required'}, status_code=400)
 
     doc = _get_doc(doc_id)
+    try:
+        op = _validate_op(op, len(doc.content))
+    except OpValidationError as exc:
+        # 400, not 200-with-ok:false. A refused write must not answer 200 --
+        # the frontend's network layer reports by status code, so a 200 sails
+        # straight through and the user is told nothing.
+        return JSONResponse({'ok': False, 'error': str(exc)}, status_code=400)
+
     result = await doc.apply_and_broadcast(peer_id, peer_name, client_rev, op)
     return {'ok': True, **result, 'content_preview': doc.content[:200]}
 
@@ -738,6 +810,20 @@ async def collab_ws(ws: WebSocket, doc_id: str):
                     op = msg.get('op', [])
                     rev = int(msg.get('revision', doc.revision))
                     if not op:
+                        continue
+                    # Validate on THIS door too. The HTTP route and this
+                    # socket are two entrances to the same document, and a
+                    # control on one of them protects nobody -- the
+                    # "second door" pattern that has appeared 6+ times in this
+                    # review. The socket is in fact the one the UI uses.
+                    try:
+                        op = _validate_op(op, len(doc.content))
+                    except OpValidationError as exc:
+                        await ws.send_text(json.dumps({
+                            'type': 'error',
+                            'error': str(exc),
+                            'revision': doc.revision,
+                        }))
                         continue
                     result = await doc.apply_and_broadcast(peer_id, name, rev, op)
                     await ws.send_text(json.dumps({'type': 'ack', 'revision': result['revision']}))

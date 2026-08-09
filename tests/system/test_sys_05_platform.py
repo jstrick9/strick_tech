@@ -195,7 +195,16 @@ class TestSysCRDT:
 
         # Apply insert operation
         r2 = await POST(C, f"/api/crdt/docs/{doc_id}/op", {
-            "op": [0, "insert", "PREPENDED: "],
+            # UPDATED: `[0, "insert", "PREPENDED: "]` is not the OT wire
+            # format. It is a flat list of components -- retain(int>0),
+            # insert(str), delete(int<0) -- so 0 was a no-op retain and
+            # "insert" was inserted as literal text. Verified against the
+            # pre-fix code: it produced 'insertPREPENDED: ...'.
+            #
+            # It passed only because the endpoint accepted anything, so this
+            # test was pinning the behaviour that let malformed ops corrupt
+            # shared documents. See backend/routers/crdt.py::_validate_op.
+            "op": ["PREPENDED: "],
             "peer_id": "sys-test-peer-1",
             "peer_name": "System Test"
         })
@@ -206,7 +215,14 @@ class TestSysCRDT:
         must(r3, 200, 404)
         if r3.status_code == 200:
             doc2 = r3.json()
-            check("revision incremented", doc2.get("revision", 0) >= 0)
+            # STRENGTHENED: this asserted `revision >= 0`, which is true of
+            # every possible response -- the test passed against a deliberately
+            # broken transform. It now checks the outcome a user cares about.
+            if r2.status_code == 200:
+                check("insert applied to content",
+                      "PREPENDED: " in (doc2.get("content") or ""),
+                      got=doc2.get("content"))
+                check("revision advanced", int(doc2.get("revision", 0)) >= 1)
 
         # Get ops log
         r4 = await GET(C, f"/api/crdt/docs/{doc_id}/ops")

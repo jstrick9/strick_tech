@@ -223,9 +223,20 @@ class TestUATCollabEdit:
         })
         doc_id = accept(r, "create doc", 200)["doc"]["id"]
         
-        # Apply an operation
+        # Apply an operation.
+        #
+        # UPDATED: this used to send `[0, "insert", "Prepended: "]`, which is
+        # not the OT wire format. The format is a flat list of components --
+        # retain(int>0), insert(str), delete(int<0) -- so that payload meant
+        # "no-op retain, insert the literal word 'insert', insert
+        # 'Prepended: '". Verified against the pre-fix code: it produced
+        # 'insertPrepended: Initial content'.
+        #
+        # It passed only because the endpoint accepted anything, so this test
+        # was pinning the behaviour that let malformed ops corrupt shared
+        # documents. See backend/routers/crdt.py::_validate_op.
         r2 = await POST(U, f"/api/crdt/docs/{doc_id}/op", {
-            "op": [0, "insert", "Prepended: "],
+            "op": ["Prepended: "],
             "peer_id": "uat-peer",
             "peer_name": "UAT Tester"
         })

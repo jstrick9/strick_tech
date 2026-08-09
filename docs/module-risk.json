@@ -1,0 +1,569 @@
+[
+  {
+    "pane": "collabedit",
+    "score": 53,
+    "file": "08-replay-collab.js",
+    "lines": 693,
+    "endpoints": 7,
+    "markers": 0,
+    "tested": false
+  },
+  {
+    "pane": "docs",
+    "score": 35,
+    "file": "04-workflow-specs.js",
+    "lines": 1801,
+    "endpoints": 15,
+    "markers": 1,
+    "tested": true
+  },
+  {
+    "pane": "codesearch",
+    "score": 34,
+    "file": "01-app-core.js",
+    "lines": 1945,
+    "endpoints": 40,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "dashboard",
+    "score": 34,
+    "file": "01-app-core.js",
+    "lines": 1945,
+    "endpoints": 40,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "prompts",
+    "score": 34,
+    "file": "01-app-core.js",
+    "lines": 1945,
+    "endpoints": 40,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "ambient",
+    "score": 20,
+    "file": "07-quality-tools.js",
+    "lines": 195,
+    "endpoints": 16,
+    "markers": 2,
+    "tested": true
+  },
+  {
+    "pane": "bugbot",
+    "score": 20,
+    "file": "07-quality-tools.js",
+    "lines": 195,
+    "endpoints": 16,
+    "markers": 2,
+    "tested": true
+  },
+  {
+    "pane": "finetune",
+    "score": 20,
+    "file": "03-features-a.js",
+    "lines": 501,
+    "endpoints": 30,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "gitai",
+    "score": 20,
+    "file": "07-quality-tools.js",
+    "lines": 195,
+    "endpoints": 16,
+    "markers": 2,
+    "tested": true
+  },
+  {
+    "pane": "health",
+    "score": 20,
+    "file": "07-quality-tools.js",
+    "lines": 195,
+    "endpoints": 16,
+    "markers": 2,
+    "tested": true
+  },
+  {
+    "pane": "kanban",
+    "score": 20,
+    "file": "28-kanban.js",
+    "lines": 844,
+    "endpoints": 4,
+    "markers": 4,
+    "tested": true
+  },
+  {
+    "pane": "multitab",
+    "score": 20,
+    "file": "03-features-a.js",
+    "lines": 501,
+    "endpoints": 30,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "pluginsdk",
+    "score": 20,
+    "file": "03-features-a.js",
+    "lines": 501,
+    "endpoints": 30,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "pqc",
+    "score": 20,
+    "file": "03-features-a.js",
+    "lines": 501,
+    "endpoints": 30,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "profiler",
+    "score": 20,
+    "file": "03-features-a.js",
+    "lines": 501,
+    "endpoints": 30,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "workflow",
+    "score": 20,
+    "file": "03-features-a.js",
+    "lines": 501,
+    "endpoints": 30,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "arena",
+    "score": 19,
+    "file": "03-features-b.js",
+    "lines": 428,
+    "endpoints": 16,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "codeindex",
+    "score": 19,
+    "file": "03-features-b.js",
+    "lines": 428,
+    "endpoints": 16,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "hooks",
+    "score": 19,
+    "file": "03-features-b.js",
+    "lines": 428,
+    "endpoints": 16,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "specs",
+    "score": 19,
+    "file": "03-features-b.js",
+    "lines": 428,
+    "endpoints": 16,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "hierarchy",
+    "score": 18,
+    "file": "12-information-hierarchy.js",
+    "lines": 788,
+    "endpoints": 11,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "evals",
+    "score": 17,
+    "file": "05-evals-observability.js",
+    "lines": 242,
+    "endpoints": 15,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "knowledge-graph",
+    "score": 17,
+    "file": "05-evals-observability.js",
+    "lines": 242,
+    "endpoints": 15,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "observability",
+    "score": 17,
+    "file": "05-evals-observability.js",
+    "lines": 242,
+    "endpoints": 15,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "rag",
+    "score": 17,
+    "file": "05-evals-observability.js",
+    "lines": 242,
+    "endpoints": 15,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "a2a",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "agent-identity",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "agent-monitor",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "audit-log",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "browser",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "connectors",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "eval-framework",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "finops",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "fusion",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "goals",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "hitl",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "leaderboard",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "mcp-gateway",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "supervisor",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "websearch",
+    "score": 15,
+    "file": "06-sprint-features.js",
+    "lines": 7,
+    "endpoints": 0,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "dbstudio",
+    "score": 14,
+    "file": "17-database-studio.js",
+    "lines": 647,
+    "endpoints": 8,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "imagegen",
+    "score": 14,
+    "file": "15-image-generation.js",
+    "lines": 559,
+    "endpoints": 9,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "marketplace",
+    "score": 13,
+    "file": "08-replay-collab.js",
+    "lines": 693,
+    "endpoints": 7,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "replay",
+    "score": 13,
+    "file": "08-replay-collab.js",
+    "lines": 693,
+    "endpoints": 7,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "templates",
+    "score": 11,
+    "file": "21-template-gallery.js",
+    "lines": 652,
+    "endpoints": 5,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "obsidian",
+    "score": 10,
+    "file": "20-obsidian.js",
+    "lines": 269,
+    "endpoints": 8,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "github",
+    "score": 9,
+    "file": "18-github.js",
+    "lines": 390,
+    "endpoints": 6,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "integrations",
+    "score": 9,
+    "file": "22-integrations.js",
+    "lines": 226,
+    "endpoints": 7,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "workspaces",
+    "score": 8,
+    "file": "30-workspaces.js",
+    "lines": 209,
+    "endpoints": 6,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "plugins",
+    "score": 7,
+    "file": "34-plugin-hub.js",
+    "lines": 313,
+    "endpoints": 4,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "secrets",
+    "score": 7,
+    "file": "16-terminal.js",
+    "lines": 206,
+    "endpoints": 5,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "terminal",
+    "score": 7,
+    "file": "16-terminal.js",
+    "lines": 206,
+    "endpoints": 5,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "deploy",
+    "score": 6,
+    "file": "35-deploy.js",
+    "lines": 202,
+    "endpoints": 4,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "composer",
+    "score": 5,
+    "file": "19-composer.js",
+    "lines": 312,
+    "endpoints": 2,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "skills",
+    "score": 5,
+    "file": "25-skills.js",
+    "lines": 223,
+    "endpoints": 3,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "swarm",
+    "score": 5,
+    "file": "26-swarm.js",
+    "lines": 320,
+    "endpoints": 2,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "system",
+    "score": 5,
+    "file": "38-system-monitor.js",
+    "lines": 138,
+    "endpoints": 4,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "testgen",
+    "score": 5,
+    "file": "34-test-generator.js",
+    "lines": 101,
+    "endpoints": 4,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "control",
+    "score": 4,
+    "file": "31-control-tower.js",
+    "lines": 156,
+    "endpoints": 3,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "mcp",
+    "score": 4,
+    "file": "35-connect-hub.js",
+    "lines": 264,
+    "endpoints": 2,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "pipeline",
+    "score": 3,
+    "file": "37-pipeline.js",
+    "lines": 162,
+    "endpoints": 2,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "webhooks",
+    "score": 3,
+    "file": "33-webhooks.js",
+    "lines": 123,
+    "endpoints": 2,
+    "markers": 0,
+    "tested": true
+  },
+  {
+    "pane": "loops",
+    "score": 2,
+    "file": "40-loops.js",
+    "lines": 139,
+    "endpoints": 1,
+    "markers": 0,
+    "tested": true
+  }
+]
