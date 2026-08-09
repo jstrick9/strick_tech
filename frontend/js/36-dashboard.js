@@ -110,7 +110,18 @@ function renderDashBody(d) {
 
   el.innerHTML = `
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:24px">
-    ${kpiCard('💰','Total Cost','$'+(k.total_cost_usd||0).toFixed(4),'Saved $'+(k.saved_vs_saas_usd||0)+' vs SaaS','var(--success)')}
+    ${kpiCard('💰','Total Cost','$'+(k.total_cost_usd||0).toFixed(4),
+        // The server sends null when there is no usage to compare, which is
+        // NOT the same as zero. `||0` would render "Saved $0 vs SaaS" -- still
+        // a claim about a comparison that was never made. Say nothing instead.
+        (k.saved_vs_saas_usd === null || k.saved_vs_saas_usd === undefined)
+          ? 'No usage yet'
+          : 'Saved $'+k.saved_vs_saas_usd+' vs SaaS'
+            + (k.saved_vs_saas_basis
+                ? ' (est. $'+k.saved_vs_saas_basis.per_message_usd+'/msg × '
+                  + k.saved_vs_saas_basis.messages + ')'
+                : ''),
+        'var(--success)')}
     ${kpiCard('🔤','Tokens Used',(k.total_tokens||0).toLocaleString(),(k.total_messages||0)+' messages')}
     ${kpiCard('🧠','Memories',(k.total_memories||0).toLocaleString(),'in Memory Galaxy','var(--purple)')}
     ${kpiCard('📋','Tasks',(k.total_tasks||0),(k.completion_rate||0)+'% complete','var(--warning)')}

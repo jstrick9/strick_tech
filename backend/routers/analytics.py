@@ -16,6 +16,15 @@ from fastapi.responses import StreamingResponse
 
 from ..services.memory_db import get_conn
 
+# What an equivalent hosted assistant would charge per message. Stated as an
+# explicit assumption rather than buried in an expression, and surfaced in the
+# API response as `saved_vs_saas_basis` so the UI can say where the comparison
+# comes from instead of asserting a number the user cannot check.
+#
+# Roughly a mid-tier metered plan at the time of writing. It is a ballpark, and
+# it is labelled as one.
+SAAS_COST_PER_MESSAGE = 0.02
+
 router = APIRouter(prefix='/api/analytics', tags=['analytics'])
 
 
@@ -129,7 +138,7 @@ def dashboard(days: int = 30):
     # ── Compute KPIs ───────────────────────────────────────────────
     total_tokens = _safe_int(cost_row['total_tokens'])
     total_cost = round(_safe_float(cost_row['total_cost']), 6)
-    saved_vs_saas = round(max(0.0, 350.0 - total_cost * 100), 2)
+
 
     task_map = {r['status']: r['count'] for r in task_counts}
     total_tasks = sum(task_map.values())
@@ -139,6 +148,33 @@ def dashboard(days: int = 30):
     agent_msg_map = {r['agent']: r['messages'] for r in agent_messages}
     total_messages = sum(r['messages'] for r in agent_messages)
 
+    # Computed here so the savings figure below can use it; the comparison is
+    # per-message, which is the unit a metered assistant actually bills.
+    total_messages_for_savings = total_messages
+    # WHAT THIS USED TO BE:
+    #     saved_vs_saas = round(max(0.0, 350.0 - total_cost * 100), 2)
+    #
+    # 350.0 is a constant with no input from the account, so a brand-new
+    # install -- 0 tokens, 0 messages, 0 tasks -- was still shown
+    # "Saved $350 vs SaaS" next to a $0.0000 cost. Verified in a real browser.
+    # It is a fabricated figure presented among real measurements, and the
+    # largest number on the pane; recurring pattern #10 in this review.
+    #
+    # The arithmetic was also backwards: `total_cost * 100` asserts a SaaS
+    # product costs exactly 100x the local run, so heavier use drove the
+    # "savings" DOWN -- spend $3.50 and you are told you saved nothing.
+    #
+    # Now derived from real usage, with the assumption stated rather than
+    # hidden, and None when there is nothing to compare. None rather than 0
+    # because "not measured yet" and "measured, and it is zero" are different
+    # claims and the UI renders them differently.
+    saas_equivalent = round(total_messages_for_savings * SAAS_COST_PER_MESSAGE, 2)
+    saved_vs_saas = (
+        round(max(0.0, saas_equivalent - total_cost), 2)
+        if total_messages_for_savings > 0
+        else None
+    )
+
     return {
         'generated_at': datetime.datetime.now().isoformat(),
         'period_days': days,
@@ -146,6 +182,10 @@ def dashboard(days: int = 30):
             'total_cost_usd': total_cost,
             'total_tokens': total_tokens,
             'saved_vs_saas_usd': saved_vs_saas,
+            'saved_vs_saas_basis': {
+                'per_message_usd': SAAS_COST_PER_MESSAGE,
+                'messages': total_messages_for_savings,
+            },
             'total_messages': total_messages,
             'total_memories': mem_total,
             'total_tasks': total_tasks,
