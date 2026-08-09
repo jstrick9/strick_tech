@@ -12,9 +12,18 @@ seam at all.
 So the order is derived from evidence, not opinion. Each pane scores on five
 signals, all cheap to compute and all independently defensible:
 
-  no-tests          nothing in tests/ mentions this pane or its renderer.
-                    A module with no test is a module whose behaviour nobody
-                    has pinned; it is also where a regression lands silently.
+  no-tests          no test mentions this pane id, its renderer, or its
+                    module file. A module with no test is one whose behaviour
+                    nobody has pinned, and where a regression lands silently.
+
+                    Matching is deliberately three-way, because both simpler
+                    versions were wrong. Searching the pane id alone reported
+                    `collabedit` as untested after 17 tests were written for
+                    it -- they name the renderer and the router, never the
+                    pane id. Searching loosely is worse: the id `docs` appears
+                    in 104 test files as ordinary English, so that pane would
+                    score fully tested whatever the truth. The id must appear
+                    as a quoted or underscored TOKEN, not as a bare word.
 
   no-backend        the pane makes no API calls. Sometimes correct (a
                     client-only tool) -- so it is a signal, not a verdict.
@@ -28,6 +37,17 @@ signals, all cheap to compute and all independently defensible:
   churn-risk        `TODO|FIXME|stub|not implemented` markers in CODE, with
                     docstrings and comments stripped -- this codebase is
                     heavily commented and counting prose gives nonsense.
+
+REVIEWED MODULES ARE EXCLUDED FROM THE TOP OF THE LIST
+──────────────────────────────────────────────────────
+The score is driven by size and integration surface, so a module stays high
+after it has been reviewed and fixed -- `docs` still scores 35 with 1,828
+lines and 15 endpoints even though its defects are now closed. That is honest
+(it remains a big, risky module) but useless for SEQUENCING, which is the only
+job this instrument has.
+
+Modules with a committed review doc are therefore listed separately rather
+than competing for the next slot. `docs/module-reviews/` is the register.
 
 WHAT THE SCORE IS NOT
 ─────────────────────
@@ -59,6 +79,34 @@ def _strip_js_comments(source: str) -> str:
     return re.sub(r'(?m)//.*$', '', source)
 
 
+RENDERERS_BY_PANE: dict[str, str] = {}
+
+
+def _is_tested(pane: str, renderer: str, filename: str, corpus: str) -> bool:
+    """Does any test pin this module?
+
+    Three signals, any of which counts:
+      * the pane id as a QUOTED or underscored token -- `'kanban'`,
+        `"kanban"`, `_kanban_`, `pane-kanban`. A bare word match is useless:
+        `docs` occurs in 104 test files as ordinary English.
+      * the renderer name (`renderCollabEdit`) -- how a test usually reaches a
+        pane it never names.
+      * the module filename (`08-replay-collab.js`) -- how a source-level test
+        refers to it.
+    """
+    token = re.escape(pane)
+    patterns = [
+        rf"['\"]{token}['\"]",
+        rf'pane-{token}',
+        rf'_{token}[_\b]',
+    ]
+    if renderer:
+        patterns.append(re.escape(renderer))
+    if filename:
+        patterns.append(re.escape(filename))
+    return any(re.search(p, corpus) for p in patterns)
+
+
 def _pane_modules() -> dict[str, Path]:
     registry = (JS_DIR / '00-pane-registry.js').read_text(encoding='utf-8')
     panes = re.findall(r"^\s*'([a-z0-9-]+)':\s*(.*)$", registry, re.M)
@@ -66,6 +114,8 @@ def _pane_modules() -> dict[str, Path]:
     for pane, body in panes:
         match = re.search(r'window\.(render[A-Za-z0-9_]+)', body)
         renderers[pane] = match.group(1) if match else None
+    RENDERERS_BY_PANE.clear()
+    RENDERERS_BY_PANE.update({k: v for k, v in renderers.items() if v})
 
     sources = {f: f.read_text(encoding='utf-8', errors='replace')
                for f in sorted(JS_DIR.glob('*.js'))
@@ -93,6 +143,7 @@ def _test_corpus() -> str:
 
 def run() -> AuditResult:
     modules = _pane_modules()
+    renderers_by_pane = RENDERERS_BY_PANE
     corpus = _test_corpus()
 
     rows = []
@@ -108,7 +159,8 @@ def run() -> AuditResult:
 
         paths = {p for p in API_PATH.findall(code) if not p.endswith('/api/')}
         markers = len(MARKER.findall(code))
-        tested = bool(re.search(rf"\b{re.escape(pane)}\b", corpus))
+        renderer = renderers_by_pane.get(pane) or ''
+        tested = _is_tested(pane, renderer, source_path.name, corpus)
 
         score = 0
         score += 40 if not tested else 0
@@ -123,12 +175,21 @@ def run() -> AuditResult:
             'markers': markers, 'tested': tested,
         })
 
-    rows.sort(key=lambda r: (-r['score'], r['pane']))
+    # Which modules already have a committed review doc. Read from the file
+    # names rather than a hand-maintained list, so finishing a module removes
+    # it from the queue automatically.
+    reviewed_text = ' '.join(
+        f.name for f in (REPO / 'docs' / 'module-reviews').glob('*.md'))
+    for row in rows:
+        row['reviewed'] = row['pane'] in reviewed_text
+
+    rows.sort(key=lambda r: (r['reviewed'], -r['score'], r['pane']))
 
     findings = [
         f'{r["score"]:3}  {r["pane"]:18} {r["file"]:32} '
         f'{r["lines"]:5}ln {r["endpoints"]:3}ep '
         f'{"UNTESTED" if not r["tested"] else "        "} '
+        f'{"REVIEWED" if r["reviewed"] else "        "} '
         f'{r["markers"] or "":>2}'
         for r in rows[:30]
     ]
