@@ -50,12 +50,32 @@ def kanban():
                    COALESCE(updated_at, created_at) as updated_at,
                    COALESCE(sort_order, id) as sort_order
             FROM tasks
+            -- Order by the SAME expression the SELECT exposes.
+            --
+            -- This read `sort_order ASC, id DESC`, which had two faults. The
+            -- bare column ignores the COALESCE above, so a task with a NULL
+            -- sort_order sorted as NULL rather than as its id -- the alias
+            -- exists to give un-dragged tasks a stable position and never
+            -- took effect. And `id DESC` contradicts the frontend, which
+            -- sorts sort_order then id ASCENDING (28-kanban.js:152, :402), so
+            -- two cards sharing a sort_order rendered in one order and
+            -- reloaded in the opposite one.
+            --
+            -- Measured: a drag writing sort_order 0,1,2 stored correctly and
+            -- read back reversed. A drag that appears to work and silently
+            -- reverts on refresh is worse than one that visibly fails.
             ORDER BY CASE status WHEN 'doing' THEN 0 WHEN 'todo' THEN 1
                                  WHEN 'blocked' THEN 2 WHEN 'done' THEN 3 ELSE 4 END,
-                     sort_order ASC, id DESC
+                     COALESCE(sort_order, id) ASC, id ASC
         """).fetchall()
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        rows = con.execute('SELECT id,title,status,priority,agent,created_at FROM tasks ORDER BY id DESC').fetchall()
+        # Same ordering as the main query: a fallback that sorts differently
+        # would make the board silently rearrange itself whenever the richer
+        # SELECT failed.
+        rows = con.execute(
+            'SELECT id,title,status,priority,agent,created_at FROM tasks '
+            'ORDER BY COALESCE(sort_order, id) ASC, id ASC'
+        ).fetchall()
     con.close()
     cols = {'todo': [], 'doing': [], 'blocked': [], 'done': []}
     for r in rows:
@@ -267,7 +287,20 @@ async def kanban_move(req: Request):
     tid = d.get('id') or d.get('task_id')
     to = d.get('to_status') or d.get('status')
     if not tid or to not in ('todo', 'doing', 'blocked', 'done'):
-        return JSONResponse({'ok': False, 'error': 'id + to_status required'}, status_code=400)
+        # The endpoint accepts `id`/`task_id` and `to_status`/`status`, but the
+        # message named only one spelling of each -- so a caller sending the
+        # other pair was told to supply fields it had already supplied. Name
+        # what is actually wrong.
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': (
+                    'A task id and a destination column are required. '
+                    "Column must be one of: todo, doing, blocked, done."
+                ),
+            },
+            status_code=400,
+        )
     try:
         tid_int = int(tid)
     except (TypeError, ValueError):

@@ -87,8 +87,18 @@ class TestMissingTasksReportFailure:
         assert 'status_code=404' in body
 
     def test_move_checks_rowcount(self):
+        # UPDATED: this sliced a fixed 1,200 characters from the function.
+        # Module review 5 lengthened the 400 error message -- explaining that
+        # the endpoint accepts id/task_id and to_status/status, rather than
+        # naming one spelling of each -- and pushed `cur.rowcount` past the
+        # window. The behaviour was unchanged; the window was the fragile part.
+        #
+        # It now slices to the NEXT route, so the assertion covers the whole
+        # handler however long its copy becomes.
         idx = TASKS_PY.index('def kanban_move')
-        body = TASKS_PY[idx:idx + 1200]
+        rest = TASKS_PY[idx:]
+        nxt = rest.find('@router.', 1)
+        body = rest[:nxt] if nxt != -1 else rest
         assert 'cur.rowcount' in body
         assert 'status_code=404' in body
 
