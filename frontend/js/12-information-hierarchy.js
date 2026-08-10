@@ -46,8 +46,8 @@
     // tab. Kept the same explicit per-button style-toggle pattern already
     // used here rather than a generic loop, to minimize the diff against
     // the existing working tier1/tier2 logic.
-    const tabs = { tier1: 'h-tab-tier1', tier2: 'h-tab-tier2', guidelines: 'h-tab-guidelines' };
-    const views = { tier1: 'h-view-tier1', tier2: 'h-view-tier2', guidelines: 'h-view-guidelines' };
+    const tabs = { tier1: 'h-tab-tier1', tier2: 'h-tab-tier2', guidelines: 'h-tab-guidelines', icm: 'h-tab-icm' };
+    const views = { tier1: 'h-view-tier1', tier2: 'h-view-tier2', guidelines: 'h-view-guidelines', icm: 'h-view-icm' };
     Object.keys(tabs).forEach(key => {
       const btn = document.getElementById(tabs[key]);
       if (!btn) return;
@@ -59,8 +59,13 @@
     Object.keys(views).forEach(key => {
       const view = document.getElementById(views[key]);
       if (!view) return;
-      view.style.display = key === tab ? (key === 'guidelines' ? 'block' : 'flex') : 'none';
+      view.style.display = key === tab ? ((key === 'guidelines' || key === 'icm') ? 'block' : 'flex') : 'none';
     });
+
+    if (tab === 'icm') {
+      renderIcmWorkspaces();
+      return;
+    }
 
     if (tab === 'tier1') {
       loadTier1File(currentTier1File);
@@ -783,6 +788,255 @@
       });
     }
   }, 300);
+
+
+  // ── ICM Workspaces ─────────────────────────────────────────────────────────
+  // Folder-as-architecture workspaces. The pane's job is to make the three
+  // things ICM depends on visible: WHERE the agent starts (the documented
+  // failure mode is starting in the wrong folder), WHAT each stage's contract
+  // loads, and WHETHER the workspace passes its own walk test.
+  let _icmWs = null;      // selected workspace id
+  let _icmStage = null;   // selected stage dir
+
+  async function icmGet(path) {
+    const r = await fetch('/api/icm' + path);
+    if (!r.ok) return null;
+    return r.json().catch(() => null);
+  }
+
+  function icmEsc(v) {
+    return (window.escHtml ? escHtml(String(v == null ? '' : v)) : String(v == null ? '' : v));
+  }
+
+  async function renderIcmWorkspaces() {
+    const host = document.getElementById('h-view-icm');
+    if (!host) return;
+    host.innerHTML = '<div class="icm-muted">Loading workspaces…</div>';
+
+    const data = await icmGet('/workspaces');
+    if (!data) {
+      host.innerHTML = '<div class="icm-empty">Could not load ICM workspaces.</div>';
+      return;
+    }
+    const list = data.workspaces || [];
+    if (!list.length) {
+      host.innerHTML = `
+        <div class="icm-empty">
+          <h3>No ICM workspaces yet</h3>
+          <p>An ICM workspace is a folder: numbered stages, a markdown contract in each,
+          and one agent that reads the right files at the right moment. The folder
+          structure does the orchestration.</p>
+          <button class="btn" data-act-click="icmNewWorkspace()">+ New workspace</button>
+        </div>`;
+      return;
+    }
+
+    if (!_icmWs || !list.some(w => w.workspace_id === _icmWs)) _icmWs = list[0].workspace_id;
+
+    host.innerHTML = `
+      <div class="icm-head">
+        <select id="icm-ws-select" class="icm-select" data-act-change="icmSelectWorkspace($value)">
+          ${list.map(w => `<option value="${icmEsc(w.workspace_id)}" ${w.workspace_id === _icmWs ? 'selected' : ''}>
+            ${icmEsc(w.name)} — ${w.stages_complete}/${w.stage_count} stages</option>`).join('')}
+        </select>
+        <button class="btn-sm" data-act-click="icmNewWorkspace()">+ New</button>
+        <button class="btn-sm" data-act-click="renderIcmWorkspaces()">↺ Refresh</button>
+      </div>
+      <div id="icm-detail"><div class="icm-muted">Loading…</div></div>`;
+
+    await icmRenderDetail();
+  }
+
+  async function icmRenderDetail() {
+    const host = document.getElementById('icm-detail');
+    if (!host || !_icmWs) return;
+
+    const [ws, val, onto] = await Promise.all([
+      icmGet('/workspaces/' + encodeURIComponent(_icmWs)),
+      icmGet('/workspaces/' + encodeURIComponent(_icmWs) + '/validate'),
+      icmGet('/workspaces/' + encodeURIComponent(_icmWs) + '/ontology'),
+    ]);
+    if (!ws) { host.innerHTML = '<div class="icm-empty">Workspace not found.</div>'; return; }
+
+    const stages = ws.stages || [];
+    const entry = ws.entry_stage || '';
+    if (!_icmStage || !stages.some(s => s.dir === _icmStage)) _icmStage = entry || (stages[0] || {}).dir;
+
+    // The walk test: can an agent with no memory orient, find work, and report
+    // status from the files alone? Show it as the headline, because a
+    // workspace that fails it looks fine until an agent gets lost in it.
+    const wt = (val && val.walk_test) || {};
+    const walk = [
+      ['Can orient', wt.can_orient],
+      ['Can find work', wt.can_find_work],
+      ['Can report status', wt.can_report_status],
+    ].map(([label, ok]) =>
+      `<span class="icm-check ${ok ? 'is-ok' : 'is-bad'}">${ok ? '✓' : '✗'} ${label}</span>`
+    ).join('');
+
+    const problems = []
+      .concat(((val && val.errors) || []).map(e => ({ kind: 'error', text: e })))
+      .concat(((val && val.warnings) || []).map(w => ({ kind: 'warn', text: w })));
+
+    host.innerHTML = `
+      <div class="icm-walk">
+        <div class="icm-walk-row">
+          <strong>Walk test</strong> ${walk}
+          <span class="icm-entry">Agent starts at:
+            <code>${icmEsc(entry || '—')}</code>
+            <span class="icm-muted">${icmEsc(ws.entry_reason || '')}</span>
+          </span>
+        </div>
+        ${problems.length ? `<ul class="icm-problems">${problems.map(p =>
+          `<li class="is-${p.kind}">${p.kind === 'error' ? '✗' : '⚠'} ${icmEsc(p.text)}</li>`).join('')}</ul>` : ''}
+      </div>
+
+      <div class="icm-pipeline">
+        ${stages.map(s => {
+          const isEntry = s.dir === entry;
+          const cls = s.complete ? 'is-done' : (isEntry ? 'is-active' : '');
+          return `<button class="icm-stage ${cls} ${s.dir === _icmStage ? 'is-selected' : ''}"
+            data-act-click="icmSelectStage(${jsArg(s.dir)})">
+            <span class="icm-stage-n">${String(s.order).padStart(2, '0')}</span>
+            <span class="icm-stage-name">${icmEsc(s.slug)}</span>
+            <span class="icm-stage-state">${s.complete ? '✓ output' : (isEntry ? '▶ starts here' : 'empty')}</span>
+          </button>`;
+        }).join('<span class="icm-arrow">→</span>')}
+      </div>
+
+      <div id="icm-stage-detail"></div>
+
+      ${onto && onto.defined ? `
+      <details class="icm-onto">
+        <summary>Ontology — ${onto.entities.length} types, ${onto.relations.length} relations
+          ${onto.validation && !onto.validation.ok ? '<span class="icm-bad">· has errors</span>' : ''}</summary>
+        <div class="icm-onto-body">
+          <div><strong>Types:</strong> ${onto.entities.map(e => `<code>${icmEsc(e.type)}</code>`).join(' ')}</div>
+          <table class="icm-table">
+            <thead><tr><th>Relation</th><th>From</th><th>To</th><th>Inverse</th></tr></thead>
+            <tbody>${onto.relations.map(r => `<tr>
+              <td><code>${icmEsc(r.relation)}</code></td><td>${icmEsc(r.from || '*')}</td>
+              <td>${icmEsc(r.to || '*')}</td><td>${icmEsc(r.inverse || '—')}</td></tr>`).join('')}</tbody>
+          </table>
+          ${((onto.validation || {}).errors || []).map(e =>
+            `<div class="icm-bad">✗ ${icmEsc(e)}</div>`).join('')}
+        </div>
+      </details>` : ''}`;
+
+    await icmRenderStage();
+  }
+
+  async function icmRenderStage() {
+    const host = document.getElementById('icm-stage-detail');
+    if (!host || !_icmWs || !_icmStage) return;
+    host.innerHTML = '<div class="icm-muted">Assembling context…</div>';
+
+    const ctx = await icmGet('/workspaces/' + encodeURIComponent(_icmWs) +
+      '/context?stage=' + encodeURIComponent(_icmStage));
+    if (!ctx) { host.innerHTML = '<div class="icm-empty">Could not assemble context.</div>'; return; }
+
+    const c = ctx.contract || {};
+    // Show the token count prominently: staying small is the entire point of
+    // the methodology, and a number that creeps up is the signal it is drifting.
+    host.innerHTML = `
+      <div class="icm-stage-head">
+        <h4>${icmEsc(_icmStage)}</h4>
+        <span class="icm-budget">~${ctx.estimated_tokens} tokens assembled</span>
+      </div>
+
+      ${(ctx.missing_inputs || []).length ? `<div class="icm-missing">
+        <strong>Declared but not found:</strong>
+        ${ctx.missing_inputs.map(m => `<code>${icmEsc(m)}</code>`).join(' ')}
+      </div>` : ''}
+
+      <div class="icm-cols">
+        <div>
+          <h5>Inputs — what this stage loads</h5>
+          ${(c.inputs || []).length ? `<table class="icm-table">
+            <thead><tr><th>Source</th><th>Path</th><th>Section</th></tr></thead>
+            <tbody>${c.inputs.map(i => `<tr>
+              <td>${icmEsc(i.source)}</td><td><code>${icmEsc(i.path)}</code></td>
+              <td>${icmEsc(i.section || 'Full file')}</td></tr>`).join('')}</tbody>
+          </table>` : '<div class="icm-muted">No Inputs declared — nothing scopes what this stage loads.</div>'}
+
+          <h5>Outputs — what it must produce</h5>
+          ${(c.outputs || []).length ? `<table class="icm-table">
+            <thead><tr><th>Artifact</th><th>Location</th></tr></thead>
+            <tbody>${c.outputs.map(o => `<tr>
+              <td>${icmEsc(o.artifact)}</td><td><code>${icmEsc(o.location)}</code></td></tr>`).join('')}</tbody>
+          </table>` : '<div class="icm-muted">No Outputs declared — the next stage has no defined handoff.</div>'}
+        </div>
+
+        <div>
+          <h5>Context layers</h5>
+          <ul class="icm-layers">
+            ${(ctx.parts || []).map(p => `<li>
+              <span class="icm-layer-tag">${icmEsc(p.layer)}</span>
+              <code>${icmEsc(p.label)}</code>
+              <span class="icm-muted">${p.chars} chars</span>
+            </li>`).join('')}
+          </ul>
+        </div>
+      </div>
+
+      <details class="icm-raw">
+        <summary>Assembled context (what the agent actually receives)</summary>
+        <pre class="icm-pre">${icmEsc(ctx.compiled_context || '')}</pre>
+      </details>`;
+  }
+
+  async function icmSelectWorkspace(id) {
+    _icmWs = id; _icmStage = null;
+    await icmRenderDetail();
+  }
+
+  async function icmSelectStage(dir) {
+    _icmStage = dir;
+    // Repaint only the selection highlight and the stage panel. Re-rendering
+    // the whole detail would re-resolve the entry stage and throw the click
+    // away, which is what it did before.
+    document.querySelectorAll('#icm-detail .icm-stage').forEach(el => {
+      const name = (el.querySelector('.icm-stage-name') || {}).textContent || '';
+      el.classList.toggle('is-selected', dir.endsWith(name));
+    });
+    await icmRenderStage();
+  }
+
+  async function icmNewWorkspace() {
+    const name = await (window.gmPrompt ? gmPrompt('Workspace name:', 'My Pipeline') : Promise.resolve(null));
+    if (!name) return;
+    const raw = await (window.gmPrompt
+      ? gmPrompt('Stages, in order (comma separated):', 'Research, Draft, Review')
+      : Promise.resolve(null));
+    if (!raw) return;
+    const stages = String(raw).split(',').map(x => x.trim()).filter(Boolean);
+    if (!stages.length) { if (window.toast) toast('At least one stage is required', 'err'); return; }
+
+    try {
+      const r = await fetch('/api/icm/workspaces', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, stages }),
+      });
+      const d = await r.json().catch(() => null);
+      if (!r.ok || !d || d.ok === false) {
+        if (window.toast) toast('Could not create: ' + ((d && (d.detail || d.error)) || r.status), 'err');
+        return;
+      }
+      _icmWs = d.workspace.workspace_id; _icmStage = null;
+      if (window.toast) toast('🗂 Workspace created', 'ok');
+      await renderIcmWorkspaces();
+    } catch (ex) {
+      if (window.toast) toast('Could not create workspace: ' + ex.message, 'err');
+    }
+  }
+
+  // Every data-act-* handler must be reachable from window: this file is
+  // IIFE-wrapped, and the delegated dispatcher resolves names by property
+  // lookup on window. Without these the pane renders and does nothing.
+  window.renderIcmWorkspaces = renderIcmWorkspaces;
+  window.icmSelectWorkspace = icmSelectWorkspace;
+  window.icmSelectStage = icmSelectStage;
+  window.icmNewWorkspace = icmNewWorkspace;
 
   console.debug('%c✅ Information Hierarchy Engine (Universal Context + IVREN) loaded', 'color:#a78bfa;font-weight:bold');
 })();

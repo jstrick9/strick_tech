@@ -290,3 +290,52 @@ def test_chat_injects_icm_context_and_resolves_the_entry_stage():
     assert 'services import icm' in body or 'import icm' in body
     assert 'resolve_entry' in body, 'chat must resolve the entry stage, not assume it'
     assert 'assemble_context' in body
+
+
+# ── UI: bugs the browser caught that static checks did not ────────────────────
+def test_stage_buttons_use_jsarg_not_json_stringify():
+    """JSON.stringify inside a double-quoted HTML attribute breaks the attribute.
+
+    Found in Chromium, not by any lint: the delegated dispatcher logged
+    "[delegate] not a plain call, refusing: icmSelectStage(" and every stage
+    button silently did nothing. jsArg() is the codebase's helper for exactly
+    this. Same defect class as Module 11 -- a pane that renders and does
+    nothing, with no error.
+    """
+    from pathlib import Path
+
+    src = Path('frontend/js/12-information-hierarchy.js').read_text(encoding='utf-8')
+    assert 'icmSelectStage(${jsArg(' in src
+    assert 'icmSelectStage(${JSON.stringify(' not in src
+
+
+def test_selecting_a_stage_does_not_re_resolve_the_entry():
+    """Clicking stage 2 must show stage 2.
+
+    icmSelectStage() used to call icmRenderDetail(), which re-resolves the
+    entry stage and repaints the pipeline -- discarding the click. Verified in
+    Chromium: selecting stage 2 displayed stage 1's contract.
+    """
+    import re
+    from pathlib import Path
+
+    src = Path('frontend/js/12-information-hierarchy.js').read_text(encoding='utf-8')
+    m = re.search(r'async function icmSelectStage\(dir\)\s*\{(.*?)\n  \}', src, re.S)
+    assert m, 'icmSelectStage not found'
+    body = '\n'.join(ln for ln in m.group(1).split('\n') if not ln.strip().startswith('//'))
+    assert 'icmRenderStage()' in body
+    assert 'icmRenderDetail()' not in body, 'selection would be discarded by a full re-render'
+
+
+def test_every_icm_handler_is_exported_to_window():
+    """This file is IIFE-wrapped, so handlers must be assigned to window."""
+    import re
+    from pathlib import Path
+
+    src = Path('frontend/js/12-information-hierarchy.js').read_text(encoding='utf-8')
+    referenced = set()
+    for attr in ('click', 'input', 'change', 'keydown', 'submit'):
+        referenced |= set(re.findall(rf'data-act-{attr}="(icm[A-Za-z_$][\w$]*)\(', src))
+    exported = set(re.findall(r'window\.([a-zA-Z_$][\w$]*)\s*=', src))
+    assert referenced, 'no icm handlers found — did the pane move?'
+    assert not (referenced - exported), f'unexported: {sorted(referenced - exported)}'

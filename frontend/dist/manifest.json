@@ -68,10 +68,10 @@
       "gzip": 248142,
       "brotli": 188016
     },
-    "chunks.01c6fcb96753.js": {
+    "chunks.fc4ad5134305.js": {
       "raw": 1575,
-      "gzip": 748,
-      "brotli": 652
+      "gzip": 749,
+      "brotli": 653
     },
     "pane-a2a.b18f99e554e2.js": {
       "raw": 26597,
@@ -148,10 +148,10 @@
       "gzip": 11206,
       "brotli": 9568
     },
-    "pane-hierarchy.26d2da2ba5d1.js": {
-      "raw": 36943,
-      "gzip": 8523,
-      "brotli": 7364
+    "pane-hierarchy.93d1315f51c6.js": {
+      "raw": 46442,
+      "gzip": 11157,
+      "brotli": 9693
     },
     "pane-hitl.5a83e048d39d.js": {
       "raw": 16069,
@@ -356,11 +356,11 @@
       "bytes": 44733
     },
     "hierarchy": {
-      "file": "pane-hierarchy.26d2da2ba5d1.js",
+      "file": "pane-hierarchy.93d1315f51c6.js",
       "modules": [
         "12-information-hierarchy.js"
       ],
-      "bytes": 36943
+      "bytes": 46442
     },
     "hitl": {
       "file": "pane-hitl.5a83e048d39d.js",
@@ -497,7 +497,7 @@
       "bytes": 11184
     }
   },
-  "chunk_manifest": "chunks.01c6fcb96753.js",
+  "chunk_manifest": "chunks.fc4ad5134305.js",
   "lazy_modules": [
     "12-information-hierarchy.js",
     "15-image-generation.js",
@@ -536,5 +536,5 @@
     "54-finops.js",
     "55-eval-framework.js"
   ],
-  "lazy_bytes": 697276
+  "lazy_bytes": 706775
 }
