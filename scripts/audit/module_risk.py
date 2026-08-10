@@ -210,6 +210,40 @@ def run() -> AuditResult:
             'markers': markers, 'tested': tested,
         })
 
+    # ── Consolidation: rank what the USER can navigate to ─────────────────
+    # The pane surface was consolidated into a workstation model. A pane that
+    # was absorbed into a host (e.g. `replay` into `observability`) is a tab,
+    # not a destination, and must not appear as its own queue entry -- ranking
+    # it re-inflates the module count back to the pre-consolidation 68 and
+    # reports progress against a denominator the product no longer has.
+    ws_src = (REPO / 'frontend' / 'js' / '00-workstations.js').read_text(
+        encoding='utf-8', errors='ignore')
+    _m = re.search(r'WORKSTATIONS\s*=\s*\{(.*?)\n\}', ws_src, re.S)
+    hosts: dict[str, list[str]] = {}
+    if _m:
+        hosts = {
+            k: re.findall(r"'([\w-]+)'", v)
+            for k, v in re.findall(r"'([\w-]+)'\s*:\s*\[([^\]]*)\]", _m.group(1))
+        }
+    absorbed = {child for kids in hosts.values() for child in kids}
+
+    index_src = (REPO / 'frontend' / 'index.html').read_text(
+        encoding='utf-8', errors='ignore')
+    destinations = set(re.findall(r"nav\('([\w-]+)'\)", index_src))
+
+    # Keep a row only if the user can actually navigate to it. Fold each
+    # absorbed pane's score into its host so a heavy tab still raises the
+    # destination that owns it.
+    host_of = {child: h for h, kids in hosts.items() for child in kids}
+    folded: dict[str, int] = {}
+    for row in rows:
+        owner = host_of.get(row['pane'], row['pane'])
+        folded[owner] = max(folded.get(owner, 0), row['score'])
+    rows = [r for r in rows if r['pane'] in destinations and r['pane'] not in absorbed]
+    for row in rows:
+        row['score'] = folded.get(row['pane'], row['score'])
+        row['tabs'] = len(hosts.get(row['pane'], []))
+
     # Which modules already have a committed review doc.
     #
     # This used to match the pane name against the review FILENAMES, which
@@ -239,18 +273,28 @@ def run() -> AuditResult:
                 reviewed_panes.update(re.findall(r'`([^`]+)`', line))
 
     for row in rows:
-        row['reviewed'] = row['pane'] in reviewed_panes
+        unit = [row['pane']] + hosts.get(row['pane'], [])
+        row['covered'] = sum(1 for u in unit if u in reviewed_panes)
+        row['unit'] = len(unit)
+        # A destination is only done when every tab inside it is done.
+        row['reviewed'] = row['covered'] == row['unit']
 
     rows.sort(key=lambda r: (r['reviewed'], -r['score'], r['pane']))
 
     findings = [
         f'{r["score"]:3}  {r["pane"]:18} {r["file"]:32} '
         f'{r["lines"]:5}ln {r["endpoints"]:3}ep '
+        f'{r["covered"]}/{r["unit"]}tab '
         f'{"UNTESTED" if not r["tested"] else "        "} '
         f'{"REVIEWED" if r["reviewed"] else "        "} '
         f'{r["markers"] or "":>2}'
         for r in rows[:30]
     ]
+    _done = sum(1 for r in rows if r['reviewed'])
+    findings.insert(0, (
+        f'-- {_done} of {len(rows)} user-facing destinations fully reviewed '
+        f'(consolidated from {len(rows) + len(absorbed)} panes)'
+    ))
     untested = [r['pane'] for r in rows if not r['tested']]
     findings.append(f'-- {len(untested)} pane(s) with no test mention: '
                     + ', '.join(untested[:15]))
