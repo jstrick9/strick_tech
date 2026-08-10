@@ -400,6 +400,30 @@ async def chat_stream(req: Request):
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         pass
 
+    # ICM workspace context. Folder-as-architecture: if the message names a
+    # workspace, assemble only that stage's layered context rather than the
+    # whole workspace. The entry stage is RESOLVED, never assumed -- starting
+    # in the wrong folder is the documented way ICM silently fails, because
+    # the layered context never loads and the run still looks fine.
+    try:
+        from ..services import icm as _icm
+
+        if _icm.WORKSPACES_DIR.is_dir():
+            _msg = message.lower()
+            for _d in sorted(_icm.WORKSPACES_DIR.iterdir()):
+                if not _d.is_dir() or _d.name.startswith('.'):
+                    continue
+                _meta = _icm.read_meta(_d)
+                if _d.name in _msg or str(_meta.get('name', '')).lower() in _msg:
+                    _stage, _ = _icm.resolve_entry(_d)
+                    if _stage:
+                        _ctx = _icm.assemble_context(_d, _stage).get('compiled_context', '')
+                        if _ctx:
+                            system_prompt += f'\n\n{_ctx}'
+                    break
+    except (KeyError, TypeError, ValueError, OSError, AttributeError, RuntimeError):
+        pass
+
     messages = [{'role': 'system', 'content': system_prompt}]
     # include history (last 20 turns)
     for h in history[-20:]:
