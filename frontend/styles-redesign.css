@@ -1898,3 +1898,34 @@ html :focus:not(:focus-visible) {
   border-radius: 3px;
   background: var(--bg-3, #1e2029);
 }
+
+/* Module 8 — codeindex dead-code honesty + hook run status + arena unvotable */
+.ci-deadcode-note {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.6;
+  margin: -4px 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warning);
+  border-radius: 6px;
+  background: var(--bg-2);
+}
+.ci-deadcode-note code {
+  font-family: var(--mono, monospace);
+  background: var(--bg-3);
+  padding: 0 3px;
+  border-radius: 3px;
+}
+.hook-run-status { font-size: 11px; flex-shrink: 0; }
+.hook-run-status.is-error { color: var(--danger); }
+.hook-run-status.is-ok { color: var(--success); }
+.arena-unvotable {
+  font-size: 13px;
+  color: var(--warning);
+  padding: 10px 14px;
+  border: 1px solid var(--warning);
+  border-radius: 8px;
+  background: var(--bg-2);
+  text-align: center;
+}

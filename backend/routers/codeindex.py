@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS code_symbols (
     docstring   TEXT DEFAULT '',
     signature   TEXT DEFAULT '',
     complexity  INTEGER DEFAULT 1,
+    decorators  TEXT DEFAULT '',
+    is_entrypoint INTEGER DEFAULT 0,
     indexed_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS code_imports (
@@ -77,12 +79,58 @@ def _ensure_schema():
     con = get_conn()
     try:
         con.executescript(_SCHEMA)
+        # Databases indexed before decorator-awareness lack these columns.
+        # Dead-code detection reads them, so add them in place rather than
+        # forcing a re-index (old rows simply report no decorators).
+        cols = {r[1] for r in con.execute('PRAGMA table_info(code_symbols)').fetchall()}
+        if 'decorators' not in cols:
+            con.execute("ALTER TABLE code_symbols ADD COLUMN decorators TEXT DEFAULT ''")
+        if 'is_entrypoint' not in cols:
+            con.execute('ALTER TABLE code_symbols ADD COLUMN is_entrypoint INTEGER DEFAULT 0')
         con.commit()
     finally:
         con.close()
 
 
 _ensure_schema()
+
+
+# A symbol reached through a framework/registry rather than a direct call is
+# NOT dead code. Deleting a FastAPI route handler because nothing calls it by
+# name removes a live endpoint, so these decorators mark a symbol as an entry
+# point and exempt it from dead-code reporting.
+ENTRYPOINT_DECORATOR_HINTS = (
+    'route', 'get', 'post', 'put', 'patch', 'delete', 'head', 'options',
+    'websocket', 'middleware', 'exception_handler', 'on_event',
+    'fixture', 'task', 'command', 'callback', 'listener', 'subscribe',
+    'register', 'hook', 'validator', 'property', 'setter',
+    'app', 'cli', 'main', 'schedule', 'cron', 'event', 'errorhandler',
+    'before_request', 'after_request', 'receiver', 'step', 'tool',
+)
+
+
+def _decorator_name(node) -> str:
+    """Flatten a decorator expression to a dotted name (best effort)."""
+    if isinstance(node, ast.Call):
+        node = node.func
+    parts = []
+    while isinstance(node, ast.Attribute):
+        parts.append(node.attr)
+        node = node.value
+    if isinstance(node, ast.Name):
+        parts.append(node.id)
+    return '.'.join(reversed(parts))
+
+
+def _is_entrypoint(decorators: list) -> bool:
+    """True when any decorator implies the symbol is invoked by a framework."""
+    for dec in decorators:
+        # Match on the trailing segment so `router.get` and `app.route` both
+        # resolve, while a user helper called `getter` does not.
+        tail = dec.rsplit('.', 1)[-1].lower()
+        if tail in ENTRYPOINT_DECORATOR_HINTS:
+            return True
+    return False
 
 
 # ── Python AST parser ─────────────────────────────────────────────────────────
@@ -110,6 +158,23 @@ def _parse_python(filepath: str, content: str) -> dict:
             doc = ast.get_docstring(node) or ''
             args = [a.arg for a in node.args.args]
             sig = f'def {node.name}({", ".join(args)})'
+            decs = [_decorator_name(d) for d in node.decorator_list]
+            # Annotations are references: a Pydantic model used only as
+            # `def f(body: LoginRequest)` is constructed by the framework and
+            # was previously reported as dead code.
+            _anns = [a.annotation for a in node.args.args if a.annotation]
+            if node.returns:
+                _anns.append(node.returns)
+            for ann in _anns:
+                for sub_n in ast.walk(ann):
+                    if isinstance(sub_n, ast.Name):
+                        calls.append({'from_symbol': node.name, 'to_symbol': sub_n.id, 'line': node.lineno})
+                    elif isinstance(sub_n, ast.Attribute):
+                        calls.append({'from_symbol': node.name, 'to_symbol': sub_n.attr, 'line': node.lineno})
+            for dec in node.decorator_list:
+                for sub_n in ast.walk(dec):
+                    if isinstance(sub_n, ast.Name):
+                        calls.append({'from_symbol': node.name, 'to_symbol': sub_n.id, 'line': node.lineno})
             symbols.append(
                 {
                     'name': node.name,
@@ -119,6 +184,8 @@ def _parse_python(filepath: str, content: str) -> dict:
                     'docstring': doc[:300],
                     'signature': sig[:200],
                     'complexity': _complexity(node),
+                    'decorators': [d for d in decs if d],
+                    'is_entrypoint': _is_entrypoint(decs),
                 }
             )
             # Find calls inside this function
@@ -132,6 +199,13 @@ def _parse_python(filepath: str, content: str) -> dict:
 
         elif isinstance(node, ast.ClassDef):
             doc = ast.get_docstring(node) or ''
+            decs = [_decorator_name(d) for d in node.decorator_list]
+            for base in node.bases:
+                bname = _decorator_name(base)
+                if bname:
+                    calls.append(
+                        {'from_symbol': node.name, 'to_symbol': bname.rsplit('.', 1)[-1], 'line': node.lineno}
+                    )
             symbols.append(
                 {
                     'name': node.name,
@@ -141,6 +215,8 @@ def _parse_python(filepath: str, content: str) -> dict:
                     'docstring': doc[:300],
                     'signature': f'class {node.name}',
                     'complexity': 1,
+                    'decorators': [d for d in decs if d],
+                    'is_entrypoint': _is_entrypoint(decs),
                 }
             )
 
@@ -152,6 +228,25 @@ def _parse_python(filepath: str, content: str) -> dict:
                 mod = node.module or ''
                 for alias in node.names:
                     imports.append({'to_module': mod, 'import_name': alias.name or '*', 'line': node.lineno})
+
+    # Calls were only collected by walking function bodies, so module-level
+    # code was invisible to the call graph. `config = load_config()` at import
+    # time is a real reference; without it load_config() looked dead.
+    _nested = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            for child in ast.walk(node):
+                if child is not node:
+                    _nested.add(id(child))
+    for node in ast.walk(tree):
+        if id(node) in _nested:
+            continue
+        if isinstance(node, ast.Call):
+            fn = node.func
+            if isinstance(fn, ast.Name):
+                calls.append({'from_symbol': '<module>', 'to_symbol': fn.id, 'line': node.lineno})
+            elif isinstance(fn, ast.Attribute):
+                calls.append({'from_symbol': '<module>', 'to_symbol': fn.attr, 'line': node.lineno})
 
     return {'symbols': symbols, 'imports': imports, 'calls': calls}
 
@@ -239,8 +334,8 @@ def _index_file(filepath: str, content: str):
         con.execute('DELETE FROM code_calls    WHERE from_file=?', (rel_path,))
         for s in parsed['symbols']:
             con.execute(
-                """INSERT INTO code_symbols(filepath,symbol_name,symbol_type,line_no,col_no,docstring,signature,complexity)
-                           VALUES (?,?,?,?,?,?,?,?)""",
+                """INSERT INTO code_symbols(filepath,symbol_name,symbol_type,line_no,col_no,docstring,signature,complexity,decorators,is_entrypoint)
+                           VALUES (?,?,?,?,?,?,?,?,?,?)""",
                 (
                     rel_path,
                     s['name'],
@@ -250,6 +345,8 @@ def _index_file(filepath: str, content: str):
                     s.get('docstring', ''),
                     s.get('signature', ''),
                     s.get('complexity', 1),
+                    ','.join(s.get('decorators', []))[:300],
+                    1 if s.get('is_entrypoint') else 0,
                 ),
             )
         for imp in parsed['imports']:
@@ -470,33 +567,74 @@ def complexity_report(min_complexity: int = 5, limit: int = 30):
     }
 
 
+# Names Python or a test runner calls. Never referenced by name in source.
+_DUNDER_OR_PROTOCOL = {
+    'main', 'setUp', 'tearDown', 'setUpClass', 'tearDownClass',
+}
+
+
 @router.get('/dead-code')
-def dead_code_detection():
-    """Find symbols that are defined but never called or imported."""
+def dead_code_detection(limit: int = 50):
+    """Find symbols that are defined but never called or imported.
+
+    Framework entry points are NOT dead code. A FastAPI route handler, a
+    pytest fixture or a CLI command is reached through a decorator registry,
+    so nothing calls it by name -- the previous implementation reported every
+    one of them as deletable. On this repo that was 47 of the first 50 rows
+    (route handlers such as `index`, `favicon`, `manifest`), and acting on the
+    report would have removed live endpoints.
+
+    Symbols carrying an entry-point decorator are now excluded and counted
+    separately, and the response states which heuristics were applied so the
+    UI can present a candidate list rather than a verdict.
+    """
     from ..services.memory_db import get_conn
 
     con = get_conn()
     try:
-        # Get all defined symbols
         defined = con.execute(
-            "SELECT symbol_name, filepath FROM code_symbols WHERE symbol_type IN ('function','class')"
+            """SELECT symbol_name, filepath, symbol_type, is_entrypoint, decorators
+                 FROM code_symbols WHERE symbol_type IN ('function','class')"""
         ).fetchall()
-        # Get all referenced symbols
         called = set(r['to_symbol'] for r in con.execute('SELECT to_symbol FROM code_calls').fetchall())
         imported = set(r['import_name'] for r in con.execute('SELECT import_name FROM code_imports').fetchall())
     finally:
         con.close()
 
     referenced = called | imported
-    dead = [
-        {'symbol_name': r['symbol_name'], 'filepath': r['filepath']}
-        for r in defined
-        if r['symbol_name'] not in referenced
-        and not r['symbol_name'].startswith('_')  # ignore private
-        and len(r['symbol_name']) > 2
-    ]
+    dead = []
+    excluded_entrypoints = 0
+    for r in defined:
+        name = r['symbol_name']
+        if name in referenced or name.startswith('_') or len(name) <= 2:
+            continue
+        if name in _DUNDER_OR_PROTOCOL or r['is_entrypoint']:
+            excluded_entrypoints += 1
+            continue
+        dead.append(
+            {
+                'symbol_name': name,
+                'filepath': r['filepath'],
+                'symbol_type': r['symbol_type'],
+                'decorators': r['decorators'] or '',
+            }
+        )
 
-    return {'dead_symbols': dead[:50], 'count': len(dead)}
+    limit = max(1, min(limit, 500))
+    return {
+        'dead_symbols': dead[:limit],
+        'count': len(dead),
+        'returned': len(dead[:limit]),
+        'truncated': len(dead) > limit,
+        'excluded_entrypoints': excluded_entrypoints,
+        'confidence': 'heuristic',
+        'note': (
+            'Call-graph heuristic: name-based, single-repo. Dynamic dispatch, '
+            'getattr(), templates and external importers are not visible to it. '
+            f'{excluded_entrypoints} framework entry point(s) were excluded. '
+            'Verify before deleting.'
+        ),
+    }
 
 
 @router.get('/stats')

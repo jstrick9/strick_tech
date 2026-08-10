@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS arena_battles (
     tokens_a    INTEGER DEFAULT 0,
     tokens_b    INTEGER DEFAULT 0,
     category    TEXT DEFAULT 'general',
+    failed_a    INTEGER DEFAULT 0,
+    failed_b    INTEGER DEFAULT 0,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS arena_leaderboard (
@@ -73,6 +75,10 @@ def _ensure_schema():
     con = get_conn()
     try:
         con.executescript(_SCHEMA)
+        cols = {r[1] for r in con.execute('PRAGMA table_info(arena_battles)').fetchall()}
+        for col in ('failed_a', 'failed_b'):
+            if col not in cols:
+                con.execute(f'ALTER TABLE arena_battles ADD COLUMN {col} INTEGER DEFAULT 0')
         # Seed leaderboard entries
         for model in AVAILABLE_MODELS:
             con.execute('INSERT OR IGNORE INTO arena_leaderboard(model) VALUES (?)', (model,))
@@ -159,9 +165,10 @@ async def create_battle(req: Request):
 
         resp_a, resp_b = '', ''
         lat_a = lat_b = tok_a = tok_b = 0
+        failed_a = failed_b = False
 
         async def _run_model(model_id: str, model_full: str, side: str):
-            nonlocal resp_a, resp_b, lat_a, lat_b, tok_a, tok_b
+            nonlocal resp_a, resp_b, lat_a, lat_b, tok_a, tok_b, failed_a, failed_b
             t0 = time.perf_counter()
             text = ''
             try:
@@ -195,7 +202,11 @@ async def create_battle(req: Request):
                                 pass
             except Exception as ex:
                 text = f'[Error: {ex}]'
-                yield f'data: {json.dumps({"type": "chunk", "side": side, "text": text, "battle_id": battle_id})}\n\n'
+                if side == 'a':
+                    failed_a = True
+                else:
+                    failed_b = True
+                yield f'data: {json.dumps({"type": "chunk", "side": side, "text": text, "battle_id": battle_id, "error": True})}\n\n'
 
             lat = int((time.perf_counter() - t0) * 1000)
             toks = len(text.split())
@@ -242,14 +253,30 @@ async def create_battle(req: Request):
 
         c2 = _gc()
         c2.execute(
-            """UPDATE arena_battles SET response_a=?,response_b=?,latency_a=?,latency_b=?,tokens_a=?,tokens_b=?
-                      WHERE id=?""",
-            (resp_a[:4000], resp_b[:4000], lat_a, lat_b, tok_a, tok_b, battle_id),
+            """UPDATE arena_battles SET response_a=?,response_b=?,latency_a=?,latency_b=?,tokens_a=?,tokens_b=?,
+                      failed_a=?,failed_b=? WHERE id=?""",
+            (
+                resp_a[:4000], resp_b[:4000], lat_a, lat_b, tok_a, tok_b,
+                1 if failed_a else 0, 1 if failed_b else 0, battle_id,
+            ),
         )
         c2.commit()
         c2.close()
 
-        yield f'data: {json.dumps({"type": "battle_ready", "battle_id": battle_id, "ready_to_vote": True})}\n\n'
+        # A battle where a side never produced a response is not a comparison.
+        # Voting on it used to write a win/loss and an ELO delta derived from
+        # two '[Error: No API key]' strings, permanently ranking models that
+        # never ran.
+        votable = not (failed_a or failed_b)
+        reason = ''
+        if failed_a and failed_b:
+            reason = 'Both models failed to respond — nothing to compare.'
+        elif failed_a:
+            reason = 'Model A failed to respond — voting would not be a fair comparison.'
+        elif failed_b:
+            reason = 'Model B failed to respond — voting would not be a fair comparison.'
+
+        yield f'data: {json.dumps({"type": "battle_ready", "battle_id": battle_id, "ready_to_vote": votable, "votable": votable, "reason": reason})}\n\n'
 
     return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )
@@ -277,6 +304,15 @@ async def vote(battle_id: str, req: Request):
         b = dict(battle)
         if b.get('winner'):
             return {'ok': False, 'error': 'Already voted'}
+        # Second door: the UI hides the vote buttons for a failed battle, but
+        # the endpoint has to refuse it too, or a stale tab / direct POST still
+        # writes ELO for a model that never answered.
+        if b.get('failed_a') or b.get('failed_b'):
+            return {
+                'ok': False,
+                'error': 'This battle had no valid response from one or both models, so it cannot be scored.',
+                'code': 'battle_failed',
+            }
 
         con.execute('UPDATE arena_battles SET winner=?,vote_reason=? WHERE id=?', (winner, reason, battle_id))
         con.commit()
