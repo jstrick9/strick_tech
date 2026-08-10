@@ -402,3 +402,65 @@ def test_hybrid_search_uses_the_graph_as_a_third_retriever():
     body = '\n'.join(ln for ln in src.split('\n') if not ln.strip().startswith('#'))
     assert 'graph_expand' in body
     assert 'graph_ranked' in body
+
+
+# ── Loop safety rails (gap #6) ────────────────────────────────────────────────
+def test_duration_budget_is_enforced_not_merely_warned():
+    """A time limit nothing enforces is not a limit.
+
+    max_duration_s warned at 90% and was then dropped from the verdict
+    entirely: within_budget only considered tokens and cost. Reproduced before
+    the fix -- a run 300x over its wall-clock cap reported within_budget: True.
+
+    Wall-clock is the one budget that keeps rising while a stalled loop spends
+    nothing, so it is exactly the dimension a runaway trips first.
+    """
+    import time as _t
+
+    from backend.services.agent_engine import CostEngine, ResourceBudget
+
+    e = CostEngine()
+    e.set_budget('a', ResourceBudget(max_tokens=10_000, max_cost_usd=1.0, max_duration_s=300.0))
+    assert e.record_usage('a', tokens=10, cost_usd=0.01)['within_budget'] is True
+
+    e.usage['a']['start_time'] = _t.time() - 99_999
+    out = e.record_usage('a', tokens=10, cost_usd=0.01)
+    assert out['within_budget'] is False
+    assert 'duration' in out['exceeded']
+
+
+def test_budget_names_the_dimension_that_failed():
+    """"Over budget" without saying which one leaves the caller guessing."""
+    from backend.services.agent_engine import CostEngine, ResourceBudget
+
+    e = CostEngine()
+    e.set_budget('a', ResourceBudget(max_tokens=5, max_cost_usd=0.001, max_duration_s=9999))
+    out = e.record_usage('a', tokens=500, cost_usd=10.0)
+    assert out['within_budget'] is False
+    assert set(out['exceeded']) >= {'tokens', 'cost'}
+
+
+def test_within_budget_run_names_nothing():
+    from backend.services.agent_engine import CostEngine, ResourceBudget
+
+    e = CostEngine()
+    e.set_budget('a', ResourceBudget(max_tokens=10_000, max_cost_usd=1.0, max_duration_s=9999))
+    out = e.record_usage('a', tokens=1, cost_usd=0.0)
+    assert out['within_budget'] is True and out['exceeded'] == []
+
+
+def test_elapsed_is_reported():
+    from backend.services.agent_engine import CostEngine, ResourceBudget
+
+    e = CostEngine()
+    e.set_budget('a', ResourceBudget())
+    assert 'elapsed_s' in e.record_usage('a', tokens=1, cost_usd=0.0)
+
+
+def test_agentic_loops_ship_with_bounds():
+    """Shipping a loop without limits is a billing meter with no off switch."""
+    from backend.services.agent_engine import ReflectionConfig, ResourceBudget
+
+    b = ResourceBudget()
+    assert b.max_iterations > 0 and b.max_duration_s > 0 and b.max_cost_usd > 0
+    assert ReflectionConfig().max_iterations > 0
