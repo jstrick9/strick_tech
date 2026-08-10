@@ -13556,6 +13556,14 @@ const parts=buf.split('\n\n');buf=parts.pop()||'';
 for(const part of parts){if(!part.startsWith('data:'))continue;
 try{const d=JSON.parse(part.slice(5).trim());
 if(d.type==='chunk'){const el=document.getElementById('bb-stream-log');if(el)el.textContent+=d.text||'';}
+else if(d.type==='error'){
+const el=document.getElementById('bb-results');
+if(el) el.innerHTML=`<div class="qt-review-blocked">
+              <strong>No review was performed.</strong>
+              <div>${escHtml(d.error||'The review could not be completed.')}</div>
+              ${d.setup_url?`<a href="${safeUrl(d.setup_url)}" target="_blank" rel="noopener">Get a free API key</a>`:''}
+            </div>`;
+}
 else if(d.type==='done'){bbShowResults(d);}
 }catch(e){}}
 }
@@ -13766,10 +13774,15 @@ pane.innerHTML = `
 
     <!-- Git status bar -->
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:16px;align-items:center;font-size:12px">
-      <span>🌿 <strong style="color:var(--accent-text)">${escHtml(gitStatus.branch||'(no branch)')}</strong></span>
-      <span style="color:var(--text-3)">|</span>
-      <span>${gitStatus.changed_count||0} changed files</span>
-      ${gitStatus.clean?'<span style="color:var(--success)">✅ Clean</span>':'<span style="color:var(--warning)">⚠️ Uncommitted changes</span>'}
+      ${gitStatus.repo===false ? `
+        <span class="qt-git-norepo">⚠️ ${escHtml(gitStatus.error||'Not a git repository')}</span>
+        <span style="color:var(--text-3);font-size:11px">${escHtml(gitStatus.hint||'')}</span>
+      ` : `
+        <span>🌿 <strong style="color:var(--accent-text)">${escHtml(gitStatus.branch||'(no branch)')}</strong></span>
+        <span style="color:var(--text-3)">|</span>
+        <span>${gitStatus.changed_count||0} changed files</span>
+        ${gitStatus.clean?'<span style="color:var(--success)">✅ Clean</span>':'<span style="color:var(--warning)">⚠️ Uncommitted changes</span>'}
+      `}
       <button class="btn-sm" data-act-click="gitaiRefreshStatus()">↺</button>
     </div>
 
@@ -13879,6 +13892,8 @@ if (el) el.innerHTML+=`<div class="gitai-result">${(d.results||[]).map(r=>`${esc
 async function gitaiRefreshStatus() {
 try {
 const s = await fetch('/api/gitai/status').then(r=>r.ok?r.json().catch(()=>{}):null);
+if (!s) { showToast('Could not read git status', 'err'); return; }
+if (s.repo === false) { showToast('⚠️ ' + (s.error||'Not a git repository'), 'err', 3500); renderGitAI(); return; }
 showToast('🌿 ' + (s.branch||'no branch') + ' · ' + (s.changed_count||0) + ' changes', 'ok', 2000);
 const branchEl = document.querySelector('#pane-gitai [data-field="branch"]');
 const cleanEl  = document.querySelector('#pane-gitai [data-field="clean"]');

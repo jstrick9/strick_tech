@@ -320,6 +320,57 @@ def clear_suggestions():
 # ══════════════════════════════════════════════════════════════════
 
 
+# Health-scan rules, at module scope so they are testable directly. A test
+# that re-declares the pattern it is checking passes against broken and fixed
+# code alike.
+#
+# The SQL rule used to be r'f"...(SELECT|...).*{' with re.DOTALL, so `.*`
+# crossed newlines and matched a benign f-string near the top of a file
+# against the word SELECT hundreds of lines below -- it flagged 89 of 120
+# backend files. Anchored to an execute() call, on one line, with the
+# interpolation inside the same string literal: 27 files.
+SECRET_PATTERN = re.compile(r'(?i)(api_key|apikey|secret|password|token)\s*=\s*["\'][^"\']{8,}["\']')
+SQL_INJECTION_PATTERN = re.compile(
+    r'(?i)(execute|executemany|executescript)\s*\(\s*f["\'][^"\']*'
+    r'(SELECT|INSERT|UPDATE|DELETE)[^"\']*\{'
+)
+XSS_PATTERN = re.compile(r'innerHTML\s*=\s*[^;]+\+')
+
+
+# Directories the health scan reads. PREVIEW_DIR alone is a scratch area that
+# holds a single index.html on a normal install, so scanning only it produced a
+# confident security=100 / debt=100 for a tree the Git AI scanner graded F.
+_HEALTH_BINARY_EXTS = {
+    '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.woff', '.woff2',
+    '.ttf', '.eot', '.mp4', '.webp', '.pdf', '.zip', '.gz', '.br', '.db',
+}
+_HEALTH_SKIP_DIRS = ('node_modules', '__pycache__', '.git', 'venv', '.venv', 'dist', 'build')
+
+
+def _health_scan_files(exts=None, cap: int = 400) -> list:
+    """Collect source files across the workspace for the health scan."""
+    seen: list = []
+    for base in (PREVIEW_DIR, ROOT / 'workspaces', ROOT / 'backend', ROOT / 'frontend'):
+        if not base.exists():
+            continue
+        for f in base.rglob('*'):
+            if len(seen) >= cap:
+                return seen
+            if not f.is_file():
+                continue
+            sf = str(f)
+            if any(d in sf for d in _HEALTH_SKIP_DIRS):
+                continue
+            if exts is not None:
+                if f.suffix not in exts:
+                    continue
+            elif f.suffix in _HEALTH_BINARY_EXTS:
+                continue
+            seen.append(f)
+    return seen
+
+
+
 @router.get('/health')
 async def project_health():
     """
@@ -367,14 +418,13 @@ async def project_health():
     # ── 2. Security Score ─────────────────────────────────────────────────────
     security_issues = 0
     sec_details = []
-    if PREVIEW_DIR.exists():
-        secret_pattern = re.compile(r'(?i)(api_key|apikey|secret|password|token)\s*=\s*["\'][^"\']{8,}["\']')
-        sql_injection = re.compile(r'(?i)f["\'].*(SELECT|INSERT|UPDATE|DELETE).*{', re.DOTALL)
-        xss_pattern = re.compile(r'innerHTML\s*=\s*[^;]+\+')
+    sec_files = _health_scan_files()
+    if sec_files:
+        secret_pattern = SECRET_PATTERN
+        sql_injection = SQL_INJECTION_PATTERN
+        xss_pattern = XSS_PATTERN
 
-        for f in list(PREVIEW_DIR.rglob('*'))[:50]:
-            if not f.is_file() or f.suffix in ('.png', '.jpg', '.gif', '.ico'):
-                continue
+        for f in sec_files:
             try:
                 content = f.read_text(errors='ignore')
                 if secret_pattern.search(content):
@@ -389,18 +439,25 @@ async def project_health():
             except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                 pass
 
-    scores['security'] = max(0, 100 - security_issues * 5)
-    details['security'] = sec_details or ['No obvious security issues found']
+        # Penalty per file scanned, so the score still moves on a large tree.
+        sec_density = security_issues / max(len(sec_files), 1)
+        scores['security'] = max(0, min(100, int(100 - sec_density * 40)))
+        details['security'] = sec_details[:10] or [f'No obvious issues in {len(sec_files)} files scanned']
+        if len(sec_details) > 10:
+            details['security'].append(f'\u2026 and {len(sec_details) - 10} more')
+    else:
+        # Nothing to scan is not a pass.
+        scores['security'] = None
+        details['security'] = ['Not measured \u2014 no source files found to scan']
 
     # ── 3. Tech Debt Score (TODOs, large files, dead code) ────────────────────
     debt = 0
     debt_details = []
-    if PREVIEW_DIR.exists():
+    debt_files = _health_scan_files(exts=('.py', '.js', '.ts', '.jsx', '.tsx'))
+    if debt_files:
         todo_count = 0
         large_count = 0
-        for f in list(PREVIEW_DIR.rglob('*'))[:50]:
-            if not f.is_file() or f.suffix not in ('.py', '.js', '.ts'):
-                continue
+        for f in debt_files:
             try:
                 content = f.read_text(errors='ignore')
                 tc = len(re.findall(r'(?i)\b(TODO|FIXME|HACK|BUG)\b', content))
@@ -413,6 +470,7 @@ async def project_health():
         debt_details = [
             f'{todo_count} TODO/FIXME/HACK/BUG comments',
             f'{large_count} files over 300 lines',
+            f'across {len(debt_files)} source files',
         ]
 
     # Dead code from index
@@ -430,8 +488,13 @@ async def project_health():
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         pass
 
-    scores['debt'] = max(0, 100 - min(debt, 100))
-    details['debt'] = debt_details or ['No tech debt issues found']
+    if debt_files:
+        debt_density = debt / max(len(debt_files), 1)
+        scores['debt'] = max(0, min(100, int(100 - debt_density * 12)))
+        details['debt'] = debt_details
+    else:
+        scores['debt'] = None
+        details['debt'] = ['Not measured \u2014 no source files found to scan']
 
     # ── 4. Documentation Score ────────────────────────────────────────────────
     try:
@@ -517,16 +580,6 @@ async def project_health():
         grade = None
 
     unmeasured = sorted(k for k, v in scores.items() if v is None)
-
-    {
-        'overall_score': overall,
-        'complexity_score': scores['complexity'],
-        'security_score': scores['security'],
-        'debt_score': scores['debt'],
-        'docs_score': scores['docs'],
-        'deps_score': scores['deps'],
-        'details_json': json.dumps(details),
-    }
 
     # Save snapshot
     con = get_conn()

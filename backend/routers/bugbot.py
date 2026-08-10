@@ -221,6 +221,7 @@ async def review_diff_stream(req: Request):
 
         prompt = f'{context}\n\n## Diff:\n```diff\n{diff[:12000]}\n```'
         full_text = ''
+        stubbed = False
         async for chunk in llm_svc.stream(
             [{'role': 'system', 'content': REVIEW_SYSTEM}, {'role': 'user', 'content': prompt}],
             agent_id='bugbot',
@@ -231,7 +232,13 @@ async def review_diff_stream(req: Request):
             delta = ''
             try:
                 if chunk.startswith('data:'):
-                    delta = json.loads(chunk[5:].strip()).get('delta', '')
+                    _frame = json.loads(chunk[5:].strip())
+                    delta = _frame.get('delta', '')
+                    # The terminal frame flags a placeholder reply. Without
+                    # this the setup instructions are parsed as if they were
+                    # the model's review.
+                    if llm_svc.is_stub(_frame):
+                        stubbed = True
             except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                 pass
             if delta:
@@ -246,6 +253,31 @@ async def review_diff_stream(req: Request):
                 parsed = json.loads(m.group(0))
             except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                 pass
+
+        # No provider, or a reply that carried no reviewable JSON. Either way
+        # no review happened, and storing a default 75 would put an unearned
+        # passing grade in the history and drag the average score with it.
+        if stubbed or not parsed:
+            yield (
+                'data: '
+                + json.dumps(
+                    {
+                        'type': 'error',
+                        'review_id': review_id,
+                        'code': 'llm_unavailable' if stubbed else 'unparseable_review',
+                        'error': (
+                            'No AI provider is configured or reachable, so no review was performed. '
+                            'Set OPENROUTER_API_KEY in your .env, store a key in the Vault, or run a '
+                            'local Ollama model \u2014 Settings \u2192 Connect AI walks through both.'
+                            if stubbed
+                            else 'The model reply could not be parsed as a review, so no score was recorded.'
+                        ),
+                        'setup_url': 'https://openrouter.ai/keys',
+                    }
+                )
+                + '\n\n'
+            )
+            return
 
         issues = parsed.get('issues', [])
         score = parsed.get('score', 75)

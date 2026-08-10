@@ -34,11 +34,18 @@ ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'  # FIX 2: define PREVIEW_DIR for security scanner
 
 
-def _git(args: list[str], cwd=None) -> tuple[str, str, int]:
-    """Run a git command. Returns (stdout, stderr, returncode)."""
+def _git(args: list[str], cwd=None, keep_output: bool = False) -> tuple[str, str, int]:
+    """Run a git command. Returns (stdout, stderr, returncode).
+
+    keep_output preserves leading whitespace. `git status --porcelain` encodes
+    index/worktree state in the first two columns, so ' M a.py' must not be
+    stripped to 'M a.py' -- that shifts every subsequent slice by one and
+    truncates the filename.
+    """
     try:
         r = subprocess.run(['git'] + args, capture_output=True, text=True, cwd=str(cwd or ROOT), timeout=15)
-        return r.stdout.strip(), r.stderr.strip(), r.returncode
+        out = r.stdout if keep_output else r.stdout.strip()
+        return out, r.stderr.strip(), r.returncode
     except Exception as ex:
         return '', str(ex), 1
 
@@ -236,21 +243,84 @@ Rules:
     }
 
 
+def _repo_error(stderr: str, code: int) -> dict | None:
+    """Translate a git failure into an explanation, or None if it succeeded.
+
+    Distinguishes "there is no repository here" from "the repository is
+    clean". Both used to produce empty stdout, and the caller could not tell
+    them apart because the return code was thrown away.
+    """
+    if code == 0:
+        return None
+    msg = (stderr or '').lower()
+    if 'not a git repository' in msg:
+        return {
+            'code': 'not_a_repo',
+            'error': f'{ROOT} is not a git repository.',
+            'hint': 'Run `git init` in your workspace, or open a project that is already under version control.',
+        }
+    if 'does not have any commits' in msg or 'unknown revision' in msg:
+        return {
+            'code': 'no_commits',
+            'error': 'This repository has no commits yet.',
+            'hint': 'Make your first commit to enable history, diffs and changelogs.',
+        }
+    return {
+        'code': 'git_error',
+        'error': (stderr or 'git command failed').splitlines()[0][:300],
+        'hint': 'Check that git is installed and the workspace is readable.',
+    }
+
+
 @router.get('/status')
 def git_status():
     """Get current git status."""
-    stdout, stderr, code = _git(['status', '--porcelain'])
+    stdout, stderr, code = _git(['status', '--porcelain'], keep_output=True)
+
+    # A failed git call is not a clean tree.
+    err = _repo_error(stderr, code)
+    if err:
+        return {
+            'ok': False,
+            'repo': False,
+            'branch': '',
+            'changed_files': [],
+            'changed_count': 0,
+            'recent_commits': [],
+            'clean': None,
+            **err,
+        }
+
     branch_out, _, _ = _git(['branch', '--show-current'])
     log_out, _, _ = _git(['log', '--oneline', '-5'])
 
     changed = []
     for line in stdout.splitlines():
-        if len(line) >= 3:
-            status = line[:2].strip()
+        if len(line) >= 4:
+            index_st = line[0].strip()
+            work_st = line[1].strip()
             path = line[3:].strip()
-            changed.append({'status': status, 'path': path})
+            # Renames are reported as 'old -> new'; show the destination.
+            if ' -> ' in path:
+                path = path.split(' -> ', 1)[1]
+            if not path:
+                continue
+            changed.append(
+                {
+                    'status': (index_st + work_st) or '?',
+                    'index_status': index_st,
+                    'worktree_status': work_st,
+                    # '??' is untracked, not staged -- both columns are '?',
+                    # so a plain bool(index_st) test called it staged.
+                    'staged': bool(index_st) and index_st != '?',
+                    'untracked': line[:2] == '??',
+                    'path': path,
+                }
+            )
 
     return {
+        'ok': True,
+        'repo': True,
         'branch': branch_out,
         'changed_files': changed,
         'changed_count': len(changed),
@@ -270,7 +340,10 @@ def git_log(limit: int = 20, file: str = '', since: str = '', author: str = ''):
     if author:
         args += [f'--author={author}']
 
-    stdout, _, _ = _git(args)
+    stdout, stderr, code = _git(args)
+    err = _repo_error(stderr, code)
+    if err:
+        return {'ok': False, 'repo': False, 'commits': [], 'count': 0, **err}
     commits = []
     for line in stdout.splitlines():
         parts = line.split('|', 4)
@@ -299,8 +372,11 @@ def git_diff(ref: str = '', staged: bool = False, file: str = ''):
     if file:
         args += ['--', file]
 
-    stdout, _, _ = _git(args)
-    return {'diff': stdout[:20000], 'lines': len(stdout.splitlines())}
+    stdout, stderr, code = _git(args)
+    err = _repo_error(stderr, code)
+    if err:
+        return {'ok': False, 'repo': False, 'diff': '', 'lines': 0, **err}
+    return {'ok': True, 'repo': True, 'diff': stdout[:20000], 'lines': len(stdout.splitlines())}
 
 
 @router.post('/commit')
