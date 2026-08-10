@@ -1929,3 +1929,18 @@ html :focus:not(:focus-visible) {
   background: var(--bg-2);
   text-align: center;
 }
+
+/* Module 9 — bugbot no-review notice + gitai no-repo state */
+.qt-review-blocked {
+  padding: 14px 16px;
+  border: 1px solid var(--warning);
+  border-left: 3px solid var(--warning);
+  border-radius: 8px;
+  background: var(--bg-2);
+  font-size: 13px;
+  color: var(--text-1);
+  line-height: 1.6;
+}
+.qt-review-blocked strong { color: var(--warning); display: block; margin-bottom: 4px; }
+.qt-review-blocked a { color: var(--accent-text); }
+.qt-git-norepo { color: var(--warning); font-weight: 600; }
