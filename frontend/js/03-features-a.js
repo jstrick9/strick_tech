@@ -1613,7 +1613,25 @@ async function renderFlamegraph() {
         </div>
       `;
     };
-    container.innerHTML = `<div style="width:100%;font-size:10px">${renderNode(root)}</div>`;
+    // The endpoint reports whether this tree was measured. Ignoring that flag
+    // leaves a hand-written call graph rendered beside genuinely measured
+    // panels (process RSS, DB rows, agent timings) with nothing to tell them
+    // apart -- and a flamegraph is acted on, so an operator optimises a call
+    // path that was never profiled.
+    //
+    // Same treatment the PQC pane already gives `algos.simulated`.
+    const synthetic = d.synthetic === true;
+    const banner = synthetic
+      ? `<div class="flame-synthetic">
+           <span class="flame-synthetic__badge">SAMPLE DATA</span>
+           <span>${escHtml(d.note || 'Illustrative call tree — not a measurement of this process.')}</span>
+           ${d.has_real_data
+              ? '<span class="flame-synthetic__real">Observed endpoint latency is included under <code>real_endpoints</code>.</span>'
+              : '<span class="flame-synthetic__real">No requests profiled yet — use the app, then refresh.</span>'}
+         </div>`
+      : '';
+
+    container.innerHTML = `${banner}<div style="width:100%;font-size:10px">${renderNode(root)}</div>`;
   } catch(e) {
     // FIX 5: show error in flamegraph container instead of silently failing
     if (container) container.innerHTML = `<div style="color:var(--warning);font-size:12px;padding:8px">⚠️ Flamegraph unavailable: ${escHtml(e.message)}</div>`;
