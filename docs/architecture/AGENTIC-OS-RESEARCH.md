@@ -443,10 +443,16 @@ Assessed against the actual codebase, not aspiration.
 | 3 | ~~Knowledge graph not wired into retrieval~~ **DONE** | L2 | `graph_expand()` is a third retriever in `hybrid_search()`, seeds + 1 hop. | M |
 | 4 | **Kernel modules not named as such** | L3 | Scheduler/context/memory managers are implicit and scattered. Nothing to test or reason about. | L |
 | 5 | ~~No ICM workspace runtime~~ **DONE** | L5 | `services/icm.py` + router + UI. | M |
-| 6 | **Loop safety rails not standardised** | L4 | `loops.py` exists; needs the §4.3 rail set as enforced defaults. | S |
+| 6 | ~~Loop safety rails not standardised~~ **DONE (partly pre-existing)** | L4 | `agent_engine.py` already had iteration/cost/parallel caps and bounded reflection. The real gap was `max_duration_s` warning but never failing the verdict — a run 300x over its cap reported `within_budget: True`. Now enforced, and the failing dimension is named. `loops.py` turned out to be a cron scheduler with a bounded interval, not an agentic loop. | S |
 | 7 | ~~No provenance on memory writes~~ **DONE** | L2 | tier/outcome/origin/actor/confidence/derived_from on every write. | M |
-| 8 | **Tool definitions not scoped per stage** | L3 | Cost + latency, per Anthropic. | S |
+| 8 | **Tool definitions not scoped per stage** | L3 | Cost + latency, per Anthropic. **Deferred**: ICM stage contracts now give this a natural home (a `Tools` section in `CONTEXT.md`), but wiring it into the MCP tool manager touches the agent runtime and is better done with gap #4. | S |
 | 9 | ~~No ontology layer~~ **DONE** | L5 | `services/ontology.py`, markdown-defined, resolves synonyms/typos. | M |
+
+### Status — 2026-08-10
+
+Seven of nine gaps closed. Remaining: **#4 name the kernel** (largest blast
+radius, deliberately last) and **#8 scoped tool loading** (folded into #4,
+since both touch the agent runtime).
 
 ### Recommended sequence
 

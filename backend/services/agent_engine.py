@@ -1476,12 +1476,35 @@ class CostEngine:
             elapsed = time.time() - u["start_time"]
             if elapsed > budget.max_duration_s * 0.9:
                 warnings.append(f"Duration at {elapsed:.0f}s/{budget.max_duration_s:.0f}s")
+            if elapsed > budget.max_duration_s:
+                warnings.append(f"DURATION BUDGET EXCEEDED: {elapsed:.0f}s/{budget.max_duration_s:.0f}s")
 
+        # Duration used to warn at 90% and then be dropped from the verdict
+        # entirely, so a run 300x over its wall-clock cap still reported
+        # within_budget: True. A time limit nothing enforces is not a limit --
+        # and wall-clock is the one budget that keeps rising while a stalled
+        # loop spends nothing.
+        elapsed_s = time.time() - u["start_time"]
+        within = budget is None or (
+            u["tokens"] <= budget.max_tokens
+            and u["cost_usd"] <= budget.max_cost_usd
+            and elapsed_s <= budget.max_duration_s
+        )
         return {
             "ok": True,
-            "within_budget": budget is None or (u["tokens"] <= budget.max_tokens and u["cost_usd"] <= budget.max_cost_usd),
+            "within_budget": within,
             "warnings": warnings,
             "usage": u.copy(),
+            "elapsed_s": round(elapsed_s, 2),
+            # Name the dimension that failed: "over budget" without saying
+            # which one leaves the caller to guess.
+            "exceeded": [] if within else [
+                d for d, over in (
+                    ("tokens", budget and u["tokens"] > budget.max_tokens),
+                    ("cost", budget and u["cost_usd"] > budget.max_cost_usd),
+                    ("duration", budget and elapsed_s > budget.max_duration_s),
+                ) if over
+            ],
         }
 
     def get_usage(self, agent_id: str) -> dict:
