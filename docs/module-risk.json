@@ -1,52 +1,119 @@
 [
   {
-    "pane": "multitab",
-    "score": 20,
-    "file": "03-features-a.js",
-    "lines": 504,
-    "endpoints": 30,
+    "pane": "evals",
+    "score": 21,
+    "file": "05-evals-observability.js",
+    "lines": 243,
+    "endpoints": 15,
     "markers": 0,
     "tested": true,
+    "tabs": 4,
+    "covered": 3,
+    "unit": 5,
+    "reviewed": false
+  },
+  {
+    "pane": "github",
+    "score": 21,
+    "file": "18-github.js",
+    "lines": 390,
+    "endpoints": 6,
+    "markers": 0,
+    "tested": true,
+    "tabs": 2,
+    "covered": 1,
+    "unit": 3,
+    "reviewed": false
+  },
+  {
+    "pane": "observability",
+    "score": 21,
+    "file": "05-evals-observability.js",
+    "lines": 243,
+    "endpoints": 15,
+    "markers": 0,
+    "tested": true,
+    "tabs": 9,
+    "covered": 4,
+    "unit": 10,
     "reviewed": false
   },
   {
     "pane": "workflow",
-    "score": 20,
+    "score": 21,
     "file": "03-features-a.js",
-    "lines": 504,
+    "lines": 506,
     "endpoints": 30,
     "markers": 0,
     "tested": true,
+    "tabs": 4,
+    "covered": 3,
+    "unit": 5,
     "reviewed": false
   },
   {
-    "pane": "replay",
-    "score": 17,
-    "file": "08-replay-collab.js",
-    "lines": 1052,
-    "endpoints": 7,
+    "pane": "plugins",
+    "score": 20,
+    "file": "34-plugin-hub.js",
+    "lines": 313,
+    "endpoints": 4,
     "markers": 0,
     "tested": true,
+    "tabs": 2,
+    "covered": 1,
+    "unit": 3,
+    "reviewed": false
+  },
+  {
+    "pane": "secrets",
+    "score": 20,
+    "file": "16-terminal.js",
+    "lines": 206,
+    "endpoints": 5,
+    "markers": 0,
+    "tested": true,
+    "tabs": 1,
+    "covered": 1,
+    "unit": 2,
     "reviewed": false
   },
   {
     "pane": "supervisor",
-    "score": 17,
+    "score": 20,
     "file": "48-supervisor.js",
     "lines": 1156,
     "endpoints": 6,
     "markers": 0,
     "tested": true,
+    "tabs": 7,
+    "covered": 1,
+    "unit": 8,
     "reviewed": false
   },
   {
-    "pane": "agent-monitor",
-    "score": 15,
-    "file": "53-agent-monitor.js",
-    "lines": 770,
-    "endpoints": 8,
+    "pane": "mcp",
+    "score": 19,
+    "file": "35-connect-hub.js",
+    "lines": 264,
+    "endpoints": 2,
     "markers": 0,
     "tested": true,
+    "tabs": 3,
+    "covered": 1,
+    "unit": 4,
+    "reviewed": false
+  },
+  {
+    "pane": "workspaces",
+    "score": 17,
+    "file": "30-workspaces.js",
+    "lines": 209,
+    "endpoints": 6,
+    "markers": 0,
+    "tested": true,
+    "tabs": 2,
+    "covered": 1,
+    "unit": 3,
     "reviewed": false
   },
   {
@@ -57,6 +124,9 @@
     "endpoints": 8,
     "markers": 0,
     "tested": true,
+    "tabs": 0,
+    "covered": 0,
+    "unit": 1,
     "reviewed": false
   },
   {
@@ -67,6 +137,9 @@
     "endpoints": 9,
     "markers": 0,
     "tested": true,
+    "tabs": 0,
+    "covered": 0,
+    "unit": 1,
     "reviewed": false
   },
   {
@@ -77,26 +150,9 @@
     "endpoints": 9,
     "markers": 0,
     "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "goals",
-    "score": 12,
-    "file": "49-goals.js",
-    "lines": 1021,
-    "endpoints": 2,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "audit-log",
-    "score": 11,
-    "file": "46-compliance-report.js",
-    "lines": 650,
-    "endpoints": 5,
-    "markers": 0,
-    "tested": true,
+    "tabs": 0,
+    "covered": 0,
+    "unit": 1,
     "reviewed": false
   },
   {
@@ -107,6 +163,9 @@
     "endpoints": 6,
     "markers": 0,
     "tested": true,
+    "tabs": 0,
+    "covered": 0,
+    "unit": 1,
     "reviewed": false
   },
   {
@@ -117,26 +176,9 @@
     "endpoints": 5,
     "markers": 0,
     "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "fusion",
-    "score": 10,
-    "file": "41-fusion.js",
-    "lines": 424,
-    "endpoints": 6,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "obsidian",
-    "score": 10,
-    "file": "20-obsidian.js",
-    "lines": 269,
-    "endpoints": 8,
-    "markers": 0,
-    "tested": true,
+    "tabs": 0,
+    "covered": 0,
+    "unit": 1,
     "reviewed": false
   },
   {
@@ -147,76 +189,9 @@
     "endpoints": 5,
     "markers": 0,
     "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "github",
-    "score": 9,
-    "file": "18-github.js",
-    "lines": 390,
-    "endpoints": 6,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "integrations",
-    "score": 9,
-    "file": "22-integrations.js",
-    "lines": 226,
-    "endpoints": 7,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "leaderboard",
-    "score": 9,
-    "file": "45-leaderboard.js",
-    "lines": 435,
-    "endpoints": 5,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "a2a",
-    "score": 8,
-    "file": "52-a2a.js",
-    "lines": 576,
-    "endpoints": 3,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "workspaces",
-    "score": 8,
-    "file": "30-workspaces.js",
-    "lines": 209,
-    "endpoints": 6,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "plugins",
-    "score": 7,
-    "file": "34-plugin-hub.js",
-    "lines": 313,
-    "endpoints": 4,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "secrets",
-    "score": 7,
-    "file": "16-terminal.js",
-    "lines": 206,
-    "endpoints": 5,
-    "markers": 0,
-    "tested": true,
+    "tabs": 0,
+    "covered": 0,
+    "unit": 1,
     "reviewed": false
   },
   {
@@ -227,36 +202,9 @@
     "endpoints": 5,
     "markers": 0,
     "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "agent-identity",
-    "score": 6,
-    "file": "47-agent-identity.js",
-    "lines": 242,
-    "endpoints": 4,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "deploy",
-    "score": 6,
-    "file": "35-deploy.js",
-    "lines": 202,
-    "endpoints": 4,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "hitl",
-    "score": 6,
-    "file": "42-hitl.js",
-    "lines": 269,
-    "endpoints": 4,
-    "markers": 0,
-    "tested": true,
+    "tabs": 0,
+    "covered": 0,
+    "unit": 1,
     "reviewed": false
   },
   {
@@ -267,126 +215,9 @@
     "endpoints": 2,
     "markers": 0,
     "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "eval-framework",
-    "score": 5,
-    "file": "55-eval-framework.js",
-    "lines": 209,
-    "endpoints": 3,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "finops",
-    "score": 5,
-    "file": "54-finops.js",
-    "lines": 249,
-    "endpoints": 3,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "skills",
-    "score": 5,
-    "file": "25-skills.js",
-    "lines": 223,
-    "endpoints": 3,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "swarm",
-    "score": 5,
-    "file": "26-swarm.js",
-    "lines": 320,
-    "endpoints": 2,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "system",
-    "score": 5,
-    "file": "38-system-monitor.js",
-    "lines": 138,
-    "endpoints": 4,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "testgen",
-    "score": 5,
-    "file": "34-test-generator.js",
-    "lines": 101,
-    "endpoints": 4,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "control",
-    "score": 4,
-    "file": "31-control-tower.js",
-    "lines": 156,
-    "endpoints": 3,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "mcp",
-    "score": 4,
-    "file": "35-connect-hub.js",
-    "lines": 264,
-    "endpoints": 2,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "connectors",
-    "score": 3,
-    "file": "51-connectors.js",
-    "lines": 180,
-    "endpoints": 2,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "pipeline",
-    "score": 3,
-    "file": "37-pipeline.js",
-    "lines": 162,
-    "endpoints": 2,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "webhooks",
-    "score": 3,
-    "file": "33-webhooks.js",
-    "lines": 123,
-    "endpoints": 2,
-    "markers": 0,
-    "tested": true,
-    "reviewed": false
-  },
-  {
-    "pane": "loops",
-    "score": 2,
-    "file": "40-loops.js",
-    "lines": 139,
-    "endpoints": 1,
-    "markers": 0,
-    "tested": true,
+    "tabs": 0,
+    "covered": 0,
+    "unit": 1,
     "reviewed": false
   },
   {
@@ -397,56 +228,9 @@
     "endpoints": 15,
     "markers": 1,
     "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "ambient",
-    "score": 21,
-    "file": "07-quality-tools.js",
-    "lines": 200,
-    "endpoints": 16,
-    "markers": 2,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "bugbot",
-    "score": 21,
-    "file": "07-quality-tools.js",
-    "lines": 200,
-    "endpoints": 16,
-    "markers": 2,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "gitai",
-    "score": 21,
-    "file": "07-quality-tools.js",
-    "lines": 200,
-    "endpoints": 16,
-    "markers": 2,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "health",
-    "score": 21,
-    "file": "07-quality-tools.js",
-    "lines": 200,
-    "endpoints": 16,
-    "markers": 2,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "finetune",
-    "score": 20,
-    "file": "03-features-a.js",
-    "lines": 504,
-    "endpoints": 30,
-    "markers": 0,
-    "tested": true,
+    "tabs": 0,
+    "covered": 1,
+    "unit": 1,
     "reviewed": true
   },
   {
@@ -457,86 +241,9 @@
     "endpoints": 4,
     "markers": 4,
     "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "pluginsdk",
-    "score": 20,
-    "file": "03-features-a.js",
-    "lines": 504,
-    "endpoints": 30,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "pqc",
-    "score": 20,
-    "file": "03-features-a.js",
-    "lines": 504,
-    "endpoints": 30,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "profiler",
-    "score": 20,
-    "file": "03-features-a.js",
-    "lines": 504,
-    "endpoints": 30,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "arena",
-    "score": 19,
-    "file": "03-features-b.js",
-    "lines": 433,
-    "endpoints": 16,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "codeindex",
-    "score": 19,
-    "file": "03-features-b.js",
-    "lines": 433,
-    "endpoints": 16,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "hooks",
-    "score": 19,
-    "file": "03-features-b.js",
-    "lines": 433,
-    "endpoints": 16,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "specs",
-    "score": 19,
-    "file": "03-features-b.js",
-    "lines": 433,
-    "endpoints": 16,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "dashboard",
-    "score": 18,
-    "file": "36-dashboard.js",
-    "lines": 170,
-    "endpoints": 0,
-    "markers": 1,
-    "tested": true,
+    "tabs": 0,
+    "covered": 1,
+    "unit": 1,
     "reviewed": true
   },
   {
@@ -547,76 +254,9 @@
     "endpoints": 11,
     "markers": 0,
     "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "mcp-gateway",
-    "score": 18,
-    "file": "50-mcp-gateway.js",
-    "lines": 1072,
-    "endpoints": 8,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "collabedit",
-    "score": 17,
-    "file": "08-replay-collab.js",
-    "lines": 1052,
-    "endpoints": 7,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "evals",
-    "score": 17,
-    "file": "05-evals-observability.js",
-    "lines": 243,
-    "endpoints": 15,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "knowledge-graph",
-    "score": 17,
-    "file": "05-evals-observability.js",
-    "lines": 243,
-    "endpoints": 15,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "observability",
-    "score": 17,
-    "file": "05-evals-observability.js",
-    "lines": 243,
-    "endpoints": 15,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "rag",
-    "score": 17,
-    "file": "05-evals-observability.js",
-    "lines": 243,
-    "endpoints": 15,
-    "markers": 0,
-    "tested": true,
-    "reviewed": true
-  },
-  {
-    "pane": "codesearch",
-    "score": 14,
-    "file": "14-prompt-library.js",
-    "lines": 566,
-    "endpoints": 9,
-    "markers": 0,
-    "tested": true,
+    "tabs": 0,
+    "covered": 1,
+    "unit": 1,
     "reviewed": true
   }
 ]
