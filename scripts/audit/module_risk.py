@@ -210,13 +210,36 @@ def run() -> AuditResult:
             'markers': markers, 'tested': tested,
         })
 
-    # Which modules already have a committed review doc. Read from the file
-    # names rather than a hand-maintained list, so finishing a module removes
-    # it from the queue automatically.
-    reviewed_text = ' '.join(
-        f.name for f in (REPO / 'docs' / 'module-reviews').glob('*.md'))
+    # Which modules already have a committed review doc.
+    #
+    # This used to match the pane name against the review FILENAMES, which
+    # silently under-reports: a doc covering three panes cannot name them all
+    # in its filename. `ambient`, `bugbot` and `gitai` are the subject of
+    # 70-quality-tools-trio.md and `knowledge-graph` of
+    # 74-evals-rag-observability-kg.md, yet all four kept appearing at the top
+    # of the queue as unreviewed -- twice sending the review back to modules
+    # that were already done.
+    #
+    # Each doc declares its subjects on a `**Pane:**` / `**Panes:**` line, so
+    # read that and fall back to the filename for older docs.
+    reviewed_panes: set[str] = set()
+    review_dir = REPO / 'docs' / 'module-reviews'
+    for f in review_dir.glob('*.md'):
+        stem = f.stem.lower()
+        reviewed_panes.update(re.findall(r'[a-z0-9][a-z0-9-]*', stem))
+        for line in f.read_text(encoding='utf-8', errors='ignore').splitlines():
+            m = re.match(r'\s*\*\*Panes?:\*\*\s*(.+)', line)
+            if m:
+                # e.g. "`arena`, `codeindex`, `hooks`, `specs`"
+                reviewed_panes.update(re.findall(r'`([^`]+)`', m.group(1)))
+                break
+            # Earlier docs name their subject in the H1 instead:
+            #   "# 63 — Module review 2: Docs & Help (`docs`)"
+            if line.startswith('# '):
+                reviewed_panes.update(re.findall(r'`([^`]+)`', line))
+
     for row in rows:
-        row['reviewed'] = row['pane'] in reviewed_text
+        row['reviewed'] = row['pane'] in reviewed_panes
 
     rows.sort(key=lambda r: (r['reviewed'], -r['score'], r['pane']))
 

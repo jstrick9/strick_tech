@@ -497,6 +497,7 @@ async def run_workflow(wf_id: str, req: Request):
         visited: set[str] = set()
         queue = [triggers[0]['id']]
         node_errors: list[dict] = []
+        failed_nodes: set[str] = set()
 
         from ..services import llm as llm_svc
 
@@ -533,6 +534,12 @@ async def run_workflow(wf_id: str, req: Request):
                     yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": context["prev_output"][:300]})}\n\n'
                 except Exception as ex:
                     node_errors.append({'node_id': nid, 'error': str(ex)})
+                    failed_nodes.add(nid)
+                    # A failed node produced NO output. Leaving prev_output as
+                    # the previous node's value hands stale upstream data to
+                    # everything downstream, which then presents it as this
+                    # node's work.
+                    context['prev_output'] = ''
                     yield f'data: {json.dumps({"type": "node_error", "node_id": nid, "error": str(ex)})}\n\n'
 
             elif node['type'] == 'condition':
@@ -587,6 +594,7 @@ async def run_workflow(wf_id: str, req: Request):
                         last_output = result.get('text', '')
                     except Exception as ex:
                         node_errors.append({'node_id': nid, 'error': str(ex)})
+                        failed_nodes.add(nid)
                         yield f'data: {json.dumps({"type": "node_error", "node_id": nid, "error": str(ex)})}\n\n'
                         break
                     preview = f'[iteration {i + 1}/{iterations}] {last_output[:200]}'
@@ -660,9 +668,39 @@ async def run_workflow(wf_id: str, req: Request):
 
             elif node['type'] == 'output':
                 target = cfg.get('target', 'chat')
-                out_msg = f'output to {target}: {context["prev_output"][:200]}'
-                yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": out_msg})}\n\n'
-                yield f'data: {json.dumps({"type": "final_output", "target": target, "result": context["prev_output"]})}\n\n'
+                if node_errors:
+                    # Upstream failed, so there is no result to deliver. Emitting
+                    # prev_output here published the raw workflow input as though
+                    # it were the pipeline's finished work.
+                    msg = (
+                        f'No output delivered to {target}: '
+                        f'{len(node_errors)} upstream node(s) failed.'
+                    )
+                    yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": msg})}\n\n'
+                    yield (
+                        'data: '
+                        + json.dumps({
+                            'type': 'final_output',
+                            'target': target,
+                            'result': None,
+                            'delivered': False,
+                            'reason': msg,
+                        })
+                        + '\n\n'
+                    )
+                else:
+                    out_msg = f'output to {target}: {context["prev_output"][:200]}'
+                    yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": out_msg})}\n\n'
+                    yield (
+                        'data: '
+                        + json.dumps({
+                            'type': 'final_output',
+                            'target': target,
+                            'result': context['prev_output'],
+                            'delivered': True,
+                        })
+                        + '\n\n'
+                    )
 
             elif node['type'] == 'code':
                 # BUG FIX: this reported "Code transform applied" while doing
