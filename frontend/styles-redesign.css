@@ -1842,3 +1842,22 @@ html :focus:not(:focus-visible) {
   font-size: 13px;
   line-height: 1.5;
 }
+
+/* Project Health: how much of the assessment actually ran.
+   An unmeasured dimension no longer contributes an invented placeholder, so a
+   grade can legitimately be based on part of the weighting — the pane has to
+   say which part, or "A" overstates what the tool knows. */
+.health-coverage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--border, #262932);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-2, #16171f);
+  color: var(--text-3, #6f7684);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
