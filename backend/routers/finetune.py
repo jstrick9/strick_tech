@@ -139,20 +139,78 @@ def get_finetune_hardware() -> dict[str, Any]:
     return payload
 
 
+def _rows_from_chat_history(limit: int = 500) -> list[dict[str, str]]:
+    """Build instruction/output pairs from real chat history.
+
+    source_type has always defaulted to "chat_history" while the endpoint
+    read nothing at all. This pairs each user message with the assistant
+    reply that followed it.
+    """
+    try:
+        from ..services.memory_db import get_conn
+    except Exception:
+        return []
+
+    try:
+        con = get_conn()
+        try:
+            # `message` is the column name, not `content`.
+            hist = con.execute(
+                'SELECT role, message FROM chat_log ORDER BY id ASC LIMIT ?',
+                (max(1, min(limit, 5000)),),
+            ).fetchall()
+        finally:
+            con.close()
+    except Exception:
+        return []
+
+    rows: list[dict[str, str]] = []
+    pending_user: str | None = None
+    for r in hist:
+        role = (r['role'] or '').lower()
+        text = (r['message'] or '').strip()
+        if not text:
+            continue
+        if role == 'user':
+            pending_user = text
+        elif role == 'assistant' and pending_user:
+            rows.append({'instruction': pending_user[:4000], 'input': '', 'output': text[:4000]})
+            pending_user = None
+    return rows
+
+
 @router.post("/datasets/create")
 def create_finetune_dataset(payload: DatasetCreateRequest) -> dict[str, Any]:
     """Create and format a structured JSONL training dataset for local LoRA fine-tuning."""
     did = (payload.dataset_id or f"ds_{uuid.uuid4().hex[:8]}").strip().lower()
-    rows = []
-    if payload.source_type == "custom_rows" and payload.custom_rows:
+
+    # HONESTY FIX: when no rows were supplied this wrote three hardcoded
+    # marketing sentences about Agentic OS and reported "created with 3
+    # training examples" -- indistinguishable, in the response and in the
+    # dataset list, from a dataset built out of the user's own data. Anyone
+    # who then fine-tuned on it would be training a model on invented copy.
+    #
+    # source_type defaults to "chat_history", which the endpoint never read.
+    # It now actually reads chat history, and refuses rather than inventing
+    # rows when there is nothing to build from.
+    rows: list[dict[str, str]] = []
+    source_used = payload.source_type
+
+    if payload.custom_rows:
         rows = payload.custom_rows
-    else:
-        # Generate default training pairs from local memory and context
-        rows = [
-            {"instruction": "What is the mission of Agentic OS?", "input": "", "output": "Agentic OS is a local-first autonomous AI operating system created by Joshua Strickland and Strick Tech."},
-            {"instruction": "How do multi-agent swarms work in Agentic OS?", "input": "", "output": "Swarms fan out queries across specialized agents and synthesize the best response via an AI judge."},
-            {"instruction": "How does the compounding Information Hierarchy work?", "input": "", "output": "Tier 1 Universal Context plus Tier 2 project IVREN files compound so every AI model gets smarter forever."}
-        ]
+        source_used = "custom_rows"
+    elif payload.source_type == "chat_history":
+        rows = _rows_from_chat_history()
+
+    if not rows:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"No training examples available from source '{payload.source_type}'. "
+                "Pass custom_rows, or use the app until there is chat history to build from. "
+                "A dataset is not created from placeholder content."
+            ),
+        )
 
     ds_file = DATASETS_DIR / f"{did}.jsonl"
     with open(ds_file, "w", encoding="utf-8") as f:
@@ -162,7 +220,7 @@ def create_finetune_dataset(payload: DatasetCreateRequest) -> dict[str, Any]:
     meta = {
         "dataset_id": did,
         "name": payload.name,
-        "source_type": payload.source_type,
+        "source_type": source_used,
         "row_count": len(rows),
         "file_path": str(ds_file),
         "created_at": time.time(),
