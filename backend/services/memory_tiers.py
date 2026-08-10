@@ -57,6 +57,7 @@ still fade.
 from __future__ import annotations
 
 import contextlib
+import logging
 import re
 import sqlite3
 import time
@@ -79,6 +80,8 @@ DEFAULT_ORIGIN = 'system'
 
 # The RRF constant from Cormack et al.
 RRF_K = 60
+
+_log = logging.getLogger('agentic.memory_tiers')
 
 
 def ensure_schema(con: sqlite3.Connection) -> None:
@@ -345,3 +348,99 @@ def retrieval_report(
         'rerank': returned[0].get('rerank_method') if returned else None,
         'truncated': len(returned) < len(fused),
     }
+
+
+# ── Graph expansion ───────────────────────────────────────────────────────────
+def graph_expand(query: str, limit: int = 10, depth: int = 1) -> list[dict]:
+    """Retrieve via the knowledge graph, as a third ranked list for fusion.
+
+    `knowledge_graph.py` has entities, typed relations and BFS traversal, and
+    before this it was referenced ZERO times by any retrieval path -- a graph
+    nothing queries is a graph that cannot help. Graph retrieval is what
+    answers the global and multi-hop questions vector similarity cannot: "who
+    works on the project that Acme owns" is two hops, not a nearest neighbour.
+
+    Entities matching the query seed the walk; one hop out brings in their
+    neighbours, ranked behind the direct hits because a neighbour is weaker
+    evidence than a match. Returns a RANKED list, which is all RRF needs.
+    """
+    query = (query or '').strip()
+    if not query:
+        return []
+    try:
+        limit = max(1, min(int(limit), 50))
+    except (TypeError, ValueError):
+        limit = 10
+
+    terms = [t for t in _tokens(query) if len(t) > 2][:6]
+    if not terms:
+        return []
+
+    from .memory_db import get_conn
+
+    out: list[dict] = []
+    seen: set[str] = set()
+    con = get_conn()
+    try:
+        # Seeds: entities whose name or description mentions a query term.
+        where = ' OR '.join(['LOWER(name) LIKE ? OR LOWER(description) LIKE ?'] * len(terms))
+        params: list[Any] = []
+        for t in terms:
+            params.extend([f'%{t}%', f'%{t}%'])
+        rows = con.execute(
+            f'SELECT id, name, type, description, confidence FROM kg_entities '
+            f'WHERE {where} ORDER BY confidence DESC LIMIT ?',
+            (*params, limit),
+        ).fetchall()
+
+        for r in rows:
+            d = dict(r)
+            if d['id'] in seen:
+                continue
+            seen.add(d['id'])  # bare id: `seen` holds one representation only
+            out.append({
+                'id': f"kg:{d['id']}",
+                'content': f"{d['name']} ({d['type']}): {d['description'] or ''}".strip(),
+                'source': 'knowledge-graph',
+                'tags': d['type'],
+                'confidence': d.get('confidence', 1.0),
+                'source_type': 'graph',
+                'graph_hop': 0,
+            })
+
+        # One hop out. Neighbours rank behind direct matches because being
+        # adjacent to a match is weaker evidence than being one.
+        if depth > 0 and seen:
+            ids = sorted(seen)
+            marks = ','.join('?' * len(ids))
+            neighbours = con.execute(
+                f'SELECT e.id, e.name, e.type, e.description, e.confidence, r.relation '
+                f'FROM kg_relations r JOIN kg_entities e ON e.id = r.to_id '
+                f'WHERE r.from_id IN ({marks}) ORDER BY r.confidence DESC LIMIT ?',
+                (*ids, limit),
+            ).fetchall()
+            for r in neighbours:
+                d = dict(r)
+                if d['id'] in seen:
+                    continue
+                seen.add(d['id'])
+                out.append({
+                    'id': f"kg:{d['id']}",
+                    'content': f"{d['name']} ({d['type']}): {d['description'] or ''}".strip(),
+                    'source': f"knowledge-graph via {d['relation']}",
+                    'tags': d['type'],
+                    'confidence': d.get('confidence', 1.0),
+                    'source_type': 'graph',
+                    'graph_hop': 1,
+                })
+    except sqlite3.Error as ex:
+        # A graph that is empty or mid-migration must not break retrieval --
+        # the other retrievers still have work to do. But it is scoped to
+        # sqlite errors on purpose: a bare `except Exception` here hid an
+        # IndexError and made graph expansion silently return seeds only,
+        # which looked exactly like working.
+        _log.debug('graph_expand: %s', ex)
+        return out
+    finally:
+        con.close()
+    return out[:limit]
