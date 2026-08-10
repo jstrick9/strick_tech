@@ -160,9 +160,30 @@ class TestDefaultsAreNotSomeoneElsesData:
         assert h._is_placeholder('# About Me\n- Name: A real person') is False
 
     def test_detection_survives_partial_edits(self):
-        """Marker-based, not equality-based: editing one line must clear it."""
-        edited = h.DEFAULT_TIER1['about_me'].replace(h.PLACEHOLDER_MARKER, '')
-        assert h._is_placeholder(edited) is False
+        """Marker-based, not equality-based: editing one line must clear it.
+
+        UPDATED (Module 12). This used to simulate an edit by deleting the
+        marker and asserting the file was no longer a placeholder. But
+        stripping the marker leaves the template's `_(your name)_` prompts
+        completely intact -- the file still contains no user content at all,
+        and injecting it teaches a model nothing.
+
+        Detection is now marker OR emptiness, because the guided interview
+        writes files that never carry the marker: answering it with whitespace
+        produced four files of empty headings that counted as a configured
+        profile and silently removed the "do not invent details about the
+        user" guard from every agent's context.
+
+        The property this test exists to protect -- a real one-line edit must
+        clear the flag -- is asserted below with content that is actually
+        edited.
+        """
+        stripped = h.DEFAULT_TIER1['about_me'].replace(h.PLACEHOLDER_MARKER, '')
+        # Marker gone, but still nothing but prompts: correctly still unfilled.
+        assert h._is_placeholder(stripped) is True
+
+        really_edited = stripped.replace('_(your name)_', 'Josh Strickland')
+        assert h._is_placeholder(really_edited) is False
 
 
 # ── 3. Unfilled context is not injected as fact ────────────────────────────────

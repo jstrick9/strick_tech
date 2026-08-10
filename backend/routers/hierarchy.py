@@ -93,14 +93,43 @@ DEFAULT_TIER1 = {
 }
 
 
+def _has_substance(text: str) -> bool:
+    """True when a Tier 1 file carries actual user content.
+
+    Markdown scaffolding is not content. A file of headings and empty bold
+    labels -- which is exactly what the interview writes when its answers are
+    blank -- teaches a model nothing, so it must not count as a filled profile.
+
+    Strips headings, list bullets, bold labels, blockquotes and the italic
+    `_(placeholder)_` prompts, then asks whether anything is left.
+    """
+    import re as _re
+
+    body = text or ''
+    body = _re.sub(r'^\s{0,3}#{1,6}\s.*$', '', body, flags=_re.M)   # headings
+    body = _re.sub(r'^\s*>.*$', '', body, flags=_re.M)              # blockquotes
+    body = _re.sub(r'_\([^)]*\)_', '', body)                        # _(your name)_
+    body = _re.sub(r'\*\*[^*]*\*\*', '', body)                      # **Bold labels:**
+    # Bullets must be stripped AFTER the bold labels, or '- **X:**' leaves a
+    # bare '-' behind and an empty scaffold counts as content.
+    body = _re.sub(r'^\s*[-*+]\s*', '', body, flags=_re.M)          # bullets
+    body = _re.sub(r'[`:*_#>-]', '', body)                          # leftover punctuation
+    return bool(body.strip())
+
+
 def _is_placeholder(text: str) -> bool:
-    """True when a Tier 1 file is still the unedited template.
+    """True when a Tier 1 file is still an unedited template or otherwise empty.
 
     Detected by an explicit marker rather than by comparing against the default
     text, so a user who edits one line doesn't stay flagged as unconfigured
     forever, and reformatting the templates later doesn't break detection.
+
+    The marker alone was not enough: the interview generates files that never
+    carry it, so blank answers produced "configured" empty headings.
     """
-    return PLACEHOLDER_MARKER in (text or '')
+    if PLACEHOLDER_MARKER in (text or ''):
+        return True
+    return not _has_substance(text)
 
 
 # Default IVREN project templates
@@ -294,7 +323,29 @@ def save_tier1_files(payload: Tier1SaveRequest) -> dict[str, Any]:
 
 @router.post("/tier1/interview")
 def interview_generate_tier1(payload: InterviewAnswerRequest) -> dict[str, Any]:
-    """Auto-generate structured Tier 1 context files from user interview answers."""
+    """Auto-generate structured Tier 1 context files from user interview answers.
+
+    Refuses answers that carry no information. Writing four files of empty
+    headings marked the profile "configured" and removed the guard that tells
+    every agent not to invent the user's business details.
+    """
+    _answers = {
+        'name_and_role': payload.name_and_role,
+        'business_and_icp': payload.business_and_icp,
+        'voice_and_words': payload.voice_and_words,
+        'offers_and_pricing': payload.offers_and_pricing,
+    }
+    _blank = sorted(k for k, v in _answers.items() if not (v or '').strip())
+    if _blank:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                'These interview answers are empty: '
+                + ', '.join(_blank)
+                + '. A profile built from blank answers looks configured but tells the '
+                'assistant nothing, so it is not saved.'
+            ),
+        )
     # Compute the first line outside the f-string: Python 3.10/3.11 do not
     # allow a backslash escape sequence (e.g. '\n') inside an f-string
     # expression part (only 3.12+ supports that) — this must stay
@@ -446,7 +497,33 @@ def save_project(project_id: str, payload: ProjectSaveRequest) -> dict[str, Any]
         (pdir / "notes").mkdir(exist_ok=True)
         (pdir / "notes" / "notes.md").write_text(payload.notes, encoding="utf-8")
 
-    return {"ok": True, "message": f"Project '{project_id}' IVREN hierarchy updated successfully"}
+    # A request naming no known section wrote nothing and still reported
+    # "updated successfully" -- so a typo in a field name, or a UI sending the
+    # wrong shape, looked exactly like a successful save.
+    written = [
+        name for name, value in (
+            ('instructions', payload.instructions),
+            ('voice', payload.voice),
+            ('references', payload.references),
+            ('examples', payload.examples),
+            ('notes', payload.notes),
+        )
+        if value is not None
+    ]
+    if not written:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                'No IVREN section was provided, so nothing was saved. Send one of: '
+                'instructions, voice, references, examples, notes.'
+            ),
+        )
+
+    return {
+        "ok": True,
+        "sections_saved": written,
+        "message": f"Project '{project_id}' updated: {', '.join(written)}",
+    }
 
 
 @router.post("/projects/{project_id}/notes/append")
