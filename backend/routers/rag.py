@@ -514,32 +514,53 @@ Return JSON: {{"relevancy": 0.0-1.0, "reason": "brief"}}"""
         with contextlib.suppress(Exception):
             rel_d = json.loads(m.group(0))
 
-    try:
-        faithfulness = min(1.0, max(0.0, float(faith_d.get('faithfulness', 0.7))))
-    except (TypeError, ValueError):
-        faithfulness = 0.7
-    try:
-        relevancy = min(1.0, max(0.0, float(rel_d.get('relevancy', 0.7))))
-    except (TypeError, ValueError):
-        relevancy = 0.7
-    overall = round((faithfulness + relevancy) / 2 * 100)
+    # Second door: evals.py had the identical defect. A judge reply that is not
+    # parseable JSON -- routine, since models wrap JSON in prose -- fell back
+    # to 0.7/0.7, producing overall 70 and grade "C". Verified live: an answer
+    # claiming cats communicate by radio waves scored 0.7 faithfulness / C.
+    # None means unmeasured, and a grade is not asserted without a score.
+    def _score(raw):
+        if raw is None:
+            return None
+        try:
+            val = float(raw)
+        except (TypeError, ValueError):
+            return None
+        if val != val:  # NaN
+            return None
+        return min(1.0, max(0.0, val))
+
+    faithfulness = _score(faith_d.get('faithfulness'))
+    relevancy = _score(rel_d.get('relevancy'))
+
+    measured = [v for v in (faithfulness, relevancy) if v is not None]
+    unmeasured = [
+        name for name, v in (('faithfulness', faithfulness), ('answer_relevancy', relevancy))
+        if v is None
+    ]
+    if measured:
+        overall = round(sum(measured) / len(measured) * 100)
+        grade = (
+            'A' if overall >= 90 else 'B' if overall >= 80
+            else 'C' if overall >= 70 else 'D' if overall >= 60 else 'F'
+        )
+    else:
+        overall = None
+        grade = None
 
     return {
         'ok': True,
-        'faithfulness': round(faithfulness, 3),
-        'answer_relevancy': round(relevancy, 3),
+        'faithfulness': None if faithfulness is None else round(faithfulness, 3),
+        'answer_relevancy': None if relevancy is None else round(relevancy, 3),
         'overall_rag_score': overall,
         'unsupported_claims': faith_d.get('unsupported_claims', []),
         'relevancy_reason': rel_d.get('reason', ''),
-        'grade': 'A'
-        if overall >= 90
-        else 'B'
-        if overall >= 80
-        else 'C'
-        if overall >= 70
-        else 'D'
-        if overall >= 60
-        else 'F',
+        'grade': grade,
+        'unmeasured': unmeasured,
+        'note': (
+            'The judge model did not return usable JSON for: ' + ', '.join(unmeasured)
+            + '. Those dimensions are excluded rather than assumed.'
+        ) if unmeasured else '',
     }
 
 
