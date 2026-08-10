@@ -996,6 +996,26 @@ function renderGoalCard(g)              { return ''; } // no longer used standal
 
 
 window.renderGoals = renderGoals;
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.gcfAddMilestone = gcfAddMilestone;
+window.gmAddCheckin = gmAddCheckin;
+window.gmAddMilestone = gmAddMilestone;
+window.gmCompleteMilestone = gmCompleteMilestone;
+window.gmCreateGoal = gmCreateGoal;
+window.gmDecomposeGoal = gmDecomposeGoal;
+window.gmDeleteGoal = gmDeleteGoal;
+window.gmEditGoal = gmEditGoal;
+window.gmFilterChange = gmFilterChange;
+window.gmLaunchGoal = gmLaunchGoal;
+window.gmLaunchGoalFromDecomp = gmLaunchGoalFromDecomp;
+window.gmOpenCreate = gmOpenCreate;
+window.gmScoreGoal = gmScoreGoal;
+window.gmSelectDecompTask = gmSelectDecompTask;
+window.gmSetTab = gmSetTab;
 })(S, nav, toast, escHtml, fetch, document, gmPrompt, gmConfirm, gmAlert);
 
   document.querySelector('#gm-tab-content')?.addEventListener('click', e => { const t = e.target.closest('[data-decomp-id]'); if (!t) return; gmSelectDecompTask(t.dataset.decompId); });

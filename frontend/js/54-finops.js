@@ -239,4 +239,11 @@ window.renderFinOps = renderFinOps;
 window.finopsCreateCap = finopsCreateCap;
 
 
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.finopsRecordCost = finopsRecordCost;
+window.finopsResolveAlert = finopsResolveAlert;
 })(S, nav, toast, escHtml, fetch, document);

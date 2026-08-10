@@ -686,7 +686,7 @@ function prbRenderSimulatorTab(container) {
       <!-- Trace table -->
       <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:8px">Evaluation Trace (${res.trace.length} rules)</div>
       <table class="prb-trace-table">
-        <thead><tr><th>P</th><th>Rule</th><th>Agent</th><th>Server</th><th>Tool</th><th>Match?</th><th>Action</th></tr></thead>
+        <thead><tr><th>P</th><th>Rule</th><th>Agent</th><th>Server</th><th>Tool</th><th>When</th><th>Match?</th><th>Action</th></tr></thead>
         <tbody>
           ${res.trace.map(t => {
             const isWinner = t.winner;
@@ -697,6 +697,7 @@ function prbRenderSimulatorTab(container) {
               <td class="${t.agent_match?'prb-match-yes':'prb-match-no'}">${t.agent_match?'✓':'✗'} <span class="u-0d5be05f">${escHtml((t.agent_id||'').slice(0,12))}</span></td>
               <td class="${t.server_match?'prb-match-yes':'prb-match-no'}">${t.server_match?'✓':'✗'} <span class="u-0d5be05f">${escHtml((t.server_id||'').replace('srv_','').slice(0,12))}</span></td>
               <td class="${t.tool_match?'prb-match-yes':'prb-match-no'}">${t.tool_match?'✓':'✗'} <span class="u-0d5be05f">${escHtml((t.tool_pattern||'').slice(0,12))}</span></td>
+              <td class="${t.condition_match===false?'prb-match-no':'prb-match-yes'}" title="${escHtml(t.condition_reason||t.conditions||'always')}">${t.condition_match===false?`✗ <span class="u-0d5be05f">${escHtml(t.condition_reason||'condition')}</span>`:'✓ <span class="u-0d5be05f">always</span>'}</td>
               <td>${t.matched ? '<span class="prb-match-yes">✓ MATCH</span>' : '<span class="prb-match-no">✗</span>'}</td>
               <td><span class="prb-action-chip" style="background:${ac.bg};color:${ac.text}">${ac.icon} ${t.action||'—'}</span></td>
             </tr>`;
@@ -1021,6 +1022,41 @@ const CONNECTOR_CATEGORY_ICONS = {
   communication:'💬', project_mgmt:'🎫', productivity:'📊',
 };
 window.renderMCPGateway = renderMCPGateway;
+
+// Every data-act-click handler must be reachable from window: the delegated
+// dispatcher resolves names by plain property lookup and silently warns
+// "[delegate] unknown function" otherwise. Only renderMCPGateway was exported,
+// so 17 of this pane's 21 handlers were dead -- all five tabs, the simulator,
+// the rule builder, delete, bulk actions and the server kill-switch. The pane
+// rendered correctly and did nothing.
+window.mcgTestCall = mcgTestCall;
+window.prbAddPolicyForServer = prbAddPolicyForServer;
+window.prbBulkAction = prbBulkAction;
+window.prbClearEdit = prbClearEdit;
+window.prbDeletePolicy = prbDeletePolicy;
+window.prbEditPolicy = prbEditPolicy;
+window.prbNewRule = prbNewRule;
+window.prbRefresh = prbRefresh;
+window.prbRegisterServer = prbRegisterServer;
+window.prbRunSimulation = prbRunSimulation;
+window.prbSelectAction = prbSelectAction;
+window.prbSelectAll = prbSelectAll;
+window.prbSetTab = prbSetTab;
+window.prbSimulateFromRow = prbSimulateFromRow;
+window.prbSubmitRule = prbSubmitRule;
+window.prbToggleSelect = prbToggleSelect;
+window.prbToggleServer = prbToggleServer;
+
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.prbFilterChange = prbFilterChange;
+window.prbSearchChange = prbSearchChange;
+window.prbToggleDaysCondition = prbToggleDaysCondition;
+window.prbToggleTimeCondition = prbToggleTimeCondition;
+window.prbUpdatePreview = prbUpdatePreview;
 })(S, nav, toast, escHtml, fetch, document);
 
 function prbQuickSimFromData(dataStr) {
@@ -1031,4 +1067,6 @@ function prbApplyTemplateById(id) {
   const tpl = _prbTemplates.find(t => t.id === id || t.name === id);
   if (tpl) prbApplyTemplate(tpl);
 }
+window.prbQuickSimFromData = prbQuickSimFromData;
+window.prbApplyTemplateById = prbApplyTemplateById;
 

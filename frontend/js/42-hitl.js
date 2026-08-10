@@ -259,4 +259,11 @@ function hitlSaveDelegation() {
 }
 
 
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.hitlSaveDelegation = hitlSaveDelegation;
+window.hitlTestInterrupt = hitlTestInterrupt;
 })(S, nav, toast, escHtml, fetch, document, window);

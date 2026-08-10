@@ -195,4 +195,15 @@ async function evalAddCase(suiteId) {
 }
 
 window.renderEvalFramework = renderEvalFramework;
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.evalAddCase = evalAddCase;
+window.evalCreateSuite = evalCreateSuite;
+window.evalHumanReview = evalHumanReview;
+window.evalRunSpecific = evalRunSpecific;
+window.evalRunSuite = evalRunSuite;
+window.evalViewCases = evalViewCases;
 })(S, nav, toast, escHtml, fetch, document);
