@@ -9147,10 +9147,15 @@ const pqcAlgos = [
 const pqcSimulated = algos.simulated === true;
 pane.innerHTML = `
     <div style="padding:24px;max-width:1100px;margin:0 auto">
+      ${pqcSimulated ? `<div class="pqc-sim-banner" role="alert">
+        <strong>⚠️ Demonstration only — this is not post-quantum cryptography.</strong>
+        <div>${escHtml(algos.warning || 'Simulated primitives. Provides no confidentiality.')}</div>
+        <div>For real secrets use the <button class="pqc-sim-link" data-act-click="nav('secrets')">Secrets Vault (Fernet AES-256)</button>.</div>
+      </div>` : ''}
       <div class="section-head" style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between">
         <div>
           <h2 style="margin:0 0 6px;font-size:24px;font-weight:900">🛡 Post-Quantum Cryptography (PQC) Vault</h2>
-          <p style="margin:0;color:var(--text-2);font-size:13.5px">Lattice-based quantum-resistant hybrid key encapsulation (Kyber-1024 + X25519) & Dilithium-5 digital signatures</p>
+          <p style="margin:0;color:var(--text-2);font-size:13.5px">${pqcSimulated ? 'Simulated walkthrough of lattice-based key encapsulation and signatures — for demonstration, not protection.' : 'Lattice-based quantum-resistant hybrid key encapsulation (Kyber-1024 + X25519) &amp; Dilithium-5 digital signatures'}</p>
         </div>
         <button data-act-click="pqcGenerateMasterKey()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">⚡ Generate Hybrid PQC Keypair</button>
       </div>
@@ -9158,18 +9163,18 @@ pane.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px">
         <div class="settings-card u-b6c1d896" >
           <h3 style="margin:0 0 8px;font-size:15px;color:var(--text-0)">KEM Hybrid Engine</h3>
-          <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">ML-KEM-1024 (Kyber-1024) combined with classical ECDH X25519 for FIPS 203 compliant zero-trust quantum resilience.</p>
-          <span class="tech-badge" style="color:var(--success);border-color:var(--success)">ACTIVE · FIPS 203 COMPLIANT</span>
+          <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">${pqcSimulated ? 'Demonstrates how ML-KEM-1024 would combine with classical ECDH X25519. The primitives here are SHA3 hashes, not lattice cryptography.' : 'ML-KEM-1024 (Kyber-1024) combined with classical ECDH X25519 for FIPS 203 compliant zero-trust quantum resilience.'}</p>
+          <span class="tech-badge ${pqcSimulated ? 'pqc-badge-sim' : ''}" style="${pqcSimulated ? '' : 'color:var(--success);border-color:var(--success)'}">${pqcSimulated ? 'SIMULATED · NOT FIPS 203' : 'ACTIVE · FIPS 203 COMPLIANT'}</span>
         </div>
         <div class="settings-card u-b6c1d896" >
           <h3 style="margin:0 0 8px;font-size:15px;color:var(--text-0)">Lattice Signatures</h3>
-          <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">ML-DSA-87 (Dilithium-5) deterministic lattice signatures verifying all agentic memory state and audit commits.</p>
-          <span class="tech-badge" style="color:var(--success);border-color:var(--success)">ACTIVE · FIPS 204 COMPLIANT</span>
+          <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">${pqcSimulated ? 'Illustrates where ML-DSA-87 (Dilithium-5) signatures would verify memory state and audit commits. Nothing is signed today.' : 'ML-DSA-87 (Dilithium-5) deterministic lattice signatures verifying all agentic memory state and audit commits.'}</p>
+          <span class="tech-badge ${pqcSimulated ? 'pqc-badge-sim' : ''}" style="${pqcSimulated ? '' : 'color:var(--success);border-color:var(--success)'}">${pqcSimulated ? 'SIMULATED · NOT FIPS 204' : 'ACTIVE · FIPS 204 COMPLIANT'}</span>
         </div>
         <div class="settings-card u-b6c1d896" >
           <h3 style="margin:0 0 8px;font-size:15px;color:var(--text-0)">Vault Encryption Storage</h3>
-          <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">Encrypted AES-256-GCM + Kyber KEM payload vault at <code style="font-family:monospace;color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/memory/pqc/</code></p>
-          <span class="tech-badge" style="color:var(--accent-text);border-color:var(--accent-text)">HARDENED STORAGE</span>
+          <p style="margin:0 0 12px;font-size:12.5px;color:var(--text-2)">${pqcSimulated ? 'Stores demo payloads masked with XOR against a hash of the public keypair id \u2014 recoverable by anyone holding that id. Not encryption.' : 'Encrypted AES-256-GCM + Kyber KEM payload vault.'}</p>
+          <span class="tech-badge ${pqcSimulated ? 'pqc-badge-sim' : ''}" style="${pqcSimulated ? '' : 'color:var(--accent-text);border-color:var(--accent-text)'}">${pqcSimulated ? 'SIMULATED · XOR MASK, NOT ENCRYPTION' : 'HARDENED STORAGE'}</span>
         </div>
       </div>
 
@@ -9177,7 +9182,7 @@ pane.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
           <div>
             <h3 style="margin:0 0 4px;font-size:16px;color:var(--text-0)">🛡️ Kyber-1024 Lattice Wave Encapsulation Engine</h3>
-            <span style="font-size:12px;color:var(--text-2)">Real-time visual proof of Module-Lattice Key Encapsulation Mechanism (ML-KEM-1024 / FIPS 203)</span>
+            <span style="font-size:12px;color:var(--text-2)">${pqcSimulated ? 'Illustration of how ML-KEM-1024 works — animated for explanation, not a live operation.' : 'Real-time visual proof of Module-Lattice Key Encapsulation Mechanism (ML-KEM-1024 / FIPS 203)'}</span>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button data-act-click="pqcTestEncapsulation()" class="btn-3d btn-primary btn-sm u-6c51dbca" >🔒 Test Encapsulation</button>
@@ -9211,7 +9216,7 @@ pane.innerHTML = `
           <!-- Lattice Grid Animation / State Display -->
           <div id="pqc-lattice-grid" style="flex:1;background:#060814;border-radius:8px;padding:14px;font-family:monospace;font-size:12px;color:#a7f3d0;display:grid;grid-template-columns:repeat(8,1fr);gap:6px;text-align:center"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text-3)">
-            <span id="pqc-status-msg">⚡ Encapsulation engine live and monitoring all agentic vector transactions.</span>
+            <span id="pqc-status-msg">${pqcSimulated ? '⚠️ Simulated visualisation — no cryptographic operation is being performed.' : '⚡ Encapsulation engine live and monitoring all agentic vector transactions.'}</span>
             <span>LWE Parameter Set: ML-KEM-1024</span>
           </div>
         </div>

@@ -205,12 +205,21 @@ def kem_decapsulate(payload: KemDecapsulateRequest) -> dict[str, Any]:
     ct_bytes = base64.b64decode(payload.ciphertext_b64.encode("utf-8")) if payload.ciphertext_b64 else b"default_ct"
     shared_secret = hashlib.sha256(pk_bytes + ct_bytes[:64]).digest()
 
+    # Second door: /keypair/generate and /kem/encapsulate both declare
+    # simulated:True with the warning, and this one reported a plain success.
+    # A caller checking `simulated` on the operation that actually hands back
+    # the secret would have concluded the exchange was real.
     return {
         "ok": True,
+        "simulated": True,
+        "warning": _SIM_WARNING,
         "keypair_id": payload.keypair_id,
         "shared_secret_b64": base64.b64encode(shared_secret).decode("utf-8"),
         "algorithm": meta["algorithm"],
-        "message": "Key decapsulation successful; shared secret recovered"
+        "message": (
+            "SIMULATED decapsulation. This secret is a SHA-256 of public values "
+            "and is recoverable by anyone who observed the exchange."
+        ),
     }
 
 

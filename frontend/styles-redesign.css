@@ -1944,3 +1944,27 @@ html :focus:not(:focus-visible) {
 .qt-review-blocked strong { color: var(--warning); display: block; margin-bottom: 4px; }
 .qt-review-blocked a { color: var(--accent-text); }
 .qt-git-norepo { color: var(--warning); font-weight: 600; }
+
+/* Module 10 — PQC simulation honesty */
+.pqc-sim-banner {
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  border: 1px solid var(--warning);
+  border-left: 4px solid var(--warning);
+  border-radius: 12px;
+  background: var(--bg-2);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-1);
+}
+.pqc-sim-banner strong { color: var(--warning); display: block; margin-bottom: 4px; font-size: 14px; }
+.pqc-sim-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent-text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.tech-badge.pqc-badge-sim { color: var(--warning); border-color: var(--warning); }

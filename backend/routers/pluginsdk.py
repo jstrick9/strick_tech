@@ -175,12 +175,14 @@ def delete_pack(pack_id: str):
 
 
 # ── Validation ────────────────────────────────────────────────────────────────
-@router.post('/validate')
-async def validate_pack(req: Request):
-    """Validate a plugin pack manifest."""
-    body, _body_err = await json_body_or_error(req)
-    if _body_err:
-        return _body_err
+def _validate_manifest(body: dict) -> dict:
+    """Validate a pack manifest. Shared by /validate and /publish.
+
+    These rules used to live inline in the /validate endpoint, which meant
+    /publish could not apply them -- and did not. A pack scoring 40 with
+    "Missing required field: skills" was published to the marketplace and
+    registered in plugins/installed.json regardless.
+    """
     errors: list[str] = []
     warns: list[str] = []
 
@@ -232,6 +234,15 @@ async def validate_pack(req: Request):
     }
 
 
+@router.post('/validate')
+async def validate_pack(req: Request):
+    """Validate a plugin pack manifest."""
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
+    return _validate_manifest(body)
+
+
 # ── Publish ────────────────────────────────────────────────────────────────────
 @router.post('/publish/{pack_id}')
 def publish_pack(pack_id: str):
@@ -241,6 +252,21 @@ def publish_pack(pack_id: str):
         return {'ok': False, 'error': 'Pack not found'}
 
     pack = json.loads(src.read_text())
+
+    # Publishing is what puts a pack in the marketplace and installs its skills
+    # for every user of this instance, so it has to meet the same bar the
+    # validator enforces. Previously nothing checked.
+    verdict = _validate_manifest(pack)
+    if not verdict['ok']:
+        return {
+            'ok': False,
+            'error': 'This pack does not pass validation, so it was not published.',
+            'code': 'validation_failed',
+            'errors': verdict['errors'],
+            'warns': verdict['warns'],
+            'score': verdict['score'],
+        }
+
     pack['published'] = True
     pack['published_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     pack['downloads'] = pack.get('downloads', 0)
