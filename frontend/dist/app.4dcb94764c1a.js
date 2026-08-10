@@ -10021,7 +10021,13 @@ let data = {};
 try { data = JSON.parse(evData||'{}'); } catch(e) {}
 const r = await fetch(`/api/hooks/${encodeURIComponent(hookId)}/run`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_data:data})});
 const d = await r.json();
-if (d.ok) gmAlert(`✅ Hook ran!\n\n${(d.output||'').slice(0,400)}`);
+if (!d.ok) { gmAlert('Run failed: ' + (d.error || 'unknown error')); return; }
+if (d.status === 'error') {
+gmAlert(`❌ Hook failed\n\n${(d.output||'').slice(0,400)}`);
+} else {
+gmAlert(`✅ Hook ran!\n\n${(d.output||'').slice(0,400)}`);
+}
+hookLoadRuns();
 } catch(ex) { gmAlert('Run failed: '+ex.message); }
 }
 async function hookCreate() {
@@ -10095,6 +10101,7 @@ const el = document.getElementById('hook-runs-list');
 if (!el) return;
 el.innerHTML = (d.runs||[]).map((run) => `
       <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--border)">
+        <span class="hook-run-status ${run.status==='error'?'is-error':'is-ok'}" title="${escHtml(run.status||'')}">${run.status==='error'?'❌':'✅'}</span>
         <span style="font-size:10px;background:var(--bg-3);padding:1px 5px;border-radius:4px;color:var(--text-3)">${escHtml(run.event||'')}</span>
         <span class="u-eed0f8fb">${escHtml(run.hook_name||'')}</span>
         <span style="color:var(--text-3)">${run.duration_ms}ms</span>
@@ -10347,8 +10354,16 @@ el.innerHTML = `
 }
 async function ciShowDeadCode(el) {
 const d = await fetch('/api/codeindex/dead-code').then(r=>r.ok?r.json().catch(()=>{}):null);
+if (!d) { el.innerHTML = '<div style="color:var(--text-3)">Could not load dead-code analysis.</div>'; return; }
+const excluded = d.excluded_entrypoints || 0;
 el.innerHTML = `
-    <div class="u-8eef54b3">💀 Potentially Dead Code (${d.count} symbols unreferenced)</div>
+    <div class="u-8eef54b3">Dead-code candidates (${d.count})</div>
+    <div class="ci-deadcode-note">
+      Heuristic, name-based analysis — review before deleting. Dynamic dispatch,
+      <code>getattr()</code>, templates and external importers are invisible to it.
+      ${excluded ? `<strong>${excluded}</strong> framework entry point(s) (routes, fixtures, CLI commands) were excluded.` : ''}
+      ${d.truncated ? `Showing the first ${d.returned} of ${d.count}.` : ''}
+    </div>
     ${(d.dead_symbols||[]).slice(0,30).map((s) => `
       <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:12px">
         <span style="color:var(--danger)">💀</span>
@@ -10581,7 +10596,13 @@ if (lat) lat.textContent = `${d.latency_ms}ms · ~${d.tokens} tokens`;
 const el = document.getElementById(`arena-resp-${d.side}`);
 if (el) el.innerHTML = escHtml(d.side==='a'?textA:textB);
 } else if (d.type==='battle_ready') {
-const voteEl = document.getElementById('arena-vote-area'); if (voteEl) voteEl.style.display = '';
+const voteEl = document.getElementById('arena-vote-area');
+if (voteEl) {
+voteEl.style.display = '';
+if (d.votable === false) {
+voteEl.innerHTML = `<div class="arena-unvotable">⚠️ ${escHtml(d.reason || 'A model failed to respond — nothing to compare.')}</div>`;
+}
+}
 }
 } catch(e) {}
 }

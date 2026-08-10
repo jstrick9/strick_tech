@@ -22,6 +22,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import time
 import uuid
 
@@ -273,6 +274,58 @@ async def fire_event(event_type: str, event_data: dict):
         asyncio.create_task(_run_hook(h, event_data))
 
 
+# _run_hook is awaited by both /run and fire_event; the caller needs the
+# outcome, not just the text, to avoid reporting a failure as a success.
+_LAST_RUN_STATUS: dict = {}
+
+_TEMPLATE_RE = re.compile(r'\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}')
+
+
+def _resolve_path(data: dict, path: str):
+    """Walk a dotted path through nested dicts/lists. Returns None if absent."""
+    cur = data
+    for part in path.split('.'):
+        if isinstance(cur, dict) and part in cur:
+            cur = cur[part]
+        elif isinstance(cur, list) and part.isdigit() and int(part) < len(cur):
+            cur = cur[int(part)]
+        else:
+            return None
+    return cur
+
+
+def _render_template(template: str, event_data: dict) -> str:
+    """Substitute {{a.b.c}} placeholders from nested event data.
+
+    Hook payloads are nested -- fire_event() and the UI both send
+    {"file": {"path": ..., "content": ...}} -- but substitution used to be a
+    flat loop over top-level keys, producing {{file.file}} and never
+    {{file.path}}. Every seeded hook prompt and the UI's default prompt use
+    dotted paths, so the placeholders were sent to the model verbatim.
+
+    Unresolved placeholders are left intact rather than blanked, so a typo in
+    a hook prompt is visible in the run output instead of silently vanishing.
+    """
+    if not template:
+        return ''
+
+    def _sub(m):
+        path = m.group(1)
+        val = _resolve_path(event_data, path)
+        if val is None:
+            # Legacy single-segment form: {{file.path}} where event_data is
+            # already the file dict.
+            if '.' in path:
+                val = _resolve_path(event_data, path.split('.', 1)[1])
+        if val is None:
+            return m.group(0)
+        if isinstance(val, (dict, list)):
+            return json.dumps(val, default=str)[:4000]
+        return str(val)[:4000]
+
+    return _TEMPLATE_RE.sub(_sub, template)
+
+
 async def _run_hook(hook: dict, event_data: dict):
     """Execute a single hook."""
     hook_id = hook['id']
@@ -282,12 +335,7 @@ async def _run_hook(hook: dict, event_data: dict):
     t0 = time.perf_counter()
 
     # Build prompt
-    prompt = hook['prompt']
-    for k, v in event_data.items():
-        prompt = prompt.replace(f'{{{{event.{k}}}}}', str(v))
-        prompt = prompt.replace(f'{{{{file.{k}}}}}', str(v))
-        prompt = prompt.replace(f'{{{{commit.{k}}}}}', str(v))
-        prompt = prompt.replace(f'{{{{test.{k}}}}}', str(v))
+    prompt = _render_template(hook['prompt'], event_data)
 
     output = ''
     status = 'done'
@@ -322,6 +370,8 @@ async def _run_hook(hook: dict, event_data: dict):
         con.commit()
     finally:
         con.close()
+
+    _LAST_RUN_STATUS[hook_id] = status
 
     # Broadcast to WebSocket if available
     try:
@@ -521,7 +571,15 @@ async def manual_run_hook(hook_id: str, req: Request):
         return {'ok': False, 'error': 'Not found'}
     event_data = body.get('event_data', {})
     output = await _run_hook(dict(row), event_data)
-    return {'ok': True, 'output': output, 'hook_id': hook_id}
+    # The run's status was written to hook_runs but never returned, so the UI
+    # showed "Hook ran!" over an error message.
+    status = _LAST_RUN_STATUS.get(hook_id, 'done')
+    return {
+        'ok': True,
+        'status': status,
+        'output': output if output is not None else '',
+        'hook_id': hook_id,
+    }
 
 
 @router.post('/fire')
