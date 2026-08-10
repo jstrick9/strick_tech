@@ -228,4 +228,15 @@ async function identityRotateKeys(agentId) {
 // ══════════════════════════════════════════════════════════════════
 
 window.renderAgentIdentity = renderAgentIdentity;
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.identityIssueToken = identityIssueToken;
+window.identityProvisionAll = identityProvisionAll;
+window.identityProvisionOne = identityProvisionOne;
+window.identityRotateKeys = identityRotateKeys;
+window.identityViewAudit = identityViewAudit;
+window.identityViewPerms = identityViewPerms;
 })(S, nav, toast, escHtml, fetch, document);

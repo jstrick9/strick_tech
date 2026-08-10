@@ -751,4 +751,20 @@ async function monitorResolveAnomaly(id) {
 
 
 window.renderAgentMonitor = renderAgentMonitor;
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.bddAckAlert = bddAckAlert;
+window.bddBuildFingerprint = bddBuildFingerprint;
+window.bddBuildFingerprints = bddBuildFingerprints;
+window.bddDetectAgent = bddDetectAgent;
+window.bddDetectAll = bddDetectAll;
+window.bddKillAgent = bddKillAgent;
+window.bddRefresh = bddRefresh;
+window.bddResolveAlert = bddResolveAlert;
+window.bddSetTab = bddSetTab;
+window.bddViewAgent = bddViewAgent;
+window.monitorReviveAgent = monitorReviveAgent;
 })(S, nav, toast, escHtml, fetch, document);

@@ -319,6 +319,114 @@ def _epoch() -> int:
 
 
 # ── Policy Enforcement Engine (OPA-lite) ───────────────────────────────────────
+def _normalise_id_list(raw) -> str:
+    """Normalise a comma-separated agent/server list.
+
+    Matching used a bare `id in value.split(',')`, so "orchestrator, brain" --
+    the way a human types a list -- produced [' brain'] and the second entry
+    never matched. A DENY policy naming two agents silently protected only the
+    first. Normalising on write keeps stored policies clean; _id_matches()
+    strips on read so rows written before this fix behave too.
+    """
+    text = (raw if isinstance(raw, str) else '') or '*'
+    parts = [p.strip() for p in text.split(',') if p.strip()]
+    return (','.join(parts) or '*')[:100]
+
+
+def _id_matches(candidate: str, spec: str) -> bool:
+    """True when `candidate` is covered by a policy's agent/server spec."""
+    spec = (spec or '*').strip()
+    if spec == '*':
+        return True
+    return (candidate or '').strip() in {p.strip() for p in spec.split(',') if p.strip()}
+
+
+def _normalise_conditions(raw) -> tuple[str, str | None]:
+    """Validate and serialise a policy's conditions. Returns (json, error)."""
+    if raw is None or raw == '':
+        return '{}', None
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+        except (ValueError, TypeError):
+            return '{}', 'conditions must be valid JSON'
+    else:
+        parsed = raw
+    if not isinstance(parsed, dict):
+        return '{}', 'conditions must be a JSON object'
+
+    for key in ('start_hour', 'end_hour'):
+        if key in parsed:
+            try:
+                hour = int(parsed[key])
+            except (TypeError, ValueError):
+                return '{}', f'{key} must be an integer hour 0-23'
+            if not 0 <= hour <= 23:
+                return '{}', f'{key} must be between 0 and 23'
+            parsed[key] = hour
+    if ('start_hour' in parsed) != ('end_hour' in parsed):
+        return '{}', 'start_hour and end_hour must be set together'
+
+    if 'days_of_week' in parsed:
+        days = parsed['days_of_week']
+        if not isinstance(days, list) or not days:
+            return '{}', 'days_of_week must be a non-empty list'
+        try:
+            days = [int(d) for d in days]
+        except (TypeError, ValueError):
+            return '{}', 'days_of_week must be integers 0-6'
+        if any(d < 0 or d > 6 for d in days):
+            return '{}', 'days_of_week must be between 0 (Monday) and 6 (Sunday)'
+        parsed['days_of_week'] = days
+
+    return json.dumps(parsed)[:1000], None
+
+
+def _window_active(start_hour: int, end_hour: int, now_hour: int) -> bool:
+    """Is `now_hour` inside [start, end)? Handles windows crossing midnight.
+
+    `start <= now < end` is false for every hour of a 22:00-06:00 window, so an
+    overnight maintenance rule never activated at all.
+    """
+    if start_hour == end_hour:
+        return True  # full day
+    if start_hour < end_hour:
+        return start_hour <= now_hour < end_hour
+    return now_hour >= start_hour or now_hour < end_hour
+
+
+def _conditions_hold(raw_conditions, action: str, now_hour: int, now_dow: int) -> tuple[bool, str]:
+    """Do a policy's conditions hold right now? Returns (holds, reason).
+
+    Shared by the enforcer and the simulator so the dry-run cannot disagree
+    with what the gateway will actually do.
+    """
+    try:
+        conds = json.loads(raw_conditions or '{}')
+    except (TypeError, ValueError):
+        # A restriction whose scope cannot be parsed is applied at full scope;
+        # a permission is not granted.
+        return (action != 'allow'), 'malformed conditions'
+    if not isinstance(conds, dict) or not conds:
+        return True, ''
+
+    if 'start_hour' in conds and 'end_hour' in conds:
+        try:
+            if not _window_active(int(conds['start_hour']), int(conds['end_hour']), now_hour):
+                return False, f"outside {int(conds['start_hour']):02d}:00-{int(conds['end_hour']):02d}:00"
+        except (TypeError, ValueError):
+            return (action != 'allow'), 'malformed time window'
+
+    if 'days_of_week' in conds:
+        try:
+            if now_dow not in [int(d) for d in conds['days_of_week']]:
+                return False, 'not an active day of the week'
+        except (TypeError, ValueError):
+            return (action != 'allow'), 'malformed days_of_week'
+
+    return True, ''
+
+
 def _evaluate_policy(agent_id: str, server_id: str, tool_name: str) -> tuple[str, str]:
     """
     Evaluate active policies for (agent, server, tool).
@@ -344,31 +452,21 @@ def _evaluate_policy(agent_id: str, server_id: str, tool_name: str) -> tuple[str
     for pol in policies:
         pol = dict(pol)
         # Match agent
-        agent_match = pol['agent_id'] == '*' or agent_id in pol['agent_id'].split(',')
+        agent_match = _id_matches(agent_id, pol['agent_id'])
         # Match server
-        srv_match = pol['server_id'] == '*' or server_id in pol['server_id'].split(',')
-        # Match tool
-        tool_match = fnmatch.fnmatch(tool_name, pol['tool_pattern'])
+        srv_match = _id_matches(server_id, pol['server_id'])
+        # Match tool. fnmatchcase, not fnmatch: fnmatch applies os.path.normcase,
+        # which lowercases on Windows and would make a tool allow-list
+        # case-insensitive on one platform and not another.
+        tool_match = fnmatch.fnmatchcase((tool_name or '').strip(), (pol['tool_pattern'] or '*').strip())
 
         if not (agent_match and srv_match and tool_match):
             continue
 
         # Evaluate conditions (optional JSON object)
-        cond_pass = True
-        try:
-            conds = json.loads(pol.get('conditions') or '{}')
-            if conds:
-                # time_of_day: {"start_hour": 9, "end_hour": 17} → only active 09:00-17:00
-                if 'start_hour' in conds and 'end_hour' in conds:
-                    if not (conds['start_hour'] <= _now_hour < conds['end_hour']):
-                        cond_pass = False
-                # days_of_week: [0,1,2,3,4] → Mon-Fri only
-                if 'days_of_week' in conds and _now_dow not in conds['days_of_week']:
-                    cond_pass = False
-                # max_calls_today: checked via rate bucket
-                # (skip runtime check here — enforced separately)
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
-            pass  # malformed conditions → ignore, policy still applies
+        cond_pass, _cond_reason = _conditions_hold(
+            pol.get('conditions'), pol['action'], _now_hour, _now_dow
+        )
 
         if cond_pass:
             return pol['action'], pol['name']
@@ -760,19 +858,25 @@ async def create_policy(req: Request):
     action = body.get('action', 'allow')
     if action not in ('allow', 'deny', 'require_hitl'):
         action = 'allow'
+
+    conditions, cond_err = _normalise_conditions(body.get('conditions'))
+    if cond_err:
+        return JSONResponse({'ok': False, 'error': cond_err}, status_code=400)
+
     con = _get_conn()
     try:
         con.execute(
-            """INSERT INTO mcp_gateway_policies (policy_id,name,description,agent_id,server_id,tool_pattern,action,priority,enabled,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,1,?,?)""",
+            """INSERT INTO mcp_gateway_policies (policy_id,name,description,agent_id,server_id,tool_pattern,action,priority,conditions,enabled,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,1,?,?)""",
             (
                 pol_id,
                 name[:100],
                 (body.get('description') or '')[:500],
-                (body.get('agent_id') or '*')[:100],
-                (body.get('server_id') or '*')[:100],
-                (body.get('tool_pattern') or '*')[:100],
+                _normalise_id_list(body.get('agent_id')),
+                _normalise_id_list(body.get('server_id')),
+                (as_text(body.get('tool_pattern')) or '*').strip()[:100],
                 action,
                 int(body.get('priority') or 100),
+                conditions,
                 now,
                 now,
             ),
@@ -804,6 +908,10 @@ async def simulate_policy(req: Request):
         return JSONResponse({'ok': False, 'error': 'agent_id, server_id, tool_name required'}, status_code=400)
 
     import fnmatch
+    from datetime import datetime as _dt
+
+    _now_hour = _dt.now().hour
+    _now_dow = _dt.now().weekday()
 
     con = _get_conn()
     try:
@@ -835,10 +943,18 @@ async def simulate_policy(req: Request):
     else:
         for pol in policies:
             pol_d = dict(pol)
-            agent_match = pol_d['agent_id'] == '*' or agent_id in pol_d['agent_id'].split(',')
-            server_match = pol_d['server_id'] == '*' or server_id in pol_d['server_id'].split(',')
-            tool_match = fnmatch.fnmatch(tool_name, pol_d['tool_pattern'])
-            matched = agent_match and server_match and tool_match
+            agent_match = _id_matches(agent_id, pol_d['agent_id'])
+            server_match = _id_matches(server_id, pol_d['server_id'])
+            tool_match = fnmatch.fnmatchcase(
+                (tool_name or '').strip(), (pol_d['tool_pattern'] or '*').strip()
+            )
+            # Conditions decide whether a scope-matching policy actually fires.
+            # The simulator ignored them entirely, so an out-of-hours rule was
+            # shown as active at every hour of the day.
+            cond_pass, cond_reason = _conditions_hold(
+                pol_d.get('conditions'), pol_d['action'], _now_hour, _now_dow
+            )
+            matched = agent_match and server_match and tool_match and cond_pass
 
             trace.append(
                 {
@@ -849,6 +965,9 @@ async def simulate_policy(req: Request):
                     'agent_match': agent_match,
                     'server_match': server_match,
                     'tool_match': tool_match,
+                    'condition_match': cond_pass,
+                    'condition_reason': cond_reason,
+                    'conditions': pol_d.get('conditions') or '{}',
                     'matched': matched,
                     'agent_id': pol_d['agent_id'],
                     'server_id': pol_d['server_id'],
@@ -1151,6 +1270,14 @@ async def create_policy_from_template(req: Request):
     tool_pattern = body.get('tool_pattern', tpl['tool_pattern'])
     priority = int(body.get('priority', tpl['priority']))
 
+    # A caller may override the template's conditions; templates themselves may
+    # carry one. Previously both were discarded.
+    tpl_conditions, cond_err = _normalise_conditions(
+        body.get('conditions') if body.get('conditions') is not None else tpl.get('conditions')
+    )
+    if cond_err:
+        return JSONResponse({'ok': False, 'error': cond_err}, status_code=400)
+
     pol_id = f'pol_{uuid.uuid4().hex[:8]}'
     now = _now()
     con = _get_conn()
@@ -1158,16 +1285,17 @@ async def create_policy_from_template(req: Request):
         con.execute(
             """INSERT INTO mcp_gateway_policies
             (policy_id,name,description,agent_id,server_id,tool_pattern,action,priority,conditions,enabled,created_at,updated_at)
-            VALUES (?,?,?,?,?,?,?,?,'{}',1,?,?)""",
+            VALUES (?,?,?,?,?,?,?,?,?,1,?,?)""",
             (
                 pol_id,
                 name[:100],
                 description[:500],
-                agent_id[:100],
-                server_id[:100],
-                tool_pattern[:100],
+                _normalise_id_list(agent_id),
+                _normalise_id_list(server_id),
+                (as_text(tool_pattern) or '*').strip()[:100],
                 action,
                 priority,
+                tpl_conditions,
                 now,
                 now,
             ),

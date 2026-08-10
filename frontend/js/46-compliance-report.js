@@ -628,4 +628,23 @@ async function auditShowEntry(id) { await crcShowEntry(id); }
 
 // ══════════════════════════════════════════════════════════════════
 window.renderAuditLog = renderAuditLog;
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.crcAuditFilterChange = crcAuditFilterChange;
+window.crcDeleteReport = crcDeleteReport;
+window.crcGenerate = crcGenerate;
+window.crcQuickReport = crcQuickReport;
+window.crcRefresh = crcRefresh;
+window.crcRegenReport = crcRegenReport;
+window.crcSelectAllScope = crcSelectAllScope;
+window.crcSelectFmt = crcSelectFmt;
+window.crcSelectFw = crcSelectFw;
+window.crcSetFwAndGenerate = crcSetFwAndGenerate;
+window.crcSetTab = crcSetTab;
+window.crcShowEntry = crcShowEntry;
+window.crcToggleScope = crcToggleScope;
+window.crcVerifyChain = crcVerifyChain;
 })(S, nav, toast, escHtml, fetch, document);

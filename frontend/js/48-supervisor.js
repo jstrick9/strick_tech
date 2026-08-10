@@ -1138,4 +1138,19 @@ function bindSupervisorDelegated() {
 }
 
 window.renderSupervisor = renderSupervisor;
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.dagClickTask = dagClickTask;
+window.dagDeleteActive = dagDeleteActive;
+window.dagFitView = dagFitView;
+window.dagKillActive = dagKillActive;
+window.dagLaunchGoal = dagLaunchGoal;
+window.dagOpenLaunch = dagOpenLaunch;
+window.dagRefresh = dagRefresh;
+window.dagShowFinalOutput = dagShowFinalOutput;
+window.dagToggleDetail = dagToggleDetail;
+window.dagZoom = dagZoom;
 })(S, nav, toast, escHtml, fetch, document);

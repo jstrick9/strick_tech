@@ -553,4 +553,24 @@ async function a2aCancelTask(taskId) {
 
 // ── State ─────────────────────────────────────────────────────────
 window.renderA2A = renderA2A;
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.a2aCancelTask = a2aCancelTask;
+window.a2aDelegateToAgent = a2aDelegateToAgent;
+window.a2aDeleteAgent = a2aDeleteAgent;
+window.a2aOpenDelegate = a2aOpenDelegate;
+window.a2aOpenRegister = a2aOpenRegister;
+window.a2aRefresh = a2aRefresh;
+window.a2aSelectAgent = a2aSelectAgent;
+window.a2aSetTab = a2aSetTab;
+window.a2aShowCard = a2aShowCard;
+window.a2aSubmitDelegate = a2aSubmitDelegate;
+window.a2aSubmitRegister = a2aSubmitRegister;
+window.a2aToggleAuthFields = a2aToggleAuthFields;
+window.a2aVerifyAgent = a2aVerifyAgent;
+window.a2aViewLocalCard = a2aViewLocalCard;
+window.a2aViewTask = a2aViewTask;
 })(S, nav, toast, escHtml, fetch, document);

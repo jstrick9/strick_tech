@@ -167,4 +167,14 @@ async function connectorRegister() {
 // ══════════════════════════════════════════════════════════════════
 //  A2A PROTOCOL — Agent-to-Agent Network
 window.renderConnectors = renderConnectors;
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.connectorConfigure = connectorConfigure;
+window.connectorExecute = connectorExecute;
+window.connectorHistory = connectorHistory;
+window.connectorRegister = connectorRegister;
+window.connectorTest = connectorTest;
 })(S, nav, toast, escHtml, fetch, document);

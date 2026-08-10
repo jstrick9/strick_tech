@@ -416,4 +416,20 @@ async function lbSeedData() {
 
 // ── State ──────────────────────────────────────────────────────────
 window.renderLeaderboard = renderLeaderboard;
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.lbAddPolicy = lbAddPolicy;
+window.lbChangeDays = lbChangeDays;
+window.lbClearAgent = lbClearAgent;
+window.lbDeletePolicy = lbDeletePolicy;
+window.lbExport = lbExport;
+window.lbFilterPolicies = lbFilterPolicies;
+window.lbRateAgent = lbRateAgent;
+window.lbSeedData = lbSeedData;
+window.lbShowTab = lbShowTab;
+window.lbTogglePolicy = lbTogglePolicy;
+window.lbViewAgent = lbViewAgent;
 })(S, nav, toast, escHtml, fetch, document);

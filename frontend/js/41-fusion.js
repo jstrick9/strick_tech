@@ -408,4 +408,17 @@ async function fusionSubagent() {
 
 
 window.renderFusion = renderFusion;
+// ── Delegated-handler exports ─────────────────────────────────────────────
+// These are referenced by data-act-* attributes in this pane. The
+// delegated dispatcher resolves handler names by property lookup on
+// window, and this file is IIFE-wrapped, so without these assignments
+// every one of them silently no-ops.
+window.fusionClassify = fusionClassify;
+window.fusionLoadHistory = fusionLoadHistory;
+window.fusionOptimizeCost = fusionOptimizeCost;
+window.fusionRoute = fusionRoute;
+window.fusionRun = fusionRun;
+window.fusionRunSimple = fusionRunSimple;
+window.fusionSelectPreset = fusionSelectPreset;
+window.fusionSubagent = fusionSubagent;
 })(S, nav, toast, escHtml, fetch, document);
