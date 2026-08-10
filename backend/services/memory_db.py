@@ -232,14 +232,61 @@ def _run_migration(con, version: int, name: str, sql: str):
 
 
 # ── Memory CRUD ────────────────────────────────────────────────────────────────
-def memory_add(source: str, content: str, tags: str = '', embedding:list | None = None) -> int:
-    """Execute or process memory add operation."""
+
+_TIER_COLUMNS_READY = False
+
+
+def _ensure_tier_columns(con) -> None:
+    """Apply the tiering/provenance migration once per process."""
+    global _TIER_COLUMNS_READY
+    if _TIER_COLUMNS_READY:
+        return
+    from .memory_tiers import ensure_schema
+
+    ensure_schema(con)
+    _TIER_COLUMNS_READY = True
+
+
+def memory_add(
+    source: str,
+    content: str,
+    tags: str = '',
+    embedding: list | None = None,
+    tier: str | None = None,
+    outcome: str | None = None,
+    origin: str | None = None,
+    actor: str | None = None,
+    confidence: float | None = None,
+    derived_from: str | None = None,
+) -> int:
+    """Write a memory, with tier and provenance.
+
+    The provenance arguments are all optional and default to the same
+    behaviour this function had before they existed, because ~30 call sites
+    across 12 routers already call it positionally. Tiering that required
+    every caller to change at once would be a migration nobody could land.
+
+    Provenance is not decoration. Memory poisoning alters an agent's future
+    retrieval strategy and tool preference, and because the corruption is
+    per-user it is hard to detect -- recording who wrote a memory and how it
+    was obtained is what makes a bad entry findable and revocable.
+    """
+    from .memory_tiers import provenance_for
+
+    prov = provenance_for(tier, outcome, origin, actor, confidence, derived_from)
     con = get_conn()
     try:
+        _ensure_tier_columns(con)
         emb_json = json.dumps(embedding) if embedding else None
         cur = con.execute(
-            'INSERT INTO memory(source, content, tags, embedding_json) VALUES (?,?,?,?)',
-            (source, content, tags, emb_json),
+            'INSERT INTO memory(source, content, tags, embedding_json, '
+            'tier, outcome, origin, actor, confidence, derived_from) '
+            'VALUES (?,?,?,?,?,?,?,?,?,?)',
+            (
+                source, content, tags, emb_json,
+                prov['tier'], prov['outcome'], prov['origin'],
+                prov['actor'], prov['confidence'], prov['derived_from'],
+            ),
         )
         mid = cur.lastrowid
         # update FTS
@@ -932,44 +979,51 @@ def hybrid_search(query: str, limit: int = 20) -> list[dict]:
         limit = 20
     if not query:
         return []
-    results: dict[int, dict] = {}
+    # Each retriever produces its OWN ranked list; they are fused by rank
+    # below rather than merged into one dict here. Merging by score required
+    # inventing a constant for FTS hits, which threw away that retriever's
+    # ordering entirely -- the best keyword match tied with the worst.
+    vector_ranked: list[dict] = []
+    fts_ranked: list[dict] = []
 
     # 1. Try Qdrant semantic search
-    q_results = qdrant_search(query, limit=limit)
-    for r in q_results:
-        results[r['id']] = {**r, 'source_type': 'vector'}
+    for r in qdrant_search(query, limit=limit):
+        vector_ranked.append({**r, 'source_type': 'vector'})
 
     # 2. SQLite FTS5 search (always available)
     con = get_conn()
     try:
         terms = re.findall(r'[A-Za-z0-9_]{3,}', query)[:8]
-        if not terms:
-            return sorted(results.values(), key=lambda x: x['score'], reverse=True)[:limit]
-        fts_query = ' OR '.join(f'"{term}"' for term in terms)
-        rows = con.execute(
-            'SELECT m.id, m.source, m.content, m.tags FROM memory m '
-            'JOIN memory_fts ON memory_fts.rowid = m.id '
-            'WHERE memory_fts MATCH ? ORDER BY rank LIMIT ?',
-            (fts_query, limit),
-        ).fetchall()
-        for row in rows:
-            rid = row['id']
-            if rid not in results:
-                results[rid] = {
-                    'id': rid,
-                    'score': 0.5,  # FTS5 default score
+        if terms:
+            fts_query = ' OR '.join(f'"{term}"' for term in terms)
+            # Over-fetch: fusion needs enough depth from each retriever to
+            # interleave meaningfully, and reranking then trims back.
+            rows = con.execute(
+                'SELECT m.id, m.source, m.content, m.tags, m.created_at FROM memory m '
+                'JOIN memory_fts ON memory_fts.rowid = m.id '
+                'WHERE memory_fts MATCH ? ORDER BY rank LIMIT ?',
+                (fts_query, limit * 3),
+            ).fetchall()
+            # ORDER BY rank means this list is already in relevance order, and
+            # that order is the only signal RRF needs.
+            for row in rows:
+                fts_ranked.append({
+                    'id': row['id'],
                     'content': row['content'],
                     'source': row['source'],
                     'tags': row['tags'],
+                    'created_at': row['created_at'],
                     'source_type': 'fts5',
-                }
+                })
     except sqlite3.Error as e:
         log.debug('hybrid_search DB error: %s', e)
     finally:
         con.close()
 
-    # Sort by score descending
-    return sorted(results.values(), key=lambda x: x['score'], reverse=True)[:limit]
+    from .memory_tiers import rerank, rrf_fuse
+
+    fused = rrf_fuse([vector_ranked, fts_ranked])
+    return rerank(query, fused, limit=limit)
 
 
 def memory_add_with_vector(source: str, content: str, tags: str = '', metadata:dict | None = None) -> int:

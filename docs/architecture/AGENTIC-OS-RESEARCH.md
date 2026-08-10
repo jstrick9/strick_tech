@@ -438,15 +438,15 @@ Assessed against the actual codebase, not aspiration.
 
 | # | Gap | Layer | Why it matters | Size |
 |---|---|---|---|---|
-| 1 | **No explicit memory tiering** (episodic/semantic/procedural/working) | L2 | The single highest-value layer per §1. Outcomes aren't recorded, so agents can't learn. | L |
-| 2 | **No reranking, no RRF fusion** | L2 | The 2026 baseline. FTS5 + vectors exist but aren't fused or reranked. | M |
+| 1 | ~~No explicit memory tiering~~ **DONE** | L2 | `memory_tiers.py` + additive migration. Episodic outcomes recorded. | L |
+| 2 | ~~No reranking, no RRF fusion~~ **DONE** | L2 | `rrf_fuse()` + `rerank()` + `mmr_diversify()`. Replaced a hardcoded 0.5. | M |
 | 3 | **Knowledge graph not wired into retrieval** | L2 | `knowledge_graph.py` exists but isn't a retrieval path. GraphRAG is where global/multi-hop questions get answered. | M |
 | 4 | **Kernel modules not named as such** | L3 | Scheduler/context/memory managers are implicit and scattered. Nothing to test or reason about. | L |
-| 5 | **No ICM workspace runtime** | L5 | The user's explicit ask. `hierarchy.py` is close but is a fixed 2-tier scheme, not numbered stages with contracts. | M |
+| 5 | ~~No ICM workspace runtime~~ **DONE** | L5 | `services/icm.py` + router + UI. | M |
 | 6 | **Loop safety rails not standardised** | L4 | `loops.py` exists; needs the §4.3 rail set as enforced defaults. | S |
-| 7 | **No provenance on memory writes** | L2 | Memory-poisoning exposure (§3.4). | M |
+| 7 | ~~No provenance on memory writes~~ **DONE** | L2 | tier/outcome/origin/actor/confidence/derived_from on every write. | M |
 | 8 | **Tool definitions not scoped per stage** | L3 | Cost + latency, per Anthropic. | S |
-| 9 | **No ontology layer** | L5 | User asked for ontologies; nothing types entities/relations today. | M |
+| 9 | ~~No ontology layer~~ **DONE** | L5 | `services/ontology.py`, markdown-defined, resolves synonyms/typos. | M |
 
 ### Recommended sequence
 
