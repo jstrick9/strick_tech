@@ -483,6 +483,11 @@ def scaffold(ws: Path, name: str, description: str, stage_names: list[str]) -> d
         encoding='utf-8',
     )
 
+    if not (ws / '_config' / 'ontology.md').is_file():
+        from .ontology import STARTER_ONTOLOGY
+
+        (ws / '_config' / 'ontology.md').write_text(STARTER_ONTOLOGY, encoding='utf-8')
+
     if not (ws / '_config' / 'conventions.md').is_file():
         (ws / '_config' / 'conventions.md').write_text(
             '# Conventions\n\n'

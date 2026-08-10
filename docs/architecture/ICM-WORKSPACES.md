@@ -192,7 +192,97 @@ Both inject into chat; neither was changed by the other.
 
 ---
 
+## Ontologies
+
+`_config/ontology.md` is the workspace's controlled vocabulary. Markdown is the
+source of truth, not a database table — same conventions as the rest of ICM:
+plain text as the interface, one canonical home per fact, diffable, and it
+travels with the folder. A domain expert can write one; it is not a migration.
+
+### The defect it closes
+
+`kg_entities.type` and `kg_relations.relation` are free text and nothing checked
+them. Reproduced live before the layer existed:
+
+```
+POST /entities {"type":"Company"}      -> ok
+POST /entities {"type":"compnay"}      -> ok
+POST /entities {"type":"organisation"} -> ok
+distinct types: ['Company', 'compnay', 'organisation']
+```
+
+Three companies that can never be retrieved as companies. Graph traversal is
+only as good as its type vocabulary.
+
+### Format
+
+```markdown
+## Entities
+| Type    | Aliases                    | Description |
+|---------|----------------------------|-------------|
+| company | Company, org, organisation | A business  |
+
+## Relations
+| Relation | From    | To     | Inverse     | Description |
+|----------|---------|--------|-------------|-------------|
+| employs  | company | person | employed_by | Employment  |
+```
+
+### Resolution, not rejection
+
+The goal is convergence. Refusing a near-miss just makes the user invent
+another synonym, so `resolve_entity_type()` folds it in and reports **how** it
+matched — `exact`, `case`, `alias`, `normalised`, `fuzzy`, or `unknown`:
+
+| Input | Resolves to | Match |
+|---|---|---|
+| `company` | `company` | exact |
+| `Company` | `company` | case |
+| `organisation` | `company` | alias |
+| `compnay` | `company` | **fuzzy** |
+| `companion` | `companion` | **unknown** — a word, not a typo |
+| `spacecraft` | `spacecraft` | unknown |
+
+Convergence must not become collapse: the 0.82 threshold accepts `compnay` and
+rejects `companion`.
+
+### Domain constraints
+
+A relation declares what it may connect, so reversed edges are caught at write
+time and the inverse is suggested by name:
+
+```
+employs: person -> company
+  "'employs' expects a 'company' on the left, got 'person' and expects a
+   'person' on the right, got 'company'. Did you mean 'employed_by'?"
+```
+
+Aliased endpoints satisfy the domain (`org employs human` is the same
+statement). An unknown relation is permitted but flagged; an empty domain
+column means unconstrained, not forbidden.
+
+### Absence is not an error
+
+No `ontology.md` means an empty ontology, which permits everything. A workspace
+that has not defined a vocabulary yet still has to work.
+
+### Self-consistency
+
+`validate()` reports contradictions: an alias claimed by two types, an alias
+shadowing a real type, a relation naming an undefined type (errors); mismatched
+inverses (warnings). The shipped starter ontology is tested against its own
+validator.
+
+### API
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/icm/workspaces/{id}/ontology` | Parsed vocabulary + validation + prompt summary |
+| POST | `/api/icm/workspaces/{id}/ontology/resolve` | Resolve a type/relation, check a domain |
+
+---
+
 ## Next
 
-Ontologies (typed entities/relations in `_config/`) are the natural extension:
-the `.md` + section-routing substrate is now in place to carry them.
+A workspace UI: the stage pipeline, the walk-test result, the ontology, and
+every artifact as an edit surface.

@@ -206,3 +206,61 @@ async def write_file(workspace_id: str, req: Request) -> dict[str, Any]:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(as_text(content), encoding='utf-8')
     return {'ok': True, 'path': path, 'bytes': len(as_text(content))}
+
+
+# ── Ontology ──────────────────────────────────────────────────────────────────
+# The controlled vocabulary lives in _config/ontology.md as markdown, following
+# the same "plain text as the interface / canonical sources" conventions as the
+# rest of ICM. See backend/services/ontology.py for why it is a document rather
+# than a schema.
+@router.get('/workspaces/{workspace_id}/ontology')
+def get_ontology(workspace_id: str) -> dict[str, Any]:
+    """The workspace's entity types and relations, parsed and validated."""
+    from ..services import ontology as onto_svc
+
+    ws = _require_ws(workspace_id)
+    onto = onto_svc.load(ws)
+    return {
+        'ok': True,
+        'workspace_id': workspace_id,
+        'defined': onto.get('defined', False),
+        'entities': list(onto['entities'].values()),
+        'relations': list(onto['relations'].values()),
+        'validation': onto_svc.validate(onto),
+        'summary': onto_svc.summarise(onto),
+    }
+
+
+@router.post('/workspaces/{workspace_id}/ontology/resolve')
+async def resolve_terms(workspace_id: str, req: Request) -> dict[str, Any]:
+    """Resolve free-text types/relations onto the workspace vocabulary.
+
+    Returns the canonical term and HOW it matched, so a caller can tell an
+    exact hit from a fuzzy rescue and surface that to the user.
+    """
+    from ..services import ontology as onto_svc
+
+    ws = _require_ws(workspace_id)
+    body, err = await json_body_or_error(req)
+    if err:
+        return err
+    onto = onto_svc.load(ws)
+
+    out: dict[str, Any] = {'ok': True, 'workspace_id': workspace_id}
+    if body.get('entity_type') is not None:
+        out['entity_type'] = onto_svc.resolve_entity_type(onto, as_text(body.get('entity_type')))
+    if body.get('relation') is not None:
+        out['relation'] = onto_svc.resolve_relation(onto, as_text(body.get('relation')))
+    if body.get('relation') is not None and (body.get('from_type') or body.get('to_type')):
+        out['domain'] = onto_svc.check_relation_domain(
+            onto,
+            as_text(body.get('relation')),
+            as_text(body.get('from_type')),
+            as_text(body.get('to_type')),
+        )
+    if len(out) == 2:
+        raise HTTPException(
+            status_code=422,
+            detail='Send entity_type and/or relation (optionally with from_type/to_type).',
+        )
+    return out
