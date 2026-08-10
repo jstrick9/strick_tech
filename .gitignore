@@ -107,3 +107,9 @@ workspaces/*/preview/
 # The generic `dist/` rule above would otherwise exclude it.
 !frontend/dist/
 !frontend/dist/**
+
+# Test/lint caches — regenerated on every run, never committed.
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
