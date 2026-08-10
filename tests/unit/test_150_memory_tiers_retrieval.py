@@ -295,3 +295,110 @@ def test_hybrid_search_ranks_the_better_match_first(tmp_path, monkeypatch):
     assert out, 'expected results'
     assert 'controller' in out[0]['content']
     assert all('billing' not in r['content'] for r in out)
+
+
+# ── Graph expansion (gap #3) ──────────────────────────────────────────────────
+@pytest.fixture
+def graph_db(tmp_path, monkeypatch):
+    """A tiny graph: Acme --EMPLOYS--> Dana."""
+    monkeypatch.setenv('AGENTIC_TEST_DB', str(tmp_path / 'g.db'))
+    import backend.services.memory_db as mdb
+
+    monkeypatch.setattr(mdb, '_TIER_COLUMNS_READY', False, raising=False)
+    mdb.ensure_schema()
+    con = mdb.get_conn()
+    try:
+        con.executescript("""
+            CREATE TABLE IF NOT EXISTS kg_entities (
+                id TEXT PRIMARY KEY, name TEXT, type TEXT,
+                description TEXT DEFAULT '', confidence REAL DEFAULT 1.0);
+            CREATE TABLE IF NOT EXISTS kg_relations (
+                id TEXT PRIMARY KEY, from_id TEXT, to_id TEXT,
+                relation TEXT, confidence REAL DEFAULT 1.0);
+        """)
+        con.execute("INSERT OR REPLACE INTO kg_entities VALUES "
+                    "('e1','Acme','company','Runs the ingress platform',1.0)")
+        con.execute("INSERT OR REPLACE INTO kg_entities VALUES "
+                    "('e2','Dana','person','Engineer',1.0)")
+        con.execute("INSERT OR REPLACE INTO kg_relations VALUES "
+                    "('r1','e1','e2','EMPLOYS',1.0)")
+        con.commit()
+    finally:
+        con.close()
+    return mdb
+
+
+def test_graph_expand_finds_the_direct_match(graph_db):
+    out = mt.graph_expand('Acme', limit=5)
+    assert any('Acme' in r['content'] for r in out)
+    assert out[0]['graph_hop'] == 0
+
+
+def test_graph_expand_returns_the_one_hop_neighbour(graph_db):
+    """The reason graph retrieval exists: 'who works at Acme' is two hops,
+    not a nearest neighbour.
+
+    This regressed once already: the seed loop stored a bare entity id while
+    the neighbour loop stored a 'kg:'-prefixed key, so the hop-1 query raised
+    IndexError -- and a broad `except Exception` swallowed it, returning seeds
+    only. Graph expansion looked exactly like it was working.
+    """
+    out = mt.graph_expand('Acme', limit=5)
+    assert any('Dana' in r['content'] for r in out), 'the 1-hop neighbour is missing'
+    assert any(r['graph_hop'] == 1 for r in out)
+
+
+def test_neighbour_names_the_relation_it_came_through(graph_db):
+    out = mt.graph_expand('Acme', limit=5)
+    dana = next(r for r in out if 'Dana' in r['content'])
+    assert 'EMPLOYS' in dana['source']
+
+
+def test_graph_expand_ranks_direct_matches_above_neighbours(graph_db):
+    """Being adjacent to a match is weaker evidence than being one."""
+    out = mt.graph_expand('Acme', limit=5)
+    hops = [r['graph_hop'] for r in out]
+    assert hops == sorted(hops)
+
+
+def test_depth_zero_returns_seeds_only(graph_db):
+    out = mt.graph_expand('Acme', limit=5, depth=0)
+    assert all(r['graph_hop'] == 0 for r in out)
+
+
+def test_graph_expand_on_an_empty_query_returns_nothing(graph_db):
+    assert mt.graph_expand('', limit=5) == []
+
+
+def test_graph_expand_on_a_miss_returns_nothing(graph_db):
+    assert mt.graph_expand('zzzznotathing', limit=5) == []
+
+
+def test_graph_expand_tolerates_a_missing_graph(tmp_path, monkeypatch):
+    """A workspace with no graph tables must not break retrieval."""
+    monkeypatch.setenv('AGENTIC_TEST_DB', str(tmp_path / 'nog.db'))
+    import backend.services.memory_db as mdb
+
+    monkeypatch.setattr(mdb, '_TIER_COLUMNS_READY', False, raising=False)
+    mdb.ensure_schema()
+    assert mt.graph_expand('anything', limit=5) == []
+
+
+def test_graph_errors_are_not_swallowed_by_a_bare_except():
+    """A broad handler turned a crash into silently-degraded retrieval."""
+    import inspect
+
+    src = inspect.getsource(mt.graph_expand)
+    assert 'except sqlite3.Error' in src
+    assert 'except Exception:' not in src
+
+
+def test_hybrid_search_uses_the_graph_as_a_third_retriever():
+    import inspect
+
+    import backend.services.memory_db as mdb
+
+    src = inspect.getsource(mdb.hybrid_search)
+    body = '\n'.join(ln for ln in src.split('\n') if not ln.strip().startswith('#'))
+    assert 'graph_expand' in body
+    assert 'graph_ranked' in body

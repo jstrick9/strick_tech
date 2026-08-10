@@ -1020,9 +1020,14 @@ def hybrid_search(query: str, limit: int = 20) -> list[dict]:
     finally:
         con.close()
 
-    from .memory_tiers import rerank, rrf_fuse
+    from .memory_tiers import graph_expand, rerank, rrf_fuse
 
-    fused = rrf_fuse([vector_ranked, fts_ranked])
+    # Third retriever: the knowledge graph. It answers the global and
+    # multi-hop questions vector similarity cannot, and before this it was
+    # referenced zero times by any retrieval path.
+    graph_ranked = graph_expand(query, limit=limit)
+
+    fused = rrf_fuse([vector_ranked, fts_ranked, graph_ranked])
     return rerank(query, fused, limit=limit)
 
 

@@ -440,7 +440,7 @@ Assessed against the actual codebase, not aspiration.
 |---|---|---|---|---|
 | 1 | ~~No explicit memory tiering~~ **DONE** | L2 | `memory_tiers.py` + additive migration. Episodic outcomes recorded. | L |
 | 2 | ~~No reranking, no RRF fusion~~ **DONE** | L2 | `rrf_fuse()` + `rerank()` + `mmr_diversify()`. Replaced a hardcoded 0.5. | M |
-| 3 | **Knowledge graph not wired into retrieval** | L2 | `knowledge_graph.py` exists but isn't a retrieval path. GraphRAG is where global/multi-hop questions get answered. | M |
+| 3 | ~~Knowledge graph not wired into retrieval~~ **DONE** | L2 | `graph_expand()` is a third retriever in `hybrid_search()`, seeds + 1 hop. | M |
 | 4 | **Kernel modules not named as such** | L3 | Scheduler/context/memory managers are implicit and scattered. Nothing to test or reason about. | L |
 | 5 | ~~No ICM workspace runtime~~ **DONE** | L5 | `services/icm.py` + router + UI. | M |
 | 6 | **Loop safety rails not standardised** | L4 | `loops.py` exists; needs the §4.3 rail set as enforced defaults. | S |
