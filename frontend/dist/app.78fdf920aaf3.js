@@ -13640,11 +13640,18 @@ pane.innerHTML = `
       <!-- Overall score hero -->
       <div style="background:linear-gradient(135deg,var(--bg-2),var(--bg-3));border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px;display:flex;align-items:center;gap:24px">
         <div style="width:100px;height:100px;border-radius:50%;border:5px solid ${grade_color};display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
-          <div style="font-size:32px;font-weight:800;color:${grade_color}">${h.overall||0}</div>
-          <div style="font-size:14px;font-weight:700;color:${grade_color}">${h.grade||'?'}</div>
+          <div style="font-size:32px;font-weight:800;color:${grade_color}">${h.overall === null || h.overall === undefined ? '—' : h.overall}</div>
+          <div style="font-size:14px;font-weight:700;color:${grade_color}">${h.grade || '—'}</div>
         </div>
         <div>
-          <div style="font-size:20px;font-weight:700;color:var(--text-0);margin-bottom:6px">Overall Health: ${h.grade||'?'}</div>
+          <div style="font-size:20px;font-weight:700;color:var(--text-0);margin-bottom:6px">${
+            h.grade ? `Overall Health: ${h.grade}` : 'Not analysed yet'
+          }</div>
+          ${(h.unmeasured && h.unmeasured.length)
+            ? `<div class="health-coverage">Based on ${Math.round((h.measured_weight || 0) * 100)}% of the
+                 assessment — ${h.unmeasured.map(escHtml).join(' and ')} not measured yet.
+                 <button class="btn-sm" data-act-click="nav('codeindex')">Run Code Index</button></div>`
+            : ''}
           <div style="font-size:13px;color:var(--text-2);line-height:1.6">💡 Tip: <strong>${escHtml(h.tip||'')}</strong></div>
         </div>
       </div>

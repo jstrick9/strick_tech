@@ -342,19 +342,27 @@ async def project_health():
             )
         finally:
             con.close()
+        # NO INVENTED SCORE. This used to fall back to 70 when the code index
+        # was empty, and that 70 was then weighted into the overall grade --
+        # so a project the tool had never analysed was reported as a confident
+        # "B". None means "not measured" and is excluded from the average.
         if total_syms > 0:
             complexity_score = max(0, 100 - int(high_complex / total_syms * 200) - int((avg_complex - 1) * 5))
+            scores['complexity'] = min(100, max(0, complexity_score))
+            details['complexity'] = [
+                f'{total_syms} total symbols',
+                f'{high_complex} high-complexity functions (CC≥8)',
+                f'Avg complexity: {round(avg_complex, 1)}',
+            ]
         else:
-            complexity_score = 70
-        scores['complexity'] = min(100, max(0, complexity_score))
-        details['complexity'] = [
-            f'{total_syms} total symbols',
-            f'{high_complex} high-complexity functions (CC≥8)',
-            f'Avg complexity: {round(avg_complex, 1)}',
-        ]
+            scores['complexity'] = None
+            details['complexity'] = [
+                'Not measured — no symbols indexed yet',
+                'Run Code Index to analyse complexity',
+            ]
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        scores['complexity'] = 70
-        details['complexity'] = ['Index codebase for complexity analysis']
+        scores['complexity'] = None
+        details['complexity'] = ['Not measured — index the codebase for complexity analysis']
 
     # ── 2. Security Score ─────────────────────────────────────────────────────
     security_issues = 0
@@ -435,17 +443,25 @@ async def project_health():
             ).fetchone()[0]
         finally:
             con.close()
+        # `0/0 functions have docstrings (50%)` was the tell: a percentage
+        # printed beside the division that could not have produced it. With no
+        # functions indexed there is no coverage to report, and 50 was a guess
+        # being averaged into the grade.
         if total_fns > 0:
             doc_pct = int(with_docs / total_fns * 100)
+            scores['docs'] = doc_pct
+            details['docs'] = [
+                f'{with_docs}/{total_fns} functions have docstrings ({doc_pct}%)',
+                f'{"✅ Good coverage" if doc_pct > 70 else "⚠️ Consider adding more docstrings" if doc_pct > 30 else "❌ Missing documentation"}',
+            ]
         else:
-            doc_pct = 50
-        scores['docs'] = doc_pct
-        details['docs'] = [
-            f'{with_docs}/{total_fns} functions have docstrings ({doc_pct}%)',
-            f'{"✅ Good coverage" if doc_pct > 70 else "⚠️ Consider adding more docstrings" if doc_pct > 30 else "❌ Missing documentation"}',
-        ]
+            scores['docs'] = None
+            details['docs'] = [
+                'Not measured — no functions indexed yet',
+                'Run Code Index to measure docstring coverage',
+            ]
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        scores['docs'] = 50
+        scores['docs'] = None
         details['docs'] = ['Index codebase for documentation analysis']
 
     # ── 5. Dependency Health ─────────────────────────────────────────────────
@@ -474,10 +490,33 @@ async def project_health():
 
     # ── Overall Score ─────────────────────────────────────────────────────────
     weights = {'complexity': 0.25, 'security': 0.30, 'debt': 0.20, 'docs': 0.10, 'deps': 0.15}
-    overall = int(sum(scores[k] * weights[k] for k in weights))
 
-    # Grade
-    grade = 'A' if overall >= 90 else 'B' if overall >= 80 else 'C' if overall >= 70 else 'D' if overall >= 60 else 'F'
+    # Average only what was MEASURED, and renormalise.
+    #
+    # An unmeasurable dimension now scores None instead of a placeholder (70
+    # for complexity, 50 for docs) that used to be weighted into the grade --
+    # so an unanalysed project was reported as a confident "B, 87".
+    #
+    # Renormalising matters as much as excluding: with complexity and docs
+    # unknown the remaining weight is 0.65, and multiplying by that would cap
+    # the score at 65 and grade a healthy project "D" for not being indexed.
+    # That is the same wrong answer in the other direction.
+    measured = {k: v for k, v in scores.items() if v is not None}
+    total_weight = sum(weights[k] for k in measured)
+
+    if total_weight > 0:
+        overall = int(sum(measured[k] * weights[k] for k in measured) / total_weight)
+        grade = (
+            'A' if overall >= 90 else 'B' if overall >= 80
+            else 'C' if overall >= 70 else 'D' if overall >= 60 else 'F'
+        )
+    else:
+        # Nothing could be measured at all. "Not analysed yet" and "analysed,
+        # and it is a B" must not render identically.
+        overall = None
+        grade = None
+
+    unmeasured = sorted(k for k, v in scores.items() if v is None)
 
     {
         'overall_score': overall,
@@ -516,12 +555,27 @@ async def project_health():
         'scores': scores,
         'details': details,
         'weights': weights,
+        # Which dimensions could not be measured, and how much of the weighting
+        # the score is actually based on. Without these the UI cannot tell
+        # "87 from all five" from "87 from three".
+        'unmeasured': unmeasured,
+        'measured_weight': round(total_weight, 2),
         'tip': _health_tip(scores),
     }
 
 
 def _health_tip(scores: dict) -> str:
-    lowest = min(scores, key=lambda k: scores[k])
+    """Advice aimed at the weakest MEASURED dimension.
+
+    `min(scores, key=...)` raised TypeError once an unmeasured dimension
+    scored None instead of a placeholder -- turning an honest "not measured"
+    into a 500. Suggesting work on a dimension that was never assessed would
+    be wrong even if it did not crash.
+    """
+    measured = {k: v for k, v in scores.items() if v is not None}
+    if not measured:
+        return 'Run Code Index to analyse this project'
+    lowest = min(measured, key=lambda k: measured[k])
     tips = {
         'security': 'Run a security scan and move any hardcoded secrets to the vault',
         'complexity': 'Refactor high-complexity functions (CC≥8) into smaller units',
