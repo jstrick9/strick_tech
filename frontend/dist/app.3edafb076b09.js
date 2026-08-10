@@ -8117,9 +8117,18 @@ wfLog(`  ✗ ${data.error}`, 'error');
 document.getElementById(`wf-status-${data.node_id}`)?.classList.add('error');
 document.getElementById(`wf-node-${data.node_id}`)?.classList.add('error');
 } else if (data.type === 'final_output') {
+if (data.delivered === false) {
+wfLog(`⚠️ ${data.reason || 'No output delivered — upstream nodes failed.'}`, 'error');
+} else {
 wfLog(`📤 Output → ${data.target}: ${(data.result||'').slice(0,120)}`, 'output');
+}
 } else if (data.type === 'done') {
+if (data.status === 'failed') {
+const n = (data.errors||[]).length;
+wfLog(`❌ Workflow failed — ${n} node${n===1?'':'s'} errored`, 'error');
+} else {
 wfLog('✅ Workflow complete', 'success');
+}
 } else if (data.type === 'error') {
 wfLog(`❌ Error: ${data.msg}`, 'error');
 }

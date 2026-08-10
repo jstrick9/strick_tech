@@ -16,6 +16,8 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix='/api/multitab', tags=['multitab'])
 log = logging.getLogger('agentic.multitab')
 
+from fastapi.responses import JSONResponse
+
 from backend.config import get_data_dir
 
 from ..services.request_body import as_text, json_body_or_error
@@ -109,6 +111,37 @@ def _save_tabs():
 
 
 # ── REST endpoints ────────────────────────────────────────────────────────────
+def _safe_tab_url(raw, fallback: str) -> tuple[str, str | None]:
+    """Validate a tab URL. Returns (url, error).
+
+    `file` was carefully validated and `url` was not, even though the pane
+    assigns it straight to an iframe src (`frame.src = tab.url`). A tab created
+    with `javascript:alert(...)` was stored verbatim and reached a live iframe
+    in the browser -- persisted, so it re-armed on every load. CSP happens to
+    block execution today, which is defence in depth, not a reason to store it.
+
+    Only same-origin relative paths and http(s) are allowed. Control characters
+    are stripped first: "java\tscript:" is ignored by the URL parser but defeats
+    a naive prefix check.
+    """
+    text = (as_text(raw) or '').strip()
+    if not text:
+        return fallback, None
+    normalised = ''.join(ch for ch in text if ord(ch) > 31 and ord(ch) != 127).lower()
+    if normalised.startswith(('http://', 'https://')):
+        return text, None
+    if normalised.startswith('/') and not normalised.startswith('//'):
+        # Same-origin relative path. Reject traversal segments outright rather
+        # than normalising, so a stored tab can never point outside the app.
+        if '..' in normalised:
+            return fallback, 'URL must not contain path traversal segments'
+        return text, None
+    return fallback, (
+        'URL must be a same-origin path (/preview/...) or an http(s) address. '
+        f'Refused: {text[:60]!r}'
+    )
+
+
 @router.get('/tabs')
 def list_tabs():
     """Retrieve and return list tabs."""
@@ -124,7 +157,10 @@ async def create_tab(req: Request):
         return _body_err
     tid = f'tab_{uuid.uuid4().hex[:6]}'
     file = (as_text(body.get('file')) or 'index.html').lstrip('/')
-    url = body.get('url') or f'/preview/{file}'
+    default_url = f'/preview/{file}'
+    url, url_err = _safe_tab_url(body.get('url'), default_url)
+    if url_err:
+        return JSONResponse({'ok': False, 'error': url_err, 'code': 'invalid_url'}, status_code=400)
     title = body.get('title') or file
 
     tab = {
@@ -159,6 +195,15 @@ async def update_tab(tab_id: str, req: Request):
         return {'ok': False, 'error': 'Tab not found'}
 
     tab = tabs[tab_id]
+
+    # Second door: the URL bar patches this endpoint, and it accepted the same
+    # javascript: URL that create_tab now refuses.
+    if 'url' in body:
+        new_url, url_err = _safe_tab_url(body.get('url'), tab.get('url', '/preview/index.html'))
+        if url_err:
+            return JSONResponse({'ok': False, 'error': url_err, 'code': 'invalid_url'}, status_code=400)
+        body = {**body, 'url': new_url}
+
     _limits = {'title': 80, 'url': 2000, 'file': 200, 'favicon': 8}
     for k in ('title', 'url', 'file', 'pinned', 'favicon'):
         if k in body:
