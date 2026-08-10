@@ -1968,3 +1968,109 @@ html :focus:not(:focus-visible) {
   cursor: pointer;
 }
 .tech-badge.pqc-badge-sim { color: var(--warning); border-color: var(--warning); }
+
+/* ── ICM Workspaces pane ─────────────────────────────────────────────────── */
+.icm-head { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.icm-select {
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-0); font-size: 13px; padding: 7px 10px; min-width: 260px;
+}
+.icm-muted { color: var(--text-3); font-size: 12px; }
+.icm-bad { color: var(--danger); }
+.icm-empty {
+  padding: 28px; border: 1px dashed var(--border); border-radius: 12px;
+  background: var(--bg-2); max-width: 640px;
+}
+.icm-empty h3 { margin: 0 0 8px; font-size: 16px; color: var(--text-0); }
+.icm-empty p { margin: 0 0 14px; font-size: 13px; color: var(--text-2); line-height: 1.6; }
+
+/* Walk test — the headline, because a workspace that fails it looks fine
+   until an agent gets lost in it. */
+.icm-walk {
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 10px; background: var(--bg-2); padding: 12px 14px; margin-bottom: 16px;
+}
+.icm-walk-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 12.5px; }
+.icm-check { font-weight: 600; }
+.icm-check.is-ok { color: var(--success); }
+.icm-check.is-bad { color: var(--danger); }
+.icm-entry { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.icm-entry code {
+  background: var(--bg-3); padding: 2px 7px; border-radius: 5px;
+  color: var(--accent-text); font-family: var(--mono, monospace);
+}
+.icm-problems { margin: 10px 0 0; padding-left: 18px; font-size: 12px; line-height: 1.7; }
+.icm-problems li.is-error { color: var(--danger); }
+.icm-problems li.is-warn { color: var(--warning); }
+
+/* Stage pipeline — the numbering IS the sequence, so show it as a chain. */
+.icm-pipeline {
+  display: flex; align-items: stretch; gap: 6px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.icm-arrow { color: var(--text-3); align-self: center; font-size: 14px; }
+.icm-stage {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer;
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 14px; min-width: 130px; color: var(--text-1); font: inherit;
+}
+.icm-stage:hover { border-color: var(--accent); }
+.icm-stage.is-selected { border-color: var(--accent); background: var(--bg-3); }
+.icm-stage.is-done { border-left: 3px solid var(--success); }
+.icm-stage.is-active { border-left: 3px solid var(--accent); }
+.icm-stage-n {
+  font-family: var(--mono, monospace); font-size: 11px; color: var(--text-3); font-weight: 700;
+}
+.icm-stage-name { font-size: 13px; font-weight: 600; color: var(--text-0); }
+.icm-stage-state { font-size: 10.5px; color: var(--text-3); }
+
+.icm-stage-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+.icm-stage-head h4 { margin: 0; font-size: 15px; color: var(--text-0); font-family: var(--mono, monospace); }
+.icm-budget {
+  font-size: 11.5px; color: var(--text-2); background: var(--bg-3);
+  padding: 3px 9px; border-radius: 999px;
+}
+.icm-missing {
+  border: 1px solid var(--warning); border-radius: 8px; background: var(--bg-2);
+  padding: 9px 12px; margin-bottom: 12px; font-size: 12px; color: var(--warning);
+}
+.icm-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .icm-cols { grid-template-columns: 1fr; } }
+.icm-cols h5 {
+  margin: 0 0 8px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--text-3);
+}
+.icm-cols h5:not(:first-child) { margin-top: 18px; }
+
+.icm-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.icm-table th {
+  text-align: left; color: var(--text-3); font-weight: 600; font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: .5px; padding: 4px 8px 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.icm-table td { padding: 5px 8px 5px 0; border-bottom: 1px solid var(--border); color: var(--text-1); }
+.icm-table code, .icm-onto-body code {
+  font-family: var(--mono, monospace); background: var(--bg-3);
+  padding: 1px 5px; border-radius: 4px; font-size: 11px;
+}
+
+.icm-layers { list-style: none; margin: 0; padding: 0; font-size: 12px; }
+.icm-layers li {
+  display: flex; gap: 8px; align-items: center; padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+.icm-layer-tag {
+  font-family: var(--mono, monospace); font-size: 10px; font-weight: 700;
+  color: var(--accent-text); background: var(--bg-3);
+  padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+}
+
+.icm-onto, .icm-raw { margin-top: 18px; }
+.icm-onto summary, .icm-raw summary {
+  cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text-1); padding: 6px 0;
+}
+.icm-onto-body { padding: 10px 0 0; font-size: 12px; color: var(--text-1); line-height: 1.9; }
+.icm-pre {
+  background: var(--bg-0); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px; font-family: var(--mono, monospace); font-size: 11px;
+  color: var(--text-2); white-space: pre-wrap; max-height: 340px; overflow: auto;
+}
