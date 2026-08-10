@@ -136,9 +136,10 @@ Return ONLY valid JSON."""
         with contextlib.suppress(Exception):
             faith_data = json.loads(m.group(0))
 
-    faithfulness = float(faith_data.get('faithfulness', 0.7))
-    hallucination = float(faith_data.get('hallucination', 0.3))
-    if hallucination > 0.6:
+    # None, not a guess: an unparseable judge reply means UNMEASURED.
+    faithfulness = _score_or_none(faith_data.get('faithfulness'))
+    hallucination = _score_or_none(faith_data.get('hallucination'))
+    if hallucination is not None and hallucination > 0.6:
         issues.append(
             {'type': 'hallucination', 'severity': 'high', 'detail': faith_data.get('hallucination_reason', '')}
         )
@@ -171,8 +172,8 @@ Return ONLY valid JSON."""
         with contextlib.suppress(Exception):
             task_data = json.loads(m.group(0))
 
-    task_completion = float(task_data.get('task_completion', 0.7))
-    if task_completion < 0.5:
+    task_completion = _score_or_none(task_data.get('task_completion'))
+    if task_completion is not None and task_completion < 0.5:
         issues.append({'type': 'incomplete', 'severity': 'medium', 'detail': task_data.get('reason', '')})
 
     # ── 3. Safety check ───────────────────────────────────────────────────────
@@ -216,32 +217,89 @@ Return ONLY valid JSON."""
         with contextlib.suppress(Exception):
             quality_data = json.loads(m.group(0))
 
-    response_quality = int(quality_data.get('quality', 70))
+    response_quality = _score_or_none(quality_data.get('quality'), scale=100)
 
     # ── 5. Tool accuracy ─────────────────────────────────────────────────────
     tool_accuracy = 1.0 if not tools_called else min(1.0, len(tools_called) * 0.3 + 0.4)
 
     # ── Overall score ─────────────────────────────────────────────────────────
-    overall = int(
-        task_completion * 30
-        + faithfulness * 25
-        + (1 - hallucination) * 25
-        + (response_quality / 100) * 15
-        + safety_score * 5
-    )
-    pass_fail = 'pass' if overall >= 70 else 'fail' if overall < 50 else 'warn'
+    # Average only what was measured and renormalise the weights, exactly as
+    # project-health does. Excluding a dimension without renormalising would
+    # cap the score and fail a good response for an unparseable judge reply --
+    # the same wrong answer in the other direction.
+    weighted = [
+        ('task_completion', task_completion, 30),
+        ('faithfulness', faithfulness, 25),
+        ('hallucination_inverse', None if hallucination is None else 1 - hallucination, 25),
+        ('response_quality', None if response_quality is None else response_quality / 100, 15),
+        ('safety_score', safety_score, 5),
+    ]
+    measured = [(v, w) for _, v, w in weighted if v is not None]
+    unmeasured = sorted(k for k, v, _ in weighted if v is None)
+    total_weight = sum(w for _, w in measured)
+
+    # A coverage floor matters as much as renormalising. Safety alone carries
+    # weight 5 and is computed locally (never None), so renormalising over it
+    # scored a totally unjudged response 100/pass -- worse than the invented
+    # 71 it replaced. Below the floor the result is reported as unmeasured.
+    MIN_MEASURED_WEIGHT = 50
+    if total_weight >= MIN_MEASURED_WEIGHT:
+        overall = int(sum(v * w for v, w in measured) / total_weight * 100)
+        pass_fail = 'pass' if overall >= 70 else 'fail' if overall < 50 else 'warn'
+    else:
+        # Too little was judged to state a verdict. "Not evaluated" and
+        # "evaluated, and it passed" must not render identically.
+        overall = None
+        pass_fail = 'unmeasured'  # noqa: S105 - a verdict label, not a credential
+
+    if unmeasured:
+        issues.append({
+            'type': 'unmeasured',
+            'severity': 'low',
+            'detail': (
+                'The judge model did not return usable JSON for: '
+                + ', '.join(unmeasured)
+                + '. These are excluded from the score rather than assumed.'
+            ),
+        })
+
+    def _r(v, nd=3):
+        return None if v is None else round(v, nd)
 
     return {
-        'task_completion': round(task_completion, 3),
-        'faithfulness': round(faithfulness, 3),
-        'hallucination': round(hallucination, 3),
+        'task_completion': _r(task_completion),
+        'faithfulness': _r(faithfulness),
+        'hallucination': _r(hallucination),
         'response_quality': response_quality,
         'tool_accuracy': round(tool_accuracy, 3),
         'safety_score': round(safety_score, 3),
         'overall_score': overall,
         'pass_fail': pass_fail,
+        # Which dimensions the judge failed to produce, and how much of the
+        # weighting the score is actually based on.
+        'unmeasured': unmeasured,
+        'measured_weight_pct': round(total_weight, 1),
         'issues': issues,
     }
+
+
+def _score_or_none(raw, scale: float = 1.0):
+    """Coerce a judge score, or None when the model gave nothing usable.
+
+    Returning an invented mid-range number here is how an evaluation that
+    measured nothing came to report "pass" at 71.
+    """
+    if raw is None:
+        return None
+    try:
+        val = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if val != val:  # NaN
+        return None
+    if scale == 100:
+        return int(min(100.0, max(0.0, val)))
+    return min(1.0, max(0.0, val))
 
 
 # ── REST endpoints ─────────────────────────────────────────────────────────────

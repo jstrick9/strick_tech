@@ -12811,7 +12811,9 @@ fetch('/api/observability/dora').then(r=>r.ok?r.json().catch(()=>{}):null).catch
 fetch('/api/observability/compliance/eu-ai-act').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({checks:[],score:0})),
 ]);
 const s = analytics.summary || {};
-const doraGradeColor = {Elite:'var(--success)',High:'var(--info)',Medium:'var(--warning)',Low:'var(--danger)'}[dora.grade||'Low'];
+const doraGradeColor = dora.grade
+? ({Elite:'var(--success)',High:'var(--info)',Medium:'var(--warning)',Low:'var(--danger)'}[dora.grade] || 'var(--text-3)')
+: 'var(--border)';
 const compColor = compliance.score>=80?'var(--success)':compliance.score>=50?'var(--warning)':'var(--danger)';
 pane.innerHTML = `
   
@@ -12869,14 +12871,14 @@ pane.innerHTML = `
         }).map(([key,m])=>`
           <div class="u-534c2d64">
             <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">${key.replace(/_/g,' ')}</div>
-            <div style="font-size:24px;font-weight:800;color:var(--text-0)">${m?.value||0}</div>
-            <div style="font-size:12px;color:var(--text-2)">${m?.label||''}</div>
+            <div style="font-size:24px;font-weight:800;color:${(m?.value===null||m?.value===undefined)?'var(--text-3)':'var(--text-0)'}">${(m?.value===null||m?.value===undefined)?'—':m.value}</div>
+            <div style="font-size:12px;color:var(--text-2)">${escHtml(m?.label||'')}</div>
           </div>`).join('')}
       </div>
       <div style="background:var(--bg-2);border:1px solid ${doraGradeColor};border-radius:12px;padding:16px;text-align:center">
-        <div style="font-size:40px;font-weight:800;color:${doraGradeColor}">${dora.grade||'?'}</div>
+        <div style="font-size:${dora.grade?'40px':'20px'};font-weight:800;color:${doraGradeColor}">${dora.grade ? escHtml(dora.grade) : 'Not graded'}</div>
         <div style="font-size:14px;color:var(--text-0)">DORA Performance Level</div>
-        <div style="font-size:12px;color:var(--text-2);margin-top:4px">Elite → High → Medium → Low</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:4px">${dora.grade_basis ? escHtml(dora.grade_basis) : 'Elite → High → Medium → Low'}</div>
       </div>
     </div>
 

@@ -404,12 +404,23 @@ def dora_metrics(days: int = 30):
     try:
         window = f"datetime('now','-{days} days')"
         # Deployment frequency (new agents created)
-        deploys = con.execute(f'SELECT COUNT(*) FROM agents WHERE created_at >= {window}').fetchone()[0]
+        # Only agents the user actually created. The built-ins are seeded at
+        # first boot and are not deployments -- counting them reported
+        # "12 deployments" on an install where nobody had deployed anything.
+        from ..services.memory_db import DEFAULT_AGENTS
+
+        _builtin_ids = [a['id'] for a in DEFAULT_AGENTS]
+        _ph = ','.join('?' * len(_builtin_ids)) or "''"
+        deploys = con.execute(
+            f'SELECT COUNT(*) FROM agents WHERE created_at >= {window} AND id NOT IN ({_ph})',
+            _builtin_ids,
+        ).fetchone()[0]
         # MTTR: avg time between first error and next success for same agent
         errors = con.execute(f"""SELECT COUNT(*) FROM obs_traces
             WHERE status='error' AND created_at >= {window}""").fetchone()[0]
         total = con.execute(f'SELECT COUNT(*) FROM obs_traces WHERE created_at >= {window}').fetchone()[0]
-        error_rate = round(errors / max(total, 1) * 100, 2)
+        # No traces means the failure rate is UNKNOWN, not zero.
+        error_rate = round(errors / total * 100, 2) if total else None
         # Lead time: avg latency of eval runs (proxy for code-to-deploy)
         avg_latency = con.execute(
             f'SELECT AVG(total_latency_ms) FROM obs_traces WHERE created_at >= {window}'
@@ -423,25 +434,52 @@ def dora_metrics(days: int = 30):
         con.close()
 
     deploy_freq = f'{deploys} in {days} days' if deploys > 0 else 'No deployments'
+
+    # A DORA grade is a performance claim. Award one only when there is
+    # something to grade.
+    if total == 0 or error_rate is None:
+        grade = None
+        grade_basis = 'Not enough data to grade — no agent activity recorded in this period.'
+    elif deploys == 0:
+        grade = None
+        grade_basis = (
+            f'Not enough data to grade — {total} run(s) recorded but no deployments '
+            'in this period.'
+        )
+    else:
+        grade = (
+            'Elite' if error_rate < 5
+            else 'High' if error_rate < 10
+            else 'Medium' if error_rate < 15
+            else 'Low'
+        )
+        grade_basis = f'Based on {total} run(s) and {deploys} deployment(s) over {days} days.'
+
     return {
         'deployment_frequency': {'value': deploys, 'label': deploy_freq, 'unit': 'deployments'},
         'lead_time_ms': {
-            'value': round(avg_latency or 0),
-            'label': f'{round((avg_latency or 0) / 1000, 1)}s avg',
+            'value': round(avg_latency) if avg_latency else None,
+            'label': f'{round(avg_latency / 1000, 1)}s avg' if avg_latency else 'Not measured',
             'unit': 'ms',
         },
-        'change_failure_rate': {'value': error_rate, 'label': f'{error_rate}% error rate', 'unit': '%'},
-        'mttr_ms': {'value': round(avg_latency or 0) * 2, 'label': 'Estimated', 'unit': 'ms'},
-        'p95_latency_ms': {'value': p95_latency, 'label': f'{round(p95_latency / 1000, 2)}s p95', 'unit': 'ms'},
+        'change_failure_rate': {
+            'value': error_rate,
+            'label': f'{error_rate}% error rate' if error_rate is not None else 'Not measured',
+            'unit': '%',
+        },
+        # MTTR was avg_latency * 2 with the label "Estimated" -- a made-up
+        # multiplier presented as a metric. Reported as unavailable until it
+        # is actually derived from recovery times.
+        'mttr_ms': {'value': None, 'label': 'Not tracked', 'unit': 'ms'},
+        'p95_latency_ms': {
+            'value': p95_latency or None,
+            'label': f'{round(p95_latency / 1000, 2)}s p95' if p95_latency else 'Not measured',
+            'unit': 'ms',
+        },
         'total_traces': total,
         'period_days': days,
-        'grade': 'Elite'
-        if error_rate < 5 and deploys > 0
-        else 'High'
-        if error_rate < 10
-        else 'Medium'
-        if error_rate < 15
-        else 'Low',
+        'grade': grade,
+        'grade_basis': grade_basis,
     }
 
 
