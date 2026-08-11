@@ -270,7 +270,23 @@ def run() -> AuditResult:
     header = re.compile(r'\s*\*\*(Panes?|Destinations?|Tabs?):\*\*\s*(.+)', re.I)
     for f in review_dir.glob('*.md'):
         stem = f.stem.lower()
-        reviewed_panes.update(re.findall(r'[a-z0-9][a-z0-9-]*', stem))
+        # BUG FIX (third occurrence of this same class). The token pattern
+        # `[a-z0-9][a-z0-9-]*` swallows the numeric prefix, so `10-imagegen.md`
+        # yielded the single token '10-imagegen' and never the pane id
+        # 'imagegen'. The early pane-based reviews (docs 00-42) all carry that
+        # shape and name their subject only in a `**Surface:**` line of FILE
+        # PATHS, which cannot credit a pane either -- so `imagegen` and
+        # `prompts` sat near the top of the queue as unreviewed while
+        # docs/module-reviews/10-imagegen.md and 11-prompt-library.md had
+        # already fixed 8 and 4 bugs in them respectively.
+        #
+        # Dropping a leading `NN-` before tokenising, and also keeping the
+        # hyphen-split parts, credits those docs without loosening the match for
+        # anything else. Verified against the queue before and after.
+        stem_nonum = re.sub(r'^\d+[-_]', '', stem)
+        for token in (stem, stem_nonum):
+            reviewed_panes.update(re.findall(r'[a-z0-9][a-z0-9-]*', token))
+            reviewed_panes.update(t for t in token.split('-') if t and not t.isdigit())
         for line in f.read_text(encoding='utf-8', errors='ignore').splitlines():
             m = header.match(line)
             if m:
