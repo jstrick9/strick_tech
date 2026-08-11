@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import time
 import uuid
 
@@ -18,6 +19,7 @@ from ..services import llm, memory_db
 from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(prefix='/api/swarm', tags=['swarm'])
+log = logging.getLogger('agentic.swarm')
 
 def _bounded_int(value, default: int, minimum: int, maximum: int) -> int:
     try:
@@ -158,12 +160,37 @@ async def swarm_run(req: Request):
             try:
                 j = json.loads(judge_result.get('text', '{}'))
                 winner_id = j.get('winner')
-                scores = j.get('scores', {})
+                scores = j.get('scores', {}) if isinstance(j.get('scores'), dict) else {}
                 judge_reason = j.get('reason', '')
             except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                 # fallback: pick longest response
                 winner_id = max(valid_runs, key=lambda r: len(r.get('output', '')))['agent']
                 judge_reason = 'Fallback: selected longest response'
+
+            # BUG FIX: the judge's `winner` was trusted verbatim. A judge model
+            # that names an agent which never ran -- or one whose own run failed
+            # -- produced a result with an EMPTY winner_output, a confident
+            # score, and ok:true. Reproduced with a stubbed judge returning
+            # {"winner": "ghost_agent", "scores": {"ghost_agent": 0.99}}:
+            #
+            #   winner: ghost_agent | winner_output: '' | improvement: 'score: 99%'
+            #
+            # Two real agents had produced usable answers and both were
+            # discarded in favour of a name the judge invented. Judges
+            # hallucinate identifiers routinely, so the verdict has to be
+            # checked against the runs that actually happened.
+            valid_ids = {r['agent'] for r in valid_runs}
+            if winner_id not in valid_ids:
+                rejected = winner_id
+                winner_id = max(valid_runs, key=lambda r: len(r.get('output', '')))['agent']
+                scores = {}
+                judge_reason = (
+                    f"Judge named '{rejected}', which did not produce a response — "
+                    f'fell back to the longest valid answer ({winner_id}).'
+                    if rejected
+                    else f'Judge returned no winner — fell back to the longest valid answer ({winner_id}).'
+                )
+                log.warning('Swarm judge named an invalid winner %r; fell back to %s', rejected, winner_id)
 
             if winner_id:
                 wr = next((r for r in runs if r['agent'] == winner_id), None)
@@ -199,10 +226,17 @@ async def swarm_run(req: Request):
 
     # ── Fan-out only ──────────────────────────────────────────────────────────
     if strategy == 'fanout' and not winner_id:
-        # just pick the first successful one
-        first_ok = next((r for r in runs if r.get('ok')), runs[0] if runs else {})
-        winner_id = first_ok.get('agent', '')
-        winner_output = first_ok.get('output', '')
+        # Defensive, not a fixed bug: the previous `next((r for r in runs if
+        # r.get('ok')), runs[0])` already skipped failed runs, and `runs[0]`
+        # could only be reached when NOTHING succeeded -- a case the 503 below
+        # now catches first. Proven by revert-proof: reverting this changed no
+        # test outcome. Kept because the explicit form cannot be misread, and
+        # recorded here so the next person does not go looking for the bug it
+        # appears to fix.
+        first_ok = next((r for r in runs if r.get('ok') and r.get('output')), None)
+        if first_ok:
+            winner_id = first_ok.get('agent', '')
+            winner_output = first_ok.get('output', '')
 
     # ── Persist to swarm_history ──────────────────────────────────────────────
     try:
@@ -240,7 +274,7 @@ async def swarm_run(req: Request):
             tags=f'swarm,{strategy},{winner_id}',
         )
 
-    winner_score = scores.get(winner_id, None) if scores else None
+    winner_score = scores.get(winner_id) if scores else None
 
     # A swarm in which every agent failed reported ok:true with a null winner,
     # so the UI rendered an empty but "successful" run. If nothing succeeded,

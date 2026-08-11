@@ -99,12 +99,22 @@ async def _call_model(model: str, messages: list, max_tokens: int = 1024, temper
 
     key = os.getenv('OPENROUTER_API_KEY', '')
     if not key:
+        # BUG FIX: this hand-rolled its own placeholder with `error: False` and
+        # none of the markers llm.is_stub() looks for, so every caller treated
+        # the string "[Stub: <model> — set OPENROUTER_API_KEY]" as a real model
+        # answer. /route then returned it with ok:true and error:false, and the
+        # panel paths scored it against genuine responses. Flagging it here
+        # fixes every consumer at once rather than at each call site.
+        from ..services.llm import STUB_PROVIDER
+
         return {
             'model': model,
             'text': f'[Stub: {model} — set OPENROUTER_API_KEY]',
             'tokens': 0,
             'latency_ms': 0,
-            'error': False,
+            'error': True,
+            'stub': True,
+            'provider': STUB_PROVIDER,
         }
     t0 = time.perf_counter()
     try:
@@ -385,16 +395,36 @@ async def smart_route(req: Request):
     model, reason = TASK_ROUTER.get(task_type, ('google/gemini-2.0-flash-exp:free', 'default fallback'))
 
     result = await _call_model(model, [{'role': 'user', 'content': prompt}], max_tok)
-    return {
-        'ok': True,
+    # BUG FIX: `ok` was hardcoded True while `error` was read from the result --
+    # two fields disagreeing about the same call, and the one clients check
+    # first was the one that never varied. Worse, with no provider configured
+    # the router returned the placeholder string
+    # "[Stub: anthropic/claude-3.5-sonnet — set OPENROUTER_API_KEY]" as `text`
+    # with ok:true AND error:false, so the caller stored setup instructions as
+    # the model's answer. Verified live.
+    from ..services.llm import is_stub as _is_stub
+
+    stubbed = _is_stub(result)
+    failed = bool(result.get('error')) or stubbed
+    out = {
+        'ok': not failed,
         'task_type': task_type,
         'model': model,
         'reason': reason,
-        'text': result.get('text', ''),
+        'text': '' if stubbed else result.get('text', ''),
         'tokens': result.get('tokens', 0),
         'latency_ms': result.get('latency_ms', 0),
-        'error': result.get('error', False),
+        'error': failed,
     }
+    if stubbed:
+        out['error_message'] = (
+            'No AI provider is configured or reachable, so no model was actually called. '
+            'Set OPENROUTER_API_KEY or run a local Ollama model.'
+        )
+        out['stub'] = True
+    elif result.get('error'):
+        out['error_message'] = str(result.get('text') or 'Model call failed')[:300]
+    return out
 
 
 def _classify_task(prompt: str) -> str:
