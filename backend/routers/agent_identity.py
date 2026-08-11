@@ -346,9 +346,32 @@ def validate_jit_token(token_id: str, agent_id: str, required_action: str = '') 
         if row['used_count'] >= row['max_uses']:
             return JSONResponse({'ok': False, 'error': 'Token max uses exceeded'}, status_code=403)
 
-        scope = json.loads(row['scope'] or '[]')
-        if required_action and scope and required_action not in scope:
-            return JSONResponse({'ok': False, 'error': f'Token scope does not include: {required_action}'}, status_code=403)
+        try:
+            scope = json.loads(row['scope'] or '[]')
+        except (ValueError, TypeError):
+            scope = []
+        if not isinstance(scope, list):
+            scope = []
+        # SECURITY FIX: the check was `if required_action and scope and ...`, so
+        # an EMPTY scope skipped it entirely and the token validated for any
+        # action asked of it. In a zero-trust design an empty scope is the least
+        # privilege there is -- it must mean "nothing", not "everything".
+        # Verified live against an issued token with scope []:
+        #   required_action='delete_everything' -> {"ok": true}   (200)
+        # while the same request against a token scoped ['read_file'] correctly
+        # returned 403. The unscoped token was the more powerful one.
+        #
+        # A wildcard is still available for callers that genuinely want an
+        # unrestricted token, but it now has to be asked for explicitly.
+        if required_action and '*' not in scope and required_action not in scope:
+            return JSONResponse(
+                {
+                    'ok': False,
+                    'error': f'Token scope does not include: {required_action}',
+                    'scope': scope,
+                },
+                status_code=403,
+            )
 
         # Increment use count
         con.execute('UPDATE agent_jit_tokens SET used_count=used_count+1 WHERE token_id=?', (token_id,))
@@ -556,8 +579,34 @@ async def issue_token(agent_id: str, req: Request):
 
     task_id = (body.get('task_id') or '')[:64]
     scope = body.get('scope') or []
-    ttl = min(int(body.get('ttl_seconds') or DEFAULT_TOKEN_TTL_SECONDS), 86400)
-    max_uses = min(int(body.get('max_uses') or DEFAULT_MAX_USES), 10000)
+    if not isinstance(scope, list):
+        return JSONResponse({'ok': False, 'error': 'scope must be a list of action names'}, status_code=400)
+    scope = [str(x)[:64] for x in scope if str(x).strip()]
+
+    # BUG FIX (two): `int(body.get('ttl_seconds'))` raised ValueError on a
+    # non-numeric value and took the endpoint out with HTTP 500 -- verified with
+    # {"ttl_seconds": "abc"}. And only the UPPER bound was clamped, so
+    # {"ttl_seconds": -500} minted a token that had ALREADY EXPIRED and returned
+    # it as {"ok": true, "expires_in": -500}. A credential that cannot work,
+    # handed over as if it can, is a debugging trap: every later use fails with
+    # "token expired" and nothing points back to the moment of issue.
+    def _bounded(value, default: int, lo: int, hi: int) -> int | None:
+        if value is None or value == '':
+            return default
+        try:
+            n = int(value)
+        except (TypeError, ValueError):
+            return None
+        return max(lo, min(n, hi))
+
+    ttl = _bounded(body.get('ttl_seconds'), DEFAULT_TOKEN_TTL_SECONDS, 1, 86400)
+    if ttl is None:
+        return JSONResponse(
+            {'ok': False, 'error': 'ttl_seconds must be a whole number of seconds'}, status_code=400
+        )
+    max_uses = _bounded(body.get('max_uses'), DEFAULT_MAX_USES, 1, 10000)
+    if max_uses is None:
+        return JSONResponse({'ok': False, 'error': 'max_uses must be a whole number'}, status_code=400)
 
     result = issue_jit_token(agent_id, task_id, scope, ttl, max_uses)
     return result

@@ -1217,6 +1217,23 @@ def delete_agent(agent_id: str):
     return {'ok': True, 'deleted': agent_id}
 
 
+def _is_loopback(url: str) -> bool:
+    """True for 127.0.0.0/8 and localhost, which are legitimate a2a targets.
+
+    The platform registers its own agents at http://localhost:8787/a2a/<id>, so
+    refusing loopback outright would break self-registration. Everything else
+    private -- link-local 169.254/16, 10/8, 192.168/16, cloud metadata -- stays
+    refused.
+    """
+    from urllib.parse import urlparse
+
+    try:
+        host = (urlparse(url).hostname or '').lower()
+    except ValueError:
+        return False
+    return host in ('localhost', '127.0.0.1', '::1') or host.startswith('127.')
+
+
 @router.post('/api/a2a/agents/{agent_id}/verify')
 async def verify_agent(agent_id: str):
     """
@@ -1250,12 +1267,37 @@ async def verify_agent(agent_id: str):
         a2a_url.rstrip('/') + '/card',
     ]
 
+    # SECURITY FIX: this fetched whatever URL had been registered for the agent,
+    # with no address check and redirects followed by default. `a2a_url` is
+    # caller-supplied, so "verify this agent" was a server-side request forgery
+    # primitive pointed wherever the caller liked. Verified live: registering an
+    # agent at http://169.254.169.254/latest/meta-data and calling verify made
+    # the server attempt all three link-local URLs (it failed only because
+    # nothing answers on that address in this sandbox). The plugin installer
+    # already refuses the identical URL with "Refusing to contact internal
+    # address" -- this endpoint simply never got the same guard, the same
+    # second-door shape seen throughout this review.
+    #
+    # A localhost a2a_url is legitimate here (the platform registers its own
+    # agents at http://localhost:8787/a2a/...), so loopback is allowed while
+    # link-local, private and metadata ranges are not.
+    from ..services.safe_fetch import url_is_safe
+
     card = None
     fetched_from = ''
+    blocked: list[str] = []
     for url in card_urls:
+        ok_url, why = url_is_safe(url, allow_private=_is_loopback(url))
+        if not ok_url:
+            blocked.append(f'{url}: {why}')
+            continue
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
                 r = await client.get(url, headers={'Accept': 'application/json'})
+                # A redirect would walk straight past the check above.
+                if r.is_redirect:
+                    blocked.append(f'{url}: refused to follow a redirect')
+                    continue
                 if r.status_code == 200:
                     card = r.json()
                     fetched_from = url
@@ -1315,7 +1357,15 @@ async def verify_agent(agent_id: str):
             'agent_id': agent_id,
             'status': 'unreachable',
             'tried_urls': card_urls,
-            'error': 'Could not fetch agent card from any URL',
+            # Distinguish "refused for safety" from "nobody answered". Without
+            # this a blocked internal address looked identical to a dead host,
+            # so an operator could not tell the guard had fired.
+            'blocked_urls': blocked,
+            'error': (
+                'Refused to fetch the agent card: the address is internal or otherwise not allowed.'
+                if blocked and len(blocked) == len(card_urls)
+                else 'Could not fetch agent card from any URL'
+            ),
         }
 
 
