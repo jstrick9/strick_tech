@@ -128,6 +128,27 @@ def _record_frame(
         con.close()
 
 
+def _run_had_errors(run_id: str) -> bool:
+    """Did any recorded frame carry an error?
+
+    Read from the frames rather than tracked in each loop: the frames are the
+    record, and two loops maintaining their own counters is how they drift.
+    """
+    from ..services.memory_db import get_conn
+
+    con = get_conn()
+    try:
+        row = con.execute(
+            "SELECT COUNT(*) FROM workflow_run_frames WHERE run_id=? AND error != ''",
+            (run_id,),
+        ).fetchone()
+        return bool(row and row[0])
+    except Exception:
+        return False
+    finally:
+        con.close()
+
+
 def _finish_run(run_id: str, status: str, total_ms: int, node_count: int):
     from ..services.memory_db import get_conn
 
@@ -379,7 +400,16 @@ async def recorded_run(wf_id: str, req: Request):
                 queue.append(nxt)
 
         total_ms = int((time.perf_counter() - run_start) * 1000)
-        _finish_run(run_id, 'done', total_ms, len(visited))
+        frame_errors = _run_had_errors(run_id)
+        # A run with failed nodes is not 'done'. Hardcoding it meant the
+        # replay list -- whose whole purpose is auditing past runs -- showed a
+        # green result for a run where every agent node errored.
+        _finish_run(
+            run_id,
+            'failed' if frame_errors else 'done',
+            total_ms,
+            len(visited),
+        )
         yield f'data: {json.dumps({"type": "done", "run_id": run_id, "total_ms": total_ms, "frames": frame_no})}\n\n'
 
     return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
@@ -586,7 +616,13 @@ async def rerun_from_frame(run_id: str, frame_no: int, req: Request):
                 queue.append(nxt)
 
         total_ms = int((time.perf_counter() - run_start) * 1000)
-        _finish_run(new_run_id, 'done', total_ms, len(visited))
+        frame_errors = _run_had_errors(new_run_id)
+        _finish_run(
+            new_run_id,
+            'failed' if frame_errors else 'done',
+            total_ms,
+            len(visited),
+        )
         yield f'data: {json.dumps({"type": "done", "run_id": new_run_id, "original_run_id": run_id})}\n\n'
 
     return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}

@@ -59,6 +59,7 @@ async function renderLeaderboard() {
         <button class="btn-sm u-6d000617" data-act-click="lbExport()" >⬇ Export</button>
       </div>
       <div id="lb-table-container">
+      ${lb.ranking_basis ? `<div class="lb-basis">${escHtml(lb.ranking_basis)}</div>` : ''}
       ${(lb.leaderboard||[]).length ? `
         <div class="u-f132e9db">
           <div style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:8px 14px;background:var(--bg-3);font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px">
@@ -66,7 +67,11 @@ async function renderLeaderboard() {
           </div>
           ${(lb.leaderboard||[]).map((a, i) => {
             const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
-            const col   = a.success_rate>=90?'var(--success)':a.success_rate>=70?'var(--warning)':'var(--danger)';
+            // Colour on the ranking score, not the raw ratio: 1/1 = 100% is
+            // not evidence and must not read as "best agent, bright green".
+            const rank_s = (a.ranking_score !== undefined) ? a.ranking_score : a.success_rate;
+            const col   = a.low_confidence ? 'var(--text-3)'
+                        : rank_s>=80?'var(--success)':rank_s>=60?'var(--warning)':'var(--danger)';
             const rating = a.avg_rating ? '★'.repeat(Math.round(a.avg_rating)) : '—';
             return `
               <div style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:10px 14px;border-top:1px solid var(--border);align-items:center;cursor:pointer;transition:background .1s"
@@ -78,7 +83,7 @@ async function renderLeaderboard() {
                   <div style="font-weight:600;color:var(--text-0);font-size:13px">${escHtml(a.name||a.agent_id)}</div>
                   <div style="font-size:10px;color:var(--text-3)">${escHtml(a.agent_id)}</div>
                 </div>
-                <div style="font-weight:700;color:${col};font-size:13px">${a.success_rate||0}%</div>
+                <div style="font-weight:700;color:${col};font-size:13px" title="${a.low_confidence?'Too few calls to be meaningful':'Ranked on '+rank_s+' (confidence-adjusted)'}">${a.success_rate||0}%${a.low_confidence?' <span style="font-weight:400;font-size:10px;color:var(--text-3)">?</span>':''}</div>
                 <div style="color:var(--text-2);font-size:12px">${a.total_calls||0}</div>
                 <div style="color:var(--text-2);font-size:12px">${Math.round(a.avg_latency||0)}ms</div>
                 <div style="color:var(--text-2);font-size:12px">$${(a.total_cost||0).toFixed(4)}</div>
@@ -258,7 +263,11 @@ async function lbChangeDays(days) {
         </div>
         ${lb.leaderboard.map((a, i) => {
           const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
-          const col   = a.success_rate>=90?'var(--success)':a.success_rate>=70?'var(--warning)':'var(--danger)';
+          // Second door: this renderer coloured on the raw ratio too, so a
+          // 1-call 100% agent still showed bright green here.
+          const rank_s = (a.ranking_score !== undefined) ? a.ranking_score : a.success_rate;
+          const col   = a.low_confidence ? 'var(--text-3)'
+                      : rank_s>=80?'var(--success)':rank_s>=60?'var(--warning)':'var(--danger)';
           const rating = a.avg_rating ? '★'.repeat(Math.min(5,Math.round(a.avg_rating))) : '—';
           return `<div style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:10px 14px;border-top:1px solid var(--border);align-items:center;cursor:pointer;transition:background .1s"
                        data-hover="bg:var(--bg-3)" data-hover-out="bg:"
@@ -269,7 +278,7 @@ async function lbChangeDays(days) {
               <div style="font-weight:600;color:var(--text-0);font-size:13px">${escHtml(a.name||a.agent_id)}</div>
               <div style="font-size:10px;color:var(--text-3)">${escHtml(a.agent_id)}</div>
             </div>
-            <div style="font-weight:700;color:${col};font-size:13px">${a.success_rate||0}%</div>
+            <div style="font-weight:700;color:${col};font-size:13px" title="${a.low_confidence?'Too few calls to be meaningful':''}">${a.success_rate||0}%${a.low_confidence?' <span style="font-weight:400;font-size:10px;color:var(--text-3)">?</span>':''}</div>
             <div style="color:var(--text-2);font-size:12px">${a.total_calls||0}</div>
             <div style="color:var(--text-2);font-size:12px">${Math.round(a.avg_latency||0)}ms</div>
             <div style="color:var(--text-2);font-size:12px">$${(a.total_cost||0).toFixed(4)}</div>

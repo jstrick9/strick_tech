@@ -68,10 +68,10 @@
       "gzip": 248142,
       "brotli": 188016
     },
-    "chunks.fc4ad5134305.js": {
+    "chunks.844b9ce0358a.js": {
       "raw": 1575,
-      "gzip": 749,
-      "brotli": 653
+      "gzip": 748,
+      "brotli": 655
     },
     "pane-a2a.b18f99e554e2.js": {
       "raw": 26597,
@@ -173,10 +173,10 @@
       "gzip": 5784,
       "brotli": 4973
     },
-    "pane-leaderboard.52b5b9155750.js": {
-      "raw": 22166,
-      "gzip": 5597,
-      "brotli": 4823
+    "pane-leaderboard.84cb8f9e8f32.js": {
+      "raw": 23195,
+      "gzip": 5906,
+      "brotli": 5068
     },
     "pane-loops.353f78a3c5cb.js": {
       "raw": 7337,
@@ -391,11 +391,11 @@
       "bytes": 25133
     },
     "leaderboard": {
-      "file": "pane-leaderboard.52b5b9155750.js",
+      "file": "pane-leaderboard.84cb8f9e8f32.js",
       "modules": [
         "45-leaderboard.js"
       ],
-      "bytes": 22166
+      "bytes": 23195
     },
     "loops": {
       "file": "pane-loops.353f78a3c5cb.js",
@@ -497,7 +497,7 @@
       "bytes": 11184
     }
   },
-  "chunk_manifest": "chunks.fc4ad5134305.js",
+  "chunk_manifest": "chunks.844b9ce0358a.js",
   "lazy_modules": [
     "12-information-hierarchy.js",
     "15-image-generation.js",
@@ -536,5 +536,5 @@
     "54-finops.js",
     "55-eval-framework.js"
   ],
-  "lazy_bytes": 706775
+  "lazy_bytes": 707804
 }
