@@ -94,6 +94,35 @@ RISK_THRESHOLDS = {
     'critical': 1.0,  # always require approval + dual confirmation
 }
 
+def _normalise_action(action_type: str) -> str:
+    """Canonical form of an action name, for matching against ALWAYS_INTERRUPT.
+
+    SECURITY FIX. `ALWAYS_INTERRUPT` is the hard list of actions that must reach
+    a human no matter how confident the agent claims to be -- deleting files,
+    sending email, charging cards, force-pushing. It was matched with a bare
+    `in` against the caller's raw string, while `risk_level` right beside it was
+    already `.lower()`ed. So the safety net was case- and punctuation-sensitive.
+
+    Verified live, same action, confidence 0.99, risk_level 'low':
+
+        action_type 'delete_file'  -> pending        (correct)
+        action_type 'DELETE_FILE'  -> auto_approved  (!!)
+        action_type 'delete_file ' -> auto_approved  (!!)
+        action_type 'delete-file'  -> auto_approved  (!!)
+
+    The caller is an AGENT emitting a free-form string, so exact-match was never
+    a safe assumption: a model that writes "Delete_File" defeats the gate with
+    no intent to. Case, surrounding whitespace, and the hyphen/underscore/dot/
+    space split are all folded before the check.
+    """
+    canon = (action_type or '').strip().lower()
+    for ch in ('-', '.', ' ', '/', ':'):
+        canon = canon.replace(ch, '_')
+    while '__' in canon:
+        canon = canon.replace('__', '_')
+    return canon.strip('_')
+
+
 ALWAYS_INTERRUPT = {
     'delete_file',
     'delete_database',
@@ -111,6 +140,53 @@ ALWAYS_INTERRUPT = {
 }
 
 
+def _record_auto_approval(
+    interrupt_id: str,
+    agent_id: str,
+    action_type: str,
+    action_summary: str,
+    action_data: dict,
+    risk_level: str,
+    confidence: float,
+    reason: str,
+) -> None:
+    """Write a machine-approved action into the same records a human one uses.
+
+    Best-effort: an audit write must never be the thing that stops an agent, so
+    failures are logged rather than raised. Status is 'auto_approved', distinct
+    from the human 'approve', so approval_rate can separate the two.
+    """
+    from ..services.memory_db import get_conn
+
+    try:
+        con = get_conn()
+        try:
+            con.execute(
+                """INSERT INTO hitl_queue(id,agent_id,action_type,action_summary,action_data,
+                                          risk_level,confidence,status,reviewer,review_note,reviewed_at)
+                   VALUES (?,?,?,?,?,?,?,'auto_approved','system',?,CURRENT_TIMESTAMP)""",
+                (
+                    interrupt_id,
+                    agent_id,
+                    action_type,
+                    action_summary,
+                    json.dumps(action_data, default=str)[:4000],
+                    risk_level,
+                    confidence,
+                    reason,
+                ),
+            )
+            con.execute(
+                'INSERT INTO hitl_audit(interrupt_id,decision,reviewer,note) VALUES (?,?,?,?)',
+                (interrupt_id, 'auto_approved', 'system', reason),
+            )
+            con.commit()
+        finally:
+            con.close()
+    except Exception as e:  # pragma: no cover - audit must not break the agent
+        log.error('Could not record auto-approval %s: %s', interrupt_id, e)
+
+
 # ── Core interrupt API ─────────────────────────────────────────────────────────
 @router.post('/interrupt')
 async def create_interrupt(req: Request):
@@ -124,9 +200,17 @@ async def create_interrupt(req: Request):
     action_type = str(body.get('action_type', 'unknown'))[:100]
     action_summary = str(body.get('action_summary') or '')[:500]
     action_data = body.get('action_data', {}) if isinstance(body.get('action_data', {}), dict) else {}
-    risk_level = str(body.get('risk_level', 'medium')).lower()
+    raw_risk = str(body.get('risk_level', 'medium')).lower().strip()
+    risk_level = raw_risk
+    risk_unrecognised = False
     if risk_level not in RISK_THRESHOLDS:
-        risk_level = 'medium'
+        # An unrecognised level silently became 'medium', which is the SECOND
+        # most permissive setting. A caller that sends 'severe' or 'CRITICAL '
+        # believes it has asked for the strictest gate and gets a 0.85 auto-
+        # approve threshold instead. Fail towards oversight, not away from it,
+        # and say that the value was not understood.
+        risk_level = 'high'
+        risk_unrecognised = bool(raw_risk)
     try:
         confidence = min(1.0, max(0.0, float(body.get('confidence', 0.5))))
     except (TypeError, ValueError):
@@ -137,16 +221,33 @@ async def create_interrupt(req: Request):
     interrupt_id = f'hitl_{uuid.uuid4().hex[:8]}'
 
     # Auto-approve low-risk high-confidence actions
-    threshold = RISK_THRESHOLDS.get(risk_level, 0.85)
-    force_interrupt = action_type in ALWAYS_INTERRUPT or risk_level == 'critical'
+    threshold = RISK_THRESHOLDS.get(risk_level, 1.0)
+    canonical_action = _normalise_action(action_type)
+    force_interrupt = canonical_action in ALWAYS_INTERRUPT or risk_level in ('high', 'critical')
 
     if not force_interrupt and confidence >= threshold:
+        reason = f'Confidence {confidence:.0%} >= threshold {threshold:.0%}'
+        # AUDIT FIX: an auto-approval was returned and then forgotten -- no row
+        # in hitl_queue, none in hitl_audit, nothing in /stats. Verified live:
+        # three destructive actions auto-approved, and the oversight record
+        # moved by zero rows. This module's own docstring cites "EU AI Act
+        # Article 14 compliance (documented human oversight)"; an approval
+        # decision the system cannot show you afterwards is not documented
+        # oversight, and it is precisely the decision most worth reviewing,
+        # because no human saw it. Recorded as status='auto_approved' so it is
+        # visible but never confused with a human 'approve'.
+        _record_auto_approval(
+            interrupt_id, agent_id, action_type, action_summary,
+            action_data, risk_level, confidence, reason,
+        )
         return {
             'ok': True,
             'interrupt_id': interrupt_id,
             'decision': 'auto_approved',
-            'reason': f'Confidence {confidence:.0%} >= threshold {threshold:.0%}',
+            'reason': reason,
             'auto': True,
+            'recorded': True,
+            'risk_level': risk_level,
         }
 
     # Queue for human review
@@ -192,7 +293,7 @@ async def create_interrupt(req: Request):
 
     log.info('HITL interrupt created: %s (%s, confidence=%.0f%%)', interrupt_id, action_type, confidence * 100)
 
-    return {
+    out = {
         'ok': True,
         'interrupt_id': interrupt_id,
         'decision': 'pending',
@@ -201,6 +302,12 @@ async def create_interrupt(req: Request):
         'message': 'Awaiting human approval',
         'auto': False,
     }
+    if risk_unrecognised:
+        out['risk_level_note'] = (
+            f"Unrecognised risk_level '{raw_risk}' — treated as 'high' (human review required). "
+            f"Valid values: {', '.join(sorted(RISK_THRESHOLDS))}."
+        )
+    return out
 
 
 @router.get('/interrupt/{interrupt_id}/wait')
@@ -294,6 +401,28 @@ async def decide_interrupt(interrupt_id: str, req: Request):
 
 
 # ── Safe Undo ──────────────────────────────────────────────────────────────────
+def _record_undo(snapshot_id: str, kind: str, target: str) -> None:
+    """An undo reverses a human-approved action; that belongs in the audit trail.
+
+    Nothing recorded undo execution anywhere, so the record showed the action
+    approved and never showed it reverted.
+    """
+    from ..services.memory_db import get_conn
+
+    try:
+        con = get_conn()
+        try:
+            con.execute(
+                'INSERT INTO hitl_audit(interrupt_id,decision,reviewer,note) VALUES (?,?,?,?)',
+                (snapshot_id, 'undo', 'user', f'{kind} {target}'.strip()[:500]),
+            )
+            con.commit()
+        finally:
+            con.close()
+    except Exception as e:  # pragma: no cover
+        log.error('Could not record undo %s: %s', snapshot_id, e)
+
+
 @router.post('/undo-snapshot')
 async def save_undo_snapshot(req: Request):
     """Save state before a destructive action so it can be reverted."""
@@ -344,24 +473,52 @@ async def execute_undo(snapshot_id: str, req: Request):
     sdata = row['state_data']
 
     if stype == 'file':
-        # Restore file content
-        try:
-            path_str = row['action_id'] if row else ''
-            if path_str:
-                from pathlib import Path as P
+        # BUG FIX: every failure path here fell through to the generic
+        # `{'ok': True, 'restored': stype}` at the bottom of the function, so an
+        # undo that wrote NOTHING reported success. Verified live, both cases:
+        #   snapshot with no action_id      -> {"ok":true,"restored":"file"}
+        #   snapshot whose parent is missing -> {"ok":true,"restored":"file"}
+        # This is the most damaging possible place for a false success: the user
+        # has just been told their destructive action was reverted, so they stop
+        # looking. Each failure now says what went wrong.
+        path_str = row['action_id'] if row else ''
+        if not path_str:
+            return JSONResponse(
+                {
+                    'ok': False,
+                    'error': 'This snapshot has no target path recorded, so the file cannot be restored. '
+                    'Nothing was changed.',
+                    'restored': None,
+                },
+                status_code=422,
+            )
+        from pathlib import Path as P
 
-                p = P(path_str).resolve()
-                # FIX 10: path traversal protection — only allow writes inside project root
-                allowed_root = P(__file__).resolve().parents[2]
-                try:
-                    p.relative_to(allowed_root)
-                except ValueError:
-                    return JSONResponse({'ok': False, 'error': 'Path traversal denied — undo path must be inside project root'}, status_code=403)
-                if p.parent.exists():
-                    p.write_text(sdata, encoding='utf-8')
-                    return {'ok': True, 'restored': 'file', 'path': str(p)}
+        try:
+            p = P(path_str).resolve()
         except OSError as ex:
-            return JSONResponse({'ok': False, 'error': str(ex)}, status_code=500)
+            return JSONResponse({'ok': False, 'error': f'Invalid undo path: {ex}'}, status_code=422)
+        # FIX 10: path traversal protection — only allow writes inside project root
+        allowed_root = P(__file__).resolve().parents[2]
+        try:
+            p.relative_to(allowed_root)
+        except ValueError:
+            return JSONResponse({'ok': False, 'error': 'Path traversal denied — undo path must be inside project root'}, status_code=403)
+        if not p.parent.exists():
+            return JSONResponse(
+                {
+                    'ok': False,
+                    'error': f'Cannot restore {p}: its directory no longer exists. Nothing was changed.',
+                    'restored': None,
+                },
+                status_code=422,
+            )
+        try:
+            p.write_text(sdata, encoding='utf-8')
+        except OSError as ex:
+            return JSONResponse({'ok': False, 'error': str(ex), 'restored': None}, status_code=500)
+        _record_undo(snapshot_id, 'file', str(p))
+        return {'ok': True, 'restored': 'file', 'path': str(p)}
     elif stype == 'db':
         # Restore DB state — run SQL
         try:
@@ -371,11 +528,23 @@ async def execute_undo(snapshot_id: str, req: Request):
                 con2.commit()
             finally:
                 con2.close()
+            _record_undo(snapshot_id, 'db', '')
             return {'ok': True, 'restored': 'db'}
         except (OSError, sqlite3.Error) as ex:
             return JSONResponse({'ok': False, 'error': str(ex)}, status_code=500)
 
-    return {'ok': True, 'restored': stype, 'note': 'Custom undo — application must handle'}
+    # A custom type is genuinely not restorable by this endpoint. Saying
+    # `ok: True, restored: <type>` implied it had been. `applied: False` makes
+    # the distinction explicit for a caller that only checks `ok`.
+    _record_undo(snapshot_id, stype, '')
+    return {
+        'ok': True,
+        'applied': False,
+        'restored': None,
+        'state_type': stype,
+        'note': f"No built-in undo for state_type '{stype}' — the application must apply this itself. "
+        'Nothing was changed by this call.',
+    }
 
 
 # ── Queue management ───────────────────────────────────────────────────────────
@@ -434,16 +603,27 @@ def hitl_stats():
         pending = con.execute("SELECT COUNT(*) FROM hitl_queue WHERE status='pending'").fetchone()[0]
         approved = con.execute("SELECT COUNT(*) FROM hitl_queue WHERE status='approve'").fetchone()[0]
         rejected = con.execute("SELECT COUNT(*) FROM hitl_queue WHERE status='reject'").fetchone()[0]
+        auto = con.execute("SELECT COUNT(*) FROM hitl_queue WHERE status='auto_approved'").fetchone()[0]
         avg_conf = con.execute('SELECT AVG(confidence) FROM hitl_queue').fetchone()[0]
     finally:
         con.close()
+    reviewed = approved + rejected
     return {
         'total': total,
         'pending': pending,
         'approved': approved,
         'rejected': rejected,
-        'avg_confidence': round(avg_conf or 0, 2),
-        'approval_rate': round(approved / (approved + rejected) * 100, 1) if (approved + rejected) > 0 else 0,
+        # Machine approvals are reported SEPARATELY and deliberately excluded
+        # from approval_rate. Folding them in would let a flood of auto-approvals
+        # push the rate towards 100% and read as "humans approve almost
+        # everything" when in fact humans saw almost none of it. The share the
+        # machine decided is the number an oversight reviewer actually wants.
+        'auto_approved': auto,
+        'human_reviewed': reviewed,
+        'approval_rate': round(approved / reviewed * 100, 1) if reviewed else None,
+        'approval_rate_basis': 'human decisions only; auto-approvals excluded',
+        'auto_approval_share': round(auto / total * 100, 1) if total else 0.0,
+        'avg_confidence': round(avg_conf, 2) if avg_conf is not None else None,
     }
 
 
@@ -492,12 +672,32 @@ Return ONLY valid JSON."""
             parsed = __import__('json').loads(m.group(0))
             # Validate it's a real assessment, not an API error response
             if 'confidence' in parsed:
-                return {'ok': True, **parsed}
-    return {
-        'ok': True,
-        'confidence': 0.5,
-        'risk_level': 'medium',
-        'is_reversible': True,
-        'concerns': [],
-        'recommendation': 'proceed',
-    }
+                return {'ok': True, 'assessed': True, **parsed}
+
+    # BUG FIX: this used to fabricate a full assessment when the judge produced
+    # nothing usable -- confidence 0.5, is_reversible True, and
+    # recommendation 'proceed', returned with ok:true and no indication that no
+    # assessment had taken place. Reproduced with a judge that answers in prose:
+    #
+    #   action: "rm -rf / on the production database"
+    #   result: {"ok": true, "recommendation": "proceed", "is_reversible": true}
+    #
+    # That is the module-16 defect (an unrun judge scoring a malware response
+    # "fully safe") in the one place it matters most: the component whose job is
+    # deciding whether a human needs to look. An unavailable assessor must
+    # escalate, never wave things through.
+    log.warning('Confidence assessment unavailable — judge returned unusable output for: %s', action[:120])
+    return JSONResponse(
+        {
+            'ok': False,
+            'assessed': False,
+            'error': 'The risk assessor did not return a usable assessment. '
+            'This action has NOT been assessed — route it to a human.',
+            'confidence': None,
+            'risk_level': None,
+            'is_reversible': None,
+            'concerns': [],
+            'recommendation': 'interrupt',
+        },
+        status_code=503,
+    )
