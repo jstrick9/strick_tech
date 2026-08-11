@@ -49,6 +49,43 @@ STAGE_AGENTS = {
 STAGE_ORDER = ['goal', 'research', 'code', 'review', 'ship']
 
 
+def _summarise(all_results: list[dict], stages: list[str], t_total: float, run_id: str) -> dict:
+    """Build the terminal event for a pipeline run.
+
+    BUG FIX: both doors hardcoded `ok: True` and `status: 'complete'` on the
+    final event, no matter what happened inside. Verified live with no AI
+    provider configured: every stage returned status='error' with empty output,
+    and the run still reported ok:true / "complete" -- the UI then printed
+    "✅ Done" and toasted "Pipeline complete". A five-stage build that produced
+    nothing at all was indistinguishable from one that worked.
+
+    `ok` now means "every stage ran"; a partial run is reported as such with the
+    counts and the failed stage names, so the caller can tell the three cases
+    apart instead of guessing from the results array.
+    """
+    succeeded = [r for r in all_results if r.get('status') == 'done']
+    failed = [r for r in all_results if r.get('status') != 'done']
+    if not failed:
+        status = 'complete'
+    elif succeeded:
+        status = 'partial'
+    else:
+        status = 'failed'
+    return {
+        'ok': not failed,
+        'run_id': run_id,
+        'status': status,
+        'stages_total': len(stages),
+        'stages_succeeded': len(succeeded),
+        'stages_failed': len(failed),
+        'failed_stages': [r.get('stage') for r in failed],
+        'results': all_results,
+        'total_tokens': sum(r.get('tokens', 0) for r in all_results),
+        'total_cost': sum(r.get('cost', 0.0) for r in all_results),
+        'duration_ms': round((time.time() - t_total) * 1000),
+    }
+
+
 @router.post('/run')
 async def pipeline_run(req: Request):
     """
@@ -67,6 +104,8 @@ async def pipeline_run(req: Request):
     t_total = time.time()
 
     if not goal:
+        # See the note in routers/loops.py: the ok:false middleware already
+        # returns 400 for this, verified by revert-proof.
         return {'ok': False, 'error': 'goal required'}
 
     # Filter stages to valid ones in order
@@ -146,12 +185,13 @@ async def pipeline_run(req: Request):
                     all_results.append(err)
                     yield f'data: {json.dumps({"type": "stage_error", "stage": stage, "error": str(e)})}\n\n'
 
-            total_tokens = sum(r.get('tokens', 0) for r in all_results)
-            total_cost = sum(r.get('cost', 0.0) for r in all_results)
-            duration = round((time.time() - t_total) * 1000)
-            memory_db.audit_log('pipeline_run', f'{run_id}: {goal[:80]} ({len(stages)} stages)')
+            summary = _summarise(all_results, stages, t_total, run_id)
+            memory_db.audit_log(
+                'pipeline_run',
+                f'{run_id}: {goal[:80]} ({summary["stages_succeeded"]}/{len(stages)} stages ok)',
+            )
 
-            yield f'data: {json.dumps({"type": "complete", "run_id": run_id, "ok": True, "results": all_results, "total_tokens": total_tokens, "total_cost": total_cost, "duration_ms": duration})}\n\n'
+            yield f'data: {json.dumps({"type": "complete", **summary})}\n\n'
 
         return StreamingResponse(sse_guard(generate()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
         )
@@ -167,16 +207,12 @@ async def pipeline_run(req: Request):
         except Exception as e:
             all_results.append({'stage': stage, 'status': 'error', 'error': str(e)})
 
-    return {
-        'ok': True,
-        'run_id': run_id,
-        'status': 'complete',
-        'results': all_results,
-        'stages_run': stages,
-        'duration_ms': round((time.time() - t_total) * 1000),
-        'total_tokens': sum(r.get('tokens', 0) for r in all_results),
-        'total_cost': sum(r.get('cost', 0.0) for r in all_results),
-    }
+    summary = _summarise(all_results, stages, t_total, run_id)
+    memory_db.audit_log(
+        'pipeline_run',
+        f'{run_id}: {goal[:80]} ({summary["stages_succeeded"]}/{len(stages)} stages ok)',
+    )
+    return {**summary, 'results': all_results, 'stages_run': stages}
 
 
 @router.get('/history')
@@ -185,7 +221,11 @@ def pipeline_history(limit: int = 20):
     con = memory_db.get_conn()
     try:
         rows = con.execute(
-            "SELECT action, detail, datetime(created_at,'localtime') as ts FROM audit WHERE action='pipeline_run' ORDER BY id DESC LIMIT ?",
+            # `localtime` here produced a local wall-clock value that the
+            # response layer then stamped with a `Z`, publishing local time
+            # labelled as UTC. Return the raw UTC column and let the normaliser
+            # label it. (Same defect as the Secrets Vault list -- module 17.)
+            "SELECT action, detail, created_at as ts FROM audit WHERE action='pipeline_run' ORDER BY id DESC LIMIT ?",
             (max(1, min(limit, 200)),),
         ).fetchall()
         return [dict(r) for r in rows]
