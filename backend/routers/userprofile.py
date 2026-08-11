@@ -356,17 +356,19 @@ def get_ui_config():
     """Get full UI configuration (profile + license) for the frontend boot."""
     profile = _load()
     try:
-        from .license import _days_remaining, _effective_tier, _load_license
+        from .license import _days_remaining, _effective_tier, _license_enforced, _load_license
 
         lic = _load_license()
         eff_tier = _effective_tier(lic)
         days_left = _days_remaining(lic)
         is_trial = False
+        unlocked = not _license_enforced()
     except Exception as exc:
         log.warning('ui-config: license load failed (%s), defaulting to enterprise lifetime', exc)
         eff_tier = 'enterprise'
         days_left = 36500
         is_trial = False
+        unlocked = True
 
     return {
         'ok': True,
@@ -374,6 +376,14 @@ def get_ui_config():
         'tier': eff_tier,
         'days_left': days_left,
         'is_trial': is_trial,
+        # This is the payload the frontend boots from -- _UI is populated here,
+        # NOT from /api/license/status. Omitting these two made the UI's
+        # `_UI.unlocked` fall back to false on every load, so the paywall guards
+        # were live even though the license router reported everything unlocked.
+        # Found by forcing showUpgradeModal()/renderTrialBanner() directly in a
+        # real browser: both still rendered.
+        'unlocked': unlocked,
+        'all_features': unlocked,
         'ui_mode': profile.get('ui_mode', 'simple'),
         'skill_level': profile.get('skill_level', 'beginner'),
         'hidden_panes': profile.get('hidden_panes', []),

@@ -1,4 +1,11 @@
-"""Product status surfaces must describe the state users actually receive."""
+"""Product status surfaces must describe the state users actually receive.
+
+    OWNER BUILD NOTE: `_effective_tier()` now returns the top tier unless
+    AGENTIC_ENFORCE_LICENSE=1 is set, because this is a single-owner deployment
+    with nothing to gate. The tier ENGINE is still real and still worth
+    verifying, so these tests enable enforcement rather than being deleted --
+    otherwise a future change to the gating maths would go unnoticed.
+"""
 import time
 from fastapi.testclient import TestClient
 from backend.app import app
@@ -6,6 +13,7 @@ from backend.routers import license as license_router
 
 
 def test_license_status_matches_a_real_pro_license(monkeypatch):
+    monkeypatch.setenv('AGENTIC_ENFORCE_LICENSE', '1')
     monkeypatch.setattr(license_router, '_load_license', lambda: {
         'tier': 'pro', 'trial_end': 0, 'user_name': 'Joshua Strickland',
         'user_email': 'joshua@stricktech.com', 'org': 'Strick Tech',
@@ -20,6 +28,7 @@ def test_license_status_matches_a_real_pro_license(monkeypatch):
 
 
 def test_license_status_reports_active_trial_truthfully(monkeypatch):
+    monkeypatch.setenv('AGENTIC_ENFORCE_LICENSE', '1')
     monkeypatch.setattr(license_router, '_load_license', lambda: {
         'tier': 'trial', 'trial_end': time.time() + 3 * 86400,
         'user_name': 'Joshua Strickland', 'user_email': 'joshua@stricktech.com', 'org': 'Strick Tech',

@@ -15,6 +15,9 @@ let _UI = {
   tier:       'trial',
   daysLeft:   14,
   isTrial:    true,
+  unlocked:   true,   // assume unlocked until /status says otherwise, so a
+                      // slow or failed status call never shows a paywall
+
   uiMode:     'simple',   // 'simple' | 'power'
   loaded:     false,
 };
@@ -28,6 +31,7 @@ async function loadUIConfig() {
     _UI.tier     = d.tier;
     _UI.daysLeft = d.days_left;
     _UI.isTrial  = d.is_trial;
+    _UI.unlocked = d.unlocked === true || d.all_features === true;
     _UI.uiMode   = d.ui_mode || 'simple';
     _UI.loaded   = true;
 
@@ -57,6 +61,12 @@ window.addEventListener('load', () => setTimeout(loadUIConfig, 400));
 function renderTrialBanner(cfg) {
   const existing = document.getElementById('trial-banner');
   if (existing) existing.remove();
+
+  // OWNER BUILD: nothing is gated, so there is no countdown to show. The
+  // backend reports unlocked:true and stops sending is_trial, but this guard is
+  // kept independent of that so the banner cannot reappear from a cached or
+  // stale status payload.
+  if (cfg.unlocked || _UI.unlocked) return;
 
   if (!cfg.is_trial || cfg.days_left <= 0) return;
 
@@ -435,6 +445,9 @@ async function saveSidebarOrder(order) {
 //  UPGRADE GATE MODAL
 // ══════════════════════════════════════════════════════════════════
 async function checkPaneAccess(paneId) {
+  // OWNER BUILD: every pane is accessible. Returning early also avoids a
+  // needless request per navigation.
+  if (_UI.unlocked) return true;
   try {
     const r = await fetch(`/api/license/pane-access/${encodeURIComponent(paneId)}`);
     if (!r.ok) return true; // Fail open on server error
@@ -452,6 +465,12 @@ async function checkPaneAccess(paneId) {
 function showUpgradeModal(paneId, requiredTier='pro', currentTier='free') {
   const existing = document.getElementById('upgrade-modal');
   if (existing) existing.remove();
+
+  // OWNER BUILD: no feature is behind a paywall, so the lock modal never
+  // shows. Guarded at the render point as well as the call sites, because it
+  // is invoked from several places (nav gate, trial banner, feature cards) and
+  // one missed caller would put the padlock back.
+  if (_UI.unlocked) return;
 
   const tierNames = {pro:'Pro',enterprise:'Enterprise',free:'Free',trial:'Trial'};
   const tierColors = {pro:'var(--accent)',enterprise:'#f0c060',free:'var(--text-3)'};
@@ -1784,7 +1803,7 @@ function updateNextActionBar(pane) {
       'leaderboard','voice','pipeline','skills',
     ]);
 
-    if (gatedPanes.has(pane) && _UI.loaded) {
+    if (gatedPanes.has(pane) && _UI.loaded && !_UI.unlocked) {
       const tier = _UI.tier;
       if (tier === 'free') {
         // Check if this specific pane is allowed

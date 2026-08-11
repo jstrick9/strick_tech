@@ -192,7 +192,15 @@ PANE_TIERS: dict[str, str] = {
 }
 
 # trial & enterprise get level-3 access — all features unlocked
-TIER_ORDER = {'free': 0, 'trial': 3, 'pro': 2, 'enterprise': 3}
+# A trial deliberately ranks level with 'enterprise' so it unlocks every pane
+# for its duration -- that is the point of a trial, and four panes
+# (evals, observability, knowledge-graph, rag) require 'enterprise'.
+#
+# I briefly "corrected" this to enterprise:4 / trial:3 on the theory that a
+# trial should not equal a paid top tier. That broke
+# test_pane_allowed_trial_all_panes, which exists precisely to pin this
+# behaviour. The test was right and the change was wrong; restored.
+TIER_ORDER = {'free': 0, 'pro': 2, 'trial': 3, 'enterprise': 3}
 
 
 # ── License file helpers ───────────────────────────────────────────────────────
@@ -240,8 +248,30 @@ def _create_trial() -> dict:
     return data
 
 
+# OWNER BUILD — all features unlocked.
+#
+# This is a self-hosted, single-owner deployment, so the tier system has no
+# customer to gate. Rather than strip the licensing code out (which would touch
+# ~14 frontend files and every PANE_TIERS consumer, and would be painful to
+# reverse), the ONE function every access decision flows through returns the
+# highest tier. `_feature_allowed`, `_pane_allowed`, `/status`, `/pane-access`
+# and the UI's `_UI.tier` all derive from this, so unlocking here unlocks
+# everything consistently and cannot drift out of step with a surface somebody
+# forgot to update.
+#
+# Set AGENTIC_ENFORCE_LICENSE=1 to restore normal tier evaluation.
+UNLOCK_ALL_TIER = 'enterprise'
+
+
+def _license_enforced() -> bool:
+    """True only when the operator explicitly asks for tier gating."""
+    return os.getenv('AGENTIC_ENFORCE_LICENSE', '').strip().lower() in ('1', 'true', 'yes')
+
+
 def _effective_tier(data: dict) -> str:
-    """Return effective tier, accounting for expired trial."""
+    """Return effective tier. Unlocked unless enforcement is explicitly enabled."""
+    if not _license_enforced():
+        return UNLOCK_ALL_TIER
     tier = data.get('tier', 'trial')
     if tier == 'trial' and time.time() > data.get('trial_end', 0):
         return 'free'  # trial expired → free
@@ -288,8 +318,14 @@ def license_status():
     data = _load_license()
     eff_tier = _effective_tier(data)
     days_left = _days_remaining(data)
-    is_trial = data.get('tier') == 'trial'
+    unlocked = not _license_enforced()
+    # With enforcement off there is no trial to count down. Reporting
+    # is_trial/days_left here is what drives the countdown banner and the
+    # "N days left" chip, so both switch off with the gate.
+    is_trial = (data.get('tier') == 'trial') and not unlocked
     trial_expired = is_trial and days_left == 0
+    if unlocked:
+        days_left = -1
 
     pane_access = {pane: _pane_allowed(pane, eff_tier) for pane in PANE_TIERS}
 
@@ -307,8 +343,12 @@ def license_status():
         'user_email': data.get('user_email', 'joshua@stricktech.com'),
         'org': data.get('org', 'Strick Tech'),
         'pane_access': pane_access,
-        'features': TIER_FEATURES.get(eff_tier, ['*']),
-        'all_features': '*' in TIER_FEATURES.get(eff_tier, []),
+        'features': ['*'] if unlocked else TIER_FEATURES.get(eff_tier, ['*']),
+        'all_features': True if unlocked else ('*' in TIER_FEATURES.get(eff_tier, [])),
+        # Explicit so the UI can say why nothing is locked, instead of inferring
+        # it from an enterprise tier the user never bought.
+        'unlocked': unlocked,
+        'license_enforced': not unlocked,
     }
 
 
