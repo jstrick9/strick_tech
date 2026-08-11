@@ -482,6 +482,25 @@ async def stripe_wire(req: Request):
             wh_dest.write_text(webhook_code, encoding='utf-8')
             saved_files.append('stripe_webhook.py')
 
+    # BUG FIX: `ok` was hardcoded True whatever came back. Reproduced with a
+    # judge-style refusal ("I'm sorry, I can't generate payment code."):
+    # saved_files [], html_code '', and ok:true -- so the UI reported the Stripe
+    # integration as wired when not one byte had been written. Nothing tells the
+    # user to look; they discover it when checkout does not exist.
+    if not saved_files:
+        memory_db.audit_log('stripe_wire', f'mode={mode} FAILED: no code generated')
+        return JSONResponse(
+            {
+                'ok': False,
+                'mode': mode,
+                'error': 'The model did not return usable Stripe code, so nothing was written. '
+                'Try again, or check that your AI provider is reachable.',
+                'saved_files': [],
+                'raw_preview': (code or '')[:300],
+            },
+            status_code=502,
+        )
+
     memory_db.audit_log('stripe_wire', f'mode={mode} files={saved_files}')
     return {
         'ok': True,
@@ -659,8 +678,16 @@ async def auth_wire(req: Request):
     elif '```html' in code:
         m2 = re.search(r'```html\n(.*?)```', code, re.DOTALL)
         html_code = m2.group(1) if m2 else code
-    else:
+    elif '<' in code and '>' in code:
+        # BUG FIX: the bare `else: html_code = code` wrote WHATEVER the model
+        # said into the auth page. A refusal ("I'm sorry, I can't help with
+        # that.") was saved to disk as auth.html and reported as a successful
+        # wire-up -- prose served as a login page. Require at least something
+        # markup-shaped before treating the response as code; stripe_wire's
+        # extractor already refused to guess this way.
         html_code = code
+    else:
+        html_code = ''
 
     saved = []
     if html_code:
@@ -669,6 +696,22 @@ async def auth_wire(req: Request):
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(html_code, encoding='utf-8')
             saved.append(auth_file)
+
+    # The same defect as stripe_wire above -- these two are twins and only one
+    # would have been noticed. Second door #20.
+    if not saved:
+        memory_db.audit_log('auth_wire', f'provider={provider} FAILED: no code generated')
+        return JSONResponse(
+            {
+                'ok': False,
+                'provider': provider,
+                'error': 'The model did not return usable auth code, so nothing was written. '
+                'Try again, or check that your AI provider is reachable.',
+                'saved_files': [],
+                'raw_preview': (code or '')[:300],
+            },
+            status_code=502,
+        )
 
     memory_db.audit_log('auth_wire', f'provider={provider} files={saved}')
     return {
