@@ -1,15 +1,15 @@
 [
   {
-    "pane": "dbstudio",
-    "score": 14,
-    "file": "17-database-studio.js",
-    "lines": 647,
-    "endpoints": 8,
+    "pane": "workspaces",
+    "score": 17,
+    "file": "30-workspaces.js",
+    "lines": 209,
+    "endpoints": 6,
     "markers": 0,
     "tested": true,
-    "tabs": 0,
-    "covered": 0,
-    "unit": 1,
+    "tabs": 2,
+    "covered": 1,
+    "unit": 3,
     "reviewed": false
   },
   {
@@ -247,16 +247,16 @@
     "reviewed": true
   },
   {
-    "pane": "workspaces",
-    "score": 17,
-    "file": "30-workspaces.js",
-    "lines": 209,
-    "endpoints": 6,
+    "pane": "dbstudio",
+    "score": 14,
+    "file": "17-database-studio.js",
+    "lines": 647,
+    "endpoints": 8,
     "markers": 0,
     "tested": true,
-    "tabs": 2,
-    "covered": 3,
-    "unit": 3,
+    "tabs": 0,
+    "covered": 1,
+    "unit": 1,
     "reviewed": true
   }
 ]

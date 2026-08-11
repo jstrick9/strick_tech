@@ -229,7 +229,8 @@ class TestSysEvalFrameworkSystem:
             avg = done.get("avg_score")
             check("avg_score 0-1 or None when unmeasured",
                   avg is None or 0 <= avg <= 1.0, avg)
-            check("passed <= total", done.get("passed",0) <= done.get("total",1))
+            # `total` can be None for the same reason avg_score can.
+            check("passed <= total", done.get("passed", 0) <= (done.get("total") or 0))
             check("pass_threshold present", "pass_threshold" in done)
             check("suite_pass is bool or None",
                   done.get("suite_pass") is None or isinstance(done.get("suite_pass"), bool))

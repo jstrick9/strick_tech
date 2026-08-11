@@ -186,6 +186,14 @@ def classify_sql(sql: str) -> tuple[bool, str]:
 # ── Sensitive data policy ──────────────────────────────────────────────────────
 from ..services import db_policy
 
+# SQLite identifiers accepted from a request. Table names were already checked
+# against this shape; `pk_column` and inserted column names were not.
+_IDENT_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+
+def _bad_identifier(name: str) -> bool:
+    return not _IDENT_RE.match(name or '')
+
 
 def _policy_refusal(sql: str) -> str:
     """Refusal reason if the statement touches credential material."""
@@ -542,6 +550,47 @@ async def sqlite_query(req: Request):
         return JSONResponse({'ok': False, 'error': str(e)}, status_code=400)
 
 
+def _policy_write_refusal(table: str) -> str:
+    """Refusal reason when a row-level WRITE targets protected data, else ''.
+
+    BUG FIX: db_policy was wired into the two READ paths (/sqlite/query and
+    /sqlite/table/{table}) and into neither write path. So Database Studio
+    refused to SHOW you the secrets table and would happily DELETE from it.
+    Verified live: a planted row in `secrets` was removed by
+    DELETE /api/db/sqlite/table/secrets/row -> {"ok": true, "deleted": 1}.
+
+    Destroying credential material is strictly worse than reading it -- reading
+    a vault entry leaks one secret, deleting it locks every agent out of the
+    provider and the row is gone. Guarding the read and not the write inverts
+    the severity ordering.
+
+    Sensitive COLUMNS are treated the same way: writing to `signing_key` lets a
+    caller replace the key that signs audit receipts, which forges the ledger
+    just as effectively as reading it does.
+    """
+    if db_policy.sensitive_override_enabled():
+        return ''
+    if db_policy.is_restricted_table(table):
+        return (
+            f'Table "{table}" holds credential material and cannot be modified through '
+            f'Database Studio. Set AGENTIC_DB_ALLOW_SENSITIVE=1 on the server to override.'
+        )
+    return ''
+
+
+def _policy_write_column_refusal(table: str, columns) -> str:
+    """Refusal when a write targets a sensitive COLUMN of an allowed table."""
+    if db_policy.sensitive_override_enabled():
+        return ''
+    hits = [c for c in columns if db_policy.is_sensitive_column(table, str(c))]
+    if hits:
+        return (
+            f'Column(s) {", ".join(sorted(map(str, hits)))} hold credential material and cannot be '
+            f'written through Database Studio. Set AGENTIC_DB_ALLOW_SENSITIVE=1 on the server to override.'
+        )
+    return ''
+
+
 @router.post('/sqlite/table/{table}/insert')
 async def sqlite_insert(table: str, req: Request):
     """Insert a row into a table."""
@@ -553,6 +602,28 @@ async def sqlite_insert(table: str, req: Request):
     row = body.get('row', {})
     if not row:
         return {'ok': False, 'error': 'row data required'}
+    if not isinstance(row, dict):
+        return JSONResponse({'ok': False, 'error': 'row must be an object'}, status_code=400)
+
+    # Column names are interpolated into the INSERT the same way pk_column was
+    # into the DELETE. DEFENSIVE, not a fixed exploit: the placeholder count is
+    # always len(row), so an injected extra column makes the statement
+    # unexecutable ("1 values for 2 columns") rather than writing an attacker's
+    # value. Proven by revert-proof -- removing this check fails no test. Kept
+    # because the delete path shows what happens when identifier interpolation
+    # is left unvalidated, and a future edit to the VALUES construction would
+    # make this live. Recorded so the next reader does not hunt for the exploit.
+    bad = [c for c in row if _bad_identifier(str(c))]
+    if bad:
+        return JSONResponse(
+            {'ok': False, 'error': f'Invalid column name(s): {", ".join(map(str, bad[:5]))}'},
+            status_code=400,
+        )
+
+    _pol = _policy_write_refusal(table) or _policy_write_column_refusal(table, row.keys())
+    if _pol:
+        return JSONResponse({'ok': False, 'error': _pol, 'forbidden': True}, status_code=403)
+
     con = _connect()
     try:
         cols = list(row.keys())
@@ -597,6 +668,32 @@ async def sqlite_delete_row(table: str, req: Request):
     value = body.get('pk_value')
     if value is None:
         return {'ok': False, 'error': 'pk_value required'}
+
+    # SECURITY FIX: `pk` was interpolated straight into
+    #     DELETE FROM "<table>" WHERE "<pk>"=?
+    # The table name was validated against an identifier pattern; the column
+    # name was not. A `"` in pk_column closes the quoted identifier and the rest
+    # becomes SQL. Verified live against a 3-row table:
+    #
+    #     {"pk_column": "a\" OR 1=1 OR \"a", "pk_value": "nope"}
+    #   -> DELETE FROM "t160_victim" WHERE "a" OR 1=1 OR "a"=?
+    #   -> {"ok": true, "deleted": 3}
+    #
+    # Three rows destroyed by a pk_value that matched nothing. The parameterised
+    # `?` gave the appearance of safety while the injection was in the
+    # identifier beside it -- the classic version of this bug.
+    if _bad_identifier(pk):
+        return JSONResponse(
+            {'ok': False, 'error': 'Invalid column name'}, status_code=400
+        )
+
+    # Deleting FROM a restricted table is worse than reading it: the read is
+    # refused, and the destruction of the same row was not. See the policy
+    # check added below for the reasoning.
+    _pol = _policy_write_refusal(table)
+    if _pol:
+        return JSONResponse({'ok': False, 'error': _pol, 'forbidden': True}, status_code=403)
+
     con = _connect()
     try:
         cur = con.execute(f'DELETE FROM "{table}" WHERE "{pk}"=?', (value,))

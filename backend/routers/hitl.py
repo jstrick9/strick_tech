@@ -691,6 +691,14 @@ Return ONLY valid JSON."""
         {
             'ok': False,
             'assessed': False,
+            # `code` matters beyond documentation: tests/uat/conftest.py's
+            # skip_if_no_provider() keys off code == 'llm_unavailable' to tell
+            # "no AI configured in this environment" apart from a real failure.
+            # The 503 added in module 21 omitted it, so two suites that used to
+            # skip started failing instead. Same reason a client needs it: an
+            # unreachable provider and a judge that answered uselessly both
+            # arrive as 503, and only this field separates them.
+            'code': 'llm_unavailable',
             'error': 'The risk assessor did not return a usable assessment. '
             'This action has NOT been assessed — route it to a human.',
             'confidence': None,
