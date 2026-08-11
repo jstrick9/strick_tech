@@ -1,18 +1,5 @@
 [
   {
-    "pane": "github",
-    "score": 21,
-    "file": "18-github.js",
-    "lines": 390,
-    "endpoints": 6,
-    "markers": 0,
-    "tested": true,
-    "tabs": 2,
-    "covered": 1,
-    "unit": 3,
-    "reviewed": false
-  },
-  {
     "pane": "plugins",
     "score": 20,
     "file": "34-plugin-hub.js",
@@ -205,6 +192,19 @@
     "tabs": 4,
     "covered": 5,
     "unit": 5,
+    "reviewed": true
+  },
+  {
+    "pane": "github",
+    "score": 21,
+    "file": "18-github.js",
+    "lines": 397,
+    "endpoints": 6,
+    "markers": 0,
+    "tested": true,
+    "tabs": 2,
+    "covered": 3,
+    "unit": 3,
     "reviewed": true
   },
   {

@@ -61,7 +61,8 @@ async function renderDeploy() {
     <button data-act-click="renderDeploy()" class="btn btn-ghost btn-sm">⟳ Refresh</button>
   </div>
   <div style="margin-bottom:16px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--text-2)">
-    📁 <strong>${statusData.preview_files||0} files</strong> ready in <code style="background:var(--bg-0);padding:1px 5px;border-radius:3px">preview/</code>
+    📁 <strong>${statusData.preview_files||0} files</strong> ready to publish from <code style="background:var(--bg-0);padding:1px 5px;border-radius:3px">preview/</code>
+    ${statusData.excluded_count ? `<span style="color:var(--warning)"> · ${statusData.excluded_count} file(s) will NOT be deployed</span>` : ''}
     ${statusData.preview_files ? '' : ' — <a href="#" data-act-click="nav(\'studio\')" style="color:var(--accent-text)">Build something first</a>'}
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px">
@@ -119,11 +120,23 @@ async function doDeploy(provider) {
     } else if (j.ok) {
       const urlLink = j.url ? `<a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent-text);font-size:13px;display:block;margin-top:4px">${j.url}</a>` : '';
       const output  = j.output ? `<div style="font-size:11px;color:var(--text-2);margin-top:4px;font-family:monospace;white-space:pre-wrap">${escHtml(j.output.slice(0,200))}</div>` : '';
-      res.innerHTML = `<div style="color:var(--green);font-weight:700">✅ Deployed!</div>
+      // Files held back by the collector (oversize, archives) never reached the
+      // provider. The published site is missing them, so this cannot render as
+      // an unqualified success.
+      const held = (j.excluded_count && j.warning)
+        ? `<div style="color:var(--warning);font-size:12px;margin-top:6px">⚠ ${escHtml(j.warning)}</div>
+           <details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;color:var(--text-3)">Show ${j.excluded_count} excluded file(s)</summary>
+           <div style="font-size:11px;color:var(--text-2);margin-top:4px">${(j.excluded||[]).map(e=>`${escHtml(e.file)} — ${escHtml(e.reason)}`).join('<br>')}</div></details>`
+        : '';
+      res.innerHTML = `<div style="color:${j.excluded_count?'var(--warning)':'var(--green)'};font-weight:700">${j.excluded_count?'⚠️ Deployed with omissions':'✅ Deployed!'}</div>
         ${urlLink}
+        ${j.files!=null?`<div style="font-size:11px;color:var(--text-2);margin-top:4px">${j.files} file(s) published</div>`:''}
         ${output}
+        ${held}
         <div style="font-size:11px;color:var(--text-2);margin-top:4px">${escHtml(j.tip||'')}</div>`;
-      toast(`🚀 Deployed to ${providerLabel}!`, 'ok', 5000);
+      toast(j.excluded_count
+        ? `⚠️ Deployed to ${providerLabel} — ${j.excluded_count} file(s) omitted`
+        : `🚀 Deployed to ${providerLabel}!`, j.excluded_count?'warn':'ok', 5000);
     } else {
       const setup = j.setup ? '<div style="font-size:11.5px;color:var(--text-2);margin-top:6px">' + (j.setup||[]).map(s=>escHtml(s)).join('<br>') + '</div>' : '';
       const alt = j.alternative ? `<div style="font-size:11px;color:var(--accent-text);margin-top:6px">${escHtml(j.alternative)}</div>` : '';

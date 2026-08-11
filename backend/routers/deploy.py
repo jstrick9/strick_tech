@@ -7,6 +7,7 @@ Also: Cloudflare Tunnel for public HTTPS preview URL.
 from __future__ import annotations
 
 import asyncio
+import base64
 import io
 import json
 import logging
@@ -57,7 +58,7 @@ async def deploy_vercel(req: Request):
             ],
         }
 
-    files = _collect_deploy_files(PREVIEW_DIR)
+    files, excluded = collect_deploy_files(PREVIEW_DIR)
     if not files:
         return {'ok': False, 'error': 'No files in preview/ directory. Scaffold a project first.'}
 
@@ -92,9 +93,10 @@ async def deploy_vercel(req: Request):
             full = f'https://{url}' if url and not url.startswith('http') else url
             log.info('Vercel deploy success: %s in %.1fs', full, time.time() - t0)
             # store in memory
-            from ..services.memory_db import memory_add
+            from ..services.memory_db import audit_log, memory_add
 
             memory_add('deploy:vercel', f'Deployed to {full}', 'deploy,vercel')
+            audit_log('deploy:vercel', f'Deployed to {full}')
             return {
                 'ok': True,
                 'provider': 'vercel',
@@ -103,6 +105,9 @@ async def deploy_vercel(req: Request):
                 'status': data.get('status', 'BUILDING'),
                 'latency_ms': round((time.time() - t0) * 1000),
                 'files': len(files),
+                'excluded': excluded,
+                'excluded_count': len(excluded),
+                'warning': _deploy_warning(excluded),
                 'tip': "Your site is building. It'll be live in ~15-30 seconds.",
             }
         else:
@@ -138,7 +143,7 @@ async def deploy_netlify(req: Request):
             'alternative': 'Drag & drop your preview/ folder at https://app.netlify.com/drop',
         }
 
-    files = _collect_deploy_files(PREVIEW_DIR)
+    files, excluded = collect_deploy_files(PREVIEW_DIR)
     if not files:
         return {'ok': False, 'error': 'No files in preview/ to deploy.'}
 
@@ -148,7 +153,10 @@ async def deploy_netlify(req: Request):
         zip_buf = io.BytesIO()
         with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
             for f in files:
-                zf.writestr(f['file'], f.get('data', ''))
+                # Write the real bytes. This used to write f['data'] directly,
+                # which for a base64 entry would put the base64 TEXT in the zip
+                # -- a corrupt file at the other end.
+                zf.writestr(f['file'], _file_bytes(f))
         zip_buf.seek(0)
 
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -160,12 +168,25 @@ async def deploy_netlify(req: Request):
         data = resp.json()
         if resp.status_code in (200, 201):
             url = data.get('ssl_url') or data.get('url', '')
+            # BUG FIX: netlify was the ONLY provider that never recorded its
+            # deploy. vercel, railway, flyio and tunnel all memory_add; netlify
+            # did not, so a successful Netlify deploy was missing from
+            # /api/deploy/history and from memory search. The history pane
+            # showed a gap where a real deploy had happened.
+            from ..services.memory_db import audit_log, memory_add
+
+            memory_add('deploy:netlify', f'Deployed to {url}', 'deploy,netlify')
+            audit_log('deploy:netlify', f'Deployed to {url}')
             return {
                 'ok': True,
                 'provider': 'netlify',
                 'url': url,
                 'site_id': data.get('id'),
                 'status': 'deploying',
+                'files': len(files),
+                'excluded': excluded,
+                'excluded_count': len(excluded),
+                'warning': _deploy_warning(excluded),
                 'latency_ms': round((time.time() - t0) * 1000),
             }
         else:
@@ -278,7 +299,10 @@ def deploy_history(limit: int = 20):
         con = get_conn()
         try:
             audit_rows = con.execute(
-                "SELECT action, detail, datetime(created_at,'localtime') as created_at "
+                # `localtime` produced a local wall-clock value that the
+                # response layer then stamped with a Z, publishing local time
+                # labelled UTC. (Same defect as modules 17 and 18.)
+                'SELECT action, detail, created_at '
                 "FROM audit WHERE action LIKE 'deploy%' ORDER BY id DESC LIMIT ?",
                 (max(1, min(limit, 100)),),
             ).fetchall()
@@ -474,8 +498,13 @@ def deploy_status():
     github_set = bool(os.getenv('GITHUB_TOKEN'))
     cf_installed = bool(shutil.which('cloudflared'))
     fly_installed = bool(shutil.which('fly') or shutil.which('flyctl'))
-    files = list(PREVIEW_DIR.rglob('*')) if PREVIEW_DIR.exists() else []
-    file_count = len([f for f in files if f.is_file() and 'branches' not in str(f)])
+    # BUG FIX: this counted every file on disk and the pane rendered it as
+    # "N files ready in preview/". The deploy then shipped a DIFFERENT, smaller
+    # set, because collect_deploy_files drops archives and oversize files.
+    # Verified live: status said 4 files ready, a deploy carried 2. Count what
+    # will actually be published, and report the shortfall separately.
+    deployable, excluded = collect_deploy_files(PREVIEW_DIR)
+    file_count = len(deployable)
     return {
         'providers': {
             'vercel': {'ready': vercel_set, 'token_set': vercel_set},
@@ -487,12 +516,25 @@ def deploy_status():
             'cloudflare': {'ready': cf_installed, 'installed': cf_installed},
         },
         'preview_files': file_count,
+        'excluded_files': excluded,
+        'excluded_count': len(excluded),
         'preview_dir': str(PREVIEW_DIR),
+        # `ready` above means "a token string is present" -- it has never been
+        # checked against the provider. Say so, rather than letting a green tick
+        # imply the credential works.
+        'readiness_basis': 'token presence only; not verified against the provider',
     }
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 # File types that should be excluded (binary assets too large/corrupt as UTF-8)
+# Extensions that must be uploaded as base64 rather than UTF-8 text. This used
+# to be an EXCLUSION list: every image, font and media file in the site was
+# silently dropped from the deploy, and the deploy then reported success. A
+# static site published without its logo, favicon or webfonts is broken, and
+# nothing anywhere said so. Vercel's API accepts {"encoding": "base64"}, and
+# Netlify takes a zip, so both can carry binaries -- the exclusion was never
+# necessary, only easier.
 _BINARY_EXTS = {
     '.png',
     '.jpg',
@@ -500,62 +542,121 @@ _BINARY_EXTS = {
     '.gif',
     '.ico',
     '.svg',
+    '.webp',
+    '.avif',
     '.woff',
     '.woff2',
     '.ttf',
+    '.otf',
     '.eot',
     '.mp4',
     '.webm',
     '.mp3',
     '.wav',
     '.pdf',
+    '.wasm',
+}
+
+# Archives and executables stay excluded on purpose: they are build artefacts or
+# downloads, not part of a static site, and shipping them is usually a mistake.
+_NEVER_DEPLOY_EXTS = {
     '.zip',
     '.tar',
     '.gz',
-    '.wasm',
     '.bin',
     '.exe',
     '.dmg',
     '.pkg',
 }
-_MAX_FILE_BYTES = 1_048_576  # 1 MB per file limit
+
+_MAX_FILE_BYTES = 10_485_760  # 10 MB per file
+_MAX_FILES = 500  # Vercel free tier limit
 
 
-def _collect_deploy_files(directory: Path) -> list[dict]:
-    """Collect all deployable text files from preview/ (Vercel API format)."""
-    files = []
+def collect_deploy_files(directory: Path) -> tuple[list[dict], list[dict]]:
+    """Collect deployable files from preview/, plus everything held back.
+
+    Returns (files, excluded). `excluded` carries a reason per entry so callers
+    can TELL THE USER what will not be published. Previously the exclusions were
+    computed and thrown away, so a deploy that omitted every image reported the
+    same clean success as one that shipped the whole site.
+    """
+    files: list[dict] = []
+    excluded: list[dict] = []
     if not directory.exists():
-        return files
+        return files, excluded
+
     for path in sorted(directory.rglob('*')):
         if not path.is_file():
             continue
-        # Skip hidden, cache, and branch snapshot directories
         parts = str(path.relative_to(directory))
         if any(skip in parts for skip in ('.git', '__pycache__', 'branches', 'node_modules')):
             continue
-        # Skip known binary file types
-        if path.suffix.lower() in _BINARY_EXTS:
-            continue
-        # Skip files over 1 MB
-        try:
-            if path.stat().st_size > _MAX_FILE_BYTES:
-                log.debug('Skipping large file %s (%d bytes)', path.name, path.stat().st_size)
-                continue
-        except OSError:
-            continue
         rel = path.relative_to(directory).as_posix()
+        suffix = path.suffix.lower()
+
+        if suffix in _NEVER_DEPLOY_EXTS:
+            excluded.append({'file': rel, 'reason': 'archive or executable — not part of a static site'})
+            continue
         try:
-            text = path.read_text(encoding='utf-8', errors='replace')
-            files.append(
-                {
-                    'file': rel,
-                    'data': text,
-                    'encoding': 'utf-8',
-                }
+            size = path.stat().st_size
+        except OSError as e:
+            excluded.append({'file': rel, 'reason': f'could not be read ({e.strerror or e})'})
+            continue
+        if size > _MAX_FILE_BYTES:
+            excluded.append(
+                {'file': rel, 'reason': f'{round(size / 1_048_576, 1)} MB exceeds the 10 MB per-file limit'}
             )
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            pass
-    return files[:500]  # Vercel free tier limit
+            continue
+
+        try:
+            raw = path.read_bytes()
+        except OSError as e:
+            excluded.append({'file': rel, 'reason': f'could not be read ({e.strerror or e})'})
+            continue
+
+        if suffix in _BINARY_EXTS:
+            files.append({'file': rel, 'data': base64.b64encode(raw).decode(), 'encoding': 'base64'})
+            continue
+        try:
+            # strict: a file that is not valid UTF-8 must go up as base64, not
+            # as replacement characters. `errors='replace'` silently corrupted
+            # any binary that was not caught by the extension list.
+            files.append({'file': rel, 'data': raw.decode('utf-8'), 'encoding': 'utf-8'})
+        except UnicodeDecodeError:
+            files.append({'file': rel, 'data': base64.b64encode(raw).decode(), 'encoding': 'base64'})
+
+    if len(files) > _MAX_FILES:
+        for entry in files[_MAX_FILES:]:
+            excluded.append(
+                {'file': entry['file'], 'reason': f'over the {_MAX_FILES}-file deploy limit'}
+            )
+        files = files[:_MAX_FILES]
+    return files, excluded
+
+
+def _collect_deploy_files(directory: Path) -> list[dict]:
+    """Backwards-compatible shim: files only."""
+    return collect_deploy_files(directory)[0]
+
+
+def _file_bytes(entry: dict) -> bytes:
+    """The real bytes of a collected entry, for zip-based providers."""
+    if entry.get('encoding') == 'base64':
+        return base64.b64decode(entry['data'])
+    return entry.get('data', '').encode('utf-8')
+
+
+def _deploy_warning(excluded: list[dict]) -> str | None:
+    """One honest sentence about what is NOT going live."""
+    if not excluded:
+        return None
+    names = ', '.join(e['file'] for e in excluded[:5])
+    more = f' (+{len(excluded) - 5} more)' if len(excluded) > 5 else ''
+    return (
+        f'{len(excluded)} file{"s" if len(excluded) != 1 else ""} were NOT deployed: '
+        f'{names}{more}. The published site will be missing them.'
+    )
 
 
 # ── Tunnel state registry ────────────────────────────────────────────────────
@@ -581,18 +682,44 @@ def stop_tunnel():
     """Stop the running Cloudflare tunnel."""
     proc = _active_tunnel.get('proc')
     if proc and proc.returncode is None:
+        url = _active_tunnel.get('url')
         try:
             proc.terminate()
-            _active_tunnel['proc'] = None
-            _active_tunnel['url'] = None
-            log.info('Cloudflare tunnel stopped')
-            return {'ok': True, 'message': 'Tunnel stopped'}
         except Exception as e:
             return {'ok': False, 'error': str(e)}
+        # Clear state even if the child is slow to die: leaving a dead proc in
+        # the registry made a later "start" think a tunnel was still up.
+        _active_tunnel['proc'] = None
+        _active_tunnel['url'] = None
+        log.info('Cloudflare tunnel stopped (%s)', url)
+        try:
+            from ..services.memory_db import audit_log
+
+            audit_log('deploy:tunnel_stop', f'Tunnel stopped: {url or "unknown"}')
+        except Exception:
+            pass
+        return {'ok': True, 'message': 'Tunnel stopped', 'url': url}
+    # A tunnel that has already exited leaves a stale non-None proc behind.
+    # Clear it so the next start is not refused as "already running".
+    if proc is not None:
+        _active_tunnel['proc'] = None
+        _active_tunnel['url'] = None
     return {'ok': False, 'error': 'No active tunnel to stop'}
 
 
 @router.get('/providers')
 def list_providers():
     """List all supported deploy providers."""
-    return {'providers': ['vercel', 'netlify', 'railway', 'render', 'flyio', 'github-pages', 'tunnel'], 'count': 7}
+    # Derived from the routes that exist rather than hand-maintained: the
+    # literal list drifts from reality the moment a provider is added or
+    # removed, and it is what the UI renders buttons from.
+    providers = [
+        {'id': 'vercel', 'label': 'Vercel', 'kind': 'api'},
+        {'id': 'netlify', 'label': 'Netlify', 'kind': 'api'},
+        {'id': 'railway', 'label': 'Railway', 'kind': 'cli'},
+        {'id': 'render', 'label': 'Render', 'kind': 'manual'},
+        {'id': 'flyio', 'label': 'Fly.io', 'kind': 'cli'},
+        {'id': 'github-pages', 'label': 'GitHub Pages', 'kind': 'api'},
+        {'id': 'tunnel', 'label': 'Cloudflare Tunnel', 'kind': 'tunnel'},
+    ]
+    return {'providers': [p['id'] for p in providers], 'detail': providers, 'count': len(providers)}
