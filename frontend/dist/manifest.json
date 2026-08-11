@@ -68,9 +68,9 @@
       "gzip": 248379,
       "brotli": 188110
     },
-    "chunks.2f69580b8576.js": {
+    "chunks.b4aa27f4ec5e.js": {
       "raw": 1575,
-      "gzip": 751,
+      "gzip": 752,
       "brotli": 650
     },
     "pane-a2a.b18f99e554e2.js": {
@@ -203,10 +203,10 @@
       "gzip": 2893,
       "brotli": 2391
     },
-    "pane-plugins.3efec48f2747.js": {
-      "raw": 13967,
-      "gzip": 4102,
-      "brotli": 3507
+    "pane-plugins.7130cbf3a281.js": {
+      "raw": 15903,
+      "gzip": 4713,
+      "brotli": 3986
     },
     "pane-skills.ed274ef7b8a9.js": {
       "raw": 9985,
@@ -434,11 +434,11 @@
       "bytes": 7773
     },
     "plugins": {
-      "file": "pane-plugins.3efec48f2747.js",
+      "file": "pane-plugins.7130cbf3a281.js",
       "modules": [
         "34-plugin-hub.js"
       ],
-      "bytes": 13967
+      "bytes": 15903
     },
     "skills": {
       "file": "pane-skills.ed274ef7b8a9.js",
@@ -497,7 +497,7 @@
       "bytes": 11184
     }
   },
-  "chunk_manifest": "chunks.2f69580b8576.js",
+  "chunk_manifest": "chunks.b4aa27f4ec5e.js",
   "lazy_modules": [
     "12-information-hierarchy.js",
     "15-image-generation.js",
@@ -536,5 +536,5 @@
     "54-finops.js",
     "55-eval-framework.js"
   ],
-  "lazy_bytes": 713263
+  "lazy_bytes": 715199
 }

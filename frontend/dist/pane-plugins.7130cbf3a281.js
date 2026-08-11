@@ -209,6 +209,24 @@ if (e && e.target && e.target.id !== 'hub-overlay') return;
 const d = document.getElementById('hub-drawer');
 if (d) d.innerHTML = '';
 }
+function hubWarnAfterInstall(name, warnings) {
+const list = warnings || [];
+if (!list.length) return;
+gmAlert(
+`⚠️ Installed with ${list.length} safety warning${list.length !== 1 ? 's' : ''}`,
+`<div style="font-size:13px;margin-bottom:10px">
+       <strong>${escHtml(name || 'This plugin')}</strong> was installed, but its content matched patterns
+       that can steer an agent away from your instructions.
+     </div>
+     <ul style="font-size:12.5px;color:var(--text-2);padding-left:18px;margin:0 0 10px">
+       ${list.map(w => `<li style="margin-bottom:4px">${escHtml(w)}</li>`).join('')}
+     </ul>
+     <div style="font-size:11.5px;color:var(--text-3)">
+       Skill runs have no tool or file access, so this cannot execute anything — but the
+       agent's answers may be affected. Remove the plugin if you did not expect this.
+     </div>`
+);
+}
 async function hubInstall(packId) {
 try {
 const r = await fetch(`/api/hub/install/${encodeURIComponent(packId)}`, { method: 'POST' });
@@ -217,10 +235,13 @@ if (!r.ok || !j || !j.ok) {
 toast('Install failed: ' + ((j && j.error) || ('server error ' + r.status)), 'err');
 return;
 }
-toast(`✅ ${j.message}`, 'ok', 3000);
+toast(j.warning_count
+? `⚠️ Installed with ${j.warning_count} safety warning(s)`
+: `✅ ${j.message}`, j.warning_count ? 'warn' : 'ok', j.warning_count ? 5000 : 3000);
 hubCloseDetail();
 await hubLoad();
 if (typeof renderSkills === 'function') { try { renderSkills(); } catch (_) {} }
+hubWarnAfterInstall(j.name, j.warnings);
 } catch (ex) { toast('Install error: ' + ex.message, 'err'); }
 }
 async function hubUninstall(packId) {
@@ -248,6 +269,7 @@ if (!j) { toast('Install failed: server error ' + r.status, 'err'); return; }
 toast(j.ok ? `✅ ${j.message}` : `Partially installed — ${(j.failed || []).length} failed`, j.ok ? 'ok' : 'warn', 3500);
 await hubLoad();
 if (typeof renderSkills === 'function') { try { renderSkills(); } catch (_) {} }
+hubWarnAfterInstall(j.collection, j.warnings);
 } catch (ex) { toast('Install error: ' + ex.message, 'err'); }
 }
 async function hubShowInstallCustom() {
@@ -265,10 +287,23 @@ body: JSON.stringify({ url }),
 });
 const j = await r.json().catch(() => null);
 if (!r.ok || !j || !j.ok) {
+if (j && j.unsafe && (j.problems || []).length) {
+gmAlert('🛑 Plugin refused',
+`<div style="font-size:13px;margin-bottom:10px">This plugin was <strong>not installed</strong>. Its templates do things a prompt template has no legitimate reason to do:</div>
+           <ul style="font-size:12.5px;color:var(--danger);padding-left:18px;margin:0 0 10px">
+             ${(j.problems || []).map(x => `<li style="margin-bottom:4px">${escHtml(x)}</li>`).join('')}
+           </ul>
+           <div style="font-size:11.5px;color:var(--text-3)">Only plain substitutions such as {topic} are allowed.</div>`);
+toast('Plugin refused by the safety check', 'err', 4000);
+return;
+}
 toast('Install failed: ' + ((j && j.error) || ('server error ' + r.status)), 'err', 4000);
 return;
 }
-toast('✅ Plugin installed', 'ok', 3000);
+toast(j.warnings && j.warnings.length
+? `⚠️ Installed with ${j.warnings.length} safety warning(s)`
+: '✅ Plugin installed', (j.warnings || []).length ? 'warn' : 'ok', 3000);
 await hubLoad();
+hubWarnAfterInstall(j.plugin || j.name, j.warnings);
 } catch (ex) { toast('Install error: ' + ex.message, 'err'); }
 }
