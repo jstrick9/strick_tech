@@ -251,14 +251,18 @@ if (res) res.innerHTML = `<div style="color:var(--red)">${escHtml(m)}</div>`;
 toast('Push failed: ' + m, 'err');
 return;
 }
-if (j.ok) {
+if (j.ok || j.status === 'partial') {
+const partial = j.status === 'partial';
 if (res) res.innerHTML = `<div class="settings-card">
-        <h3>✅ Pushed to GitHub!</h3>
-        <p>${j.files_pushed} files pushed to <a href="${safeUrl(j.url)}" target="_blank" rel="noopener" style="color:var(--accent-text)">${escHtml(j.repo)} ↗</a></p>
+        <h3>${partial ? '⚠️ Partially pushed' : '✅ Pushed to GitHub!'}</h3>
+        <p>${j.files_pushed}${j.files_attempted!=null?' of '+j.files_attempted:''} files pushed to <a href="${safeUrl(j.url)}" target="_blank" rel="noopener" style="color:var(--accent-text)">${escHtml(j.repo)} ↗</a></p>
+        ${partial ? `<div style="color:var(--danger);font-size:12px">${escHtml(j.error||'')} Re-run the push to finish it.</div>` : ''}
         ${j.held_back_count ? `<div style="color:var(--yellow);font-size:12px">🔒 ${j.held_back_count} credential-like file(s) were not uploaded</div>` : ''}
         ${j.errors?.length ? `<div style="color:var(--yellow);font-size:12px">⚠ ${j.errors.length} errors: ${escHtml(j.errors.join(', '))}</div>` : ''}
       </div>`;
-toast(`⬆ Pushed ${j.files_pushed} files to GitHub`, 'ok', 4000);
+toast(partial
+? `⚠ Partial push — ${j.files_pushed}/${j.files_attempted} files`
+: `⬆ Pushed ${j.files_pushed} files to GitHub`, partial ? 'warn' : 'ok', partial ? 6000 : 4000);
 } else {
 toast('Push failed: ' + (j.error || ''), 'err');
 }

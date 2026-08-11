@@ -445,19 +445,49 @@ async def push_to_github(req: Request):
 
     from ..services.memory_db import audit_log, memory_add
 
-    audit_log('github_push', f'{repo_name}/{branch}: {files_pushed} files')
+    attempted = len(plan['include'])
+    failed = attempted - files_pushed
+    # BUG FIX: `ok` was `files_pushed > 0`, so a push where 1 of 200 files
+    # uploaded and 199 returned 422 reported SUCCESS. The UI's success branch
+    # then rendered "✅ Pushed to GitHub!" and the repo was left in a
+    # half-written state -- the worst outcome to be quiet about, because the
+    # next push diffs against a tree the user believes is complete. `ok` now
+    # means every file that was attempted landed; a partial push says so.
+    if failed == 0:
+        status = 'complete'
+    elif files_pushed:
+        status = 'partial'
+    else:
+        status = 'failed'
+
+    audit_log(
+        'github_push',
+        f'{repo_name}/{branch}: {files_pushed}/{attempted} files ({status})',
+    )
     if files_pushed:
-        memory_add('github', f'Pushed {files_pushed} files to github.com/{repo_name}/{branch}', 'github,push,deploy')
+        memory_add(
+            'github',
+            f'Pushed {files_pushed}/{attempted} files to github.com/{repo_name}/{branch}',
+            'github,push,deploy',
+        )
 
     return {
-        'ok': files_pushed > 0,
+        'ok': failed == 0 and files_pushed > 0,
+        'status': status,
         'dry_run': False,
         'repo': repo_name,
         'branch': branch,
         'files_pushed': files_pushed,
+        'files_attempted': attempted,
+        'files_failed': failed,
         'total_files': total_files,
         'truncated': truncated,
         'errors': errors[:5],
+        'error': (
+            None
+            if failed == 0
+            else f'{failed} of {attempted} file(s) failed to upload — the repository is now in a partial state.'
+        ),
         # Previously collected and then dropped on the floor: a file held back
         # by secret screening simply never appeared in the repo, which reads as
         # a bug rather than a protection. Report it either way.
