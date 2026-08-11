@@ -91,13 +91,46 @@ File: {filepath}
         memory_db.audit_log('testgen_stream', f'{filepath} ({framework}) [streaming]')
 
         async def generate():
-            """Execute or process generate operation."""
+            """Stream the generated suite, refusing rather than faking one."""
+            stubbed = False
+            buffered: list[str] = []
+            # The stub flag only arrives on the TERMINAL frame, so deltas are
+            # already on the wire by the time we could react. Buffer them: a
+            # test suite is not useful token-by-token, and emitting text we may
+            # have to retract is exactly how the placeholder reached the UI.
             async for chunk in llm.stream(
                 messages, agent_id='reviewer', max_tokens=4096, temperature=0.2, inject_steering=False
-            ):  # FIX 2a
-                yield chunk
-            # After streaming, save the test file
-            # (client saves it via /api/preview/save)
+            ):
+                try:
+                    if chunk.startswith('data:'):
+                        frame = json.loads(chunk[5:].strip())
+                        if llm.is_stub(frame):
+                            stubbed = True
+                except (ValueError, AttributeError):
+                    pass
+                buffered.append(chunk)
+
+            if not stubbed:
+                for chunk in buffered:
+                    yield chunk
+
+            if stubbed:
+                yield (
+                    'data: '
+                    + json.dumps({
+                        'type': 'error',
+                        'code': 'llm_unavailable',
+                        'error': (
+                            'No AI provider is configured or reachable, so no tests were '
+                            'generated. Set OPENROUTER_API_KEY in your .env, store a key in '
+                            'the Vault, or run a local Ollama model \u2014 Settings \u2192 '
+                            'Connect AI walks through both.'
+                        ),
+                        'setup_url': 'https://openrouter.ai/keys',
+                        'done': True,
+                    })
+                    + '\n\n'
+                )
 
         return StreamingResponse(sse_guard(generate()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache'})
 

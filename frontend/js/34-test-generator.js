@@ -73,13 +73,28 @@ async function generateTests() {
     // FIX 9: resp.ok check + resp.body null guard
     if (!resp.ok) { throw new Error(`Server error: HTTP ${resp.status}`); }
     if (!resp.body) { throw new Error('No response body — check server logs'); }
-    const reader=resp.body.getReader(); const dec=new TextDecoder();
+    const reader=resp.body.getReader(); const dec=new TextDecoder(); let genError='';
     while(true) {
       const {done,value}=await reader.read(); if(done) break;
       for(const line of dec.decode(value,{stream:true}).split('\n')) {
         if(!line.startsWith('data:')) continue;
-        try { const d=JSON.parse(line.slice(5).trim()); if(d.delta){generatedTestCode+=d.delta;res.textContent=generatedTestCode;res.scrollTop=res.scrollHeight;} } catch(e) {}
+        try {
+          const d=JSON.parse(line.slice(5).trim());
+          // The server now emits an explicit refusal instead of streaming the
+          // no-provider help text as if it were a test suite.
+          if(d.type==='error'){ genError=d.error||'No tests were generated.'; continue; }
+          if(d.delta){generatedTestCode+=d.delta;res.textContent=generatedTestCode;res.scrollTop=res.scrollHeight;}
+        } catch(e) {}
       }
+    }
+    if(genError){
+      generatedTestCode='';
+      res.textContent=genError;
+      st.textContent='✗ No tests generated';
+      // Never offer to save prose as a test file.
+      if(saveBtn) saveBtn.style.display='none';
+      toast(genError,'err',5000);
+      return;
     }
     st.textContent=`✅ ${generatedTestCode.split('\n').length} lines generated`;
     if(saveBtn) saveBtn.style.display='';
