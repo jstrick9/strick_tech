@@ -519,7 +519,19 @@ async def pull_from_github(req: Request):
     if not _valid_repo_name(repo_name):
         return {'ok': False, 'error': 'Invalid repo format — expected "owner/repo-name"'}
 
-    target_dir = ROOT / 'preview' if target == 'preview' else ROOT / target
+    # SECURITY FIX: `ROOT / target` with a caller-supplied `target` escapes the
+    # data directory outright -- `target='../../../tmp/x'` resolves to /tmp/x,
+    # and mkdir(parents=True) then creates it. The per-blob `is_within` check
+    # below guards each file against a malicious path INSIDE the repo, but
+    # nothing guarded the destination root itself, so every pulled file landed
+    # wherever the caller pointed. /api/workspaces/import/github passes a
+    # server-computed target, but this endpoint is public and takes its own.
+    target_dir = (ROOT / 'preview') if target == 'preview' else (ROOT / str(target))
+    if not is_within(target_dir.resolve(), ROOT.resolve()):
+        return JSONResponse(
+            {'ok': False, 'error': 'Invalid target — it must stay inside the workspace data directory.'},
+            status_code=400,
+        )
     target_dir.mkdir(parents=True, exist_ok=True)
 
     try:

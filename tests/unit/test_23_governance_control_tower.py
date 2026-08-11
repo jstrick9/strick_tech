@@ -69,12 +69,30 @@ class TestBudgetRules:
         return d["id"]
 
     def test_budget_rule_action_validation(self, client):
+        """UPDATED in module 24 — this pinned a silent rewrite as correct.
+
+        It asserted that action="invalid_action" is accepted (200) and quietly
+        stored as "stop". That is worse than it sounds now that budget rules are
+        actually ENFORCED: a typo'd action used to be coerced into the strictest
+        setting, so a user who meant "warn" and mistyped it silently got a hard
+        block on their spending — the stored rule disagreeing with the request.
+
+        The endpoint now rejects an unrecognised action with 400 and names the
+        valid ones. Kept and rewritten rather than deleted: validating the
+        action is still worth covering from this suite, in both directions.
+        """
         r = client.post("/api/control/budget-rules", json={
             "name": "Validation Test",
-            "action": "invalid_action"  # Should default to "stop"
+            "action": "invalid_action"
         })
-        assert r.status_code == 200
-        assert r.json()["ok"] is True
+        assert r.status_code == 400
+        assert "stop, warn, notify" in r.json()["error"]
+
+        ok = client.post("/api/control/budget-rules", json={
+            "name": "Validation Test OK", "action": "warn"
+        })
+        assert ok.status_code == 200
+        assert ok.json()["ok"] is True
 
     def test_update_budget_rule(self, client):
         create = client.post("/api/control/budget-rules", json={

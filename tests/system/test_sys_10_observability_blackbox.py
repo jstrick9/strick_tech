@@ -219,10 +219,20 @@ class TestSysEvalFrameworkSystem:
         done = next((e for e in results if e.get("type") == "done"), None)
         check("done event received", done is not None)
         if done:
-            check("avg_score 0-1", 0 <= done.get("avg_score",0) <= 1.0)
+            # UPDATED in module 24. `0 <= done.get("avg_score", 0)` assumed the
+            # key is always a number. Module 16 made avg_score None when no
+            # case could actually be scored -- the whole point of that fix was
+            # that an unmeasured suite must not report a number. This assertion
+            # then raised TypeError comparing int to None, i.e. the test was
+            # written against the buggy contract. Both outcomes are valid now:
+            # a real score in range, or None meaning "not measured".
+            avg = done.get("avg_score")
+            check("avg_score 0-1 or None when unmeasured",
+                  avg is None or 0 <= avg <= 1.0, avg)
             check("passed <= total", done.get("passed",0) <= done.get("total",1))
             check("pass_threshold present", "pass_threshold" in done)
-            check("suite_pass is bool", isinstance(done.get("suite_pass"), bool))
+            check("suite_pass is bool or None",
+                  done.get("suite_pass") is None or isinstance(done.get("suite_pass"), bool))
 
     async def test_eval_results_persist_and_queryable(self, C):
         """Eval results are persisted and can be filtered/queried."""

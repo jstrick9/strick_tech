@@ -565,9 +565,122 @@ def list_budget_rules():
     con = get_conn()
     try:
         rows = con.execute('SELECT * FROM budget_rules ORDER BY id').fetchall()
+        try:
+            live = {
+                r['cap_id']: r
+                for r in con.execute(
+                    "SELECT cap_id, on_breach, enabled FROM budget_caps WHERE cap_id LIKE 'ctrl_rule_%'"
+                ).fetchall()
+            }
+        except Exception:
+            live = {}
     finally:
         con.close()
-    return [dict(r) for r in rows]
+    out = []
+    for r in rows:
+        d = dict(r)
+        cap = live.get(f'ctrl_rule_{d["id"]}')
+        # `enforced` is measured against the table that actually gates spending,
+        # not inferred from the rule's own `action`. If the mirror is missing
+        # the rule is inert, and the UI must be able to say so.
+        d['enforced'] = bool(cap and cap['enabled'] and cap['on_breach'] == 'pause')
+        out.append(d)
+    return out
+
+
+_RULE_ACTIONS = ('stop', 'warn', 'notify')
+
+
+def _coerce_limit(value, default, kind):
+    """Coerce a budget limit, or return None to signal a bad value.
+
+    `float(body.get('max_cost', 1.0))` raised ValueError on any non-numeric
+    input and took the endpoint out with HTTP 500 -- verified with
+    {"max_cost": "abc"}. And nothing checked the sign, so a cap of -5 dollars
+    was stored happily: a limit that can never be satisfied, configured by
+    someone who meant to restrict spending.
+    """
+    if value is None:
+        return default
+    try:
+        n = float(value) if kind is float else int(value)
+    except (TypeError, ValueError):
+        return None
+    if n < 0:
+        return None
+    return n
+
+
+def _sync_rule_to_cap(rule_id: int) -> None:
+    """Mirror a Control Tower budget rule into the table that ENFORCES caps.
+
+    THE BUG THIS EXISTS FOR. The platform had two unrelated budget stores:
+
+      * `budget_rules`  — written by this router, rendered by the Control Tower
+                          pane, and read by NOTHING. Confirmed by grep across
+                          the whole backend: zero readers outside this file.
+      * `budget_caps`   — what finops.check_budget_before_spend() actually
+                          consults before every LLM call.
+
+    So a user who opened the Control Tower, set "max_cost 0.01, action: stop",
+    and saw it listed had configured nothing at all. Verified live: created that
+    exact rule, then asked the enforcer directly -> {'allowed': True}. The pane
+    that exists to stop runaway spending was decorative.
+
+    Writing through to `budget_caps` is the smaller, safer fix: the enforcement
+    logic, its period handling and its fail-open behaviour are already reviewed
+    and tested, so this makes the UI drive the real mechanism rather than
+    introducing a second enforcement path that could drift again.
+
+    `action` maps onto `on_breach`: 'stop' becomes a hard 'pause' (the enforcer
+    denies the spend), while 'warn' and 'notify' become 'alert' (notify-only),
+    matching what those words promise.
+    """
+    con = get_conn()
+    try:
+        rule = con.execute('SELECT * FROM budget_rules WHERE id=?', (rule_id,)).fetchone()
+        if not rule:
+            return
+        r = dict(rule)
+        cap_id = f'ctrl_rule_{rule_id}'
+        on_breach = 'pause' if r.get('action') == 'stop' else 'alert'
+        scope_type = 'platform' if (r.get('agent_id') or '*') == '*' else 'agent'
+        con.execute(
+            """INSERT INTO budget_caps
+                 (cap_id,name,scope_type,scope_id,period,limit_usd,limit_tokens,on_breach,enabled)
+               VALUES (?,?,?,?,'day',?,?,?,?)
+               ON CONFLICT(cap_id) DO UPDATE SET
+                 name=excluded.name, scope_type=excluded.scope_type, scope_id=excluded.scope_id,
+                 limit_usd=excluded.limit_usd, limit_tokens=excluded.limit_tokens,
+                 on_breach=excluded.on_breach, enabled=excluded.enabled,
+                 updated_at=CURRENT_TIMESTAMP""",
+            (
+                cap_id,
+                r.get('name') or 'Budget limit',
+                scope_type,
+                r.get('agent_id') or '*',
+                float(r.get('max_cost') or 0),
+                int(r.get('max_tokens') or 0),
+                on_breach,
+                int(r.get('enabled', 1) or 0),
+            ),
+        )
+        con.commit()
+    except Exception as e:  # pragma: no cover - mirroring must never break CRUD
+        log.error('Could not sync budget rule %s into budget_caps: %s', rule_id, e)
+    finally:
+        con.close()
+
+
+def _delete_rule_cap(rule_id: int) -> None:
+    con = get_conn()
+    try:
+        con.execute('DELETE FROM budget_caps WHERE cap_id=?', (f'ctrl_rule_{rule_id}',))
+        con.commit()
+    except Exception as e:  # pragma: no cover
+        log.error('Could not remove cap for budget rule %s: %s', rule_id, e)
+    finally:
+        con.close()
 
 
 @router.post('/budget-rules')
@@ -577,12 +690,27 @@ async def create_budget_rule(req: Request):
     if _body_err:
         return _body_err
     name = (as_text(body.get('name')) or 'Budget limit')[:80]
-    agent_id = body.get('agent_id', '*')
-    max_cost = float(body.get('max_cost', 1.0))
-    max_tok = int(body.get('max_tokens', 100000))
+    agent_id = str(body.get('agent_id') or '*')[:64]
+
+    max_cost = _coerce_limit(body.get('max_cost'), 1.0, float)
+    if max_cost is None:
+        return JSONResponse(
+            {'ok': False, 'error': 'max_cost must be a non-negative number of dollars'}, status_code=400
+        )
+    max_tok = _coerce_limit(body.get('max_tokens'), 100000, int)
+    if max_tok is None:
+        return JSONResponse(
+            {'ok': False, 'error': 'max_tokens must be a non-negative whole number'}, status_code=400
+        )
+
     action = body.get('action', 'stop')
-    if action not in ('stop', 'warn', 'notify'):
-        action = 'stop'
+    if action not in _RULE_ACTIONS:
+        # Silently rewriting an unrecognised action to 'stop' hid typos and made
+        # the stored rule disagree with what the caller asked for.
+        return JSONResponse(
+            {'ok': False, 'error': f"action must be one of {', '.join(_RULE_ACTIONS)}"}, status_code=400
+        )
+
     con = get_conn()
     try:
         cur = con.execute(
@@ -593,7 +721,17 @@ async def create_budget_rule(req: Request):
         con.commit()
     finally:
         con.close()
-    return {'ok': True, 'id': rid}
+    _sync_rule_to_cap(rid)
+    return {
+        'ok': True,
+        'id': rid,
+        'enforced': action == 'stop',
+        'note': (
+            'This rule will block spending once the limit is reached.'
+            if action == 'stop'
+            else 'This rule only raises an alert; it does not block spending.'
+        ),
+    }
 
 
 @router.patch('/budget-rules/{rule_id}')
@@ -603,20 +741,50 @@ async def update_budget_rule(rule_id: int, req: Request):
     if _body_err:
         return _body_err
     allowed = {'name', 'agent_id', 'max_cost', 'max_tokens', 'action', 'enabled'}
+
+    # BUG FIX: this wrote body values straight through with no validation at
+    # all, so PATCH bypassed every check the create path performs. Verified
+    # live: a rule ended up with max_cost='not-a-number' and
+    # action='ignore_everything', both stored and listed as if valid. A budget
+    # cap holding a string cannot be compared against a number -- the rule is
+    # inert and looks configured.
+    if 'max_cost' in body:
+        v = _coerce_limit(body['max_cost'], None, float)
+        if v is None:
+            return JSONResponse(
+                {'ok': False, 'error': 'max_cost must be a non-negative number of dollars'}, status_code=400
+            )
+        body['max_cost'] = v
+    if 'max_tokens' in body:
+        v = _coerce_limit(body['max_tokens'], None, int)
+        if v is None:
+            return JSONResponse(
+                {'ok': False, 'error': 'max_tokens must be a non-negative whole number'}, status_code=400
+            )
+        body['max_tokens'] = v
+    if 'action' in body and body['action'] not in _RULE_ACTIONS:
+        return JSONResponse(
+            {'ok': False, 'error': f"action must be one of {', '.join(_RULE_ACTIONS)}"}, status_code=400
+        )
+
     sets, vals = [], []
     for k in allowed:
         if k in body:
             sets.append(f'{k}=?')
             vals.append(body[k])
     if not sets:
-        return {'ok': False}
+        return JSONResponse({'ok': False, 'error': 'No updatable fields supplied'}, status_code=400)
     vals.append(rule_id)
     con = get_conn()
     try:
-        con.execute(f'UPDATE budget_rules SET {", ".join(sets)} WHERE id=?', vals)
+        cur = con.execute(f'UPDATE budget_rules SET {", ".join(sets)} WHERE id=?', vals)
         con.commit()
+        changed = cur.rowcount
     finally:
         con.close()
+    if not changed:
+        return JSONResponse({'ok': False, 'error': f'No budget rule with id {rule_id}'}, status_code=404)
+    _sync_rule_to_cap(rule_id)
     return {'ok': True}
 
 
@@ -630,7 +798,17 @@ def delete_budget_rule(rule_id: int):
         con.commit()
     finally:
         con.close()
-    return {'ok': True, 'deleted': exists is not None}
+    if not exists:
+        # Reporting deleted:false with HTTP 200 told status-code-aware clients
+        # the delete had succeeded. Same fix already applied to loops and the
+        # vault.
+        return JSONResponse(
+            {'ok': False, 'deleted': False, 'error': f'No budget rule with id {rule_id}'},
+            status_code=404,
+        )
+    # The mirrored cap must go too, or a deleted rule keeps blocking spend.
+    _delete_rule_cap(rule_id)
+    return {'ok': True, 'deleted': True}
 
 
 # ── Notifications ──────────────────────────────────────────────────────────────
