@@ -11020,6 +11020,7 @@ profile:    null,
 tier:       'trial',
 daysLeft:   14,
 isTrial:    true,
+unlocked:   true,
 uiMode:     'simple',
 loaded:     false,
 };
@@ -11032,6 +11033,7 @@ _UI.profile  = d.profile;
 _UI.tier     = d.tier;
 _UI.daysLeft = d.days_left;
 _UI.isTrial  = d.is_trial;
+_UI.unlocked = d.unlocked === true || d.all_features === true;
 _UI.uiMode   = d.ui_mode || 'simple';
 _UI.loaded   = true;
 applyUIMode(_UI.uiMode);
@@ -11052,6 +11054,7 @@ window.addEventListener('load', () => setTimeout(loadUIConfig, 400));
 function renderTrialBanner(cfg) {
 const existing = document.getElementById('trial-banner');
 if (existing) existing.remove();
+if (cfg.unlocked || _UI.unlocked) return;
 if (!cfg.is_trial || cfg.days_left <= 0) return;
 const daysLeft = cfg.days_left;
 const urgency  = daysLeft <= 3 ? 'var(--danger)' : daysLeft <= 7 ? 'var(--warning)' : 'var(--accent)';
@@ -11331,6 +11334,7 @@ showToast('⚠️ Could not save sidebar order: ' + (ex?.message||String(ex)));
 }
 }
 async function checkPaneAccess(paneId) {
+if (_UI.unlocked) return true;
 try {
 const r = await fetch(`/api/license/pane-access/${encodeURIComponent(paneId)}`);
 if (!r.ok) return true;
@@ -11347,6 +11351,7 @@ return true;
 function showUpgradeModal(paneId, requiredTier='pro', currentTier='free') {
 const existing = document.getElementById('upgrade-modal');
 if (existing) existing.remove();
+if (_UI.unlocked) return;
 const tierNames = {pro:'Pro',enterprise:'Enterprise',free:'Free',trial:'Trial'};
 const tierColors = {pro:'var(--accent)',enterprise:'#f0c060',free:'var(--text-3)'};
 const tierPrices = {pro:'$29/mo',enterprise:'Contact us'};
@@ -12434,7 +12439,7 @@ const gatedPanes = new Set([
 'bugbot','health','gitai','ambient','fusion','hitl','browser','websearch',
 'leaderboard','voice','pipeline','skills',
 ]);
-if (gatedPanes.has(pane) && _UI.loaded) {
+if (gatedPanes.has(pane) && _UI.loaded && !_UI.unlocked) {
 const tier = _UI.tier;
 if (tier === 'free') {
 const r = await fetch(`/api/license/pane-access/${encodeURIComponent(pane)}`).catch(()=>null);

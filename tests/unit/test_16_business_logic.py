@@ -10,7 +10,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 
 class TestLicenseBusinessLogic:
-    """Pure unit tests for license helper functions."""
+    """Pure unit tests for license helper functions.
+
+    OWNER BUILD NOTE: `_effective_tier()` now returns the top tier unless
+    AGENTIC_ENFORCE_LICENSE=1 is set, because this is a single-owner deployment
+    with nothing to gate. The tier ENGINE is still real and still worth
+    verifying, so these tests enable enforcement rather than being deleted --
+    otherwise a future change to the gating maths would go unnoticed.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _enforce(self, monkeypatch):
+        monkeypatch.setenv('AGENTIC_ENFORCE_LICENSE', '1')
 
     def test_effective_tier_trial_not_expired(self):
         from backend.routers.license import _effective_tier
