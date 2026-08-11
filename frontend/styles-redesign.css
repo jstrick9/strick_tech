@@ -2082,3 +2082,13 @@ html :focus:not(:focus-visible) {
   border: 1px solid var(--border); border-left: 3px solid var(--accent);
   border-radius: 8px; background: var(--bg-2);
 }
+
+
+/* Secrets Vault: a stored value that does not decrypt with the live vault key.
+   Distinct from the 🔒 badge so the padlock keeps meaning "verified readable". */
+.vault-enc-bad.vault-enc-bad {
+  background: rgba(242, 101, 101, .12);
+  color: var(--danger);
+  border: 1px solid rgba(242, 101, 101, .35);
+  white-space: nowrap;
+}

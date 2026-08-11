@@ -83,8 +83,60 @@ def _decrypt(enc: str, is_fernet: bool = True) -> str:
         return ''
 
 
+def _is_readable(enc: str) -> bool:
+    """True when the stored blob actually decrypts with the live vault key.
+
+    `_decrypt` returns '' both for "the plaintext really was empty" and for
+    "this did not decrypt". Empty values cannot be stored (set_secret rejects
+    them), so '' here unambiguously means unreadable.
+    """
+    if not enc:
+        return False
+    f = _get_fernet()
+    if not f:
+        return False
+    try:
+        return bool(f.decrypt(enc.encode()).decode())
+    except Exception:
+        return False
+
+
 def _fingerprint(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()[:12]
+
+
+def secrets_for_agent(agent_id: str) -> dict[str, str]:
+    """Every secret an agent named `agent_id` is entitled to see.
+
+    The vault has offered a per-agent scope in its UI since it was written, but
+    nothing ever read it back: `_inject_to_env` selected `WHERE scope='global'`
+    and every LLM/tool call then read `os.environ`. An "agent" scoped secret was
+    therefore stored, listed, and silently ignored -- the isolation the dropdown
+    promised did not exist. Global secrets are the base; an agent-scoped secret
+    of the same name overrides it for that agent only.
+    """
+    con = get_conn()
+    try:
+        rows = con.execute(
+            "SELECT key, value_enc, scope, agent FROM secrets WHERE scope='global' OR (scope='agent' AND lower(agent)=lower(?))",
+            (agent_id or '',),
+        ).fetchall()
+    finally:
+        con.close()
+    out: dict[str, str] = {}
+    for r in rows:
+        if r['scope'] != 'global':
+            continue
+        val = _decrypt(r['value_enc'])
+        if val:
+            out[r['key']] = val
+    for r in rows:
+        if r['scope'] == 'global':
+            continue
+        val = _decrypt(r['value_enc'])
+        if val:
+            out[r['key']] = val
+    return out
 
 
 def _inject_to_env():
@@ -121,24 +173,46 @@ def list_secrets(masked: bool = True):
     con = get_conn()
     try:
         rows = con.execute(
-            "SELECT id, key, scope, agent, fingerprint, length, datetime(updated_at,'localtime') as updated_at FROM secrets ORDER BY key"
+            'SELECT id, key, value_enc, scope, agent, fingerprint, length, updated_at FROM secrets ORDER BY key'
         ).fetchall()
     finally:
         con.close()
     f = _get_fernet()
     items = []
+    unreadable = 0
     for r in rows:
         d = dict(r)
-        d['masked'] = '••••••••' if masked else None
+        enc = d.pop('value_enc', '') or ''
+        # BUG FIX: the row was reported as an encrypted secret purely because it
+        # existed. Whether the stored ciphertext can actually be decrypted was
+        # never checked, so a row written in PLAINTEXT by another writer
+        # (onboarding's quick-setup did exactly this) rendered in the vault with
+        # a 🔒 badge next to it. The padlock is the entire security claim this
+        # screen makes; it must be measured, not assumed.
+        d['readable'] = _is_readable(enc)
+        d['storage'] = 'fernet' if d['readable'] else 'unreadable'
+        if not d['readable']:
+            unreadable += 1
+        d['masked'] = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022' if masked else None
         items.append(d)
+    warning = None
+    if f is None:
+        warning = "Install 'cryptography' for real encryption: pip install cryptography"
+    elif unreadable:
+        warning = (
+            f'{unreadable} secret{"s" if unreadable != 1 else ""} cannot be decrypted with the current '
+            'vault key. They were either written outside the vault or the key was rotated. '
+            'Re-enter their values to restore them.'
+        )
     return {
         'ok': True,
         'count': len(items),
         'items': items,
         'encrypted': f is not None,
+        'unreadable': unreadable,
         'engine': 'Fernet AES-256' if f else 'Base64 (install cryptography for encryption)',
         'vault_path': str(KEY_PATH),  # FIX 13: actual vault key file
-        'warning': None if f else "Install 'cryptography' for real encryption: pip install cryptography",
+        'warning': warning,
     }
 
 
@@ -155,8 +229,28 @@ async def set_secret(req: Request):
         return _body_err
     key = as_text(body.get('key')).upper()
     value = body.get('value') or ''
-    scope = body.get('scope') or 'global'
-    agent = body.get('agent') or ''
+    # BUG FIX: scope/agent defaulted to 'global'/'' whenever the caller omitted
+    # them, and the UPSERT then wrote those defaults over the stored row. The
+    # vault's own edit button (vaultEdit) sends {key, value} only -- so changing
+    # the VALUE of a secret scoped to one agent silently widened it to every
+    # agent. A privilege escalation performed by the pencil icon. Verified live:
+    # scope 'agent'/'builder' -> POST {key,value} -> scope 'global'/''.
+    # An absent field now means "leave as-is" for an existing row.
+    existing = None
+    if 'scope' not in body or 'agent' not in body:
+        _c = get_conn()
+        try:
+            existing = _c.execute('SELECT scope, agent FROM secrets WHERE key=?', (key,)).fetchone()
+        finally:
+            _c.close()
+    if 'scope' in body:
+        scope = body.get('scope') or 'global'
+    else:
+        scope = (existing['scope'] if existing else None) or 'global'
+    if 'agent' in body:
+        agent = body.get('agent') or ''
+    else:
+        agent = (existing['agent'] if existing else '') or ''
 
     if not key:
         return JSONResponse({'ok': False, 'error': 'key required'}, status_code=400)
@@ -170,6 +264,17 @@ async def set_secret(req: Request):
         }
     if not value:
         return JSONResponse({'ok': False, 'error': 'value required'}, status_code=400)
+    if scope not in ('global', 'agent'):
+        return JSONResponse(
+            {'ok': False, 'error': f"scope must be 'global' or 'agent', got '{scope}'"}, status_code=400
+        )
+    if scope == 'agent' and not agent.strip():
+        # Without this, scope='agent' with a blank agent name matched no agent at
+        # all -- the secret was stored, shown as scoped, and unreachable forever.
+        return JSONResponse(
+            {'ok': False, 'error': "scope 'agent' requires an agent name"}, status_code=400
+        )
+    agent = agent.strip()
 
     enc, is_fernet = _encrypt(value)
     if not is_fernet:
@@ -194,8 +299,18 @@ async def set_secret(req: Request):
     finally:
         con.close()
 
-    # inject to env immediately
-    os.environ[key] = value
+    # BUG FIX: this injected EVERY saved secret into the server's own
+    # os.environ, including ones the user had just scoped to a single agent.
+    # os.environ is process-global and every agent, tool and subprocess reads
+    # it, so choosing "agent — specific agent" in the UI stored the restriction
+    # and then immediately published the value to everything anyway. Startup
+    # injection (`_inject_to_env`) already filtered on scope='global'; this
+    # write path did not, so the scope only held until the next restart.
+    if scope == 'global':
+        os.environ[key] = value
+    else:
+        # Never leave a stale global copy of a key that has just been narrowed.
+        os.environ.pop(key, None)
     try:
         audit_log('vault_set', f'{key} scope={scope} agent={agent}')
     except Exception:
@@ -337,6 +452,23 @@ async def get_secret(key: str, reveal: bool = False):
     if reveal:
         audit_log('vault_reveal', key)
         val = _decrypt(row['value_enc'])
+        if not val:
+            # BUG FIX: returned {'ok': True, 'value': ''} when the blob could not
+            # be decrypted, so the UI popped its "🔐 copy it now" dialog showing
+            # an empty box and told the user it was "encrypted at rest". Verified
+            # live against a plaintext row written by onboarding quick-setup.
+            return JSONResponse(
+                {
+                    'ok': False,
+                    'key': key,
+                    'error': (
+                        f"'{key}' could not be decrypted with the current vault key. It was either "
+                        'written outside the vault or the key has been rotated. Re-enter its value.'
+                    ),
+                    'readable': False,
+                },
+                status_code=422,
+            )
         return {'ok': True, 'key': key, 'value': val, 'revealed': True}
     return {'ok': True, 'key': key, 'fingerprint': row['fingerprint'], 'scope': row['scope'], 'revealed': False}
 

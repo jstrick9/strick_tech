@@ -183,16 +183,10 @@ function termNewSession(){const id='s'+Date.now().toString(36);
 //  SECRETS VAULT — Encrypted key/value store with Fernet AES-256
 //  NOTE: this backs a SEPARATE pane (pane-secrets / 'secrets' nav item),
 //  not the Terminal pane -- it lives in this file only for code
-//  organization. Out of scope for this Terminal review pass; queued for
-//  its own individual review later per the no-batching instruction. Spot
-//  -checked while here: vaultReveal/vaultEdit/vaultDelete/vaultShowAdd's
-//  onclick="...(${jsArg(item.key)})" pattern is NOT an active
-//  quote-collision bug today because backend/routers/secrets.py's
-//  set_secret() validates key format server-side
-//  (^[A-Z][A-Z0-9_]{0,127}$ -- uppercase letters/digits/underscores
-//  only), so no stored key can ever contain a quote character. Still
-//  worth revisiting for consistency with the data-*/addEventListener
-//  pattern used elsewhere in this app when this pane gets its own pass.
+//  organization. Reviewed in its own pass (docs/module-reviews/78-secrets-vault.md).
+//  The `data-act-click="...(${jsArg(item.key)})"` pattern is safe because
+//  set_secret() validates keys server-side against ^[A-Z][A-Z0-9_]{0,127}$,
+//  so no stored key can contain a quote character.
 // ══════════════════════════════════════════════════════════════════════════════
 async function renderSecretsVault() {
   const pane = document.getElementById('pane-secrets');
@@ -228,6 +222,7 @@ async function renderSecretsVault() {
         </div>
         <div style="font-size:11.5px;color:var(--text-2);margin-top:2px">${escHtml(engine)}</div>
         ${warning?`<div style="font-size:11px;color:var(--warning);margin-top:4px">${escHtml(warning)}</div>`:''}
+        ${data.unreadable?`<div style="font-size:11px;color:var(--danger);margin-top:4px">${data.unreadable} of ${items.length} stored secret${items.length!==1?'s':''} cannot be decrypted and are NOT in use by any agent.</div>`:''}
       </div>
       <div style="font-size:11px;color:var(--text-3);text-align:right">
         Key file: <code class="u-0d5be05f">${escHtml(data.vault_path||'')}</code>
@@ -288,13 +283,15 @@ async function renderSecretsVault() {
           <div class="vault-row" style="display:grid;grid-template-columns:1fr 80px 80px 120px 130px;gap:8px">
             <div style="display:flex;align-items:center;gap:8px;min-width:0">
               <span class="vault-key">${escHtml(item.key)}</span>
-              ${encrypted?'<span class="vault-enc-badge">🔒</span>':''}
+              ${item.readable===false
+                ? '<span class="vault-enc-badge vault-enc-bad" title="Stored value cannot be decrypted with the current vault key. Re-enter it.">⚠️ unreadable</span>'
+                : (encrypted?'<span class="vault-enc-badge">🔒</span>':'')}
             </div>
             <div><span class="vault-scope">${escHtml(item.scope||'global')}</span></div>
-            <div style="color:var(--text-3);font-size:11px">${item.length||0} chars</div>
+            <div style="color:var(--text-3);font-size:11px">${item.length==null?'—':item.length+' chars'}</div>
             <div style="color:var(--text-3);font-size:11px;white-space:nowrap">${escHtml((item.updated_at||'').slice(0,16))}</div>
             <div style="display:flex;gap:5px">
-              <button class="btn btn-ghost btn-sm" data-act-click="vaultReveal(${jsArg(item.key)})" title="Reveal value">👁</button>
+              <button class="btn btn-ghost btn-sm" data-act-click="vaultReveal(${jsArg(item.key)})" title="${item.readable===false?'Cannot be decrypted — re-enter the value':'Reveal value'}"${item.readable===false?' disabled':''}>👁</button>
               <button class="btn btn-ghost btn-sm" data-act-click="vaultEdit(${jsArg(item.key)})" title="Update value">✏️</button>
               <button class="btn btn-sm" data-act-click="vaultDelete(${jsArg(item.key)})" style="color:var(--danger)" title="Delete">🗑</button>
             </div>
@@ -347,6 +344,9 @@ async function vaultSave() {
   const agent = (document.getElementById('vault-agent-input')?.value||'').trim();
   if (!key) { showToast('Key name is required','err'); return; }
   if (!value) { showToast('Value is required','err'); return; }
+  // The backend rejects this too; catching it here avoids a round trip and
+  // points at the field that is wrong.
+  if (scope === 'agent' && !agent) { showToast('Agent name is required for agent-scoped secrets','err'); return; }
   try {
     const r = await fetch('/api/secrets/set',{
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -367,6 +367,10 @@ async function vaultReveal(key) {
   try {
     const r = await fetch(`/api/secrets/get?key=${encodeURIComponent(key)}&reveal=true`);
     const j = await r.json();
+    if (!r.ok && j.readable === false) {
+      showToast('⚠️ ' + (j.error || 'This secret cannot be decrypted'), 'err', 6000);
+      return;
+    }
     if (j.ok && j.value !== undefined) {
       await gmAlert(`🔐 ${escHtml(key)}`,
         `<div style="font-family:monospace;background:var(--bg-0);padding:12px;border-radius:8px;word-break:break-all;font-size:13px;color:var(--success)">${escHtml(j.value)}</div>
@@ -377,6 +381,10 @@ async function vaultReveal(key) {
   } catch(ex) { showToast('⚠️ ' + ex.message, 'err'); }
 }
 
+// Sends {key, value} ONLY, deliberately. The backend now treats an absent
+// scope/agent as "leave the stored values alone". Sending scope:'global' here
+// -- which is what this function used to cause server-side -- silently widened
+// an agent-scoped secret to every agent on a value change.
 async function vaultEdit(key) {
   const newVal = await gmPrompt(`Update value for ${key}:`, '');
   if (newVal === null) return;

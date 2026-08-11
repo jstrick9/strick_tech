@@ -113,13 +113,35 @@ def is_stub(result: dict | None) -> bool:
     return result.get('provider') == STUB_PROVIDER or result.get('stub') is True
 
 
-def _or_key() -> str:
+def _or_key(agent_id: str = '') -> str:
+    """The OpenRouter key this agent should use.
+
+    The Secrets Vault has always offered a per-agent scope, and nothing ever
+    honoured it: startup injection loaded scope='global' rows into os.environ
+    and every consumer -- including this function -- read os.environ. An
+    agent-scoped key was stored, listed in the UI as scoped, and then never
+    used by anybody. Asking the vault directly for `agent_id` makes the
+    dropdown mean what it says: an agent-scoped OPENROUTER_API_KEY overrides
+    the global one for that agent only.
+
+    Falls back to the environment so nothing regresses when the vault is
+    unavailable, empty, or the caller did not identify an agent.
+    """
+    if agent_id:
+        try:
+            from ..routers.secrets import secrets_for_agent
+
+            scoped = secrets_for_agent(agent_id).get('OPENROUTER_API_KEY')
+            if scoped:
+                return scoped
+        except Exception as e:  # vault unreachable -- never block the call
+            log.debug('Vault lookup for agent %s failed, using env: %s', agent_id, e)
     return os.getenv('OPENROUTER_API_KEY', '')
 
 
-def _or_headers() -> dict:
+def _or_headers(agent_id: str = '') -> dict:
     return {
-        'Authorization': f'Bearer {_or_key()}',
+        'Authorization': f'Bearer {_or_key(agent_id)}',
         'HTTP-Referer': f'http://localhost:{int(__import__("os").getenv("AGENTIC_OS_PORT", "8787"))}',
         'X-Title': 'Agentic OS',
         'Content-Type': 'application/json',
@@ -373,7 +395,7 @@ async def _complete_impl(
         async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(
                 f'{OPENROUTER_BASE}/chat/completions',
-                headers=_or_headers(),
+                headers=_or_headers(agent_id),
                 json=payload,
             )
             resp.raise_for_status()
@@ -601,7 +623,7 @@ async def _stream_impl(
             client.stream(
                 'POST',
                 f'{OPENROUTER_BASE}/chat/completions',
-                headers=_or_headers(),
+                headers=_or_headers(agent_id),
                 json=payload,
             ) as resp,
         ):
