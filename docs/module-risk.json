@@ -1,18 +1,5 @@
 [
   {
-    "pane": "supervisor",
-    "score": 20,
-    "file": "48-supervisor.js",
-    "lines": 1156,
-    "endpoints": 6,
-    "markers": 0,
-    "tested": true,
-    "tabs": 7,
-    "covered": 1,
-    "unit": 8,
-    "reviewed": false
-  },
-  {
     "pane": "mcp",
     "score": 19,
     "file": "35-connect-hub.js",
@@ -257,6 +244,19 @@
     "tabs": 1,
     "covered": 2,
     "unit": 2,
+    "reviewed": true
+  },
+  {
+    "pane": "supervisor",
+    "score": 20,
+    "file": "48-supervisor.js",
+    "lines": 1156,
+    "endpoints": 6,
+    "markers": 0,
+    "tested": true,
+    "tabs": 7,
+    "covered": 8,
+    "unit": 8,
     "reviewed": true
   }
 ]

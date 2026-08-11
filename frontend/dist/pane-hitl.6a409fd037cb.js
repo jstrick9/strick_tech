@@ -21,12 +21,19 @@ pane.innerHTML = `
     </div>
 
     <!-- Stats -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px">
       ${[
         ['⏳','Pending',stats.pending||0,'var(--warning)'],
-        ['✅','Approved',stats.approved||0,'var(--success)'],
+        ['✅','Approved by human',stats.approved||0,'var(--success)'],
         ['❌','Rejected',stats.rejected||0,'var(--danger)'],
-        ['📊','Approval Rate',`${stats.approval_rate||0}%`,'var(--accent)'],
+        // approval_rate is null when no human has decided anything yet, and it
+        // now counts human decisions only. `||0` would print "0%" for "not yet
+        // measured" -- the same nullable-value trap this review has hit twice
+        // before. An oversight dashboard reading a confident 0% when nothing
+        // has been reviewed is worse than an em dash.
+        ['📊','Human approval rate',
+         stats.approval_rate==null ? '—' : `${stats.approval_rate}%`,'var(--accent)'],
+        ['🤖','Auto-approved',stats.auto_approved||0,'var(--text-2)'],
       ].map(([icon,label,val,col])=>`
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center">
           <div class="u-881f70f9">${icon}</div>
@@ -34,6 +41,11 @@ pane.innerHTML = `
           <div style="font-size:20px;font-weight:700;color:${col}">${val}</div>
         </div>`).join('')}
     </div>
+
+    ${stats.auto_approved ? `<div style="font-size:12px;color:var(--text-2);margin:-8px 0 18px">
+      🤖 <strong>${stats.auto_approved}</strong> action(s) (${stats.auto_approval_share ?? 0}% of all) were approved automatically without human review.
+      ${stats.approval_rate_basis ? `<span style="color:var(--text-3)">Approval rate covers ${escHtml(stats.approval_rate_basis)}.</span>` : ''}
+    </div>` : ''}
 
     <!-- Pending queue with Side-by-Side Diff Verification (Phase 4) -->
     <div class="u-f9e226da">⏳ Pending Approval & Diff Verification (${(queue.interrupts||[]).length})</div>

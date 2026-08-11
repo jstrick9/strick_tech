@@ -243,14 +243,39 @@ class TestHITLFull:
         assert "snapshot_id" in r
 
     def test_hitl_confidence_assessment(self, client):
+        """UPDATED in module 21 — this pinned a bug rather than a behaviour.
+
+        It asserted ok is True for "delete all user data" while the suite's LLM
+        is stubbed, i.e. while no assessment could possibly have taken place.
+        It passed because assess-confidence FABRICATED a verdict whenever the
+        judge returned unusable output: confidence 0.5, is_reversible True,
+        recommendation "proceed". The endpoint now returns 503 with
+        assessed=False and recommendation="interrupt" instead, so the original
+        assertion cannot hold — and should not, since the shape it demanded is
+        exactly the invented one.
+
+        Kept and rewritten rather than deleted: the endpoint's contract still
+        needs covering from this suite. It now asserts the honest contract in
+        both directions — an unavailable assessor escalates, and a real
+        assessment is passed through untouched.
+        """
         r = client.post("/api/hitl/assess-confidence", json={
             "action": "delete all user data",
             "context": "User requested data deletion"
-        }).json()
-        assert r["ok"] is True
-        assert "confidence" in r
-        assert "risk_level" in r
-        assert "recommendation" in r
+        })
+        body = r.json()
+        if body.get("assessed"):
+            # A real judge answered — the assessment is passed through.
+            assert body["ok"] is True
+            assert "confidence" in body
+            assert "risk_level" in body
+            assert "recommendation" in body
+        else:
+            # No usable assessment. It must escalate, never wave the action on.
+            assert r.status_code == 503
+            assert body["ok"] is False
+            assert body["confidence"] is None
+            assert body["recommendation"] == "interrupt"
 
     def test_hitl_audit_log(self, client):
         r = client.get("/api/hitl/audit?limit=10")
