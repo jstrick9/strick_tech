@@ -332,12 +332,20 @@ async def install(pack_id: str, req: Request):
         )
 
     added = result.get('skills_added', result.get('skills', 0))
+    # The underlying installers compute prompt-injection warnings for every pack
+    # they accept, and this wrapper -- the one the Plugin Hub pane actually
+    # calls -- dropped them on the floor. The whole point of warning rather than
+    # refusing is that the USER decides, which they cannot do if the warning
+    # never reaches the screen.
+    warnings = result.get('warnings') or []
     return {
         'ok': True,
         'id': pack_id,
         'name': entry['name'],
         'source': entry['source'],
         'skills_added': added,
+        'warnings': warnings,
+        'warning_count': len(warnings),
         'message': f"Installed {entry['name']} — {added} skill(s) ready in Skills",
     }
 
@@ -388,14 +396,22 @@ async def install_collection(collection_id: str, req: Request):
             results.append({'id': pid, 'status': 'failed'})
         else:
             added_total += r.get('skills_added', 0) or 0
-            results.append({'id': pid, 'status': 'installed', 'skills': r.get('skills_added', 0)})
+            results.append({
+                'id': pid,
+                'status': 'installed',
+                'skills': r.get('skills_added', 0),
+                'warnings': r.get('warnings') or [],
+            })
 
+    all_warnings = [w for r in results for w in (r.get('warnings') or [])]
     return {
         'ok': not failed,
         'collection': coll['name'],
         'results': results,
         'skills_added': added_total,
         'failed': failed,
+        'warnings': all_warnings[:20],
+        'warning_count': len(all_warnings),
         'message': f"{coll['name']}: {added_total} skill(s) added",
     }
 

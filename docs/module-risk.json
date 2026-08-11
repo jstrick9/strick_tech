@@ -1,18 +1,5 @@
 [
   {
-    "pane": "plugins",
-    "score": 20,
-    "file": "34-plugin-hub.js",
-    "lines": 313,
-    "endpoints": 4,
-    "markers": 0,
-    "tested": true,
-    "tabs": 2,
-    "covered": 1,
-    "unit": 3,
-    "reviewed": false
-  },
-  {
     "pane": "supervisor",
     "score": 20,
     "file": "48-supervisor.js",
@@ -244,6 +231,19 @@
     "tabs": 0,
     "covered": 1,
     "unit": 1,
+    "reviewed": true
+  },
+  {
+    "pane": "plugins",
+    "score": 20,
+    "file": "34-plugin-hub.js",
+    "lines": 361,
+    "endpoints": 4,
+    "markers": 0,
+    "tested": true,
+    "tabs": 2,
+    "covered": 3,
+    "unit": 3,
     "reviewed": true
   },
   {

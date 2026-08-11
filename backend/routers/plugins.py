@@ -657,6 +657,27 @@ async def install_plugin(plugin_id: str, req: Request):
             {'ok': False, 'error': 'Already installed', 'installed': True}, status_code=409
         )
 
+    # BUG FIX: review_pack() ran at the BOTTOM of this function, after
+    # save_skills() had already written the pack to disk -- so it was a report,
+    # not a gate. The registry is curated today, which is why nothing had
+    # escaped through it, but "the input happens to be trustworthy" is not a
+    # safety property; it is the same reasoning that left /import open. Review
+    # first and refuse, consistent with every other install door.
+    from ..services.plugin_safety import review_pack
+
+    review = review_pack(plugin)
+    if not review['safe']:
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': 'Plugin rejected by the safety check.',
+                'problems': review['errors'],
+                'warnings': review['warnings'],
+                'unsafe': True,
+            },
+            status_code=400,
+        )
+
     # Install skills into the skills system
     from .skills import load_skills, save_skills
 
@@ -706,15 +727,12 @@ async def install_plugin(plugin_id: str, req: Request):
 
     audit_log('plugin_install', f'{plugin_id}: {added} skills added')
 
-    from ..services.plugin_safety import review_pack
-
-    _review = review_pack(plugin)
     _name = plugin.get('name') or plugin_id
     return {
         'ok': True,
         'plugin': _name,
         'skills_added': added,
-        'warnings': _review['warnings'],
+        'warnings': review['warnings'],
         'message': f'✅ Installed {_name} — {added} skills added to Skills Hub',
     }
 
@@ -838,48 +856,125 @@ def export_workspace():
 
 @router.post('/import')
 async def import_workspace(req: Request):
-    """Import agents, skills, plugins from an export JSON."""
+    """Import agents, skills, plugins from an export JSON.
+
+    SECURITY FIX — this was the safety scanner's own bypass.
+
+    Every other way a skill can enter the platform runs it past
+    `plugin_safety.review_pack()`, which REFUSES format-string traversal:
+    `skills.run_skill()` renders templates with `template.format(**inputs)`, and
+    Python's format mini-language evaluates attribute access, so a template is
+    executable to a degree. This endpoint appended `data['skills']` straight to
+    skills.json with no review at all.
+
+    Verified live, the same payload through both doors:
+
+        POST /api/plugins/install/json  {"prompt_template": "{topic.__class__.__mro__}"}
+          -> 400 "Plugin rejected by the safety check."
+        POST /api/plugins/import        (identical skill)
+          -> 200 {"ok": true, "imported": {"skills": 1}}
+
+    and the smuggled template then rendered:
+
+        "Value: {topic.__class__.__mro__}"  ->  "Value: (<class 'str'>, <class 'object'>)"
+
+    An export file is exactly the artefact a user is most likely to accept from
+    someone else ("here is my workspace"), so the least-reviewed door was also
+    the most socially trusted one. It now runs the same review as the front
+    door, and refuses on the same grounds.
+    """
     try:
         body = await req.json()
     except Exception:
         body = {}
-    data = body.get('workspace') or body
+    # `body.get` assumed an object. A bare JSON array or string body raised
+    # AttributeError BEFORE the isinstance check below and still produced a 500
+    # -- found by this module's own parametrised malformed-payload test after
+    # the first fix, which is exactly what that test is for.
+    data = body.get('workspace') or body if isinstance(body, dict) else body
+    if not isinstance(data, dict):
+        return JSONResponse(
+            {'ok': False, 'error': 'Import payload must be a JSON object'}, status_code=400
+        )
 
     imported = {'agents': 0, 'skills': 0, 'memories': 0}
+    rejected: list[str] = []
+    warnings: list[str] = []
 
     # Import agents
-    if 'agents' in data:
+    agents_in = data.get('agents')
+    if isinstance(agents_in, list):
         from ..services.memory_db import agent_upsert
 
-        for agent in data['agents']:
+        for agent in agents_in:
+            if not isinstance(agent, dict):
+                continue
             try:
                 agent_upsert(agent)
                 imported['agents'] += 1
             except Exception:
                 pass
 
-    # Import skills
-    if 'skills' in data:
+    # Import skills — reviewed exactly as an installed pack is.
+    skills_in = data.get('skills')
+    # Two overlapping guards on purpose: this one rejects a non-list `skills`
+    # wholesale, and the per-entry isinstance below rejects junk items. Removing
+    # THIS one alone changes no observable behaviour (proven by revert-proof:
+    # zero tests fail), because a string is iterable and its characters are then
+    # each refused by the inner guard. It stays as the cheaper, clearer check --
+    # but the inner one is the load-bearing one, which is why the malformed-
+    # payload tests target that.
+    if isinstance(skills_in, list):
+        from ..services.plugin_safety import review_skill
         from .skills import load_skills, save_skills
 
-        current = {s['id'] for s in load_skills()}
         all_skills = load_skills()
-        for skill in data['skills']:
-            if skill.get('id') and skill['id'] not in current:
+        current = {s['id'] for s in all_skills}
+        for skill in skills_in:
+            # These shapes used to raise AttributeError on skill.get(...) and
+            # took the whole endpoint out with an unhandled HTTP 500. Verified:
+            # {"skills": "not-a-list"} and {"skills": [null, "a string"]} both
+            # returned "Internal Server Error".
+            if not isinstance(skill, dict) or not skill.get('id'):
+                continue
+            review = review_skill(skill)
+            if review['errors']:
+                rejected.extend(f'{review["name"]}: {e}' for e in review['errors'])
+                continue
+            warnings.extend(f'{review["name"]}: {w}' for w in review['warnings'])
+            if skill['id'] not in current:
                 all_skills.append(skill)
+                current.add(skill['id'])
                 imported['skills'] += 1
         save_skills(all_skills)
 
     # Import memories
-    if 'memories' in data:
+    memories_in = data.get('memories')
+    if isinstance(memories_in, list):
         from ..services.memory_db import memory_add
 
-        for m in data['memories']:
-            if m.get('content'):
-                memory_add(m.get('source', 'import'), m['content'], m.get('tags', ''))
+        for m in memories_in:
+            if isinstance(m, dict) and m.get('content'):
+                memory_add(m.get('source', 'import'), str(m['content']), m.get('tags', ''))
                 imported['memories'] += 1
 
     from ..services.memory_db import audit_log
 
-    audit_log('workspace_import', str(imported))
-    return {'ok': True, 'imported': imported}
+    audit_log(
+        'workspace_import',
+        f'{imported} rejected={len(rejected)}',
+    )
+    return {
+        # A partial import is not a clean success. If anything was refused the
+        # caller must be told, or a workspace silently arrives incomplete.
+        'ok': not rejected,
+        'imported': imported,
+        'rejected': rejected,
+        'rejected_count': len(rejected),
+        'warnings': warnings[:20],
+        'error': (
+            None
+            if not rejected
+            else f'{len(rejected)} skill(s) were refused by the safety check and NOT imported.'
+        ),
+    }
