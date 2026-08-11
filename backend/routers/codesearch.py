@@ -9,6 +9,7 @@ Auto code review on save.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
 import json
 import logging
@@ -17,6 +18,7 @@ import time
 from pathlib import Path
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from ..services import llm, memory_db
 
@@ -526,7 +528,7 @@ async def review_code(req: Request):
     if not force and filepath in _review_cache:
         cached = _review_cache[filepath]
         if cached.get('hash') == content_hash and time.time() - cached.get('ts', 0) < 300:
-            return {'ok': True, 'cached': True, **cached['review']}
+            return {'ok': True, 'reviewed': True, 'cached': True, **cached['review']}
 
     ext = filepath.rsplit('.', 1)[-1] if '.' in filepath else 'txt'
     messages = [
@@ -548,7 +550,16 @@ async def review_code(req: Request):
     )  # FIX: code reviewer
     text = (as_text(result.get('text')) or '')
 
-    review = {'issues': [], 'summary': '', 'score': 75, 'highlights': []}
+    # BUG FIX: the default was `score: 75` with an empty issues list, and every
+    # failure path fell back to it. So a reviewer that never ran reported a
+    # passing grade. Reproduced against a file containing eval(user_input) and
+    # os.system("rm -rf " + user_input): score 75, issues [], ok true.
+    #
+    # This is the module-9 gitai defect (graded an unscanned tree 100/A) and the
+    # module-16 eval defect (scored a malware response "fully safe") in a third
+    # place. A code reviewer that invents a passing score is worse than no
+    # reviewer: it is a green tick over unexamined code.
+    review = None
     try:
         m = re.search(r'\{[\s\S]*\}', text, re.DOTALL)
         if m:
@@ -556,10 +567,26 @@ async def review_code(req: Request):
             # FIX: validate real review response, not API error JSON
             if 'score' in parsed or 'issues' in parsed:
                 review = parsed
-            else:
-                review['summary'] = 'Review completed (API key required for full analysis)'
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        review['summary'] = text[:200] if text else 'Review completed'
+        review = None
+
+    if review is None:
+        memory_db.audit_log('code_review', f'{filepath}: NOT REVIEWED (no usable model output)')
+        return JSONResponse(
+            {
+                'ok': False,
+                'reviewed': False,
+                'filepath': filepath,
+                'error': 'The reviewer did not return a usable review, so this file has NOT been '
+                'assessed. Do not read the absence of issues as a pass.',
+                'score': None,
+                'issues': [],
+                'summary': None,
+                'highlights': [],
+                'raw_preview': text[:200],
+            },
+            status_code=502,
+        )
     # FIX 5: evict oldest review cache entry when full
     if len(_review_cache) >= _MAX_REVIEW_CACHE:
         oldest = min(_review_cache, key=lambda k: _review_cache[k].get('ts', 0))
@@ -567,7 +594,7 @@ async def review_code(req: Request):
     _review_cache[filepath] = {'hash': content_hash, 'ts': time.time(), 'review': review}
     memory_db.audit_log('code_review', f'{filepath}: score={review.get("score", 0)}')
 
-    return {'ok': True, 'filepath': filepath, 'cached': False, **review}
+    return {'ok': True, 'reviewed': True, 'filepath': filepath, 'cached': False, **review}
 
 
 @router.get('/review/history')
@@ -608,9 +635,35 @@ async def share_project(req: Request):
 
     import shutil
 
+    # SECURITY FIX — second door #21.
+    #
+    # This spawned a cloudflared quick-tunnel, exposing this machine on a public
+    # HTTPS URL, and recorded the process NOWHERE. `deploy.py` maintains
+    # `_active_tunnel` precisely so a tunnel can be listed and stopped; module 19
+    # hardened that path (duplicate-start protection, stale-proc cleanup,
+    # audited stop). This endpoint opens the identical kind of tunnel and never
+    # got the memo.
+    #
+    # Verified live with a stubbed cloudflared: /share returned
+    # public_url=https://probe-share.trycloudflare.com while
+    # GET /api/deploy/tunnel still reported no tunnel running, and
+    # POST /api/deploy/tunnel/stop had nothing to terminate. The only way to
+    # close it was to kill the process by hand.
+    #
+    # A public tunnel you cannot see is bad; one you cannot CLOSE is worse. It
+    # now shares deploy's registry, so both surfaces list and stop the same
+    # tunnel, and an already-running one is reused rather than duplicated.
+    from .deploy import _active_tunnel
+
     cf = shutil.which('cloudflared')
     public_url = ''
-    if cf:
+    reused_tunnel = False
+
+    existing = _active_tunnel.get('proc')
+    if existing is not None and existing.returncode is None and _active_tunnel.get('url'):
+        public_url = _active_tunnel['url']
+        reused_tunnel = True
+    elif cf:
         try:
             # FIX 7: use asyncio subprocess to avoid blocking event loop
             proc = await asyncio.create_subprocess_exec(
@@ -633,6 +686,14 @@ async def share_project(req: Request):
                         break
                 except asyncio.TimeoutError:
                     continue
+            if public_url:
+                _active_tunnel['proc'] = proc
+                _active_tunnel['url'] = public_url
+            else:
+                # Never leave an orphan: if the URL could not be read the
+                # process is still running and now unreachable.
+                with contextlib.suppress(Exception):
+                    proc.terminate()
         except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
             pass
 
@@ -644,6 +705,11 @@ async def share_project(req: Request):
         'demo_url': demo_url,
         'public_url': public_url,
         'is_public': bool(public_url),
+        # A user who has just published their machine to the internet needs to
+        # know how to un-publish it. Previously nothing in this response hinted
+        # that a tunnel was even stoppable.
+        'tunnel_reused': reused_tunnel,
+        'stop_endpoint': '/api/deploy/tunnel/stop' if public_url else None,
         'message': message,
         'tip': 'Share the public URL with anyone. LAN URL works only on the same Wi-Fi.'
         if public_url
