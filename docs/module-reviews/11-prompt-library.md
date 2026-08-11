@@ -1,6 +1,7 @@
 # Module 11 — Prompt Library
 
 **Commit:** `6aabd52` · **Suite:** 2541 passed / 17 skipped / 0 failed · ruff clean
+**Pane:** `prompts`
 **Surface:** `backend/routers/prompts.py` (525 lines, 11 endpoints) ·
 `frontend/js/14-prompt-library.js` (896 lines)
 
