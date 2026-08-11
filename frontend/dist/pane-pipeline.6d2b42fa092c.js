@@ -106,8 +106,20 @@ if (badge) { badge.textContent = '❌ error'; badge.style.color = 'var(--red)'; 
 if (out)   out.textContent = ev.error || 'Stage failed';
 }
 if (ev.type === 'complete') {
-status.innerHTML = `✅ Done · ${ev.duration_ms}ms · ${totalTokens} tokens · $${totalCost.toFixed(5)}`;
-toast(`🏛️ Pipeline complete — ${stages.length} stages`, 'ok', 4000);
+const failed = ev.stages_failed || 0;
+const ran    = ev.stages_succeeded ?? 0;
+const total  = ev.stages_total ?? stages.length;
+const cost   = `${ev.duration_ms}ms · ${totalTokens} tokens · $${totalCost.toFixed(5)}`;
+if (ev.status === 'failed') {
+status.innerHTML = `<span style="color:var(--danger)">✗ Failed — 0 of ${total} stages produced output</span> · ${cost}`;
+toast(`Pipeline failed — ${(ev.failed_stages||[]).join(', ')||'all stages'}`, 'err', 6000);
+} else if (failed) {
+status.innerHTML = `<span style="color:var(--warning)">⚠ Partial — ${ran} of ${total} stages succeeded</span> · ${cost}`;
+toast(`Pipeline partial — failed: ${(ev.failed_stages||[]).join(', ')}`, 'warn', 6000);
+} else {
+status.innerHTML = `✅ Done · ${cost}`;
+toast(`🏛️ Pipeline complete — ${total} stages`, 'ok', 4000);
+}
 }
 } catch(e) {}
 }

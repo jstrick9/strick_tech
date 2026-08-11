@@ -13,19 +13,6 @@
     "reviewed": false
   },
   {
-    "pane": "workflow",
-    "score": 21,
-    "file": "03-features-a.js",
-    "lines": 506,
-    "endpoints": 30,
-    "markers": 0,
-    "tested": true,
-    "tabs": 4,
-    "covered": 3,
-    "unit": 5,
-    "reviewed": false
-  },
-  {
     "pane": "plugins",
     "score": 20,
     "file": "34-plugin-hub.js",
@@ -231,6 +218,19 @@
     "tabs": 9,
     "covered": 10,
     "unit": 10,
+    "reviewed": true
+  },
+  {
+    "pane": "workflow",
+    "score": 21,
+    "file": "03-features-a.js",
+    "lines": 506,
+    "endpoints": 30,
+    "markers": 0,
+    "tested": true,
+    "tabs": 4,
+    "covered": 5,
+    "unit": 5,
     "reviewed": true
   },
   {
