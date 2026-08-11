@@ -111,6 +111,32 @@ def record_performance(
 # ── REST endpoints ─────────────────────────────────────────────────────────────
 
 
+
+# Below this, a success rate is not evidence of much. Chosen to be visible in
+# the UI rather than silently applied.
+MIN_CALLS_FOR_CONFIDENCE = 10
+
+
+def _wilson_lower_bound(successes: int, total: int, z: float = 1.96) -> float:
+    """Lower bound of the 95% confidence interval for a success ratio.
+
+    The standard fix for "1/1 = 100% beats 47/50 = 94%". The bound rises
+    towards the observed ratio as the sample grows, so an agent earns its
+    ranking by being tested, not by being lucky once.
+
+        1/1   -> 0.21     50 calls at 94% -> 0.84
+        10/10 -> 0.72
+    """
+    if total <= 0:
+        return 0.0
+    successes = max(0, min(successes, total))
+    phat = successes / total
+    denom = 1 + z * z / total
+    centre = phat + z * z / (2 * total)
+    margin = z * ((phat * (1 - phat) / total + z * z / (4 * total * total)) ** 0.5)
+    return max(0.0, (centre - margin) / denom)
+
+
 @router.get('')
 def leaderboard(limit: int = 20, days: int = 30, task_type: str = ''):
     """Agent leaderboard ranked by success rate, then total calls."""
@@ -136,7 +162,7 @@ def leaderboard(limit: int = 20, days: int = 30, task_type: str = ''):
             WHERE ap.created_at >= datetime('now', '-{int(days)} days')
             {where_task}
             GROUP BY ap.agent_id
-            ORDER BY success_rate DESC, total_calls DESC
+            ORDER BY total_calls DESC
             LIMIT :limit
         """,
             {'task_type': task_type, 'limit': max(1, min(limit, 100))},
@@ -156,9 +182,35 @@ def leaderboard(limit: int = 20, days: int = 30, task_type: str = ''):
         d['avg_rating'] = round(_safe_float(d.get('avg_rating')), 2)
         d['avg_latency'] = round(_safe_float(d.get('avg_latency')), 1)
         d['success_rate'] = _safe_float(d.get('success_rate'))
+        # A raw ratio treats 1/1 as better than 47/50. Ranking on it put a
+        # single lucky call above an agent with fifty, which is the opposite
+        # of what a leaderboard is for.
+        d['ranking_score'] = round(
+            100.0 * _wilson_lower_bound(d['successes'], _safe_int(d.get('total_calls'))), 1
+        )
+        d['sample_size'] = _safe_int(d.get('total_calls'))
+        d['low_confidence'] = d['sample_size'] < MIN_CALLS_FOR_CONFIDENCE
         results.append(d)
 
-    return {'leaderboard': results, 'days': days, 'task_type': task_type or 'all'}
+    # Rank by the confidence-adjusted score. success_rate is still reported
+    # verbatim -- it is the true observed ratio and hiding it would be its own
+    # dishonesty -- but it is not what decides the order.
+    results.sort(key=lambda x: (-x['ranking_score'], -x['sample_size']))
+
+    return {
+        'leaderboard': results,
+        'days': days,
+        'task_type': task_type or 'all',
+        # State the basis rather than letting a reader assume the percentages
+        # are directly comparable.
+        'ranking_basis': (
+            'Wilson lower bound (95%) on the success ratio, so a small sample '
+            'cannot outrank a large one on luck alone. success_rate is the raw '
+            f'observed ratio. Fewer than {MIN_CALLS_FOR_CONFIDENCE} calls is '
+            'flagged low_confidence.'
+        ),
+        'min_calls_for_confidence': MIN_CALLS_FOR_CONFIDENCE,
+    }
 
 
 @router.post('/record')

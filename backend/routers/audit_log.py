@@ -276,6 +276,12 @@ def verify_chain() -> dict:
     genesis_hash = _sha256('AGENTIC_OS_AUDIT_CHAIN_GENESIS_v1')
     expected_prev = genesis_hash
     broken_at = None
+    # Count links actually CHECKED, not rows present. `verified` used to be
+    # len(rows), so a chain that broke at seq 2 of 3 still reported
+    # "verified: 3" -- the number a reader takes as the trust signal claimed
+    # more coverage than the walk achieved, in the one component whose entire
+    # job is being trustworthy about tampering.
+    verified_count = 0
 
     for row in rows:
         r = dict(row)
@@ -302,10 +308,12 @@ def verify_chain() -> dict:
             break
 
         expected_prev = r['entry_hash']
+        verified_count += 1
 
     return {
         'ok': broken_at is None,
-        'verified': len(rows),
+        'verified': verified_count,
+        'total_checked': len(rows),
         'broken_at': broken_at,
         'chain_tip': rows[-1]['entry_hash'] if rows else genesis_hash,
         'total_entries': len(rows),
