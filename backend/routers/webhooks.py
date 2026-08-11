@@ -76,7 +76,20 @@ def list_webhooks():
     con = get_conn()
     try:
         rows = con.execute('SELECT * FROM webhooks ORDER BY created_at DESC').fetchall()
-        return [dict(r) for r in rows]
+        # BUG FIX: this returned every column, including `secret` in plaintext,
+        # to any caller of GET /api/webhooks. That secret is the ONLY thing
+        # standing between the public trigger endpoint -- which runs an LLM
+        # agent -- and anyone who can reach this list. Verified live: the list
+        # handed back 's3cret' for a configured webhook. It is returned once at
+        # creation and never again; the list now reports whether one is set.
+        out = []
+        for r in rows:
+            d = dict(r)
+            sec = d.pop('secret', '') or ''
+            d['has_secret'] = bool(sec)
+            d['secret_hint'] = f'…{sec[-4:]}' if len(sec) >= 4 else ''
+            out.append(d)
+        return out
     except Exception as e:
         log.error('list_webhooks DB error: %s', e)
         return []
@@ -92,7 +105,29 @@ async def create_webhook(req: Request):
         return _body_err
     name = (as_text(body.get('name')) or 'Webhook')[:80]
     wid = str(uuid.uuid4())[:12]
-    secret = body.get('secret', uuid.uuid4().hex[:24])
+    # SECURITY FIX: `body.get('secret', <generated>)` only supplies a default
+    # when the key is ABSENT. Passing "secret": "" stored an empty string, and
+    # the trigger endpoint's auth is `if secret:` -- so an empty secret disabled
+    # authentication entirely on a PUBLIC endpoint that runs an LLM agent.
+    # Verified live: created with secret "", then triggered with no credential
+    # at all -> 200, agent 'brain' started, cost billed. Anyone holding the URL
+    # could run the user's agent, repeatedly, at their expense.
+    #
+    # An unauthenticated webhook is never what "" means -- it is a blank form
+    # field. Generate a real secret instead, and say that it happened.
+    requested_secret = body.get('secret')
+    secret_generated = False
+    if not isinstance(requested_secret, str) or not requested_secret.strip():
+        secret = uuid.uuid4().hex[:24]
+        secret_generated = requested_secret is not None
+    else:
+        secret = requested_secret.strip()[:128]
+        if len(secret) < 8:
+            return JSONResponse(
+                {'ok': False, 'error': 'Webhook secret must be at least 8 characters. '
+                 'Omit the field to have one generated for you.'},
+                status_code=400,
+            )
     con = get_conn()
     try:
         con.execute(
@@ -112,14 +147,22 @@ async def create_webhook(req: Request):
     finally:
         con.close()
     audit_log('webhook_create', f'{wid}: {name}')
-    return {
+    out = {
         'ok': True,
         'id': wid,
         'name': name,
+        # Returned once, at creation, so the caller can configure the sender.
+        # Deliberately NOT returned by the list endpoint.
         'secret': secret,
         'endpoint': f'/api/webhooks/{wid}/trigger',
         'instructions': f'Send POST requests to /api/webhooks/{wid}/trigger with X-Webhook-Secret: {secret}',
     }
+    if secret_generated:
+        out['note'] = (
+            'A secret was generated because the one supplied was empty. '
+            'An unauthenticated webhook would let anyone run your agent.'
+        )
+    return out
 
 
 @router.patch('/{webhook_id}')
@@ -128,6 +171,17 @@ async def update_webhook(webhook_id: str, req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
+    # An update could otherwise re-open the hole the create path now closes.
+    if 'secret' in body:
+        _sec = body.get('secret')
+        if not isinstance(_sec, str) or len(_sec.strip()) < 8:
+            return JSONResponse(
+                {'ok': False, 'error': 'Webhook secret must be at least 8 characters. '
+                 'Remove the field to leave the existing secret unchanged.'},
+                status_code=400,
+            )
+        body['secret'] = _sec.strip()[:128]
+
     allowed = {'name', 'description', 'agent_id', 'prompt_template', 'filters', 'enabled', 'secret'}
     sets, vals = [], []
     for k in allowed:
@@ -180,6 +234,35 @@ def webhook_events(webhook_id: str, limit: int = 20):
 
 
 # ── Trigger endpoint (receives external events) ───────────────────────────────
+def _filter_mismatch(filters: dict, source: str, payload: dict) -> str:
+    """Return a reason string when the event does NOT match, else ''.
+
+    Deliberately small and predictable:
+      * `source`     — exact match against the detected source
+      * `event_type` — matches payload['type'] or payload['event']
+      * `contains`   — substring that must appear somewhere in the payload
+
+    Unknown filter keys are IGNORED rather than treated as a mismatch. Dropping
+    every event because of a typo'd key would be the same class of failure as
+    never filtering at all, just in the opposite direction.
+    """
+    want_source = filters.get('source')
+    if want_source and str(want_source) != source:
+        return f"source '{source}' does not match filter '{want_source}'"
+
+    want_event = filters.get('event_type')
+    if want_event:
+        actual = str(payload.get('type') or payload.get('event') or '')
+        if actual != str(want_event):
+            return f"event type '{actual or 'none'}' does not match filter '{want_event}'"
+
+    want_contains = filters.get('contains')
+    if want_contains and str(want_contains) not in json.dumps(payload, default=str):
+        return f"payload does not contain '{want_contains}'"
+
+    return ''
+
+
 @router.post('/{webhook_id}/trigger')
 async def trigger_webhook(
     webhook_id: str,
@@ -212,6 +295,20 @@ async def trigger_webhook(
     # Validate secret
     body_bytes = await req.body()
     secret = wh.get('secret', '')
+
+    if not secret:
+        # Defence in depth for rows created before the fix above. An empty
+        # stored secret used to mean "no authentication"; it now means the
+        # webhook is misconfigured and cannot accept events. Failing closed is
+        # the only safe reading -- the endpoint is public and it starts an agent.
+        log.warning('Webhook %s has no secret configured — refusing', webhook_id)
+        return JSONResponse(
+            {'ok': False,
+             'error': 'This webhook has no secret configured and cannot accept events. '
+                      'Set a secret on it first.',
+             'code': 'webhook_unconfigured'},
+            status_code=403,
+        )
 
     if secret:
         # Support GitHub-style HMAC-SHA256
@@ -255,6 +352,35 @@ async def trigger_webhook(
         or req.headers.get('user-agent', '').lower().startswith('stripe')
     ):
         source = 'stripe'
+
+    # BUG FIX: `filters` is accepted at create, editable via PATCH and shown in
+    # the UI -- and nothing ever read it. Verified live: a webhook filtered to
+    # source 'github-push' ran its agent for a completely unrelated payload. A
+    # filter that silently does nothing is worse than no filter, because the
+    # user configured it precisely to stop paying for events they do not want.
+    try:
+        _filters = json.loads(wh.get('filters') or '{}')
+    except (ValueError, TypeError):
+        _filters = {}
+    if isinstance(_filters, dict) and _filters:
+        _skip = _filter_mismatch(_filters, source, payload)
+        if _skip:
+            log.info('Webhook %s: event skipped by filter (%s)', webhook_id, _skip)
+            con = get_conn()
+            try:
+                con.execute(
+                    'INSERT INTO webhook_events(webhook_id,source,payload,run_id,status) VALUES(?,?,?,?,?)',
+                    (webhook_id, source, json.dumps(payload)[:5000], '', 'filtered'),
+                )
+                con.commit()
+            finally:
+                con.close()
+            return {
+                'ok': True,
+                'filtered': True,
+                'reason': _skip,
+                'message': "Event accepted but did not match this webhook's filters — no agent was run.",
+            }
 
     event_id = int(time.time() * 1000)
     payload_str = json.dumps(payload)[:5000]

@@ -177,10 +177,15 @@ class TestUATHooksWebhooks:
         
         await DELETE(U, f"/api/webhooks/{whid}")
 
+    # UPDATED in module 23: these two passed a 1-character secret ("s").
+    # /api/webhooks now requires >= 8 characters — an empty or trivial secret on
+    # a PUBLIC endpoint that starts an LLM agent is not a credential. These
+    # cases assert the webhook test/event-log journeys, not the secret policy,
+    # so the fixture value is widened rather than the assertions relaxed.
     async def test_user_can_test_a_webhook(self, U):
         """AC: Test button sends sample event to webhook URL."""
         r = await POST(U, "/api/webhooks", {
-            "name": uid("TestableWebhook"), "secret": "s"
+            "name": uid("TestableWebhook"), "secret": "uat-secret-value"
         })
         d = accept(r, "create webhook", 200)
         whid = d.get("id") or (d.get("webhook") or {}).get("id")
@@ -194,7 +199,7 @@ class TestUATHooksWebhooks:
     async def test_user_can_see_webhook_event_log(self, U):
         """AC: Events tab shows all received webhook payloads."""
         r = await POST(U, "/api/webhooks", {
-            "name": uid("EventLogWebhook"), "secret": "s"
+            "name": uid("EventLogWebhook"), "secret": "uat-secret-value"
         })
         d = accept(r, "create webhook", 200)
         whid = d.get("id") or (d.get("webhook") or {}).get("id")

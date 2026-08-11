@@ -197,10 +197,16 @@ class TestWebhooks:
         wid = d.get("id") or (d.get("webhook") or {}).get("id")
         assert wid is not None
 
+    # UPDATED in module 23: these cases passed a 1-character secret ("s").
+    # /api/webhooks now requires >= 8 characters, because an empty or trivial
+    # secret on a PUBLIC endpoint that starts an LLM agent is not a credential.
+    # The tests were asserting webhook CRUD, not the secret policy, so the
+    # fixture value is widened rather than the assertions changed. The policy
+    # itself is covered by test_159_module23_mcp_webhooks_integrations.py.
     def test_create_returns_id(self, client):
         r = post_json(client, "/api/webhooks", {
             "name": f"WHID_{self._uid()}",
-            "secret": "s"
+            "secret": "test-secret-value"
         })
         d = r.json()
         assert d.get("id") is not None or (d.get("webhook") or {}).get("id") is not None
@@ -208,7 +214,7 @@ class TestWebhooks:
     def test_get_webhook_events(self, client):
         r = post_json(client, "/api/webhooks", {
             "name": f"EventsWH_{self._uid()}",
-            "secret": "s"
+            "secret": "test-secret-value"
         })
         d = r.json()
         wid = d.get("id") or (d.get("webhook") or {}).get("id")
@@ -221,7 +227,7 @@ class TestWebhooks:
     def test_test_webhook(self, client):
         r = post_json(client, "/api/webhooks", {
             "name": f"TestWH_{self._uid()}",
-            "secret": "s"
+            "secret": "test-secret-value"
         })
         d = r.json()
         wid = d.get("id") or (d.get("webhook") or {}).get("id")
@@ -232,7 +238,7 @@ class TestWebhooks:
     def test_delete_webhook(self, client):
         r = post_json(client, "/api/webhooks", {
             "name": f"DelWH_{self._uid()}",
-            "secret": "s"
+            "secret": "test-secret-value"
         })
         d = r.json()
         wid = d.get("id") or (d.get("webhook") or {}).get("id")
