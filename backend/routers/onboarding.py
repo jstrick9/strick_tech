@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import time
 
 from fastapi import APIRouter, Request
@@ -271,6 +272,39 @@ KEYBOARD_SHORTCUTS = [
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 
+def _store_openrouter_key(api_key: str) -> bool:
+    """Persist an OpenRouter key through the vault's own encryption path.
+
+    Returns False when the key could not be stored ENCRYPTED. Callers must not
+    report success in that case -- silently keeping a credential in a weaker
+    form than the UI advertises is the failure this helper exists to prevent.
+    """
+    try:
+        from .secrets import _encrypt, _fingerprint
+
+        enc, is_fernet = _encrypt(api_key)
+        if not is_fernet:
+            return False
+        fp = _fingerprint(api_key)
+        con = get_conn()
+        try:
+            con.execute(
+                """INSERT INTO secrets(key,value_enc,scope,agent,fingerprint,length,updated_at)
+                   VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP)
+                   ON CONFLICT(key) DO UPDATE SET value_enc=excluded.value_enc,
+                   scope=excluded.scope, fingerprint=excluded.fingerprint,
+                   length=excluded.length, updated_at=CURRENT_TIMESTAMP""",
+                ('OPENROUTER_API_KEY', enc, 'global', '', fp, len(api_key)),
+            )
+            con.commit()
+        finally:
+            con.close()
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError, sqlite3.Error):
+        return False
+    os.environ['OPENROUTER_API_KEY'] = api_key
+    return True
+
+
 @router.get('/status')
 def onboarding_status():
     """Return onboarding completion status and key preferences."""
@@ -409,27 +443,9 @@ async def complete_onboarding(req: Request):
     api_key = as_text(body.get('api_key'))
     if api_key:
         os.environ['OPENROUTER_API_KEY'] = api_key
-        try:
-            from .secrets import _encrypt, _fingerprint
-
-            enc, _ = _encrypt(api_key)
-            fp = _fingerprint(api_key)
-            con = get_conn()
-            try:
-                con.execute(
-                    """INSERT INTO secrets(key,value_enc,scope,fingerprint,length,updated_at)
-                       VALUES(?,?,?,?,?,CURRENT_TIMESTAMP)
-                       ON CONFLICT(key) DO UPDATE SET value_enc=excluded.value_enc,
-                       fingerprint=excluded.fingerprint,length=excluded.length,
-                       updated_at=CURRENT_TIMESTAMP""",
-                    ('OPENROUTER_API_KEY', enc, 'global', fp, len(api_key)),
-                )
-                con.commit()
-            finally:
-                con.close()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            # Non-fatal: preferences still saved, just no vault entry
-            pass
+        # Shares one writer with quick-setup so the two entry points cannot
+        # drift into different storage formats again.
+        _store_openrouter_key(api_key)
 
     save_prefs(prefs)
 
@@ -525,12 +541,38 @@ async def quick_setup(req: Request):
         try:
             import httpx as _httpx
             async with _httpx.AsyncClient(timeout=5) as c:
-                r = await c.get('https://openrouter.ai/api/v1/models', headers={'Authorization': f'Bearer {or_key}'})
-                if r.status_code == 200:
+                # BUG FIX: this probed GET /api/v1/models, which is PUBLIC on
+                # OpenRouter -- it answers 200 with the full catalogue for a
+                # garbage key, a revoked key, or no Authorization header at all.
+                # So the setup wizard reported "OpenRouter connected. 140+ models
+                # available" for any string the user typed, then every chat
+                # failed. Verified live: key 'sk-or-v1-total-garbage-not-a-real-
+                # key' -> status 'available', models 401.
+                # This is the same defect already fixed in
+                # /api/secrets/test-connection; the wizard was its second door.
+                # /api/v1/auth/key is the authenticated endpoint (401 on a bad key).
+                auth = await c.get(
+                    'https://openrouter.ai/api/v1/auth/key', headers={'Authorization': f'Bearer {or_key}'}
+                )
+                if auth.status_code == 200:
                     or_ok = True
-                    results.append({'backend': 'openrouter', 'status': 'available', 'models': len(r.json().get('data', []))})
-                else:
+                    models = 0
+                    try:
+                        rm = await c.get(
+                            'https://openrouter.ai/api/v1/models',
+                            headers={'Authorization': f'Bearer {or_key}'},
+                        )
+                        if rm.status_code == 200:
+                            models = len(rm.json().get('data', []))
+                    except Exception:
+                        pass
+                    results.append({'backend': 'openrouter', 'status': 'available', 'models': models})
+                elif auth.status_code in (401, 403):
                     results.append({'backend': 'openrouter', 'status': 'invalid_key'})
+                else:
+                    results.append(
+                        {'backend': 'openrouter', 'status': 'unreachable', 'http_status': auth.status_code}
+                    )
         except Exception:
             results.append({'backend': 'openrouter', 'status': 'unreachable'})
     else:
@@ -557,18 +599,43 @@ async def quick_setup(req: Request):
             'message': 'No AI backend detected. Install Ollama (ollama.com) for free local AI, or add an OpenRouter API key in Settings.',
         }
 
-    # Save API key if provided
+    # Save API key if provided.
+    #
+    # BUG FIX: this wrote the raw API key straight into secrets.value_enc -- the
+    # column every other writer fills with a Fernet token. Three things followed
+    # from that, all verified live:
+    #   1. The key sat in the SQLite file in PLAINTEXT while the Secrets Vault
+    #      screen displayed it with a 🔒 badge and the banner "AES-256 Fernet
+    #      Encryption Active".
+    #   2. fingerprint and length were left NULL, so the vault listed it as
+    #      "0 chars".
+    #   3. _decrypt() could not read it back, so _inject_to_env() skipped it on
+    #      every restart and "Reveal" returned an empty string. The key the user
+    #      pasted into the setup wizard never actually reached the LLM client.
+    # Routing through the vault's own _encrypt keeps one writer, one format.
+    # Only persist a key the provider actually accepted. Storing a rejected key
+    # overwrites a previously working one and injects it into os.environ.
+    if api_key and not or_ok:
+        return JSONResponse(
+            {
+                'ok': False,
+                'backends': results,
+                'error': 'OpenRouter rejected this API key. It was not saved. '
+                'Check that it is correct and still active.',
+            },
+            status_code=400,
+        )
     if api_key:
-        from ..services.memory_db import get_conn
-        con = get_conn()
-        try:
-            con.execute(
-                "INSERT OR REPLACE INTO secrets (key, value_enc, scope) VALUES (?, ?, 'global')",
-                ('OPENROUTER_API_KEY', api_key),
+        _stored = _store_openrouter_key(api_key)
+        if not _stored:
+            return JSONResponse(
+                {
+                    'ok': False,
+                    'error': 'Could not store the API key securely (encrypted vault unavailable). '
+                    'Install the cryptography package and try again.',
+                },
+                status_code=503,
             )
-            con.commit()
-        finally:
-            con.close()
 
     # Update preferences
     prefs = load_prefs()
