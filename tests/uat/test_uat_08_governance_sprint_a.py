@@ -285,11 +285,22 @@ class TestUATHITLGateways:
             "action": "Send promotional email to all 100,000 users",
             "context": "Marketing campaign for product launch"
         })
-        no_error(r, "risk assessment")
         d = j(r)
-        uat("AI provides risk assessment", d["ok"] is True)
-        uat("assessment has confidence score", 0 <= d["confidence"] <= 1.0)
-        uat("assessment has risk level", d["risk_level"] in
-            ("low","medium","high","critical"))
-        uat("assessment has recommendation", d["recommendation"] in
-            ("proceed","interrupt","reject"))
+        # UPDATED in module 24. This asserted ok is True with no AI provider
+        # configured -- it passed only because assess-confidence FABRICATED a
+        # verdict (confidence 0.5, "proceed") when the judge never ran. Module
+        # 21 replaced that with a 503 that escalates instead. The user-facing
+        # acceptance criterion is unchanged in spirit: either the assessment
+        # happened and is well-formed, or the system says it could not assess
+        # and routes to a human. Both are asserted.
+        if d.get("assessed"):
+            uat("AI provides risk assessment", d["ok"] is True)
+            uat("assessment has confidence score", 0 <= d["confidence"] <= 1.0)
+            uat("assessment has risk level", d["risk_level"] in
+                ("low","medium","high","critical"))
+            uat("assessment has recommendation", d["recommendation"] in
+                ("proceed","interrupt","reject"))
+        else:
+            uat("unassessed action escalates rather than proceeding",
+                d["ok"] is False and d["recommendation"] == "interrupt")
+            uat("no fabricated confidence", d["confidence"] is None)
