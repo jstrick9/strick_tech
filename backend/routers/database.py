@@ -948,6 +948,35 @@ def _supabase_headers() -> dict:
     }
 
 
+def _audit_supabase(action: str, outcome: str, detail: str, risk: str = 'medium', extra: dict | None = None) -> None:
+    """Record a Supabase operation in the same ledger the SQLite paths use.
+
+    BUG FIX: the SQLite side of Database Studio has 18 audit_sql() call sites --
+    every query, insert, delete and schema change is recorded with an outcome
+    and a risk level. The Supabase side had ZERO. Verified live: after driving
+    an insert through the endpoint, `SELECT COUNT(*) FROM audit WHERE action
+    LIKE 'supabase%'` returned 0.
+
+    That asymmetry is the whole defect. An operator reviewing the audit log sees
+    a complete history of local database activity and an unbroken silence where
+    the remote one was written to, with nothing indicating the second surface
+    exists. A gap you cannot see is worse than a gap you can: the log reads as
+    authoritative either way.
+
+    Best-effort by design -- an audit write must never be the reason a user's
+    database operation fails. Mirrors audit_sql()'s own failure posture.
+    """
+    try:
+        from ..services.memory_db import audit_log
+
+        payload = f'{detail} [{outcome}]'
+        if extra:
+            payload += ' ' + json.dumps(extra, default=str)[:300]
+        audit_log(f'supabase_{action}', payload[:500])
+    except Exception as e:  # pragma: no cover - never break the caller
+        log.error('Could not audit supabase_%s: %s', action, e)
+
+
 @router.get('/supabase/status')
 async def supabase_status():
     """Check Supabase connection."""
@@ -1040,10 +1069,27 @@ async def supabase_query(req: Request):
                 f'{url}/rest/v1/{table}', headers={**_supabase_headers(), 'Prefer': 'count=exact'}, params=params
             )
             if r.status_code == 200:
-                return {'ok': True, 'table': table, 'rows': r.json(), 'count': len(r.json())}
-            return {'ok': False, 'error': f'HTTP {r.status_code}: {r.text[:200]}'}
+                rows = r.json()
+                _audit_supabase(
+                    'query', 'success', f'SELECT {select} FROM {table}', risk='low',
+                    extra={'table': table, 'rows': len(rows), 'limit': limit},
+                )
+                return {'ok': True, 'table': table, 'rows': rows, 'count': len(rows)}
+            _audit_supabase(
+                'query', 'failure', f'SELECT {select} FROM {table}', risk='low',
+                extra={'table': table, 'status': r.status_code},
+            )
+            # A refusal from the remote database is not a 200 locally. PostgREST
+            # returns 401/403 for an RLS denial and 404 for an unknown table;
+            # collapsing all of it into a 200 body meant a client checking the
+            # status code saw success for a query that never ran.
+            return JSONResponse(
+                {'ok': False, 'error': f'HTTP {r.status_code}: {r.text[:200]}', 'status': r.status_code},
+                status_code=502 if r.status_code >= 500 else 400,
+            )
     except Exception as e:
-        return {'ok': False, 'error': str(e)}
+        _audit_supabase('query', 'error', f'SELECT FROM {table}', risk='low', extra={'error': str(e)[:200]})
+        return JSONResponse({'ok': False, 'error': str(e)}, status_code=502)
 
 
 @router.post('/supabase/insert')
@@ -1056,18 +1102,46 @@ async def supabase_insert(req: Request):
     row = body.get('row', {})
     url, key = _supabase_url(), _supabase_key()
     if not url or not key or not table or not row:
-        return {'ok': False, 'error': 'table and row required'}
+        return JSONResponse({'ok': False, 'error': 'table and row required'}, status_code=400)
+    # The table name lands in the request PATH. The SQLite endpoints validate
+    # this shape; the Supabase ones did not, so a value like '../rpc/something'
+    # reshaped the URL.
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', str(table)):
+        return JSONResponse({'ok': False, 'error': 'Invalid table name'}, status_code=400)
+    if not isinstance(row, dict):
+        return JSONResponse({'ok': False, 'error': 'row must be an object'}, status_code=400)
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             r = await client.post(
                 f'{url}/rest/v1/{table}', headers={**_supabase_headers(), 'Prefer': 'return=representation'}, json=row
             )
-            return {
-                'ok': r.status_code in (200, 201),
-                'data': r.json() if r.status_code in (200, 201) else r.text[:200],
-            }
+            if r.status_code in (200, 201):
+                _audit_supabase(
+                    'insert', 'success', f'INSERT INTO {table}', risk='medium',
+                    extra={'table': table, 'columns': sorted(row.keys())[:20]},
+                )
+                return {'ok': True, 'data': r.json()}
+            _audit_supabase(
+                'insert', 'failure', f'INSERT INTO {table}', risk='medium',
+                extra={'table': table, 'status': r.status_code},
+            )
+            # BUG FIX: the failure branch put the remote error message under
+            # `data`, the same key a SUCCESSFUL insert uses for the returned
+            # rows -- so a caller reading `data` got an RLS denial string where
+            # it expected records. Reproduced with a 403 "new row violates
+            # row-level security policy". Errors go under `error` now, and the
+            # HTTP status reflects the refusal instead of always being 200.
+            return JSONResponse(
+                {
+                    'ok': False,
+                    'error': f'Supabase rejected the insert (HTTP {r.status_code}): {r.text[:200]}',
+                    'status': r.status_code,
+                },
+                status_code=502 if r.status_code >= 500 else 400,
+            )
     except Exception as e:
-        return {'ok': False, 'error': str(e)}
+        _audit_supabase('insert', 'error', f'INSERT INTO {table}', risk='medium', extra={'error': str(e)[:200]})
+        return JSONResponse({'ok': False, 'error': str(e)}, status_code=502)
 
 
 @router.post('/supabase/ai-setup')
@@ -1095,9 +1169,30 @@ async def supabase_ai_setup(req: Request):
     result = await complete(messages, agent_id='builder', max_tokens=2048, temperature=0.2, inject_steering=False)
     sql = result.get('text', '').strip()
     sql = _strip_markdown_sql(sql)
+    # An emptiness check was not enough: _strip_markdown_sql() returns prose
+    # unchanged, so "I'm sorry, I can't." was handed back as the schema SQL the
+    # user is told to paste into their production database. Found by this
+    # module's own test. Require the response to actually look like DDL.
+    if not sql or not re.search(r'\b(CREATE|ALTER|DROP|INSERT|GRANT)\b', sql, re.I):
+        _audit_supabase('ai_setup', 'failure', desc[:120], risk='low')
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': 'The model did not return usable SQL for that description. '
+                'Nothing was generated — do not paste the response into your database.',
+                'description': desc,
+            },
+            status_code=502,
+        )
+    # This endpoint hands the operator DDL to run against their production
+    # database by hand. It is not executed here, which is why the risk is low --
+    # but the fact that schema SQL was generated, and from what description,
+    # belongs in the record alongside every other schema operation.
+    _audit_supabase('ai_setup', 'success', desc[:120], risk='low', extra={'sql_chars': len(sql)})
     return {
-        'ok': result.get('ok'),
+        'ok': True,
         'sql': sql,
         'description': desc,
-        'note': 'Run this SQL in Supabase SQL Editor to create your schema.',
+        'note': 'Run this SQL in Supabase SQL Editor to create your schema. It has NOT been executed here.',
+        'executed': False,
     }

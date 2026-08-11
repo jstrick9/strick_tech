@@ -743,7 +743,20 @@ async function reviewCurrentFile(){
   try {
     const r=await fetch('/api/project/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filepath})});
     const j=await r.json();
-    const sc=j.score||75;const sc_color=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--danger)';
+    // The endpoint now returns reviewed:false / score:null when the model
+    // produced nothing usable. `j.score||75` printed a green 75/100 for a file
+    // nobody had looked at, and the empty issues list rendered "✅ No issues!"
+    // underneath it — a clean bill of health for an unexamined file. That is
+    // the nullable-value trap this review has hit four times; here it is
+    // load-bearing because the whole point of the panel is a verdict.
+    if(j.reviewed===false||!r.ok){
+      if(scoreEl)scoreEl.innerHTML='<span style="color:var(--warning);font-weight:700">not reviewed</span>';
+      if(sumEl)sumEl.innerHTML=`<div style="color:var(--warning)">${escHtml(j.error||'The reviewer did not return a usable review.')}</div>`;
+      if(issuesEl)issuesEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-2)">No issues were reported because the file was <strong>not analysed</strong> — this is not a pass.</div>';
+      toast('⚠️ File was not reviewed','warn',5000);
+      return;
+    }
+    const sc=j.score;const sc_color=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--danger)';
     if(scoreEl)scoreEl.innerHTML=`<span style="color:${sc_color};font-weight:700">${sc}/100</span>`;
     if(sumEl)sumEl.innerHTML=`<div style="margin-bottom:5px">${escHtml(j.summary||'Review complete')}</div>${(j.highlights||[]).slice(0,2).map(h=>`<div style="color:var(--success);font-size:11.5px">✓ ${escHtml(h)}</div>`).join('')}`;
     const issues=j.issues||[];
