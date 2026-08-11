@@ -258,15 +258,25 @@ def run() -> AuditResult:
     # read that and fall back to the filename for older docs.
     reviewed_panes: set[str] = set()
     review_dir = REPO / 'docs' / 'module-reviews'
+    # BUG FIX: this read `**Pane:**`/`**Panes:**` only, and stopped at the first
+    # match. Docs written since the consolidation declare their subject as
+    # `**Destination:**` with the tabs on a separate `**Tabs:**` line, so their
+    # tabs were never counted: the evals workstation showed 3/5 tabs covered on
+    # the queue after all five had been reviewed and fixed. Under-reporting here
+    # sends the review back to work that is already done -- the exact failure
+    # this tracker exists to prevent, and the second time it has occurred (see
+    # f4e6c22). Every header form is now read, and all of them, not just the
+    # first one found.
+    header = re.compile(r'\s*\*\*(Panes?|Destinations?|Tabs?):\*\*\s*(.+)', re.I)
     for f in review_dir.glob('*.md'):
         stem = f.stem.lower()
         reviewed_panes.update(re.findall(r'[a-z0-9][a-z0-9-]*', stem))
         for line in f.read_text(encoding='utf-8', errors='ignore').splitlines():
-            m = re.match(r'\s*\*\*Panes?:\*\*\s*(.+)', line)
+            m = header.match(line)
             if m:
                 # e.g. "`arena`, `codeindex`, `hooks`, `specs`"
-                reviewed_panes.update(re.findall(r'`([^`]+)`', m.group(1)))
-                break
+                reviewed_panes.update(re.findall(r'`([^`]+)`', m.group(2)))
+                continue
             # Earlier docs name their subject in the H1 instead:
             #   "# 63 — Module review 2: Docs & Help (`docs`)"
             if line.startswith('# '):

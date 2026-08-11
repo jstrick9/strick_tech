@@ -1,18 +1,5 @@
 [
   {
-    "pane": "evals",
-    "score": 21,
-    "file": "05-evals-observability.js",
-    "lines": 243,
-    "endpoints": 15,
-    "markers": 0,
-    "tested": true,
-    "tabs": 4,
-    "covered": 3,
-    "unit": 5,
-    "reviewed": false
-  },
-  {
     "pane": "github",
     "score": 21,
     "file": "18-github.js",
@@ -23,19 +10,6 @@
     "tabs": 2,
     "covered": 1,
     "unit": 3,
-    "reviewed": false
-  },
-  {
-    "pane": "observability",
-    "score": 21,
-    "file": "05-evals-observability.js",
-    "lines": 243,
-    "endpoints": 15,
-    "markers": 0,
-    "tested": true,
-    "tabs": 9,
-    "covered": 4,
-    "unit": 10,
     "reviewed": false
   },
   {
@@ -62,19 +36,6 @@
     "tabs": 2,
     "covered": 1,
     "unit": 3,
-    "reviewed": false
-  },
-  {
-    "pane": "secrets",
-    "score": 20,
-    "file": "16-terminal.js",
-    "lines": 206,
-    "endpoints": 5,
-    "markers": 0,
-    "tested": true,
-    "tabs": 1,
-    "covered": 1,
-    "unit": 2,
     "reviewed": false
   },
   {
@@ -198,7 +159,7 @@
     "pane": "terminal",
     "score": 7,
     "file": "16-terminal.js",
-    "lines": 206,
+    "lines": 210,
     "endpoints": 5,
     "markers": 0,
     "tested": true,
@@ -247,6 +208,32 @@
     "reviewed": true
   },
   {
+    "pane": "evals",
+    "score": 21,
+    "file": "05-evals-observability.js",
+    "lines": 243,
+    "endpoints": 15,
+    "markers": 0,
+    "tested": true,
+    "tabs": 4,
+    "covered": 5,
+    "unit": 5,
+    "reviewed": true
+  },
+  {
+    "pane": "observability",
+    "score": 21,
+    "file": "05-evals-observability.js",
+    "lines": 243,
+    "endpoints": 15,
+    "markers": 0,
+    "tested": true,
+    "tabs": 9,
+    "covered": 10,
+    "unit": 10,
+    "reviewed": true
+  },
+  {
     "pane": "kanban",
     "score": 20,
     "file": "28-kanban.js",
@@ -257,6 +244,19 @@
     "tabs": 0,
     "covered": 1,
     "unit": 1,
+    "reviewed": true
+  },
+  {
+    "pane": "secrets",
+    "score": 20,
+    "file": "16-terminal.js",
+    "lines": 210,
+    "endpoints": 5,
+    "markers": 0,
+    "tested": true,
+    "tabs": 1,
+    "covered": 2,
+    "unit": 2,
     "reviewed": true
   }
 ]
