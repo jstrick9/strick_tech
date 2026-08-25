@@ -334,8 +334,20 @@ def validate(ws: Path) -> dict[str, Any]:
     if not (ws / 'CONTEXT.md').is_file():
         errors.append('No L1 CONTEXT.md at the root. Nothing routes the agent to a stage.')
 
+    # Which form this is decides what the walk test should require. A record
+    # library has records, a knowledge bundle has layers -- neither has stages,
+    # and reporting that as an error would fail correctly-built workspaces.
+    # A validator that fails correct work teaches people to ignore it.
+    form = read_meta(ws).get('form') or 'pipeline'
+    if form != 'pipeline':
+        from .icm_forms import validate_form
+
+        sub = validate_form(ws, form)
+        errors.extend(sub['errors'])
+        warnings.extend(sub['warnings'])
+
     stages = list_stages(ws)
-    if not stages:
+    if not stages and form == 'pipeline':
         errors.append('No numbered stages under stages/. The numbering is what encodes execution order.')
 
     # Unnumbered folders under stages/ are invisible to the runtime; that is
@@ -399,10 +411,13 @@ def validate(ws: Path) -> dict[str, Any]:
         'stage_count': len(stages),
         'entry_stage': entry,
         'entry_reason': reason,
+        'form': form,
         'walk_test': {
             'can_orient': has_identity and (ws / 'CONTEXT.md').is_file(),
-            'can_find_work': bool(entry),
-            'can_report_status': bool(stages),
+            # Non-pipeline forms have no entry STAGE; being walkable for them
+            # means the required shelves exist, which validate_form checked.
+            'can_find_work': bool(entry) if form == 'pipeline' else not errors,
+            'can_report_status': bool(stages) if form == 'pipeline' else not errors,
         },
     }
 
@@ -462,8 +477,12 @@ def scaffold(ws: Path, name: str, description: str, stage_names: list[str]) -> d
         f'# {name}\n\n'
         f'{description or "An ICM workspace."}\n\n'
         f'## What this workspace is\n'
-        f'A staged pipeline. Each stage reads its contract, does one job, and '
-        f'writes to its own output/ folder. The numbering is the order.\n\n'
+        # Name the form explicitly. Every other form's L0 states which form it
+        # is, and a cold agent that cannot tell a Pipeline from a record
+        # library from the entry file has already failed the walk test.
+        f'A **Pipeline** — the production line. Each stage reads its contract, '
+        f'does one job, and writes to its own output/ folder. The numbering is '
+        f'the order.\n\n'
         f'## How to work here\n'
         f'Open the stage you are assigned, read its CONTEXT.md, load only what '
         f'its Inputs table names, and write only what its Outputs table names.\n',

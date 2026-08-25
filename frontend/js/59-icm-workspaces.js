@@ -168,7 +168,7 @@
       ${fileRow('CONTEXT.md', 'L1', 'Where do I go?')}
       ${fileRow('_config/conventions.md', 'L3', 'House rules')}
       <div style="font-size:10.5px;font-weight:800;letter-spacing:0.6px;color:var(--text-2);margin:14px 0 8px">
-        STAGES</div>
+        ${esc(((w.stages || []).length ? 'stage' : unitNoun(w.form || 'pipeline')).toUpperCase())}S</div>
       ${(w.stages || []).map((s) => {
         const entry = s === w.entry_stage;
         return `<div style="margin-bottom:8px">
@@ -181,8 +181,10 @@
       }).join('')}
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-0)">
         <div style="font-size:11px;color:var(--text-2)">
-          Entry stage resolved: <b>${esc(w.entry_stage || 'none')}</b><br>
-          <span style="opacity:0.8">${esc(w.entry_reason || '')}</span>
+          ${w.entry_stage
+            ? `Entry stage resolved: <b>${esc(w.entry_stage)}</b><br>
+               <span style="opacity:0.8">${esc(w.entry_reason || '')}</span>`
+            : 'This form has no stage sequence &mdash; open the shelf you need.'}
         </div>
       </div>`;
   }
@@ -350,6 +352,17 @@
   // impose a shape, surface theirs." Every extraction cites the phrase that
   // produced it, so the user is confirming something they can check.
   let lastAnalysis = null;
+  let _forms = [];
+
+  function unitNoun(formId) {
+    const f = (_forms || []).find((x) => x.id === formId);
+    return (f && f.unit_noun) || 'stage';
+  }
+
+  async function loadForms() {
+    if (_forms.length) return;
+    try { _forms = (await api('/api/icm/forms')).forms || []; } catch (e) { _forms = []; }
+  }
 
   const SAMPLE = "Every week I put out a newsletter. First I go through the "
     + "week's links and pull out the three or four worth writing about. Then I "
@@ -357,9 +370,10 @@
     + "I always read it out loud and check the links before it goes out. "
     + "Finally I schedule it for Tuesday morning.";
 
-  function renderDescribe() {
+  async function renderDescribe() {
     const body = document.getElementById('icm-body');
     if (!body) return;
+    await loadForms();
     body.innerHTML = `
       <div style="flex:1;overflow-y:auto;padding:22px 26px">
         <div style="max-width:860px">
@@ -418,9 +432,18 @@
           <div style="font-size:12.5px;color:var(--text-2);margin-top:4px">
             ${esc(a.form.why)}${a.form.confident ? '' : ' (low confidence &mdash; change it if this is wrong)'}
           </div>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--text-2)">Repeating unit:</span>
+            <select id="icm-form-pick"
+              style="padding:7px 10px;background:var(--bg-1);color:var(--text-0);
+                     border:1px solid var(--border-0);border-radius:6px;font-size:12.5px">
+              ${(_forms || []).map((f) => `<option value="${esc(f.id)}"
+                ${f.id === a.form.form ? 'selected' : ''}>${esc(f.label)} &mdash; ${esc(f.unit)}</option>`).join('')}
+            </select>
+          </div>
 
-          <div style="margin-top:16px;font-size:11px;font-weight:800;letter-spacing:0.5px;color:var(--text-2)">
-            STAGES &mdash; edit these before creating</div>
+          <div id="icm-unit-label" style="margin-top:16px;font-size:11px;font-weight:800;letter-spacing:0.5px;color:var(--text-2)">
+            ${esc(unitNoun(a.form.form).toUpperCase())}S &mdash; edit these before creating</div>
           <div id="icm-stage-rows" style="margin-top:8px">
             ${a.stages.map((s, i) => `
               <div style="display:flex;gap:10px;align-items:center;padding:6px 0">
@@ -461,6 +484,15 @@
               Worth answering: ${a.follow_up.map((q) => esc(q)).join(' &middot; ')}</div>` : ''}
           <div id="icm-desc-created" style="margin-top:10px"></div>
         </div>`;
+      const pick = document.getElementById('icm-form-pick');
+      if (pick) {
+        pick.addEventListener('change', () => {
+          const lbl = document.getElementById('icm-unit-label');
+          if (lbl) {
+            lbl.textContent = unitNoun(pick.value).toUpperCase() + 'S — edit these before creating';
+          }
+        });
+      }
     } catch (e) {
       out.innerHTML = `<div style="color:var(--danger);font-size:13px">${esc(e.message)}</div>`;
     }
@@ -480,10 +512,24 @@
       const d = await api('/api/icm/describe/create', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({text: ta.value, name: name, stages: stages}),
+        body: JSON.stringify({
+          text: ta.value, name: name, stages: stages,
+          form: ((document.getElementById('icm-form-pick') || {}).value) || undefined,
+        }),
       });
+      // Count whatever THIS form's unit is. Saying "0 stages" for a record
+      // library that just created two records is both wrong and alarming.
+      const wf = d.workspace.form || 'pipeline';
+      const noun = unitNoun(wf);
+      // NOT `a || b`: an empty array is TRUTHY in JS, so `stages: []` short-
+      // circuited and every non-pipeline form reported "0". Pick the first key
+      // that is actually populated.
+      const built = ['stages', 'records', 'layers', 'pipelines', 'teams', 'objects']
+        .map((k) => (d.workspace[k] || []).length)
+        .reduce((a, n) => (a || n), 0);
       out.innerHTML = `<div style="font-size:13px">
-        Created <b>${esc(d.workspace.name)}</b> with ${esc(String((d.workspace.stages || []).length))} stages.
+        Created <b>${esc(d.workspace.name)}</b> &mdash; ${esc(String(built))}
+        ${esc(noun)}${built === 1 ? '' : 's'}.
         <button type="button" class="btn-sm" style="margin-left:8px"
           data-act-click="icmwsTab('folders')">Open it</button></div>`;
       await loadWorkspaces();

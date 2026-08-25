@@ -312,6 +312,12 @@ def test_route_table_reports_stage_progress(router):
     assert row['entry_stage'] == '02-draft'
 
 
+def test_route_table_reports_the_form(router):
+    """The UI labels units by form; without it every form draws as a pipeline."""
+    _make(router, 'pipe', 'pipe', routes=['pipe'])
+    assert router.route_table()[0]['form'] == 'pipeline'
+
+
 def test_route_table_is_empty_when_there_are_no_workspaces(router):
     assert router.route_table() == []
 

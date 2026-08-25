@@ -229,6 +229,19 @@ def test_a_short_but_multi_step_description_is_still_refused():
     assert 'short' in a['advice']
 
 
+def test_the_stage_count_guard_applies_only_to_pipelines():
+    """A record library is made of records, not stages.
+
+    Found when the six form builders were wired in: the guard refused a valid
+    record library with advice about pipelines. Until then every form WAS a
+    pipeline, so nothing could expose it.
+    """
+    a = dlg.analyse(CLIENT_WORK)
+    assert a['form']['form'] == 'record_library'
+    assert len(a['stages']) < 2
+    assert a['recommend_workspace'] is True, a['advice']
+
+
 def test_a_real_multi_stage_process_is_recommended():
     a = dlg.analyse(NEWSLETTER)
     assert a['recommend_workspace'] is True

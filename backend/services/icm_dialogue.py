@@ -360,7 +360,12 @@ def analyse(text: str) -> dict[str, Any]:
             'That is too short to find a shape in. Walk me through one run '
             'start to finish: where do you stop and check something?'
         )
-    elif len(stages) < 2:
+    elif len(stages) < 2 and form['form'] == 'pipeline':
+        # The stage-count guard is a PIPELINE guard. Only a pipeline is made of
+        # stages; a record library is made of records, a knowledge bundle of
+        # layers. Applying it to every form refused a perfectly good record
+        # library with advice about pipelines -- found when the form builders
+        # were wired in, because until then every form WAS a pipeline.
         recommend = False
         advice = (
             'This reads like a single step, not a pipeline. If it fits in one '
