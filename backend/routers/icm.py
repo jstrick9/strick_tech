@@ -412,3 +412,85 @@ async def restructure_apply(req: Request) -> dict[str, Any]:
     # Only a real boolean true approves. A truthy string like "no" must not.
     approved = body.get('approved') is True
     return rsvc.apply_plan(plan_id, approved=approved)
+
+
+# ── dialogue → workspace ──────────────────────────────────────────────────────
+# Build mode step 1: surface the structure already present in how someone
+# describes their work, rather than making them learn the methodology first.
+
+
+@router.post('/describe')
+async def describe_work(req: Request) -> dict[str, Any]:
+    """Analyse a description of work. Proposes a structure; creates nothing.
+
+    Read-only by design: the canon's posture is propose-then-confirm, and the
+    user has to be able to see and correct the proposed stages before any
+    folder exists.
+    """
+    from ..services import icm_dialogue as dsvc
+
+    body, err = await json_body_or_error(req)
+    if err:
+        return err
+    text = as_text(body.get('text'))
+    if not text.strip():
+        raise HTTPException(status_code=422, detail='Send text describing your work.')
+    analysis = dsvc.analyse(text)
+    analysis['suggested_routes'] = dsvc.routes_block(text).strip()
+    return analysis
+
+
+@router.post('/describe/create')
+async def create_from_description(req: Request) -> dict[str, Any]:
+    """Scaffold the workspace a description implies, after confirmation.
+
+    Honours the over-structuring guardrail: if the analysis says this does not
+    warrant a workspace, that refusal is returned unless the caller explicitly
+    overrides it. "A workspace for a thing done twice is scaffolding, not
+    architecture" is advice worth actually enforcing, but it is the user's
+    call in the end -- so the override exists and is explicit.
+    """
+    from ..services import icm as isvc
+    from ..services import icm_dialogue as dsvc
+
+    body, err = await json_body_or_error(req)
+    if err:
+        return err
+
+    text = as_text(body.get('text'))
+    if not text.strip():
+        raise HTTPException(status_code=422, detail='Send text describing your work.')
+
+    analysis = dsvc.analyse(text)
+    if not analysis['recommend_workspace'] and body.get('force') is not True:
+        return {'ok': False, 'error': analysis['advice'] or 'not enough structure to build',
+                'analysis': analysis}
+
+    # Stages may be edited by the user before confirming; trust the edited list
+    # when one is supplied, since the whole point is that they correct it.
+    stages = [as_text(s) for s in (body.get('stages') or []) if as_text(s).strip()]
+    if not stages:
+        stages = [s['name'] for s in analysis['stages']]
+    if not stages:
+        raise HTTPException(status_code=422, detail='No stages could be determined.')
+
+    name = as_text(body.get('name')) or 'workspace'
+    ws_id = isvc._slug(name, 'workspace')
+    ws = isvc.workspace_dir(ws_id)
+    if ws is None:
+        raise HTTPException(status_code=400, detail=f'Invalid workspace name {name!r}')
+    if ws.exists():
+        raise HTTPException(status_code=409, detail=f'Workspace {ws_id!r} already exists')
+
+    meta = isvc.scaffold(ws, name, analysis['form']['why'], stages)
+
+    # Declare routes immediately. A workspace nothing routes to can only be
+    # reached by name, which is the wrong-folder problem the router exists to
+    # solve -- creating one without routes reintroduces it at birth.
+    routes = dsvc.routes_block(text)
+    if routes:
+        ctx = ws / 'CONTEXT.md'
+        ctx.write_text(ctx.read_text(encoding='utf-8') + routes, encoding='utf-8')
+
+    return {'ok': True, 'workspace': meta, 'analysis': analysis,
+            'validation': isvc.validate(ws)}

@@ -59,11 +59,12 @@
             <button type="button" class="btn" data-act-click="icmwsNewWorkspace()">+ New workspace</button>
           </div>
           <div style="display:flex;gap:20px;margin-top:14px">
-            ${['folders', 'routing', 'audit', 'log'].map((t) => `
+            ${['folders', 'describe', 'routing', 'audit', 'log'].map((t) => `
               <button type="button" id="icm-tab-${t}" data-act-click="icmwsTab(${arg(t)})"
                 style="padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;
                        color:var(--text-2);font-weight:600;font-size:13.5px;cursor:pointer;text-transform:capitalize">
-                ${t === 'folders' ? '📁 Folders' : t === 'routing' ? '🎯 Routing'
+                ${t === 'folders' ? '📁 Folders' : t === 'describe' ? '💬 Describe your work'
+                  : t === 'routing' ? '🎯 Routing'
                   : t === 'audit' ? '🔍 Audit a folder' : '📜 Route log'}
               </button>`).join('')}
           </div>
@@ -88,7 +89,7 @@
 
   function icmwsTab(tab) {
     currentTab = tab;
-    ['folders', 'routing', 'audit', 'log'].forEach((t) => {
+    ['folders', 'describe', 'routing', 'audit', 'log'].forEach((t) => {
       const b = document.getElementById('icm-tab-' + t);
       if (!b) return;
       const on = t === tab;
@@ -96,6 +97,7 @@
       b.style.color = on ? 'var(--text-0)' : 'var(--text-2)';
     });
     if (tab === 'folders') renderFolders();
+    else if (tab === 'describe') renderDescribe();
     else if (tab === 'routing') renderRouting();
     else if (tab === 'audit') renderAudit();
     else renderLog();
@@ -122,8 +124,12 @@
         <div style="font-size:13px;margin-top:6px;max-width:420px">
           A workspace is numbered stage folders plus markdown contracts. One agent walks
           the right files at the right moment — no orchestration code.</div>
-        <button type="button" class="btn" style="margin-top:16px" data-act-click="icmwsNewWorkspace()">
-          Create your first workspace</button></div>`;
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:16px">
+          <button type="button" class="btn" data-act-click="icmwsTab('describe')">
+            Describe your work</button>
+          <button type="button" class="btn" data-act-click="icmwsNewWorkspace()">
+            Set up stages manually</button>
+        </div></div>`;
       return;
     }
     body.innerHTML = `
@@ -334,6 +340,154 @@
                 <span style="color:var(--text-2);flex:1">${esc((c.evidence || []).join(', ') || '—')}</span>
               </div>`).join('')}` : ''}
         </div>`;
+    } catch (e) {
+      out.innerHTML = `<div style="color:var(--danger);font-size:13px">${esc(e.message)}</div>`;
+    }
+  }
+
+  // ── describe: dialogue -> workspace ─────────────────────────────────────
+  // "The structure is already in how the person describes the work -- don't
+  // impose a shape, surface theirs." Every extraction cites the phrase that
+  // produced it, so the user is confirming something they can check.
+  let lastAnalysis = null;
+
+  const SAMPLE = "Every week I put out a newsletter. First I go through the "
+    + "week's links and pull out the three or four worth writing about. Then I "
+    + "draft the issue in my own voice \u2014 it always has to sound conversational. "
+    + "I always read it out loud and check the links before it goes out. "
+    + "Finally I schedule it for Tuesday morning.";
+
+  function renderDescribe() {
+    const body = document.getElementById('icm-body');
+    if (!body) return;
+    body.innerHTML = `
+      <div style="flex:1;overflow-y:auto;padding:22px 26px">
+        <div style="max-width:860px">
+          <div style="font-weight:700;font-size:15px">Describe your work</div>
+          <div style="font-size:12.5px;color:var(--text-2);margin:6px 0 14px">
+            In your own words, walk through one run start to finish. Where do you stop and
+            check something? What has to stay the same every time? You do not need to know
+            anything about the methodology &mdash; the shape you already work in gets named
+            back to you, and you can correct it before anything is created.
+          </div>
+          <textarea id="icm-desc" spellcheck="false" placeholder="${esc(SAMPLE)}"
+            style="width:100%;min-height:170px;background:var(--bg-1);color:var(--text-0);
+                   border:1px solid var(--border-0);border-radius:10px;padding:14px;
+                   font-size:13.5px;line-height:1.6;resize:vertical"></textarea>
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+            <button type="button" class="btn" data-act-click="icmwsAnalyse()">Find the structure</button>
+            <button type="button" class="btn-sm" data-act-click="icmwsSample()">Use the example</button>
+          </div>
+          <div id="icm-desc-out" style="margin-top:18px"></div>
+        </div>
+      </div>`;
+  }
+
+  function icmwsSample() {
+    const ta = document.getElementById('icm-desc');
+    if (ta) { ta.value = SAMPLE; icmwsAnalyse(); }
+  }
+
+  async function icmwsAnalyse() {
+    const ta = document.getElementById('icm-desc');
+    const out = document.getElementById('icm-desc-out');
+    if (!ta || !out) return;
+    if (!ta.value.trim()) { out.innerHTML = ''; return; }
+    out.innerHTML = '<div style="color:var(--text-2);font-size:13px">Reading\u2026</div>';
+    try {
+      const a = await api('/api/icm/describe', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({text: ta.value}),
+      });
+      lastAnalysis = a;
+      if (!a.recommend_workspace) {
+        out.innerHTML = `
+          <div style="border:1px solid var(--warning);border-radius:10px;padding:14px 16px">
+            <div style="font-weight:700;font-size:13.5px;color:var(--warning)">
+              A workspace may be more than this needs</div>
+            <div style="font-size:13px;margin-top:6px;line-height:1.5">${esc(a.advice)}</div>
+            ${(a.follow_up || []).length ? `<div style="margin-top:10px;font-size:12.5px;color:var(--text-2)">
+              ${a.follow_up.map((q) => '&bull; ' + esc(q)).join('<br>')}</div>` : ''}
+          </div>`;
+        return;
+      }
+      out.innerHTML = `
+        <div style="border:1px solid var(--border-0);border-radius:10px;padding:16px 18px">
+          <div style="font-weight:700;font-size:14px">${esc(a.form.label)}</div>
+          <div style="font-size:12.5px;color:var(--text-2);margin-top:4px">
+            ${esc(a.form.why)}${a.form.confident ? '' : ' (low confidence &mdash; change it if this is wrong)'}
+          </div>
+
+          <div style="margin-top:16px;font-size:11px;font-weight:800;letter-spacing:0.5px;color:var(--text-2)">
+            STAGES &mdash; edit these before creating</div>
+          <div id="icm-stage-rows" style="margin-top:8px">
+            ${a.stages.map((s, i) => `
+              <div style="display:flex;gap:10px;align-items:center;padding:6px 0">
+                <span style="font-size:11.5px;color:var(--text-2);min-width:24px">
+                  ${String(i + 1).padStart(2, '0')}</span>
+                <input type="text" class="icm-stage-in" value="${esc(s.name)}"
+                  style="width:170px;padding:7px 10px;background:var(--bg-1);color:var(--text-0);
+                         border:1px solid var(--border-0);border-radius:6px;font-size:12.5px">
+                <span style="flex:1;font-size:12px;color:var(--text-2);overflow:hidden;
+                             text-overflow:ellipsis;white-space:nowrap" title="${esc(s.said)}">
+                  ${esc(s.why)} &mdash; &ldquo;${esc(s.said)}&rdquo;</span>
+              </div>`).join('')}
+          </div>
+
+          ${(a.human_gates || []).length ? `
+            <div style="margin-top:14px;font-size:11px;font-weight:800;letter-spacing:0.5px;color:var(--text-2)">
+              HUMAN CHECKS</div>
+            ${a.human_gates.map((g) => `<div style="font-size:12.5px;padding:3px 0">
+              &ldquo;${esc(g.said)}&rdquo;
+              <span style="color:var(--text-2)">&rarr; ${esc(g.becomes)}</span></div>`).join('')}` : ''}
+
+          ${(a.factory || []).length ? `
+            <div style="margin-top:14px;font-size:11px;font-weight:800;letter-spacing:0.5px;color:var(--text-2)">
+              STAYS THE SAME EVERY RUN</div>
+            ${a.factory.map((f) => `<div style="font-size:12.5px;padding:3px 0">
+              &ldquo;${esc(f.said)}&rdquo;
+              <span style="color:var(--text-2)">&rarr; ${esc(f.becomes)}</span></div>`).join('')}` : ''}
+
+          <div style="display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap">
+            <input id="icm-desc-name" type="text" placeholder="workspace name"
+              style="width:200px;padding:9px 11px;background:var(--bg-1);color:var(--text-0);
+                     border:1px solid var(--border-0);border-radius:7px;font-size:13px">
+            <button type="button" class="btn" data-act-click="icmwsCreateFromDesc()">Create workspace</button>
+            <span style="font-size:12px;color:var(--text-2)">Nothing has been created yet.</span>
+          </div>
+          ${(a.follow_up || []).length ? `
+            <div style="margin-top:12px;font-size:12px;color:var(--text-2)">
+              Worth answering: ${a.follow_up.map((q) => esc(q)).join(' &middot; ')}</div>` : ''}
+          <div id="icm-desc-created" style="margin-top:10px"></div>
+        </div>`;
+    } catch (e) {
+      out.innerHTML = `<div style="color:var(--danger);font-size:13px">${esc(e.message)}</div>`;
+    }
+  }
+
+  async function icmwsCreateFromDesc() {
+    const ta = document.getElementById('icm-desc');
+    const nameEl = document.getElementById('icm-desc-name');
+    const out = document.getElementById('icm-desc-created');
+    if (!ta || !out || !lastAnalysis) return;
+    const name = ((nameEl || {}).value || '').trim();
+    if (!name) { out.innerHTML = '<div style="color:var(--warning);font-size:13px">Give it a name first.</div>'; return; }
+    const stages = Array.from(document.querySelectorAll('.icm-stage-in'))
+      .map((el) => el.value.trim()).filter(Boolean);
+    out.innerHTML = '<div style="color:var(--text-2);font-size:13px">Creating\u2026</div>';
+    try {
+      const d = await api('/api/icm/describe/create', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({text: ta.value, name: name, stages: stages}),
+      });
+      out.innerHTML = `<div style="font-size:13px">
+        Created <b>${esc(d.workspace.name)}</b> with ${esc(String((d.workspace.stages || []).length))} stages.
+        <button type="button" class="btn-sm" style="margin-left:8px"
+          data-act-click="icmwsTab('folders')">Open it</button></div>`;
+      await loadWorkspaces();
+      currentWs = d.workspace.workspace_id;
     } catch (e) {
       out.innerHTML = `<div style="color:var(--danger);font-size:13px">${esc(e.message)}</div>`;
     }
@@ -553,6 +707,9 @@
   window.icmwsSave = icmwsSave;
   window.icmwsTestRoute = icmwsTestRoute;
   window.icmwsNewWorkspace = icmwsNewWorkspace;
+  window.icmwsAnalyse = icmwsAnalyse;
+  window.icmwsSample = icmwsSample;
+  window.icmwsCreateFromDesc = icmwsCreateFromDesc;
   window.icmwsSystemMap = icmwsSystemMap;
   window.icmwsPlan = icmwsPlan;
   window.icmwsApply = icmwsApply;
