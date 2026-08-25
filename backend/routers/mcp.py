@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/mcp', tags=['mcp'])
@@ -82,6 +82,37 @@ def list_tools():
         'count': len(TOOLS),
         'version': '1.0',
     }
+
+
+@router.get('/catalog')
+def tool_catalog_list():
+    """The whole tool catalog, local and federated, with totals.
+
+    Generated on every call from the sources. Never hand-maintained -- a
+    curated tool map "rots the second I add a server".
+    """
+    from ..services import tool_catalog
+
+    return {'ok': True, 'tools': tool_catalog.index(), 'stats': tool_catalog.stats()}
+
+
+@router.get('/catalog/select')
+def tool_catalog_select(intent: str = '', limit: int = 0):
+    """Show which tools an intent would expose, and why. Read-only."""
+    from ..services import tool_catalog
+
+    if not str(intent).strip():
+        raise HTTPException(status_code=422, detail='Send intent=<the task>.')
+    return {'ok': True,
+            'selection': tool_catalog.select(intent, limit=limit or tool_catalog.MAX_EXPOSED)}
+
+
+@router.get('/catalog/search')
+def tool_catalog_search(q: str = '', limit: int = 25):
+    """Free-text search over the catalog, for an agent that wants to look."""
+    from ..services import tool_catalog
+
+    return {'ok': True, 'tools': tool_catalog.search(q, limit=limit)}
 
 
 @router.post('/tools/execute')
@@ -187,9 +218,36 @@ async def agent_with_tools(req: Request):
     agents = {a['id']: a for a in memory_db.agents_list()}
     agent = agents.get(agent_id, {'name': agent_id, 'model': '', 'system_prompt': ''})
 
-    tool_docs = '\n'.join(
-        f'- {name}({", ".join(info["args"])}): {info["desc"]}' for name, info in TOOLS.items() if name in allowed
-    )
+    # SCOPED TOOL LOADING. This used to inline every tool in TOOLS into the
+    # system prompt on every call, regardless of the task. That is the same
+    # mistake ICM exists to prevent, one layer down: past a certain count a
+    # model's tool selection degrades rather than improves, and a hand-written
+    # per-task map rots the moment a server is added.
+    #
+    # The catalog also federates the MCP GATEWAY's tools, which no agent could
+    # previously reach at all -- measured live before this change: the gateway
+    # held 53 tools across 7 servers and this loop could see none of them,
+    # while pasting its own 23 into every prompt.
+    from ..services import tool_catalog
+
+    if body.get('tools'):
+        # An explicit list is a deliberate choice; honour it exactly.
+        selection = [t for t in tool_catalog.index() if t['name'] in allowed]
+        selection_meta = {'exposed': len(selection), 'total_available': len(tool_catalog.index()),
+                          'withheld_by_cap': 0, 'mode': 'explicit'}
+    else:
+        picked = tool_catalog.select(prompt, limit=int(body.get('max_tools') or tool_catalog.MAX_EXPOSED))
+        selection = picked['tools']
+        selection_meta = {k: picked[k] for k in
+                          ('exposed', 'total_available', 'withheld_by_cap', 'not_relevant', 'tags')}
+        selection_meta['mode'] = 'intent'
+        allowed = {t['name'] for t in selection}
+
+    tool_docs = tool_catalog.render_for_prompt(selection)
+    if not tool_docs:
+        # No relevant tool is a real outcome, and the model must be told that
+        # rather than handed an empty bullet list it will hallucinate into.
+        tool_docs = '(no tools matched this task; answer directly)'
 
     system = (
         f'You are {agent.get("name", agent_id)}, an autonomous agent with access to tools.\n'
@@ -206,9 +264,24 @@ async def agent_with_tools(req: Request):
     final_ans = ''
 
     for step in range(max_steps):
-        result = await llm.complete(
-            messages, agent_id=agent.get('model') or agent_id, max_tokens=1024, inject_steering=False
-        )
+        try:
+            result = await llm.complete(
+                messages, agent_id=agent.get('model') or agent_id, max_tokens=1024, inject_steering=False
+            )
+        except llm.LLMUnavailableError as exc:
+            # Report the tool selection even when the model is unreachable.
+            # The selection is the part a user is debugging when they ask "why
+            # didn't it use my tool", and discarding it on the error path made
+            # that unanswerable exactly when it mattered.
+            payload = {
+                'ok': False,
+                'error': exc.message,
+                'code': 'llm_unavailable',
+                'model': exc.model,
+                'tool_selection': selection_meta,
+                'tools_exposed': sorted(allowed),
+            }
+            return JSONResponse(payload, status_code=200)
         text = result.get('text', '').strip()
 
         if text.startswith('FINAL:'):
@@ -251,6 +324,11 @@ async def agent_with_tools(req: Request):
         'steps': steps,
         'final_answer': final_ans,
         'step_count': len(steps),
+        # Which tools this run could actually see, and how many were withheld.
+        # An agent that silently could not see a tool looks exactly like one
+        # that chose not to use it, so the selection is reported, not implied.
+        'tool_selection': selection_meta,
+        'tools_exposed': sorted(allowed),
     }
 
 
