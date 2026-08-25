@@ -15,6 +15,7 @@ window.MASTER_PANE_REGISTRY = {
   'swarm':          () => typeof window.renderSwarm === 'function' && window.renderSwarm(),
   'galaxy':         () => typeof window.initGalaxy === 'function' && window.initGalaxy(),
   'hierarchy':      () => typeof window.renderHierarchy === 'function' && window.renderHierarchy(),
+  'icm':            () => typeof window.renderWorkspacesIcmPane === 'function' && window.renderWorkspacesIcmPane(),
   'settings':       () => typeof window.loadSettings === 'function' && window.loadSettings(),
   'dashboard':      () => typeof window.renderDashboard === 'function' && window.renderDashboard(),
   'skills':         () => typeof window.renderSkills === 'function' && window.renderSkills(),

@@ -811,6 +811,27 @@
   async function renderIcmWorkspaces() {
     const host = document.getElementById('h-view-icm');
     if (!host) return;
+
+    // ICM workspaces now have their own top-level pane (Workspaces, in CORE
+    // MODULES) with the file tree, in-place editing and the entry-routing
+    // view. Keeping a second, smaller implementation here would be two homes
+    // for one fact, which is how these drift -- so this tab points at the
+    // real one instead of re-rendering a lesser copy.
+    if (window.PANE_RENDERERS && window.PANE_RENDERERS['icm']) {
+      host.innerHTML = `
+        <div style="padding:34px;text-align:center;color:var(--text-2);max-width:460px;margin:0 auto">
+          <div style="font-size:32px">🗂</div>
+          <div style="font-weight:600;color:var(--text-0);margin-top:10px">ICM Workspaces moved</div>
+          <div style="font-size:13px;margin-top:8px;line-height:1.5">
+            Workspaces now have a full pane of their own: the folder tree, editable stage
+            contracts, and the entry-routing view that shows which folder a request starts in.
+          </div>
+          <button type="button" class="btn" style="margin-top:16px"
+            data-act-click="nav('icm')">Open Workspaces</button>
+        </div>`;
+      return;
+    }
+
     host.innerHTML = '<div class="icm-muted">Loading workspaces…</div>';
 
     const data = await icmGet('/workspaces');

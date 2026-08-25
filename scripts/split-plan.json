@@ -51,6 +51,9 @@
     "hitl": [
       "42-hitl.js"
     ],
+    "icm": [
+      "59-icm-workspaces.js"
+    ],
     "imagegen": [
       "15-image-generation.js"
     ],
@@ -143,7 +146,8 @@
     "52-a2a.js",
     "53-agent-monitor.js",
     "54-finops.js",
-    "55-eval-framework.js"
+    "55-eval-framework.js",
+    "59-icm-workspaces.js"
   ],
   "blocked": {
     "04-workflow-specs.js": [
@@ -196,6 +200,6 @@
     ]
   },
   "unresolvedPanes": [],
-  "lazyBytes": 805012,
-  "totalBytes": 2120659
+  "lazyBytes": 859782,
+  "totalBytes": 2194625
 }
