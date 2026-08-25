@@ -1,10 +1,10 @@
 [
   {
     "pane": "icm",
-    "score": 7,
+    "score": 10,
     "file": "59-icm-workspaces.js",
-    "lines": 413,
-    "endpoints": 3,
+    "lines": 565,
+    "endpoints": 5,
     "markers": 0,
     "tested": true,
     "tabs": 0,

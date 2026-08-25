@@ -11,12 +11,14 @@ testable without a client.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
 from ..services import icm as svc
 from ..services.request_body import as_text, json_body_or_error
+from ..services.safe_paths import safe_path
 
 router = APIRouter(prefix='/api/icm', tags=['icm'])
 
@@ -311,3 +313,102 @@ def get_route_log(limit: int = 50) -> dict[str, Any]:
     from ..services import icm_router as rsvc
 
     return {'ok': True, 'decisions': rsvc.recent_decisions(max(1, min(limit, 500)))}
+
+
+# ── restructure mode ──────────────────────────────────────────────────────────
+# Audit a folder that already exists and propose an ICM migration. The canon's
+# step 4 is "Propose before moving... This is a human gate in a method built on
+# human gates -- honor it", so scanning and planning are pure reads and applying
+# is a separate call that refuses without explicit approval.
+
+
+def _audit_root(path: str) -> Path:
+    """Resolve a caller-supplied audit root, or refuse.
+
+    Confined to the data dir: this walks a tree and reads file contents back to
+    the caller, so an unconstrained path here is an arbitrary filesystem read.
+    """
+    from ..services import icm_restructure as rsvc
+
+    target = safe_path(str(path or '.'), base=rsvc.ROOT, must_exist=True)
+    if target is None or not target.is_dir():
+        raise HTTPException(
+            status_code=400,
+            detail=f'Path {path!r} is not a readable directory inside the data dir.',
+        )
+    return target
+
+
+@router.get('/restructure/inventory')
+def restructure_inventory(path: str = '.') -> dict[str, Any]:
+    """Classify every file in a tree. Reads only; changes nothing."""
+    from ..services import icm_restructure as rsvc
+
+    root = _audit_root(path)
+    inv = rsvc.inventory(root)
+    items = [rsvc.classify(f) for f in inv['files']]
+    return {
+        'ok': True,
+        'root': str(root),
+        'file_count': inv['file_count'],
+        'truncated': inv['truncated'],
+        'items': items,
+    }
+
+
+@router.get('/restructure/system-map')
+def restructure_system_map(path: str = '.', limit: int = 40) -> dict[str, Any]:
+    """Index cards for a tree a later agent must edit."""
+    from ..services import icm_restructure as rsvc
+
+    return {'ok': True, **rsvc.system_map(_audit_root(path), max(1, min(limit, 200)))}
+
+
+@router.get('/restructure/plans')
+def restructure_plans(limit: int = 50) -> dict[str, Any]:
+    from ..services import icm_restructure as rsvc
+
+    return {'ok': True, 'plans': rsvc.list_plans(max(1, min(limit, 200)))}
+
+
+@router.get('/restructure/plans/{plan_id}')
+def restructure_plan(plan_id: str) -> dict[str, Any]:
+    from ..services import icm_restructure as rsvc
+
+    p = rsvc.load_plan(plan_id)
+    if p is None:
+        raise HTTPException(status_code=404, detail=f'Plan {plan_id!r} not found')
+    return {'ok': True, 'plan': p}
+
+
+@router.post('/restructure/plan')
+async def restructure_create_plan(req: Request) -> dict[str, Any]:
+    """Produce a migration map awaiting approval. Does not move anything."""
+    from ..services import icm_restructure as rsvc
+
+    body, err = await json_body_or_error(req)
+    if err:
+        return err
+    root = _audit_root(as_text(body.get('path')) or '.')
+    return {'ok': True, 'plan': rsvc.plan(root, as_text(body.get('label')))}
+
+
+@router.post('/restructure/apply')
+async def restructure_apply(req: Request) -> dict[str, Any]:
+    """Execute a proposed migration. Refuses unless `approved` is exactly true.
+
+    Copies into `<root>/_icm-restructured/` rather than moving: the classifier
+    is a heuristic, and a heuristic should not be handed the power to rearrange
+    somebody's repo irreversibly. Nothing is ever deleted.
+    """
+    from ..services import icm_restructure as rsvc
+
+    body, err = await json_body_or_error(req)
+    if err:
+        return err
+    plan_id = as_text(body.get('plan_id'))
+    if not plan_id:
+        raise HTTPException(status_code=422, detail='Send plan_id.')
+    # Only a real boolean true approves. A truthy string like "no" must not.
+    approved = body.get('approved') is True
+    return rsvc.apply_plan(plan_id, approved=approved)

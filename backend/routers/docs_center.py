@@ -480,6 +480,7 @@ FEATURE_DOCS: dict[str, dict] = {
             'Every output is an edit surface: edit a stage output and the next stage reads what you left there.',
             'Use the Routing tab to test a request before running it, and the Route log to see where past requests actually started.',
             'Configure the factory, not the product -- set the workspace up once, then every run reuses it with new inputs.',
+            'Audit a folder you already have: it sorts every file by role, shows a migration map, and waits for your yes. Files are copied, never moved, and nothing is deleted.',
         ],
         'video_url': '',
     },

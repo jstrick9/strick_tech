@@ -41,11 +41,12 @@ host.innerHTML = `
             <button type="button" class="btn" data-act-click="icmwsNewWorkspace()">+ New workspace</button>
           </div>
           <div style="display:flex;gap:20px;margin-top:14px">
-            ${['folders', 'routing', 'log'].map((t) => `
+            ${['folders', 'routing', 'audit', 'log'].map((t) => `
               <button type="button" id="icm-tab-${t}" data-act-click="icmwsTab(${arg(t)})"
                 style="padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;
                        color:var(--text-2);font-weight:600;font-size:13.5px;cursor:pointer;text-transform:capitalize">
-                ${t === 'folders' ? '📁 Folders' : t === 'routing' ? '🎯 Routing' : '📜 Route log'}
+                ${t === 'folders' ? '📁 Folders' : t === 'routing' ? '🎯 Routing'
+                  : t === 'audit' ? '🔍 Audit a folder' : '📜 Route log'}
               </button>`).join('')}
           </div>
         </div>
@@ -67,7 +68,7 @@ console.warn('ICM workspaces load failed:', e);
 }
 function icmwsTab(tab) {
 currentTab = tab;
-['folders', 'routing', 'log'].forEach((t) => {
+['folders', 'routing', 'audit', 'log'].forEach((t) => {
 const b = document.getElementById('icm-tab-' + t);
 if (!b) return;
 const on = t === tab;
@@ -76,6 +77,7 @@ b.style.color = on ? 'var(--text-0)' : 'var(--text-2)';
 });
 if (tab === 'folders') renderFolders();
 else if (tab === 'routing') renderRouting();
+else if (tab === 'audit') renderAudit();
 else renderLog();
 }
 function stageBar(w) {
@@ -303,6 +305,143 @@ out.innerHTML = `
 out.innerHTML = `<div style="color:var(--danger);font-size:13px">${esc(e.message)}</div>`;
 }
 }
+let auditPlan = null;
+function renderAudit() {
+const body = document.getElementById('icm-body');
+if (!body) return;
+body.innerHTML = `
+      <div style="flex:1;overflow-y:auto;padding:22px 26px">
+        <div style="max-width:900px">
+          <div style="font-weight:700;font-size:15px">Audit an existing folder</div>
+          <div style="font-size:12.5px;color:var(--text-2);margin:6px 0 16px">
+            Point this at a folder you already have. It reads every file, sorts each one by
+            role, and shows you a migration map — then waits for your yes. Nothing moves
+            until you approve, and nothing is ever deleted.
+          </div>
+          <div style="display:flex;gap:8px">
+            <input id="icm-audit-path" type="text" value="." placeholder="folder path"
+              style="flex:1;padding:11px 13px;background:var(--bg-1);color:var(--text-0);
+                     border:1px solid var(--border-0);border-radius:8px;font-size:13px">
+            <button type="button" class="btn" data-act-click="icmwsSystemMap()">Map it</button>
+            <button type="button" class="btn" data-act-click="icmwsPlan()">Plan migration</button>
+          </div>
+          <div id="icm-audit-out" style="margin-top:18px"></div>
+        </div>
+      </div>`;
+}
+function pathVal() {
+return ((document.getElementById('icm-audit-path') || {}).value || '.').trim() || '.';
+}
+const ROLE_COLOURS = {
+catalog: 'var(--accent-text)', contract: 'var(--accent-text)',
+factory: 'var(--text-0)', product: 'var(--text-2)', dead: 'var(--warning)',
+};
+async function icmwsSystemMap() {
+const out = document.getElementById('icm-audit-out');
+if (!out) return;
+out.innerHTML = '<div style="color:var(--text-2);font-size:13px">Walking the tree…</div>';
+try {
+const d = await api('/api/icm/restructure/system-map?limit=30&path='
++ encodeURIComponent(pathVal()));
+out.innerHTML = `
+        <div style="font-weight:700;font-size:14px">System map — ${esc(String(d.file_count))} files</div>
+        <div style="font-size:12px;color:var(--text-2);margin:4px 0 12px">
+          Index cards, not a 40-page report. "Hits" is first-order only: what a change here
+          touches next, not everything downstream.
+          ${d.truncated ? ' <b>Tree was large; scan was capped.</b>' : ''}
+        </div>
+        ${(d.cards || []).map((c) => `
+          <div style="border:1px solid var(--border-0);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <div style="font-weight:700;font-size:13.5px">${esc(c.noun)}</div>
+              <span style="font-size:10.5px;font-weight:800;letter-spacing:0.5px;
+                color:${c.universe === 'live' ? 'var(--accent-text)' : 'var(--warning)'}">
+                ${esc(String(c.universe).toUpperCase())}</span>
+              <span style="font-size:11.5px;color:var(--text-2)">${esc(String(c.files))} files</span>
+              ${c.ghost ? `<span style="font-size:11.5px;color:var(--warning)">
+                  ${esc(String(c.ghost))} ghost</span>` : ''}
+              ${c.leftover ? `<span style="font-size:11.5px;color:var(--text-2)">
+                  ${esc(String(c.leftover))} leftover</span>` : ''}
+            </div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:6px">
+              Roles: ${esc(Object.entries(c.roles || {}).map((e) => e[0] + ' ' + e[1]).join(', '))}
+            </div>
+            <div style="font-size:12px;margin-top:5px">
+              <b>If you change this it hits:</b>
+              ${(c.hits || []).length ? esc(c.hits.join(', '))
+                : '<span style="color:var(--text-2)">nothing else first-order</span>'}
+            </div>
+          </div>`).join('')}`;
+} catch (e) {
+out.innerHTML = `<div style="color:var(--danger);font-size:13px">${esc(e.message)}</div>`;
+}
+}
+async function icmwsPlan() {
+const out = document.getElementById('icm-audit-out');
+if (!out) return;
+out.innerHTML = '<div style="color:var(--text-2);font-size:13px">Classifying…</div>';
+try {
+const d = await api('/api/icm/restructure/plan', {
+method: 'POST',
+headers: {'Content-Type': 'application/json'},
+body: JSON.stringify({path: pathVal()}),
+});
+auditPlan = d.plan;
+const p = auditPlan;
+out.innerHTML = `
+        <div style="font-weight:700;font-size:14px">Migration plan — ${esc(String(p.file_count))} files</div>
+        <div style="font-size:12px;color:var(--text-2);margin:4px 0 10px">
+          Plan <code>${esc(p.plan_id)}</code>. Read it before approving.
+          Files are <b>copied</b> into <code>_icm-restructured/</code>; the originals stay put.
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
+          ${Object.entries(p.by_role || {}).map((e) => `
+            <div><span style="font-weight:700;color:${ROLE_COLOURS[e[0]] || 'var(--text-0)'}">
+              ${esc(String(e[1]))}</span>
+              <span style="font-size:12px;color:var(--text-2)"> ${esc(e[0])}</span></div>`).join('')}
+        </div>
+        <div style="max-height:340px;overflow-y:auto;border:1px solid var(--border-0);border-radius:8px">
+          ${(p.moves || []).slice(0, 300).map((m) => `
+            <div style="display:flex;gap:10px;padding:7px 12px;border-bottom:1px solid var(--border-0);font-size:12px">
+              <span style="min-width:64px;font-weight:700;color:${ROLE_COLOURS[m.role] || 'var(--text-0)'}">
+                ${esc(m.role)}</span>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                title="${esc(m.why)}">${esc(m.from)}</span>
+              <span style="color:var(--text-2)">→</span>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.to)}</span>
+            </div>`).join('')}
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+          <button type="button" class="btn" data-act-click="icmwsApply()">
+            Approve and copy ${esc(String((p.moves || []).length))} files</button>
+          <span style="font-size:12px;color:var(--text-2)">Nothing has been written yet.</span>
+        </div>
+        <div id="icm-apply-out" style="margin-top:12px"></div>`;
+} catch (e) {
+out.innerHTML = `<div style="color:var(--danger);font-size:13px">${esc(e.message)}</div>`;
+}
+}
+async function icmwsApply() {
+const out = document.getElementById('icm-apply-out');
+if (!out || !auditPlan) return;
+if (!window.confirm(
+'Copy ' + (auditPlan.moves || []).length + ' files into _icm-restructured/?\n\n'
++ 'Your original files are not moved, changed or deleted.')) return;
+out.innerHTML = '<div style="color:var(--text-2);font-size:13px">Copying…</div>';
+try {
+const d = await api('/api/icm/restructure/apply', {
+method: 'POST',
+headers: {'Content-Type': 'application/json'},
+body: JSON.stringify({plan_id: auditPlan.plan_id, approved: true}),
+});
+out.innerHTML = `<div style="font-size:13px">
+        Copied <b>${esc(String(d.copied))}</b> files to <code>${esc(d.destination)}</code>.
+        ${(d.skipped || []).length ? ' Skipped ' + esc(String(d.skipped.length)) + '.' : ''}
+        </div>`;
+} catch (e) {
+out.innerHTML = `<div style="color:var(--danger);font-size:13px">${esc(e.message)}</div>`;
+}
+}
 async function renderLog() {
 const body = document.getElementById('icm-body');
 if (!body) return;
@@ -363,6 +502,9 @@ window.icmwsOpen = icmwsOpen;
 window.icmwsSave = icmwsSave;
 window.icmwsTestRoute = icmwsTestRoute;
 window.icmwsNewWorkspace = icmwsNewWorkspace;
+window.icmwsSystemMap = icmwsSystemMap;
+window.icmwsPlan = icmwsPlan;
+window.icmwsApply = icmwsApply;
 window.PANE_RENDERERS = window.PANE_RENDERERS || {};
 window.PANE_RENDERERS['icm'] = renderWorkspacesIcmPane;
 })();
