@@ -482,7 +482,16 @@ async def create_from_description(req: Request) -> dict[str, Any]:
     if ws.exists():
         raise HTTPException(status_code=409, detail=f'Workspace {ws_id!r} already exists')
 
-    meta = isvc.scaffold(ws, name, analysis['form']['why'], stages)
+    # Build in the DETECTED form, not always a pipeline. The extractor can tell
+    # a record library from a production line; scaffolding stages for a form
+    # that has no stages would hand back the wrong shape under the right name.
+    # The user may override the detected form -- it is a proposal, not a ruling.
+    from ..services import icm_forms as fsvc
+
+    form = as_text(body.get('form')) or analysis['form']['form']
+    if form not in fsvc.BUILDERS:
+        raise HTTPException(status_code=422, detail=f'Unknown form {form!r}')
+    meta = fsvc.scaffold_form(ws, form, name, analysis['form']['why'], stages)
 
     # Declare routes immediately. A workspace nothing routes to can only be
     # reached by name, which is the wrong-folder problem the router exists to
@@ -494,3 +503,27 @@ async def create_from_description(req: Request) -> dict[str, Any]:
 
     return {'ok': True, 'workspace': meta, 'analysis': analysis,
             'validation': isvc.validate(ws)}
+
+
+@router.get('/forms')
+def list_forms() -> dict[str, Any]:
+    """The six forms and the repeating unit each one is for.
+
+    Served from FORM_META so the UI and the builders cannot drift apart.
+    """
+    from ..services import icm_forms as fsvc
+
+    return {
+        'ok': True,
+        'forms': [{'id': f, **fsvc.FORM_META[f]} for f in fsvc.ALL_FORMS],
+    }
+
+
+@router.post('/workspaces/{workspace_id}/file-map')
+def rebuild_file_map(workspace_id: str) -> dict[str, Any]:
+    """Regenerate FILE-MAP.md from the tree. Never hand-edited."""
+    from ..services import icm_forms as fsvc
+
+    ws = _require_ws(workspace_id)
+    body = fsvc.generate_file_map(ws)
+    return {'ok': True, 'lines': body.count('\n')}

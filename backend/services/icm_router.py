@@ -374,6 +374,9 @@ def route_table() -> list[dict[str, Any]]:
         table.append({
             'workspace_id': d.name,
             'name': meta.get('name') or d.name,
+            # The UI labels the unit list by form (records/layers/stages), so
+            # the catalog has to carry it or every form is drawn as a pipeline.
+            'form': meta.get('form') or 'pipeline',
             'description': meta.get('description') or '',
             'routes': parse_routes(d),
             'stages': [s['dir'] for s in stages],
