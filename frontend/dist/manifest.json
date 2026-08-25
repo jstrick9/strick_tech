@@ -1,6 +1,6 @@
 {
   "head": "head.8f62aefef2be.js",
-  "body": "app.458a57d71a51.js",
+  "body": "app.7bd8b7ffbc55.js",
   "minified": true,
   "modules": 48,
   "head_modules": [
@@ -55,23 +55,23 @@
     "92-pane-error-boundary.js",
     "93-shortcuts-overlay.js"
   ],
-  "raw_bytes": 1334727,
-  "bundled_bytes": 1014832,
+  "raw_bytes": 1334843,
+  "bundled_bytes": 1014946,
   "compressed": {
     "head.8f62aefef2be.js": {
       "raw": 6508,
       "gzip": 2376,
       "brotli": 2015
     },
-    "app.458a57d71a51.js": {
-      "raw": 1008324,
-      "gzip": 248582,
-      "brotli": 188265
+    "app.7bd8b7ffbc55.js": {
+      "raw": 1008438,
+      "gzip": 248595,
+      "brotli": 188189
     },
-    "chunks.51fbab17b5f3.js": {
-      "raw": 1575,
-      "gzip": 751,
-      "brotli": 647
+    "chunks.20614b114e6f.js": {
+      "raw": 1608,
+      "gzip": 765,
+      "brotli": 664
     },
     "pane-a2a.b18f99e554e2.js": {
       "raw": 26597,
@@ -148,15 +148,20 @@
       "gzip": 11206,
       "brotli": 9568
     },
-    "pane-hierarchy.93d1315f51c6.js": {
-      "raw": 46442,
-      "gzip": 11157,
-      "brotli": 9693
+    "pane-hierarchy.00c743d631ae.js": {
+      "raw": 47208,
+      "gzip": 11355,
+      "brotli": 9862
     },
     "pane-hitl.6a409fd037cb.js": {
       "raw": 16988,
       "gzip": 5415,
       "brotli": 4545
+    },
+    "pane-icm.6fef053489ac.js": {
+      "raw": 17614,
+      "gzip": 4965,
+      "brotli": 4182
     },
     "pane-imagegen.c2b948b81821.js": {
       "raw": 22608,
@@ -356,11 +361,11 @@
       "bytes": 44733
     },
     "hierarchy": {
-      "file": "pane-hierarchy.93d1315f51c6.js",
+      "file": "pane-hierarchy.00c743d631ae.js",
       "modules": [
         "12-information-hierarchy.js"
       ],
-      "bytes": 46442
+      "bytes": 47208
     },
     "hitl": {
       "file": "pane-hitl.6a409fd037cb.js",
@@ -368,6 +373,13 @@
         "42-hitl.js"
       ],
       "bytes": 16988
+    },
+    "icm": {
+      "file": "pane-icm.6fef053489ac.js",
+      "modules": [
+        "59-icm-workspaces.js"
+      ],
+      "bytes": 17614
     },
     "imagegen": {
       "file": "pane-imagegen.c2b948b81821.js",
@@ -497,7 +509,7 @@
       "bytes": 11184
     }
   },
-  "chunk_manifest": "chunks.51fbab17b5f3.js",
+  "chunk_manifest": "chunks.20614b114e6f.js",
   "lazy_modules": [
     "12-information-hierarchy.js",
     "15-image-generation.js",
@@ -534,7 +546,8 @@
     "52-a2a.js",
     "53-agent-monitor.js",
     "54-finops.js",
-    "55-eval-framework.js"
+    "55-eval-framework.js",
+    "59-icm-workspaces.js"
   ],
-  "lazy_bytes": 716118
+  "lazy_bytes": 734498
 }

@@ -470,6 +470,19 @@ FEATURE_DOCS: dict[str, dict] = {
         'tips': ['Start with Tier 1: Universal Context about yourself and your work', 'Add Tier 2 for project-specific instructions', 'Use the AI Guidelines tab for coding/architecture rules that should apply to every AI-generated change', 'The interview wizard helps you build this step by step'],
         'video_url': '',
     },
+    'icm': {
+        'title': 'Workspaces', 'icon': '🗂', 'tier': 'free',
+        'summary': 'Folder structure as agent architecture: numbered stage folders and plain markdown contracts do the work an orchestration framework would do in code.',
+        'details': 'A workspace is numbered stage folders, each with a CONTEXT.md contract naming exactly what it reads, does, and writes. Numbering is the execution order, the folder hierarchy is the context scoping, and the files on disk are the state -- so one agent reading the right files at the right moment does the work of a multi-agent setup. Each stage loads 2,000-8,000 tokens instead of the 30,000-50,000 a single everything-prompt reaches. The Routing tab shows which workspace and stage any request would enter and why, because starting in the wrong folder is how this silently fails: the layered context never loads and the run still looks fine.',
+        'tips': [
+            'One stage, one job -- a stage that researches does not also write.',
+            "Declare what enters a workspace under '## Routes' in its CONTEXT.md, one trigger phrase per bullet.",
+            'Every output is an edit surface: edit a stage output and the next stage reads what you left there.',
+            'Use the Routing tab to test a request before running it, and the Route log to see where past requests actually started.',
+            'Configure the factory, not the product -- set the workspace up once, then every run reuses it with new inputs.',
+        ],
+        'video_url': '',
+    },
     'templates': {
         'title': 'Template Gallery', 'icon': '📋', 'tier': 'free',
         'summary': 'One-click deploy production-ready project templates.',

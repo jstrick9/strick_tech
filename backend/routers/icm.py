@@ -264,3 +264,50 @@ async def resolve_terms(workspace_id: str, req: Request) -> dict[str, Any]:
             detail='Send entity_type and/or relation (optionally with from_type/to_type).',
         )
     return out
+
+
+# ── entry routing ─────────────────────────────────────────────────────────────
+# "The agent has to actually start in the right folder." These endpoints expose
+# that decision so it is inspectable rather than implicit: the route table says
+# what enters where, /route explains a decision before it is acted on, and
+# /route/log is the record of decisions already made.
+
+
+@router.get('/routes')
+def get_route_table() -> dict[str, Any]:
+    """The root context map: every workspace and what enters it.
+
+    Generated from the filesystem on every call rather than hand-maintained,
+    because a hand-curated index always drifts from the folders it describes.
+    """
+    from ..services import icm_router as rsvc
+
+    return {'ok': True, 'routes': rsvc.route_table()}
+
+
+@router.get('/route')
+def preview_route(q: str = '', workspace_id: str = '', stage: str = '') -> dict[str, Any]:
+    """Explain where a request would enter, without loading or running it.
+
+    Read-only on purpose: this is the "why did it pick that folder" tool, and
+    it must be safe to call repeatedly from the UI as the user types.
+    """
+    from ..services import icm_router as rsvc
+
+    if not str(q).strip():
+        raise HTTPException(status_code=422, detail='Send q=<the request text>.')
+    return {'ok': True, 'decision': rsvc.resolve(str(q), str(workspace_id), str(stage))}
+
+
+@router.get('/route/log')
+def get_route_log(limit: int = 50) -> dict[str, Any]:
+    """Recent routing decisions, newest first.
+
+    `limit` is typed, so FastAPI rejects non-numeric input with a 422 before
+    this body runs -- an earlier draft wrapped the int() in a try/except that
+    could never fire. Out-of-range numbers are clamped rather than refused,
+    because a caller asking for 99999 wants "as many as you have".
+    """
+    from ..services import icm_router as rsvc
+
+    return {'ok': True, 'decisions': rsvc.recent_decisions(max(1, min(limit, 500)))}

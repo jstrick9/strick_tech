@@ -279,17 +279,57 @@ def test_stage_names_are_slugged_safely(ws):
 
 
 # ── chat integration ──────────────────────────────────────────────────────────
-def test_chat_injects_icm_context_and_resolves_the_entry_stage():
-    """Chat must RESOLVE the stage, not assume one."""
+def test_chat_injects_icm_context_and_resolves_the_entry_stage(tmp_path, monkeypatch):
+    """Chat must RESOLVE the stage, not assume one.
+
+    UPDATED IN PLACE. This test used to grep chat.py's source for the literal
+    string 'resolve_entry'. Entry selection has since moved out of chat.py into
+    services/icm_router.py, because chat.py chose the *workspace* with a bare
+    substring test -- a workspace called 'os' matched "what is the cost of
+    this?" and loaded an unrelated project's context into the system prompt.
+
+    The old assertion would now fail against code that is strictly more correct,
+    which is the sign it was pinned to the implementation rather than the
+    behaviour. It is rewritten to assert the behaviour itself: routing a request
+    yields a stage that was computed from workspace state, with a stated reason.
+    """
+    monkeypatch.setenv('AGENTIC_OS_DATA_DIR', str(tmp_path))
+    import importlib
+
+    from backend.services import icm as icm_mod
+
+    importlib.reload(icm_mod)
+    from backend.services import icm_router as router_mod
+
+    importlib.reload(router_mod)
+
+    wsdir = icm_mod.WORKSPACES_DIR / 'reports'
+    icm_mod.scaffold(wsdir, 'reports', '', ['research', 'script'])
+    ctx = wsdir / 'CONTEXT.md'
+    ctx.write_text(ctx.read_text(encoding='utf-8') + '\n\n## Routes\n- quarterly summary\n',
+                   encoding='utf-8')
+
+    d = router_mod.resolve_and_assemble('draft the quarterly summary')
+    assert d['matched']
+    assert d['workspace_id'] == 'reports'
+    # Resolved from state -- stage 01 has no output yet -- not assumed.
+    assert d['stage'] == '01-research'
+    assert d['stage_reason'] == 'first stage with no output'
+    assert d['compiled_context']
+
+    # Once stage 01 has output, the resolved entry moves on by itself.
+    (wsdir / 'stages' / '01-research' / 'output' / 'notes.md').write_text('x', encoding='utf-8')
+    assert router_mod.resolve('draft the quarterly summary')['stage'] == '02-script'
+
+    # And chat.py must actually go through that router.
     import inspect
 
     from backend.routers import chat
 
     src = inspect.getsource(chat)
     body = '\n'.join(ln for ln in src.split('\n') if not ln.strip().startswith('#'))
-    assert 'services import icm' in body or 'import icm' in body
-    assert 'resolve_entry' in body, 'chat must resolve the entry stage, not assume it'
-    assert 'assemble_context' in body
+    assert 'icm_router' in body, 'chat must route through the ICM entry router'
+    assert 'resolve_and_assemble' in body
 
 
 # ── UI: bugs the browser caught that static checks did not ────────────────────

@@ -405,22 +405,28 @@ async def chat_stream(req: Request):
     # whole workspace. The entry stage is RESOLVED, never assumed -- starting
     # in the wrong folder is the documented way ICM silently fails, because
     # the layered context never loads and the run still looks fine.
+    #
+    # Entry selection used to be a bare substring test over workspace ids:
+    #
+    #     if _d.name in _msg or str(_meta.get('name','')).lower() in _msg:
+    #
+    # which was wrong in both directions, measurably. A workspace called 'os'
+    # matched "what is the cost of this?" -- and a wrong match does not error,
+    # it loads an unrelated project's identity, routing and stage contract into
+    # the system prompt so the model answers confidently from the wrong folder.
+    # Meanwhile 'client-reports' never matched "write the weekly client
+    # report", so the workspace that should have loaded did not.
+    #
+    # icm_router.resolve_and_assemble() replaces it with declared routes,
+    # word-boundary matching, a score floor, an explicit ambiguous outcome, and
+    # a log of every decision. See services/icm_router.py.
     try:
-        from ..services import icm as _icm
+        from ..services import icm_router as _router
 
-        if _icm.WORKSPACES_DIR.is_dir():
-            _msg = message.lower()
-            for _d in sorted(_icm.WORKSPACES_DIR.iterdir()):
-                if not _d.is_dir() or _d.name.startswith('.'):
-                    continue
-                _meta = _icm.read_meta(_d)
-                if _d.name in _msg or str(_meta.get('name', '')).lower() in _msg:
-                    _stage, _ = _icm.resolve_entry(_d)
-                    if _stage:
-                        _ctx = _icm.assemble_context(_d, _stage).get('compiled_context', '')
-                        if _ctx:
-                            system_prompt += f'\n\n{_ctx}'
-                    break
+        _decision = _router.resolve_and_assemble(message)
+        _router.log_decision(message, _decision)
+        if _decision.get('compiled_context'):
+            system_prompt += f'\n\n{_decision["compiled_context"]}'
     except (KeyError, TypeError, ValueError, OSError, AttributeError, RuntimeError):
         pass
 

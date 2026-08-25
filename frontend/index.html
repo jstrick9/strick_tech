@@ -106,7 +106,7 @@
       <!-- Navigation -->
       <div class="sidebar-scroll">
                 <!-- ═══ CORE MODULES: daily drivers ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#a5b4fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('core')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> CORE MODULES  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#a5b4fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('core')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> CORE MODULES  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">7</span></div>
         <div class="sidebar-group-content" id="group-core">
           <div class="nav-item active" data-nav="chat" data-tier="core" data-act-click="nav('chat')" data-tooltip="Chat with AI — start here" role="button" aria-label="Chat" tabindex="0" data-keys="Enter" data-self-click="1">
             <span class="icon">💬</span><span class="label">Chat</span>
@@ -117,6 +117,9 @@
           </div>
           <div class="nav-item" data-nav="galaxy" data-tier="core" data-act-click="nav('galaxy')" data-tooltip="Your saved knowledge & memories" role="button" aria-label="Memory" tabindex="0" data-keys="Enter" data-self-click="1">
             <span class="icon">🧠</span><span class="label">Memory</span>
+          </div>
+          <div class="nav-item" data-nav="icm" data-tier="core" data-act-click="nav('icm')" data-tooltip="Folder-as-architecture workspaces" role="button" aria-label="Workspaces" tabindex="0" data-keys="Enter" data-self-click="1">
+            <span class="icon">🗂</span><span class="label">Workspaces</span>
           </div>
           <div class="nav-item" data-nav="kanban" data-tier="core" data-act-click="nav('kanban')" data-tooltip="Track tasks and to-dos" role="button" aria-label="Tasks" tabindex="0" data-keys="Enter" data-self-click="1">
             <span class="icon">✅</span><span class="label">Tasks</span>
@@ -856,6 +859,7 @@
   </div></div>
 
       <!-- GALAXY PANE -->
+      <div class="pane" id="pane-icm" style="overflow:hidden"></div>
       <div class="pane" id="pane-galaxy">
         <div id="galaxy-container">
           <div id="gx-graph"></div>
@@ -1894,6 +1898,7 @@
 <script src="/static/js/56-chat-history.js" defer></script>
 <script src="/static/js/57-account-settings.js" defer></script>
 <script src="/static/js/58-csp-monitor.js" defer></script>
+<script src="/static/js/59-icm-workspaces.js" defer></script>
 
 <script src="/static/js/90-sidebar-shortcut.js" defer></script>
 

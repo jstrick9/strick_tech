@@ -1,5 +1,18 @@
 [
   {
+    "pane": "icm",
+    "score": 7,
+    "file": "59-icm-workspaces.js",
+    "lines": 413,
+    "endpoints": 3,
+    "markers": 0,
+    "tested": true,
+    "tabs": 0,
+    "covered": 0,
+    "unit": 1,
+    "reviewed": false
+  },
+  {
     "pane": "docs",
     "score": 35,
     "file": "04-workflow-specs.js",
@@ -16,7 +29,7 @@
     "pane": "hierarchy",
     "score": 23,
     "file": "12-information-hierarchy.js",
-    "lines": 1042,
+    "lines": 1063,
     "endpoints": 13,
     "markers": 0,
     "tested": true,
