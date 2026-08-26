@@ -370,3 +370,91 @@ class TestSkillFolderEndpoints:
         r = client.get(f'/api/skills/{cid}/file?path=../../../../etc/passwd')
         assert r.status_code == 404
         assert 'root:' not in r.text
+
+
+# ── level 1 must be cheap ON DISK, not only on the wire ──────────────────────
+def test_the_catalogue_does_not_read_bodies_off_disk(sf):
+    """Level 1 answers "what can you do?" without paying for the answers.
+
+    Measured on the first version of this module: a skill with a 160KB body
+    cost 160,043 bytes of I/O to appear in a listing that displayed ~10 tokens
+    of it, because catalog() went through read_skill(). The token accounting
+    was honest; the disk read was not, and a token-only assertion cannot tell
+    the difference — parsing a fully-read file and discarding the body gives
+    output identical to reading a bounded head.
+
+    This counts the bytes actually pulled off disk.
+    """
+    import pathlib
+
+    _make(sf, 'huge', name='Huge', desc='tiny desc', body='PAYLOAD ' * 20_000)
+    _make(sf, 'small', name='Small', desc='also tiny')
+
+    # Hook BOTH read paths. An earlier version of this probe only wrapped
+    # Path.read_text, so it could not see the bounded reader's fh.read() and
+    # reported a pass when the bound was removed. Counting one door is the
+    # same blind spot the code had.
+    real_read_text = pathlib.Path.read_text
+    real_open = pathlib.Path.open
+    full_reads: list[int] = []
+
+    def counting_read_text(self, *a, **kw):
+        out = real_read_text(self, *a, **kw)
+        if self.name == 'SKILL.md':
+            full_reads.append(len(out))
+        return out
+
+    class _Counted:
+        def __init__(self, fh, name):
+            self._fh, self._name = fh, name
+
+        def read(self, n=-1):
+            data = self._fh.read(n)
+            if self._name == 'SKILL.md' and (n is None or n < 0):
+                full_reads.append(len(data))
+            return data
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return self._fh.__exit__(*a)
+
+    def counting_open(self, *a, **kw):
+        return _Counted(real_open(self, *a, **kw), self.name)
+
+    monkey = pytest.MonkeyPatch()
+    monkey.setattr(pathlib.Path, 'read_text', counting_read_text)
+    monkey.setattr(pathlib.Path, 'open', counting_open)
+    try:
+        cat = sf.catalog()
+    finally:
+        monkey.undo()
+
+    assert cat['count'] == 2
+    assert {c['id'] for c in cat['skills']} == {'huge', 'small'}
+    assert full_reads == [], (
+        f'catalogue read {sum(full_reads)} bytes of SKILL.md bodies; '
+        'level 1 must read a bounded head')
+
+
+def test_a_body_larger_than_the_head_bound_still_lists(sf):
+    """The bound must not hide skills whose frontmatter it can still reach."""
+    _make(sf, 'big', name='Big One', desc='findable',
+          body='X' * (sf.MAX_FRONTMATTER_BYTES * 10))
+    card = next(c for c in sf.catalog()['skills'] if c['id'] == 'big')
+    assert card['name'] == 'Big One'
+    assert card['description'] == 'findable'
+
+
+def test_level_two_still_returns_the_whole_body(sf):
+    """Bounding level 1 must not truncate level 2."""
+    body = 'PAYLOAD ' * 20_000
+    _make(sf, 'huge', body=body)
+    assert len(sf.load_level('huge', 2)['body']) >= len(body) - 50
+
+
+def test_the_reported_saving_does_not_itself_cost_the_saving(sf):
+    _make(sf, 'huge', desc='tiny', body='PAYLOAD ' * 20_000)
+    cat = sf.catalog()
+    assert cat['level1_tokens'] < cat['full_tokens'] / 10

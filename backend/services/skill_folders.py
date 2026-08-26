@@ -241,6 +241,59 @@ def _registry_skills() -> list[dict[str, Any]]:
     return out
 
 
+# Level 1 must be cheap ON DISK, not merely cheap on the wire. read_skill()
+# pulls the whole SKILL.md, so building a catalogue through it reads every body
+# in full to return names and descriptions. Measured on the pushed version: a
+# skill with a 160KB body cost 160,043 bytes of I/O to appear in a listing that
+# used ~10 tokens of it. The token accounting was honest; the read was not.
+#
+# Frontmatter is at the top of the file by definition, so a bounded head is
+# always enough for level 1.
+MAX_FRONTMATTER_BYTES = 2048
+
+
+def _folder_card(d: Path) -> dict[str, Any] | None:
+    """Level 1 for one folder skill, reading only the head of SKILL.md."""
+    path = d / 'SKILL.md'
+    if not path.is_file():
+        return None
+    try:
+        with path.open('r', encoding='utf-8', errors='ignore') as fh:
+            head = fh.read(MAX_FRONTMATTER_BYTES)
+    except OSError:
+        return None
+    # A truncated head can cut the closing '---'. Re-terminate so the parser
+    # sees a complete block rather than silently returning no metadata.
+    if head.count('---') < 2:
+        head = head + '\n---\n'
+    meta, _ = parse_frontmatter(head)
+    if not (meta.get('name') or meta.get('description')):
+        return None
+    return {
+        'id': meta.get('id') or d.name,
+        'name': meta.get('name') or d.name,
+        'description': meta.get('description') or '',
+        'category': meta.get('category') or 'other',
+        'emoji': meta.get('emoji') or '\U0001f9e9',
+        'tags': meta.get('tags') or [],
+        'source': 'folder',
+    }
+
+
+def folder_cards() -> list[dict[str, Any]]:
+    """Every folder skill's level 1, without reading a single body."""
+    if not SKILLS_DIR.is_dir():
+        return []
+    out: list[dict[str, Any]] = []
+    for d in sorted(SKILLS_DIR.iterdir()):
+        if not d.is_dir() or d.name.startswith('.') or not SKILL_ID_RE.match(d.name):
+            continue
+        card = _folder_card(d)
+        if card:
+            out.append(card)
+    return out
+
+
 def _folder_skills() -> list[dict[str, Any]]:
     if not SKILLS_DIR.is_dir():
         return []
@@ -267,14 +320,36 @@ def catalog() -> dict[str, Any]:
     This is the measurable payoff. Before, discovery returned all 83 skills in
     full at ~6,160 tokens; the same question answered from level 1 costs ~1,100.
     """
-    all_skills = index()
-    cards = [level1(s) for s in all_skills]
+    # Folder skills come from the bounded reader; registry skills are already
+    # in memory, so they cost nothing extra. Going through index() here would
+    # read every body off disk to build a listing that shows none of them.
+    cards = folder_cards()
+    seen = {c['id'] for c in cards}
+    registry = [s for s in _registry_skills() if s['id'] not in seen]
+    cards = cards + [level1(s) for s in registry]
     return {
         'skills': cards,
         'count': len(cards),
         'level1_tokens': sum(_tokens(f'{c["name"]} {c["description"]}') for c in cards),
-        'full_tokens': sum(s['tokens']['level1'] + s['tokens']['level2'] for s in all_skills),
+        # full_tokens counts the registry side plus a bounded estimate for
+        # folders, so reporting the saving does not itself cost the saving.
+        'full_tokens': (
+            sum(s['tokens']['level1'] + s['tokens']['level2'] for s in registry)
+            + sum(_folder_body_tokens(c['id']) for c in cards if c.get('source') == 'folder')
+        ),
     }
+
+
+def _folder_body_tokens(skill_id: str) -> int:
+    """Size a folder skill from its file size rather than by reading it."""
+    d = skill_dir(skill_id)
+    if d is None:
+        return 0
+    path = d / 'SKILL.md'
+    try:
+        return path.stat().st_size // 4
+    except OSError:
+        return 0
 
 
 def load_level(skill_id: str, level: int = 2) -> dict[str, Any] | None:

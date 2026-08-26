@@ -6,7 +6,12 @@ repos `RinDig/Interpretable-Context-Methodology` and `RinDig/icm-architect`),
 mapped against what this platform implements today, with the gap list and the
 proposed build.
 
-Status: **proposal awaiting owner sign-off.** Nothing here is built yet.
+**This document is the coordination surface for the work.** Section 3 is the
+live gap register: every gap carries a status and, when shipped, the commit
+that closed it. Update it in the same commit that changes the status — a
+tracker edited later is a tracker that drifts.
+
+**Progress: 8 of 12 gaps closed** (all Critical and all High), 2 partial.
 
 ---
 
@@ -127,29 +132,41 @@ valuable part of this research because they are the known failure modes:
 | MCP gateway | ✅ | `routers/mcp_gateway.py` |
 | UI for ICM | ⚠️ one tab inside Information Hierarchy | `frontend/index.html` `#h-view-icm` |
 
-## 3. The gaps (what Jake teaches that we do not do)
+## 3. Gap register (live)
 
-| # | Gap | Severity |
-|---|---|---|
-| **G1** | **Only one form.** `scaffold()` always builds a Pipeline. No umbrella, record library, knowledge bundle, context map, system map. | High |
-| **G2** | **No "start in the right folder" router.** Nothing decides *where* a request enters. This is Jake's named #1 failure mode and we have it wholesale. | **Critical** |
-| **G3** | **No restructure mode.** Cannot point at an existing repo/vault, classify every file (catalog/contract/factory/product/dead), propose a migration map, migrate, validate. | High |
-| **G4** | **No dialogue→structure extraction.** No path from "describe your work in chat" to a scaffolded workspace. Jake's core onboarding move. | High |
-| **G5** | **No generated FILE-MAP.** Indexes would be hand-maintained, i.e. guaranteed to drift. | Medium |
-| **G6** | **Skills aren't ICM.** `skills.json` registry instead of `SKILL.md` folders with progressive disclosure. | Medium |
-| **G7** | **No typed frontmatter / queryable layer.** Knowledge-bundle and context-map forms need `type:`, `layer:`, `access_tier:`, `strength:` and dashboards querying them. | Medium |
-| **G8** | **MCP tools not lazily scoped by intent** (already tracked as gap #8). | High |
-| **G9** | **Workspaces aren't the home screen.** ICM is a tab inside a pane; in the canon the folder *is* the interface. | High |
-| **G10** | **No life/computer/phone automation surface** — no ambient capture inbox, no phone entry point wired to workspaces. | Medium |
-| **G11** | **Walk test isn't enforced as a gate**, only reported. | Low |
-| **G12** | **No template/method library.** "Method and instance live apart" — we have no blank, reusable, shareable workspace templates. | Medium |
+Legend: ✅ shipped · 🟡 partial · ⬜ open
+
+**A numbering correction, stated plainly:** several commit messages and
+progress summaries referred to the intent-scoped MCP work as "G7". In this
+register that is **G8**; G7 is typed frontmatter. This table is authoritative.
+
+| # | Gap | Severity | Status | Closed by |
+|---|---|---|---|---|
+| **G1** | **Only one form.** `scaffold()` always builds a Pipeline. No umbrella, record library, knowledge bundle, context map, system map. | High | ✅ | `88c8035` |
+| **G2** | **No "start in the right folder" router.** Nothing decides *where* a request enters. This is Jake's named #1 failure mode and we have it wholesale. | **Critical** | ✅ | `9d7c896` |
+| **G3** | **No restructure mode.** Cannot point at an existing repo/vault, classify every file (catalog/contract/factory/product/dead), propose a migration map, migrate, validate. | High | ✅ | `09a6030` |
+| **G4** | **No dialogue→structure extraction.** No path from "describe your work in chat" to a scaffolded workspace. Jake's core onboarding move. | High | ✅ | `a673a2e` |
+| **G5** | **No generated FILE-MAP.** Indexes would be hand-maintained, i.e. guaranteed to drift. | Medium | 🟡 | `88c8035` (context map only) |
+| **G6** | **Skills aren't ICM.** `skills.json` registry instead of `SKILL.md` folders with progressive disclosure. | Medium | ✅ | `9e60e38` + `HASH` |
+| **G7** | **No typed frontmatter / queryable layer.** Knowledge-bundle and context-map forms need `type:`, `layer:`, `access_tier:`, `strength:` and dashboards querying them. | Medium | 🟡 | `88c8035` (bundle + map nodes) |
+| **G8** | **MCP tools not lazily scoped by intent** (already tracked as gap #8). | High | ✅ | `dd1b7a1` |
+| **G9** | **Workspaces aren't the home screen.** ICM is a tab inside a pane; in the canon the folder *is* the interface. | High | ✅ | `9d7c896` |
+| **G10** | **No life/computer/phone automation surface** — no ambient capture inbox, no phone entry point wired to workspaces. | Medium | ⬜ | — |
+| **G11** | **Walk test isn't enforced as a gate**, only reported. | Low | ⬜ | — |
+| **G12** | **No template/method library.** "Method and instance live apart" — we have no blank, reusable, shareable workspace templates. | Medium | ⬜ | — |
 
 ---
 
-## 4. Proposed build (the extraordinary version)
+## 4. The build
 
-Ten pieces. Each is buildable, testable, and follows the existing bar
-(verified live, test proven to fail first, full suite green).
+Ten pieces. Each follows the same bar: verified live against a running server,
+every real bug given a test proven to fail first, revert-proved break by break,
+full suite green before commit.
+
+**Shipped:** P1 `9d7c896` · P2 `88c8035` · P3 `09a6030` · P4 `a673a2e` ·
+P6 `9e60e38` · P7 `dd1b7a1` · P8 `9d7c896`
+**Partial:** P5 — the generated FILE-MAP exists for context maps, not all forms
+**Open:** P9 (capture inbox) · P10 (template library)
 
 ### P1 — The Router (fixes G2, the critical one)
 A **root context map** for the whole OS: `brain/CONTEXT.md` listing every
@@ -212,3 +229,50 @@ client records, personal second brain, home/life ops.
 - YouTube @JEVanClief — *You're Automating The Wrong Layer* (three layers, dialogue-as-source, skills connection); *Stop Building AI Agents. Use This Folder System Instead.*
 - skool.com/cliefnotes — *Folders, not frameworks: how Taurus makes Claude repeatable for a whole team* (start-in-the-right-folder), *Obsidian is BLOAT*, the MCP tool-count thread, System map announcement
 - LinkedIn / Eduba platform announcement (containerised multiplayer ICM workspaces)
+
+---
+
+## 6. Delivery log
+
+Newest first. Each entry names what was actually **wrong**, because the defect
+is the durable part — the fix is obvious once the defect is stated.
+
+| Commit | Gap | What was wrong |
+|---|---|---|
+| `HASH` | G6 | Follow-up to `9e60e38`. Its level-1 catalogue went through `read_skill()`, so building a listing read **every body in full off disk**: a skill with a 160KB body cost 160,043 bytes of I/O to show a name and a description. The token accounting was honest; the disk read was not. Now a bounded 2KB head per skill — measured 160,043 bytes → 0. |
+| `9e60e38` | G6 | 83 skills in one JSON blob; discovery returned all of them in full. Three-level disclosure, both stores merged on read, folder form winning an id clash. *(Built in parallel with an independent implementation of the same gap — see the note below.)* |
+| `dd1b7a1` | G8 | The gateway federated 53 tools **no agent could reach**, while the agent loop inlined its own 23 into every prompt regardless of task. Connecting them naively would have put 76 tools in front of the model — the exact "past a certain count it picks worse" wall. Now one catalog, tags derived per tool, capped at 12 by intent. |
+| `88c8035` | G1, G5, G7 | `scaffold()` built a Pipeline and only a Pipeline, so a record library got numbered stages for something with no stages. Harder half: `validate()` treated "no numbered stages" as an **error**, so every correctly-built non-pipeline form failed its own walk test. |
+| `a673a2e` | G4 | No path from plain English to a workspace. Extraction is rule-based on purpose: it must work with no API key on first run, and every stage must cite the phrase that produced it. |
+| `09a6030` | G3 | No way to point at an existing folder. Migration is gated: reads never touch the tree, apply refuses without explicit approval, files are **copied** not moved, nothing is ever deleted. |
+| `9d7c896` | G2, G9 | Entry selection was a bare substring test: workspace `os` matched *"what is the **cost** of this?"* and loaded an unrelated project's context into the system prompt. Silent, and confidently wrong. |
+
+### A note on parallel work
+
+G6 was implemented twice, independently and simultaneously, by two sessions.
+`9e60e38` reached the remote first and is the surviving implementation; the
+other was discarded rather than force-merged. Both had found the same shape
+(three levels, non-destructive migration, containment on bundled reads), and
+each had one thing the other lacked — the surviving one merges both stores on
+read, the discarded one bounded the level-1 disk read. The bound was ported
+across as a follow-up rather than lost. **Never force-push to resolve this.**
+
+### Recurring defect shapes in this work
+
+Worth naming, because they recurred across every commit above:
+
+1. **A guard that cannot fire.** Four unreachable lines so far (the router's
+   short-id filter, `get_route_log`'s int coercion, `tags_for`'s namespace
+   split, and an earlier sanitise-then-accept). All found by revert proof, all
+   deleted rather than kept.
+2. **A rule applied to the wrong scope.** Pipeline logic applied to every form,
+   twice: the stage-count guardrail and the walk test.
+3. **Cheap on the wire, expensive on disk.** The skills catalogue reported an
+   honest token saving while reading every byte it claimed to avoid. A
+   measurement of the *output* cannot detect this; only counting the read can.
+4. **Diagnostics discarded on the error path.** The tool selection vanished
+   when the model was unreachable — exactly when it was needed.
+5. **A probe disagreeing with the app, and the probe being wrong.** Five times
+   (`meta` vs `workspace`, `/agent` vs `/agent/run`, a stale `/tmp` artifact, a
+   200 that middleware correctly makes 400, and a byte-counter that hooked only
+   one of two read paths). Suspecting the probe first was correct every time.
