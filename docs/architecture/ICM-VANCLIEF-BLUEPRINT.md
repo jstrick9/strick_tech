@@ -134,7 +134,11 @@ valuable part of this research because they are the known failure modes:
 
 ## 3. Gap register (live)
 
-Legend: ✅ shipped · 🟡 partial · ⬜ open
+Legend: ✅ shipped · 🟡 partial · ⬜ open · 🚧 claimed, work in flight
+
+**Claiming protocol:** before starting a gap, set its status to 🚧 and push
+that single commit first. G6 was built twice simultaneously because nothing
+announced the work; this is the mechanism that prevents a repeat.
 
 **A numbering correction, stated plainly:** several commit messages and
 progress summaries referred to the intent-scoped MCP work as "G7". In this
@@ -151,7 +155,7 @@ register that is **G8**; G7 is typed frontmatter. This table is authoritative.
 | **G7** | **No typed frontmatter / queryable layer.** Knowledge-bundle and context-map forms need `type:`, `layer:`, `access_tier:`, `strength:` and dashboards querying them. | Medium | 🟡 | `88c8035` (bundle + map nodes) |
 | **G8** | **MCP tools not lazily scoped by intent** (already tracked as gap #8). | High | ✅ | `dd1b7a1` |
 | **G9** | **Workspaces aren't the home screen.** ICM is a tab inside a pane; in the canon the folder *is* the interface. | High | ✅ | `9d7c896` |
-| **G10** | **No life/computer/phone automation surface** — no ambient capture inbox, no phone entry point wired to workspaces. | Medium | ⬜ | — |
+| **G10** | **No life/computer/phone automation surface** — no ambient capture inbox, no phone entry point wired to workspaces. | Medium | 🚧 **IN PROGRESS** | claimed |
 | **G11** | **Walk test isn't enforced as a gate**, only reported. | Low | ⬜ | — |
 | **G12** | **No template/method library.** "Method and instance live apart" — we have no blank, reusable, shareable workspace templates. | Medium | ⬜ | — |
 
