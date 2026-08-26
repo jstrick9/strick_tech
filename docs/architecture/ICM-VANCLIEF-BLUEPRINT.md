@@ -156,7 +156,7 @@ register that is **G8**; G7 is typed frontmatter. This table is authoritative.
 | **G8** | **MCP tools not lazily scoped by intent** (already tracked as gap #8). | High | ✅ | `dd1b7a1` |
 | **G9** | **Workspaces aren't the home screen.** ICM is a tab inside a pane; in the canon the folder *is* the interface. | High | ✅ | `9d7c896` |
 | **G10** | **No life/computer/phone automation surface** — no ambient capture inbox, no phone entry point wired to workspaces. | Medium | ✅ | `804eabb` |
-| **G11** | **Walk test isn't enforced as a gate**, only reported. | Low | ⬜ | — |
+| **G11** | **Walk test isn't enforced as a gate**, only reported. | Low | 🚧 **IN PROGRESS** | claimed |
 | **G12** | **No template/method library.** "Method and instance live apart" — we have no blank, reusable, shareable workspace templates. | Medium | ✅ | `47fde43` |
 
 ---
