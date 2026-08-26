@@ -494,6 +494,7 @@ FEATURE_DOCS: dict[str, dict] = {
             'Use the Routing tab to test a request before running it, and the Route log to see where past requests actually started.',
             'Configure the factory, not the product -- set the workspace up once, then every run reuses it with new inputs.',
             'Audit a folder you already have: it sorts every file by role, shows a migration map, and waits for your yes. Files are copied, never moved, and nothing is deleted.',
+            'Templates keep the method apart from the instance: extracting one copies the stage contracts, routing and reference material and drops every output file, so a template you share carries no client data. Starting new work copies a template rather than beginning blank.',
             'Six forms, not one: pipeline (a production line), umbrella (several lines sharing a voice), record library (a folder per client or person), knowledge bundle (a second brain), context map (a team as a graph), system map (a repo later agents will edit). Pick by asking what the repeating unit of work is.',
             'New here? Use "Describe your work" and write how you actually do the job in plain English. The stages, the points where you stop and check, and the things that never change get named back to you with the phrase that produced each one, and you can edit them before anything is created.',
         ],
