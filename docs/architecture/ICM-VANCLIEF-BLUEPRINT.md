@@ -152,9 +152,9 @@ register that is **G8**; G7 is typed frontmatter. This table is authoritative.
 | **G2** | **No "start in the right folder" router.** Nothing decides *where* a request enters. This is Jake's named #1 failure mode and we have it wholesale. | **Critical** | ✅ | `9d7c896` |
 | **G3** | **No restructure mode.** Cannot point at an existing repo/vault, classify every file (catalog/contract/factory/product/dead), propose a migration map, migrate, validate. | High | ✅ | `09a6030` |
 | **G4** | **No dialogue→structure extraction.** No path from "describe your work in chat" to a scaffolded workspace. Jake's core onboarding move. | High | ✅ | `a673a2e` |
-| **G5** | **No generated FILE-MAP.** Indexes would be hand-maintained, i.e. guaranteed to drift. | Medium | 🟡 | `88c8035` (context map only) |
+| **G5** | **No generated FILE-MAP.** Indexes would be hand-maintained, i.e. guaranteed to drift. | Medium | 🚧 **IN PROGRESS** | `88c8035` (context map only) |
 | **G6** | **Skills aren't ICM.** `skills.json` registry instead of `SKILL.md` folders with progressive disclosure. | Medium | ✅ | `9e60e38` + `0bc8ffd` |
-| **G7** | **No typed frontmatter / queryable layer.** Knowledge-bundle and context-map forms need `type:`, `layer:`, `access_tier:`, `strength:` and dashboards querying them. | Medium | 🟡 | `88c8035` (bundle + map nodes) |
+| **G7** | **No typed frontmatter / queryable layer.** Knowledge-bundle and context-map forms need `type:`, `layer:`, `access_tier:`, `strength:` and dashboards querying them. | Medium | 🚧 **IN PROGRESS** | `88c8035` (bundle + map nodes) |
 | **G8** | **MCP tools not lazily scoped by intent** (already tracked as gap #8). | High | ✅ | `dd1b7a1` |
 | **G9** | **Workspaces aren't the home screen.** ICM is a tab inside a pane; in the canon the folder *is* the interface. | High | ✅ | `9d7c896` |
 | **G10** | **No life/computer/phone automation surface** — no ambient capture inbox, no phone entry point wired to workspaces. | Medium | ✅ | `804eabb` |
