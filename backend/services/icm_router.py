@@ -300,9 +300,29 @@ def resolve_and_assemble(message: str, requested: str = '', stage: str = '') -> 
     decision = resolve(message, requested, stage)
     decision['compiled_context'] = ''
     decision['estimated_tokens'] = 0
+    decision['gate'] = None
     if not decision['matched'] or not decision['stage']:
         return decision
     ws = icm.WORKSPACES_DIR / decision['workspace_id']
+
+    # THE WALK TEST AS A GATE. Loading a workspace that fails it hands the model
+    # an incomplete structure and reports a normal-looking run: measured before
+    # this existed, deleting one stage contract still produced
+    # "matched, 214 tokens" in the route log while the control point that
+    # scopes the whole stage was gone. The validator knew; nothing acted on it.
+    #
+    # Refusing to ASSEMBLE is deliberately narrower than refusing to route: the
+    # decision, its evidence and the specific repair still come back, so the
+    # caller can tell the user which workspace is broken and why. It is the
+    # context that is withheld, not the answer.
+    from . import icm_gate
+
+    verdict = icm_gate.gate(ws, action='assemble')
+    decision['gate'] = verdict
+    if not verdict['allowed']:
+        decision['blocked_by_walk_test'] = True
+        return decision
+
     ctx = icm.assemble_context(ws, decision['stage'])
     decision['compiled_context'] = ctx.get('compiled_context', '')
     decision['estimated_tokens'] = ctx.get('estimated_tokens', 0)
@@ -328,6 +348,12 @@ def log_decision(message: str, decision: dict[str, Any]) -> None:
             'reason': decision.get('reason'),
             'estimated_tokens': decision.get('estimated_tokens', 0),
         }
+        # A blocked run must not look like a normal one in the log. That
+        # indistinguishability was the whole defect: "matched, 214 tokens" for
+        # a workspace whose stage contract had been deleted.
+        if decision.get('blocked_by_walk_test'):
+            entry['status'] = 'blocked-walk-test'
+            entry['blocked_errors'] = (decision.get('gate') or {}).get('errors', [])[:3]
         path = _log_path()
         with path.open('a', encoding='utf-8') as fh:
             fh.write(json.dumps(entry) + '\n')

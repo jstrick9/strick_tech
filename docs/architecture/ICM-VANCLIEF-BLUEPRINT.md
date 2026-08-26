@@ -11,7 +11,9 @@ live gap register: every gap carries a status and, when shipped, the commit
 that closed it. Update it in the same commit that changes the status — a
 tracker edited later is a tracker that drifts.
 
-**Progress: 10 of 12 gaps closed** (all Critical and all High), 2 partial.
+**Progress: 11 of 12 gaps closed** (all Critical, High and Low), 2 partial.
+Only the two Medium partials remain: G5 (file map for every form) and G7
+(dashboards querying the frontmatter that is already written).
 
 ---
 
@@ -156,7 +158,7 @@ register that is **G8**; G7 is typed frontmatter. This table is authoritative.
 | **G8** | **MCP tools not lazily scoped by intent** (already tracked as gap #8). | High | ✅ | `dd1b7a1` |
 | **G9** | **Workspaces aren't the home screen.** ICM is a tab inside a pane; in the canon the folder *is* the interface. | High | ✅ | `9d7c896` |
 | **G10** | **No life/computer/phone automation surface** — no ambient capture inbox, no phone entry point wired to workspaces. | Medium | ✅ | `804eabb` |
-| **G11** | **Walk test isn't enforced as a gate**, only reported. | Low | 🚧 **IN PROGRESS** | claimed |
+| **G11** | **Walk test isn't enforced as a gate**, only reported. | Low | ✅ | `HASH` |
 | **G12** | **No template/method library.** "Method and instance live apart" — we have no blank, reusable, shareable workspace templates. | Medium | ✅ | `47fde43` |
 
 ---
@@ -243,6 +245,7 @@ is the durable part — the fix is obvious once the defect is stated.
 
 | Commit | Gap | What was wrong |
 |---|---|---|
+| `HASH` | G11 | The walk test was a report nothing read. Measured live: delete one stage contract and `/validate` said `ok: False` while the router returned `matched`, chat returned 200, and the route log recorded `matched, 214 tokens` — the agent was handed a context with no stage contract and every surface looked normal. The check now gates the READ path (assembly refuses, the log says `blocked-walk-test`, tokens 0) and never the write path, because editing is how a broken workspace gets repaired. Every refusal carries the specific repair. |
 | `47fde43` | G12 | No way to reuse a proven structure: every new workspace started blank or was copied by hand, so method and instance stayed tangled. Extraction now keeps L0–L3 and drops L4 — which is not a judgement call, it is the factory/product split the runtime already enforces. A template carries the contracts and reference material and **no run data**, so one can be shared without leaking client work. Five starters seeded; instantiation is a folder copy, not a schema render. |
 | `804eabb` | G10 | Nothing from a phone could reach the platform: the PWA manifest declared no `share_target`, so the OS never offered the app in a share sheet. And there was no inbox — the four obvious integrations (phone, email, hooks, terminal) would each have been a separate routing path that drifts. Now one folder and one sweep: capture writes a file and does **nothing else**, so it cannot fail because routing failed; the sweep routes later, is re-runnable, and leaves anything it cannot confidently place in the inbox rather than filing it somewhere plausible and silent. |
 | `0bc8ffd` | G6 | Follow-up to `9e60e38`. Its level-1 catalogue went through `read_skill()`, so building a listing read **every body in full off disk**: a skill with a 160KB body cost 160,043 bytes of I/O to show a name and a description. The token accounting was honest; the disk read was not. Now a bounded 2KB head per skill — measured 160,043 bytes → 0. |
