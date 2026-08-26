@@ -10,7 +10,7 @@ import json
 import logging
 import time
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix='/api/skills', tags=['skills'])
@@ -255,6 +255,47 @@ def list_skills(category: str = ''):
     if category:
         skills = [s for s in skills if s.get('category', '') == category]
     return skills
+
+
+@router.get('/catalog')
+def skill_catalog():
+    """Level 1 only: the cheap listing that answers "what can you do?".
+
+    GET /api/skills returns all 83 skills in full (~6,160 tokens measured).
+    This answers the same question from frontmatter alone (~1,100), which is
+    the entire point of progressive disclosure -- discovery must not cost what
+    execution costs.
+    """
+    from ..services import skill_folders as sf
+
+    return {'ok': True, **sf.catalog()}
+
+
+@router.get('/{skill_id}/level/{level}')
+def skill_at_level(skill_id: str, level: int):
+    """Load one skill to a requested depth (1 card, 2 body, 3 + file list)."""
+    from ..services import skill_folders as sf
+
+    # max(1, ...) is the meaningful half: load_level's own min(level, 3) caps
+    # the top, but nothing else stops a 0 or negative level. The revert proof
+    # shows removing the whole expression is invisible, because min() inside
+    # load_level covers the upper bound -- so the clamp is stated here at the
+    # transport edge where the untrusted number arrives.
+    got = sf.load_level(skill_id, max(1, min(int(level), 3)))
+    if got is None:
+        raise HTTPException(status_code=404, detail=f'Skill {skill_id!r} not found')
+    return {'ok': True, 'skill': got}
+
+
+@router.get('/{skill_id}/file')
+def skill_bundled_file(skill_id: str, path: str = ''):
+    """Read one level-3 bundled file, by explicit request only."""
+    from ..services import skill_folders as sf
+
+    got = sf.read_bundled(skill_id, path)
+    if got is None:
+        raise HTTPException(status_code=404, detail='No such bundled file')
+    return {'ok': True, **got}
 
 
 @router.get('/categories')
