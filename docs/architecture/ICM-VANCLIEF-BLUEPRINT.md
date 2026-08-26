@@ -155,7 +155,7 @@ register that is **G8**; G7 is typed frontmatter. This table is authoritative.
 | **G7** | **No typed frontmatter / queryable layer.** Knowledge-bundle and context-map forms need `type:`, `layer:`, `access_tier:`, `strength:` and dashboards querying them. | Medium | 🟡 | `88c8035` (bundle + map nodes) |
 | **G8** | **MCP tools not lazily scoped by intent** (already tracked as gap #8). | High | ✅ | `dd1b7a1` |
 | **G9** | **Workspaces aren't the home screen.** ICM is a tab inside a pane; in the canon the folder *is* the interface. | High | ✅ | `9d7c896` |
-| **G10** | **No life/computer/phone automation surface** — no ambient capture inbox, no phone entry point wired to workspaces. | Medium | ✅ | `HASH` |
+| **G10** | **No life/computer/phone automation surface** — no ambient capture inbox, no phone entry point wired to workspaces. | Medium | ✅ | `804eabb` |
 | **G11** | **Walk test isn't enforced as a gate**, only reported. | Low | ⬜ | — |
 | **G12** | **No template/method library.** "Method and instance live apart" — we have no blank, reusable, shareable workspace templates. | Medium | ⬜ | — |
 
@@ -168,7 +168,7 @@ every real bug given a test proven to fail first, revert-proved break by break,
 full suite green before commit.
 
 **Shipped:** P1 `9d7c896` · P2 `88c8035` · P3 `09a6030` · P4 `a673a2e` ·
-P6 `9e60e38` · P7 `dd1b7a1` · P8 `9d7c896` · P9 `HASH`
+P6 `9e60e38` · P7 `dd1b7a1` · P8 `9d7c896` · P9 `804eabb`
 **Partial:** P5 — the generated FILE-MAP exists for context maps, not all forms
 **Open:** P10 (template library)
 
@@ -243,7 +243,7 @@ is the durable part — the fix is obvious once the defect is stated.
 
 | Commit | Gap | What was wrong |
 |---|---|---|
-| `HASH` | G10 | Nothing from a phone could reach the platform: the PWA manifest declared no `share_target`, so the OS never offered the app in a share sheet. And there was no inbox — the four obvious integrations (phone, email, hooks, terminal) would each have been a separate routing path that drifts. Now one folder and one sweep: capture writes a file and does **nothing else**, so it cannot fail because routing failed; the sweep routes later, is re-runnable, and leaves anything it cannot confidently place in the inbox rather than filing it somewhere plausible and silent. |
+| `804eabb` | G10 | Nothing from a phone could reach the platform: the PWA manifest declared no `share_target`, so the OS never offered the app in a share sheet. And there was no inbox — the four obvious integrations (phone, email, hooks, terminal) would each have been a separate routing path that drifts. Now one folder and one sweep: capture writes a file and does **nothing else**, so it cannot fail because routing failed; the sweep routes later, is re-runnable, and leaves anything it cannot confidently place in the inbox rather than filing it somewhere plausible and silent. |
 | `0bc8ffd` | G6 | Follow-up to `9e60e38`. Its level-1 catalogue went through `read_skill()`, so building a listing read **every body in full off disk**: a skill with a 160KB body cost 160,043 bytes of I/O to show a name and a description. The token accounting was honest; the disk read was not. Now a bounded 2KB head per skill — measured 160,043 bytes → 0. |
 | `9e60e38` | G6 | 83 skills in one JSON blob; discovery returned all of them in full. Three-level disclosure, both stores merged on read, folder form winning an id clash. *(Built in parallel with an independent implementation of the same gap — see the note below.)* |
 | `dd1b7a1` | G8 | The gateway federated 53 tools **no agent could reach**, while the agent loop inlined its own 23 into every prompt regardless of task. Connecting them naively would have put 76 tools in front of the model — the exact "past a certain count it picks worse" wall. Now one catalog, tags derived per tool, capped at 12 by intent. |
