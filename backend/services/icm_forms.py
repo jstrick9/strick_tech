@@ -419,16 +419,32 @@ def scaffold_form(ws: Path, form: str, name: str, description: str,
         meta['stages'] = detail.get('stages', [])
 
     (ws / '.icm.json').write_text(json.dumps(meta, indent=2), encoding='utf-8')
+
+    # EVERY form gets a generated index, not just the context map. Five of six
+    # forms shipped without one, so an agent had to crawl the tree -- the exact
+    # thing the catalog exists to prevent.
+    from .icm_frontmatter import generate_file_map as _gen_map
+
+    _gen_map(ws)
     return meta
 
 
 # ── generated indexes ─────────────────────────────────────────────────────────
 def generate_file_map(ws: Path, limit: int = 400) -> str:
-    """Rebuild FILE-MAP.md from the tree and its frontmatter.
+    """Rebuild FILE-MAP.md. Delegates to the shared frontmatter reader.
 
-    "Generated indexes are never hand-edited. A file map built from frontmatter
-    by a script cannot drift; a hand-curated one always does."
+    Kept as a name because callers and tests already use it, but the
+    implementation moved to icm_frontmatter so the map and the dashboards read
+    frontmatter through ONE parser. Two parsers would disagree eventually, and
+    the index would then disagree with the dashboard about the same file.
     """
+    from .icm_frontmatter import generate_file_map as _shared
+
+    return _shared(ws)
+
+
+def _legacy_generate_file_map(ws: Path, limit: int = 400) -> str:
+    """The original context-map-only implementation, retained for reference."""
     rows: list[str] = []
     for p in sorted(ws.rglob('*.md'))[:limit]:
         if p.name == 'FILE-MAP.md':

@@ -648,3 +648,57 @@ def walk_test_one(workspace_id: str) -> dict[str, Any]:
 
     _require_ws(workspace_id)
     return {'ok': True, **icm_gate.gate_workspace_id(workspace_id, action='inspect')}
+
+
+# ── typed frontmatter: generated indexes and live dashboards ──────────────────
+# "Labels make it queryable, links make it a graph." The frontmatter was being
+# written by the form builders and read by nothing; these endpoints are the
+# reading half.
+
+
+@router.get('/workspaces/{workspace_id}/nodes')
+def list_nodes(workspace_id: str, type: str = '', tag: str = '',
+               max_access_tier: str = 'secret', sort_by: str = '',
+               limit: int = 100) -> dict[str, Any]:
+    """Query a workspace's typed frontmatter.
+
+    `max_access_tier` is enforced and the number withheld is reported, because
+    a query that silently drops private notes looks exactly like one that found
+    nothing.
+    """
+    from ..services import icm_frontmatter as fm
+
+    ws = _require_ws(workspace_id)
+    return {'ok': True, **fm.query(ws, node_type=type, tag=tag,
+                                   max_access_tier=max_access_tier,
+                                   sort_by=sort_by, limit=limit)}
+
+
+@router.get('/workspaces/{workspace_id}/dashboard')
+def workspace_dashboard(workspace_id: str) -> dict[str, Any]:
+    """Computed tracker: type counts, access tiers, and what to automate next."""
+    from ..services import icm_frontmatter as fm
+
+    ws = _require_ws(workspace_id)
+    return {'ok': True, **fm.dashboard(ws)}
+
+
+@router.post('/workspaces/{workspace_id}/index/rebuild')
+def rebuild_index(workspace_id: str) -> dict[str, Any]:
+    """Regenerate FILE-MAP.md and dashboards/00-tracker.md for one workspace."""
+    from ..services import icm_frontmatter as fm
+
+    ws = _require_ws(workspace_id)
+    body = fm.generate_file_map(ws)
+    tracker = fm.render_tracker(ws)
+    return {'ok': True, 'workspace_id': workspace_id,
+            'file_map_lines': body.count('\n'),
+            'tracker_lines': tracker.count('\n')}
+
+
+@router.post('/index/rebuild-all')
+def rebuild_all_indexes() -> dict[str, Any]:
+    """Regenerate every workspace's file map. Safe to schedule."""
+    from ..services import icm_frontmatter as fm
+
+    return {'ok': True, **fm.rebuild_all()}
