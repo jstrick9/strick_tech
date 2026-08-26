@@ -157,7 +157,7 @@ register that is **G8**; G7 is typed frontmatter. This table is authoritative.
 | **G9** | **Workspaces aren't the home screen.** ICM is a tab inside a pane; in the canon the folder *is* the interface. | High | ✅ | `9d7c896` |
 | **G10** | **No life/computer/phone automation surface** — no ambient capture inbox, no phone entry point wired to workspaces. | Medium | ✅ | `804eabb` |
 | **G11** | **Walk test isn't enforced as a gate**, only reported. | Low | ⬜ | — |
-| **G12** | **No template/method library.** "Method and instance live apart" — we have no blank, reusable, shareable workspace templates. | Medium | ✅ | `HASH` |
+| **G12** | **No template/method library.** "Method and instance live apart" — we have no blank, reusable, shareable workspace templates. | Medium | ✅ | `47fde43` |
 
 ---
 
@@ -243,7 +243,7 @@ is the durable part — the fix is obvious once the defect is stated.
 
 | Commit | Gap | What was wrong |
 |---|---|---|
-| `HASH` | G12 | No way to reuse a proven structure: every new workspace started blank or was copied by hand, so method and instance stayed tangled. Extraction now keeps L0–L3 and drops L4 — which is not a judgement call, it is the factory/product split the runtime already enforces. A template carries the contracts and reference material and **no run data**, so one can be shared without leaking client work. Five starters seeded; instantiation is a folder copy, not a schema render. |
+| `47fde43` | G12 | No way to reuse a proven structure: every new workspace started blank or was copied by hand, so method and instance stayed tangled. Extraction now keeps L0–L3 and drops L4 — which is not a judgement call, it is the factory/product split the runtime already enforces. A template carries the contracts and reference material and **no run data**, so one can be shared without leaking client work. Five starters seeded; instantiation is a folder copy, not a schema render. |
 | `804eabb` | G10 | Nothing from a phone could reach the platform: the PWA manifest declared no `share_target`, so the OS never offered the app in a share sheet. And there was no inbox — the four obvious integrations (phone, email, hooks, terminal) would each have been a separate routing path that drifts. Now one folder and one sweep: capture writes a file and does **nothing else**, so it cannot fail because routing failed; the sweep routes later, is re-runnable, and leaves anything it cannot confidently place in the inbox rather than filing it somewhere plausible and silent. |
 | `0bc8ffd` | G6 | Follow-up to `9e60e38`. Its level-1 catalogue went through `read_skill()`, so building a listing read **every body in full off disk**: a skill with a 160KB body cost 160,043 bytes of I/O to show a name and a description. The token accounting was honest; the disk read was not. Now a bounded 2KB head per skill — measured 160,043 bytes → 0. |
 | `9e60e38` | G6 | 83 skills in one JSON blob; discovery returned all of them in full. Three-level disclosure, both stores merged on read, folder form winning an id clash. *(Built in parallel with an independent implementation of the same gap — see the note below.)* |
