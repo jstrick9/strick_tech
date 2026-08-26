@@ -57,6 +57,9 @@
     "imagegen": [
       "15-image-generation.js"
     ],
+    "inbox": [
+      "60-inbox.js"
+    ],
     "integrations": [
       "22-integrations.js"
     ],
@@ -147,7 +150,8 @@
     "53-agent-monitor.js",
     "54-finops.js",
     "55-eval-framework.js",
-    "59-icm-workspaces.js"
+    "59-icm-workspaces.js",
+    "60-inbox.js"
   ],
   "blocked": {
     "04-workflow-specs.js": [
@@ -200,6 +204,6 @@
     ]
   },
   "unresolvedPanes": [],
-  "lazyBytes": 878951,
-  "totalBytes": 2213794
+  "lazyBytes": 891451,
+  "totalBytes": 2226394
 }
