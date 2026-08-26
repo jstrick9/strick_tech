@@ -147,7 +147,7 @@ register that is **G8**; G7 is typed frontmatter. This table is authoritative.
 | **G3** | **No restructure mode.** Cannot point at an existing repo/vault, classify every file (catalog/contract/factory/product/dead), propose a migration map, migrate, validate. | High | ✅ | `09a6030` |
 | **G4** | **No dialogue→structure extraction.** No path from "describe your work in chat" to a scaffolded workspace. Jake's core onboarding move. | High | ✅ | `a673a2e` |
 | **G5** | **No generated FILE-MAP.** Indexes would be hand-maintained, i.e. guaranteed to drift. | Medium | 🟡 | `88c8035` (context map only) |
-| **G6** | **Skills aren't ICM.** `skills.json` registry instead of `SKILL.md` folders with progressive disclosure. | Medium | ✅ | `9e60e38` + `HASH` |
+| **G6** | **Skills aren't ICM.** `skills.json` registry instead of `SKILL.md` folders with progressive disclosure. | Medium | ✅ | `9e60e38` + `0bc8ffd` |
 | **G7** | **No typed frontmatter / queryable layer.** Knowledge-bundle and context-map forms need `type:`, `layer:`, `access_tier:`, `strength:` and dashboards querying them. | Medium | 🟡 | `88c8035` (bundle + map nodes) |
 | **G8** | **MCP tools not lazily scoped by intent** (already tracked as gap #8). | High | ✅ | `dd1b7a1` |
 | **G9** | **Workspaces aren't the home screen.** ICM is a tab inside a pane; in the canon the folder *is* the interface. | High | ✅ | `9d7c896` |
@@ -239,7 +239,7 @@ is the durable part — the fix is obvious once the defect is stated.
 
 | Commit | Gap | What was wrong |
 |---|---|---|
-| `HASH` | G6 | Follow-up to `9e60e38`. Its level-1 catalogue went through `read_skill()`, so building a listing read **every body in full off disk**: a skill with a 160KB body cost 160,043 bytes of I/O to show a name and a description. The token accounting was honest; the disk read was not. Now a bounded 2KB head per skill — measured 160,043 bytes → 0. |
+| `0bc8ffd` | G6 | Follow-up to `9e60e38`. Its level-1 catalogue went through `read_skill()`, so building a listing read **every body in full off disk**: a skill with a 160KB body cost 160,043 bytes of I/O to show a name and a description. The token accounting was honest; the disk read was not. Now a bounded 2KB head per skill — measured 160,043 bytes → 0. |
 | `9e60e38` | G6 | 83 skills in one JSON blob; discovery returned all of them in full. Three-level disclosure, both stores merged on read, folder form winning an id clash. *(Built in parallel with an independent implementation of the same gap — see the note below.)* |
 | `dd1b7a1` | G8 | The gateway federated 53 tools **no agent could reach**, while the agent loop inlined its own 23 into every prompt regardless of task. Connecting them naively would have put 76 tools in front of the model — the exact "past a certain count it picks worse" wall. Now one catalog, tags derived per tool, capped at 12 by intent. |
 | `88c8035` | G1, G5, G7 | `scaffold()` built a Pipeline and only a Pipeline, so a record library got numbered stages for something with no stages. Harder half: `validate()` treated "no numbered stages" as an **error**, so every correctly-built non-pipeline form failed its own walk test. |
