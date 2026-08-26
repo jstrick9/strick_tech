@@ -41,11 +41,12 @@ host.innerHTML = `
             <button type="button" class="btn" data-act-click="icmwsNewWorkspace()">+ New workspace</button>
           </div>
           <div style="display:flex;gap:20px;margin-top:14px">
-            ${['folders', 'describe', 'routing', 'audit', 'log'].map((t) => `
+            ${['folders', 'describe', 'templates', 'routing', 'audit', 'log'].map((t) => `
               <button type="button" id="icm-tab-${t}" data-act-click="icmwsTab(${arg(t)})"
                 style="padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;
                        color:var(--text-2);font-weight:600;font-size:13.5px;cursor:pointer;text-transform:capitalize">
                 ${t === 'folders' ? '📁 Folders' : t === 'describe' ? '💬 Describe your work'
+                  : t === 'templates' ? '📐 Templates'
                   : t === 'routing' ? '🎯 Routing'
                   : t === 'audit' ? '🔍 Audit a folder' : '📜 Route log'}
               </button>`).join('')}
@@ -69,7 +70,7 @@ console.warn('ICM workspaces load failed:', e);
 }
 function icmwsTab(tab) {
 currentTab = tab;
-['folders', 'describe', 'routing', 'audit', 'log'].forEach((t) => {
+['folders', 'describe', 'templates', 'routing', 'audit', 'log'].forEach((t) => {
 const b = document.getElementById('icm-tab-' + t);
 if (!b) return;
 const on = t === tab;
@@ -78,6 +79,7 @@ b.style.color = on ? 'var(--text-0)' : 'var(--text-2)';
 });
 if (tab === 'folders') renderFolders();
 else if (tab === 'describe') renderDescribe();
+else if (tab === 'templates') renderIcmTemplates();
 else if (tab === 'routing') renderRouting();
 else if (tab === 'audit') renderAudit();
 else renderLog();
@@ -230,6 +232,124 @@ await loadWorkspaces();
 renderTree();
 } catch (e) {
 if (s) s.textContent = 'save failed: ' + e.message;
+}
+}
+async function renderIcmTemplates() {
+const body = document.getElementById('icm-body');
+if (!body) return;
+body.innerHTML = '<div style="padding:22px;color:var(--text-2);font-size:13px">Loading…</div>';
+let list = [];
+try {
+list = (await api('/api/icm/templates')).templates || [];
+} catch (e) {
+body.innerHTML = `<div style="padding:22px;color:var(--danger);font-size:13px">${esc(e.message)}</div>`;
+return;
+}
+body.innerHTML = `
+      <div style="flex:1;overflow-y:auto;padding:22px 26px">
+        <div style="max-width:900px">
+          <div style="font-weight:700;font-size:15px">Templates</div>
+          <div style="font-size:12.5px;color:var(--text-2);margin:6px 0 16px">
+            A template is the <b>method</b> — the contracts, the routing and the reference
+            material — with the run data stripped out. Starting a new piece of work copies
+            one rather than beginning from a blank page.
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
+            ${list.map((t) => `
+              <div style="border:1px solid var(--border-0);border-radius:10px;padding:14px">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                  <div style="font-weight:600;font-size:13.5px">${esc(t.name)}</div>
+                  ${t.builtin ? '<span style="font-size:9.5px;font-weight:800;color:var(--text-2)">STARTER</span>' : ''}
+                </div>
+                <div style="font-size:12px;color:var(--text-2);margin-top:5px;min-height:32px">
+                  ${esc(t.description || '')}</div>
+                <div style="font-size:11.5px;color:var(--text-2);margin-top:6px">
+                  ${esc(String(t.form || '').replace('_', ' '))}${(t.stages || []).length
+                    ? ' · ' + esc(String(t.stages.length)) + ' stages' : ''}
+                </div>
+                <div style="display:flex;gap:6px;margin-top:11px;flex-wrap:wrap">
+                  <button type="button" class="btn-sm" data-act-click="icmwsUseTemplate(${arg(t.template_id)})">Use this</button>
+                  ${t.builtin ? ''
+                    : `<button type="button" class="btn-sm" data-act-click="icmwsDeleteTemplate(${arg(t.template_id)})">Delete</button>`}
+                </div>
+              </div>`).join('')}
+          </div>
+
+          <div style="margin-top:26px;padding-top:18px;border-top:1px solid var(--border-0)">
+            <div style="font-weight:700;font-size:14px">Extract a template from a workspace</div>
+            <div style="font-size:12.5px;color:var(--text-2);margin:5px 0 10px">
+              Keeps the stage contracts and reference material; drops every output file.
+              Your workspace is not modified.
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <select id="icm-tpl-src"
+                style="padding:9px 11px;background:var(--bg-1);color:var(--text-0);
+                       border:1px solid var(--border-0);border-radius:7px;font-size:13px">
+                ${wsList.map((w) => `<option value="${esc(w.workspace_id)}">${esc(w.name)}</option>`).join('')}
+              </select>
+              <input id="icm-tpl-name" type="text" placeholder="template name"
+                style="width:190px;padding:9px 11px;background:var(--bg-1);color:var(--text-0);
+                       border:1px solid var(--border-0);border-radius:7px;font-size:13px">
+              <button type="button" class="btn" data-act-click="icmwsExtractTemplate()">Extract</button>
+            </div>
+            <div id="icm-tpl-note" style="font-size:12.5px;color:var(--text-2);margin-top:10px"></div>
+          </div>
+        </div>
+      </div>`;
+}
+async function icmwsUseTemplate(templateId) {
+const name = window.prompt('Name for the new workspace');
+if (!name || !name.trim()) return;
+try {
+const d = await api('/api/icm/templates/' + encodeURIComponent(templateId) + '/instantiate', {
+method: 'POST',
+headers: {'Content-Type': 'application/json'},
+body: JSON.stringify({workspace_id: name.trim(), name: name.trim()}),
+});
+await loadWorkspaces();
+currentWs = d.workspace.workspace_id;
+currentFile = '';
+icmwsTab('folders');
+} catch (e) {
+window.alert('Could not create it: ' + e.message);
+}
+}
+async function icmwsDeleteTemplate(templateId) {
+if (!window.confirm('Delete the template ' + templateId + '? Workspaces made from it are unaffected.')) return;
+try {
+await api('/api/icm/templates/' + encodeURIComponent(templateId), {method: 'DELETE'});
+renderIcmTemplates();
+} catch (e) {
+window.alert(e.message);
+}
+}
+async function icmwsExtractTemplate() {
+const src = document.getElementById('icm-tpl-src');
+const nameEl = document.getElementById('icm-tpl-name');
+const note = document.getElementById('icm-tpl-note');
+if (!src || !src.value) return;
+const name = ((nameEl || {}).value || '').trim();
+if (!name) { if (note) note.textContent = 'Give the template a name first.'; return; }
+if (note) note.textContent = 'Extracting…';
+try {
+const d = await api('/api/icm/templates/extract', {
+method: 'POST',
+headers: {'Content-Type': 'application/json'},
+body: JSON.stringify({
+workspace_id: src.value,
+name: name,
+template_id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+.replace(/^-+|-+$/g, '').slice(0, 48),
+}),
+});
+const dropped = (d.dropped_instance_files || []).length;
+const msg = `Extracted ${d.copied} method files`
++ (dropped ? `, left ${dropped} output file${dropped === 1 ? '' : 's'} behind.` : '.');
+await renderIcmTemplates();
+const fresh = document.getElementById('icm-tpl-note');
+if (fresh) fresh.textContent = msg;
+} catch (e) {
+if (note) note.textContent = 'Could not extract: ' + e.message;
 }
 }
 function renderRouting() {
@@ -688,6 +808,9 @@ window.icmwsNewWorkspace = icmwsNewWorkspace;
 window.icmwsAnalyse = icmwsAnalyse;
 window.icmwsSample = icmwsSample;
 window.icmwsCreateFromDesc = icmwsCreateFromDesc;
+window.icmwsUseTemplate = icmwsUseTemplate;
+window.icmwsDeleteTemplate = icmwsDeleteTemplate;
+window.icmwsExtractTemplate = icmwsExtractTemplate;
 window.icmwsSystemMap = icmwsSystemMap;
 window.icmwsPlan = icmwsPlan;
 window.icmwsApply = icmwsApply;

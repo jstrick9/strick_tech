@@ -527,3 +527,95 @@ def rebuild_file_map(workspace_id: str) -> dict[str, Any]:
     ws = _require_ws(workspace_id)
     body = fsvc.generate_file_map(ws)
     return {'ok': True, 'lines': body.count('\n')}
+
+
+# ── template library: method and instance live apart ──────────────────────────
+# "The blank, reusable template of a structure is a different artifact from any
+# filled-in deployment of it." Extraction keeps L0-L3 and drops L4, which is the
+# factory/product split the rest of this runtime already enforces.
+
+
+@router.get('/templates')
+def list_workspace_templates() -> dict[str, Any]:
+    """Every template, including the seeded starter set."""
+    from ..services import icm_templates as tsvc
+
+    return {'ok': True, 'templates': tsvc.list_templates()}
+
+
+@router.get('/templates/{template_id}')
+def get_workspace_template(template_id: str) -> dict[str, Any]:
+    from ..services import icm_templates as tsvc
+
+    tpl = tsvc.get_template(template_id)
+    if tpl is None:
+        raise HTTPException(status_code=404, detail=f'Template {template_id!r} not found')
+    return {'ok': True, 'template': tpl}
+
+
+@router.post('/templates/extract')
+async def extract_workspace_template(req: Request) -> dict[str, Any]:
+    """Extract the method from a working workspace. Never modifies the source."""
+    from ..services import icm_templates as tsvc
+
+    body, err = await json_body_or_error(req)
+    if err:
+        return err
+    ws_id = as_text(body.get('workspace_id'))
+    if not ws_id:
+        raise HTTPException(status_code=422, detail='Send workspace_id.')
+    ws = _require_ws(ws_id)
+    tid = as_text(body.get('template_id')) or tsvc._slug(ws_id)
+    return tsvc.extract(
+        ws, tid,
+        name=as_text(body.get('name')),
+        description=as_text(body.get('description')),
+        overwrite=body.get('overwrite') is True,
+    )
+
+
+@router.post('/templates/{template_id}/instantiate')
+async def instantiate_workspace_template(template_id: str, req: Request) -> dict[str, Any]:
+    """Create a workspace by copying a template. Refuses to overwrite."""
+    from ..services import icm_templates as tsvc
+
+    body, err = await json_body_or_error(req)
+    if err:
+        return err
+    ws_id = as_text(body.get('workspace_id'))
+    if not ws_id:
+        raise HTTPException(status_code=422, detail='Send workspace_id.')
+    return tsvc.instantiate(template_id, ws_id, name=as_text(body.get('name')))
+
+
+@router.delete('/templates/{template_id}')
+def delete_workspace_template(template_id: str) -> dict[str, Any]:
+    from ..services import icm_templates as tsvc
+
+    return tsvc.delete_template(template_id)
+
+
+@router.get('/templates/{template_id}/export')
+def export_workspace_template(template_id: str) -> dict[str, Any]:
+    """Serialise a template to one JSON file so it can be shared."""
+    from ..services import icm_templates as tsvc
+
+    payload = tsvc.export_template(template_id)
+    if payload is None:
+        raise HTTPException(status_code=404, detail=f'Template {template_id!r} not found')
+    return {'ok': True, **payload}
+
+
+@router.post('/templates/import')
+async def import_workspace_template(req: Request) -> dict[str, Any]:
+    """Load an exported template. Every path is contained before it is written."""
+    from ..services import icm_templates as tsvc
+
+    body, err = await json_body_or_error(req)
+    if err:
+        return err
+    return tsvc.import_template(
+        body,
+        template_id=as_text(body.get('template_id')),
+        overwrite=body.get('overwrite') is True,
+    )
