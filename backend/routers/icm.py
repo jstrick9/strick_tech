@@ -207,7 +207,19 @@ async def write_file(workspace_id: str, req: Request) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail='Path escapes the workspace') from None
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(as_text(content), encoding='utf-8')
-    return {'ok': True, 'path': path, 'bytes': len(as_text(content))}
+
+    # The walk test NEVER blocks a write. "Every output is an edit surface", and
+    # editing is how a broken workspace gets repaired -- refusing the save would
+    # gate the repair path itself. The verdict is returned alongside the save so
+    # the editor can show it, which is warning-not-blocking on purpose.
+    from ..services import icm_gate
+
+    icm_gate.clear_cache()
+    verdict = icm_gate.gate(ws, action='write')
+    return {'ok': True, 'path': path, 'bytes': len(as_text(content)),
+            'walk_test': {'passes': verdict['passes'], 'errors': verdict['errors'],
+                          'warnings': verdict['warnings'],
+                          'remedies': verdict.get('remedies', [])}}
 
 
 # ── Ontology ──────────────────────────────────────────────────────────────────
@@ -619,3 +631,20 @@ async def import_workspace_template(req: Request) -> dict[str, Any]:
         template_id=as_text(body.get('template_id')),
         overwrite=body.get('overwrite') is True,
     )
+
+
+@router.get('/walk-test')
+def walk_test_audit() -> dict[str, Any]:
+    """Walk-test every workspace: what is broken, and how to fix each one."""
+    from ..services import icm_gate
+
+    return {'ok': True, **icm_gate.audit_all()}
+
+
+@router.get('/workspaces/{workspace_id}/walk-test')
+def walk_test_one(workspace_id: str) -> dict[str, Any]:
+    """The gate verdict for one workspace, with a repair for every failure."""
+    from ..services import icm_gate
+
+    _require_ws(workspace_id)
+    return {'ok': True, **icm_gate.gate_workspace_id(workspace_id, action='inspect')}

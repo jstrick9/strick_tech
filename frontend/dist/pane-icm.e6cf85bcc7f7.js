@@ -156,6 +156,7 @@ el.innerHTML = `
           ${fileRow('stages/' + s + '/CONTEXT.md', 'L2', 'The stage contract')}
         </div>`;
       }).join('')}
+      <div id="icm-walk" style="margin-top:12px"></div>
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-0)">
         <div style="font-size:11px;color:var(--text-2)">
           ${w.entry_stage
@@ -164,6 +165,33 @@ el.innerHTML = `
             : 'This form has no stage sequence &mdash; open the shelf you need.'}
         </div>
       </div>`;
+renderWalkTest();
+}
+async function renderWalkTest() {
+const el = document.getElementById('icm-walk');
+if (!el || !currentWs) return;
+try {
+const d = await api('/api/icm/workspaces/' + encodeURIComponent(currentWs) + '/walk-test');
+if (d.passes) {
+el.innerHTML = `<div style="font-size:11.5px;color:var(--accent-text)">
+          &check; Passes the walk test</div>`;
+return;
+}
+el.innerHTML = `
+        <div style="border:1px solid var(--warning);border-radius:8px;padding:9px 11px">
+          <div style="font-size:11px;font-weight:800;letter-spacing:0.4px;color:var(--warning)">
+            FAILS THE WALK TEST</div>
+          <div style="font-size:11.5px;color:var(--text-2);margin-top:5px">
+            An agent will not be given this workspace's context until it is fixed.</div>
+          ${(d.remedies || []).map((r) => `
+            <div style="font-size:11.5px;margin-top:6px">
+              <div style="color:var(--text-2)">${esc(r.error)}</div>
+              <div>&rarr; ${esc(r.fix)}</div>
+            </div>`).join('')}
+        </div>`;
+} catch (e) {
+el.innerHTML = '';
+}
 }
 function fileRow(path, layer, hint) {
 const on = path === currentFile;
@@ -228,6 +256,7 @@ body: JSON.stringify({path: currentFile, content: ta.value}),
 });
 dirty = false;
 if (s) s.textContent = 'saved';
+renderWalkTest();
 await loadWorkspaces();
 renderTree();
 } catch (e) {
