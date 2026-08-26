@@ -1,7 +1,7 @@
 {
   "name": "Agentic OS",
   "short_name": "AgenticOS",
-  "description": "Local-first Agentic AI Operating System — better than Cursor, Windsurf, Lovable",
+  "description": "Local-first Agentic AI Operating System \u2014 better than Cursor, Windsurf, Lovable",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#07080f",
@@ -23,26 +23,67 @@
   ],
   "shortcuts": [
     {
+      "name": "Capture to Inbox",
+      "short_name": "Capture",
+      "description": "Drop a thought into the inbox",
+      "url": "/?pane=inbox",
+      "icons": [
+        {
+          "src": "/static/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
       "name": "Open Chat",
       "short_name": "Chat",
       "description": "Start a new AI chat",
       "url": "/?pane=chat",
-      "icons": [{"src": "/static/icon-192.png", "sizes": "192x192"}]
+      "icons": [
+        {
+          "src": "/static/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Workflow Builder",
       "short_name": "Workflows",
       "url": "/?pane=workflow",
-      "icons": [{"src": "/static/icon-192.png", "sizes": "192x192"}]
+      "icons": [
+        {
+          "src": "/static/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Arena Mode",
       "short_name": "Arena",
       "url": "/?pane=arena",
-      "icons": [{"src": "/static/icon-192.png", "sizes": "192x192"}]
+      "icons": [
+        {
+          "src": "/static/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
-  "categories": ["developer", "productivity", "utilities"],
+  "categories": [
+    "developer",
+    "productivity",
+    "utilities"
+  ],
   "screenshots": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "share_target": {
+    "action": "/api/inbox/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

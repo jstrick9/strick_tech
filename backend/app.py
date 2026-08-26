@@ -100,6 +100,7 @@ from .routers.hitl import router as hitl_router
 from .routers.hooks import router as hooks_router
 from .routers.icm import router as icm_router
 from .routers.imagegen import router as imagegen_router
+from .routers.inbox import router as inbox_router
 from .routers.integrations import router as integrations_router
 from .routers.knowledge_graph import router as knowledge_graph_router
 from .routers.license import router as license_router
@@ -1317,6 +1318,7 @@ app.include_router(notifications_router)
 app.include_router(search_router)
 app.include_router(hierarchy_router)
 app.include_router(icm_router)
+app.include_router(inbox_router)
 app.include_router(mobile_router)
 app.include_router(sync_router)
 app.include_router(rbac_router)

@@ -470,6 +470,19 @@ FEATURE_DOCS: dict[str, dict] = {
         'tips': ['Start with Tier 1: Universal Context about yourself and your work', 'Add Tier 2 for project-specific instructions', 'Use the AI Guidelines tab for coding/architecture rules that should apply to every AI-generated change', 'The interview wizard helps you build this step by step'],
         'video_url': '',
     },
+    'inbox': {
+        'title': 'Inbox', 'icon': '\U0001f4e5', 'tier': 'free',
+        'summary': 'Capture anything from anywhere into one folder; the router files it into the right workspace.',
+        'details': 'One door in. A phone share sheet, a forwarded email, a hook, the terminal and the pane itself all write a markdown file into the same inbox folder, and the ICM entry router decides which workspace and stage each one belongs to. Capture never routes: it writes the file and nothing else, so a capture cannot fail because a workspace did not match \u2014 someone sharing a link from a phone is not in a position to debug that, and a failed capture is a lost thought. The sweep routes later and can be re-run. Anything the router cannot confidently place stays in the inbox and says why, because filing it somewhere plausible would be wrong and silent.',
+        'tips': [
+            'Install the app to your phone home screen, then share to it from any app \u2014 links, text and titles all land in the inbox.',
+            'Preview the sweep before running it: it shows exactly where every item would go, and nothing moves until you confirm.',
+            'An item that stays in the inbox is telling you the target workspace has no route for it. Add a trigger phrase under ## Routes in that workspace CONTEXT.md.',
+            'Nothing is ever deleted by a sweep \u2014 filed items move to _filed/ carrying a record of which workspace took them and why.',
+            'Point any hook, script or webhook at POST /api/inbox to add a capture source without changing any routing.',
+        ],
+        'video_url': '',
+    },
     'icm': {
         'title': 'Workspaces', 'icon': '🗂', 'tier': 'free',
         'summary': 'Folder structure as agent architecture: numbered stage folders and plain markdown contracts do the work an orchestration framework would do in code.',

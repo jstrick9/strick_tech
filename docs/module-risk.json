@@ -13,6 +13,19 @@
     "reviewed": false
   },
   {
+    "pane": "inbox",
+    "score": 6,
+    "file": "60-inbox.js",
+    "lines": 282,
+    "endpoints": 4,
+    "markers": 0,
+    "tested": true,
+    "tabs": 0,
+    "covered": 0,
+    "unit": 1,
+    "reviewed": false
+  },
+  {
     "pane": "docs",
     "score": 35,
     "file": "04-workflow-specs.js",
