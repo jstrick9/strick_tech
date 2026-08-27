@@ -60,47 +60,60 @@ against a refusal, because nothing was being sent either way.
 
 ---
 
-## What the live run found: 17 failures that were 9 skips
+## What the live run found
 
-Running `tests/regression tests/system tests/uat` with a provider present:
+### Corrected: the first measurement was wrong
+
+The first version of this document reported **17 failures** with a live
+provider and concluded the integration suites were broadly timeout-bound. That
+was wrong, and it is corrected here rather than quietly edited out.
+
+A clean re-run, same model, same hardware, provider verified live (zero
+`llm_unavailable` in the server log):
 
 ```
-no provider:   1 failed, 655 passed,  9 skipped
-live provider: 17 failed, 648 passed, 0 skipped   (549s)
+no provider:   1 failed, 655 passed,  9 skipped   (~90s)
+live provider: 1 failed, 663 passed,  1 skipped   (276s)
 ```
 
-**All 17 are client timeouts, not logic defects.** The evidence:
+Not 17 failures. **One.**
 
-- 14 of 17 fail with `httpx.ReadTimeout` / `httpcore.ReadTimeout`.
-- `tests/uat/conftest.py` sets `TIMEOUT = 25`; `tests/system/conftest.py` sets
-  `30`. At ~22 tok/s any response over roughly 500 tokens exceeds that.
-- Raising the module constant to 300s moved
-  `tests/uat/test_uat_03_developer_tools.py::TestUATBugBot` from 0 to **3 of 5
-  passing**, changing nothing else.
-- The two that still failed hardcode `timeout=25` *inline* at lines 89, 106 and
-  126, ignoring the module constant — same cause, narrower scope.
+**What I got wrong.** The first run took 549s against this one's 276s — roughly
+double. During it a model was already resident from my earlier manual probes,
+on a box with ~500MB of headroom, so the suite was competing for memory with a
+loaded model and every provider call crawled. I measured a contended machine
+and attributed the result to the test suites.
 
-The conftest change was reverted; no test file is modified in this commit.
+I also wrote *"all 17 are client timeouts"* when the tally I had in front of me
+showed 14 `ReadTimeout` plus several assertion failures. Those assertions were
+almost certainly downstream of the same contention, but I stated a clean number
+I had not actually established.
 
-### Why this is worth recording rather than "fixing"
+**The lesson is the one this codebase keeps relearning:** confident reporting
+of an unverified thing. The measurement was real, the environment it described
+was not the one I claimed.
 
-The honest reading is that these suites assume a provider fast enough to answer
-in 25 seconds. That is true of a hosted API and of Ollama on a real machine
-with a real model; it is not true of a 0.5B model on two shared cores. **The
-tests are not wrong and the code is not broken** — the environment is far below
-what they assume.
+### What is actually true
 
-Raising the timeouts to accommodate the slowest possible local model would make
-the suite take hours and would hide genuine hangs. The useful outcome is
-knowing *which* tests depend on provider latency, which is now written down.
+**Eight tests that SKIP without a provider now PASS with one.** That is the
+substantive finding: those paths — bugbot review, swarm, supervisor decomposition,
+knowledge-graph query, code review, SSE streaming — had never once been executed
+in this series. They work.
 
-### The one pre-existing failure is unchanged
+**`uat_08` was never a defect.** `test_user_can_get_ai_risk_assessment` failed
+in every run across this entire series and was carried as "pre-existing,
+environmental" each time. With a provider present it **passes**. It was the
+no-provider path all along, and the earlier characterisation was correct only
+by accident.
 
-`test_uat_08 ... test_user_can_get_ai_risk_assessment` failed identically
-before and after a provider was configured, and was proved against clean HEAD
-earlier in the series. It is not provider-related.
+**One genuine latency-bound test remains:**
+`test_sys_10 ... test_eval_run_produces_valid_scores` fails with
+`httpx.ReadTimeout`. An eval suite makes many model calls inside one HTTP
+request, so at ~22 tok/s it exceeds the 30s client timeout in
+`tests/system/conftest.py`. That is a real property of this hardware, not a
+defect: on any normal machine it would finish well inside the limit.
 
----
+No test file is modified by this work.
 
 ## For running this on your own machine
 
@@ -114,9 +127,9 @@ DEFAULT_MODEL=ollama:llama3.1:8b \
 python run.py
 ```
 
-On real hardware with an 8B model the timeout failures above should not
-reproduce — they are a function of ~22 tok/s, not of the code. If they do,
-that is a genuine finding worth reporting.
+On real hardware with an 8B model the single remaining timeout should not
+reproduce — it is a function of ~22 tok/s on two shared cores, not of the code.
+If it does, that is a genuine finding worth reporting.
 
 Per-request override works too, which is how the runs above were driven:
 
@@ -135,4 +148,7 @@ Per-request override works too, which is how the runs above were driven:
 | Walk-test gate withholds broken context | **Proven** — 1230 → 834 prompt tokens |
 | Gate degrades rather than fails | **Proven** — model still answered |
 | Unit suite (4,649) | Unaffected; provider-independent |
-| 17 integration tests | Timeout-bound at ~22 tok/s; not defects |
+| Integration suite | **663 passed, 1 failed** with a live provider |
+| 8 previously-skipped paths | Now executed and passing |
+| `uat_08` risk assessment | **Passes** — was never a defect, only unprovided |
+| 1 remaining failure | Eval suite, many calls in one request, ~22 tok/s |
