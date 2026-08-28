@@ -152,3 +152,43 @@ Per-request override works too, which is how the runs above were driven:
 | 8 previously-skipped paths | Now executed and passing |
 | `uat_08` risk assessment | **Passes** — was never a defect, only unprovided |
 | 1 remaining failure | Eval suite, many calls in one request, ~22 tok/s |
+
+---
+
+## Independent reproduction
+
+The correction above was made by one session; this is a second, separate run
+confirming it rather than taking it on trust. Same hardware, same model,
+freshly restarted with no model resident (1,338MB free at start):
+
+```
+1 failed, 663 passed, 1 skipped in 286.80s
+llm_unavailable occurrences in server log: 0
+```
+
+Against the no-provider baseline of `1 failed, 655 passed, 9 skipped`, the
+delta is exactly **+8 passing, −8 skipped** — the eight provider-dependent
+tests that had never executed in this series now run and pass.
+
+The single remaining failure is `test_sys_10 ::
+test_eval_run_produces_valid_scores`, failing with `httpx.ReadTimeout` as
+described: an eval suite issuing many model calls inside one HTTP request,
+against a 30s client timeout at ~22 tok/s. Latency-bound, and a property of
+this hardware.
+
+**Both the original 17-failure claim and its correction are now settled by
+measurement.** The first number came from a contended machine and should not
+have been published as a property of the test suites.
+
+### A note on why this went wrong
+
+The original run reported "all 17 are client timeouts" while the tally on
+screen showed 14 ReadTimeout plus several assertion failures. Two errors
+compounded: measuring a machine that was already running a model with ~500MB
+headroom, and then rounding an inconvenient tally into a clean sentence.
+
+The second is the one worth naming. This codebase's own delivery log calls
+that family *confident reporting of unverified things*, and it is the defect
+this review has found most often in the product. Reproducing it in a document
+whose only job was to report a measurement is a useful reminder that the
+failure mode is not a property of other people's code.
