@@ -68,10 +68,10 @@
       "gzip": 248609,
       "brotli": 188216
     },
-    "chunks.c08af44053a3.js": {
+    "chunks.ae70ddfd0220.js": {
       "raw": 1645,
-      "gzip": 781,
-      "brotli": 681
+      "gzip": 779,
+      "brotli": 682
     },
     "pane-a2a.b18f99e554e2.js": {
       "raw": 26597,
@@ -178,10 +178,10 @@
       "gzip": 4167,
       "brotli": 3570
     },
-    "pane-kanban.6beb9bae6be0.js": {
-      "raw": 25133,
-      "gzip": 5784,
-      "brotli": 4973
+    "pane-kanban.8b1ec35ece22.js": {
+      "raw": 25257,
+      "gzip": 5818,
+      "brotli": 5010
     },
     "pane-leaderboard.84cb8f9e8f32.js": {
       "raw": 23195,
@@ -408,11 +408,11 @@
       "bytes": 13251
     },
     "kanban": {
-      "file": "pane-kanban.6beb9bae6be0.js",
+      "file": "pane-kanban.8b1ec35ece22.js",
       "modules": [
         "28-kanban.js"
       ],
-      "bytes": 25133
+      "bytes": 25257
     },
     "leaderboard": {
       "file": "pane-leaderboard.84cb8f9e8f32.js",
@@ -521,7 +521,7 @@
       "bytes": 11184
     }
   },
-  "chunk_manifest": "chunks.c08af44053a3.js",
+  "chunk_manifest": "chunks.ae70ddfd0220.js",
   "lazy_modules": [
     "12-information-hierarchy.js",
     "15-image-generation.js",
@@ -562,5 +562,5 @@
     "59-icm-workspaces.js",
     "60-inbox.js"
   ],
-  "lazy_bytes": 769897
+  "lazy_bytes": 770021
 }
