@@ -673,3 +673,95 @@ async def quick_setup_status():
         status['openrouter'] = True
 
     return {'ok': True, 'status': status}
+
+
+# ── local model auto-detection ────────────────────────────────────────────────
+# REPORTED: "The Ollama localhost did not auto connect."
+#
+# Detection code already existed, but ONLY inside POST /quick-setup, which the
+# frontend calls from a button in Settings. Nothing ran at launch, so a local
+# Ollama with models installed stayed invisible until the user went looking for
+# it. This is the standalone probe the frontend can call on boot.
+
+
+@router.get('/detect-local-models')
+async def detect_local_models() -> dict:
+    """Probe for a local Ollama and report what it has. Read-only, never raises.
+
+    Honours OLLAMA_BASE_URL. The pre-existing probe inside quick-setup
+    hardcoded 127.0.0.1:11434, so anyone running Ollama on another host or
+    port was undetectable no matter how the app was configured.
+
+    A missing Ollama is a normal state, not an error: this returns
+    `available: false` and the caller stays quiet. Surfacing a scary message
+    to someone who never wanted local models is worse than saying nothing.
+    """
+    base = os.getenv('OLLAMA_BASE_URL', 'http://127.0.0.1:11434').rstrip('/')
+    # Accept an OpenAI-compatible base URL and normalise it back to the native
+    # API root, since that is what people paste from other tools' docs.
+    base = base.removesuffix('/v1').rstrip('/')
+
+    out: dict = {
+        'ok': True,
+        'backend': 'ollama',
+        'base_url': base,
+        'available': False,
+        'models': [],
+        'suggested_model': '',
+    }
+    try:
+        import httpx as _httpx
+
+        async with _httpx.AsyncClient(timeout=3) as c:
+            r = await c.get(f'{base}/api/tags')
+        if r.status_code != 200:
+            out['error'] = f'HTTP {r.status_code}'
+            return out
+        models = [str(m.get('name', '')) for m in (r.json().get('models') or [])]
+        models = [m for m in models if m]
+    except Exception as exc:
+        # Not running is the common case and is not an error worth shouting
+        # about; record the reason for the diagnostic and move on.
+        out['error'] = type(exc).__name__
+        return out
+
+    out['available'] = bool(models)
+    out['models'] = models
+    out['suggested_model'] = _suggest_local_model(models)
+    return out
+
+
+# Preference order for an automatic default. Instruct/chat-tuned general models
+# first; embedding-only and vision-only models are never a sensible default for
+# a chat box, and a code model is a poor general assistant.
+_LOCAL_MODEL_PREFERENCE = (
+    'llama3.1', 'llama3.2', 'llama3', 'qwen2.5', 'qwen3', 'mistral',
+    'gemma2', 'gemma3', 'phi4', 'phi3',
+)
+# Substrings that mark a model as unusable as a general chat default.
+# 'minilm', 'gte' and 'e5' are here because they are common embedding families
+# whose names contain none of the obvious markers -- 'all-minilm' slipped
+# through an earlier version of this list and was suggested as a chat model,
+# which fails on the first message with an opaque provider error.
+_LOCAL_MODEL_EXCLUDE = (
+    'embed', 'embedding', 'clip', 'vision', 'rerank', 'bge', 'nomic',
+    'minilm', 'gte-', 'e5-', 'mxbai', 'snowflake-arctic-embed', 'paraphrase',
+)
+
+
+def _suggest_local_model(models: list[str]) -> str:
+    """Pick a sane default from what is installed, or nothing.
+
+    Returning '' when only embedding models are present is deliberate: an
+    embedding model selected as the chat default fails on the first message
+    with an opaque error, which is worse than leaving the field unset.
+    """
+    usable = [m for m in models
+              if not any(bad in m.lower() for bad in _LOCAL_MODEL_EXCLUDE)]
+    if not usable:
+        return ''
+    for family in _LOCAL_MODEL_PREFERENCE:
+        for m in usable:
+            if m.lower().startswith(family):
+                return m
+    return usable[0]
