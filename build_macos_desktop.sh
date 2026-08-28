@@ -149,6 +149,52 @@ else
   fi
 fi
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Rebuild the frontend bundle. NOT optional.
+#
+# backend/app.py serves a REWRITTEN index.html that points at content-hashed
+# bundles in frontend/dist. If dist is stale, the packaged app runs old
+# JavaScript even though every source file on disk is current -- which is how
+# a fully-unlocked build still shows the Pro/upgrade popup.
+#
+# This is a hard failure rather than a warning: shipping a silently stale
+# frontend is worse than not shipping.
+# ─────────────────────────────────────────────────────────────────────────────
+echo ""
+echo "🧩 Rebuilding the frontend bundle (frontend/dist)..."
+if [ ! -f scripts/build_bundle.py ]; then
+  echo "❌ scripts/build_bundle.py is missing. Cannot verify the frontend bundle."
+  echo "   Refusing to package a build whose JavaScript cannot be verified."
+  exit 1
+fi
+
+if ! python3 scripts/build_bundle.py; then
+  echo "❌ Frontend bundle build FAILED."
+  echo "   The app would serve stale JavaScript. Fix the error above and retry."
+  exit 1
+fi
+
+# Second gate: confirm the freshly built bundle actually matches the sources.
+if ! python3 scripts/build_bundle.py --check; then
+  echo "❌ The bundle is still stale after rebuilding."
+  echo "   Refusing to package: the app would serve JavaScript that does not"
+  echo "   match frontend/js/. Run 'python3 scripts/build_bundle.py' and"
+  echo "   investigate before building again."
+  exit 1
+fi
+
+# Third gate: a content canary. The bundle can be internally consistent and
+# still predate the unlock if someone builds from an old checkout, so assert
+# a string that only exists in the current frontend.
+if ! grep -q "CORE MODULES" frontend/index.html; then
+  echo "❌ frontend/index.html does not contain 'CORE MODULES'."
+  echo "   This checkout predates the licence unlock. Pull the latest main:"
+  echo "     git pull origin main"
+  exit 1
+fi
+echo "✅ Frontend bundle rebuilt and verified against source."
+echo ""
+
 # Apply Apple Code Signing Configuration if requested
 if [ "$SIGN_APP" -eq 1 ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
   echo "✍️  Signing identity provided: $APPLE_SIGNING_IDENTITY"

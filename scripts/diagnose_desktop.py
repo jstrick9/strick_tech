@@ -44,8 +44,13 @@ def line() -> None:
 
 
 def get(url: str, timeout: int = 8) -> tuple[int, str]:
+    # Only ever called with the http(s) endpoints built above from a fixed
+    # host and port; refuse anything else so a stray env var cannot turn this
+    # into a file: read.
+    if not url.startswith(('http://', 'https://')):
+        return 0, ''
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as r:
+        with urllib.request.urlopen(url, timeout=timeout) as r:  # noqa: S310
             return r.status, r.read().decode('utf-8', 'replace')
     except urllib.error.HTTPError as e:
         return e.code, ''
