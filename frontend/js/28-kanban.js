@@ -166,9 +166,9 @@ function kanbanRenderBoard() {
         </div>
         <div class="kanban-column-body" 
              id="kanban-col-${col.id}"
-             data-act-dragover="kanbanOnDragOver($event)"
-             data-act-drop="kanbanOnDrop($event,${jsArg(col.id)})"
-             data-act-dragleave="kanbanOnDragLeave($event)">
+             data-act-dragover="kanbanOnDragOver($event,$this)"
+             data-act-drop="kanbanOnDrop($event,${jsArg(col.id)},$this)"
+             data-act-dragleave="kanbanOnDragLeave($event,$this)">
           ${columnTasks.length > 0
             ? columnTasks.map(task => kanbanRenderCard(task)).join('')
             : (isFirstColumn && boardIsEmpty
@@ -268,30 +268,45 @@ function kanbanOnDragEnd(event) {
   console.debug('Kanban: Drag ended');
 }
 
-function kanbanOnDragOver(event) {
+function kanbanOnDragOver(event, dropZone) {
   // REQUIRED: preventDefault allows drop
   event.preventDefault();
-  event.dataTransfer.dropEffect = 'move';
-  
-  // Add visual highlight to drop zone
-  const dropZone = event.currentTarget;
-  dropZone.classList.add('kanban-column-drag-over');
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+
+  // `dropZone` is passed in as $this by the delegated dispatcher. It used to
+  // read event.currentTarget, which is NEVER the column here: 00-delegate.js
+  // binds one listener per event type on `document` in the capture phase, so
+  // currentTarget is `document` during dispatch and undefined afterwards.
+  // That threw "Cannot read properties of undefined (reading 'add')" on every
+  // single dragover.
+  if (dropZone && dropZone.classList) {
+    dropZone.classList.add('kanban-column-drag-over');
+  }
 }
 
-function kanbanOnDragLeave(event) {
-  // Remove highlight when leaving drop zone
-  const dropZone = event.currentTarget;
-  if (!dropZone.contains(event.relatedTarget)) {
+function kanbanOnDragLeave(event, dropZone) {
+  // Same fix as dragover: the element arrives as $this.
+  if (!dropZone || !dropZone.classList) return;
+  // relatedTarget is null when leaving the window entirely; treat that as a
+  // real leave rather than throwing inside contains().
+  const going = event && event.relatedTarget;
+  if (!going || !dropZone.contains(going)) {
     dropZone.classList.remove('kanban-column-drag-over');
   }
 }
 
-async function kanbanOnDrop(event, targetColumn) {
+async function kanbanOnDrop(event, targetColumn, dropZone) {
   event.preventDefault();
-  
-  // Remove highlight
-  const dropZone = event.currentTarget;
-  dropZone.classList.remove('kanban-column-drag-over');
+
+  // THE BUG THAT BROKE DRAG AND DROP ENTIRELY. This read
+  // event.currentTarget, and because the handler is `async` the event has
+  // finished dispatching by the time it runs -- so currentTarget was
+  // `undefined` and `.classList.remove` threw BEFORE the task id was read.
+  // The card snapped back, no request was sent, and nothing surfaced in the
+  // UI. The element now arrives as $this.
+  if (dropZone && dropZone.classList) {
+    dropZone.classList.remove('kanban-column-drag-over');
+  }
   
   // Get task ID from drag data
   const taskId = event.dataTransfer.getData('text/plain');
