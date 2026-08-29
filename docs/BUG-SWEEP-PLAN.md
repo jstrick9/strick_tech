@@ -131,7 +131,17 @@ green and every new test revert-proved.
 
 _Updated as work lands. Every claim here is checkable by running the command._
 
-### Phase 1 — the four reported bugs: **COMPLETE**
+### Phase 1 — the four reported bugs: **COMPLETE AND CONFIRMED ON THE USER'S MACHINE**
+
+> **2026-08-29 — the user confirmed the build works on their MacBook Pro.**
+>
+> This line is the only one on this page that no amount of local testing could
+> produce. Every fix below was verified in a real browser against a running
+> server *before* it was pushed, and for five sessions the user still had the
+> bug — because four separate build-chain defects sat between a correct commit
+> and a running app. "Verified" and "shipped" were different facts for three
+> weeks of work, and only this confirmation closes that gap.
+
 
 | Bug | Status | Proof |
 |---|---|---|
