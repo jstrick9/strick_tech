@@ -32,6 +32,7 @@ server, which is why it is the one that always runs.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -77,9 +78,36 @@ def test_baseline_exists_and_covers_every_audit():
         # stops covering it.
         assert hasattr(audit_module, 'run'), f'{module} has no run()'
 
-    missing = [a for a in run_all.AUDITS
-               if not any(k for k in baseline)]
-    assert not missing, f'audits with no baseline entry: {missing}'
+    # THIS CHECK WAS INERT. `not any(k for k in baseline)` asks "is the
+    # baseline empty?" -- the loop variable `a` never appears in the
+    # condition, so it is the same answer for every audit and the list is
+    # always empty. An audit could be added with no baseline entry and this
+    # would still pass, which is exactly the state module_completeness was in:
+    # written, working, never ratcheted, quietly reporting four false findings
+    # that nobody saw because nothing ran it.
+    #
+    # The baseline key is the name the audit's own run() REPORTS, and that is
+    # not derivable from the module name: `announcements` reports
+    # 'screen-reader-announcements', `touch_targets` reports
+    # 'touch-targets-under-44px'. Guessing produced 20 false failures, so ask
+    # each audit what it calls itself. run() needs a live browser for most of
+    # them, so read the literal from the AuditResult construction instead.
+    reported = {}
+    for module in run_all.AUDITS:
+        src = (AUDIT_DIR / f'{module}.py').read_text(encoding='utf-8')
+        m = re.search(r"AuditResult\(\s*\n?\s*'([a-z0-9-]+)'", src)
+        reported[module] = m.group(1) if m else None
+
+    unnamed = [m for m, n in reported.items() if n is None]
+    assert not unnamed, (
+        f'could not determine the reported name for: {unnamed}. '
+        'Each audit must construct AuditResult with a literal name.')
+
+    missing = [f'{m} (reports {n!r})' for m, n in reported.items()
+               if n not in baseline]
+    assert not missing, (
+        f'audits with no baseline entry: {missing}. '
+        'Run: python3 scripts/audit/run_all.py --write-baseline')
 
 
 def test_every_audit_is_syntactically_runnable():

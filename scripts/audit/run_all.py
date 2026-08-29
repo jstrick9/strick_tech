@@ -54,6 +54,12 @@ AUDITS = [
     'first_run',
     'task_completion',
     'console_health',
+    # Needs no browser -- it compares the frontend's call sites against
+    # FastAPI's own route table. It existed but was never in this list and
+    # never in the baseline, so nothing enforced it: an unenforced audit is a
+    # file, not a gate. Its four standing findings were all probe defects and
+    # are fixed; it is at 0 and ratcheted here so it stays there.
+    'module_completeness',
     # NOT in this list: agent_reliability. It needs a server started against
     # scripts/audit/fake_provider.py with OLLAMA_BASE_URL pointed at it, and
     # one MODE per invocation. Run it directly:
