@@ -476,7 +476,14 @@ def build(do_minify: bool = True, split: bool = True) -> dict:
                         (manifest_file, manifest_js)]
                        + chunk_outputs):
         raw = text.encode('utf-8')
-        gz = gzip.compress(raw, 9)
+        # mtime=0, not the default "now". gzip.compress() stamps the current
+        # time into bytes 5-8 of the header, so every build produced a
+        # byte-different .gz for byte-identical JavaScript. Result: 40 files
+        # showing as modified in `git status` after any build, which blocked
+        # `git pull` and made the desktop diagnostic report a dirty checkout.
+        # The content hash is in the filename, so the header timestamp carries
+        # no information anyway.
+        gz = gzip.compress(raw, 9, mtime=0)
         (DIST / (name + '.gz')).write_bytes(gz)
         compressed[name] = {'raw': len(raw), 'gzip': len(gz)}
         try:
