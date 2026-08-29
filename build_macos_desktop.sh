@@ -27,8 +27,28 @@ BUNDLE_PYTHON=0
 SIGN_APP=0
 NOTARIZE_APP=0
 
+usage() {
+  cat <<'USAGE'
+Usage: ./build_macos_desktop.sh [options]
+
+Builds the Agentic OS Platform macOS desktop application (.app, and a .dmg
+when bundle_dmg.sh succeeds).
+
+Options:
+  --bundle-python   Download and bundle a standalone Python runtime inside the
+                    .app so the app runs on a machine with no Python installed.
+  --sign            Code-sign using $APPLE_SIGNING_IDENTITY.
+  --notarize        Notarize using $APPLE_ID, $APPLE_PASSWORD, $APPLE_TEAM_ID.
+  -h, --help        Show this message and exit.
+
+After a successful build:
+  open "src-tauri/target/release/bundle/macos/Agentic OS Platform.app"
+USAGE
+}
+
 for arg in "$@"; do
   case $arg in
+    -h|--help) usage; exit 0 ;;
     --bundle-python) BUNDLE_PYTHON=1 ;;
     --sign) SIGN_APP=1 ;;
     --notarize) NOTARIZE_APP=1 ;;
