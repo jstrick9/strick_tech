@@ -92,8 +92,32 @@ def _pane_modules() -> dict[str, Path]:
     sources = {f: f.read_text(encoding='utf-8', errors='replace')
                for f in sorted(JS_DIR.glob('*.js'))
                if f.name not in ('00-pane-registry.js', '00-render-dedupe.js')}
+    # A DEFINITION beats a mention. `renderPrompts` is defined in
+    # 14-prompt-library.js, but 01-app-core.js contains
+    #   if (typeof window.renderPrompts === 'function' && pane === 'prompts')
+    # which the patterns below also match. Iterating files in name order, the
+    # 5,800-line app-core won, so prompts/dashboard/codesearch were all mapped
+    # to it -- and every /api/ call in that file was then attributed to each of
+    # them. That is where "METHOD-MISMATCH /api/preview/restore (used by
+    # codesearch, dashboard, prompts)" came from: one Studio call site, blamed
+    # on three unrelated panes.
+    #
+    # Two passes: real definitions first, mentions only as a fallback.
+    definition = re.compile
     for pane, fn in renderers.items():
         if not fn:
+            continue
+        strict = definition(
+            rf'(?:async\s+)?function\s+{fn}\s*\(|'
+            rf'window\.{fn}\s*=\s*(?:async\s*)?(?:function|\()|'
+            rf'(?:const|let|var)\s+{fn}\s*=\s*(?:async\s*)?(?:function|\()'
+        )
+        for path, src in sources.items():
+            if strict.search(src):
+                out[pane] = path
+                break
+    for pane, fn in renderers.items():
+        if not fn or pane in out:
             continue
         for path, src in sources.items():
             # `async function renderX()`, `function renderX()`,
@@ -130,6 +154,22 @@ def _call_options(source: str, start: int, limit: int = 400) -> str:
     return source[start:start + limit]
 
 
+def _is_fetch_call(source: str, start: int) -> bool:
+    r"""Is this /api/ literal the argument of a fetch()?
+
+    A path can appear as `a.href = '/api/.../export'` for a download link, or
+    inside a comment, or as an EventSource/WebSocket URL. Only a fetch() has a
+    verb to get wrong, so only a fetch() can produce a METHOD-MISMATCH.
+
+    Without this, `a.href=\`/api/workspaces/${wsId}/export\`` on one line and
+    `fetch(..., {method:'DELETE'})` three lines below were read as one call,
+    and the audit reported "frontend DELETE, server ['GET']" against a plain
+    download link that works correctly.
+    """
+    head = source[max(0, start - 120):start]
+    return bool(re.search(r'\bfetch\s*\(\s*$', head))
+
+
 def _calls_in(source: str) -> set[tuple[str, str]]:
     """Every (path, method) the module invokes."""
     found: set[tuple[str, str]] = set()
@@ -137,6 +177,10 @@ def _calls_in(source: str) -> set[tuple[str, str]]:
         raw = match.group(1)
         if any(raw.startswith(skip) for skip in SKIP):
             continue
+        # Non-fetch references (href, comments, EventSource) still prove the
+        # path is USED -- so they are recorded for MISSING-ROUTE -- but they
+        # carry no verb, so they must not be verb-checked.
+        is_fetch = _is_fetch_call(source, match.start())
 
         # A URL built from a variable base is not a route this application
         # mounts. `url + '/api/pull'` is Ollama's own API on a user-supplied
@@ -159,6 +203,16 @@ def _calls_in(source: str) -> set[tuple[str, str]]:
         # concatenation means "a parameter goes here"; any literal tail that
         # follows is appended so the full shape is matched.
         after = source[match.end():match.end() + 200]
+        # A literal immediately followed by `+` is a PREFIX, not a whole path.
+        # `fetch('/api/icm' + path)` never requests /api/icm -- every caller
+        # appends '/workspaces...'. Verified live: /api/icm is 404,
+        # /api/icm/workspaces is 200. Treating the prefix as a real call
+        # produced a MISSING-ROUTE against a router that works.
+        if re.match(r'\s*\+', after) and not path.endswith('/'):
+            tail = re.match(r"\s*\+[^'\"]*['\"](/[A-Za-z0-9_\-/]+)['\"]", after)
+            if tail:
+                found.add((path + tail.group(1), 'GET' if not is_fetch else 'GET'))
+            continue
         if path.endswith('/') and re.match(r'\s*\+', after):
             path = path + '\x00'
             tail = re.match(r"\s*\+[^'\"]*['\"](/[A-Za-z0-9_\-/]+)['\"]", after)
@@ -173,6 +227,9 @@ def _calls_in(source: str) -> set[tuple[str, str]]:
         # METHOD-MISMATCH against correct code. The window now stops at the
         # end of the fetch() call -- the matching close paren -- so a verb
         # belonging to a later call cannot leak in.
+        if not is_fetch:
+            found.add((path, '*'))          # path used, verb unknown
+            continue
         window = _call_options(source, match.end())
         verb = METHOD_NEAR.search(window)
         found.add((path, (verb.group(1) if verb else 'GET').upper()))
@@ -250,6 +307,11 @@ def run() -> AuditResult:
         shown = path.replace('\x00', '{id}')
         if original is None:
             missing.append((shown, sorted(users[(path, verb)])))
+        elif verb == '*':
+            # Recorded from a non-fetch reference (href, comment, EventSource).
+            # It proves the path is used -- so MISSING-ROUTE above still
+            # applies -- but there is no verb to compare.
+            continue
         elif methods and verb not in methods:
             mismatched.append((shown, verb, sorted(methods), sorted(users[(path, verb)])))
 
