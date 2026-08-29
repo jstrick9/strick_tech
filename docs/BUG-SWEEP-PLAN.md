@@ -149,25 +149,52 @@ of them reached the user.
 
 **10 test files, 91 tests, every one revert-proved.**
 
-### Phase 2 — sweep the classes: **1 of 4 complete**
+### Phase 2 — sweep the classes: **COMPLETE — 4 of 4 at zero**
 
-| # | Class | Script | Findings |
-|---|---|---|---|
-| 1 | Dead handler contract | `scripts/sweep_dead_handlers.py` | **0** ✅ |
-| 2 | Blocking overlay | not yet written | — |
-| 3 | Stale build artefact | not yet written | — |
-| 4 | Capability never triggered | not yet written | — |
+| # | Class | Script | Findings | Real defect it caught |
+|---|---|---|---|---|
+| 1 | Dead handler contract | `scripts/sweep_dead_handlers.py` | **0** ✅ | `data-act-select` was never bound — the collab editor never shared cursor position |
+| 2 | Blocking overlay | `scripts/sweep_blocking_overlay.py` | **0** ✅ | none (70 panes, real browser) |
+| 3 | Stale build artefact | `scripts/sweep_stale_artifact.py` | **0** ✅ | `scripts/tauri-build.sh` and `Dockerfile` both shipped stale JS |
+| 4 | Capability never triggered | `scripts/sweep_untriggered_capability.py` | **0** ✅ | `/api/fusion/route/models` had no caller |
 
 ```bash
-python3 scripts/sweep_dead_handlers.py    # exit 0 = zero findings
+for s in dead_handlers blocking_overlay stale_artifact untriggered_capability; do
+  python3 scripts/sweep_$s.py || echo "FINDINGS in $s"
+done
 ```
 
-Sweep 1 found one real defect (`data-act-select` was never bound, so the
-collab editor never shared cursor position) and 69 false positives caused by
-the probe itself. All 69 are documented in `efafc7a`; the correction ratio is
-the reason each sweep is committed only after its own output is trustworthy.
+Each is enforced by a test (`test_185`–`test_188`), so a regression fails the
+suite rather than waiting to be rediscovered. Sweep 1 requires `acorn`; without
+it the script exits **2**, never 0 — a skip is not a pass.
+
+**Four real defects found, none of them the reported bug.** Sweep 3's two
+findings are the same defect that cost five sessions on the macOS path,
+sitting untouched in two other packaging paths purely because the report came
+from the third. That is the entire argument for sweeping classes.
+
+#### The correction ratio, recorded on purpose
+
+| Sweep | First run | Real | My probe's fault |
+|---|---|---|---|
+| 1 | 70 | 1 | 69 |
+| 2 | 16 | 0 | 16 |
+| 3 | 3 | 2 | 1 |
+| 4 | 19 | 1 | 18 |
+
+**108 findings, 4 real.** Every false positive was fixed before the sweep was
+trusted, and each correction is documented in its commit. This matters more
+than the four fixes: a sweep whose output is mostly noise trains you to skim
+it, and skimming is how the one real finding gets missed. Three of the four
+sweeps would have been actively harmful if committed as first written.
+
+Two revert-proof misses are also recorded — a sweep that documents itself in a
+comment defeated a regex looking for the thing it documents (`efafc7a`), and
+`count(name) >= 2` passed with the only call deleted because the definition
+line contains the name twice (`2bff2de`).
 
 ---
+
 
 ## The finish line
 
