@@ -9,6 +9,14 @@
 # ==============================================================================
 set -e
 
+# Resolve the repository root ONCE, at the top, before any `cd`.
+#
+# This must happen here and nowhere else. ${BASH_SOURCE[0]} is whatever the
+# user typed -- normally the relative "./build_macos_desktop.sh", whose dirname
+# is ".". Resolving that AFTER the script has already done `cd src-tauri` makes
+# REPO_ROOT point at src-tauri/, and every path built from it is wrong.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 echo "🍏 ====================================================================="
 echo "🍏  Agentic OS Platform v10.0 — macOS Native Application Builder"
 echo "🍏  Created by Joshua Strickland & Strick Tech"
@@ -164,7 +172,8 @@ echo ""
 echo "🧩 Rebuilding the frontend bundle (frontend/dist)..."
 # NOTE: we are inside src-tauri/ at this point (line ~134 does `cd src-tauri`).
 # These gates MUST run from the repository root or every path below is wrong.
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# REPO_ROOT is resolved at the TOP of this script, deliberately: re-deriving it
+# here from ${BASH_SOURCE[0]} would resolve "." against src-tauri/ and break.
 if [ ! -f "$REPO_ROOT/scripts/build_bundle.py" ]; then
   echo "❌ scripts/build_bundle.py is missing. Cannot verify the frontend bundle."
   echo "   Refusing to package a build whose JavaScript cannot be verified."
