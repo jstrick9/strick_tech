@@ -279,8 +279,29 @@ if [ "$NOTARIZE_APP" -eq 1 ] && [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] &
   fi
 fi
 
-DMG_FOUND=$(find src-tauri/target -name "*.dmg" 2>/dev/null | head -n 1)
-APP_FOUND=$(find src-tauri/target -name "*.app" 2>/dev/null | head -n 1)
+# Locate the artefacts. Two traps here, both hit in real builds:
+#
+# 1. A failed bundle_dmg.sh leaves a partial or stale .dmg from an earlier
+#    attempt on disk. A bare `find -name "*.dmg"` finds it, and the summary then
+#    claims a DMG was built in the same breath as warning that it was not. If
+#    the DMG step failed, there is no DMG -- do not go looking for one.
+#
+# 2. bundle_dmg.sh stages a COPY of the .app inside its own working directory
+#    (bundle/dmg/<name>/Agentic OS Platform.app). `find -name "*.app" | head -1`
+#    can return that staging copy rather than the real bundle, depending on
+#    directory order -- so the script could copy a half-staged app over the good
+#    one. Restrict the search to bundle/macos, the only place the genuine .app
+#    is emitted, and fall back to the broad search only if that finds nothing.
+APP_FOUND=$(find src-tauri/target -path "*/bundle/macos/*.app" -prune 2>/dev/null | head -n 1)
+if [ -z "$APP_FOUND" ]; then
+  APP_FOUND=$(find src-tauri/target -name "*.app" -prune 2>/dev/null | head -n 1)
+fi
+
+if [ "${DMG_BUILD_FAILED:-0}" -eq 1 ]; then
+  DMG_FOUND=""
+else
+  DMG_FOUND=$(find src-tauri/target -path "*/bundle/dmg/*.dmg" 2>/dev/null | head -n 1)
+fi
 
 # Ensure standard target/release paths exist for universal / aarch64 consistency
 mkdir -p src-tauri/target/release/bundle/macos
@@ -299,12 +320,13 @@ fi
 echo ""
 echo "🎉 ====================================================================="
 echo "🎉  Agentic OS Platform v11.5.0 macOS Desktop App Built Successfully!"
-if [ -n "$DMG_FOUND" ]; then
-  echo "🎉  👉 DMG Installer : src-tauri/target/release/bundle/dmg/Agentic OS Platform.dmg"
-fi
-if [ "${DMG_BUILD_FAILED:-0}" -eq 1 ]; then
+# Exactly one of these prints. Previously both did, so the summary announced a
+# DMG path AND said the DMG had not been built, two lines apart.
+if [ "${DMG_BUILD_FAILED:-0}" -eq 1 ] || [ -z "$DMG_FOUND" ]; then
   echo "🎉  ⚠️  DMG Installer : NOT built (bundle_dmg.sh failed — see warning above)."
   echo "🎉      The .app below is complete and installable regardless."
+else
+  echo "🎉  👉 DMG Installer : src-tauri/target/release/bundle/dmg/Agentic OS Platform.dmg"
 fi
 if [ -n "$APP_FOUND" ]; then
   echo "🎉  👉 App Bundle    : src-tauri/target/release/bundle/macos/Agentic OS Platform.app"
