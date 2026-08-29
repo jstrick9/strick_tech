@@ -65,6 +65,7 @@ Try: 'What are the best practices for building production-ready FastAPI services
           <button class="btn-sm" data-act-click="fusionClassify()">🏷️ Classify</button>
         </div>
         <div id="router-result" class="u-d2c171b1"></div>
+        <div id="router-model-table" style="margin-top:12px"></div>
       </div>
     </div>
 
@@ -108,6 +109,7 @@ Try: 'What are the best practices for building production-ready FastAPI services
   </div>`;
 
   fusionSelectPreset('budget');
+  fusionLoadRoutingTable();
 }
 
 let _fusionPreset = 'budget';
@@ -243,6 +245,45 @@ async function fusionRunSimple() {
       </div>`;
   } catch(ex) {
     if (results) results.innerHTML = `<div style="color:var(--danger)">Error: ${escHtml(ex?.message||String(ex))}</div>`;
+  }
+}
+
+// GET /api/fusion/route/models has existed all along and NOTHING CALLED IT.
+// It returns the routing table -- which model handles each task type, why, and
+// the estimated cost per 1k tokens. The panel above promises the router "picks
+// the optimal model" while showing the user no way to see what it will pick or
+// what it costs, so the promise is unverifiable from the UI.
+//
+// This is the Bug 4 class: a working endpoint with no caller. Found by
+// scripts/sweep_untriggered_capability.py. It renders with the pane, so the
+// information is there before you ask rather than behind a button you have to
+// discover.
+async function fusionLoadRoutingTable() {
+  const el = document.getElementById('router-model-table');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/fusion/route/models');
+    if (!r.ok) return;                       // silent: this is enrichment
+    const d = await r.json();
+    const rows = (d && d.task_types) || [];
+    if (!rows.length) return;
+    el.innerHTML = `
+      <details style="font-size:12px">
+        <summary style="cursor:pointer;color:var(--text-2)">
+          Routing table — ${rows.length} task types
+        </summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+          ${rows.map(t => `
+            <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap">
+              <span style="font-size:10px;background:var(--bg-3);padding:2px 8px;border-radius:4px;color:var(--text-1)">${escHtml(t.type || '')}</span>
+              <strong style="font-size:11.5px">${escHtml(String(t.model || '').split('/').pop())}</strong>
+              <span style="font-size:11px;color:var(--text-3)">${escHtml(t.reason || '')}</span>
+              <span style="font-size:10px;color:var(--text-3);margin-left:auto">$${Number(t.est_cost_per_1k || 0).toFixed(4)}/1k</span>
+            </div>`).join('')}
+        </div>
+      </details>`;
+  } catch (e) {
+    // Enrichment only — never let this break the pane.
   }
 }
 

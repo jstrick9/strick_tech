@@ -64,6 +64,7 @@ Try: 'What are the best practices for building production-ready FastAPI services
           <button class="btn-sm" data-act-click="fusionClassify()">🏷️ Classify</button>
         </div>
         <div id="router-result" class="u-d2c171b1"></div>
+        <div id="router-model-table" style="margin-top:12px"></div>
       </div>
     </div>
 
@@ -106,6 +107,7 @@ Try: 'What are the best practices for building production-ready FastAPI services
     </div>
   </div>`;
 fusionSelectPreset('budget');
+fusionLoadRoutingTable();
 }
 let _fusionPreset = 'budget';
 const _fusionPresetColors = {quality:'#f0c060',budget:'#4cc98a',code:'#5b8af8',research:'#9d74f5'};
@@ -227,6 +229,33 @@ if (results) results.innerHTML = `
       </div>`;
 } catch(ex) {
 if (results) results.innerHTML = `<div style="color:var(--danger)">Error: ${escHtml(ex?.message||String(ex))}</div>`;
+}
+}
+async function fusionLoadRoutingTable() {
+const el = document.getElementById('router-model-table');
+if (!el) return;
+try {
+const r = await fetch('/api/fusion/route/models');
+if (!r.ok) return;
+const d = await r.json();
+const rows = (d && d.task_types) || [];
+if (!rows.length) return;
+el.innerHTML = `
+      <details style="font-size:12px">
+        <summary style="cursor:pointer;color:var(--text-2)">
+          Routing table — ${rows.length} task types
+        </summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+          ${rows.map(t => `
+            <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap">
+              <span style="font-size:10px;background:var(--bg-3);padding:2px 8px;border-radius:4px;color:var(--text-1)">${escHtml(t.type || '')}</span>
+              <strong style="font-size:11.5px">${escHtml(String(t.model || '').split('/').pop())}</strong>
+              <span style="font-size:11px;color:var(--text-3)">${escHtml(t.reason || '')}</span>
+              <span style="font-size:10px;color:var(--text-3);margin-left:auto">$${Number(t.est_cost_per_1k || 0).toFixed(4)}/1k</span>
+            </div>`).join('')}
+        </div>
+      </details>`;
+} catch (e) {
 }
 }
 async function fusionRoute() {
