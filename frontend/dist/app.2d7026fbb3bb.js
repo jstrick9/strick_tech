@@ -754,6 +754,7 @@ if (target && target.style) target.style.display = 'none';
 }
 var KEY_ALIASES = { Space: ' ', Spacebar: ' ' };
 var NATIVELY_CLICKABLE = /^(BUTTON|A|INPUT|SELECT|TEXTAREA|SUMMARY)$/;
+var SELF_CLICK_EVENTS = /^key(down|up)$/;
 var HOVER_PROPS = { bg: 'background', bc: 'borderColor', fg: 'color' };
 function applyHover(el, spec) {
 var decls = spec.split('|');
@@ -783,7 +784,8 @@ var el = event.target && event.target.closest
 if (!el) return;
 var spec = el.getAttribute('data-act-' + type);
 var hasIntent = type === 'click' && (el.hasAttribute('data-close') || el.hasAttribute('data-hide'));
-var hasSelfClick = type !== 'click' && el.getAttribute('data-self-click') === '1';
+var hasSelfClick = SELF_CLICK_EVENTS.test(type)
+&& el.getAttribute('data-self-click') === '1';
 if (spec === null && !hasIntent && !hasSelfClick) return;
 if (el.getAttribute('data-click-self') === '1' && event.target !== el) return;
 var keys = el.getAttribute('data-keys');
@@ -821,7 +823,7 @@ setTimeout(function () { clearBusy(el); }, 16);
 }
 if (
 el.getAttribute('data-self-click') === '1'
-&& type !== 'click'
+&& SELF_CLICK_EVENTS.test(type)
 && el.click
 && !NATIVELY_CLICKABLE.test(el.tagName)
 ) {
