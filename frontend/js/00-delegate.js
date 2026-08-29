@@ -340,6 +340,10 @@
   // Elements the browser already activates from the keyboard. They must never
   // receive the synthetic self-click — see the note at its call site.
   var NATIVELY_CLICKABLE = /^(BUTTON|A|INPUT|SELECT|TEXTAREA|SUMMARY)$/;
+  // The only events allowed to synthesise a click for data-self-click. This is
+  // an allow-list on purpose: a deny-list (`type !== 'click'`) silently grew to
+  // include every new event type the dispatcher learned to bind.
+  var SELF_CLICK_EVENTS = /^key(down|up)$/;
 
   // ── Hover styling ────────────────────────────────────────────────────────
   // `data-hover="bg:var(--bg-3)"` / `data-hover-out="bg:"` replace the
@@ -383,7 +387,13 @@
     // friends default to click so the common "✕" button needs one attribute.
     var spec = el.getAttribute('data-act-' + type);
     var hasIntent = type === 'click' && (el.hasAttribute('data-close') || el.hasAttribute('data-hide'));
-    var hasSelfClick = type !== 'click' && el.getAttribute('data-self-click') === '1';
+    // data-self-click is a KEYBOARD polyfill: it exists so Enter/Space
+    // activate a non-native control. It must therefore only let keyboard
+    // events past this guard. It previously admitted ANY non-click event,
+    // which includes mouseover/mousemove -- so merely moving the pointer over
+    // a sidebar group header ran its click action and expanded the section.
+    var hasSelfClick = SELF_CLICK_EVENTS.test(type)
+      && el.getAttribute('data-self-click') === '1';
     if (spec === null && !hasIntent && !hasSelfClick) return;
 
     // Modal-backdrop idiom: `if (event.target === this) close()`.
@@ -455,9 +465,17 @@
     //
     // Enforcing it here rather than at the call site means a future
     // data-self-click on a <button> is harmless instead of a duplicate action.
+    // ONLY keyboard events may synthesise a click. `type !== 'click'` was far
+    // too broad: the dispatcher binds 17 event types, and mouseover, mouseout,
+    // mousemove, focus, blur and the six drag events all satisfied it. Every
+    // one of the 52 data-self-click controls in index.html therefore fired its
+    // own click action on hover -- sidebar sections expanded on mouseover, and
+    // because mousemove fires continuously, a pointer resting on a nav item
+    // re-triggered nav() on every pixel of movement. That is the reported
+    // "sidebar glitches and I can't click the modules".
     if (
       el.getAttribute('data-self-click') === '1'
-      && type !== 'click'
+      && SELF_CLICK_EVENTS.test(type)
       && el.click
       && !NATIVELY_CLICKABLE.test(el.tagName)
     ) {
