@@ -143,6 +143,53 @@ if stale:
 else:
     print('  => served frontend matches this checkout.')
 
+# The canaries above only prove index.html is current. index.html is served
+# from the checkout, so it is ALWAYS current -- even when the packaged .app
+# ships months-old JavaScript. That gap is exactly how a stale desktop build
+# passed this diagnostic while still exhibiting a fixed bug.
+#
+# Fetch the actual served bundle and look for behaviour, not markup.
+print('  served JS canaries (these prove the JAVASCRIPT is current):')
+_app_tag = None
+for tag in re.findall(r'/static/dist/app\.[a-f0-9]+\.js', html):
+    _app_tag = tag
+    break
+if not _app_tag:
+    print('    (bundling off -- individual modules served, nothing to check)')
+else:
+    _code, _js = get(f'{BASE}{_app_tag}', 20)
+    if _code != 200 or not _js:
+        print(f'    !! {_app_tag} -> {_code}. The page references a bundle the')
+        print('       server will not serve. That alone breaks the whole app.')
+    else:
+        JS_CANARIES = [
+            ('SELF_CLICK_EVENTS',
+             'hover no longer fires click actions (sidebar glitch fix)'),
+            ('autoDetectLocalModels',
+             'Ollama is probed at startup'),
+            # NOTE: only symbols that live in the MAIN bundle belong here.
+            # kanbanOnDrop was in this list briefly and read ABSENT against a
+            # perfectly current build -- Kanban is a lazily-loaded pane chunk
+            # (pane-kanban.*.js), not part of app.*.js. A canary that reports a
+            # false ABSENT is worse than no canary; it is what sent me chasing
+            # a phantom the last time this tool asserted something it had not
+            # measured.
+        ]
+        js_stale = False
+        for needle, what in JS_CANARIES:
+            ok = needle in _js
+            if not ok:
+                js_stale = True
+            print(f'    {"present" if ok else "ABSENT ":8} {needle:22} {what}')
+        if js_stale:
+            print()
+            print('  => THE SERVED JAVASCRIPT IS STALE.')
+            print('     index.html is current but the bundle is not, so the app')
+            print('     LOOKS up to date and behaves like an old build.')
+            print('     If you are running the packaged .app, it is almost')
+            print('     certainly an older bundle. Rebuild and relaunch:')
+            print('       ./build_macos_desktop.sh --bundle-python')
+
 if os.path.isdir('frontend/dist'):
     n = len(os.listdir('frontend/dist'))
     print(f'  frontend/dist: {n} files')

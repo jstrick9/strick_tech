@@ -292,9 +292,49 @@ fi
 #    directory order -- so the script could copy a half-staged app over the good
 #    one. Restrict the search to bundle/macos, the only place the genuine .app
 #    is emitted, and fall back to the broad search only if that finds nothing.
-APP_FOUND=$(find src-tauri/target -path "*/bundle/macos/*.app" -prune 2>/dev/null | head -n 1)
+# WHICH .app -- this must be deterministic, and it was not.
+#
+# `src-tauri/target/release/bundle/macos/` is BOTH a place cargo can emit to
+# AND the destination this script copies to for a stable documented path. On
+# every build after the first it already contains LAST build's app. So the
+# search had two hits:
+#
+#   target/aarch64-apple-darwin/release/bundle/macos/...  <- what cargo just built
+#   target/release/bundle/macos/...                       <- last build's copy
+#
+# and `head -n 1` chose between them by filesystem iteration order. When the
+# stale one won, the script copied it over itself, the != guard skipped the
+# copy, and the user opened an app containing OLD JavaScript -- with every
+# build reporting complete success.
+#
+# Sorting by mtime does NOT fix this: the destination is touched by the copy
+# itself, so the stale copy is frequently the newest thing on disk. Verified.
+#
+# The only correct answer is to know where cargo was told to build. BUILD_FLAGS
+# carries --target when we set it, so derive the path rather than search for it,
+# and explicitly exclude the destination from any fallback search.
+CARGO_TARGET_DIR_NAME=""
+for _i in "${!BUILD_FLAGS[@]}"; do
+  if [ "${BUILD_FLAGS[$_i]}" = "--target" ]; then
+    CARGO_TARGET_DIR_NAME="${BUILD_FLAGS[$((_i+1))]}"
+  fi
+done
+
+APP_FOUND=""
+if [ -n "$CARGO_TARGET_DIR_NAME" ]; then
+  APP_FOUND=$(find "src-tauri/target/$CARGO_TARGET_DIR_NAME/release/bundle/macos" \
+                -maxdepth 1 -name "*.app" -prune 2>/dev/null | head -n 1)
+fi
 if [ -z "$APP_FOUND" ]; then
-  APP_FOUND=$(find src-tauri/target -name "*.app" -prune 2>/dev/null | head -n 1)
+  # No explicit --target (cargo emitted to target/release), or the arch path is
+  # absent. Search everywhere EXCEPT the destination, so we can never select
+  # the previous build's copy.
+  APP_FOUND=$(find src-tauri/target -path "*/bundle/macos/*.app" -prune 2>/dev/null \
+                | grep -v "^src-tauri/target/release/bundle/macos/" | head -n 1)
+fi
+if [ -z "$APP_FOUND" ]; then
+  # Genuinely only the default target dir exists -- that IS the real build.
+  APP_FOUND=$(find src-tauri/target -path "*/bundle/macos/*.app" -prune 2>/dev/null | head -n 1)
 fi
 
 if [ "${DMG_BUILD_FAILED:-0}" -eq 1 ]; then
