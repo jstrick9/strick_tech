@@ -5780,7 +5780,99 @@ setTimeout(() => {
     window.selectChatPersona(savedPersona);
   }
   if (typeof window.loadChatSessions === 'function') window.loadChatSessions();
+  if (typeof window.autoDetectLocalModels === 'function') window.autoDetectLocalModels();
 }, 800);
+
+// ══════════════════════════════════════════════════════
+//  LOCAL MODEL AUTO-DETECT (Ollama) — runs once at startup
+// ══════════════════════════════════════════════════════
+// The backend has had GET /api/onboarding/detect-local-models for a while, but
+// NOTHING CALLED IT. Detection only ever ran inside POST
+// /api/onboarding/quick-setup, reachable from one button buried in Settings.
+// So a user with 17 local models installed launched the app, saw no model
+// selected, and reasonably concluded "Ollama did not auto-connect" -- the
+// capability was fully present and never triggered.
+//
+// Contract, deliberately quiet:
+//   - absent Ollama  -> do nothing at all. No toast, no error, no console
+//                       noise. Someone who does not use local models must
+//                       never see a message about them.
+//   - present        -> select a sensible chat model IF the user has not
+//                       already chosen one, and say so once.
+//
+// An explicit user choice always wins: if agentic_os_chat_model is set, or the
+// dropdown already has a value, this leaves both alone. Auto-detection that
+// overwrites a deliberate selection is a bug, not a feature.
+window.autoDetectLocalModels = async function autoDetectLocalModels() {
+  if (window.__localModelProbeDone) return;
+  window.__localModelProbeDone = true;
+  try {
+    const r = await fetch('/api/onboarding/detect-local-models');
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d || d.available !== true) return;
+
+    const models = Array.isArray(d.models) ? d.models : [];
+    window.__localModels = models;
+    if (!models.length) return;
+
+    const sel = document.getElementById('chat-model-select');
+
+    // Populate the SAME optgroup syncOpenWebUIConnections uses, in the SAME
+    // "ollama:<name>" value format the rest of the app expects.
+    //
+    // My first version appended bare <option value="llama3.1:8b"> straight onto
+    // the <select>. Verified in Chromium: that produced a second, duplicate set
+    // of entries outside the "Local (Ollama)" group, in a value format
+    // selectChatModel() does not understand -- it strips an "ollama:" prefix
+    // that would not have been there. Caught by looking at the live DOM
+    // instead of trusting the diff.
+    // De-dupe against the WHOLE select, not just this optgroup.
+    // syncOpenWebUIConnections() fills the same group from /api/agents/models
+    // and can land either side of this probe. Scoping the check to the group
+    // alone left one duplicate entry ("ollama:qwen2.5:7b" twice) when its
+    // response arrived after ours -- visible in the live DOM dump.
+    const group = document.getElementById('ollama-model-optgroup');
+    if (group && sel) {
+      const have = new Set(
+        Array.from(sel.options || []).map(function (o) { return o.value; })
+      );
+      for (var i = 0; i < models.length; i++) {
+        var val = 'ollama:' + models[i];
+        if (have.has(val)) continue;
+        var opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = 'Ollama: ' + models[i];
+        group.appendChild(opt);
+      }
+    }
+
+    // Only auto-select when the user has made no choice of their own.
+    //
+    // The select is NOT empty on a fresh launch -- index.html ships with
+    // "claude" as the first option, so the browser reports value="claude"
+    // before anyone has touched it. Treating a non-empty sel.value as "the
+    // user chose this" meant auto-select could never fire, which is exactly
+    // the bug being fixed. The authority is the persisted preference, not the
+    // rendered default.
+    var stored = null;
+    try { stored = _safeLS.get('agentic_os_chat_model'); } catch (e) {}
+    if (stored || S.currentModel) return;
+
+    var pick = d.suggested_model || '';
+    if (!pick) return;   // embedding-only install: no sensible chat default
+
+    var value = 'ollama:' + pick;
+    S.currentModel = value;
+    if (sel) sel.value = value;
+    try { _safeLS.set('agentic_os_chat_model', value); } catch (e) {}
+    if (typeof window.toast === 'function') {
+      window.toast('\u2705 Ollama connected \u2014 using ' + pick, 'ok', 4000);
+    }
+  } catch (e) {
+    // Silent by contract. A machine with no Ollama is the normal case.
+  }
+};
 
 window.gmAlert = gmAlert;
 window.gmConfirm = gmConfirm;

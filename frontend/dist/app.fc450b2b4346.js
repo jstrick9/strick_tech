@@ -6586,7 +6586,49 @@ if (savedPersona && typeof window.selectChatPersona === 'function') {
 window.selectChatPersona(savedPersona);
 }
 if (typeof window.loadChatSessions === 'function') window.loadChatSessions();
+if (typeof window.autoDetectLocalModels === 'function') window.autoDetectLocalModels();
 }, 800);
+window.autoDetectLocalModels = async function autoDetectLocalModels() {
+if (window.__localModelProbeDone) return;
+window.__localModelProbeDone = true;
+try {
+const r = await fetch('/api/onboarding/detect-local-models');
+if (!r.ok) return;
+const d = await r.json();
+if (!d || d.available !== true) return;
+const models = Array.isArray(d.models) ? d.models : [];
+window.__localModels = models;
+if (!models.length) return;
+const sel = document.getElementById('chat-model-select');
+const group = document.getElementById('ollama-model-optgroup');
+if (group && sel) {
+const have = new Set(
+Array.from(sel.options || []).map(function (o) { return o.value; })
+);
+for (var i = 0; i < models.length; i++) {
+var val = 'ollama:' + models[i];
+if (have.has(val)) continue;
+var opt = document.createElement('option');
+opt.value = val;
+opt.textContent = 'Ollama: ' + models[i];
+group.appendChild(opt);
+}
+}
+var stored = null;
+try { stored = _safeLS.get('agentic_os_chat_model'); } catch (e) {}
+if (stored || S.currentModel) return;
+var pick = d.suggested_model || '';
+if (!pick) return;
+var value = 'ollama:' + pick;
+S.currentModel = value;
+if (sel) sel.value = value;
+try { _safeLS.set('agentic_os_chat_model', value); } catch (e) {}
+if (typeof window.toast === 'function') {
+window.toast('\u2705 Ollama connected \u2014 using ' + pick, 'ok', 4000);
+}
+} catch (e) {
+}
+};
 window.gmAlert = gmAlert;
 window.gmConfirm = gmConfirm;
 window.gmPrompt = gmPrompt;
