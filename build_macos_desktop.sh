@@ -189,6 +189,55 @@ fi
 # frontend is worse than not shipping.
 # ─────────────────────────────────────────────────────────────────────────────
 echo ""
+# ── Gate 0: are we even building what the user thinks we are? ────────────────
+#
+# A user ran `git pull` five times and got the same stale app every time. The
+# pull was FAILING each time -- "local changes would be overwritten by merge",
+# frontend/dist -- and the failure scrolled past above the build output, which
+# then reported complete success. Five fixes never reached their machine while
+# every build said it worked.
+#
+# Being behind origin is not automatically wrong (offline, deliberate pin), so
+# this warns loudly rather than refusing. But it must never again be silent.
+if command -v git >/dev/null 2>&1 && [ -d "$REPO_ROOT/.git" ]; then
+  (
+    cd "$REPO_ROOT" || exit 0
+    _branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+    git fetch -q origin "$_branch" 2>/dev/null || true
+    _behind=$(git rev-list --count "HEAD..origin/$_branch" 2>/dev/null || echo 0)
+    _dirty=$(git status --porcelain -- frontend/dist 2>/dev/null | wc -l | tr -d ' ')
+
+    if [ "${_behind:-0}" -gt 0 ]; then
+      echo ""
+      echo "⚠️  YOU ARE $_behind COMMIT(S) BEHIND origin/$_branch."
+      echo "    This build will NOT contain those changes."
+      git --no-pager log --oneline "HEAD..origin/$_branch" 2>/dev/null | sed 's/^/      /'
+      if [ "${_dirty:-0}" -gt 0 ]; then
+        echo ""
+        echo "    Cause: $_dirty modified file(s) in frontend/dist are blocking the"
+        echo "    merge. These are BUILD OUTPUT -- discarding them is always safe."
+        echo "    Fix:"
+        echo "      git checkout -- frontend/dist && git pull origin $_branch"
+      else
+        echo "    Fix:  git pull origin $_branch"
+      fi
+      echo ""
+      printf "    Continue with the STALE build anyway? [y/N] "
+      if [ -t 0 ]; then
+        read -r _ans
+        case "$_ans" in
+          y|Y|yes|YES) echo "    Continuing." ;;
+          *) echo "    Stopped. Pull, then re-run."; exit 97 ;;
+        esac
+      else
+        echo "    (non-interactive: continuing, but the build IS stale)"
+      fi
+    fi
+  )
+  _gate_rc=$?
+  if [ "$_gate_rc" -eq 97 ]; then exit 1; fi
+fi
+
 echo "🧩 Rebuilding the frontend bundle (frontend/dist)..."
 # NOTE: we are inside src-tauri/ at this point (line ~134 does `cd src-tauri`).
 # These gates MUST run from the repository root or every path below is wrong.
