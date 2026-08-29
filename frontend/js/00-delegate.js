@@ -52,6 +52,14 @@
     'click', 'change', 'input', 'dblclick', 'blur', 'focus',
     'mouseover', 'mouseout', 'mousemove', 'keydown', 'keyup', 'submit',
     'dragstart', 'dragend', 'dragover', 'dragleave', 'drop', 'error',
+    // 'select' fires when text is selected in an input/textarea. The collab
+    // editor (08-replay-collab.js) has carried data-act-select="ceSendCursor()"
+    // all along, but the event was never bound, so the attribute was inert:
+    // selecting text with the keyboard or by dragging never shared the cursor
+    // position with collaborators. The adjacent data-act-click masked it for
+    // plain clicks, which is why it went unnoticed. Found by
+    // scripts/sweep_dead_handlers.py.
+    'select',
   ];
 
   // name(json, ...) — the only shape accepted. `?.(` is normalised away first.

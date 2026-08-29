@@ -558,6 +558,7 @@ var EVENTS = [
 'click', 'change', 'input', 'dblclick', 'blur', 'focus',
 'mouseover', 'mouseout', 'mousemove', 'keydown', 'keyup', 'submit',
 'dragstart', 'dragend', 'dragover', 'dragleave', 'drop', 'error',
+'select',
 ];
 var CALL = /^\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\((.*)\)\s*$/;
 function resolvePlaceholder(token, el, event) {
