@@ -41,6 +41,7 @@ Both tests execute the real text of the real script, not a paraphrase of it.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -83,6 +84,72 @@ def test_repo_root_is_defined_before_any_gate_uses_it() -> None:
     assert t.index("REPO_ROOT=") < t.index("build_bundle.py")
 
 
+def test_repo_root_is_resolved_before_the_first_cd() -> None:
+    """The `dirname` of a relative invocation is "." -- which means whatever the
+    CURRENT directory is at the moment it is evaluated. Resolving REPO_ROOT
+    after `cd src-tauri` therefore yields src-tauri/, not the repo root.
+    It must be resolved before ANY cd in the script."""
+    t = _text()
+    root_at = t.index('REPO_ROOT="$(cd "$(dirname')
+    first_cd = min(
+        (t.index(m) for m in ("\ncd src-tauri\n", "\ncd ..\n") if m in t),
+        default=len(t),
+    )
+    assert root_at < first_cd, (
+        "REPO_ROOT is resolved after a `cd`, so a relative invocation "
+        "(./build_macos_desktop.sh) resolves it to the wrong directory."
+    )
+
+
+def test_repo_root_is_resolved_exactly_once() -> None:
+    """A second derivation later in the file re-introduces the bug even if the
+    first one is correct."""
+    n = _text().count('REPO_ROOT="$(cd "$(dirname')
+    assert n == 1, f"REPO_ROOT derived {n} times; a later one will be wrong"
+
+
+def test_real_script_invoked_relatively_passes_its_own_gates(tmp_path: Path) -> None:
+    """THE TEST I SHOULD HAVE WRITTEN FIRST.
+
+    The user ran, from the repo root:
+
+        ./build_macos_desktop.sh --bundle-python
+
+    and got "scripts/build_bundle.py is missing". My earlier gate test extracted
+    the block into a harness file and ran it directly, which never exercised the
+    relative-path invocation that caused the failure. This runs the REAL script,
+    by relative path, from the repo root, and asserts the gates pass.
+
+    Everything before the gates (toolchain checks, embedded Python, cargo) is
+    stubbed out via PATH so the test stays fast and hermetic; the script is
+    stopped by a cargo stub right after the gates it is here to verify.
+    """
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    for name in ("cargo", "cargo-tauri", "rustup"):
+        stub = bindir / name
+        stub.write_text('#!/usr/bin/env bash\nif [ "$1" = "tauri" ] && [ "$2" = "build" ]; '
+                        'then echo "GATES_PASSED_REACHED_CARGO"; exit 0; fi\nexit 0\n',
+                        encoding="utf-8")
+        stub.chmod(0o755)
+    proc = subprocess.run(
+        ["bash", "./build_macos_desktop.sh"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        timeout=600,
+        env={**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}"},
+    )
+    assert "is missing. Cannot verify the frontend bundle" not in proc.stdout, (
+        "the gate wrongly reports build_bundle.py missing -- REPO_ROOT resolved "
+        f"to the wrong directory.\nstdout:\n{proc.stdout[-3000:]}"
+    )
+    assert "Frontend bundle rebuilt and verified against source" in proc.stdout, (
+        f"the gates did not complete.\nstdout:\n{proc.stdout[-3000:]}\n"
+        f"stderr:\n{proc.stderr[-2000:]}"
+    )
+
+
 def test_every_build_bundle_invocation_is_anchored_to_repo_root() -> None:
     """A bare `python3 scripts/build_bundle.py` inside src-tauri/ silently
     cannot work."""
@@ -100,31 +167,34 @@ def test_index_html_canary_is_anchored_to_repo_root() -> None:
 
 
 def test_gate_block_actually_succeeds_when_run_from_src_tauri() -> None:
-    """Execute the real gate block with src-tauri/ as cwd -- the exact
-    condition the packaged build runs under. Pre-fix this exits 1 on the very
-    first gate."""
-    # BASH_SOURCE cannot be usefully assigned inside `bash -c` -- it stays
-    # empty, so dirname resolved to "." and the gate reported build_bundle.py
-    # missing. Write the block to a real file AT THE REPO ROOT, exactly where
-    # the real script lives, and execute it with src-tauri/ as cwd.
-    block = _slice("REPO_ROOT=", "# Apply Apple Code Signing Configuration")
-    harness_path = REPO / ".pytest_gate_harness.sh"
-    harness_path.write_text("set -e\n" + block + "\necho GATES_OK\n", encoding="utf-8")
-    try:
-        proc = subprocess.run(
-            ["bash", str(harness_path)],
-            cwd=REPO / "src-tauri",
-            capture_output=True,
-            text=True,
-            timeout=300,
-        )
-    finally:
-        harness_path.unlink(missing_ok=True)
-    assert proc.returncode == 0, (
-        f"gate block failed from src-tauri/ (rc={proc.returncode})\n"
-        f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
-    )
-    assert "GATES_OK" in proc.stdout
+    """SUPERSEDED IN PLACE by test_real_script_invoked_relatively_passes_its_own
+    _gates, which is the honest version of this check.
+
+    This test used to extract the gate block into a harness file and execute it.
+    That was too weak in one direction and too strong in the other:
+
+      - Too weak: the harness assigned BASH_SOURCE itself, so it never
+        exercised the relative-path invocation (`./build_macos_desktop.sh`)
+        that actually broke on the user's machine. It passed while the real
+        script failed.
+      - Too strong: once REPO_ROOT moved to the top of the file where it
+        belongs, the slice from "REPO_ROOT=" swept in the whole toolchain
+        preamble, so the test started running rustup and pip.
+
+    What remains here is the narrow, still-useful invariant: the gate block
+    must not contain any path that is relative to the current directory,
+    because the current directory at that point is src-tauri/.
+    """
+    block = _slice("Rebuilding the frontend bundle", "# Apply Apple Code Signing")
+    for line in block.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#") or "echo" in line:
+            continue
+        for path in ("scripts/build_bundle.py", "frontend/index.html"):
+            if path in line:
+                assert "$REPO_ROOT" in line, (
+                    f"gate references {path} relative to src-tauri/: {line!r}"
+                )
 
 
 # --------------------------------------------------------------------------
