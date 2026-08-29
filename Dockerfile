@@ -41,7 +41,24 @@ COPY --from=deps /build/deps /usr/local/lib/python3.12/site-packages/
 # Copy application code
 COPY backend/ backend/
 COPY frontend/ frontend/
+COPY scripts/build_bundle.py scripts/
 COPY run.py pyproject.toml VERSION ./
+
+# Rebuild and verify the frontend bundle INSIDE the image. Not optional.
+#
+# backend/app.py does not serve frontend/index.html as written -- it rewrites
+# it to load content-hashed bundles from frontend/dist. `COPY frontend/` brings
+# in whatever dist was on the builder's disk, so an image could serve stale
+# JavaScript while every source file in it is current. That exact defect
+# shipped from the macOS build path and cost five sessions to find.
+#
+# `--check` makes it a hard failure: a stale bundle fails the image build
+# instead of becoming a running container that lies about its own version.
+# Brotli is already in requirements.txt and present in the deps layer, so no
+# extra install is needed -- adding one would break an offline/air-gapped build
+# for no benefit.
+RUN python scripts/build_bundle.py \
+    && python scripts/build_bundle.py --check
 
 # Create data directory with proper permissions
 RUN mkdir -p /app/data/memory /app/data/preview \

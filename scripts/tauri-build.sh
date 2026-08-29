@@ -136,6 +136,34 @@ fi
 
 echo "✅ Icons ready"
 
+# ── 5b. Rebuild the frontend bundle. NOT optional. ───────────────────────────
+#
+# backend/app.py does not serve frontend/index.html as written -- it rewrites
+# it to load content-hashed bundles from frontend/dist. Packaging without
+# regenerating dist therefore ships whatever JavaScript happened to be on disk,
+# while every source file looks current.
+#
+# This exact defect shipped from build_macos_desktop.sh and cost five sessions:
+# fixes were verified in a browser, pushed, pulled, and still absent from the
+# running app. Same gates here, and they abort rather than warn.
+echo ""
+echo "🧩 Rebuilding the frontend bundle (frontend/dist)…"
+if [ ! -f "$ROOT/scripts/build_bundle.py" ]; then
+  echo "❌ scripts/build_bundle.py is missing — cannot verify the frontend."
+  exit 1
+fi
+if ! (cd "$ROOT" && python3 scripts/build_bundle.py); then
+  echo "❌ Frontend bundle build FAILED. Refusing to package stale JavaScript."
+  exit 1
+fi
+if ! (cd "$ROOT" && python3 scripts/build_bundle.py --check); then
+  echo "❌ The bundle is still stale after rebuilding."
+  echo "   Refusing to package: the app would serve JavaScript that does not"
+  echo "   match frontend/js/."
+  exit 1
+fi
+echo "✅ Frontend bundle rebuilt and verified against source."
+
 # ── 6. Build ──────────────────────────────────────────────────────────────────
 echo ""
 echo "🔨 Building Tauri desktop app…"
