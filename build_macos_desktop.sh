@@ -162,20 +162,23 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 echo ""
 echo "🧩 Rebuilding the frontend bundle (frontend/dist)..."
-if [ ! -f scripts/build_bundle.py ]; then
+# NOTE: we are inside src-tauri/ at this point (line ~134 does `cd src-tauri`).
+# These gates MUST run from the repository root or every path below is wrong.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ ! -f "$REPO_ROOT/scripts/build_bundle.py" ]; then
   echo "❌ scripts/build_bundle.py is missing. Cannot verify the frontend bundle."
   echo "   Refusing to package a build whose JavaScript cannot be verified."
   exit 1
 fi
 
-if ! python3 scripts/build_bundle.py; then
+if ! (cd "$REPO_ROOT" && python3 scripts/build_bundle.py); then
   echo "❌ Frontend bundle build FAILED."
   echo "   The app would serve stale JavaScript. Fix the error above and retry."
   exit 1
 fi
 
 # Second gate: confirm the freshly built bundle actually matches the sources.
-if ! python3 scripts/build_bundle.py --check; then
+if ! (cd "$REPO_ROOT" && python3 scripts/build_bundle.py --check); then
   echo "❌ The bundle is still stale after rebuilding."
   echo "   Refusing to package: the app would serve JavaScript that does not"
   echo "   match frontend/js/. Run 'python3 scripts/build_bundle.py' and"
@@ -186,7 +189,7 @@ fi
 # Third gate: a content canary. The bundle can be internally consistent and
 # still predate the unlock if someone builds from an old checkout, so assert
 # a string that only exists in the current frontend.
-if ! grep -q "CORE MODULES" frontend/index.html; then
+if ! grep -q "CORE MODULES" "$REPO_ROOT/frontend/index.html"; then
   echo "❌ frontend/index.html does not contain 'CORE MODULES'."
   echo "   This checkout predates the licence unlock. Pull the latest main:"
   echo "     git pull origin main"
@@ -196,11 +199,41 @@ echo "✅ Frontend bundle rebuilt and verified against source."
 echo ""
 
 # Apply Apple Code Signing Configuration if requested
+# The .app is the deliverable. The .dmg is a convenience wrapper, and
+# bundle_dmg.sh fails for reasons that have nothing to do with the build:
+# a stale /Volumes mount, no GUI session, an AppleScript/Finder timeout.
+# `set -e` used to abort here, which skipped the copy step below and left
+# the user with no app at the documented path even though the binary and
+# the .app had both built successfully.
+# So: do not let a DMG failure destroy a good .app build.
+set +e
 if [ "$SIGN_APP" -eq 1 ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
   echo "✍️  Signing identity provided: $APPLE_SIGNING_IDENTITY"
   cargo tauri build "${BUILD_FLAGS[@]}" --config '{"bundle": {"macOS": {"signingIdentity": "'"$APPLE_SIGNING_IDENTITY"'"}}}'
 else
   cargo tauri build "${BUILD_FLAGS[@]}"
+fi
+TAURI_BUILD_RC=$?
+set -e
+
+if [ "$TAURI_BUILD_RC" -ne 0 ]; then
+  # Did the .app survive? If so this was a DMG-only failure, which is benign.
+  APP_CHECK=$(find target -name "*.app" -maxdepth 5 2>/dev/null | head -n 1)
+  if [ -n "$APP_CHECK" ]; then
+    echo ""
+    echo "⚠️  cargo tauri build exited $TAURI_BUILD_RC, but the .app bundle WAS produced:"
+    echo "      $APP_CHECK"
+    echo "    This is almost always bundle_dmg.sh failing (stale /Volumes mount,"
+    echo "    no GUI session, or a Finder/AppleScript timeout). The .app is fine."
+    echo "    Continuing so the app is installed at the documented path."
+    echo "    If you need the .dmg, unmount any 'Agentic OS' volume and re-run:"
+    echo "      hdiutil detach /Volumes/Agentic\\ OS\\ Platform 2>/dev/null; true"
+    echo ""
+    DMG_BUILD_FAILED=1
+  else
+    echo "❌ cargo tauri build failed ($TAURI_BUILD_RC) and produced no .app bundle."
+    exit "$TAURI_BUILD_RC"
+  fi
 fi
 
 cd ..
@@ -239,6 +272,10 @@ echo "🎉 =====================================================================
 echo "🎉  Agentic OS Platform v11.5.0 macOS Desktop App Built Successfully!"
 if [ -n "$DMG_FOUND" ]; then
   echo "🎉  👉 DMG Installer : src-tauri/target/release/bundle/dmg/Agentic OS Platform.dmg"
+fi
+if [ "${DMG_BUILD_FAILED:-0}" -eq 1 ]; then
+  echo "🎉  ⚠️  DMG Installer : NOT built (bundle_dmg.sh failed — see warning above)."
+  echo "🎉      The .app below is complete and installable regardless."
 fi
 if [ -n "$APP_FOUND" ]; then
   echo "🎉  👉 App Bundle    : src-tauri/target/release/bundle/macos/Agentic OS Platform.app"

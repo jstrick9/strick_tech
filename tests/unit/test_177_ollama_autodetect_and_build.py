@@ -113,12 +113,22 @@ def test_the_build_script_rebuilds_the_frontend_bundle():
     Asserts the command is REACHABLE, not merely present. An earlier version
     searched the whole file for the substring, so wrapping the call in
     `if false; then` still passed -- the revert proof caught it.
+
+    UPDATED (see tests/unit/test_178_macos_build_script_paths.py): this pattern
+    used to require the BARE form `if ! python3 scripts/build_bundle.py; then`.
+    That form was the bug. The gates sit after `cd src-tauri`, so a relative
+    path resolves inside src-tauri/ where scripts/ does not exist, and the gate
+    that was supposed to prevent shipping stale JavaScript could never run. The
+    call is now anchored to $REPO_ROOT, and this pattern requires the anchor
+    rather than forbidding it.
     """
     src = BUILD.read_text(encoding='utf-8')
-    assert re.search(r'if\s*!\s*python3 scripts/build_bundle\.py\s*;\s*then', src), (
-        'build_macos_desktop.sh must actually RUN scripts/build_bundle.py; '
-        'without it the app serves stale JavaScript -- the cause of the Pro '
-        'popup on an unlocked build')
+    assert re.search(
+        r'if\s*!\s*\(cd "\$REPO_ROOT" && python3 scripts/build_bundle\.py\)\s*;\s*then',
+        src), (
+        'build_macos_desktop.sh must actually RUN scripts/build_bundle.py from '
+        'the repo root; without it the app serves stale JavaScript -- the cause '
+        'of the Pro popup on an unlocked build')
 
 
 def test_the_bundle_step_runs_before_packaging():
