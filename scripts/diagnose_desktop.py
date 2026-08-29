@@ -186,8 +186,34 @@ else:
 print(f'  OLLAMA_BASE_URL = {os.environ.get("OLLAMA_BASE_URL", "<unset>")}')
 code, _ = get(f'{BASE}/api/onboarding/quick-setup/status', 5)
 print(f'  app /api/onboarding/quick-setup/status -> {code}')
-print('  note: this build has no standalone Ollama detect endpoint; detection')
-print('        runs only inside POST /api/onboarding/quick-setup.')
+
+# Probe the detect endpoint rather than asserting anything about it. The
+# previous version printed "this build has no standalone Ollama detect
+# endpoint" as a HARDCODED line -- it never made the request. Once the endpoint
+# shipped, the diagnostic kept reporting it missing, on a build that had it.
+# A diagnostic that states conclusions it did not measure is worse than no
+# diagnostic: it sends you hunting for a bug that is not there.
+dcode, dbody = get(f'{BASE}/api/onboarding/detect-local-models', 8)
+print(f'  app /api/onboarding/detect-local-models -> {dcode}')
+if dcode == 200:
+    try:
+        d = json.loads(dbody)
+    except Exception:
+        d = {}
+    print(f'    available       = {d.get("available")}')
+    print(f'    backend         = {d.get("backend")}')
+    print(f'    base_url        = {d.get("base_url")}')
+    print(f'    models seen     = {len(d.get("models") or [])}')
+    print(f'    suggested_model = {d.get("suggested_model") or "<none>"}')
+    if models and not d.get('available'):
+        print('  !! This shell sees Ollama but the APP does not. The app is')
+        print('     probably sandboxed away from 127.0.0.1:11434, or is using a')
+        print('     different OLLAMA_BASE_URL. This is the real defect.')
+elif dcode == 404:
+    print('  !! Endpoint missing -- this build predates the Ollama detect route.')
+    print('     Pull the latest main and rebuild.')
+else:
+    print(f'  !! Unexpected status {dcode}.')
 line()
 
 # ── 5. process ────────────────────────────────────────────────────────────────
