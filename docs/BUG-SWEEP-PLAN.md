@@ -127,6 +127,48 @@ green and every new test revert-proved.
 
 ---
 
+## Status
+
+_Updated as work lands. Every claim here is checkable by running the command._
+
+### Phase 1 — the four reported bugs: **COMPLETE**
+
+| Bug | Status | Proof |
+|---|---|---|
+| 1 Pro popup | Fixed | Build regenerates + verifies `dist`, 7 hard `exit 1` gates. Backend confirmed unlocked on the user's machine. |
+| 2 Glitchy clicking | Fixed | Root cause was NOT the overlay. `data-self-click` synthesised clicks on all 16 non-click events, so hovering ran click actions. Now keyboard-only (b99dc0a). |
+| 3 Kanban drag-drop | Fixed | Handlers take `$this`; 0 live `currentTarget` reads remain (5c2a93f). |
+| 4 Ollama auto-connect | Fixed | Endpoint existed with no caller; startup probe wired (6a02312). Verified in Chromium against a 17-model list. |
+
+Four build-chain defects were found *between* those fixes and the user's
+machine, each of which silently shipped stale code: unrunnable build script
+(5e0d178), non-reproducible bundle blocking `git pull` (03ee7d7), the packager
+selecting the *previous* build's `.app` (d481a30), and no warning when behind
+origin (e8bd391). Phase 1's fixes were correct for three sessions before any
+of them reached the user.
+
+**10 test files, 91 tests, every one revert-proved.**
+
+### Phase 2 — sweep the classes: **1 of 4 complete**
+
+| # | Class | Script | Findings |
+|---|---|---|---|
+| 1 | Dead handler contract | `scripts/sweep_dead_handlers.py` | **0** ✅ |
+| 2 | Blocking overlay | not yet written | — |
+| 3 | Stale build artefact | not yet written | — |
+| 4 | Capability never triggered | not yet written | — |
+
+```bash
+python3 scripts/sweep_dead_handlers.py    # exit 0 = zero findings
+```
+
+Sweep 1 found one real defect (`data-act-select` was never bound, so the
+collab editor never shared cursor position) and 69 false positives caused by
+the probe itself. All 69 are documented in `efafc7a`; the correction ratio is
+the reason each sweep is committed only after its own output is trustworthy.
+
+---
+
 ## The finish line
 
 This is the falsifiable part.
