@@ -79,6 +79,9 @@ W_ROUTE_PHRASE = 6.0  # multi-word declared trigger matched
 W_ROUTE_WORD = 3.0    # single-word declared trigger matched
 W_NAME = 4.0          # workspace name/id appeared as whole words
 W_STAGE = 1.5         # a stage name appeared as whole words
+# Multiplier for a multi-word route matched by scattered words rather than as a
+# contiguous phrase. Below 1.0 so an exact phrase always outranks a near miss.
+W_ROUTE_PARTIAL = 0.75
 
 # Words too common to carry routing signal on their own. A route declaring only
 # these is a route that matches everything, which is the same as no route.
@@ -114,6 +117,26 @@ def _normalise(text: str) -> str:
     return ' ' + ' '.join(_words(text)) + ' '
 
 
+def _routes_chunks(text: str) -> list[str]:
+    """Split so each `## Routes` heading starts its own chunk.
+
+    Lets the single-section extractor run once per occurrence, so a file with a
+    scaffolded stub AND an appended section yields both.
+    """
+    parts: list[str] = []
+    current: list[str] = []
+    for line in text.splitlines():
+        if re.match(r'^#{1,6}\s+' + re.escape(ROUTES_SECTION) + r'\s*$', line, re.I):
+            if current:
+                parts.append('\n'.join(current))
+            current = [line]
+        elif current:
+            current.append(line)
+    if current:
+        parts.append('\n'.join(current))
+    return parts or [text]
+
+
 def parse_routes(ws: Path) -> list[str]:
     """Read declared triggers from the `## Routes` section of L1 CONTEXT.md.
 
@@ -130,9 +153,35 @@ def parse_routes(ws: Path) -> list[str]:
     text = icm._read(ws / 'CONTEXT.md')
     if not text:
         return []
-    section = icm._section(text, ROUTES_SECTION)
+    # EVERY `## Routes` section, not just the first.
+    #
+    # icm._section() returns one section by design (selective loading keeps
+    # context small). But a file can legitimately hold two: the scaffolded stub
+    # plus one a person or tool appended later. Reading only the first meant a
+    # workspace whose real routes were appended below the stub declared
+    # nothing -- and the stub is now always present, so this went from a corner
+    # case to the default. Caught by 26 pre-existing tests when the stub
+    # landed; they were right and the narrow read was wrong.
+    sections = [
+        icm._section(chunk, ROUTES_SECTION)
+        for chunk in _routes_chunks(text)
+    ]
+    section = '\n'.join(x for x in sections if x)
     if not section:
         return []
+    # Strip HTML comments before reading bullets.
+    #
+    # The scaffolded stub explains the section with a commented EXAMPLE:
+    #
+    #     <!-- ... Example:
+    #            - weekly client report
+    #            - invoice -->
+    #
+    # Without this, every freshly created workspace silently declared those as
+    # real routes -- so the first workspace a user made would capture all
+    # "invoice" traffic it never asked for, and two workspaces would tie. My
+    # own fix for the missing section caused it; caught by its own test.
+    section = re.sub(r'<!--.*?-->', '', section, flags=re.S)
     out: list[str] = []
     for line in section.splitlines():
         m = re.match(r'^\s*[-*+]\s+(.+?)\s*$', line)
@@ -184,10 +233,38 @@ def score_workspace(message: str, ws: Path, requested: str = '') -> dict[str, An
         }
 
     for phrase in parse_routes(ws):
+        terms = phrase.split()
+        multi = len(terms) > 1
         if f' {phrase} ' in hay:
-            multi = ' ' in phrase
             score += W_ROUTE_PHRASE if multi else W_ROUTE_WORD
             evidence.append(f'route: {phrase!r}')
+            continue
+        # PARTIAL CREDIT for a multi-word route whose words are all present but
+        # not adjacent.
+        #
+        # Requiring the exact contiguous phrase made declared routes almost
+        # unusable in practice. A workspace declaring `- vendor renewal quote`
+        # scored 0.0 against
+        #
+        #     "Follow up with the vendor about the renewal quote"
+        #
+        # -- every word is there, in order, separated by two filler words --
+        # and the sweep reported "no workspace declared a route for this
+        # request". The user writes a route, captures the obvious matching
+        # note, and nothing files. Verified before the fix: score 0.0,
+        # evidence [].
+        #
+        # A route is a human's stated intent, not a search query, so near
+        # misses must count. Scoring stays proportional (a full phrase match
+        # is still worth strictly more) and needs a clear majority of the
+        # words, so one incidental token cannot pull traffic.
+        if multi:
+            present = [t for t in terms if f' {t} ' in hay]
+            if len(present) * 2 > len(terms) and len(present) >= 2:
+                ratio = len(present) / len(terms)
+                score += W_ROUTE_PHRASE * ratio * W_ROUTE_PARTIAL
+                evidence.append(
+                    f'route: {phrase!r} ({len(present)}/{len(terms)} words)')
 
     for term in _name_terms(ws.name, meta):
         if f' {term} ' in hay:
