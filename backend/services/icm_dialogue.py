@@ -110,6 +110,7 @@ _SEQ_RE = re.compile(
     re.I,
 )
 
+
 # "I always check X before Y" -> a human gate.
 GATE_MARKERS = (
     'i check', 'i review', 'i approve', 'i verify', 'i confirm', 'i look over',
@@ -142,6 +143,43 @@ STAGE_VERBS = (
     # ("week"), so a real stage got an unreadable name.
     'pull', 'sort', 'pick', 'choose', 'select', 'read', 'reconcile',
     'update', 'upload', 'import', 'clean', 'tag', 'label', 'log', 'track',
+    # Intake / case-handling work. The vocabulary was written around content
+    # production, so a support, ops or services workflow -- "I intake the
+    # request, triage it, assign an owner, and close it out" -- matched only
+    # ONE verb and collapsed to a single stage. These are the same defect as
+    # the list-splitting bug: the user's process was silently truncated.
+    'intake', 'triage', 'assign', 'route', 'escalate', 'resolve', 'close',
+    'qualify', 'onboard', 'verify', 'score', 'rank', 'prioritise', 'prioritize',
+    'submit', 'merge', 'archive', 'transcribe', 'translate', 'annotate',
+)
+
+# A comma or "and" followed directly by a KNOWN STAGE VERB is also a boundary.
+#
+# People list their stages far more often than they narrate them:
+#
+#     "I research, draft, edit, and publish each piece."
+#
+# contains no sequence marker at all, so the marker-only splitter produced ONE
+# fragment and therefore ONE stage named 'research' -- silently dropping three
+# quarters of the user's process. Measured before this change:
+#
+#     "Every week I research a topic, draft an article, then review it"
+#         -> ['research', 'review']            (draft lost)
+#     "I research, draft, edit, and publish each piece."
+#         -> ['research']                      (three lost)
+#     "I intake the request, triage it, assign an owner, and close it out."
+#         -> ['intake']                        (three lost)
+#
+# This is worse than a wrong answer: the proposal LOOKS considered, and the
+# user is invited to confirm a structure that quietly omits most of their work.
+#
+# Only the curated STAGE_VERBS vocabulary opens a cut, so ordinary prose
+# ("a topic, an article") cannot fragment a sentence into noise. The verb must
+# also be the FIRST word of the clause -- "review it before publishing" is one
+# clause about reviewing, not two.
+_LIST_RE = re.compile(
+    r'(?:,\s*|,?\s+and\s+)((?:' + '|'.join(re.escape(v) for v in STAGE_VERBS) + r')\b)',
+    re.I,
 )
 
 # Words that describe *doing work* rather than naming the subject of the work.
@@ -298,6 +336,19 @@ def extract_stages(text: str) -> list[dict[str, Any]]:
     cuts: list[tuple[int, str]] = []
     for m in _SEQ_RE.finditer(clean):
         cuts.append((m.start(1), m.group(1).lower()))
+    # List form: ", draft" / "and publish". The marker is consumed as part of
+    # the boundary for sequence words ("then X" -> body "X"), but a listed verb
+    # IS the body -- so record a zero-length marker at its start and let the
+    # fragment begin there.
+    for m in _LIST_RE.finditer(clean):
+        cuts.append((m.start(1), ''))
+    # Two rules can find the same boundary ("and then draft"): keep one cut per
+    # position, preferring the sequence marker, and restore document order.
+    best: dict[int, str] = {}
+    for pos, marker in cuts:
+        if pos not in best or (marker and not best[pos]):
+            best[pos] = marker
+    cuts = sorted(best.items())
 
     fragments: list[tuple[str, str]] = []
     if not cuts:
@@ -316,7 +367,14 @@ def extract_stages(text: str) -> list[dict[str, Any]]:
     stages: list[dict[str, Any]] = []
     seen: set[str] = set()
     for body, marker in fragments:
-        if len(body.split()) < 2:
+        # A listed stage is legitimately one word: "I research, draft, edit,
+        # and publish" gives the fragment "draft". The two-word floor exists to
+        # drop sentence debris like "it" or "that", so keep it -- but not for a
+        # fragment that IS a known stage verb. Before this, 'draft' survived
+        # the split and was then discarded by the length filter, so the fix to
+        # the splitter alone still lost it.
+        words = body.split()
+        if len(words) < 2 and body.strip(' .,;').lower() not in STAGE_VERBS:
             continue
         name = _slug_verb(body)
         # Two fragments naming the same verb are one stage described twice, not
