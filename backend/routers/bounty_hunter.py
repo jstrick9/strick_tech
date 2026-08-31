@@ -6,6 +6,7 @@ Created by Joshua Strickland and Strick Tech for Pro & Enterprise editions.
 from __future__ import annotations
 
 import json
+import re
 import time
 import uuid
 from typing import Any
@@ -112,10 +113,28 @@ def launch_bounty_scan(payload: BountyScanRequest) -> dict[str, Any]:
     return {"ok": True, "scan_id": scan_id, "scan": scan_info, "message": f"Scan '{scan_id}' completed with {len(findings)} findings"}
 
 
+def _safe_scan_id(scan_id: str) -> str:
+    """Map a user-supplied scan_id to a safe, non-traversing filename stem.
+
+    The endpoints build `SCANS_DIR / f'{scan_id}.json'` straight from the URL
+    path parameter. A value with path separators / traversal (`a/../..`,
+    encoded) would escape the scans directory to read or overwrite an arbitrary
+    .json file. Write ids are server-generated (bh_scan_<uuid>), but read +
+    autopatch take caller-supplied ids. Sanitize to a bare safe stem, matching
+    workflow._wf_path. (FastAPI's routing currently rejects encoded slashes so
+    this is defense-in-depth against a route change.)
+    """
+    return re.sub(r"[^A-Za-z0-9_-]", "_", str(scan_id))[:128]
+
+
+def _scan_file(scan_id: str):
+    return SCANS_DIR / f"{_safe_scan_id(scan_id)}.json"
+
+
 @router.get("/scans/{scan_id}")
 def get_bounty_scan(scan_id: str) -> dict[str, Any]:
     """Inspect detailed vulnerability findings and patch metrics for a specific scan."""
-    scan_file = SCANS_DIR / f"{scan_id}.json"
+    scan_file = _scan_file(scan_id)
     if not scan_file.exists():
         raise HTTPException(status_code=404, detail="Bounty scan not found")
     return {"ok": True, "scan": json.loads(scan_file.read_text(encoding="utf-8"))}
@@ -124,7 +143,7 @@ def get_bounty_scan(scan_id: str) -> dict[str, Any]:
 @router.post("/scans/{scan_id}/autopatch")
 def execute_autopatch(scan_id: str, payload: AutoPatchRequest) -> dict[str, Any]:
     """Execute autonomous self-patching to remediate a detected zero-day vulnerability."""
-    scan_file = SCANS_DIR / f"{scan_id}.json"
+    scan_file = _scan_file(scan_id)
     if not scan_file.exists():
         raise HTTPException(status_code=404, detail="Bounty scan not found")
     scan_info = json.loads(scan_file.read_text(encoding="utf-8"))
