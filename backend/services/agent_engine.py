@@ -24,6 +24,24 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from .codeguard import reject_unsafe_attribute_usage
+
+
+def _safe_chain_eval(expr: str, context: dict) -> Any:
+    """Evaluate a chain step `condition`/`transform` expression against a
+    restricted environment.
+
+    This previously ran `eval(expr, {'__builtins__': {}}, ctx)`. An empty
+    __builtins__ is NOT a sandbox: the attribute-traversal escape
+    `().__class__.__base__.__subclasses__()` works through it and reaches the
+    interpreter (e.g. subprocess.Popen), so a user-influenced condition could
+    run arbitrary code. Guard against the dunder/private traversal (the
+    primitive every escape relies on) before evaluating, consistent with
+    codeguard.run_guarded_exec used by the profiler/replay/hooks paths.
+    """
+    reject_unsafe_attribute_usage(expr, name='<chain_expr>')
+    return eval(expr, {'__builtins__': {}}, context)  # noqa: S307
+
 log = logging.getLogger('agentic.engine')
 
 
@@ -1177,7 +1195,7 @@ class ChainEngine:
             # Check condition
             if step.condition:
                 try:
-                    if not eval(step.condition, {"__builtins__": {}}, {**ctx, "input": prev_output, "prev_output": prev_output}):
+                    if not _safe_chain_eval(step.condition, {**ctx, "input": prev_output, "prev_output": prev_output}):
                         outputs.append({"step": step.name, "skipped": True, "reason": "condition false"})
                         continue
                 except Exception:
@@ -1206,7 +1224,7 @@ class ChainEngine:
                     # Apply transform
                     if step.transform:
                         try:
-                            output = eval(step.transform, {"__builtins__": {}}, {"output": output, "input": prev_output})
+                            output = _safe_chain_eval(step.transform, {"output": output, "input": prev_output})
                         except Exception:
                             pass
 
