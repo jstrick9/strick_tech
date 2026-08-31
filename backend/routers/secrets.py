@@ -21,7 +21,39 @@ from ..services.memory_db import audit_log, ensure_schema, get_conn
 log = logging.getLogger('agentic.secrets')
 
 router = APIRouter(prefix='/api/secrets', tags=['secrets'])
+from urllib.parse import urlparse  # noqa: E402
+
 from backend.config import get_data_dir
+
+
+def _validate_ollama_base_url(url: str) -> None:
+    """Ensure an Ollama base URL targets only this machine's loopback.
+
+    Ollama runs on localhost, so the legitimate case is localhost/loopback. Any
+    other host — including the cloud metadata service, any private LAN host, or
+    a public hostname that resolves to a private IP (DNS rebinding) — is
+    refused. The caller otherwise feeds this URL to an outbound HTTP GET and,
+    on success, writes it into global Ollama config.
+    """
+    if not url or not isinstance(url, str):
+        raise ValueError('Ollama base URL is required')
+    parsed = urlparse(url.strip())
+    if parsed.scheme not in ('http', 'https'):
+        raise ValueError('Ollama base URL must start with http:// or https://')
+    host = (parsed.hostname or '').lower()
+    if not host:
+        raise ValueError('Ollama base URL has no host')
+    # Allow only the loopback of this machine.
+    if host in ('localhost', '127.0.0.1', '::1', '[::1]'):
+        return
+    if host.startswith('127.'):
+        return
+    # Refuse anything else outright (block the metadata/private/LAN/etc.).
+    raise ValueError(
+        'Ollama base URL must be localhost or a loopback address — refusing '
+        f'to contact a non-local host ({host})'
+    )
+
 
 from ..services.request_body import as_text, json_body_or_error
 
@@ -403,6 +435,17 @@ async def test_secret_connection(req: Request):
     elif provider == 'ollama':
         raw_url = body.get('url') or os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
         url = raw_url.rstrip('/').removesuffix('/v1').rstrip('/')
+        # SECURITY: `url` is a request-body value. Previously it was passed
+        # straight to client.get() with no guard, so an attacker could make the
+        # server fetch any internal address (SSRF) and the successful value was
+        # then written to os.environ['OLLAMA_BASE_URL'] and llm.OLLAMA_BASE —
+        # redirecting ALL subsequent LLM traffic to an attacker-chosen host.
+        # Ollama legitimately runs on the loopback of this machine, so allow
+        # localhost/loopback and nothing else.
+        try:
+            _validate_ollama_base_url(url)
+        except ValueError as ex:
+            return {'ok': False, 'error': str(ex)}
         try:
             async with httpx.AsyncClient(timeout=4.0) as client:
                 try:
