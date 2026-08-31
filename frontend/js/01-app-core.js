@@ -352,7 +352,17 @@ async function loadAgents() {
 function renderAgentList() {
   const el = document.getElementById('agent-list');
   if (el && S.agents) {
-    el.innerHTML = S.agents.map(a => `
+    // ── Novice-friendly agent grouping (2026-08) ────────────────────────────
+    // The four coded-tooling agents (UI/functional tester, design decomposer,
+    // test creator) mean nothing to a personal-use novice and bury the everyday
+    // ones. They are still real and editable — just tucked under a collapsed
+    // "Advanced agents" section so the sidebar is not 12 rows of jargon.
+    const ADVANCED_IDS = new Set(['visual_tester', 'functional_tester', 'design_decomposer', 'test_creator']);
+    const coreAgents = S.agents.filter(a => !ADVANCED_IDS.has(a.id));
+    const advAgents = S.agents.filter(a => ADVANCED_IDS.has(a.id));
+    let advOpen = false;
+    try { advOpen = localStorage.getItem('agentic_os_show_advanced_agents') === 'true'; } catch {}
+    const advRow = (a) => `
       <div class="agent-row ${S.currentAgent?.id === a.id ? 'active-agent' : ''}"
            data-agent="${escHtml(JSON.stringify(a))}" data-act-click="hSetActiveAgent($json.agent)"
            data-act-dblclick="openAgentModal(${JSON.stringify(a.id)})">
@@ -366,8 +376,22 @@ function renderAgentList() {
         <div class="agent-status ${a.status || 'idle'}" role="img"
              aria-label="Status: ${a.status || 'idle'}"
              title="${a.status || 'idle'}"></div>
+      </div>`;
+
+    const advSection = advAgents.length ? `
+      <div style="padding:8px 12px 4px;user-select:none;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:10px;letter-spacing:0.6px;font-weight:800;color:var(--text-3)">ADVANCED AGENTS (expand)</span>
       </div>
-    `).join('');
+      <div id="advanced-agents-list" style="display:${advOpen ? 'block' : 'none'}">
+        ${advAgents.map(advRow).join('')}
+      </div>
+      <button type="button" id="toggle-advanced-agents" data-act-click="toggleAdvancedAgents()"
+        style="margin:2px 12px 8px;font-size:11px;color:var(--accent-text);background:none;border:none;cursor:pointer;padding:2px 0;text-align:left">
+        ▸ ${advOpen ? 'Hide' : 'Show'} advanced agents (${advAgents.length})
+      </button>
+    ` : '';
+
+    el.innerHTML = coreAgents.map(advRow).join('') + advSection;
   }
 
   const po = document.getElementById('chat-persona-optgroup');
@@ -377,7 +401,11 @@ function renderAgentList() {
 
   const sl = document.getElementById('settings-agents-list');
   if (sl && S.agents) {
-    sl.innerHTML = S.agents.map(a => `
+    const ADVANCED_IDS = new Set(['visual_tester', 'functional_tester', 'design_decomposer', 'test_creator']);
+    const advAgents = S.agents.filter(a => ADVANCED_IDS.has(a.id));
+    let advOpen = false;
+    try { advOpen = localStorage.getItem('agentic_os_show_advanced_agents') === 'true'; } catch {}
+    const row = (a) => `
       <div style="display:flex;align-items:center;gap:10px;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 12px;">
         <span class="u-4ff818ff">${a.avatar||'🤖'}</span>
         <div class="u-97445a8d">
@@ -385,10 +413,31 @@ function renderAgentList() {
           <div style="font-size:11px;color:var(--text-2)">${escHtml(a.role||'')} • ${a.model||'default'}</div>
         </div>
         <button data-act-click="openAgentModal(${JSON.stringify(a.id)})" class="btn btn-ghost btn-sm">Edit</button>
-      </div>
-    `).join('');
+      </div>`;
+    const coreAgents = S.agents.filter(a => !ADVANCED_IDS.has(a.id));
+    sl.innerHTML = coreAgents.map(row).join('') +
+      (advAgents.length ? `
+        <div style="font-size:10px;letter-spacing:0.6px;font-weight:800;color:var(--text-3);margin:12px 0 4px">ADVANCED AGENTS</div>
+        <div id="settings-advanced-agents-list" style="display:${advOpen ? 'block' : 'none'}">
+          ${advAgents.map(row).join('')}
+        </div>
+        <button type="button" data-act-click="toggleAdvancedAgents()" style="margin:6px 0 0;font-size:11px;color:var(--accent-text);background:none;border:none;cursor:pointer;padding:2px 0;text-align:left">
+          ▸ ${advOpen ? 'Hide' : 'Show'} advanced agents (${advAgents.length})
+        </button>` : '');
   }
 }
+
+window.toggleAdvancedAgents = function() {
+  let open = false;
+  try { open = localStorage.getItem('agentic_os_show_advanced_agents') === 'true'; } catch {}
+  open = !open;
+  try { localStorage.setItem('agentic_os_show_advanced_agents', open ? 'true' : 'false'); } catch {}
+  const sidebar = document.getElementById('advanced-agents-list');
+  const settings = document.getElementById('settings-advanced-agents-list');
+  if (sidebar) sidebar.style.display = open ? 'block' : 'none';
+  if (settings) settings.style.display = open ? 'block' : 'none';
+  renderAgentList();
+};
 
 function setActiveAgent(agent) {
   if (!agent) agent = { id: 'default', name: 'Direct AI Chat', avatar: '💬', model: '' };
