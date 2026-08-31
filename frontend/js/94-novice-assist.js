@@ -214,17 +214,10 @@
   }
 
   function mountChecks() {
-    // 1) connect — wrap the app's own readiness signal (chain-safe).
-    const ok = window.renderConnectionReadiness;
-    if (typeof ok === 'function') {
-      window.renderConnectionReadiness = function (readiness) {
-        const r = ok.apply(this, arguments);
-        if (readiness && (readiness.cloudReady || Number(readiness.localModels) > 0)) {
-          window.aosMarkStep('connect');
-        }
-        return r;
-      };
-    }
+    // 1) connect — detected in sweep() by reading the app's own connection
+    //    ready-state element (#chat-connection-status.ready). No re-wrapping of
+    //    window.renderConnectionReadiness; that would clobber the core signal
+    //    and trip the duplicate-globals linter (see scripts/lint_globals.py).
     // 2) message — catch the human send paths (send button + Enter).
     const sendBtn = document.getElementById('chat-send');
     if (sendBtn) sendBtn.addEventListener('click', function () {
@@ -249,15 +242,11 @@
         };
       }
     });
-    // 4) task — wrap the create submit + a DOM sweep after renders.
-    const kb = window.kanbanSubmitCreate;
-    if (typeof kb === 'function') {
-      window.kanbanSubmitCreate = function () {
-        const r = kb.apply(this, arguments);
-        window.aosMarkStep('task');
-        return r;
-      };
-    }
+    // 4) task — detected in sweep() by scanning for rendered `.kanban-card`
+    //    elements once the board has been opened; creating a task re-renders
+    //    the board, so the sweep picks it up. No window.kanbanSubmitCreate
+    //    re-wrap (would clobber the core handler + trip the duplicate-globals
+    //    linter).
     // Periodic + on-navigation sweep (cheap, all guards inside).
     window.addEventListener('hashchange', () => setTimeout(sweep, 600));
     setInterval(sweep, 4000);

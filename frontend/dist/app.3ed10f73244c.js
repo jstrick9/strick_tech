@@ -16548,7 +16548,7 @@ _setupBtn.type = 'button';
 _setupBtn.id = 'top-setup-btn';
 _setupBtn.setAttribute('aria-label', 'Set up your AI');
 _setupBtn.textContent = '✨ Setup AI';
-_setupBtn.style.cssText = 'flex:none;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer';
+_setupBtn.style.cssText = 'flex:none;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:8px;border:1px solid var(--accent);color:var(--accent-text);background:transparent;cursor:pointer';
 _setupBtn.addEventListener('click', (ev) => {
 ev.stopPropagation();
 if (window.showQuickSetup) window.showQuickSetup();
@@ -21467,16 +21467,6 @@ if (checkMessageSent()) window.aosMarkStep('message');
 if (checkTaskCreated()) window.aosMarkStep('task');
 }
 function mountChecks() {
-const ok = window.renderConnectionReadiness;
-if (typeof ok === 'function') {
-window.renderConnectionReadiness = function (readiness) {
-const r = ok.apply(this, arguments);
-if (readiness && (readiness.cloudReady || Number(readiness.localModels) > 0)) {
-window.aosMarkStep('connect');
-}
-return r;
-};
-}
 const sendBtn = document.getElementById('chat-send');
 if (sendBtn) sendBtn.addEventListener('click', function () {
 const inp = document.getElementById('chat-input');
@@ -21499,14 +21489,6 @@ return r;
 };
 }
 });
-const kb = window.kanbanSubmitCreate;
-if (typeof kb === 'function') {
-window.kanbanSubmitCreate = function () {
-const r = kb.apply(this, arguments);
-window.aosMarkStep('task');
-return r;
-};
-}
 window.addEventListener('hashchange', () => setTimeout(sweep, 600));
 setInterval(sweep, 4000);
 setTimeout(sweep, 1500);
