@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import uuid
 from pathlib import Path
 
@@ -93,18 +94,54 @@ _ensure_schema()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+# Strict spec-id shape. `spec_id` is a URL path parameter and is used to build a
+# filesystem directory (SPECS_DIR / spec_id), so it must never contain a path
+# separator or a dot. Without this, a crafted id like `../../evil` (reachable as
+# PUT /api/specs/../../evil/artifacts/x.md) moved the artifact write OUTSIDE the
+# workspace — arbitrary file write. Same shape as the established
+# hierararchy._PROJECT_ID_RE / workspaces._WS_ID_RE guards.
+_SPEC_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_-]{0,63}$')
+
+
 def _spec_dir(spec_id: str) -> Path:
+    # Refuse a `spec_id` that could escape SPECS_DIR. Callers (e.g.
+    # save_artifact / get_artifact) used to let a traversal id reach this
+    # function; raising keeps the whole write/read surface confined.
+    if not isinstance(spec_id, str) or not _SPEC_ID_RE.match(spec_id):
+        raise ValueError(f'Invalid spec id: {spec_id!r}')
     d = SPECS_DIR / spec_id
     d.mkdir(parents=True, exist_ok=True)
     return d
 
 
+def _clean_artifact_filename(filename: str) -> str:
+    """Return a safe single filename segment, or raise on traversal.
+
+    `filename` is user-controlled and joins `_spec_dir(spec_id)`. Only a bare
+    file name (no path separators, no `..`) is permitted; anything else is
+    refused rather than silently renamed, so a caller can never be surprised
+    by where a file landed.
+    """
+    f = (filename or '').strip()
+    if not f:
+        raise ValueError('Invalid artifact filename')
+    if '/' in f or '\\' in f or '..' in f or f.startswith('.'):
+        raise ValueError('Invalid artifact filename')
+    return f
+
+
 def _save_artifact(spec_id: str, filename: str, content: str):
-    (_spec_dir(spec_id) / filename).write_text(content, encoding='utf-8')
+    safe = _clean_artifact_filename(filename)
+    target = _spec_dir(spec_id) / safe
+    from ..services.safe_paths import is_within
+    if not is_within(target, _spec_dir(spec_id)):
+        raise ValueError('Artifact path escapes spec directory')
+    target.write_text(content, encoding='utf-8')
 
 
 def _load_artifact(spec_id: str, filename: str) -> str:
-    p = _spec_dir(spec_id) / filename
+    safe = _clean_artifact_filename(filename)
+    p = _spec_dir(spec_id) / safe
     return p.read_text(encoding='utf-8') if p.exists() else ''
 
 
@@ -945,12 +982,19 @@ async def update_task(spec_id: str, task_no: int, req: Request):
 
 
 # ── Artifacts ─────────────────────────────────────────────────────────────────
+# WARNING: both `spec_id` and `filename` arrive from the URL and are used to
+# build filesystem paths. Spec ids are validated by _spec_dir (strict regex);
+# filenames are scrubbed of separators/traversal. A crafted id such as
+# `../../evil` (why a `_SPEC_ID_RE` is enforced) would otherwise write outside
+# the spec directory.
 @router.get('/{spec_id}/artifacts/{filename}')
 def get_artifact(spec_id: str, filename: str):
     """Retrieve and return get artifact."""
-    safe = filename.replace('/', '').replace('..', '')
-    content = _load_artifact(spec_id, safe)
-    return {'spec_id': spec_id, 'filename': safe, 'content': content, 'length': len(content)}
+    try:
+        content = _load_artifact(str(spec_id), str(filename))
+    except ValueError as exc:
+        return JSONResponse({'ok': False, 'error': str(exc)}, status_code=400)
+    return {'spec_id': spec_id, 'filename': filename, 'content': content, 'length': len(content)}
 
 
 @router.put('/{spec_id}/artifacts/{filename}')
@@ -960,9 +1004,11 @@ async def save_artifact(spec_id: str, filename: str, req: Request):
     if _body_err:
         return _body_err
     content = body.get('content', '')
-    safe = filename.replace('/', '').replace('..', '')
-    _save_artifact(spec_id, safe, content)
-    return {'ok': True, 'filename': safe, 'length': len(content)}
+    try:
+        _save_artifact(str(spec_id), str(filename), content)
+    except ValueError as exc:
+        return JSONResponse({'ok': False, 'error': str(exc)}, status_code=400)
+    return {'ok': True, 'filename': filename, 'length': len(content)}
 
 
 @router.get('/{spec_id}/export')
