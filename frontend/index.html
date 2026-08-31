@@ -260,8 +260,8 @@
               </div>
 
               <details id="chat-persona-details" class="u-d461c96d">
-                <summary style="display:flex;align-items:center;gap:4px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--text-2);list-style:none;font-weight:600" title="Select an AI agent persona">
-                  <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Agent</span>
+                <summary style="display:flex;align-items:center;gap:4px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--text-2);list-style:none;font-weight:600" title="Choose who replies: a general assistant or a specialist voice">
+                  <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Assistant</span>
                   <span id="active-persona-icon">💬</span> <span id="active-persona-label">Direct Chat</span> <span style="font-size:10px;opacity:0.5">▾</span>
                 </summary>
                 <div style="position:absolute;top:100%;left:0;margin-top:4px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:6px;min-width:220px;z-index:100;box-shadow:var(--shadow-lg)">
@@ -1924,6 +1924,13 @@
      KEYBOARD SHORTCUTS OVERLAY
      ═══════════════════════════════════════════════════════════════ -->
 <script src="/static/js/93-shortcuts-overlay.js" defer></script>
+
+
+<!-- ═════════════════════════════════════════════════════════════
+     NOVICE ASSIST — Simple mode + Getting started checklist + terminology
+     (loads after every feature module so it can wrap the global hooks)
+     ═════════════════════════════════════════════════════════════ -->
+<script src="/static/js/94-novice-assist.js" defer></script>
 
 
 

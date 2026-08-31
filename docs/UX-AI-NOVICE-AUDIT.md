@@ -90,3 +90,25 @@ just a yes/no on scope.
    agents + post-onboarding nudge (3–5)?
 3. **Scope of agent simplification:** hide advanced testing agents by default, or just re-label/group them?
 4. **Do you want these pushed to `main`** (like last time) or left as a local proposal for your review first?
+
+---
+
+## Round 2 (implemented, commit pending) — activation & de-clutter
+
+Round 1 fixed **labels & confusion**. Round 2 tackles **"now what?"** — the thing that actually decides whether a
+novice keeps using it. Shipped in a new trailing module `frontend/js/94-novice-assist.js` plus an `index.html` tweak:
+
+1. **"Simple mode" navigational switch.** A novice lands on the 8 CORE panes only. The four advanced groups
+   (AI TOOLS / BUILD & SHIP / CONNECT / OPERATE — 24 panes) are tucked behind a single **💡** toggle in the sidebar
+   header and a **"Show all features ▾"** footer link. The last choice is remembered; a fresh install defaults to the
+   simple view. (Implementation is display-only — no DOM nodes removed, so existing nav-count logic is untouched.)
+2. **"🚀 Getting started" checklist** in the Chat empty state — Connect your AI → Send your first message → Save your
+   first note → Create your first task. It **auto-checks real actions** (reads the app's own connection-ready state,
+   the send/Enter paths, and wraps the user-triggered save/task flows), persists progress, collapses to a "🎉 You're
+   all set" card when done, and is dismissible for good.
+3. **Terminology polish:** the chat's **"Agent"** picker is now **"Assistant"** with a plain-language explanation
+   ("Choose who replies: a general assistant or a specialist voice").
+
+**Verification:** 19/19 jsdom runtime checks pass (simple-mode default + round-trip persist, all 4 checklist steps
+auto-marking, dismiss, persona copy). `node --check` clean. ESLint: 0 errors on the new module. Frontend suite:
+67 pass / 8 fail — the 8 are the *same pre-existing* failures confirmed on the prior commit; no regressions.
