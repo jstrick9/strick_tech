@@ -3100,7 +3100,7 @@ if (j.ollama?.running) {
 el.innerHTML = `<span style="color:var(--green)">✅ Ollama running</span> — ${j.ollama.models?.length||0} models installed`;
 const ml = document.getElementById('ollama-models') || document.getElementById('settings-api-ollama-models');
 if (ml) ml.innerHTML = j.ollama.models?.map(m =>
-`<span class="tag" style="margin:2px">${m}</span>`).join('') || '';
+`<span class="tag" style="margin:2px">${escHtml(m)}</span>`).join('') || '';
 } else {
 el.innerHTML = `<span style="color:var(--red)">❌ Ollama not running</span> — see setup below`;
 }
@@ -8398,11 +8398,11 @@ const col = `hsl(${hue},60%,45%)`;
 const children = (node.children||[]).map(c => renderNode(c, depth+1)).join('');
 return `
         <div style="display:inline-block;vertical-align:top;width:${w}%;min-width:2px;box-sizing:border-box;padding:0 1px">
-          <div title="${node.name}: ${node.value}ms" style="
+          <div title="${escHtml(node.name)}: ${node.value}ms" style="
             background:${col};color:#fff;font-size:9px;padding:2px 3px;
             border-radius:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
             margin-bottom:2px;cursor:default;height:18px;line-height:14px;
-          ">${node.name}</div>
+          ">${escHtml(node.name)}</div>
           ${children ? `<div style="display:flex;flex-wrap:nowrap">${children}</div>` : ''}
         </div>
       `;

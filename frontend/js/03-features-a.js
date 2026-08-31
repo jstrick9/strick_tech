@@ -1615,11 +1615,11 @@ async function renderFlamegraph() {
       const children = (node.children||[]).map(c => renderNode(c, depth+1)).join('');
       return `
         <div style="display:inline-block;vertical-align:top;width:${w}%;min-width:2px;box-sizing:border-box;padding:0 1px">
-          <div title="${node.name}: ${node.value}ms" style="
+          <div title="${escHtml(node.name)}: ${node.value}ms" style="
             background:${col};color:#fff;font-size:9px;padding:2px 3px;
             border-radius:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
             margin-bottom:2px;cursor:default;height:18px;line-height:14px;
-          ">${node.name}</div>
+          ">${escHtml(node.name)}</div>
           ${children ? `<div style="display:flex;flex-wrap:nowrap">${children}</div>` : ''}
         </div>
       `;

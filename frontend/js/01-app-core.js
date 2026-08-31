@@ -1266,7 +1266,7 @@ window.loadSettings = async function() {
         el.innerHTML = `<span style="color:var(--green)">✅ Ollama running</span> — ${j.ollama.models?.length||0} models installed`;
         const ml = document.getElementById('ollama-models') || document.getElementById('settings-api-ollama-models');
         if (ml) ml.innerHTML = j.ollama.models?.map(m =>
-          `<span class="tag" style="margin:2px">${m}</span>`).join('') || '';
+          `<span class="tag" style="margin:2px">${escHtml(m)}</span>`).join('') || '';
       } else {
         el.innerHTML = `<span style="color:var(--red)">❌ Ollama not running</span> — see setup below`;
       }
