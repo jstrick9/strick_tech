@@ -33,6 +33,16 @@ SRC = (REPO / 'backend' / 'routers' / 'terminal.py').read_text()
 
 
 class TestAuthorisationGate:
+    def test_default_unset_host_is_network_reachable_and_requires_auth(self, monkeypatch):
+        # Gap #011: config.py defaults AGENTIC_OS_HOST to '0.0.0.0' (bind to all
+        # interfaces / network-reachable), but this helper used to default its
+        # own read to '127.0.0.1' — so a default deployment bound 0.0.0.0 while
+        # concluding "loopback only" and skipping auth. An unset host must be
+        # treated as network-reachable (auth required).
+        monkeypatch.delenv('AGENTIC_OS_HOST', raising=False)
+        assert term._bound_to_loopback() is False
+        assert term._auth_required() is True
+
     def test_loopback_bind_is_recognised(self, monkeypatch):
         for host in ('127.0.0.1', '::1', 'localhost'):
             monkeypatch.setenv('AGENTIC_OS_HOST', host)
