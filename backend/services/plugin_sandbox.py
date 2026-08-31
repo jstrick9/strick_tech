@@ -14,13 +14,29 @@ from typing import Any
 log = logging.getLogger('agentic.sandbox')
 
 # ── Allowed built-in functions for plugin code ─────────────────────────────
+# These are the ONLY things a plugin may call. Critically, the object-graph
+# traversal helpers are deliberately excluded: `getattr`, `type`, `setattr`,
+# `delattr`, `vars`, `dir`, `globals`, `locals` and `eval`/`exec`/`compile`
+# let a plugin walk `some_obj.__class__.__mro__[N].__subclasses__()` to reach
+# the REAL `__builtins__['open']`/`__import__` and escape the sandbox (the
+# static gate is bypassable by aliasing, e.g. `G = getattr`, then building the
+# dunder string at runtime). No plugin needs these; removing them closes the
+# escape even for code that slips past the scan.
 ALLOWED_BUILTINS = {
     'abs', 'all', 'any', 'bool', 'chr', 'dict', 'divmod', 'enumerate',
-    'filter', 'float', 'format', 'frozenset', 'getattr', 'hasattr', 'hash',
-    'hex', 'int', 'isinstance', 'issubclass', 'iter', 'len', 'list', 'map',
-    'max', 'min', 'next', 'oct', 'ord', 'pow', 'print', 'range', 'repr',
-    'reversed', 'round', 'set', 'setattr', 'slice', 'sorted', 'str', 'sum',
-    'tuple', 'type', 'zip',
+    'filter', 'float', 'format', 'frozenset', 'hash', 'hasattr', 'hex', 'int',
+    'isinstance', 'issubclass', 'iter', 'len', 'list', 'map', 'max', 'min',
+    'next', 'oct', 'ord', 'pow', 'print', 'range', 'repr', 'reversed', 'round',
+    'set', 'slice', 'sorted', 'str', 'sum', 'tuple', 'zip',
+}
+
+# Builtins that MUST never be handed to plugin code, even if a future edit
+# re-adds them to ALLOWED_BUILTINS. Applied unconditionally in
+# create_sandbox_globals() so the runtime sandbox can never re-expose them.
+DENIED_BUILTINS = {
+    'getattr', 'setattr', 'delattr', 'type', 'vars', 'dir', 'globals',
+    'locals', 'eval', 'exec', 'compile', 'open', 'input', 'breakpoint',
+    'memoryview', 'bytearray', 'object',
 }
 
 # ── Dangerous constructs that must not appear in plugin code ────────────────
@@ -73,7 +89,12 @@ def validate_plugin_code(code: str) -> dict[str, Any]:
         if matches:
             violations.append(f'Blocked pattern: {pattern} ({len(matches)} occurrences)')
 
-    # Check blocked module imports
+    # Check blocked module imports + object-graph traversal via AST.
+    # The `__dunder__` regex cannot catch traversal built at runtime (e.g.
+    # `G = getattr` then `G(x, chr(95)*2 + 'class' + chr(95)*2)`), so we also
+    # reject the escape-enabling constructs structurally: any attribute access
+    # whose name starts with an underscore, and any reference to the traversal
+    # builtins even when aliased.
     try:
         tree = ast.parse(code)
         for node in ast.walk(tree):
@@ -90,6 +111,23 @@ def validate_plugin_code(code: str) -> dict[str, Any]:
             elif isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name) and node.func.id in BLOCKED_NAMES:
                     violations.append(f'Blocked function call: {node.func.id}')
+            # Any attribute access on a private/dunder name is the graph walk
+            # that powers every sandbox escape (.__class__.__mro__.__subclasses__
+            # .__globals__.__builtins__...). No plugin needs it.
+            if isinstance(node, ast.Attribute) and node.attr.startswith('_'):
+                violations.append(f'Blocked private attribute access: .{node.attr}')
+            # A reference to a traversal builtin can be aliased and used to
+            # synthesise attribute names at runtime.
+            if isinstance(node, ast.Name) and node.id in ('getattr', 'type',
+                                                          'setattr', 'delattr',
+                                                          'vars', 'dir',
+                                                          'globals', 'locals'):
+                violations.append(f'Blocked traversal builtin: {node.id}')
+            # A string literal that contains the escape-signature dunder pair
+            # (e.g. '__class__', '__globals__', '__mro__').
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                if '__' in node.value:
+                    violations.append('Blocked dunder string literal')
     except SyntaxError as e:
         violations.append(f'Syntax error: {e}')
 
@@ -102,8 +140,15 @@ def create_sandbox_globals() -> dict:
 
     safe_builtins = {}
     for name in ALLOWED_BUILTINS:
+        # Hard deny-list wins over the allow-list, so a future edit that
+        # re-adds a traversal helper to ALLOWED_BUILTINS cannot re-expose it.
+        if name in DENIED_BUILTINS:
+            continue
         if hasattr(builtins, name):
             safe_builtins[name] = getattr(builtins, name)
+    # belt and suspenders: also strip any denied name that slipped in.
+    for name in DENIED_BUILTINS:
+        safe_builtins.pop(name, None)
 
     return {
         '__builtins__': safe_builtins,
