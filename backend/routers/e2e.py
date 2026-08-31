@@ -16,6 +16,7 @@ import datetime
 import importlib
 import json
 import logging
+import os
 import time
 import uuid
 
@@ -210,7 +211,30 @@ def e2e_status():
 
 # ── Playwright trace ───────────────────────────────────────────────────────────
 async def _check_playwright() -> bool:
-    return importlib.util.find_spec('playwright.async_api') is not None
+    """True only when the Playwright package AND an actual browser binary are usable.
+
+    The previous check was `find_spec('playwright.async_api')`, which is True the
+    moment the *package* is installed — even when the ~120MB browser binary has
+    never been downloaded (the common case: `playwright` ships in
+    requirements-test.txt but `playwright install chromium` is a separate step,
+    and neither CI job that runs `tests/unit` performs it).
+
+    That false positive made `/api/e2e/run` take the real-browser path, then fail
+    at `chromium.launch()` with "Executable doesn't exist", and return HTTP 400
+    even when everything else was healthy. Falling back to the deterministic
+    heuristic is strictly better here: it is the honest signal ("no browser, so
+    here is a static analysis instead of an error") and it needs no live server.
+    """
+    try:
+        from playwright.async_api import async_playwright
+    except ImportError:
+        return False
+    try:
+        async with async_playwright() as _pw:
+            executable = _pw.chromium.executable_path
+        return bool(executable and os.path.exists(executable))
+    except Exception:  # noqa: BLE001 - availability probe must never crash a request
+        return False
 
 
 async def _playwright_trace(url: str, target: str, run_id: str) -> list[dict]:

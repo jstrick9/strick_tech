@@ -724,6 +724,19 @@ _OK_FALSE_EXEMPT = frozenset({
     '/api/mcp-gateway/call',
     '/api/connectors/execute',
 
+    # ── AUDIT VERDICTS. /api/e2e/run RUNS an audit and reports the outcome.
+    #    "your page failed 2 of 7 checks" IS the successful result, exactly like
+    #    a connector execute that declines or a validate that rejects: the
+    #    server did what was asked and the answer happens to be negative. A
+    #    score of 0 is a legitimate, useful finding -- re-statusing it to 400
+    #    makes "the audit ran and found problems" indistinguishable from "the
+    #    audit could not run". These also drive a deterministic heuristic when
+    #    no browser binary is present (see _check_playwright), so a lean default
+    #    preview page must still answer 200 with its honest verdict.
+    '/api/e2e/run',
+    '/api/e2e/autofix',
+    '/api/e2e/performance',
+
     # ── "Nothing to do" is a normal, successful outcome ────────────────────
     '/api/system/git/commit',         # nothing staged
     '/api/tauri/build/cancel',        # no build running

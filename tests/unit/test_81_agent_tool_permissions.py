@@ -218,16 +218,67 @@ def test_expired_permissions_are_ignored(client, restricted_agent):
 
 
 # ══ Both doors ════════════════════════════════════════════════════════════════
-def test_gateway_path_is_also_enforced(client, restricted_agent):
+def test_gateway_path_is_also_enforced(client, restricted_agent, monkeypatch):
     """The gateway dispatches through /api/mcp/call, so one guard covers both —
     asserted rather than assumed, since 'second door' gaps have appeared three
-    times in this review."""
+    times in this review.
+
+    This is a UNIT test: the gateway reaches the enforcing dispatch endpoint
+    over loopback (internal_http), which needs a live server. In the no-server
+    unit suite the loopback call fails outright, which used to make this test
+    error with "All connection attempts failed" instead of asserting anything.
+    Here the downstream dispatch is stubbed to return the SAME denied verdict
+    /api/mcp/call issues (403, denied:true) so the assertion runs against the
+    gateway's actual contract: it delegates to the enforcing endpoint and
+    surfaces the denial -- it does not bypass per-agent authorisation. The
+    full loopback path is covered by the live integration suite.
+    """
+    # Stub internal_http.async_client so the gateway's dispatch POST to
+    # /api/mcp/call returns a 403 per-agent denial without a live server.
+    import contextlib
+
+    from backend.services import internal_http
+
+    DENIED_BODY = {
+        'ok': False, 'tool': 'fs.write', 'agent_id': restricted_agent,
+        'error': f"Agent '{restricted_agent}' is not permitted to use 'fs.write' "
+                 "(requires 'write_files').",
+        'denied': True, 'required_permission': 'write_files',
+    }
+
+    class _FakeResponse:
+        status_code = 403
+
+        def json(self):
+            return DENIED_BODY
+
+    class _FakeClient:
+        async def post(self, *a, **k):
+            return _FakeResponse()
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+    @contextlib.asynccontextmanager
+    async def _fake_async_client(**kwargs):
+        yield _FakeClient()
+
+    monkeypatch.setattr(internal_http, 'async_client', lambda **kwargs: _fake_async_client())
+
     r = client.post('/api/mcp-gateway/call', json={
         'server_id': 'srv_filesystem', 'tool': 'fs.write',
         'args': {'path': 'gw.txt', 'content': 'x'}, 'agent_id': restricted_agent})
     body = r.json()
     assert body.get('ok') is False, 'the gateway bypassed per-agent permissions'
-    assert body.get('denied') is True
+    assert body.get('denied') is True, \
+        'a per-agent denial surfaced through the gateway must carry the denied flag'
+    # The denied verdict is authoritative even if the gateway's own policy said
+    # 'allow' (default pol_allow_builtin matches '*'). Reflecting it here is what
+    # makes a permission refusal distinguishable from a tool error.
+    assert body.get('policy_decision') == 'deny'
 
 
 # ══ Observability ═════════════════════════════════════════════════════════════
