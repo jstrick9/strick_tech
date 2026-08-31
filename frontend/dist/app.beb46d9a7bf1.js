@@ -4959,18 +4959,22 @@ return `<div class="card-elevated surface-z2 code-with-lines" style="position:re
       ${lineNumHtml}<pre id="${id}" style="margin:0;padding:14px${lineCount > 1 ? ' 14px 14px 50px' : ''};background:#060814;overflow-x:auto;font-size:12.5px;line-height:1.65;font-family:'JetBrains Mono','Fira Code',monospace"><code class="hljs language-${langLabel}" data-raw="${encodeURIComponent(code)}">${highlightedCode}</code></pre>
     </div>`;
 });
-t = t.replace(/`([^`\n]+)`/g, '<code style="background:var(--bg-0);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12px;font-family:monospace">$1</code>');
-t = t.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
-t = t.replace(/^### (.+)$/gm, '<h3 style="font-size:14px;font-weight:700;margin:10px 0 5px;color:var(--text-0)">$1</h3>');
-t = t.replace(/^## (.+)$/gm,  '<h2 style="font-size:15px;font-weight:800;margin:12px 0 6px;color:var(--text-0)">$1</h2>');
-t = t.replace(/^# (.+)$/gm,   '<h1 style="font-size:18px;font-weight:900;margin:14px 0 8px;color:var(--text-0)">$1</h1>');
-t = t.replace(/^> (.+)$/gm, '<blockquote style="border-left:3px solid var(--accent);margin:6px 0;padding:4px 12px;color:var(--text-2);font-style:italic">$1</blockquote>');
-t = t.replace(/^[\s]*[-•*] (.+)$/gm, '<div style="padding:2px 0 2px 16px;display:flex;gap:6px"><span style="color:var(--accent-text);flex-shrink:0">•</span><span>$1</span></div>');
-t = t.replace(/^[\s]*(\d+)\. (.+)$/gm, '<div style="padding:2px 0 2px 16px;display:flex;gap:6px"><span style="color:var(--accent-text);flex-shrink:0">$1.</span><span>$2</span></div>');
+t = t.replace(/`([^`\n]+)`/g, (_m, code) =>
+`<code style="background:var(--bg-0);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12px;font-family:monospace">${escHtml(code)}</code>`);
+t = t.replace(/\*\*\*(.+?)\*\*\*/g, (_m, x) => `<strong><em>${escHtml(x)}</em></strong>`);
+t = t.replace(/\*\*(.+?)\*\*/g, (_m, x) => `<strong>${escHtml(x)}</strong>`);
+t = t.replace(/\*(.+?)\*/g, (_m, x) => `<em>${escHtml(x)}</em>`);
+t = t.replace(/^### (.+)$/gm, (_m, x) => `<h3 style="font-size:14px;font-weight:700;margin:10px 0 5px;color:var(--text-0)">${escHtml(x)}</h3>`);
+t = t.replace(/^## (.+)$/gm, (_m, x) => `<h2 style="font-size:15px;font-weight:800;margin:12px 0 6px;color:var(--text-0)">${escHtml(x)}</h2>`);
+t = t.replace(/^# (.+)$/gm, (_m, x) => `<h1 style="font-size:18px;font-weight:900;margin:14px 0 8px;color:var(--text-0)">${escHtml(x)}</h1>`);
+t = t.replace(/^> (.+)$/gm, (_m, x) => `<blockquote style="border-left:3px solid var(--accent);margin:6px 0;padding:4px 12px;color:var(--text-2);font-style:italic">${escHtml(x)}</blockquote>`);
+t = t.replace(/^[\s]*[-•*] (.+)$/gm, (_m, x) => `<div style="padding:2px 0 2px 16px;display:flex;gap:6px"><span style="color:var(--accent-text);flex-shrink:0">•</span><span>${escHtml(x)}</span></div>`);
+t = t.replace(/^[\s]*(\d+)\. (.+)$/gm, (_m, n, x) => `<div style="padding:2px 0 2px 16px;display:flex;gap:6px"><span style="color:var(--accent-text);flex-shrink:0">${escHtml(n)}.</span><span>${escHtml(x)}</span></div>`);
 t = t.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
-t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent-text);text-decoration:underline">$1</a>');
+t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label, href) => {
+const safe = /^(https?:|\/\/|mailto:|\/|#)/i.test(href) ? href : '#';
+return `<a href="${escHtml(safe)}" target="_blank" style="color:var(--accent-text);text-decoration:underline">${escHtml(label)}</a>`;
+});
 t = t.replace(/\n\n/g, '</p><p class="u-fdf33f23">');
 t = t.replace(/\n/g, '<br>');
 return '<p class="u-fdf33f23">' + t + '</p>';
