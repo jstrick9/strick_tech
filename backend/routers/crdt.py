@@ -201,8 +201,18 @@ def _transform(op_a: list, op_b: list, side: str = 'left') -> tuple[list, list]:
         pa = peek_a()
         pb = peek_b()
 
-        # Both exhausted — done
-        if pa is None and pb is None:
+        # One side exhausted: the other carries operations that still apply.
+        # Copy them through unchanged — the retained runs emitted for the
+        # exhausted side's inserts already account for its offsets, so the
+        # surviving side's remaining ops are in the correct coordinate space.
+        # Dropping them here (the historical fallback skipped i/j) silently
+        # LOST deletions/retains on the exhausted side and broke convergence:
+        # e.g. base 'ab', A=[1,'X'], B=[-2] claimed 'aXb' vs 'X'.
+        if pa is None:
+            b_prime.extend(bi[j:])
+            break
+        if pb is None:
+            a_prime.extend(ai[i:])
             break
 
         # A = insert
@@ -270,7 +280,9 @@ def _transform(op_a: list, op_b: list, side: str = 'left') -> tuple[list, list]:
                 j += 1
             continue
 
-        # Fallback: skip
+        # Fallback: unexpected component pair — skip both so the loop always
+        # terminates. (The exhausted-side branches above guarantee no pending
+        # op is ever dropped just because the other side finished.)
         i += 1
         j += 1
 
@@ -340,19 +352,29 @@ def _compose(op_a: list, op_b: list) -> list:
 
 
 def _compact(op: list) -> list:
-    """Merge adjacent same-type components."""
+    """Merge adjacent SAME-DIRECTION components.
+
+    Two retains (+n) collapse to one; two deletes (-n) collapse to one; two
+    adjacent strings concatenate. Crucially a retain and a delete are OPPOSITE
+    operations and must NEVER be summed: `[1, -1]` means "keep one char, then
+    delete the next", which is not the same as deleting nothing. The previous
+    implementation merged any two ints regardless of sign, so `[1, -1]` became
+    `[]` (and `[1, -1, 3]` became `[3]`) — silently dropping/rewriting text on
+    every transform that produced a retain adjacent to a delete.
+    """
     result: list = []
     for c in op:
         if not c and not isinstance(c, str):
             continue  # skip zero-retains
-        if (
-            result
-            and isinstance(result[-1], type(c))
-            and not isinstance(c, str)
-            or result
-            and isinstance(result[-1], str)
-            and isinstance(c, str)
-        ):
+        merge = False
+        if result:
+            last = result[-1]
+            if isinstance(last, str) and isinstance(c, str):
+                merge = True
+            elif isinstance(last, int) and isinstance(c, int):
+                # same direction: both retains (>0) or both deletes (<0)
+                merge = (last > 0) == (c > 0)
+        if merge:
             result[-1] += c
         else:
             result.append(c)

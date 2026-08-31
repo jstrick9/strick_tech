@@ -222,3 +222,32 @@ def test_the_keyframes_came_across_too():
     inert and the pulse silently does nothing."""
     assert 'ce-pulse' in CSS
     assert '@keyframes ce-pulse' in CSS
+
+# ── OT transform correctness (property) ─────────────────────────────────────
+# _transform must preserve convergence: applying A then B' equals applying B
+# then A'. These minimal cases exercise the delete-dropping / retain-delete
+# paths, which the earlier shallow test_transform_op (status-code only) never
+# checked.
+
+
+class TestOtTransformConvergence:
+    def _conv(self, base, op_a, op_b, side='left'):
+        from backend.routers.crdt import _apply_op, _transform
+        a2, b2 = _transform(op_a, op_b, side)
+        r_ab = _apply_op(_apply_op(base, op_a), b2)
+        r_ba = _apply_op(_apply_op(base, op_b), a2)
+        return r_ab, r_ba
+
+    def test_insert_wins_vs_full_delete_left(self):
+        # base 'ab'; A inserts 'X' after 'a'; B deletes all of 'ab'.
+        # Concurrency must converge (B's delete applies either side).
+        r_ab, r_ba = self._conv('ab', [1, 'X'], [-2], 'left')
+        assert r_ab == r_ba, f'diverge: {r_ab!r} != {r_ba!r}'
+
+    def test_insert_conflicts_with_delete_prefix(self):
+        r_ab, r_ba = self._conv('abc', [1, 'XY', 2], [-1, 2], 'left')
+        assert r_ab == r_ba, f'diverge: {r_ab!r} != {r_ba!r}'
+
+    def test_two_concurrent_deletes_converge(self):
+        r_ab, r_ba = self._conv('abcd', [-2, 2], [1, -1, 2], 'left')
+        assert r_ab == r_ba, f'diverge: {r_ab!r} != {r_ba!r}'
