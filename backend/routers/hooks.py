@@ -19,9 +19,11 @@ Hooks are stored in .agentic/hooks.yaml and in SQLite.
 
 from __future__ import annotations
 
+import ast
 import asyncio
 import json
 import logging
+import operator
 import re
 import time
 import uuid
@@ -229,6 +231,119 @@ _pending_events: list[dict] = []
 _running_hooks: set[str] = set()
 
 
+# ── Safe condition evaluation ────────────────────────────────────────────────
+# Hook `condition` strings are stored verbatim from a POST/PATCH request and
+# were evaluated with eval(cond, {'__builtins__': {}}, locals). Empty builtins
+# does NOT sandbox Python: dunder attribute traversal is intrinsic to the
+# language, so a condition like
+#   [x for x in ().__class__.__mro__[1].__subclasses__() if x.__name__=='Popen']
+#     [0].__init__.__globals__['os'].system('...')
+# reached os.system and executed an arbitrary command (reproduced: wrote
+# /tmp/hook_rce). Hook conditions are only ever simple comparison expressions
+# (file.extension in [...], file.size_lines > 200, ...), so we evaluate them
+# against a strict AST allow-list instead of eval(). No calls, no subscripts,
+# no dunder/private attributes, no names outside the data roots.
+
+_SAFE_ROOTS = {'file', 'event', 'commit', 'test', 'props'}
+_SAFE_BINOPS = {
+    ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
+    ast.Div: operator.truediv, ast.FloorDiv: operator.floordiv,
+    ast.Mod: operator.mod,
+}
+_SAFE_UNOPS = {ast.Not: operator.not_, ast.UAdd: operator.pos, ast.USub: operator.neg}
+_SAFE_CMPOPS = {
+    ast.Eq: operator.eq, ast.NotEq: operator.ne, ast.Lt: operator.lt,
+    ast.LtE: operator.le, ast.Gt: operator.gt, ast.GtE: operator.ge,
+    ast.In: lambda a, b: a in b, ast.NotIn: lambda a, b: a not in b,
+}
+
+
+def _validate_condition_ast(cond: str) -> ast.Expression | None:
+    """Return the parsed condition AST if `cond` is a safe expression, else
+    raise ValueError. Used both at storage time (reject unsafe hooks) and at
+    evaluation time (skip any hook that slipped through)."""
+    if not isinstance(cond, str) or not cond.strip():
+        return None
+    tree = ast.parse(cond, mode='eval')
+    allowed = (
+        ast.Expression, ast.BoolOp, ast.And, ast.Or, ast.Compare,
+        ast.UnaryOp, ast.BinOp, ast.Name, ast.Attribute, ast.Constant,
+        ast.List, ast.Tuple, ast.Load,
+    )
+
+    def _check(node, base):
+        if isinstance(node, ast.Name):
+            if node.id not in _SAFE_ROOTS and node.id not in ('True', 'False', 'None'):
+                raise ValueError(f'unsupported name: {node.id}')
+            return
+        if isinstance(node, ast.Attribute):
+            # Ensure the value is a recognised root or a chain off one, and the
+            # attribute is a normal identifier (no dunder / private access).
+            attr = node.attr
+            if not attr or attr.startswith('_'):
+                raise ValueError('private/dunder attribute access not allowed')
+            if not isinstance(node.value, (ast.Name, ast.Attribute)):
+                raise ValueError('unsupported attribute base')
+            if isinstance(node.value, ast.Name):
+                if node.value.id not in _SAFE_ROOTS:
+                    raise ValueError(f'unsupported attribute root: {node.value.id}')
+            else:
+                _check(node.value, base)
+            return
+        # Everything else is validated by type membership below.
+
+        if not isinstance(node, allowed):
+            raise ValueError(f'unsupported expression node: {type(node).__name__}')
+
+    for node in ast.walk(tree):
+        if node is tree:
+            continue
+        if isinstance(node, ast.Constant):
+            if not isinstance(node.value, (str, int, float, bool, type(None))):
+                raise ValueError('unsupported constant')
+        elif isinstance(node, (ast.List, ast.Tuple)):
+            for elt in node.elts:
+                if not isinstance(elt, ast.Constant):
+                    raise ValueError('list/tuple elements must be literals')
+        elif isinstance(node, ast.Compare):
+            # walk() already covers comparators/ops; just ensure ops are in the
+            # allow-list.
+            for op in node.ops:
+                if type(op) not in _SAFE_CMPOPS:
+                    raise ValueError(f'unsupported comparison: {type(op).__name__}')
+        elif isinstance(node, ast.BoolOp):
+            for op in node.values:
+                _check(op, None)
+        elif isinstance(node, (ast.Name, ast.Attribute)):
+            _check(node, None)
+        elif isinstance(node, ast.BinOp):
+            if type(node.op) not in _SAFE_BINOPS:
+                raise ValueError(f'unsupported operator: {type(node.op).__name__}')
+        elif isinstance(node, ast.UnaryOp):
+            if type(node.op) not in _SAFE_UNOPS:
+                raise ValueError(f'unsupported operator: {type(node.op).__name__}')
+        elif isinstance(node, ast.Call):
+            raise ValueError('calls are not allowed in conditions')
+        elif isinstance(node, ast.Subscript):
+            raise ValueError('subscripts are not allowed in conditions')
+
+    return tree
+
+
+def _safe_eval_condition(cond: str, context: dict) -> bool:
+    """Evaluate a hook condition with an AST allow-list. Raises ValueError on
+    any construct outside the allow-list (so an unsafe hook is skipped, never
+    executed)."""
+    tree = _validate_condition_ast(cond)
+    if tree is None:
+        return True
+    # The AST is proven to be only whitelisted names (roots), non-dunder
+    # attribute reads, and literal constants with comparison/boolean logic
+    # (no calls, no subscripts) — so this cannot reach arbitrary code. Builtins
+    # stay empty so no builtin can be named even if a node type slips through.
+    return bool(eval(compile(tree, '<hook_condition>', 'eval'), {'__builtins__': {}}, context))  # noqa: S307
+
+
 async def fire_event(event_type: str, event_data: dict):
     """Call this from other routers to trigger hooks."""
     from ..services.memory_db import get_conn
@@ -265,10 +380,12 @@ async def fire_event(event_type: str, event_data: dict):
                     'test': test_ns,
                     **event_data,  # also available as flat keys
                 }
-                # Very limited eval — only comparison expressions
-                if not eval(cond, {'__builtins__': {}}, safe_locals):
+                # Safe AST-allow-listed evaluation — only comparison
+                # expressions; a traversal/call/RCE payload is rejected at
+                # parse time (ValueError) and the hook is skipped.
+                if not _safe_eval_condition(cond, safe_locals):
                     continue
-            except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError):
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, SyntaxError):
                 pass  # Skip condition errors
 
         asyncio.create_task(_run_hook(h, event_data))
@@ -431,6 +548,11 @@ async def create_hook(req: Request):
         return {'ok': False, 'error': 'prompt is required'}
     if not event:
         return {'ok': False, 'error': 'event is required'}
+    condition = (body.get('condition') or '')[:400]
+    try:
+        _validate_condition_ast(condition)
+    except (ValueError, SyntaxError) as exc:
+        return {'ok': False, 'error': f'unsupported condition: {exc}'}
     from ..services.memory_db import get_conn
 
     con = get_conn()
@@ -443,7 +565,7 @@ async def create_hook(req: Request):
                 (body.get('name') or 'Unnamed Hook')[:100],
                 (body.get('description') or '')[:400],
                 event,
-                (body.get('condition') or '')[:400],
+                condition,
                 prompt[:4000],
                 body.get('agent_id', 'builder'),
                 1 if body.get('enabled', True) else 0,
@@ -483,6 +605,13 @@ async def update_hook(hook_id: str, req: Request):
         return _body_err
     from ..services.memory_db import get_conn
 
+    # Guard the condition before it is ever persisted: a traversal/RCE payload
+    # must not land in the DB even if the eval-time guard were bypassed.
+    if 'condition' in body:
+        try:
+            _validate_condition_ast((body.get('condition') or '')[:400])
+        except (ValueError, SyntaxError) as exc:
+            return {'ok': False, 'error': f'unsupported condition: {exc}'}
     con = get_conn()
     try:
         allowed = {'name', 'description', 'event', 'condition', 'prompt', 'agent_id', 'enabled'}
