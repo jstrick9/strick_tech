@@ -296,7 +296,16 @@ async def recorded_run(wf_id: str, req: Request):
                     import httpx
 
                     try:
-                        async with httpx.AsyncClient(timeout=10) as client:
+                        # SECURITY: `url` comes from a user-submitted workflow
+                        # definition. Guard against SSRF exactly as workflow.py's
+                        # webhook node does — refuse non-http(s) and
+                        # private/link-local/metadata addresses — and do not
+                        # follow redirects (a public URL can 302 to an internal
+                        # one, walking past the check on the original address).
+                        from .websearch import _is_ssrf_blocked_url
+                        if not url.startswith(('http://', 'https://')) or _is_ssrf_blocked_url(url):
+                            raise ValueError('Webhook URL is not allowed')
+                        async with httpx.AsyncClient(timeout=10, follow_redirects=False) as client:
                             r = await client.post(url, json=context)
                             output = r.text[:500]
                             context['prev_output'] = output
