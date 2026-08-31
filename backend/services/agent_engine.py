@@ -250,6 +250,22 @@ class CircuitBreaker:
             return self.half_open_calls < self.config.half_open_max_calls
         return False
 
+    def acquire(self) -> bool:
+        """Admit one execution attempt.
+
+        `can_execute()` is a pure predicate (also called by the status/health
+        reads) and must NOT consume the half-open probe budget. The execution
+        path calls `acquire()` instead, which admits at most
+        `half_open_max_calls` half-open probes before the breaker is allowed to
+        conclude open vs closed. Otherwise a recovering breaker lets unlimited
+        concurrent probes through and the probe cap is dead.
+        """
+        if not self.can_execute():
+            return False
+        if self.state == CircuitState.HALF_OPEN:
+            self.half_open_calls += 1
+        return True
+
     def record_success(self):
         # If OPEN and recovery timeout has passed, transition to HALF_OPEN first
         if self.state == CircuitState.OPEN:
@@ -390,8 +406,9 @@ class ExecutionEngine:
         for attempt in range(retry.config.max_retries + 1):
             attempts = attempt + 1
 
-            # Check circuit breaker
-            if cb and not cb.can_execute():
+            # Check circuit breaker. Use acquire() so each admitted half-open
+            # probe consumes a slot of the probe budget (can_execute() is pure).
+            if cb and not cb.acquire():
                 last_error = f"Circuit breaker open for {circuit_breaker_key}"
                 break
 
