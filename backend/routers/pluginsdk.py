@@ -383,10 +383,19 @@ def export_pack(pack_id: str):
 
 
 # ── Upload ZIP ────────────────────────────────────────────────────────────────
+# Bound the upload and the decompressed manifest size. An unbounded
+# file.read() let a huge fixture be pulled into memory, and zf.read() of a
+# DEFLATED member can also expand far beyond its compressed size (zip-bomb).
+MAX_IMPORT_BYTES = 10 * 1024 * 1024
+MAX_MANIFEST_BYTES = 2 * 1024 * 1024
+
+
 @router.post('/import')
 async def import_pack(file: UploadFile = File(...)):
     """Import a plugin pack from a ZIP file."""
-    data = await file.read()
+    data = await file.read(MAX_IMPORT_BYTES + 1)
+    if len(data) > MAX_IMPORT_BYTES:
+        return {'ok': False, 'error': f'ZIP too large (max {MAX_IMPORT_BYTES} bytes).'}
     buf = io.BytesIO(data)
 
     try:
@@ -394,6 +403,9 @@ async def import_pack(file: UploadFile = File(...)):
             names = zf.namelist()
             if 'manifest.json' not in names:
                 return {'ok': False, 'error': 'ZIP must contain manifest.json'}
+            info = zf.getinfo('manifest.json')
+            if info.file_size > MAX_MANIFEST_BYTES:
+                return {'ok': False, 'error': 'manifest.json is too large.'}
             manifest = json.loads(zf.read('manifest.json'))
     except Exception as ex:
         return {'ok': False, 'error': f'Invalid ZIP: {ex}'}

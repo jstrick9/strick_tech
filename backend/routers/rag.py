@@ -342,10 +342,20 @@ async def add_document(pipeline_id: str, req: Request):
     return {'ok': True, 'doc_id': doc_id, 'chunks': len(chunks), 'chars': len(content)}
 
 
+# add_document caps content at 1M chars; read at most that many bytes so an
+# oversized file is not loaded into memory more than is ever used (and the
+# truncation below is explicit, matching the honest-enforcement pattern the
+# platform uses elsewhere rather than silently discarding most of a file).
+MAX_UPLOAD_CHARS = 1_000_000
+
+
 @router.post('/pipelines/{pipeline_id}/upload')
 async def upload_document(pipeline_id: str, file: UploadFile = File(...)):
     """Upload a file to a RAG pipeline."""
-    content = (await file.read()).decode('utf-8', errors='ignore')
+    raw = await file.read(MAX_UPLOAD_CHARS + 1)
+    if len(raw) > MAX_UPLOAD_CHARS:
+        return JSONResponse({'ok': False, 'error': f'File too large for a RAG document (max {MAX_UPLOAD_CHARS} chars).'}, status_code=413)
+    content = raw.decode('utf-8', errors='ignore')
     filename = file.filename or 'upload.txt'
     # Create a fake request for add_document
     body = {'filename': filename, 'content': content}

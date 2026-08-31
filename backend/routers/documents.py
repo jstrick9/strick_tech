@@ -24,9 +24,22 @@ def _trim(text: str) -> tuple[str, bool]:
     return cleaned[:MAX_EXTRACTED_CHARS], len(cleaned) > MAX_EXTRACTED_CHARS
 
 
+# A .docx is a ZIP; word/document.xml is stored DEFLATED, so the *compressed*
+# upload size says nothing about the expanded text. An attacker can send a
+# small .docx whose document.xml decompresses to hundreds of MB (a zip-bomb) —
+# and ET.fromstring builds an in-memory DOM of the WHOLE expanded member before
+# MAX_EXTRACTED_CHARS ever trims it. Bound the decompressed size up front and
+# reject anything grossly larger than we'd ever return.
+MAX_DOCX_XML_BYTES = 12 * 1024 * 1024
+
+
 def _extract_docx(raw: bytes) -> str:
     try:
         with ZipFile(BytesIO(raw)) as archive:
+            info = archive.getinfo('word/document.xml')
+            # Refuse a decompression bomb before pulling it into memory.
+            if info.file_size > MAX_DOCX_XML_BYTES:
+                raise ValueError('Word document is too large to extract safely.')
             xml = archive.read('word/document.xml')
         root = ET.fromstring(xml)
         paragraphs = []
