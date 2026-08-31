@@ -33,7 +33,9 @@ crdt 38% · tauri_build 40% · goal_manager 40% · browser_agent 41% · fusion 4
 
 | id | Severity | Module | Evidence | Fix | Status |
 |----|----------|--------|----------|-----|--------|
-| _(fill as found)_ | | | | | |
+| 001 | **High** | `backend/routers/crdt.py` | OT `_compact` merged adjacent ints **regardless of sign**, so a retain next to a delete (e.g. `[1,-1]`) collapsed to `[]` and `[1,-1,3]` to `[3]` — silently corrupting/dropping text on any transform that produced a retain adjacent to a delete. Additionally, `_transform` dropped the surviving side's ops when the *other* side exhausted, losing deletes and breaking convergence (e.g. base `'ab'`, A `[1,'X']`, B `[-2]` → `'aXb'` vs `'X'`). Reachable via live collaborative editing (`apply_and_broadcast` transforms every concurrent op). | `_compact` now merges only **same-direction** ints (retains together, deletes together); `_transform` passes the surviving side's remaining ops through unchanged when the other side exhausts. | **FIXED** — 3 failing→passing regression tests; 200,000-pair fuzz on both transform sides → 0 divergences; 79/79 collab tests pass; full unit suite 4650 pass / 0 fail; ruff clean. |
+
+## Environment notes
 
 ## Environment notes
 - Repo venv must be built with **/usr/local/bin/python3 (3.13.14)**; a 3.13.5 venv segfaults on
