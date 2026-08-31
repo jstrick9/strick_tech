@@ -2342,7 +2342,12 @@ updateStatusBar();
 function renderAgentList() {
 const el = document.getElementById('agent-list');
 if (el && S.agents) {
-el.innerHTML = S.agents.map(a => `
+const ADVANCED_IDS = new Set(['visual_tester', 'functional_tester', 'design_decomposer', 'test_creator']);
+const coreAgents = S.agents.filter(a => !ADVANCED_IDS.has(a.id));
+const advAgents = S.agents.filter(a => ADVANCED_IDS.has(a.id));
+let advOpen = false;
+try { advOpen = localStorage.getItem('agentic_os_show_advanced_agents') === 'true'; } catch {}
+const advRow = (a) => `
       <div class="agent-row ${S.currentAgent?.id === a.id ? 'active-agent' : ''}"
            data-agent="${escHtml(JSON.stringify(a))}" data-act-click="hSetActiveAgent($json.agent)"
            data-act-dblclick="openAgentModal(${JSON.stringify(a.id)})">
@@ -2356,8 +2361,20 @@ el.innerHTML = S.agents.map(a => `
         <div class="agent-status ${a.status || 'idle'}" role="img"
              aria-label="Status: ${a.status || 'idle'}"
              title="${a.status || 'idle'}"></div>
+      </div>`;
+const advSection = advAgents.length ? `
+      <div style="padding:8px 12px 4px;user-select:none;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:10px;letter-spacing:0.6px;font-weight:800;color:var(--text-3)">ADVANCED AGENTS (expand)</span>
       </div>
-    `).join('');
+      <div id="advanced-agents-list" style="display:${advOpen ? 'block' : 'none'}">
+        ${advAgents.map(advRow).join('')}
+      </div>
+      <button type="button" id="toggle-advanced-agents" data-act-click="toggleAdvancedAgents()"
+        style="margin:2px 12px 8px;font-size:11px;color:var(--accent-text);background:none;border:none;cursor:pointer;padding:2px 0;text-align:left">
+        ▸ ${advOpen ? 'Hide' : 'Show'} advanced agents (${advAgents.length})
+      </button>
+    ` : '';
+el.innerHTML = coreAgents.map(advRow).join('') + advSection;
 }
 const po = document.getElementById('chat-persona-optgroup');
 if (po && S.agents?.length) {
@@ -2365,7 +2382,11 @@ po.innerHTML = S.agents.map(a => `<option value="${escHtml(a.id)}">${a.avatar||'
 }
 const sl = document.getElementById('settings-agents-list');
 if (sl && S.agents) {
-sl.innerHTML = S.agents.map(a => `
+const ADVANCED_IDS = new Set(['visual_tester', 'functional_tester', 'design_decomposer', 'test_creator']);
+const advAgents = S.agents.filter(a => ADVANCED_IDS.has(a.id));
+let advOpen = false;
+try { advOpen = localStorage.getItem('agentic_os_show_advanced_agents') === 'true'; } catch {}
+const row = (a) => `
       <div style="display:flex;align-items:center;gap:10px;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 12px;">
         <span class="u-4ff818ff">${a.avatar||'🤖'}</span>
         <div class="u-97445a8d">
@@ -2373,10 +2394,30 @@ sl.innerHTML = S.agents.map(a => `
           <div style="font-size:11px;color:var(--text-2)">${escHtml(a.role||'')} • ${a.model||'default'}</div>
         </div>
         <button data-act-click="openAgentModal(${JSON.stringify(a.id)})" class="btn btn-ghost btn-sm">Edit</button>
-      </div>
-    `).join('');
+      </div>`;
+const coreAgents = S.agents.filter(a => !ADVANCED_IDS.has(a.id));
+sl.innerHTML = coreAgents.map(row).join('') +
+(advAgents.length ? `
+        <div style="font-size:10px;letter-spacing:0.6px;font-weight:800;color:var(--text-3);margin:12px 0 4px">ADVANCED AGENTS</div>
+        <div id="settings-advanced-agents-list" style="display:${advOpen ? 'block' : 'none'}">
+          ${advAgents.map(row).join('')}
+        </div>
+        <button type="button" data-act-click="toggleAdvancedAgents()" style="margin:6px 0 0;font-size:11px;color:var(--accent-text);background:none;border:none;cursor:pointer;padding:2px 0;text-align:left">
+          ▸ ${advOpen ? 'Hide' : 'Show'} advanced agents (${advAgents.length})
+        </button>` : '');
 }
 }
+window.toggleAdvancedAgents = function() {
+let open = false;
+try { open = localStorage.getItem('agentic_os_show_advanced_agents') === 'true'; } catch {}
+open = !open;
+try { localStorage.setItem('agentic_os_show_advanced_agents', open ? 'true' : 'false'); } catch {}
+const sidebar = document.getElementById('advanced-agents-list');
+const settings = document.getElementById('settings-advanced-agents-list');
+if (sidebar) sidebar.style.display = open ? 'block' : 'none';
+if (settings) settings.style.display = open ? 'block' : 'none';
+renderAgentList();
+};
 function setActiveAgent(agent) {
 if (!agent) agent = { id: 'default', name: 'Direct AI Chat', avatar: '💬', model: '' };
 S.currentAgent = agent;
@@ -16388,6 +16429,59 @@ const PANE_METADATA = {
 'mcp-gateway': { icon: '🚪', title: 'Gateway', desc: 'MCP gateway routing and protocol bridging' },
 'collabedit': { icon: '✍️', title: 'Collab Edit', desc: 'Real-time CRDT Operational Transformation rooms' }
 };
+PANE_METADATA['icm'] = {
+icon: '🗂',
+title: 'Knowledge',
+desc: 'Your personal knowledge base — notes, files & folders',
+};
+const NOVICE_WHAT = {
+chat: 'Talk to your AI here — it’s the place to start. Ask a question, give it a doc, or paste anything.',
+studio: 'Write a small app or webpage and see it run live on the right, with AI help.',
+templates: 'Start from a ready-made project instead of a blank screen.',
+swarm: 'Have several AI agents work on a question at once and then compare answers.',
+galaxy: 'Everything the AI remembers about your work lives here — search it, add to it.',
+icm: 'A tidy place for your notes and files. The Inbox drops things here and files them for you.',
+inbox: 'Throw anything in here and it gets sorted. “Capture anything — the router files it.”',
+kanban: 'Your to-do board. Create a task, assign it to an agent, and track it to done.',
+settings: 'Connect an AI model (paste one key) and choose colors, sizes and how things behave.',
+websearch: 'Search the real web. Unlike chat, it looks things up first and cites every source.',
+browser: 'Let an agent open a website, take a screenshot, and fill things in for you.',
+imagegen: 'Create images from a description, or restyle one you already have.',
+prompts: 'Save your best instructions to reuse instead of retyping them.',
+terminal: 'Run commands on your own machine from inside the app.',
+hierarchy: 'Rules and background about you that every AI agent follows.',
+docs: 'Guides, answers and keyboard shortcuts for the whole app.',
+composer: 'Write long documents (reports, emails, drafts) with AI help, file by file.',
+workflow: 'Chain a few AI steps together and run them as one repeatable process.',
+github: 'Connect your code repositories and let AI read, write and commit to them.',
+dbstudio: 'Look at and edit the data stored in your app (a database viewer).',
+workspaces: 'Your code projects — each one keeps its own files and can be exported.',
+plugins: 'Install extra abilities and skill packs to add to the app.',
+mcp: 'Hook up outside tools and services so your agents can use them.',
+observability: 'Watch what your agents are doing and have done, live.',
+evals: 'Test how good your AI answers are and compare them.',
+secrets: 'Securely store API keys and passwords the agents can use.',
+};
+const NAV_TOOLTIPS = {
+supervisor: 'Let AI run multi-step jobs for you',
+websearch: 'Search the web, with cited sources',
+browser: 'Let an agent browse the web for you',
+imagegen: 'Generate images with AI',
+prompts: 'Save & reuse your best prompts',
+terminal: 'Run commands in your workspace',
+hierarchy: 'Set rules your agents follow',
+docs: 'Guides & help for every feature',
+composer: 'Write long documents with AI',
+workflow: 'Chain AI steps into workflows',
+github: 'Connect your code repositories',
+dbstudio: 'Browse and edit your data',
+workspaces: 'Your code project workspaces',
+plugins: 'Install add-on packs',
+mcp: 'Hook up outside services & tools',
+observability: 'Watch what your agents do',
+evals: 'Test how well your AI answers',
+secrets: 'Store keys & secrets securely',
+};
 const origNav = window.nav;
 if (typeof origNav === 'function') {
 window.nav = function(pane) {
@@ -16401,6 +16495,7 @@ const subEl = document.getElementById('breadcrumb-sub-context');
 if (!paneEl || !subEl) return;
 const meta = PANE_METADATA[pane] || { icon: '🧭', title: pane.toUpperCase(), desc: '' };
 paneEl.innerHTML = `<span class="u-433de30b">${meta.icon}</span> <span>${escHtml(meta.title)}</span>`;
+renderPaneHelp(pane, meta);
 if (pane === 'hierarchy') {
 subEl.innerHTML = '<span style="color:var(--accent-text)">Active:</span> Universal Context & IVREN Deltas';
 } else if (pane === 'studio') {
@@ -16416,6 +16511,78 @@ subEl.innerHTML = '<span style="color:var(--warning)">Control Tower:</span> Live
 } else {
 subEl.innerHTML = meta.desc ? `<span>${escHtml(meta.desc)}</span>` : '';
 }
+}
+let _helpBtn = null;
+let _helpPop = null;
+let _setupBtn = null;
+function ensureHelpElements() {
+const bar = document.getElementById('sticky-breadcrumb-bar');
+if (bar && !_helpBtn) {
+_helpBtn = document.createElement('button');
+_helpBtn.type = 'button';
+_helpBtn.id = 'pane-help-btn';
+_helpBtn.setAttribute('aria-label', 'What does this do?');
+_helpBtn.setAttribute('title', 'What does this do?');
+_helpBtn.style.cssText = 'margin-left:auto;width:24px;height:24px;min-width:24px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text-2);font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex:none';
+_helpBtn.textContent = '?';
+_helpBtn.addEventListener('click', (ev) => {
+ev.stopPropagation();
+if (_helpPop) _helpPop.style.display = (_helpPop.style.display === 'block') ? 'none' : 'block';
+});
+bar.appendChild(_helpBtn);
+_helpPop = document.createElement('div');
+_helpPop.id = 'pane-help-popover';
+_helpPop.setAttribute('role', 'tooltip');
+_helpPop.style.cssText = 'position:fixed;z-index:9999;max-width:340px;background:var(--bg-2);color:var(--text-0);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.5;box-shadow:0 10px 30px rgba(0,0,0,.5);display:none';
+document.body.appendChild(_helpPop);
+document.addEventListener('click', (ev) => {
+if (_helpPop && !_helpPop.contains(ev.target) && !(ev.target === _helpBtn)) {
+_helpPop.style.display = 'none';
+}
+});
+document.addEventListener('keydown', (ev) => {
+if (ev.key === 'Escape' && _helpPop) _helpPop.style.display = 'none';
+});
+_setupBtn = document.createElement('button');
+_setupBtn.type = 'button';
+_setupBtn.id = 'top-setup-btn';
+_setupBtn.setAttribute('aria-label', 'Set up your AI');
+_setupBtn.textContent = '✨ Setup AI';
+_setupBtn.style.cssText = 'flex:none;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer';
+_setupBtn.addEventListener('click', (ev) => {
+ev.stopPropagation();
+if (window.showQuickSetup) window.showQuickSetup();
+else if (window.nav) window.nav('settings');
+});
+bar.appendChild(_setupBtn);
+const _origReadiness = window.renderConnectionReadiness;
+if (typeof _origReadiness === 'function') {
+window.renderConnectionReadiness = function(readiness = {}) {
+_origReadiness.apply(this, arguments);
+if (_setupBtn) {
+_setupBtn.style.display =
+(readiness.cloudReady || Number(readiness.localModels) > 0) ? 'none' : '';
+}
+};
+}
+}
+return Boolean(_helpBtn && _helpPop);
+}
+function renderPaneHelp(pane, meta) {
+const paneEl = document.getElementById('breadcrumb-current-pane');
+if (!paneEl) return;
+if (!ensureHelpElements()) return;
+const what = NOVICE_WHAT[pane] || meta.desc || '';
+_helpPop.innerHTML =
+`<div style="font-weight:800;margin-bottom:6px;display:flex;gap:6px;align-items:center">${meta.icon || '🧭'} ${escHtml(meta.title || pane)}</div>` +
+`<div style="color:var(--text-1)">${escHtml(what)}</div>`;
+}
+function applyNavTooltips() {
+document.querySelectorAll('.nav-item[data-nav]').forEach((el) => {
+const id = el.getAttribute('data-nav');
+const tip = NAV_TOOLTIPS[id] || NOVICE_WHAT[id];
+if (tip && !el.dataset.tooltip) el.dataset.tooltip = tip;
+});
 }
 const origSwitchTab = window.switchHierarchyTab;
 if (typeof origSwitchTab === 'function') {
@@ -16448,14 +16615,14 @@ if (btn) { btn.textContent = 'Disable High Contrast'; btn.classList.add('btn-pri
 }, 500);
 }
 } catch(e) {}
+const initErgonomics = () => {
+applyNavTooltips();
+updateBreadcrumbBar(location.hash ? location.hash.slice(2) : 'chat');
+};
 if (document.readyState === 'loading') {
-document.addEventListener('DOMContentLoaded', () => {
-updateBreadcrumbBar(location.hash ? location.hash.slice(2) : 'chat');
-});
+document.addEventListener('DOMContentLoaded', initErgonomics);
 } else {
-setTimeout(() => {
-updateBreadcrumbBar(location.hash ? location.hash.slice(2) : 'chat');
-}, 100);
+setTimeout(initErgonomics, 100);
 }
 console.debug('%c✅ UI Ergonomics Engine loaded (Breadcrumb Bar + High Contrast)', 'color:#3b82f6;font-weight:bold');
 })();
@@ -21137,4 +21304,236 @@ if (overlay) overlay.remove();
 }
 });
 console.log('%c✅ Keyboard Shortcuts overlay loaded (press ? for help)', 'color:#5b8af8;font-weight:bold');
+})();
+
+;/* 94-novice-assist.js */
+(function () {
+'use strict';
+const LS_KEY = 'aos_novice_assist';
+function readState() {
+try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}') || {}; }
+catch (e) { return {}; }
+}
+function writeState() {
+try { localStorage.setItem(LS_KEY, JSON.stringify(_st)); } catch (e) {}
+return _st;
+}
+const _st = Object.assign({ simple: null, gsDismissed: false, done: {} }, readState());
+if (_st.simple !== true && _st.simple !== false) {
+if (_st.simple === '1') _st.simple = true;
+else if (_st.simple === '0') _st.simple = false;
+else _st.simple = true;
+}
+const ADVANCED_GROUP_IDS = ['build', 'ship', 'tools', 'enterprise'];
+function simpleOn() { return _st.simple === true || _st.simple === '1'; }
+function applySimpleMode() {
+const simple = simpleOn();
+document.querySelectorAll('.nav-item[data-tier="advanced"]').forEach((el) => {
+el.style.display = simple ? 'none' : '';
+});
+document.querySelectorAll('.sidebar-group-label').forEach((lbl) => {
+const act = lbl.getAttribute('data-act-click') || '';
+const isCore = act.indexOf("'core'") !== -1;
+lbl.style.display = (simple && !isCore) ? 'none' : '';
+});
+ADVANCED_GROUP_IDS.forEach((id) => {
+const g = document.getElementById('group-' + id);
+if (g) g.style.display = simple ? 'none' : '';
+});
+const footer = document.getElementById('aos-show-all-features');
+if (footer) footer.style.display = simple ? '' : 'none';
+const header = document.getElementById('aos-simple-toggle');
+if (header) {
+header.textContent = simple ? '💡' : '≡';
+header.setAttribute('title', simple
+? 'Simple view on — click to show all features'
+: 'All features shown — click to simplify');
+header.setAttribute('aria-label', simple
+? 'Show all features' : 'Switch to simple view');
+}
+if (simple) {
+document.querySelectorAll('.nav-item[data-tier="advanced"]').forEach((el) => {
+if (el.classList.contains('active')) {
+try { window.nav && window.nav('chat'); } catch (e) {}
+}
+});
+}
+}
+window.aosToggleSimpleMode = function () {
+_st.simple = simpleOn() ? '0' : '1';
+writeState();
+applySimpleMode();
+};
+window.aosSimpleMode = function () { return simpleOn(); };
+window.aosShowSimpleFooter = function () {
+window.aosToggleSimpleMode();
+};
+function mountSimpleMode() {
+const header = document.getElementById('sidebar-top-nav-header');
+if (header && !document.getElementById('aos-simple-toggle')) {
+const t = document.createElement('button');
+t.type = 'button';
+t.id = 'aos-simple-toggle';
+t.setAttribute('data-act-click', 'aosToggleSimpleMode()');
+t.setAttribute('data-self-click', '1');
+t.setAttribute('data-keys', 'Enter,Space');
+t.setAttribute('data-prevent', '1');
+t.style.cssText = 'width:24px;height:24px;padding:0;font-size:13px;background:transparent;border:none;color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all 0.15s';
+header.appendChild(t);
+}
+const scroll = document.querySelector('.sidebar-scroll');
+if (scroll && !document.getElementById('aos-show-all-features')) {
+const f = document.createElement('button');
+f.type = 'button';
+f.id = 'aos-show-all-features';
+f.setAttribute('data-act-click', 'aosToggleSimpleMode()');
+f.setAttribute('data-self-click', '1');
+f.style.cssText = 'width:100%;text-align:left;padding:10px 14px;font-size:11.5px;font-weight:700;color:var(--text-2);background:none;border:none;border-top:1px solid var(--border);cursor:pointer';
+f.textContent = 'Show all features ▾ (advanced tools)';
+scroll.appendChild(f);
+}
+applySimpleMode();
+}
+const GS_STEPS = [
+{ id: 'connect', icon: '🔌', label: 'Connect your AI',      hint: 'Add one API key or a local model — 1 minute, no card' },
+{ id: 'message', icon: '💬', label: 'Send your first message', hint: 'Ask a question or paste anything in the box below' },
+{ id: 'note',    icon: '🗂', label: 'Save your first note',  hint: 'Put something in Knowledge or let the Inbox file it' },
+{ id: 'task',    icon: '📋', label: 'Create your first task', hint: 'Add a card to the Tasks board' },
+];
+function isDone(id) { return !!_st.done[id]; }
+window.aosMarkStep = function (id) {
+if (!id || _st.done[id]) return;
+_st.done[id] = true;
+writeState();
+renderGettingStarted();
+};
+function renderGettingStarted() {
+if (_st.gsDismissed) return;
+const host = document.getElementById('chat-empty');
+if (!host) return;
+if (document.getElementById('aos-getting-started')) {
+} else {
+const card = document.createElement('div');
+card.id = 'aos-getting-started';
+card.style.cssText = 'max-width:560px;margin:0 auto 22px;text-align:left;background:var(--bg-2);border:1px solid var(--border);border-radius:16px;padding:16px 18px';
+host.appendChild(card);
+}
+const card = document.getElementById('aos-getting-started');
+if (!card) return;
+const doneCount = GS_STEPS.filter((s) => isDone(s.id)).length;
+const allDone = doneCount === GS_STEPS.length;
+const row = (s) => {
+const done = isDone(s.id);
+return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--border)">` +
+`<span style="font-size:18px;width:24px;text-align:center">${done ? '✅' : s.icon}</span>` +
+`<div style="flex:1;min-width:0">` +
+`<div style="font-size:13px;font-weight:700;color:${done ? 'var(--text-2)' : 'var(--text-0)'}">${s.label}</div>` +
+`<div style="font-size:11.5px;color:var(--text-3)">${s.hint}</div></div>` +
+`<span style="font-size:11px;color:var(--text-3)">${done ? 'Done' : '…'}</span>` +
+`</div>`;
+};
+card.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:14px;font-weight:900;color:var(--text-0)">${allDone ? '🎉 You\u2019re all set!' : '🚀 Getting started'}</div>
+        <button title="Hide this anytime" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;line-height:1" data-aos-dismiss="1">×</button>
+      </div>
+      ${allDone
+        ? '<div style="font-size:12.5px;color:var(--text-2);padding:6px 0 2px">Nice work. Explore the rest of the app anytime — click the 💡 button in the top-left to see every feature, or press ⌘K to search.</div>'
+        : `<div style="font-size:12px;color:var(--text-2);margin-bottom:6px">A few easy moves to feel at home. They check off automatically.</div>
+           ${GS_STEPS.map(row).join('')}`}
+    `;
+const x = card.querySelector('[data-aos-dismiss]');
+if (x) x.addEventListener('click', function (e) {
+e.stopPropagation();
+_st.gsDismissed = true;
+writeState();
+card.remove();
+});
+}
+function checkConnectReady() {
+const el = document.getElementById('chat-connection-status');
+if (el && el.classList.contains('ready')) return true;
+return false;
+}
+function checkMessageSent() {
+return document.querySelectorAll('#chat-messages .msg-bubble').length > 0;
+}
+function checkTaskCreated() {
+return document.querySelectorAll('#pane-kanban .kanban-card').length > 0;
+}
+function sweep() {
+if (checkConnectReady()) window.aosMarkStep('connect');
+if (checkMessageSent()) window.aosMarkStep('message');
+if (checkTaskCreated()) window.aosMarkStep('task');
+}
+function mountChecks() {
+const ok = window.renderConnectionReadiness;
+if (typeof ok === 'function') {
+window.renderConnectionReadiness = function (readiness) {
+const r = ok.apply(this, arguments);
+if (readiness && (readiness.cloudReady || Number(readiness.localModels) > 0)) {
+window.aosMarkStep('connect');
+}
+return r;
+};
+}
+const sendBtn = document.getElementById('chat-send');
+if (sendBtn) sendBtn.addEventListener('click', function () {
+const inp = document.getElementById('chat-input');
+if (inp && String(inp.value || '').trim().length) window.aosMarkStep('message');
+});
+const input = document.getElementById('chat-input');
+if (input) input.addEventListener('keydown', function (e) {
+if (e.key === 'Enter' && !e.shiftKey) {
+const inp = document.getElementById('chat-input');
+if (inp && String(inp.value || '').trim().length) window.aosMarkStep('message');
+}
+});
+['icmwsSave', 'icmwsCreateFromDesc', 'icmwsNewWorkspace'].forEach((name) => {
+const fn = window[name];
+if (typeof fn === 'function') {
+window[name] = function () {
+const r = fn.apply(this, arguments);
+window.aosMarkStep('note');
+return r;
+};
+}
+});
+const kb = window.kanbanSubmitCreate;
+if (typeof kb === 'function') {
+window.kanbanSubmitCreate = function () {
+const r = kb.apply(this, arguments);
+window.aosMarkStep('task');
+return r;
+};
+}
+window.addEventListener('hashchange', () => setTimeout(sweep, 600));
+setInterval(sweep, 4000);
+setTimeout(sweep, 1500);
+}
+function mountTerminology() {
+const details = document.getElementById('chat-persona-details');
+if (details) {
+const sum = details.querySelector('summary');
+if (sum) {
+const label = sum.querySelector('span[style*="uppercase"]');
+if (label && /Agent/i.test(label.textContent)) label.textContent = 'Assistant';
+sum.setAttribute('title', 'Choose who replies: a general assistant or a specialist voice');
+}
+}
+}
+function init() {
+try { mountSimpleMode(); } catch (e) { console.debug('a11y simple-mode init', e); }
+try { mountTerminology(); } catch (e) {}
+try { mountChecks(); } catch (e) {}
+try {
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => {
+try { renderGettingStarted(); } catch (e) {}
+});
+else setTimeout(() => { try { renderGettingStarted(); } catch (e) {} }, 300);
+} catch (e) {}
+console.debug('%c✅ Novice Assist loaded (Simple mode + Getting started + terminology)', 'color:#38bdf8;font-weight:bold');
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
 })();

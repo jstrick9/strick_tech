@@ -1,8 +1,8 @@
 {
   "head": "head.8f62aefef2be.js",
-  "body": "app.6db738d496e2.js",
+  "body": "app.a175de7fbb69.js",
   "minified": true,
-  "modules": 48,
+  "modules": 49,
   "head_modules": [
     "00-style-hydrate.js",
     "00-theme-boot.js"
@@ -53,25 +53,26 @@
     "90-sidebar-shortcut.js",
     "91-mode-switcher.js",
     "92-pane-error-boundary.js",
-    "93-shortcuts-overlay.js"
+    "93-shortcuts-overlay.js",
+    "94-novice-assist.js"
   ],
-  "raw_bytes": 1341329,
-  "bundled_bytes": 1016562,
+  "raw_bytes": 1368620,
+  "bundled_bytes": 1035234,
   "compressed": {
     "head.8f62aefef2be.js": {
       "raw": 6508,
       "gzip": 2376,
       "brotli": 2015
     },
-    "app.6db738d496e2.js": {
-      "raw": 1010054,
-      "gzip": 249046,
-      "brotli": 188613
+    "app.a175de7fbb69.js": {
+      "raw": 1028726,
+      "gzip": 254290,
+      "brotli": 192335
     },
-    "chunks.da069a284010.js": {
+    "chunks.5c7e3712fe0c.js": {
       "raw": 1645,
       "gzip": 780,
-      "brotli": 684
+      "brotli": 680
     },
     "pane-a2a.b18f99e554e2.js": {
       "raw": 26597,
@@ -158,10 +159,10 @@
       "gzip": 5415,
       "brotli": 4545
     },
-    "pane-icm.e6cf85bcc7f7.js": {
-      "raw": 42169,
-      "gzip": 9736,
-      "brotli": 8291
+    "pane-icm.b05830b53a14.js": {
+      "raw": 42168,
+      "gzip": 9746,
+      "brotli": 8285
     },
     "pane-imagegen.c2b948b81821.js": {
       "raw": 22608,
@@ -380,11 +381,11 @@
       "bytes": 16988
     },
     "icm": {
-      "file": "pane-icm.e6cf85bcc7f7.js",
+      "file": "pane-icm.b05830b53a14.js",
       "modules": [
         "59-icm-workspaces.js"
       ],
-      "bytes": 42169
+      "bytes": 42168
     },
     "imagegen": {
       "file": "pane-imagegen.c2b948b81821.js",
@@ -521,7 +522,7 @@
       "bytes": 11184
     }
   },
-  "chunk_manifest": "chunks.da069a284010.js",
+  "chunk_manifest": "chunks.5c7e3712fe0c.js",
   "lazy_modules": [
     "12-information-hierarchy.js",
     "15-image-generation.js",
@@ -562,5 +563,5 @@
     "59-icm-workspaces.js",
     "60-inbox.js"
   ],
-  "lazy_bytes": 771356
+  "lazy_bytes": 771355
 }
