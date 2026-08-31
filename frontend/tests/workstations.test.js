@@ -1,11 +1,18 @@
 /**
  * Workstation consolidation — behavioural tests.
  *
- * The sidebar went from 67 top-level panes to 24 by folding 44 related panes
- * into 11 tabbed workstations. The guarantee these tests protect is that the
- * consolidation is LOSSLESS: every absorbed pane still exists, still renders,
- * and is still reachable by its original id (deep links, command palette,
- * keyboard shortcuts and cross-module nav() calls all use those ids).
+ * The sidebar's 26 top-level entries are 11 tabbed workstations plus the core
+ * standalone panes; 40 related panes are folded into those workstations as
+ * tabs. The guarantee these tests protect is that the consolidation is
+ * LOSSLESS: every absorbed pane still exists, still renders, and is still
+ * reachable by its original id (deep links, command palette, keyboard
+ * shortcuts and cross-module nav() calls all use those ids).
+ *
+ * The fixed counts (11 hosts, 40 absorbed, 26 top-level items) are the
+ * current known-good snapshot of the navigation design. They intentionally
+ * flag any drift; the invariants below them (no duplicate absorption, no
+ * self-absorption, complete reverse index, labels, containers retained,
+ * absorbed panes kept out of the sidebar) are the real behavioural guards.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'fs';
@@ -29,11 +36,11 @@ describe('workstation configuration', () => {
   const dom = new JSDOM('<!DOCTYPE html><body></body>');
   const w = loadWorkstations(dom);
 
-  it('defines 11 workstations absorbing 43 panes (67 sidebar entries -> 24)', () => {
+  it('defines 11 workstations absorbing 40 panes (26 top-level sidebar entries)', () => {
     const hosts = Object.keys(w.WORKSTATIONS);
     const absorbed = hosts.flatMap((h) => w.WORKSTATIONS[h]);
     expect(hosts).toHaveLength(11);
-    expect(absorbed).toHaveLength(43);
+    expect(absorbed).toHaveLength(40);
   });
 
   it('never absorbs the same pane twice', () => {
@@ -62,10 +69,10 @@ describe('workstation configuration', () => {
 });
 
 describe('sidebar reflects the consolidation', () => {
-  it('shows exactly 24 top-level nav items', () => {
+  it('shows exactly 26 top-level nav items', () => {
     const sidebar = INDEX_HTML.slice(INDEX_HTML.indexOf('id="sidebar"'), INDEX_HTML.indexOf('id="statusbar"'));
     const navs = [...sidebar.matchAll(/data-nav="([a-z0-9-]+)"/g)].map((m) => m[1]);
-    expect(new Set(navs).size).toBe(24);
+    expect(new Set(navs).size).toBe(26);
   });
 
   it('keeps a pane container for every absorbed pane (nothing deleted)', () => {
