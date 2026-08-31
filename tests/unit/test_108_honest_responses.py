@@ -118,6 +118,15 @@ def test_the_exemption_list_is_explicit_and_small(client):
         # unconfigured integration: the response carries setup instructions
         '/api/deploy/vercel',
         '/api/deploy/netlify',
+        # audit verdicts: the e2e engine RAN and reports the outcome. "your page
+        # failed 2 of 7 checks" is the successful result -- a score of 0 is a
+        # legitimate, useful finding, and re-statusing it to 400 makes "ran and
+        # found problems" indistinguishable from "could not run". The heuristic
+        # path (used when no browser binary is present) must answer 200 with its
+        # honest verdict without a live server.
+        '/api/e2e/run',
+        '/api/e2e/autofix',
+        '/api/e2e/performance',
     }
     extra = set(_OK_FALSE_EXEMPT) - allowed
     assert not extra, f'undocumented exemptions crept in: {sorted(extra)}'

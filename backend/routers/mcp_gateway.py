@@ -535,6 +535,7 @@ async def gateway_call(agent_id: str, server_id: str, tool_name: str, args: dict
             'ok': False,
             'error': f"Tool call blocked by policy '{policy_name}'",
             'policy_decision': 'deny',
+            'denied': True,
             'call_id': call_id,
         }
 
@@ -611,7 +612,25 @@ async def gateway_call(agent_id: str, server_id: str, tool_name: str, args: dict
         return {'ok': False, 'error': err, 'call_id': call_id}
 
     duration_ms = _epoch() * 1000 - t0
-    status = 'ok' if result.get('ok') else 'error'
+
+    # The gateway's OWN policy layer (mcp_gateway_policies) evaluated the call
+    # as `policy_decision` above, but the dispatch step delegates per-agent
+    # authorisation to /api/mcp/call (tool_policy). A permission denial that
+    # comes back through dispatch is a REAL denial even when the gateway's
+    # policy said 'allow' (the default pol_allow_builtin matches '*'): the
+    # agent simply is not authorised. Before this, a denial surfaced from
+    # dispatch was recorded and reported as `policy_decision: 'allow'` with
+    # audit status 'error' -- the caller saw the gateway's verdict, not the
+    # dispatch's, so a permission refusal was indistinguishable from the tool
+    # erroring. That is the "second door" reporting gap this codebase hunts
+    # for. Here the downstream verdict is authoritative for the denial case.
+    denied = result.get('denied') is True
+    if denied:
+        status = 'blocked'
+        effective_policy = 'deny'
+    else:
+        status = 'ok' if result.get('ok') else 'error'
+        effective_policy = policy_decision
 
     _record_call(
         call_id,
@@ -620,7 +639,7 @@ async def gateway_call(agent_id: str, server_id: str, tool_name: str, args: dict
         agent_id,
         args,
         status,
-        policy_decision,
+        effective_policy,
         duration_ms,
         0,
         0,
@@ -636,14 +655,14 @@ async def gateway_call(agent_id: str, server_id: str, tool_name: str, args: dict
             agent_id.title(),
             'mcp_tool_call',
             f'[{server_id}] {tool_name}({str(args)[:80]})',
-            reasoning=f'Policy: {policy_name}',
+            reasoning=f'Policy: {policy_name}' if not denied else f'Blocked: {result.get("error", "permission denied")[:120]}',
             authority='agent',
             risk_level='low',
             outcome='success' if result.get('ok') else 'failure',
             metadata={'call_id': call_id, 'server_id': server_id, 'tool': tool_name, 'duration_ms': duration_ms},
         )
 
-    return {**result, 'call_id': call_id, 'policy_decision': policy_decision, 'gateway_duration_ms': duration_ms}
+    return {**result, 'call_id': call_id, 'policy_decision': effective_policy, 'gateway_duration_ms': duration_ms}
 
 
 def _record_call(
