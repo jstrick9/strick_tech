@@ -216,7 +216,7 @@
       _setupBtn.id = 'top-setup-btn';
       _setupBtn.setAttribute('aria-label', 'Set up your AI');
       _setupBtn.textContent = '✨ Setup AI';
-      _setupBtn.style.cssText = 'flex:none;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer';
+      _setupBtn.style.cssText = 'flex:none;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:8px;border:1px solid var(--accent);color:var(--accent-text);background:transparent;cursor:pointer';
       _setupBtn.addEventListener('click', (ev) => {
         ev.stopPropagation();
         if (window.showQuickSetup) window.showQuickSetup();
@@ -226,6 +226,8 @@
 
       const _origReadiness = window.renderConnectionReadiness;
       if (typeof _origReadiness === 'function') {
+        // intentional-override: wraps the core readiness signal so the Setup AI
+        // nudge auto-hides once a cloud key or local model is genuinely ready.
         window.renderConnectionReadiness = function(readiness = {}) {
           _origReadiness.apply(this, arguments);
           if (_setupBtn) {
