@@ -24,6 +24,7 @@ log = logging.getLogger('agentic.profiler')
 
 from backend.config import get_data_dir
 
+from ..services.codeguard import run_guarded_exec
 from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
@@ -312,14 +313,17 @@ async def profile_code_block(req: Request):
         'filter': filter,
         'round': round,
         'isinstance': isinstance,
-        'type': type,
         '__builtins__': None,  # block dangerous built-ins
     }
     profiler = cProfile.Profile()
     profiler.enable()
     t0 = time.perf_counter()
     try:
-        exec(compile(code, '<profiler>', 'exec'), {'__builtins__': _SAFE_BUILTINS})
+        # FIX 4: a restricted __builtins__ is NOT a sandbox — dunder attribute
+        # traversal (().__class__.__mro__[1].__subclasses__() → __globals__
+        # → __import__('os').system) reaches code execution regardless. The
+        # guard rejects dunder/private attribute usage before exec-ing.
+        run_guarded_exec(code, {'__builtins__': _SAFE_BUILTINS}, name='<profiler>')
     except Exception as ex:
         profiler.disable()
         return {'ok': False, 'error': str(ex)}

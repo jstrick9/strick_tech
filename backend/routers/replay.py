@@ -22,6 +22,7 @@ log = logging.getLogger('agentic.replay')
 
 from backend.config import get_data_dir
 
+from ..services.codeguard import run_guarded_exec
 from ..services.llm import sse_guard
 from ..services.request_body import json_body_or_error
 
@@ -353,11 +354,16 @@ async def recorded_run(wf_id: str, req: Request):
                             'filter': filter,
                             'round': round,
                             'isinstance': isinstance,
-                            'type': type,
                             '__builtins__': None,
                         }
                         loc = {'input': context['prev_output'], 'output': ''}
-                        exec(compile(code, '<workflow_node>', 'exec'), {'__builtins__': _SAFE_BUILTINS}, loc)
+                        # FIX: restricted __builtins__ is not a sandbox — dunder
+                        # attribute traversal reaches code execution. Reject
+                        # dunder/private attribute usage before executing.
+                        run_guarded_exec(
+                            code, {'__builtins__': _SAFE_BUILTINS}, loc,
+                            name='<workflow_node>',
+                        )
                         output = str(loc.get('output', context['prev_output']))[:500]
                         context['prev_output'] = output
                     except Exception as ex:
