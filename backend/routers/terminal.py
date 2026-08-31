@@ -250,8 +250,18 @@ _LOOPBACK_HOSTS = {'127.0.0.1', '::1', 'localhost', ''}
 
 
 def _bound_to_loopback() -> bool:
-    """True when the server is only reachable from this machine."""
-    host = os.getenv('AGENTIC_OS_HOST', '127.0.0.1').strip()
+    """True when the server is only reachable from this machine.
+
+    This must read the SAME default the server actually binds with
+    (backend/config.py: AGENTIC_OS_HOST defaults to '0.0.0.0'). It previously
+    defaulted its own read to '127.0.0.1', so a default deployment (no
+    AGENTIC_OS_HOST set) bound the server to 0.0.0.0 — reachable over the
+    network — while this helper concluded "loopback only" and skipped auth.
+    That is precisely the unauth'd networked shell the comments below call
+    indefensible. In fact it runs a trailing '/' comparison in the default
+    host, so strip it.
+    """
+    host = os.getenv('AGENTIC_OS_HOST', '0.0.0.0').strip()
     return host in _LOOPBACK_HOSTS
 
 

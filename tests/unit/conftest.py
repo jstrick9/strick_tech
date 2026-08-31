@@ -95,6 +95,16 @@ for _name in _READONLY_COPIES:
 
 os.environ["AGENTIC_OS_DATA_DIR"] = str(_TEST_DATA_DIR)
 
+# ── Simulate a loopback-bound server for the unit suite ───────────────────────
+# The terminal's auth gate treats the server as requiring auth unless it is
+# bound to loopback. The unit suite exercises the terminal directly with an
+# in-process TestClient and no credentials, so it runs as bound to loopback
+# (the security-correct, default-loopback deployment). Without this, a default
+# AGENTIC_OS_HOST=0.0.0.0 (the real config default) makes every terminal
+# endpoint return 401 and the terminal tests fail. This mirrors how the suite
+# deliberately runs the DB in a temp sandbox.
+os.environ.setdefault("AGENTIC_OS_HOST", "127.0.0.1")
+
 
 @pytest.fixture(scope="session", autouse=True)
 def isolated_db():
