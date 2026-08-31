@@ -20,6 +20,11 @@ import { JSDOM } from 'jsdom';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const KANBAN_JS = readFileSync(resolve(__dirname, '../js/28-kanban.js'), 'utf-8');
+// 28-kanban.js renders data-act-* handlers with ${jsArg(...)}. jsArg is a real
+// global (defined in 01-app-core.js) that serialises an argument as a safe
+// attribute/JSON literal. It is provided here exactly as it is shipped so the
+// exercised code path is faithful to production.
+const APPCORE_JS = readFileSync(resolve(__dirname, '../js/01-app-core.js'), 'utf-8');
 
 let renderCard;
 let dom;
@@ -32,13 +37,14 @@ beforeAll(() => {
   const escHtml = KANBAN_JS.match(/function kanbanEscapeHtml[\s\S]*?\n}\n/);
   const escAttr = KANBAN_JS.match(/function kanbanEscapeAttr[\s\S]*?\n}\n/);
   const render = KANBAN_JS.match(/function kanbanRenderCard[\s\S]*?\n}\n/);
-  for (const [name, m] of Object.entries({ priorities, agents, escHtml, escAttr, render })) {
-    if (!m) throw new Error(`could not extract ${name} from 28-kanban.js`);
+  const jsArg = APPCORE_JS.match(/function jsArg[\s\S]*?\n}\n/);
+  for (const [name, m] of Object.entries({ priorities, agents, escHtml, escAttr, render, jsArg })) {
+    if (!m) throw new Error(`could not extract ${name} from source`);
   }
   // eslint-disable-next-line no-new-func
   renderCard = new Function(
     'document',
-    `${priorities[0]}\n${agents[0]}\n${escHtml[0]}\n${escAttr[0]}\n${render[0]}\nreturn kanbanRenderCard;`
+    `${priorities[0]}\n${agents[0]}\n${escHtml[0]}\n${escAttr[0]}\n${jsArg[0]}\n${render[0]}\nreturn kanbanRenderCard;`
   )(dom.window.document);
 });
 
