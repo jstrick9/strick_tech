@@ -680,15 +680,17 @@ const pct = await gmPrompt(`Check-in: ${g.title.slice(0,40)}`, 'New progress % (
 if (pct === null) return;
 const n = Math.max(0, Math.min(100, parseInt(pct)||0));
 const note = await gmPrompt('Check-in Note', 'Describe what was accomplished (or leave blank):') || '';
-await fetch(`/api/goals/${encodeURIComponent(g.id)}`, {
+const r = await fetch(`/api/goals/${encodeURIComponent(g.id)}`, {
 method:'PATCH', headers:{'Content-Type':'application/json'},
 body:JSON.stringify({progress:n})
 });
+if (!r.ok) { toast('⚠️ Progress not saved — goal no longer exists?', 'error'); await gmLoadGoals(); return; }
 if (note || n>0) {
-await fetch(`/api/goals/${encodeURIComponent(g.id)}/checkin`, {
+const rc = await fetch(`/api/goals/${encodeURIComponent(g.id)}/checkin`, {
 method:'POST', headers:{'Content-Type':'application/json'},
 body: JSON.stringify({progress:n, note, agent_id:'user'})
 });
+if (!rc.ok) { toast('⚠️ Check-in not saved', 'error'); await gmSelectGoal(g.id); return; }
 }
 toast(`📈 Progress updated: ${n}%`);
 await gmSelectGoal(g.id);
@@ -699,10 +701,11 @@ const g = _goalSelected.goal;
 const title = await gmPrompt('New Milestone', 'Milestone title:');
 if (!title?.trim()) return;
 const due = await gmPrompt('Due Date', 'Due date (YYYY-MM-DD) or blank:') || '';
-await fetch(`/api/goals/${encodeURIComponent(g.id)}/milestones`, {
+const r = await fetch(`/api/goals/${encodeURIComponent(g.id)}/milestones`, {
 method:'POST', headers:{'Content-Type':'application/json'},
 body: JSON.stringify({title, due_date: due})
 });
+if (!r.ok) { toast('⚠️ Milestone not added', 'error'); await gmSelectGoal(g.id); return; }
 toast('📌 Milestone added');
 await gmSelectGoal(g.id);
 }
@@ -710,7 +713,8 @@ async function gmCompleteMilestone(msId, alreadyDone) {
 if (alreadyDone) return;
 if (!_goalSelected) return;
 const g = _goalSelected.goal;
-await fetch(`/api/goals/${encodeURIComponent(g.id)}/milestones/${encodeURIComponent(msId)}/complete`, {method:'POST'});
+const r = await fetch(`/api/goals/${encodeURIComponent(g.id)}/milestones/${encodeURIComponent(msId)}/complete`, {method:'POST'});
+if (!r.ok) toast('⚠️ Milestone not completed', 'error');
 await gmSelectGoal(g.id);
 }
 async function gmEditGoal() {
@@ -719,10 +723,11 @@ const g = _goalSelected.goal;
 const title = await gmPrompt('Edit Goal Title', 'Title:', g.title);
 if (title === null) return;
 const criteria = await gmPrompt('Success Criteria', 'Success criteria:', g.success_criteria||'') || '';
-await fetch(`/api/goals/${encodeURIComponent(g.id)}`, {
+const r = await fetch(`/api/goals/${encodeURIComponent(g.id)}`, {
 method:'PATCH', headers:{'Content-Type':'application/json'},
 body: JSON.stringify({title: title||g.title, success_criteria: criteria})
 });
+if (!r.ok) { toast('⚠️ Goal not updated', 'error'); await gmLoadGoals(); return; }
 toast('✏️ Goal updated');
 await gmSelectGoal(g.id);
 await gmLoadGoals();
@@ -732,7 +737,8 @@ if (!_goalSelected) return;
 const g = _goalSelected.goal;
 const ok = await gmDanger('Delete Goal', `Delete "${g.title}" and all its data?`);
 if (!ok) return;
-await fetch(`/api/goals/${encodeURIComponent(g.id)}`, {method:'DELETE'});
+const r = await fetch(`/api/goals/${encodeURIComponent(g.id)}`, {method:'DELETE'});
+if (!r.ok) { toast('⚠️ Goal not deleted', 'error'); await gmLoadGoals(); return; }
 toast('🗑 Goal deleted');
 _goalSelected = null;
 document.getElementById('gm-main').innerHTML = `
