@@ -206,8 +206,8 @@ function bddRenderDashboard(container) {
           <span style="color:#e85252;font-weight:800">${a.drift_score.toFixed(1)}/100</span>
           <span style="color:var(--text-3)">${escHtml((a.flags||[]).slice(0,3).join(', '))}</span>
           <div style="margin-left:auto;display:flex;gap:5px">
-            <button class="bdd-alert-btn danger" data-act-click="bddKillAgent(${JSON.stringify(a.agent_id)})">🛑 Kill</button>
-            <button class="bdd-alert-btn" data-act-click="bddViewAgent(${JSON.stringify(a.agent_id)})">🔍 Details</button>
+            <button class="bdd-alert-btn danger" data-act-click="bddKillAgent(${jsArg(a.agent_id)})">🛑 Kill</button>
+            <button class="bdd-alert-btn" data-act-click="bddViewAgent(${jsArg(a.agent_id)})">🔍 Details</button>
           </div>
         </div>`).join('')}
     </div>` : ''}
@@ -223,7 +223,7 @@ function bddRenderDashboard(container) {
         const trendI = DRIFT_TREND_ICONS[a.trend]  || '?';
         const pct    = Math.min(a.drift_score, 100);
         const isSelected = _driftSelected === a.agent_id;
-        return `<div class="bdd-lb-row ${isSelected?'selected':''}" data-act-click="bddViewAgent(${JSON.stringify(a.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+        return `<div class="bdd-lb-row ${isSelected?'selected':''}" data-act-click="bddViewAgent(${jsArg(a.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <span class="bdd-lb-agent">${escHtml(a.agent_id)}</span>
           <div class="bdd-lb-score-bar">
             <div class="bdd-lb-score-fill" style="width:${pct}%;background:${sc.border}"></div>
@@ -255,7 +255,7 @@ function bddRenderAgents(container) {
         ${_driftLeaderboard.map(a => {
           const sc = DRIFT_SEV_COLORS[a.severity] || DRIFT_SEV_COLORS.none;
           const pct = Math.min(a.drift_score, 100);
-          return `<div class="bdd-lb-row" data-act-click="bddViewAgent(${JSON.stringify(a.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+          return `<div class="bdd-lb-row" data-act-click="bddViewAgent(${jsArg(a.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div class="bdd-gauge" style="border-color:${sc.border};width:48px;height:48px">
               <span class="bdd-gauge-val" style="color:${sc.border};font-size:13px">${a.drift_score.toFixed(0)}</span>
               <span class="bdd-gauge-lbl" style="color:${sc.border};font-size:7px">${sc.label}</span>
@@ -271,7 +271,7 @@ function bddRenderAgents(container) {
               </div>
             </div>
             <div style="display:flex;gap:5px">
-              <button class="bdd-header-btn" data-act-click="bddDetectAgent(${JSON.stringify(a.agent_id)})" data-stop="1">🔍 Run</button>
+              <button class="bdd-header-btn" data-act-click="bddDetectAgent(${jsArg(a.agent_id)})" data-stop="1">🔍 Run</button>
             </div>
           </div>`;
         }).join('')}
@@ -348,9 +348,9 @@ async function bddRenderAgentDetail(container, agentId) {
         <div style="font-size:11px;color:var(--text-2);margin-top:3px">${escHtml(ls.detail||'')}</div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="bdd-header-btn" data-act-click="bddDetectAgent(${JSON.stringify(agentId)})">🔍 Re-run Detection</button>
-        <button class="bdd-header-btn" data-act-click="bddBuildFingerprint(${JSON.stringify(agentId)})">🧬 Rebuild Baseline</button>
-        ${ls.severity==='critical' ? `<button class="bdd-header-btn" style="color:var(--danger);border-color:var(--danger)" data-act-click="bddKillAgent(${JSON.stringify(agentId)})">🛑 Kill Agent</button>` : ''}
+        <button class="bdd-header-btn" data-act-click="bddDetectAgent(${jsArg(agentId)})">🔍 Re-run Detection</button>
+        <button class="bdd-header-btn" data-act-click="bddBuildFingerprint(${jsArg(agentId)})">🧬 Rebuild Baseline</button>
+        ${ls.severity==='critical' ? `<button class="bdd-header-btn" style="color:var(--danger);border-color:var(--danger)" data-act-click="bddKillAgent(${jsArg(agentId)})">🛑 Kill Agent</button>` : ''}
       </div>
     </div>
 
@@ -365,7 +365,7 @@ async function bddRenderAgentDetail(container, agentId) {
             <div class="bdd-alert-desc">${escHtml(a.description)}</div>
           </div>
           <div class="bdd-alert-actions">
-            <button class="bdd-alert-btn" data-act-click="bddResolveAlert(${JSON.stringify(a.alert_id)})">✓ Resolve</button>
+            <button class="bdd-alert-btn" data-act-click="bddResolveAlert(${jsArg(a.alert_id)})">✓ Resolve</button>
           </div>
         </div>`).join('')}
     </div>` : ''}
@@ -503,10 +503,10 @@ function bddRenderAlerts(container) {
       </div>
       <div class="bdd-alert-actions">
         ${!a.resolved ? `
-          ${!a.acknowledged ? `<button class="bdd-alert-btn" data-act-click="bddAckAlert(${JSON.stringify(a.alert_id)})">👁 Ack</button>` : ''}
-          ${a.recommended_action==='kill_agent' ? `<button class="bdd-alert-btn danger" data-act-click="bddKillAgent(${JSON.stringify(a.agent_id)})">🛑 Kill</button>` : ''}
-          <button class="bdd-alert-btn" data-act-click="bddViewAgent(${JSON.stringify(a.agent_id)})">🔍 Inspect</button>
-          <button class="bdd-alert-btn" data-act-click="bddResolveAlert(${JSON.stringify(a.alert_id)})">✓ Resolve</button>
+          ${!a.acknowledged ? `<button class="bdd-alert-btn" data-act-click="bddAckAlert(${jsArg(a.alert_id)})">👁 Ack</button>` : ''}
+          ${a.recommended_action==='kill_agent' ? `<button class="bdd-alert-btn danger" data-act-click="bddKillAgent(${jsArg(a.agent_id)})">🛑 Kill</button>` : ''}
+          <button class="bdd-alert-btn" data-act-click="bddViewAgent(${jsArg(a.agent_id)})">🔍 Inspect</button>
+          <button class="bdd-alert-btn" data-act-click="bddResolveAlert(${jsArg(a.alert_id)})">✓ Resolve</button>
         ` : '<span style="font-size:10px;color:var(--success)">Resolved</span>'}
       </div>
     </div>`;
@@ -552,7 +552,7 @@ async function bddRenderHistory(container) {
         ${hist.map(h => {
           const sc = DRIFT_SEV_COLORS[h.severity||'none'];
           const tc = DRIFT_TREND_COLORS[h.trend||'stable'];
-          return `<tr data-act-click="bddViewAgent(${JSON.stringify(h.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+          return `<tr data-act-click="bddViewAgent(${jsArg(h.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <td style="color:var(--text-3);white-space:nowrap">${new Date(h.computed_at).toLocaleTimeString()}</td>
             <td style="font-weight:600;color:var(--accent-text)">${escHtml(h.agent_id)}</td>
             <td style="font-size:10px;color:var(--text-3)">${h.window_label||'1h'}</td>
@@ -716,10 +716,10 @@ function renderAgentMonitorCard(a, statusColor, statusIcon) {
       <div style="background:var(--bg-3);border-radius:5px;padding:4px 7px"><div style="color:var(--text-3)">Errors</div><div style="color:${a.errors_session>0?'var(--danger)':'var(--text-0)'}">${a.errors_session||0}</div></div>
     </div>
     <div style="display:flex;gap:5px">
-      <button class="btn-sm u-0d5be05f" data-act-click="bddViewAgent(${JSON.stringify(a.agent_id||a.id)})" >📊 Drift</button>
+      <button class="btn-sm u-0d5be05f" data-act-click="bddViewAgent(${jsArg(a.agent_id||a.id)})" >📊 Drift</button>
       ${!a.is_killed ?
-        `<button class="btn-sm" data-act-click="bddKillAgent(${JSON.stringify(a.agent_id||a.id)})" style="color:var(--danger);border-color:var(--danger);font-size:10px">🛑</button>` :
-        `<button class="btn-sm" data-act-click="monitorReviveAgent(${JSON.stringify(a.agent_id||a.id)})" style="color:var(--success);font-size:10px">♻️</button>`}
+        `<button class="btn-sm" data-act-click="bddKillAgent(${jsArg(a.agent_id||a.id)})" style="color:var(--danger);border-color:var(--danger);font-size:10px">🛑</button>` :
+        `<button class="btn-sm" data-act-click="monitorReviveAgent(${jsArg(a.agent_id||a.id)})" style="color:var(--success);font-size:10px">♻️</button>`}
     </div>
   </div>`;
 }

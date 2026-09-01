@@ -279,10 +279,10 @@ function ttdRenderRunList() {
     const isDiffB  = _ttdDiffRunB === run.id;
     const diffLabel = isDiffA ? 'A' : (isDiffB ? 'B' : '');
     const ts = new Date(run.created_at).toLocaleString(undefined, {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-    return `<div class="ttd-run-card ${isActive?'active':''}" data-act-click="ttdSelectRun(${JSON.stringify(run.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+    return `<div class="ttd-run-card ${isActive?'active':''}" data-act-click="ttdSelectRun(${jsArg(run.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
       <div class="ttd-run-card-top">
         <input type="checkbox" class="ttd-diff-checkbox" title="Select for diff"
-          data-act-click="ttdToggleDiffSelect(${JSON.stringify(run.id)},$checked)" data-stop="1"
+          data-act-click="ttdToggleDiffSelect(${jsArg(run.id)},$checked)" data-stop="1"
           ${isDiffA||isDiffB?'checked':''}>
         ${diffLabel ? `<span style="font-size:10px;font-weight:700;color:${isDiffA?'#3dba7a':'#9d74f5'}">${diffLabel}</span>` : ''}
         <span class="ttd-badge ${run.status}">${run.status}</span>
@@ -395,7 +395,7 @@ function ttdBuildGraph() {
     const icon = TTD_ICONS[n.type] || '⬡';
     return `<div class="ttd-node n-pending" id="ttdn-${n.id}"
               style="left:${n.x||0}px;top:${n.y||0}px;border-color:${col}22"
-              data-act-click="ttdClickNode($event,${JSON.stringify(n.id)})">
+              data-act-click="ttdClickNode($event,${jsArg(n.id)})">
       <div class="ttd-node-hdr">
         <span class="ttd-node-icon">${icon}</span>
         <span class="ttd-node-label" title="${escHtml(n.label||n.type)}">${escHtml(n.label||n.type)}</span>
@@ -660,7 +660,7 @@ function ttdShowNodeDetail(nodeId, upToIdx) {
   try { ctx = JSON.parse(frame.input_ctx || '{}'); } catch(e) {}
 
   const copyBtn = (text) =>
-    `<button class="ttd-copy-btn" data-act-click="hCopyText(${JSON.stringify(text)})">Copy</button>`;
+    `<button class="ttd-copy-btn" data-act-click="hCopyText(${jsArg(text)})">Copy</button>`;
 
   body.innerHTML = `
     <!-- Node identity -->
@@ -719,7 +719,7 @@ function ttdShowNodeDetail(nodeId, upToIdx) {
     <!-- Actions -->
     <div class="ttd-detail-section" style="margin-top:16px;display:flex;flex-direction:column;gap:6px">
       <button class="ttd-toolbar-btn" style="width:100%;justify-content:center"
-        data-act-click="ttdRerunFromNode(${JSON.stringify(frame.node_id)},${frame.frame_no})">
+        data-act-click="ttdRerunFromNode(${jsArg(frame.node_id)},${frame.frame_no})">
         ↺ Re-run from this node
       </button>
     </div>
@@ -1299,7 +1299,7 @@ async function ceLoadDocs() {
     const list = document.getElementById('ce-doc-list');
     if (!list) return;
     list.innerHTML = _ceDocs.map(doc => `
-      <div class="ce-doc-item ${_ceDoc?.id===doc.id?'active':''}" data-act-click="ceSelectDoc(${JSON.stringify(doc.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+      <div class="ce-doc-item ${_ceDoc?.id===doc.id?'active':''}" data-act-click="ceSelectDoc(${jsArg(doc.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
         <div style="font-weight:600;color:var(--text-0)">${escHtml(doc.title||'Untitled')}</div>
         <div style="font-size:10px;color:var(--text-3)">${doc.size||0} chars · rev ${doc.revision}</div>
       </div>
@@ -1828,14 +1828,14 @@ function mktCardHTML(p, featured=false) {
         </span>
         <span class="mkt-dl">⬇ ${(p.downloads||0).toLocaleString()}</span>
         <button class="mkt-install-btn ${isInstalled?'installed':''}"
-                data-act-click="mktInstallOrUninstall(${JSON.stringify(p.id)},${JSON.stringify(p.name)},${isInstalled ? 1 : 0})"
+                data-act-click="mktInstallOrUninstall(${jsArg(p.id)},${jsArg(p.name)},${isInstalled ? 1 : 0})"
                 id="mkt-btn-${p.id}">
           ${isInstalled?'✓ Installed':'Install'}
         </button>
       </div>
       <div style="display:flex;gap:5px;margin-top:2px">
-        <button class="btn-sm" data-act-click="mktViewDetail(${JSON.stringify(p.id)})">Details</button>
-        <button class="btn-sm" data-act-click="hDownloadMarketplacePack(${JSON.stringify(p.id)})">⬇ ZIP</button>
+        <button class="btn-sm" data-act-click="mktViewDetail(${jsArg(p.id)})">Details</button>
+        <button class="btn-sm" data-act-click="hDownloadMarketplacePack(${jsArg(p.id)})">⬇ ZIP</button>
       </div>
     </div>
   `;
@@ -1958,11 +1958,11 @@ async function mktViewDetail(packId) {
         </div>
         ${reviews?`<div><h4 style="font-size:12px;color:var(--text-3);text-transform:uppercase">Reviews (${(d.reviews||[]).length})</h4>${reviews}</div>`:''}
         <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" data-act-click="hInstallAndClose(${JSON.stringify(packId)},${JSON.stringify(d.name||packId)},${isInst ? 1 : 0},$this)">
+          <button class="btn" data-act-click="hInstallAndClose(${jsArg(packId)},${jsArg(d.name||packId)},${isInst ? 1 : 0},$this)">
             ${isInst?'✓ Installed (Uninstall)':'Install'}
           </button>
-          <button class="btn-sm" data-act-click="mktLeaveReview(${JSON.stringify(packId)})">⭐ Review</button>
-          <button class="btn-sm" data-act-click="hDownloadMarketplacePack(${JSON.stringify(packId)})">⬇ Download ZIP</button>
+          <button class="btn-sm" data-act-click="mktLeaveReview(${jsArg(packId)})">⭐ Review</button>
+          <button class="btn-sm" data-act-click="hDownloadMarketplacePack(${jsArg(packId)})">⬇ Download ZIP</button>
         </div>
       </div>`;
     overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
@@ -2027,7 +2027,7 @@ async function mktShowInstalled() {
           <div style="color:var(--text-3)">v${i.version}</div>
         </div>
         <button class="btn-sm" style="color:var(--danger);border-color:var(--danger)"
-                data-act-click="mktInstallOrUninstall(${JSON.stringify(i.pack_id)},${JSON.stringify(i.name||i.pack_id)},true)">Uninstall</button>
+                data-act-click="mktInstallOrUninstall(${jsArg(i.pack_id)},${jsArg(i.name||i.pack_id)},true)">Uninstall</button>
       </div>
     `).join('');
     const overlay = document.createElement('div');

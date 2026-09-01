@@ -39,14 +39,14 @@ async function renderWebhooks() {
               <button data-act-click="hCopyWebhookUrl(${jsArg(w.id)})" style="background:none;border:none;color:var(--text-2);cursor:pointer">📋</button>
             </div>
             <div style="display:flex;gap:6px">
-              <button data-act-click="testWebhook(${JSON.stringify(w.id)})" class="btn btn-ghost btn-sm">▶ Test</button>
-              <button data-act-click="deleteWebhook(${JSON.stringify(w.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;margin-left:auto">🗑</button>
+              <button data-act-click="testWebhook(${jsArg(w.id)})" class="btn btn-ghost btn-sm">▶ Test</button>
+              <button data-act-click="deleteWebhook(${jsArg(w.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;margin-left:auto">🗑</button>
             </div>
           </div>`).join('')}
         </div>
         <div>
           <div class="u-cbf73b78">🚀 Templates</div>
-          ${tmpls.map(t=>`<div class="card card-interactive lift" data-act-click="installWebhookTemplate(${JSON.stringify(t.id)})" style="margin-bottom:8px;padding:11px" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+          ${tmpls.map(t=>`<div class="card card-interactive lift" data-act-click="installWebhookTemplate(${jsArg(t.id)})" style="margin-bottom:8px;padding:11px" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div style="font-weight:600;font-size:12.5px;margin-bottom:2px">${escHtml(t.name)}</div>
             <div style="font-size:11.5px;color:var(--text-2);margin-bottom:4px">${escHtml(t.description)}</div>
             <div style="font-size:10.5px;color:var(--text-3)">${escHtml(t.setup)}</div>

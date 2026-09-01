@@ -199,7 +199,7 @@ function prbRenderList() {
     const isSelected = _prbSelected === p.policy_id;
     const isChecked  = _prbSelIds.has(p.policy_id);
     return `<div class="prb-policy-item ${!p.enabled?'disabled':''} ${isSelected?'selected':''}" data-policy-id="${escHtml(p.policy_id)}" style="border-left-color:${p.enabled?ac.border:'var(--text-3)'}">
-      <input type="checkbox" class="prb-policy-check" ${isChecked?'checked':''} data-act-click="prbToggleSelect(${JSON.stringify(p.policy_id)},$checked)" data-stop="1">
+      <input type="checkbox" class="prb-policy-check" ${isChecked?'checked':''} data-act-click="prbToggleSelect(${jsArg(p.policy_id)},$checked)" data-stop="1">
       <div class="prb-policy-item-body">
         <div class="prb-policy-item-name">${escHtml(p.name)}</div>
         <div class="prb-policy-item-meta">

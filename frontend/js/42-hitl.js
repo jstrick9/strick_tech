@@ -80,9 +80,9 @@ async function renderHITL() {
 
           <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
             <div style="display:flex;gap:8px">
-              <button class="btn-3d btn-primary btn-sm" data-act-click="hitlDecide(${JSON.stringify(item.id)},'approve')" style="background:var(--success);border:none;color:#fff;padding:6px 14px">✅ Approve & Continue</button>
-              <button class="btn-3d btn-ghost btn-sm u-6c51dbca" data-act-click="hitlModify(${JSON.stringify(item.id)})" >✏ Modify Parameters</button>
-              <button class="btn-3d btn-danger btn-sm u-6c51dbca" data-act-click="hitlDecide(${JSON.stringify(item.id)},'reject')" >🛑 Abort & Revert</button>
+              <button class="btn-3d btn-primary btn-sm" data-act-click="hitlDecide(${jsArg(item.id)},'approve')" style="background:var(--success);border:none;color:#fff;padding:6px 14px">✅ Approve & Continue</button>
+              <button class="btn-3d btn-ghost btn-sm u-6c51dbca" data-act-click="hitlModify(${jsArg(item.id)})" >✏ Modify Parameters</button>
+              <button class="btn-3d btn-danger btn-sm u-6c51dbca" data-act-click="hitlDecide(${jsArg(item.id)},'reject')" >🛑 Abort & Revert</button>
             </div>
             <button data-act-click="toggleSplitWorkspace(true,'hitl')" class="btn-3d btn-ghost btn-sm u-884e19b1" >🗂️ Secondary Dock</button>
           </div>

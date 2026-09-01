@@ -59,7 +59,7 @@ async function renderEvalFramework() {
             <span style="color:var(--text-3)">${new Date(r.created_at).toLocaleTimeString()}</span>
           </div>
           <div style="font-size:11px;color:var(--text-1);margin-bottom:6px">${escHtml((r.prompt||'').slice(0,80))}</div>
-          <button class="btn-sm" data-act-click="evalHumanReview(${JSON.stringify(r.result_id)})">👁️ Review</button>
+          <button class="btn-sm" data-act-click="evalHumanReview(${jsArg(r.result_id)})">👁️ Review</button>
         </div>`).join('')}
     </div>`:''}
 
@@ -74,9 +74,9 @@ async function renderEvalFramework() {
             📂 ${escHtml(s.domain)} · ${s.cases_count||0} cases · Pass: ${Math.round((s.pass_threshold||0.7)*100)}%
           </div>
           <div style="display:flex;gap:6px">
-            <button class="btn-sm" data-act-click="evalRunSpecific(${JSON.stringify(s.suite_id)})">▶ Run</button>
-            <button class="btn-sm" data-act-click="evalViewCases(${JSON.stringify(s.suite_id)})">📋 Cases</button>
-            <button class="btn-sm" data-act-click="evalAddCase(${JSON.stringify(s.suite_id)})">+ Case</button>
+            <button class="btn-sm" data-act-click="evalRunSpecific(${jsArg(s.suite_id)})">▶ Run</button>
+            <button class="btn-sm" data-act-click="evalViewCases(${jsArg(s.suite_id)})">📋 Cases</button>
+            <button class="btn-sm" data-act-click="evalAddCase(${jsArg(s.suite_id)})">+ Case</button>
           </div>
         </div>`).join('')}
     </div>

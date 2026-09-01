@@ -2161,7 +2161,7 @@ function mtRenderTabs() {
     tabEl.innerHTML = `
       <span>${tab.favicon||'📄'}</span>
       <span style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${escHtml(tab.title||tab.file||'Tab')}</span>
-      <button class="tab-close" data-act-click="mtCloseTab(${JSON.stringify(tab.id)})" data-stop="1" title="Close">✕</button>
+      <button class="tab-close" data-act-click="mtCloseTab(${jsArg(tab.id)})" data-stop="1" title="Close">✕</button>
     `;
     tabEl.addEventListener('click', () => mtActivateTab(tab.id));
     bar.insertBefore(tabEl, newBtn || null);
@@ -2273,7 +2273,7 @@ function mtToggleGrid() {
       <div class="mt-grid-cell">
         <div class="mt-grid-cell-header">
           ${t.favicon||'📄'} ${escHtml(t.title||t.file||'Tab')}
-          <button data-act-click="hActivateTabAndGrid(${JSON.stringify(t.id)})" 
+          <button data-act-click="hActivateTabAndGrid(${jsArg(t.id)})" 
                   style="margin-left:auto;background:none;border:none;color:var(--accent-text);cursor:pointer;font-size:10px">↗</button>
         </div>
         <iframe src="${escHtml(t.url)}" style="flex:1;border:none;width:100%;min-height:200px"></iframe>

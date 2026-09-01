@@ -365,7 +365,7 @@ function renderAgentList() {
     const advRow = (a) => `
       <div class="agent-row ${S.currentAgent?.id === a.id ? 'active-agent' : ''}"
            data-agent="${escHtml(JSON.stringify(a))}" data-act-click="hSetActiveAgent($json.agent)"
-           data-act-dblclick="openAgentModal(${JSON.stringify(a.id)})">
+           data-act-dblclick="openAgentModal(${jsArg(a.id)})">
         <div class="agent-avatar" style="background:${a.color}22;border:1px solid ${a.color}44">
           <span>${a.avatar || '🤖'}</span>
         </div>
@@ -412,7 +412,7 @@ function renderAgentList() {
           <div class="u-160b0675">${escHtml(a.name)}</div>
           <div style="font-size:11px;color:var(--text-2)">${escHtml(a.role||'')} • ${a.model||'default'}</div>
         </div>
-        <button data-act-click="openAgentModal(${JSON.stringify(a.id)})" class="btn btn-ghost btn-sm">Edit</button>
+        <button data-act-click="openAgentModal(${jsArg(a.id)})" class="btn btn-ghost btn-sm">Edit</button>
       </div>`;
     const coreAgents = S.agents.filter(a => !ADVANCED_IDS.has(a.id));
     sl.innerHTML = coreAgents.map(row).join('') +
@@ -3652,9 +3652,9 @@ function renderMarkdownEnhanced(text) {
       <div style="display:flex;align-items:center;justify-content:space-between;background:#04060f;padding:6px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px">
         <span style="font-size:11px;font-weight:800;color:var(--accent-text);font-family:monospace">${escHtml(langLabel)}</span>
         <div style="display:flex;gap:6px;align-items:center">
-          <button data-act-click="openCodeInStudio(${JSON.stringify(id)},${jsArg(lang||'js')})" class="btn-3d btn-primary btn-sm u-1cb634c0"  title="Load directly into primary Monaco editor buffer">⚡ Open in Studio ↗</button>
-          <button data-act-click="copyCodeBlock(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm u-1cb634c0" >📋 Copy</button>
-          <button data-act-click="runCodeInTerminal(${JSON.stringify(id)})" class="btn-3d btn-ghost btn-sm u-1cb634c0"  title="Send snippet to System Terminal input">＞_ Terminal</button>
+          <button data-act-click="openCodeInStudio(${jsArg(id)},${jsArg(lang||'js')})" class="btn-3d btn-primary btn-sm u-1cb634c0"  title="Load directly into primary Monaco editor buffer">⚡ Open in Studio ↗</button>
+          <button data-act-click="copyCodeBlock(${jsArg(id)})" class="btn-3d btn-ghost btn-sm u-1cb634c0" >📋 Copy</button>
+          <button data-act-click="runCodeInTerminal(${jsArg(id)})" class="btn-3d btn-ghost btn-sm u-1cb634c0"  title="Send snippet to System Terminal input">＞_ Terminal</button>
         </div>
       </div>
       ${lineNumHtml}<pre id="${id}" style="margin:0;padding:14px${lineCount > 1 ? ' 14px 14px 50px' : ''};background:#060814;overflow-x:auto;font-size:12.5px;line-height:1.65;font-family:'JetBrains Mono','Fira Code',monospace"><code class="hljs language-${langLabel}" data-raw="${encodeURIComponent(code)}">${highlightedCode}</code></pre>

@@ -111,7 +111,7 @@ async function renderBugBot() {
       </div>
       <div id="bb-pane-history" style="display:none">
         ${(reviews.reviews||[]).map(r=>`
-          <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" data-act-click="bbShowReview(${JSON.stringify(r.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+          <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" data-act-click="bbShowReview(${jsArg(r.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div style="width:44px;height:44px;border-radius:50%;background:var(--bg-3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:${r.score>=80?'var(--success)':r.score>=60?'var(--warning)':'var(--danger)'}">
               ${r.score}
             </div>
@@ -681,7 +681,7 @@ async function renderAmbient() {
             <span>${sev_icons[s.severity]||'ℹ️'}</span>
             <strong style="color:var(--text-0);font-size:12px">${escHtml(s.title||'')}</strong>
             <span class="amb-cat-pill">${cat_labels[s.category]||s.category||''}</span>
-            <button data-act-click="ambientDismiss(${JSON.stringify(s.id)},$this)" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">✕ Dismiss</button>
+            <button data-act-click="ambientDismiss(${jsArg(s.id)},$this)" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">✕ Dismiss</button>
           </div>
           ${s.description?`<div style="font-size:11px;color:var(--text-2)">${escHtml(s.description)}</div>`:''}
           ${s.file_path?`<div style="font-size:10px;font-family:monospace;color:var(--text-3);margin-top:3px">${escHtml(s.file_path)}${s.line_no?':'+s.line_no:''}</div>`:''}
@@ -699,7 +699,7 @@ async function renderAmbient() {
               <div style="font-weight:600;color:var(--text-0);font-size:12px">${escHtml(t.name||'')}</div>
               <div style="font-size:10px;color:var(--text-3)">${t.status} · ${new Date(t.created_at).toLocaleTimeString()}</div>
             </div>
-            <button class="btn-sm" data-act-click="ambientShowTask(${JSON.stringify(t.id)})">View</button>
+            <button class="btn-sm" data-act-click="ambientShowTask(${jsArg(t.id)})">View</button>
           </div>
           ${t.result&&t.status!=='pending'?`<div style="font-size:11px;color:var(--text-2);margin-top:6px;font-family:monospace">${escHtml((t.result||'').slice(0,120))}…</div>`:''}
         </div>`).join('') || '<div style="color:var(--text-3);padding:12px">No background tasks yet</div>'}

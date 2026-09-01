@@ -187,7 +187,7 @@ function crcRenderDashboard(container) {
     <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;margin-top:6px">Supported Compliance Frameworks</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin-bottom:18px">
       ${CRC_FRAMEWORKS.map(fw => `
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:9px;padding:12px;cursor:pointer;transition:all .12s" data-act-click="crcSetFwAndGenerate(${JSON.stringify(fw.id)})" data-hover="bc:var(--accent)" data-hover-out="bc:var(--border)" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:9px;padding:12px;cursor:pointer;transition:all .12s" data-act-click="crcSetFwAndGenerate(${jsArg(fw.id)})" data-hover="bc:var(--accent)" data-hover-out="bc:var(--border)" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <div style="font-size:18px;margin-bottom:5px">${fw.icon}</div>
           <div style="font-size:12px;font-weight:700;color:var(--text-0);margin-bottom:2px">${fw.name}</div>
           <div style="font-size:10px;color:var(--text-3)">${fw.desc}</div>
@@ -218,7 +218,7 @@ function crcRenderGenerator(container) {
           <div class="crc-panel-title">⚖️ Compliance Framework</div>
           <div class="crc-fw-grid">
             ${CRC_FRAMEWORKS.map(fw => `
-              <div class="crc-fw-card ${_crcSelectedFw===fw.id?'selected':''}" id="crc-fw-${fw.id}" data-act-click="crcSelectFw(${JSON.stringify(fw.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+              <div class="crc-fw-card ${_crcSelectedFw===fw.id?'selected':''}" id="crc-fw-${fw.id}" data-act-click="crcSelectFw(${jsArg(fw.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
                 <div class="crc-fw-icon">${fw.icon}</div>
                 <div class="crc-fw-name">${fw.name}</div>
                 <div class="crc-fw-desc">${fw.desc}</div>
@@ -231,7 +231,7 @@ function crcRenderGenerator(container) {
           <div class="crc-panel-title">📁 Output Format</div>
           <div class="crc-fmt-row">
             ${[['pdf','📄 PDF','Formatted, signable'],['json','{ } JSON','Machine-readable'],['csv','📊 CSV','Spreadsheet']].map(([id,label,desc]) => `
-              <div class="crc-fmt-btn ${_crcSelectedFmt===id?'selected':''}" id="crc-fmt-${id}" data-act-click="crcSelectFmt(${JSON.stringify(id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+              <div class="crc-fmt-btn ${_crcSelectedFmt===id?'selected':''}" id="crc-fmt-${id}" data-act-click="crcSelectFmt(${jsArg(id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
                 <div>${label}</div>
                 <div style="font-size:9px;color:var(--text-3);margin-top:2px">${desc}</div>
               </div>`).join('')}
@@ -263,8 +263,8 @@ function crcRenderGenerator(container) {
           <div class="crc-panel-title">🔍 Included Sections</div>
           <div class="crc-scope-list" id="crc-scope-list">
             ${CRC_SECTIONS.map(s => `
-              <div class="crc-scope-item" data-act-click="crcToggleScope(${JSON.stringify(s.key)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
-                <input type="checkbox" class="crc-scope-check" id="crc-scope-${s.key}" ${_crcScope[s.key]?'checked':''} data-act-click="crcToggleScope(${JSON.stringify(s.key)})" data-stop="1">
+              <div class="crc-scope-item" data-act-click="crcToggleScope(${jsArg(s.key)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+                <input type="checkbox" class="crc-scope-check" id="crc-scope-${s.key}" ${_crcScope[s.key]?'checked':''} data-act-click="crcToggleScope(${jsArg(s.key)})" data-stop="1">
                 <span class="crc-scope-icon">${s.icon}</span>
                 <span class="crc-scope-label">${s.label}</span>
               </div>`).join('')}
@@ -462,8 +462,8 @@ function crcReportCard(r) {
     </div>
     <div class="crc-report-actions">
       <span class="crc-status-badge" style="background:${sc}22;color:${sc}">${r.status}</span>
-      ${r.status==='done' ? `<button class="crc-rep-btn" data-act-click="crcRegenReport(${JSON.stringify(r)})">↺ Re-run</button>` : ''}
-      <button class="crc-rep-btn" style="color:var(--danger)" data-act-click="crcDeleteReport(${JSON.stringify(r.report_id)})">🗑</button>
+      ${r.status==='done' ? `<button class="crc-rep-btn" data-act-click="crcRegenReport(${jsArg(r)})">↺ Re-run</button>` : ''}
+      <button class="crc-rep-btn" style="color:var(--danger)" data-act-click="crcDeleteReport(${jsArg(r.report_id)})">🗑</button>
     </div>
   </div>`;
 }
@@ -555,7 +555,7 @@ async function crcRenderAuditChain(container) {
         </tr></thead>
         <tbody>
           ${_crcAuditEntries.map(e => `
-          <tr data-act-click="crcShowEntry(${JSON.stringify(e.entry_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+          <tr data-act-click="crcShowEntry(${jsArg(e.entry_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <td style="font-family:monospace;color:var(--text-3)">${e.seq}</td>
             <td>${CRC_OUTCOME_ICONS[e.outcome]||'❓'} <span class="u-0d5be05f">${escHtml(e.outcome||'')}</span></td>
             <td style="color:var(--accent-text)">${escHtml((e.agent_name||e.agent_id||'').slice(0,16))}</td>

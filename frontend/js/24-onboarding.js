@@ -83,7 +83,7 @@ function showOnboarding() {
       {id:'ocean',   name:'Ocean',    bg:'#080d10', accent:'#38c5d8'},
     ];
     themeArea.innerHTML = themes.map(t => `
-      <div data-act-click="selectObTheme(${JSON.stringify(t.id)},${JSON.stringify(t.accent)})"
+      <div data-act-click="selectObTheme(${jsArg(t.id)},${jsArg(t.accent)})"
            id="ob-theme-${t.id}"
            style="cursor:pointer;border-radius:10px;padding:10px 14px;border:2px solid ${obPrefs.theme===t.id?t.accent:'var(--border)'};background:${t.bg};text-align:center;transition:var(--transition)">
         <div style="width:32px;height:32px;border-radius:50%;background:${t.accent};margin:0 auto 6px"></div>

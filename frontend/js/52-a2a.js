@@ -149,7 +149,7 @@ function a2aRenderNetwork(container) {
         const skills = ag.skills || [];
         const caps   = ag.capabilities || [];
         const isLocal= ag.trust_level === 'local';
-        return `<div class="a2a-agent-card ${_a2aSelected===ag.agent_id?'selected':''}" data-act-click="a2aSelectAgent(${JSON.stringify(ag.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+        return `<div class="a2a-agent-card ${_a2aSelected===ag.agent_id?'selected':''}" data-act-click="a2aSelectAgent(${jsArg(ag.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <div class="a2a-agent-head">
             <span class="a2a-agent-icon">${isLocal?'🏠':ag.status==='active'?'🌐':'🔌'}</span>
             <div class="a2a-agent-body">
@@ -165,9 +165,9 @@ function a2aRenderNetwork(container) {
           </div>
           ${caps.length?`<div class="a2a-caps">⚡ ${caps.slice(0,3).join(' · ')}</div>`:''}
           <div class="a2a-agent-actions">
-            <button class="a2a-btn" data-act-click="a2aDelegateToAgent(${JSON.stringify(ag.agent_id)})" data-stop="1">📤 Delegate</button>
-            ${!isLocal?`<button class="a2a-btn" data-act-click="a2aVerifyAgent(${JSON.stringify(ag.agent_id)})" data-stop="1">🔍 Verify</button>`:''}
-            ${!isLocal?`<button class="a2a-btn" data-act-click="a2aDeleteAgent(${JSON.stringify(ag.agent_id)})" data-stop="1" style="color:var(--danger)">🗑</button>`:''}
+            <button class="a2a-btn" data-act-click="a2aDelegateToAgent(${jsArg(ag.agent_id)})" data-stop="1">📤 Delegate</button>
+            ${!isLocal?`<button class="a2a-btn" data-act-click="a2aVerifyAgent(${jsArg(ag.agent_id)})" data-stop="1">🔍 Verify</button>`:''}
+            ${!isLocal?`<button class="a2a-btn" data-act-click="a2aDeleteAgent(${jsArg(ag.agent_id)})" data-stop="1" style="color:var(--danger)">🗑</button>`:''}
           </div>
         </div>`;
       }).join('')}
@@ -186,7 +186,7 @@ function a2aRenderNetwork(container) {
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:6px">
       ${_a2aLocalAgents.map(a=>`
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:11px;transition:all .12s" data-act-click="a2aViewLocalCard(${JSON.stringify(a.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:11px;transition:all .12s" data-act-click="a2aViewLocalCard(${jsArg(a.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <span style="font-weight:600;color:var(--text-0)">${escHtml(a.name)}</span>
           <span style="color:var(--text-3);margin-left:6px">${escHtml((a.description||'').slice(0,30))}</span>
           <a href="/a2a/${encodeURIComponent(a.agent_id)}/card" target="_blank" style="color:var(--accent-text);font-size:10px;margin-left:8px" data-stop="1">🪪</a>
@@ -232,7 +232,7 @@ async function a2aRenderTasks(container) {
         ${_a2aTasks.map(t => {
           const sc = stateColors[t.state] || 'var(--text-3)';
           const isOutbound = t.direction === 'outbound';
-          return `<tr data-act-click="a2aViewTask(${JSON.stringify(t.task_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+          return `<tr data-act-click="a2aViewTask(${jsArg(t.task_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <td style="font-family:monospace;font-size:10px;color:var(--text-3)">${t.task_id.slice(0,18)}…</td>
             <td class="u-0d5be05f">${isOutbound?'📤 outbound':'📥 inbound'}</td>
             <td style="color:var(--accent-text);font-size:11px">${escHtml(isOutbound?t.target_agent_id:t.target_agent_id)}</td>
@@ -241,7 +241,7 @@ async function a2aRenderTasks(container) {
             <td style="font-size:10px;color:var(--text-3)">${new Date(t.created_at).toLocaleString()}</td>
             <td data-stop="1">
               ${!['completed','failed','canceled'].includes(t.state) ?
-                `<button class="a2a-btn" data-act-click="a2aCancelTask(${JSON.stringify(t.task_id)})" style="font-size:10px;color:var(--danger)">✕</button>` : ''}
+                `<button class="a2a-btn" data-act-click="a2aCancelTask(${jsArg(t.task_id)})" style="font-size:10px;color:var(--danger)">✕</button>` : ''}
             </td>
           </tr>`;
         }).join('')}
@@ -271,7 +271,7 @@ async function a2aRenderCards(container) {
             <span style="font-size:9px;padding:1px 7px;border-radius:4px;background:rgba(61,186,122,.15);color:#3dba7a">LOCAL</span>
             <div style="margin-left:auto;display:flex;gap:5px">
               <a href="/a2a/${id}/card" target="_blank" class="a2a-btn u-80d654f9" >🪪 View</a>
-              <button class="a2a-btn" data-act-click="a2aShowCard(${JSON.stringify(id)})">JSON</button>
+              <button class="a2a-btn" data-act-click="a2aShowCard(${jsArg(id)})">JSON</button>
             </div>
           </div>
           <div class="a2a-wk-url">${base}/a2a/${id}/.well-known/agent.json</div>
@@ -302,7 +302,7 @@ async function a2aShowCard(agentId) {
     <pre class="a2a-card-code">${escHtml(JSON.stringify(d, null, 2))}</pre>
     <div class="a2a-modal-row">
       <a href="/a2a/${encodeURIComponent(agentId)}/card" target="_blank" class="a2a-btn">Open in tab</a>
-      <button class="a2a-btn" data-act-click="hCopyText(${JSON.stringify(JSON.stringify(d,null,2))})">Copy JSON</button>
+      <button class="a2a-btn" data-act-click="hCopyText(${jsArg(JSON.stringify(d,null,2))})">Copy JSON</button>
       <button class="a2a-btn primary" data-close="closest:.a2a-modal-overlay">Close</button>
     </div>
   </div>`;

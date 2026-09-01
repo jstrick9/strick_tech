@@ -34,7 +34,7 @@ async function renderIntegrations() {
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
         <div style="display:flex;gap:5px;flex-wrap:wrap;flex:1">
           <button data-act-click="filterInts('all')" class="term-btn" id="intcat-all" style="border-color:var(--accent-text);color:var(--accent-hi)">All (${ints.length})</button>
-          ${cats.map(c=>`<button data-act-click="filterInts(${JSON.stringify(c.id)})" class="term-btn" id="intcat-${c.id}">${escHtml(c.id)} (${c.count})</button>`).join('')}
+          ${cats.map(c=>`<button data-act-click="filterInts(${jsArg(c.id)})" class="term-btn" id="intcat-${c.id}">${escHtml(c.id)} (${c.count})</button>`).join('')}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
           <button class="btn-sm" data-act-click="intStripeWire()" title="Generate Stripe checkout page">💳 Stripe Wire</button>
@@ -51,7 +51,7 @@ async function renderIntegrations() {
             </div>
             <p style="font-size:12px;color:var(--text-2);margin-bottom:8px;line-height:1.5;min-height:28px">${escHtml(i.description)}</p>
             <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">${i.env_vars.slice(0,2).map(v=>`<code style="font-size:10px;background:var(--bg-0);padding:1px 5px;border-radius:3px;color:var(--text-2)">${v}</code>`).join('')}${i.env_vars.length>2?`<span style="font-size:10px;color:var(--text-3)">+${i.env_vars.length-2}</span>`:''}</div>
-            <div style="display:flex;gap:5px"><button data-act-click="scaffoldIntegration(${JSON.stringify(i.id)})" class="btn btn-primary btn-sm u-97445a8d" >⚡ Scaffold</button><a href="${safeUrl(i.docs_url)}" target="_blank" class="btn btn-ghost btn-sm">Docs ↗</a></div>
+            <div style="display:flex;gap:5px"><button data-act-click="scaffoldIntegration(${jsArg(i.id)})" class="btn btn-primary btn-sm u-97445a8d" >⚡ Scaffold</button><a href="${safeUrl(i.docs_url)}" target="_blank" class="btn btn-ghost btn-sm">Docs ↗</a></div>
             <div id="int-status-${i.id}" style="font-size:11px;color:var(--text-2);margin-top:5px;display:none"></div>
           </div>`).join('')}
       </div>
@@ -61,7 +61,7 @@ async function renderIntegrations() {
         <div class="card">
           <h3 class="u-da12f285">Auto-generate documentation</h3>
           <div style="display:flex;flex-direction:column;gap:7px">
-            ${docTypes.map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-3);border-radius:var(--radius-sm);padding:9px 12px"><div><div class="u-eb673ec6">${d.label}</div><div style="font-size:11.5px;color:var(--text-2)">${d.desc}</div></div><button data-act-click="generateDoc(${JSON.stringify(d.id)})" class="btn btn-primary btn-sm" id="docbtn-${d.id}">Generate</button></div>`).join('')}
+            ${docTypes.map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-3);border-radius:var(--radius-sm);padding:9px 12px"><div><div class="u-eb673ec6">${d.label}</div><div style="font-size:11.5px;color:var(--text-2)">${d.desc}</div></div><button data-act-click="generateDoc(${jsArg(d.id)})" class="btn btn-primary btn-sm" id="docbtn-${d.id}">Generate</button></div>`).join('')}
           </div>
           <div id="doc-status" style="font-size:12px;color:var(--text-2);margin-top:10px"></div>
         </div>
@@ -94,7 +94,7 @@ let currentIntTab='ints';
 function switchIntTab(tab){currentIntTab=tab;['ints','docs','rules'].forEach(t=>{const e=document.getElementById(`int-tab-${t}`);const b=document.getElementById(`inttab-${t}`);if(e)e.style.display=t===tab?'':'none';if(b)b.className=`btn ${t===tab?'btn-primary':'btn-ghost'} btn-sm`;});}
 function filterInts(cat){document.querySelectorAll('#ints-grid .card').forEach(c=>{c.style.display=cat==='all'||c.dataset.category===cat?'':'none';});document.querySelectorAll('[id^="intcat-"]').forEach(b=>{b.style.borderColor=b.id===`intcat-${cat}`?'var(--accent)':'';b.style.color=b.id===`intcat-${cat}`?'var(--accent-hi)':'';})}
 async function scaffoldIntegration(id){
-  const btn=document.querySelector(`#int-card-${JSON.stringify(id).replace(/"/g,'')} .btn-primary`)||document.querySelector(`[data-act-click="scaffoldIntegration(${JSON.stringify(id)})"]`);
+  const btn=document.querySelector(`#int-card-${id} .btn-primary`)||document.querySelector(`[data-act-click="scaffoldIntegration(${jsArg(id)})"]`);
   const st=document.getElementById(`int-status-${id}`);
   if(btn){btn.disabled=true;btn.textContent='⏳…';}
   if(st){st.style.display='block';st.textContent='Scaffolding…';}

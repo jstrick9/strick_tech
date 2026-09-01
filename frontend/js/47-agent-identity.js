@@ -136,10 +136,10 @@ function renderIdentityCard(id) {
     </div>
 
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn-sm" data-act-click="identityIssueToken(${JSON.stringify(id.agent_id)})">🎫 Issue Token</button>
-      <button class="btn-sm" data-act-click="identityViewPerms(${JSON.stringify(id.agent_id)})">🔑 Permissions</button>
-      <button class="btn-sm" data-act-click="identityViewAudit(${JSON.stringify(id.agent_id)})">📋 Audit</button>
-      <button class="btn-sm" data-act-click="identityRotateKeys(${JSON.stringify(id.agent_id)})" style="color:var(--warning);border-color:var(--warning)">🔄 Rotate Keys</button>
+      <button class="btn-sm" data-act-click="identityIssueToken(${jsArg(id.agent_id)})">🎫 Issue Token</button>
+      <button class="btn-sm" data-act-click="identityViewPerms(${jsArg(id.agent_id)})">🔑 Permissions</button>
+      <button class="btn-sm" data-act-click="identityViewAudit(${jsArg(id.agent_id)})">📋 Audit</button>
+      <button class="btn-sm" data-act-click="identityRotateKeys(${jsArg(id.agent_id)})" style="color:var(--warning);border-color:var(--warning)">🔄 Rotate Keys</button>
     </div>
 
     <div style="margin-top:8px;font-size:10px;color:var(--text-3)">
