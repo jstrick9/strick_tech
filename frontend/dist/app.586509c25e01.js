@@ -18410,6 +18410,8 @@ if (!dagHost) return;
 const agentMap = {};
 runs.forEach(r => { agentMap[r.agent] = r; });
 const nodeInspectionData = {};
+const _winnerRun = (winner && Array.isArray(runs) && runs.length) ? runs.find(r => r && r.agent === winner) : null;
+const _winnerScore = (_winnerRun && typeof _winnerRun.score === 'number') ? _winnerRun.score : null;
 const levels = [
 { title: 'Level 1: Orchestration & Task Decomposition', nodes: ['orchestrator'] },
 { title: 'Level 2: Architecture & Synthesis', nodes: ['brain', 'design_decomposer', 'builder'] },
@@ -18433,7 +18435,7 @@ dagHost.innerHTML = `
                     <span class="badge ${hasWinner ? 'badge-success' : 'badge-default'}">${hasWinner ? '✅ CONSENSUS REACHED' : 'AWAITING BRANCHES'}</span>
                   </div>
                   <div style="font-size:12px;color:var(--text-2);line-height:1.5">
-                    ${hasWinner ? `Synthesized output from multi-agent fanout. Winner: <strong style="color:var(--text-0)">${escHtml(winner)}</strong> (${Math.round((runs[0]?.score || 0.96)*100)}% confidence).` : 'Evaluates candidate outputs and synthesizes top-2 recommendations.'}
+                    ${hasWinner ? `Synthesized output from multi-agent fanout. Winner: <strong style="color:var(--text-0)">${escHtml(winner)}</strong>${_winnerScore != null ? ` (${Math.round(_winnerScore*100)}% confidence).` : '.'}` : 'Evaluates candidate outputs and synthesizes top-2 recommendations.'}
                   </div>
                 </div>`;
               }
