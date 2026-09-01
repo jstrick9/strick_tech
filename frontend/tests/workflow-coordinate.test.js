@@ -20,7 +20,10 @@ function evalWorkflowModule() {
   const code = source + `
     window.__setWfData = d => { _wfData = d; };
     window.__setWfNodeTypes = t => { _wfNodeTypes = t; };
+    window.__setWfSelected = id => { _wfSelected = id; };
+    window.__setWfClipboard = c => { _wfClipboard = c; };
     window.__wfAddNode = (type, x, y) => { wfAddNode(type, x, y); return _wfData.nodes[_wfData.nodes.length - 1]; };
+    window.__wfPaste = () => { wfPasteNode(); return _wfData.nodes[_wfData.nodes.length - 1]; };
   `;
   new Function('window', 'document', 'navigator', 'localStorage', 'console', 'fetch', 'toast', 'gmDanger', 'escHtml', code)(
     globalThis.window, globalThis.document, globalThis.navigator,
@@ -94,5 +97,23 @@ describe('Workflow node coordinate handling', () => {
     const n = window.__wfAddNode('agent', 12.6, 33.4);
     expect(n.x).toBe(13);
     expect(n.y).toBe(33);
+  });
+
+  it('pastes a node at the origin to 30, not 230', () => {
+    // A copied node sitting at the canvas origin (x=0, y=0) must paste to
+    // (30,30), not jump to 230 via the (x || 200) default.
+    window.__setWfClipboard({ id: 'orig', type: 'agent', x: 0, y: 0, label: 'A' });
+    const n = window.__wfPaste();
+    expect(n.x).toBe(30);
+    expect(n.y).toBe(30);
+  });
+
+  it('gives two pasted nodes distinct ids even in the same millisecond', () => {
+    window.__setWfClipboard({ id: 'orig', type: 'agent', x: 100, y: 100, label: 'A' });
+    const a = window.__wfPaste();
+    const b = window.__wfPaste();
+    expect(a.id).not.toBe(b.id);
+    // Both survive in the rendered node list (no overwrite/collision).
+    expect(document.querySelectorAll('.wf-node').length).toBeGreaterThanOrEqual(2);
   });
 });
