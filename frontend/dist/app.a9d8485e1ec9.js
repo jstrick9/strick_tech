@@ -14549,15 +14549,17 @@ label: f.node_label || f.node_id, config: {}
 });
 }
 });
-const nodeIds = [...new Set(frames.filter(f=>f.event_type==='node_start').map(f=>f.node_id))];
-const COLS = Math.ceil(Math.sqrt(nodeIds.length));
-nodeIds.forEach((nid, i) => {
+const fromStarts = [...new Set(frames.filter(f=>f.event_type==='node_start').map(f=>f.node_id))];
+const order = fromStarts.length ? fromStarts : [...nodeMap.keys()];
+const COLS = Math.max(1, Math.ceil(Math.sqrt(order.length)));
+order.forEach((nid, i) => {
 const n = nodeMap.get(nid);
+if (!n) return;
 n.x = (i % COLS) * 260 + 60;
 n.y = Math.floor(i / COLS) * 160 + 60;
 });
-for (let i = 0; i < nodeIds.length - 1; i++) {
-edges.push({ id: `e${i}`, from: nodeIds[i], to: nodeIds[i+1] });
+for (let i = 0; i < order.length - 1; i++) {
+edges.push({ id: `e${i}`, from: order[i], to: order[i+1] });
 }
 return { nodes: [...nodeMap.values()], edges, reconstructed: true };
 }
