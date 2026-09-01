@@ -8,6 +8,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import platform
+import re
 import shutil
 import subprocess
 import time
@@ -57,6 +58,24 @@ class AdapterExportRequest(BaseModel):
     """Pydantic data model for AdapterExportRequest."""
     job_id: str
     export_format: str = "safetensors"  # safetensors, gguf, ggml
+
+
+# Acceptable extension for exported adapters. Anything else is refused because
+# it is used as a filename suffix and must never smuggle a path separator.
+_ALLOWED_EXPORT_FORMATS = {"safetensors", "gguf", "ggml", "bin"}
+
+
+def _safe_stem(value: str) -> str:
+    """Reduce a user-supplied id to a bare, non-traversing filename stem.
+
+    dataset_id/job_id are used directly in `DATASETS_DIR / f'{id}.jsonl'`,
+    `f'{id}_meta.json'` and `JOBS_DIR / f'{id}.json'`. An id containing `../`,
+    a path separator, or an absolute path escapes the datasets/jobs directory to
+    read or write an arbitrary .json/.jsonl file (verified: an absolute
+    dataset_id wrote outside DATASETS_DIR). Collapse to [a-z0-9_-], capped 64.
+    """
+    cleaned = re.sub(r"[^A-Za-z0-9_-]", "_", str(value)).strip().lower()
+    return cleaned[:64] or f"item_{uuid.uuid4().hex[:8]}"
 
 
 def _detect_accelerator() -> dict[str, Any]:
@@ -182,7 +201,7 @@ def _rows_from_chat_history(limit: int = 500) -> list[dict[str, str]]:
 @router.post("/datasets/create")
 def create_finetune_dataset(payload: DatasetCreateRequest) -> dict[str, Any]:
     """Create and format a structured JSONL training dataset for local LoRA fine-tuning."""
-    did = (payload.dataset_id or f"ds_{uuid.uuid4().hex[:8]}").strip().lower()
+    did = _safe_stem(payload.dataset_id or f"ds_{uuid.uuid4().hex[:8]}")
 
     # HONESTY FIX: when no rows were supplied this wrote three hardcoded
     # marketing sentences about Agentic OS and reported "created with 3
@@ -244,8 +263,8 @@ def list_finetune_datasets() -> dict[str, Any]:
 @router.post("/jobs/start")
 def start_finetune_job(payload: JobStartRequest) -> dict[str, Any]:
     """Launch an autonomous local LoRA fine-tuning training job."""
-    jid = (payload.job_id or f"lora_{uuid.uuid4().hex[:8]}").strip().lower()
-    meta_file = DATASETS_DIR / f"{payload.dataset_id}_meta.json"
+    jid = _safe_stem(payload.job_id or f"lora_{uuid.uuid4().hex[:8]}")
+    meta_file = DATASETS_DIR / f"{_safe_stem(payload.dataset_id)}_meta.json"
     if not meta_file.exists():
         raise HTTPException(status_code=404, detail=f"Dataset '{payload.dataset_id}' not found")
 
@@ -291,7 +310,7 @@ def start_finetune_job(payload: JobStartRequest) -> dict[str, Any]:
 @router.get("/jobs/{job_id}")
 def get_finetune_job(job_id: str) -> dict[str, Any]:
     """Check live training metrics and progress for a specific LoRA fine-tuning job."""
-    job_file = JOBS_DIR / f"{job_id}.json"
+    job_file = JOBS_DIR / f"{_safe_stem(job_id)}.json"
     if not job_file.exists():
         raise HTTPException(status_code=404, detail="Fine-tuning job not found")
     return {"ok": True, "job": json.loads(job_file.read_text(encoding="utf-8"))}
@@ -300,11 +319,14 @@ def get_finetune_job(job_id: str) -> dict[str, Any]:
 @router.post("/adapters/export")
 def export_lora_adapter(payload: AdapterExportRequest) -> dict[str, Any]:
     """Export trained LoRA adapter weights in ready-to-load SafeTensors or GGUF format."""
-    job_file = JOBS_DIR / f"{payload.job_id}.json"
+    job_file = JOBS_DIR / f"{_safe_stem(payload.job_id)}.json"
     if not job_file.exists():
         raise HTTPException(status_code=404, detail="Fine-tuning job not found")
-    adapter_id = f"adapter_{payload.job_id}"
-    export_path = ADAPTERS_DIR / f"{adapter_id}.{payload.export_format}"
+    fmt = (payload.export_format or "safetensors").lower().strip()
+    if fmt not in _ALLOWED_EXPORT_FORMATS:
+        raise HTTPException(status_code=400, detail=f"Unsupported export format: {fmt!r}")
+    adapter_id = f"adapter_{_safe_stem(payload.job_id)}"
+    export_path = ADAPTERS_DIR / f"{adapter_id}.{fmt}"
     export_path.write_text(f"# LoRA Adapter {adapter_id} ({payload.export_format})\nExported by Strick Tech Local LoRA Engine.", encoding="utf-8")
     return {
         "ok": True,
