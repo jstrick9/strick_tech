@@ -693,7 +693,11 @@ function wfAddNode(type, x, y) {
     id:    `n${Date.now()}${Math.floor(Math.random()*1000)}`,
     type,
     label: typeInfo.label?.replace(/^[^ ]+ /,'') || type,
-    x: x || 200, y: y || 200,
+    // `x || 200` snapped a legitimate x=0 (or y=0) drop — e.g. a node dropped
+    // on the canvas origin after panning — to 200. Only a missing/non-finite
+    // coordinate should fall back; 0 is a valid world position.
+    x: Number.isFinite(x) ? Math.round(x) : 200,
+    y: Number.isFinite(y) ? Math.round(y) : 200,
     config: {},
   };
   _wfData.nodes = [...(_wfData.nodes || []), node];
