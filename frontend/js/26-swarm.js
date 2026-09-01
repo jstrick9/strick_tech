@@ -38,6 +38,16 @@ window.renderSwarmDAG = function(runs = [], winner = '', isRunning = false, acti
   // eliminating string-escaping entirely for this data path.
   const nodeInspectionData = {};
 
+  // The confidence shown for the winner is the WINNER's own score, not
+  // runs[0]'s. `runs` arrives in agent order (the backend's asyncio.gather
+  // preserves agent_ids order), so the winning agent can sit anywhere in the
+  // array; and `score` is only attached to runs in judge/merge strategies. The
+  // old expression `runs[0]?.score || 0.96` therefore displayed another agent's
+  // confidence whenever the winner wasn't first, and a fabricated 96% whenever
+  // the first run had no score (fan-out) or there were no runs at all.
+  const _winnerRun = (winner && Array.isArray(runs) && runs.length) ? runs.find(r => r && r.agent === winner) : null;
+  const _winnerScore = (_winnerRun && typeof _winnerRun.score === 'number') ? _winnerRun.score : null;
+
   const levels = [
     { title: 'Level 1: Orchestration & Task Decomposition', nodes: ['orchestrator'] },
     { title: 'Level 2: Architecture & Synthesis', nodes: ['brain', 'design_decomposer', 'builder'] },
@@ -62,7 +72,7 @@ window.renderSwarmDAG = function(runs = [], winner = '', isRunning = false, acti
                     <span class="badge ${hasWinner ? 'badge-success' : 'badge-default'}">${hasWinner ? '✅ CONSENSUS REACHED' : 'AWAITING BRANCHES'}</span>
                   </div>
                   <div style="font-size:12px;color:var(--text-2);line-height:1.5">
-                    ${hasWinner ? `Synthesized output from multi-agent fanout. Winner: <strong style="color:var(--text-0)">${escHtml(winner)}</strong> (${Math.round((runs[0]?.score || 0.96)*100)}% confidence).` : 'Evaluates candidate outputs and synthesizes top-2 recommendations.'}
+                    ${hasWinner ? `Synthesized output from multi-agent fanout. Winner: <strong style="color:var(--text-0)">${escHtml(winner)}</strong>${_winnerScore != null ? ` (${Math.round(_winnerScore*100)}% confidence).` : '.'}` : 'Evaluates candidate outputs and synthesizes top-2 recommendations.'}
                   </div>
                 </div>`;
               }
