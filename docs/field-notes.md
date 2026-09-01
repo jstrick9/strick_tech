@@ -143,3 +143,23 @@ in two halves (2473 + 2274 ≈ 4747 passed). 4 pre-existing, order-dependent
 failures (`test_35` finetune, `test_61` prompts-restore) also fail on a clean
 checkout in isolation and were green in earlier complete runs — they are
 environmental/state-dependent, not regressions.
+
+## Remaining-surfaces sweep (this session)
+
+Swept the untrusted-input routers not previously audited (browser_agent,
+connectors, templates, testgen, evals, knowledge_graph) plus a broad heuristic
+scan for file-write targets built from user input. Found and fixed:
+
+- **#021** `finetune.py` — `dataset_id`/`job_id` placed directly in
+  `DATASETS_DIR / f'{id}.jsonl'`, `f'{id}_meta.json'`, `JOBS_DIR / f'{id}.json'`,
+  and `ADAPTERS_DIR / f'{id}.{format}'`. An id with `../`, a separator, or an
+  absolute path escaped those directories to write (verified: an absolute id
+  wrote outside DATASETS_DIR) or read arbitrary .json/.jsonl; `export_format`
+  was echoed into a filename suffix. Fixed with `_safe_stem()` (any id ->
+  `[a-z0-9_-]`, capped 64) and an export-format allow-list.
+
+Verified-safe (checked, no action): browser_agent screenshot filename
+(server-generated session uuid + int step_no), connectors (DB, bound params),
+templates (`_safe_name`/`_within_preview`/relative_to + fname slug),
+testgen (`is_within`), evals datasets (uuid did, bound params),
+knowledge_graph (DB-only), bounty_hunter scan write (server-generated scan_id).
