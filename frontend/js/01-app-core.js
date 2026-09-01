@@ -3738,9 +3738,18 @@ window.runCodeInTerminal = function(codeId) {
   setTimeout(() => {
     const termInp = document.getElementById('term-input') || document.querySelector('#pane-terminal input');
     if (termInp) {
-      termInp.value = code.split('\n')[0] || code;
+      // The terminal input is a single-line <input>: a multi-line snippet is
+      // silently truncated to its first line. If that happens, say so instead
+      // of claiming the whole code was sent -- otherwise several lines of a
+      // script are dropped with the user believing it all went through.
+      const lines = code.split('\n');
+      termInp.value = lines[0] || code;
       termInp.focus();
-      toast('＞_ Code sent to system terminal input', 'ok', 1500);
+      if (lines.length > 1) {
+        toast(`＞_ Terminal takes one command — placed line 1 of ${lines.length}`, 'warn', 3500);
+      } else {
+        toast('＞_ Code sent to system terminal input', 'ok', 1500);
+      }
     }
   }, 300);
 };

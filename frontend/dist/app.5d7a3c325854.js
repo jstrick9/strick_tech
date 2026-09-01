@@ -5018,9 +5018,14 @@ nav('terminal');
 setTimeout(() => {
 const termInp = document.getElementById('term-input') || document.querySelector('#pane-terminal input');
 if (termInp) {
-termInp.value = code.split('\n')[0] || code;
+const lines = code.split('\n');
+termInp.value = lines[0] || code;
 termInp.focus();
+if (lines.length > 1) {
+toast(`＞_ Terminal takes one command — placed line 1 of ${lines.length}`, 'warn', 3500);
+} else {
 toast('＞_ Code sent to system terminal input', 'ok', 1500);
+}
 }
 }, 300);
 };
