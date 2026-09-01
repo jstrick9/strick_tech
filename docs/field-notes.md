@@ -163,3 +163,26 @@ Verified-safe (checked, no action): browser_agent screenshot filename
 templates (`_safe_name`/`_within_preview`/relative_to + fname slug),
 testgen (`is_within`), evals datasets (uuid did, bound params),
 knowledge_graph (DB-only), bounty_hunter scan write (server-generated scan_id).
+
+## Frontend behavioral/UX correctness pass (this session)
+
+Found and fixed a family of the same coordinate-defaulting anti-pattern in the
+workflow canvas (`frontend/js/03-features-a.js`): using `x || default` where
+`0` is a legitimate world coordinate and the default differs from it.
+
+- **#022** swarm DAG winner confidence used `runs[0]?.score || 0.96`, showing
+  the wrong agent's score or a fabricated 96%.
+- **#023** `wfAddNode` `x: x || 200` snapped a node dropped at the canvas
+  origin to 200.
+- **#024** `wfPasteNode` `(node.x || 200) + 30` (origin paste -> 230) plus
+  `id: n${Date.now()}` collision when pasting twice in one millisecond.
+- **#025** `wfNodeHTML` `left:${node.x||100}` drew an origin node at 100,
+  desyncing it from its edges.
+
+Also verified: workflow undo/redo branching (correct), self-connect guard in the
+in-port handler (prevents `fromId === nid`), live-wire teardown on empty-canvas
+drop (window mousemove/mouseup reset `_wfConnecting`), the remaining `x || 0`
+uses across replay-collab/galaxy/supervisor (harmless — the fallback equals 0).
+
+Frontend regression tests added: `tests/swarm-dag-confidence.test.js`,
+`tests/workflow-coordinate.test.js`. Frontend suite: 83 -> 94 (+11).
