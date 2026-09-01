@@ -3679,11 +3679,10 @@ function renderMarkdownEnhanced(text) {
   t = t.replace(/^[\s]*(\d+)\. (.+)$/gm, (_m, n, x) => `<div style="padding:2px 0 2px 16px;display:flex;gap:6px"><span style="color:var(--accent-text);flex-shrink:0">${escHtml(n)}.</span><span>${escHtml(x)}</span></div>`);
   // Horizontal rule
   t = t.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
-  // Links — escape label + href, allow only safe schemes (blocks javascript:/data:)
-  t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label, href) => {
-    const safe = /^(https?:|\/\/|mailto:|\/|#)/i.test(href) ? href : '#';
-    return `<a href="${escHtml(safe)}" target="_blank" style="color:var(--accent-text);text-decoration:underline">${escHtml(label)}</a>`;
-  });
+  // Links — escape label + href; safeUrl allow-lists schemes (http/https/same-origin
+  // /) and rejects javascript:/data:/control-char-smuggled schemes.
+  t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label, href) =>
+    `<a href="${escHtml(safeUrl(href))}" target="_blank" style="color:var(--accent-text);text-decoration:underline">${escHtml(label)}</a>`);
   // Line breaks
   t = t.replace(/\n\n/g, '</p><p class="u-fdf33f23">');
   t = t.replace(/\n/g, '<br>');
