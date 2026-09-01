@@ -111,3 +111,35 @@ low-coverage routers (`memory.py`, `goal_manager.py`).
   playwright installed.
 - Re-run `scripts/lint_inline_handlers.py`, `scripts/verify_bundle_ast.js`, and
   `test_180_bundle_is_reproducible` after any future frontend change.
+
+## Logic-correctness pass (this session)
+
+Beyond security, this session audited live state-counter / aggregation arithmetic
+and fixed four correctness bugs (each reproduced, regression-tested, verified):
+
+- **#017** `agent_engine.run_loop_iteration` — loop health `success_rate` used
+  `run_count` (successes only) as the denominator and was only recomputed on the
+  success branch: 5/5 reported 0%, an all-failing loop reported 100% forever.
+  Fixed to `successes / (successes+errors)` recomputed in both branches.
+- **#018** `arena._update_elo` — leaderboard row was only created by the seed over
+  AVAILABLE_MODELS, so an unlisted model's UPDATE matched 0 rows and its rating
+  change was silently lost. Fixed with `INSERT OR IGNORE` before update.
+- **#019** `goal_manager.add_checkin` — a check-in at 100% wrote only progress and
+  never transitioned to `status='done'`+`completed_at` (unlike update_goal /
+  complete_milestone), so a fully-progressed goal stayed 'active'. Fixed.
+- **#020** `eval_framework.platform_eval_stats` — `pass_pct` used SQLite integer
+  division (`SUM(...)*100/COUNT(*)`), truncating 33.33%->33 and 87.5%->87.
+  Fixed with `CAST(... AS REAL)`.
+
+Verified-safe (checked, no action): scheduler kill_after_success/max_runs,
+agent_monitor KPI, agent_leaderboard Wilson ranking + `ROUND(100.0*...)`,
+finops aggregation, eval_framework weight-renormalization, evals trend/summary
+pass_rate, memory_stats, memory_galaxy_graph, obsidian index counts, ICM
+layer assembly + traversal guard, drift z-score guard, arena ELO math.
+
+Suite note: the sandbox CPU quota now kills a single full `tests/unit` run at
+~87% (an environment resource limit, not a failure), so the suite was verified
+in two halves (2473 + 2274 ≈ 4747 passed). 4 pre-existing, order-dependent
+failures (`test_35` finetune, `test_61` prompts-restore) also fail on a clean
+checkout in isolation and were green in earlier complete runs — they are
+environmental/state-dependent, not regressions.
