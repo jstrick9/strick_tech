@@ -96,6 +96,15 @@ def _update_elo(winner: str, loser: str, k: float = 32.0):
 
     con = get_conn()
     try:
+        # A battle can use a model that is not in the seeded AVAILABLE_MODELS
+        # (e.g. a custom/unlisted model name). Previously the row was only ever
+        # created by _ensure_schema's seed, so for such a model the SELECT
+        # defaulted to 1000 but the UPDATE below matched 0 rows and the rating
+        # change was silently LOST (the model never appeared in the leaderboard).
+        # Ensure the row exists before reading/updating it.
+        con.execute('INSERT OR IGNORE INTO arena_leaderboard(model) VALUES (?)', (winner,))
+        con.execute('INSERT OR IGNORE INTO arena_leaderboard(model) VALUES (?)', (loser,))
+
         w = con.execute('SELECT elo FROM arena_leaderboard WHERE model=?', (winner,)).fetchone()
         l = con.execute('SELECT elo FROM arena_leaderboard WHERE model=?', (loser,)).fetchone()
         elo_w = w['elo'] if w else 1000.0
