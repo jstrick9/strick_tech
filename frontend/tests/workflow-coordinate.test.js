@@ -24,6 +24,7 @@ function evalWorkflowModule() {
     window.__setWfClipboard = c => { _wfClipboard = c; };
     window.__wfAddNode = (type, x, y) => { wfAddNode(type, x, y); return _wfData.nodes[_wfData.nodes.length - 1]; };
     window.__wfPaste = () => { wfPasteNode(); return _wfData.nodes[_wfData.nodes.length - 1]; };
+    window.__wfNodeHTML = (node) => wfNodeHTML(node);
   `;
   new Function('window', 'document', 'navigator', 'localStorage', 'console', 'fetch', 'toast', 'gmDanger', 'escHtml', code)(
     globalThis.window, globalThis.document, globalThis.navigator,
@@ -97,6 +98,17 @@ describe('Workflow node coordinate handling', () => {
     const n = window.__wfAddNode('agent', 12.6, 33.4);
     expect(n.x).toBe(13);
     expect(n.y).toBe(33);
+  });
+
+  it('renders a node at the origin at left:0/top:0, not 100', () => {
+    // wfNodeHTML used `node.x||100`, so a node the canvas correctly stored at
+    // x=0 was drawn at left:100px — the drawn node and its edges (which use the
+    // data x) disagreed. Only a non-finite position should default to 100.
+    const html = window.__wfNodeHTML({ id: 'n1', type: 'trigger', x: 0, y: 0, label: 'T', config: {} });
+    expect(html).toContain('left:0px');
+    expect(html).toContain('top:0px');
+    expect(html).not.toContain('left:100px');
+    expect(html).not.toContain('top:100px');
   });
 
   it('pastes a node at the origin to 30, not 230', () => {

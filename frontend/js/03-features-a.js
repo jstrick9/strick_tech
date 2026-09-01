@@ -456,7 +456,7 @@ function wfNodeHTML(node) {
   return `
   <div class="wf-node ${_wfSelected === node.id ? 'selected' : ''}"
        data-node-id="${node.id}" id="wf-node-${node.id}"
-       style="left:${node.x||100}px;top:${node.y||100}px;border-color:${color}55">
+       style="left:${Number.isFinite(node.x) ? node.x : 100}px;top:${Number.isFinite(node.y) ? node.y : 100}px;border-color:${color}55">
     ${hasIn ? `<div class="wf-port in" title="Input port"></div>` : ''}
     <div class="wf-node-header">
       <span class="wf-node-icon">${icon}</span>
