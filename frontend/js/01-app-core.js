@@ -3638,7 +3638,13 @@ function renderMarkdownEnhanced(text) {
   if (!text) return '';
   let t = text;
 
-  // Code blocks with syntax highlighting and copy button
+  // Code blocks with syntax highlighting and copy button. We stash each
+  // block's rendered HTML behind a null-byte placeholder and restore it AFTER
+  // the inline transforms below. Without this, a fenced block containing a
+  // backtick character (JS template literals, SQL backticks) was re-matched by
+  // the inline-`` `...` `` regex and its code content corrupted into a nested
+  // inline-code span inside the <pre>.
+  const _codeBlocks = [];
   t = t.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
     const escaped = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const langLabel = lang || 'code';
@@ -3648,7 +3654,7 @@ function renderMarkdownEnhanced(text) {
     const id = 'cb_' + Math.random().toString(36).slice(2,8);
     const lineCount = code.split('\n').length;
     const lineNumHtml = lineCount > 1 ? `<div class="code-line-numbers">${Array.from({length: lineCount}, (_, i) => i+1).join('\n')}</div>` : '';
-    return `<div class="card-elevated surface-z2 code-with-lines" style="position:relative;margin:12px 0;border-radius:10px;overflow:hidden;padding:0;border:1px solid var(--border-hi)">
+    const html = `<div class="card-elevated surface-z2 code-with-lines" style="position:relative;margin:12px 0;border-radius:10px;overflow:hidden;padding:0;border:1px solid var(--border-hi)">
       <div style="display:flex;align-items:center;justify-content:space-between;background:#04060f;padding:6px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px">
         <span style="font-size:11px;font-weight:800;color:var(--accent-text);font-family:monospace">${escHtml(langLabel)}</span>
         <div style="display:flex;gap:6px;align-items:center">
@@ -3659,6 +3665,8 @@ function renderMarkdownEnhanced(text) {
       </div>
       ${lineNumHtml}<pre id="${id}" style="margin:0;padding:14px${lineCount > 1 ? ' 14px 14px 50px' : ''};background:#060814;overflow-x:auto;font-size:12.5px;line-height:1.65;font-family:'JetBrains Mono','Fira Code',monospace"><code class="hljs language-${langLabel}" data-raw="${encodeURIComponent(code)}">${highlightedCode}</code></pre>
     </div>`;
+    const _idx = _codeBlocks.push(html) - 1;
+    return '\u0000CB' + _idx + '\u0000';
   });
 
   // Inline code
@@ -3686,6 +3694,10 @@ function renderMarkdownEnhanced(text) {
   // Line breaks
   t = t.replace(/\n\n/g, '</p><p class="u-fdf33f23">');
   t = t.replace(/\n/g, '<br>');
+  // Restore the stashed code blocks now that every inline transform is done.
+  _codeBlocks.forEach((html, i) => {
+    t = t.split('\u0000CB' + i + '\u0000').join(html);
+  });
   return '<p class="u-fdf33f23">' + t + '</p>';
 }
 
