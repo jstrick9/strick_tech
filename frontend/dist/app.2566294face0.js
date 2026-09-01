@@ -7586,7 +7586,8 @@ const node = {
 id:    `n${Date.now()}${Math.floor(Math.random()*1000)}`,
 type,
 label: typeInfo.label?.replace(/^[^ ]+ /,'') || type,
-x: x || 200, y: y || 200,
+x: Number.isFinite(x) ? Math.round(x) : 200,
+y: Number.isFinite(y) ? Math.round(y) : 200,
 config: {},
 };
 _wfData.nodes = [...(_wfData.nodes || []), node];
