@@ -19503,19 +19503,20 @@ return p;
 async function refreshNotifications() {
 const el = document.getElementById('notif-list');
 if (!el) return;
-let notifs = SAMPLE_NOTIFICATIONS;
+let notifs = [];
 let count = 0;
+let loadError = '';
 try {
 const r = await fetch('/api/notifications/list?limit=30');
 const d = await r.json();
-if (d.ok && d.notifications?.length > 0) {
-notifs = d.notifications;
-count = d.unread_count || 0;
+if (d.ok) {
+notifs = d.notifications || [];
+count = d.unread_count ?? notifs.filter(n => !n.read && !n.read_at).length;
 } else {
-count = notifs.filter(n => !n.read).length;
+loadError = d.error || ('Server error ' + r.status);
 }
 } catch (err) {
-count = notifs.filter(n => !n.read).length;
+loadError = 'could not load notifications';
 }
 unreadCount = count;
 updateNotifBadge(unreadCount);
@@ -19523,6 +19524,16 @@ const countBadge = document.getElementById('notif-count-badge');
 if (countBadge) {
 countBadge.style.display = count > 0 ? 'inline' : 'none';
 countBadge.textContent = count;
+}
+if (loadError) {
+el.innerHTML = `
+      <div style="text-align:center;padding:40px 20px;color:var(--text-3)" role="alert">
+        <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text-2);margin-bottom:4px">Couldn't load notifications</div>
+        <div class="u-6cb285c6">${escapeHtml(loadError)}</div>
+      </div>
+    `;
+return;
 }
 if (!notifs.length) {
 el.innerHTML = `

@@ -94,23 +94,29 @@ async function refreshNotifications() {
   const el = document.getElementById('notif-list');
   if (!el) return;
 
-  let notifs = SAMPLE_NOTIFICATIONS;
+  let notifs = [];
   let count = 0;
+  let loadError = '';
 
-  // Try to fetch from API
+  // Try to fetch from API. The backend always returns ok:true with the real
+  // (possibly empty) notification list and seeds its own welcome/status
+  // notifications, so on success we trust the response EXACTLY — even when it
+  // is empty. The old code fell back to fabricated SAMPLE_NOTIFICATIONS whenever
+  // the list was empty, so a healthy but empty inbox displayed notifications
+  // that did not exist in the store, and they re-appeared on every poll. Samples
+  // are only shown on an actual fetch failure, as a clear error, never as real
+  // data.
   try {
     const r = await fetch('/api/notifications/list?limit=30');
     const d = await r.json();
-    if (d.ok && d.notifications?.length > 0) {
-      notifs = d.notifications;
-      count = d.unread_count || 0;
+    if (d.ok) {
+      notifs = d.notifications || [];
+      count = d.unread_count ?? notifs.filter(n => !n.read && !n.read_at).length;
     } else {
-      // Use sample notifications
-      count = notifs.filter(n => !n.read).length;
+      loadError = d.error || ('Server error ' + r.status);
     }
   } catch (err) {
-    // Use sample notifications
-    count = notifs.filter(n => !n.read).length;
+    loadError = 'could not load notifications';
   }
 
   unreadCount = count;
@@ -123,6 +129,16 @@ async function refreshNotifications() {
     countBadge.textContent = count;
   }
 
+  if (loadError) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:40px 20px;color:var(--text-3)" role="alert">
+        <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text-2);margin-bottom:4px">Couldn't load notifications</div>
+        <div class="u-6cb285c6">${escapeHtml(loadError)}</div>
+      </div>
+    `;
+    return;
+  }
   if (!notifs.length) {
     el.innerHTML = `
       <div style="text-align:center;padding:40px 20px;color:var(--text-3)">
