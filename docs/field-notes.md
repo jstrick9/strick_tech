@@ -186,3 +186,17 @@ uses across replay-collab/galaxy/supervisor (harmless — the fallback equals 0)
 
 Frontend regression tests added: `tests/swarm-dag-confidence.test.js`,
 `tests/workflow-coordinate.test.js`. Frontend suite: 83 -> 94 (+11).
+
+## Frontend pass continuation (#026-#027)
+
+- **#026** `08-replay-collab.js` `ttdReconstructGraph` laid out only node_start
+  nodes; any node seen only via output frames, or a run with no node_start,
+  collapsed to (0,0). Fix: lay out all reconstructed nodes (first-appearance
+  order), clamp COLS >=1.
+- **#027** systemic: ~130 inline data-act-*/onclick handlers interpolated args
+  via `${JSON.stringify(x)}`; the attribute's raw double quotes truncated it at
+  HTML parse, making string-arg buttons no-ops. Fixed by using `jsArg` (the
+  documented helper) across 29 modules, keeping JSON.stringify for non-handler
+  data uses. Reverted two over-replacements (CSS selector + data-connector-caps).
+
+Frontend suite now 101 tests (+18 over the round; #022-#027 = 6 bugs).
