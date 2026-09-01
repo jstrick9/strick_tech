@@ -546,6 +546,16 @@ async def add_checkin(goal_id: str, req: Request):
         )
         if progress > 0:
             con.execute('UPDATE goals_v2 SET progress=?, updated_at=? WHERE id=?', (progress, _now(), goal_id))
+            # BUG FIX: a check-in at 100% left the goal status='active' with
+            # progress=100 and no completed_at (only update_goal and
+            # complete_milestone auto-complete at 100). The dashboard counts a
+            # 100%-progress goal as active and lists it in upcoming deadlines.
+            # Match the other two progress paths: mark done at 100.
+            if progress >= 100:
+                con.execute(
+                    "UPDATE goals_v2 SET status='done', completed_at=?, updated_at=? WHERE id=?",
+                    (_now(), _now(), goal_id),
+                )
         con.commit()
     finally:
         con.close()
