@@ -790,9 +790,17 @@ class LoopEngine:
             health["avg_duration_ms"] = (
                 health["avg_duration_ms"] * 0.9 + duration_ms * 0.1
             )
-            total = loop["run_count"]
+            total = loop["run_count"] + loop["error_count"]
+            # BUG FIX: this was (run_count - error_count) / run_count * 100.
+            # run_count counts only SUCCESSFUL iterations (error_count is
+            # separate), so the denominator excluded failures: 5 successes + 5
+            # failures reported 0%; any error_count > run_count reported a
+            # NEGATIVE rate; and an all-failing loop (run_count=0) fell into
+            # `if total else 100` and reported 100% forever. It was also only
+            # recomputed in this success branch. Now successes / total_attempts,
+            # recomputed in BOTH branches (see the error branch below).
             health["success_rate"] = (
-                (total - loop["error_count"]) / total * 100 if total else 100
+                loop["run_count"] / total * 100 if total else 100
             )
 
             return {
@@ -809,6 +817,12 @@ class LoopEngine:
             loop["error_count"] += 1
             loop["consecutive_errors"] += 1
             loop["last_error"] = str(e)[:200]
+            # Recompute success_rate here too so an all-failing loop reflects
+            # 0% (not the stale default of 100%) — see the success-branch fix.
+            _tot = loop["run_count"] + loop["error_count"]
+            self.loop_health[loop_id]["success_rate"] = (
+                loop["run_count"] / _tot * 100 if _tot else 100
+            )
 
             # Backoff on error
             if config.backoff_on_error:
