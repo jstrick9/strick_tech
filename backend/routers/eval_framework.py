@@ -828,7 +828,7 @@ def platform_eval_stats():
         total = con.execute('SELECT COUNT(*) FROM eval_results').fetchone()[0]
         by_agent = con.execute("""
             SELECT agent_id, COUNT(*) n, AVG(overall_score) sc,
-                   SUM(CASE WHEN pass_fail='pass' THEN 1 ELSE 0 END)*100/COUNT(*) pass_pct
+                   CAST(SUM(CASE WHEN pass_fail='pass' THEN 1 ELSE 0 END) AS REAL)*100/COUNT(*) pass_pct
             FROM eval_results GROUP BY agent_id ORDER BY sc DESC
         """).fetchall()
         suites = con.execute('SELECT COUNT(*) FROM eval_suites').fetchone()[0]
