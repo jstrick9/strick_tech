@@ -953,9 +953,14 @@ function wfCopyNode() {
 function wfPasteNode() {
   if (!_wfClipboard || !_wfData) { toast('Nothing to paste'); return; }
   const node = JSON.parse(JSON.stringify(_wfClipboard));
-  node.id = `n${Date.now()}`;
-  node.x  = (node.x || 200) + 30;
-  node.y  = (node.y || 200) + 30;
+  // `n${Date.now()}` collides if the user pastes twice within the same
+  // millisecond (both get the same id, corrupting edges/rendering). Match
+  // wfAddNode's id scheme with a random suffix.
+  node.id = `n${Date.now()}${Math.floor(Math.random()*1000)}`;
+  // Same #023 root cause: `(node.x || 200)` snapped a pasted node at the canvas
+  // origin (x/y 0) to 230 instead of 30. Only a non-finite position falls back.
+  node.x  = (Number.isFinite(node.x) ? node.x : 200) + 30;
+  node.y  = (Number.isFinite(node.y) ? node.y : 200) + 30;
   _wfData.nodes = [...(_wfData.nodes||[]), node];
   wfRenderCanvas();
   wfSelectNode(node.id);

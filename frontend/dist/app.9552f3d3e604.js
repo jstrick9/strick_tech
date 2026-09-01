@@ -7821,9 +7821,9 @@ toast('⧉ Node copied');
 function wfPasteNode() {
 if (!_wfClipboard || !_wfData) { toast('Nothing to paste'); return; }
 const node = JSON.parse(JSON.stringify(_wfClipboard));
-node.id = `n${Date.now()}`;
-node.x  = (node.x || 200) + 30;
-node.y  = (node.y || 200) + 30;
+node.id = `n${Date.now()}${Math.floor(Math.random()*1000)}`;
+node.x  = (Number.isFinite(node.x) ? node.x : 200) + 30;
+node.y  = (Number.isFinite(node.y) ? node.y : 200) + 30;
 _wfData.nodes = [...(_wfData.nodes||[]), node];
 wfRenderCanvas();
 wfSelectNode(node.id);
