@@ -22,6 +22,20 @@ import time
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+# Matches a valid git refname (branch/tag/commit) and nothing else. Used before
+# `branch` is appended to a `git diff` argv so a user-supplied branch can never
+# be interpreted by git as a flag (e.g. `--no-index <path> <path>`, which
+# embeds arbitrary file contents into the returned diff) or contain ref
+# metacharacters (`..`, `@{`, `~^:?*[\`, whitespace). A ref cannot begin with
+# `-`, contain control/whitespace or `..`/`@{`, or end with `/`, `.` or a space.
+_SAFE_REF_RE = re.compile(
+    r'(?!-|\.\.?$|.*\.\.|.*\.lock$|.*@\{)[\w./][^\s~^:?*\[\\]*(?<![\s/.])'
+)
+
+
+def _is_safe_branch(branch: str) -> bool:
+    return bool(re.fullmatch(_SAFE_REF_RE.pattern, branch))
+
 router = APIRouter(prefix='/api/bugbot', tags=['bugbot'])
 log = logging.getLogger('agentic.bugbot')
 
@@ -311,6 +325,17 @@ async def review_git_diff(req: Request):
         return _body_err
     staged = body.get('staged', False)
     branch = body.get('branch', '')
+
+    # `branch` is appended to the `git diff` argv, so it must be a real ref,
+    # never a flag. A leading `-` makes git interpret it as an option: e.g.
+    # `--no-index /etc/passwd /tmp/x` (unstaged path) compares two arbitrary
+    # paths and embeds their contents in the returned diff — arbitrary
+    # file-content disclosure. gitai.py guards the same input via
+    # classify_git_command; do the equivalent refname validation here. A git
+    # ref cannot start with `-`, contain whitespace/control, `..`, `@{`,
+    # `~^:?*[`, a backslash, or end with `.`/`/`.
+    if branch and not _is_safe_branch(branch):
+        return {'ok': False, 'error': f'Invalid git branch/ref: {branch[:80]}'}
 
     try:
         cmd = ['git', 'diff']
