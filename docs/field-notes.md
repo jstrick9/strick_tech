@@ -200,3 +200,26 @@ Frontend regression tests added: `tests/swarm-dag-confidence.test.js`,
   data uses. Reverted two over-replacements (CSS selector + data-connector-caps).
 
 Frontend suite now 101 tests (+18 over the round; #022-#027 = 6 bugs).
+
+## Deep-pass extension audits (verified safe)
+
+Applied the deep-pass lens to the remaining candidate modules; all are already
+well-hardened, no action:
+
+- **17-database-studio.js** — every table/column/cell value in both the table
+  view and SQL-result view goes through `escHtml()`; delete & insert flows use
+  index-lookup delegated listeners and avoid re-serializing cell data into
+  inline handlers (prior migration off the JSON.stringify-in-onclick bug);
+  destructive SQL is dry-run gated.
+- **00-drafts.js** — save/load/sweep all wrapped in try/catch, type + age
+  guards, quota-safe, debounce+blur save, never clobbers pre-filled fields,
+  `__draftBound` guard.
+- **43-browser-agent.js** — SSE/chunk parser correctly line-buffers
+  (`buf.split('\n\n')`, keeps remainder), uses `textContent` for warnings,
+  `escHtml`/`safeUrl` for content/links.
+- **50-mcp-gateway.js** — rendered values all `escHtml`; both
+  `JSON.parse(...conditions)` sites guarded in try/catch.
+
+Conclusion: the frontend is now comprehensively hardened for escaping and
+honest-state; remaining surfaced bugs are logic-level and mostly in low-usage
+protocol modules.
