@@ -57,3 +57,5 @@ crdt 38% · tauri_build 40% · goal_manager 40% · browser_agent 41% · fusion 4
 - Live-server suites (integration/connectors/security/regression/gap) need a server + `RATE_LIMIT_MAX`
   raised, plus seeded `demo_*` data and a real AI provider for the provider-gated paths.
 - Browser E2E needs Chromium (unavailable in this sandbox).
+
+> **Follow-up (shipped `6e921ea`):** the #014 markdown link handler was consolidated to use the shared `safeUrl()` guard (all other data-driven hrefs already use it; the repo lint requires it — `escHtml` alone lets `javascript:` survive quoting). `safeUrl` rejects `javascript:`/`data:`/control-char-smuggled/mailto + `//evil` and allows http/https/same-origin `/`. Verified; this also keeps `test_86_cross_cutting_hardening` green. Environment reset (3rd) restored `.venv` (full `requirements.txt` + test deps + playwright) and rebuilt `frontend/dist`; full suite back to **4739 passed / 0 failed**.
