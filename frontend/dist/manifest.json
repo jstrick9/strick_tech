@@ -1,6 +1,6 @@
 {
   "head": "head.8f62aefef2be.js",
-  "body": "app.9552f3d3e604.js",
+  "body": "app.fd68f2fc8a19.js",
   "minified": true,
   "modules": 49,
   "head_modules": [
@@ -56,18 +56,18 @@
     "93-shortcuts-overlay.js",
     "94-novice-assist.js"
   ],
-  "raw_bytes": 1370680,
-  "bundled_bytes": 1035456,
+  "raw_bytes": 1370734,
+  "bundled_bytes": 1035510,
   "compressed": {
     "head.8f62aefef2be.js": {
       "raw": 6508,
       "gzip": 2376,
       "brotli": 2015
     },
-    "app.9552f3d3e604.js": {
-      "raw": 1028948,
-      "gzip": 254353,
-      "brotli": 192458
+    "app.fd68f2fc8a19.js": {
+      "raw": 1029002,
+      "gzip": 254356,
+      "brotli": 192654
     },
     "chunks.5c7e3712fe0c.js": {
       "raw": 1645,
