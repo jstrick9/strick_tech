@@ -4971,10 +4971,8 @@ t = t.replace(/^> (.+)$/gm, (_m, x) => `<blockquote style="border-left:3px solid
 t = t.replace(/^[\s]*[-•*] (.+)$/gm, (_m, x) => `<div style="padding:2px 0 2px 16px;display:flex;gap:6px"><span style="color:var(--accent-text);flex-shrink:0">•</span><span>${escHtml(x)}</span></div>`);
 t = t.replace(/^[\s]*(\d+)\. (.+)$/gm, (_m, n, x) => `<div style="padding:2px 0 2px 16px;display:flex;gap:6px"><span style="color:var(--accent-text);flex-shrink:0">${escHtml(n)}.</span><span>${escHtml(x)}</span></div>`);
 t = t.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
-t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label, href) => {
-const safe = /^(https?:|\/\/|mailto:|\/|#)/i.test(href) ? href : '#';
-return `<a href="${escHtml(safe)}" target="_blank" style="color:var(--accent-text);text-decoration:underline">${escHtml(label)}</a>`;
-});
+t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label, href) =>
+`<a href="${escHtml(safeUrl(href))}" target="_blank" style="color:var(--accent-text);text-decoration:underline">${escHtml(label)}</a>`);
 t = t.replace(/\n\n/g, '</p><p class="u-fdf33f23">');
 t = t.replace(/\n/g, '<br>');
 return '<p class="u-fdf33f23">' + t + '</p>';
