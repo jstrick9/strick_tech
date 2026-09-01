@@ -2,7 +2,7 @@
 // Extracted from 01-app-core.js for modularity
 //
 // BUG FIX (quote-collision, total breakage of skill-card clicks): the
-// skill grid's onclick="openSkillModal(${JSON.stringify(s.id)})" is the
+// skill grid's onclick="openSkillModal(${jsArg(s.id)})" is the
 // same unconditional-breakage pattern found in the Terminal module's
 // quick-command toolbar earlier this session -- JSON.stringify() ALWAYS
 // wraps its output in literal double quotes, which ALWAYS collide with
@@ -17,7 +17,7 @@
 // serializing it into an HTML attribute.
 //
 // A second, related bug: the "🔊 Listen" button inside the skill result
-// view used onclick="speakText(${JSON.stringify(...).replace(/'/g,
+// view used onclick="speakText(${jsArg(...).replace(/'/g,
 // '&#39;')}, ...)" -- a manual, incomplete escape (only handles single
 // quotes, not the double quotes JSON.stringify itself introduces) that
 // still collided with the double-quoted onclick attribute. Fixed the
@@ -171,7 +171,7 @@ async function execSkill() {
         <button type="button" id="srm-listen-btn" class="btn btn-ghost btn-sm u-6d000617" >🔊 Listen</button>
       </div>
       <div style="white-space:pre-wrap;line-height:1.6">${renderMarkdown(skillOutput||'(empty)')}</div>`;
-    // BUG FIX: this used to be onclick="speakText(${JSON.stringify(
+    // BUG FIX: this used to be onclick="speakText(${jsArg(
     // (j.output||'').slice(0,1000)).replace(/'/g,'&#39;')}, '${j.agent||
     // 'default'}')" -- a manual, incomplete escape (handles single quotes
     // in the ALREADY-double-quoted JSON.stringify output, but does

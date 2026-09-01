@@ -174,14 +174,14 @@ async function loadObsidianNotes(q='') {
     el.innerHTML = j.notes.map(n => `
       <div style="display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer;transition:background .1s"
            data-hover="bg:var(--bg-3)" data-hover-out="bg:"
-           data-act-click="viewNote(${JSON.stringify(n.path)})">
+           data-act-click="viewNote(${jsArg(n.path)})">
         <span class="u-6cb285c6">${n.folder==='Daily'?'📅':'📄'}</span>
         <div class="u-59eddc67">
           <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(n.name)}</div>
           <div style="font-size:10px;color:var(--text-3)">${n.modified}${n.folder?' · '+escHtml(n.folder):''}</div>
         </div>
         <span style="font-size:10px;color:var(--text-3)">${Math.round(n.size/1024*10)/10}K</span>
-        <button data-act-click="obsDeleteNote(${JSON.stringify(n.path)})" data-stop="1"
+        <button data-act-click="obsDeleteNote(${jsArg(n.path)})" data-stop="1"
                 style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px;opacity:.5;padding:0 2px" title="Delete">🗑</button>
       </div>`).join('');
   } catch(ex) {
@@ -212,8 +212,8 @@ async function viewNote(path) {
           </div>
           <div style="padding:14px 16px;overflow-y:auto;flex:1;font-size:12px;line-height:1.7;color:var(--text-1);white-space:pre-wrap;font-family:monospace">${escHtml((j.content||'').slice(0,6000))}${(j.content||'').length>6000?'\n\n[... truncated]':''}</div>
           <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:7px;align-items:center">
-            <button class="btn-sm" data-act-click="navigator.clipboard.writeText(${JSON.stringify(j.content||'')})">📋 Copy</button>
-            <button class="btn-sm" style="color:var(--danger)" data-act-click="obsDeleteNote(${JSON.stringify(path)})" data-close="closest:[style*=fixed]">🗑 Delete</button>
+            <button class="btn-sm" data-act-click="navigator.clipboard.writeText(${jsArg(j.content||'')})">📋 Copy</button>
+            <button class="btn-sm" style="color:var(--danger)" data-act-click="obsDeleteNote(${jsArg(path)})" data-close="closest:[style*=fixed]">🗑 Delete</button>
             <button class="btn-sm u-6d000617"  data-close="closest:[style*=fixed]">Close</button>
           </div>
         </div>`;

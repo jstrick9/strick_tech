@@ -3,7 +3,7 @@
 //
 // BUG FIX (quote-collision, total breakage of template buttons): the
 // goal-template buttons used
-// onclick="document.getElementById('pipe-goal').value=${JSON.stringify(t.goal)}"
+// onclick="document.getElementById('pipe-goal').value=${jsArg(t.goal)}"
 // -- the same unconditional-breakage pattern found in Terminal's
 // quick-command toolbar and Skills' skill-card grid earlier this
 // session. JSON.stringify() ALWAYS wraps its output in literal double

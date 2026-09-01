@@ -4,7 +4,7 @@
 // BUG FIX (quote-collision crash): the category filter buttons and every
 // action button on a prompt card (Use/Edit/Duplicate/Favorite/Delete)
 // interpolated `JSON.stringify(...)` directly into a double-quoted HTML
-// attribute, e.g. onclick="usePrompt(${JSON.stringify(p.id)},
+// attribute, e.g. onclick="usePrompt(${jsArg(p.id)},
 // ${JSON.stringify(p.content)})". JSON.stringify() performs no
 // HTML-entity escaping, so the double quotes it wraps a string in collide
 // with the onclick attribute's own double-quote delimiters, corrupting
@@ -151,7 +151,7 @@ async function renderPrompts() {
 
 // Category filter chips: delegated click handling looked up by the
 // category id stored in data-prompt-cat, instead of the old
-// onclick="setPromptCat(${JSON.stringify(c.id)})" pattern.
+// onclick="setPromptCat(${jsArg(c.id)})" pattern.
 function wireCategoryFilterEvents() {
   const filterBar = document.getElementById('prompt-cat-filter');
   if (!filterBar) return;
@@ -180,7 +180,7 @@ async function createCategory() {
 // Prompt card action buttons (Use/Edit/Duplicate/Favorite/Delete):
 // delegated click handling looked up by prompt id against the
 // already-loaded promptsData array, instead of the old
-// onclick="usePrompt(${JSON.stringify(p.id)},${JSON.stringify(p.content)})"
+// onclick="usePrompt(${jsArg(p.id)},${jsArg(p.content)})"
 // pattern that corrupted the HTML on any prompt whose content contained a
 // double-quote (see file header note for the full bug writeup and live
 // repro). Re-wired every time renderPromptCards() replaces #prompt-grid's

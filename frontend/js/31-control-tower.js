@@ -84,7 +84,7 @@ async function refreshControlTower() {
               <div class="u-97445a8d"><div style="font-size:12.5px;font-weight:600">${escHtml(r.name)}</div>
               <div style="font-size:11px;color:var(--text-2)">Max $${r.max_cost} · ${r.action}</div></div>
               <span class="badge ${r.enabled?'badge-success':'badge-default'}">${r.enabled?'On':'Off'}</span>
-              <button data-act-click="deleteBudgetRule(${JSON.stringify(r.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer">🗑</button>
+              <button data-act-click="deleteBudgetRule(${jsArg(r.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer">🗑</button>
             </div>`).join('')}
           </div>
         </div>

@@ -343,7 +343,7 @@ function showSidebarCustomizer() {
     groupsWrap.appendChild(section);
   });
 
-  // Event delegation instead of inline onclick="...(${JSON.stringify(id)})" —
+  // Event delegation instead of inline onclick="...(${jsArg(id)})" —
   // the inline-onclick version broke on every pane id because
   // JSON.stringify() wraps the id in double quotes, which collide with the
   // double quotes delimiting the onclick="" attribute itself, truncating
@@ -560,7 +560,7 @@ async function showTierPlans() {
             ${t.features.map((f) =>`<div style="font-size:11px;color:var(--text-1);padding:3px 0">✅ ${f}</div>`).join('')}
             ${t.locked.length?`<div class="u-8a77e5a3">${t.locked.map((f) =>`<div style="font-size:11px;color:var(--text-3);padding:2px 0">🔒 ${f}</div>`).join('')}</div>`:''}
           </div>
-          <button data-act-click="handlePlanCTA(${JSON.stringify(t.id)},${JSON.stringify(t.cta)})" style="width:100%;padding:10px;background:${t.highlight?'var(--accent)':'var(--bg-4)'};border:1px solid ${t.highlight?'var(--accent)':'var(--border)'};border-radius:8px;color:${t.highlight?'#fff':'var(--text-0)'};font-weight:700;cursor:pointer;font-size:13px">
+          <button data-act-click="handlePlanCTA(${jsArg(t.id)},${jsArg(t.cta)})" style="width:100%;padding:10px;background:${t.highlight?'var(--accent)':'var(--bg-4)'};border:1px solid ${t.highlight?'var(--accent)':'var(--border)'};border-radius:8px;color:${t.highlight?'#fff':'var(--text-0)'};font-weight:700;cursor:pointer;font-size:13px">
             ${t.cta}
           </button>
         </div>`).join('')}
@@ -700,7 +700,7 @@ const ONBOARDING_STEPS = [
         <label style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:6px">What best describes you?</label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="ob-roles">
           ${[['developer','💻','Developer'],['analyst','📊','Analyst'],['writer','✍️','Writer'],['designer','🎨','Designer'],['manager','📋','Manager'],['student','🎓','Student']].map(([id,icon,label])=>`
-            <button data-act-click="selectRole(${JSON.stringify(id)})" id="obr-${id}" style="padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;color:var(--text-1);cursor:pointer;font-size:13px;transition:all .12s;display:flex;align-items:center;gap:8px">
+            <button data-act-click="selectRole(${jsArg(id)})" id="obr-${id}" style="padding:10px;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;color:var(--text-1);cursor:pointer;font-size:13px;transition:all .12s;display:flex;align-items:center;gap:8px">
               <span>${icon}</span><span>${label}</span>
             </button>`).join('')}
         </div>
@@ -763,7 +763,7 @@ const ONBOARDING_STEPS = [
           {id:'research',icon:'🔬',title:'Research & analysis',desc:'Web search, RAG, knowledge graph'},
           {id:'explore',icon:'🚀',title:'Just explore everything',desc:'Start with the full platform tour'},
         ].map(t=>`
-          <button data-act-click="selectTemplate(${JSON.stringify(t.id)})" id="obt-${t.id}" style="padding:12px 14px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;color:var(--text-0);cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;transition:all .12s">
+          <button data-act-click="selectTemplate(${jsArg(t.id)})" id="obt-${t.id}" style="padding:12px 14px;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;color:var(--text-0);cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;transition:all .12s">
             <span class="u-881f70f9">${t.icon}</span>
             <div><div class="u-160b0675">${t.title}</div><div style="font-size:11px;color:var(--text-2)">${t.desc}</div></div>
           </button>`).join('')}
@@ -1221,7 +1221,7 @@ async function docsTab(tab, el) {
             <div style="font-size:11px;color:var(--text-2);line-height:1.5">${escHtml((f.summary||'').slice(0,80))}</div>
           </div>`).join('')}
       </div>`;
-    // BUG FIX: this used to be onclick="docsShowFeature(${JSON.stringify(f)})",
+    // BUG FIX: this used to be onclick="docsShowFeature(${jsArg(f)})",
     // which had ZERO HTML-escaping -- any feature whose summary/details
     // contained a double-quote corrupted the attribute and crashed with
     // "Unexpected end of input" on click (reproduced live with the real
@@ -1303,7 +1303,7 @@ async function docsTab(tab, el) {
         <button type="button" class="btn-sm" id="docs-request-video-btn">📹 Request a Video</button>
       </div>`;
     // BUG FIX: this used to be
-    // onclick="...docsShowVideoGuide(${JSON.stringify(v).replace(/"/g, '&quot;')})"
+    // onclick="...docsShowVideoGuide(${jsArg(v).replace(/"/g, '&quot;')})"
     // -- a working but fragile/inconsistent manual-escaping pattern (the
     // sibling docsShowFeature() call site above forgot this exact
     // .replace() and crashed as a result). Looked up by grid index into
@@ -1375,7 +1375,7 @@ async function docsSearch(q) {
       </div>`).join('')}
     </div>`;
   // BUG FIX: this used to be
-  // onclick="docsSearchResultClick(${JSON.stringify(r).replace(/"/g,'&quot;')})"
+  // onclick="docsSearchResultClick(${jsArg(r).replace(/"/g,'&quot;')})"
   // -- same fragile manual-escaping pattern as the video grid above.
   // Looked up by result index into the real `results` array instead.
   document.getElementById('docs-search-results')?.addEventListener('click', (e) => {
@@ -1524,7 +1524,7 @@ window.docsShowVideoGuide = function(video) {
   // real tab button by its stable data-tab attribute.
   document.getElementById('docs-video-back-btn')?.addEventListener('click', () => docsTab('videos', docsFindTab('videos')));
   // BUG FIX (quote-collision): the play button used to be
-  // onclick="startInteractiveVideoWalkthrough('${vidId}', ${JSON.stringify(video.title).replace(/"/g, '&quot;')})"
+  // onclick="startInteractiveVideoWalkthrough('${vidId}', ${jsArg(video.title).replace(/"/g, '&quot;')})"
   // -- vidId is a random alphanumeric string but video.title (e.g. "Arena
   // Mode: A/B Model Testing") is plain text passed through the same
   // fragile manual-escaping pattern seen elsewhere in this pane. Wired via

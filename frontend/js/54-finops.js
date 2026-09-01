@@ -51,7 +51,7 @@ async function renderFinOps() {
           <span>${a.alert_type==='breach'?'🔴':'🟡'}</span>
           <strong>${escHtml(a.cap_name||'Cap')}</strong>
           <span style="color:var(--text-2)">${a.alert_type}: ${Math.round(a.pct_used*100)}% used ($${a.cost_at_alert?.toFixed(4)} / $${a.limit_usd?.toFixed(4)})</span>
-          <button class="btn-sm" data-act-click="finopsResolveAlert(${JSON.stringify(a.id)})" style="margin-left:auto;font-size:10px">✓</button>
+          <button class="btn-sm" data-act-click="finopsResolveAlert(${jsArg(a.id)})" style="margin-left:auto;font-size:10px">✓</button>
         </div>`).join('')}
     </div>`:''}
 

@@ -39,7 +39,7 @@ async function renderTerminal() {
     </div>`;
   // BUG FIX (quote-collision, total breakage of the quick-command
   // toolbar): this used to be
-  // onclick="termRun(${JSON.stringify(c)})" for every toolbar button.
+  // onclick="termRun(${jsArg(c)})" for every toolbar button.
   // JSON.stringify() ALWAYS wraps its output in literal double quotes,
   // which ALWAYS collide with the onclick attribute's own double-quote
   // delimiters -- this broke EVERY toolbar quick-command button

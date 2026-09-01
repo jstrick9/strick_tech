@@ -68,7 +68,7 @@ async function renderSQLiteTab(el) {
     </div>
   </div>`;
   // Delegated listener on the table-list container — replaces
-  // onclick="dbLoadTable(${JSON.stringify(t.name)})", which broke
+  // onclick="dbLoadTable(${jsArg(t.name)})", which broke
   // UNCONDITIONALLY (not just on names containing quotes/spaces):
   // JSON.stringify() always wraps its output in literal double quotes
   // that collide with the onclick attribute's own double-quote
@@ -133,7 +133,7 @@ async function dbLoadTable(name) {
       </div>
       ${rows.length === 0 ? '<div style="text-align:center;padding:20px;color:var(--text-3)">No rows</div>' : ''}`;
     // Delegated listener on the rows container — replaces
-    // onclick="dbDeleteRow(${JSON.stringify(name)},${JSON.stringify(...)},${JSON.stringify(...)})",
+    // onclick="dbDeleteRow(${jsArg(name)},${jsArg(...)},${jsArg(...)})",
     // which broke UNCONDITIONALLY (same JSON.stringify()-in-onclick quote
     // collision as the table-list rows above) and additionally exposed
     // arbitrary cell VALUES (not just table/column names) to the same bug
@@ -539,7 +539,7 @@ async function generateSchema(type) {
       </div>
     </div>`;
     // Bind via closures over the real `j.sql` string instead of
-    // re-serializing it into onclick="...${JSON.stringify(j.sql)}..." —
+    // re-serializing it into onclick="...${jsArg(j.sql)}..." —
     // that pattern broke UNCONDITIONALLY (not just on SQL containing
     // quotes) for the exact same reason as every other quote-collision
     // bug fixed this session, and here `j.sql` is arbitrary multi-line

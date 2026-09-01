@@ -102,7 +102,7 @@ async function renderEvals() {
               <div style="font-weight:600;color:var(--text-0)">${escHtml(ds.name||'')}</div>
               <div style="font-size:11px;color:var(--text-3)">${ds.case_count||0} test cases</div>
             </div>
-            <button class="btn-sm" data-act-click="evalRunDataset(${JSON.stringify(ds.id)})">▶ Run</button>
+            <button class="btn-sm" data-act-click="evalRunDataset(${jsArg(ds.id)})">▶ Run</button>
           </div>`).join('') || '<div style="color:var(--text-3);padding:12px">No datasets yet</div>'}
       </div>
     </div>
@@ -532,7 +532,7 @@ async function obsLoadTraces(q='') {
           <div>Trace</div><div>Agent</div><div>Latency</div><div>Tokens</div><div>Status</div>
         </div>
         ${(d.traces||[]).map((t) =>`
-          <div class="trace-row" data-act-click="obsShowTrace(${JSON.stringify(t.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+          <div class="trace-row" data-act-click="obsShowTrace(${jsArg(t.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-1)">${escHtml(t.name||t.input?.slice(0,60)||t.id)}</div>
             <div style="color:var(--text-2)">${escHtml(t.agent_id||'')}</div>
             <div style="color:var(--text-2)">${t.total_latency_ms||0}ms</div>
@@ -619,7 +619,7 @@ async function renderKnowledgeGraph() {
       </div>
       <div style="flex:1;overflow-y:auto;padding:0 8px 8px" id="kg-entity-list">
         ${(entities.entities||[]).map((e) =>`
-          <div class="kg-entity-card" data-act-click="kgShowEntity(${JSON.stringify(e.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+          <div class="kg-entity-card" data-act-click="kgShowEntity(${jsArg(e.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
               <span class="kg-type-badge">${e.type||'concept'}</span>
               <span style="font-weight:600;color:var(--text-0);font-size:12px">${escHtml(e.name||'')}</span>
@@ -661,7 +661,7 @@ async function kgSearch(q) {
 
 function renderKGList(entities, el) {
   el.innerHTML=entities.map(e=>`
-    <div class="kg-entity-card" data-act-click="kgShowEntity(${JSON.stringify(e.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+    <div class="kg-entity-card" data-act-click="kgShowEntity(${jsArg(e.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
         <span class="kg-type-badge">${e.type||'concept'}</span>
         <span style="font-weight:600;color:var(--text-0);font-size:12px">${escHtml(e.name||'')}</span>
@@ -704,8 +704,8 @@ async function kgShowEntity(entityId) {
         </div>`:''}
 
       <div style="display:flex;gap:6px;margin-top:12px">
-        <button class="btn-sm" data-act-click="kgTraverse(${JSON.stringify(entityId)})">🕸 Traverse Graph</button>
-        <button class="btn-sm" data-act-click="kgAddRelation(${JSON.stringify(entityId)},${JSON.stringify(d.name||'')})">＋ Add Relation</button>
+        <button class="btn-sm" data-act-click="kgTraverse(${jsArg(entityId)})">🕸 Traverse Graph</button>
+        <button class="btn-sm" data-act-click="kgAddRelation(${jsArg(entityId)},${jsArg(d.name||'')})">＋ Add Relation</button>
       </div>
     </div>`;
 }
@@ -724,7 +724,7 @@ async function kgQuery() {
         ${(d.entities_found||[]).length?`
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Entities Found</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">
-            ${(d.entities_found||[]).map((e) =>`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer;color:var(--accent-text)" data-act-click="kgShowEntity(${JSON.stringify(e.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(e.name||'')} <span style="color:var(--text-3)">(${e.type})</span></span>`).join('')}
+            ${(d.entities_found||[]).map((e) =>`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer;color:var(--accent-text)" data-act-click="kgShowEntity(${jsArg(e.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(e.name||'')} <span style="color:var(--text-3)">(${e.type})</span></span>`).join('')}
           </div>`:''}
       </div>`;
   }catch(ex){if(el) el.innerHTML=`<div style="color:var(--danger)">${escHtml(ex.message)}</div>`;}
@@ -774,7 +774,7 @@ async function kgTraverse(entityId) {
     <div class="u-534c2d64">
       <h4 style="margin:0 0 12px;color:var(--text-0)">Graph Traversal (2 hops) — ${d.node_count} nodes, ${d.edge_count} edges</h4>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
-        ${(d.nodes||[]).map((n) =>`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--text-1)" data-act-click="kgShowEntity(${JSON.stringify(n.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(n.name||'')} <span style="color:var(--text-3)">(${n.type})</span></span>`).join('')}
+        ${(d.nodes||[]).map((n) =>`<span style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--text-1)" data-act-click="kgShowEntity(${jsArg(n.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(n.name||'')} <span style="color:var(--text-3)">(${n.type})</span></span>`).join('')}
       </div>
       ${(d.edges||[]).map((e) =>`<div style="font-size:11px;color:var(--text-2);padding:3px 0">${escHtml(e.from_id.slice(-4))} → <strong>${escHtml(e.relation)}</strong> → ${escHtml(e.to_id.slice(-4))}</div>`).join('')}
     </div>`;
@@ -811,8 +811,8 @@ async function renderRAG() {
                 <div style="font-size:11px;color:var(--text-3)">${p.doc_count||0} docs · ${p.chunk_count||0} chunks · ${p.chunk_strategy} chunks @ ${p.chunk_size}</div>
               </div>
               <div style="display:flex;gap:6px">
-                <button class="btn-sm" data-act-click="ragOpenPipeline(${JSON.stringify(p.id)},${JSON.stringify(p.name||'')})">Open</button>
-                <button class="btn-sm" style="color:var(--danger)" data-act-click="ragDeletePipeline(${JSON.stringify(p.id)})">🗑</button>
+                <button class="btn-sm" data-act-click="ragOpenPipeline(${jsArg(p.id)},${jsArg(p.name||'')})">Open</button>
+                <button class="btn-sm" style="color:var(--danger)" data-act-click="ragDeletePipeline(${jsArg(p.id)})">🗑</button>
               </div>
             </div>
           </div>`).join('')}
@@ -862,7 +862,7 @@ async function ragOpenPipeline(pipelineId, name) {
       <textarea id="rag-doc-content" rows="5" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;padding:10px;resize:vertical;box-sizing:border-box" placeholder="Paste document content here…"></textarea>
       <div style="display:flex;gap:8px;margin-top:8px">
         <input id="rag-doc-name" placeholder="Filename (e.g. fastapi_docs.txt)" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 10px">
-        <button class="btn" data-act-click="ragAddDoc(${JSON.stringify(pipelineId)})">Add Document</button>
+        <button class="btn" data-act-click="ragAddDoc(${jsArg(pipelineId)})">Add Document</button>
       </div>
     </div>
 
@@ -875,7 +875,7 @@ async function ragOpenPipeline(pipelineId, name) {
             <span>📄</span>
             <span style="color:var(--text-1);flex:1">${escHtml(doc.filename||'')}</span>
             <span style="color:var(--text-3)">${doc.chunk_count||0} chunks</span>
-            <button class="btn-sm" style="color:var(--danger)" data-act-click="ragDeleteDoc(${JSON.stringify(pipelineId)},${JSON.stringify(doc.id)})">🗑</button>
+            <button class="btn-sm" style="color:var(--danger)" data-act-click="ragDeleteDoc(${jsArg(pipelineId)},${jsArg(doc.id)})">🗑</button>
           </div>`).join('')}
       </div>`:''}
 
@@ -884,7 +884,7 @@ async function ragOpenPipeline(pipelineId, name) {
       <div class="u-f9e226da">🔍 Query</div>
       <div style="display:flex;gap:8px">
         <input id="rag-query" placeholder="Ask your documents…" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:9px 12px" data-act-keydown="ragQuery(${jsArg(pipelineId)})" data-keys="Enter">
-        <button class="btn" data-act-click="ragQuery(${JSON.stringify(pipelineId)})">Ask</button>
+        <button class="btn" data-act-click="ragQuery(${jsArg(pipelineId)})">Ask</button>
       </div>
       <div id="rag-answer" class="u-56f43562"></div>
     </div>

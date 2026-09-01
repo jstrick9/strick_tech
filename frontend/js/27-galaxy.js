@@ -78,7 +78,7 @@ function showGxNode(n) {
   const el = document.getElementById('gx-results');
   if (!el) return;
   const memId = n.mem_id || n.id;
-  // BUG FIX: this used to build onclick="navigator.clipboard.writeText(${JSON.stringify(...)})"
+  // BUG FIX: this used to build onclick="navigator.clipboard.writeText(${jsArg(...)})"
   // etc. directly inline in an HTML attribute — but that attribute itself is
   // wrapped in double quotes, and JSON.stringify() also wraps its output in
   // double quotes. Any node label containing an apostrophe was fine, but ANY

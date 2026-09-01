@@ -376,7 +376,7 @@
 
     // BUG FIX (quote-collision, same class already fixed elsewhere in this
     // codebase for Swarm/Chat/Memory): the toggle/edit/delete buttons above
-    // used to be built as inline onclick="steerToggle(${JSON.stringify(f.id)},this)"
+    // used to be built as inline onclick="steerToggle(${jsArg(f.id)},this)"
     // strings. JSON.stringify() wraps its output in double quotes, which
     // collide with the onclick attribute's own double quotes — the browser's
     // HTML attribute parser truncates the handler at the first unescaped

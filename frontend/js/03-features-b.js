@@ -142,8 +142,8 @@ window.specSearch = function(term) {
 };
 
 // Delegated listener on the #spec-list container — replaces
-// onclick="specSelect(${JSON.stringify(s.id)})" /
-// onclick="specDelete(${JSON.stringify(s.id)},${JSON.stringify(s.title)})",
+// onclick="specSelect(${jsArg(s.id)})" /
+// onclick="specDelete(${jsArg(s.id)},${jsArg(s.title)})",
 // which broke UNCONDITIONALLY (not just on titles containing quotes) —
 // JSON.stringify() always wraps its output in literal double quotes that
 // collide with the onclick attribute's own double-quote delimiters,
@@ -547,7 +547,7 @@ async function renderHooks() {
       <!-- Event types quick filter -->
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
         ${(events?.events || []).map((e) =>`
-          <button class="btn-sm u-11a50812" data-act-click="hookFilterEvent(${JSON.stringify(e.id)})" id="hfbtn-${e.id}" >${e.label}</button>
+          <button class="btn-sm u-11a50812" data-act-click="hookFilterEvent(${jsArg(e.id)})" id="hfbtn-${e.id}" >${e.label}</button>
         `).join('')}
       </div>
 
@@ -575,7 +575,7 @@ function hookCardHTML(h, eventMap) {
   return `
     <div class="hook-card" id="hook-${h.id}">
       <div style="display:flex;align-items:flex-start;gap:10px">
-        <button class="hook-toggle ${isOn?'on':''}" data-act-click="hookToggle(${JSON.stringify(h.id)},$this)" title="${isOn?'Enabled':'Disabled'}"></button>
+        <button class="hook-toggle ${isOn?'on':''}" data-act-click="hookToggle(${jsArg(h.id)},$this)" title="${isOn?'Enabled':'Disabled'}"></button>
         <div class="u-97445a8d">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
             <strong style="color:var(--text-0);font-size:13px">${escHtml(h.name)}</strong>
@@ -587,9 +587,9 @@ function hookCardHTML(h, eventMap) {
           <div style="font-size:11px;font-family:monospace;color:var(--text-1);background:var(--bg-3);padding:6px 8px;border-radius:6px;line-height:1.5;max-height:60px;overflow:hidden">${escHtml((h.prompt||'').slice(0,200))}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
-          <button class="btn-sm" data-act-click="hookManualRun(${JSON.stringify(h.id)})">▶ Run</button>
-          <button class="btn-sm" data-act-click="hookEdit(${JSON.stringify(h.id)})">✏</button>
-          <button class="btn-sm" style="color:var(--danger)" data-act-click="hookDelete(${JSON.stringify(h.id)})">🗑</button>
+          <button class="btn-sm" data-act-click="hookManualRun(${jsArg(h.id)})">▶ Run</button>
+          <button class="btn-sm" data-act-click="hookEdit(${jsArg(h.id)})">✏</button>
+          <button class="btn-sm" style="color:var(--danger)" data-act-click="hookDelete(${jsArg(h.id)})">🗑</button>
         </div>
       </div>
     </div>`;

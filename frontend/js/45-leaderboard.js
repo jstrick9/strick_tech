@@ -76,7 +76,7 @@ async function renderLeaderboard() {
             return `
               <div style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:10px 14px;border-top:1px solid var(--border);align-items:center;cursor:pointer;transition:background .1s"
                    data-hover="bg:var(--bg-3)" data-hover-out="bg:"
-                   data-act-click="lbViewAgent(${JSON.stringify(a.agent_id)})">
+                   data-act-click="lbViewAgent(${jsArg(a.agent_id)})">
                 <div style="font-weight:700;color:var(--text-3);font-size:12px">${medal||('#'+(i+1))}</div>
                 <div class="u-b9199e22">${a.avatar||'🤖'}</div>
                 <div>
@@ -106,7 +106,7 @@ async function renderLeaderboard() {
         ${(discovered.agents||[]).length ? (discovered.agents||[]).map((a) =>`
           <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer"
                data-hover="bg:var(--bg-3)" data-hover-out="bg:"
-               data-act-click="lbViewAgent(${JSON.stringify(a.id||a.agent_id)})">
+               data-act-click="lbViewAgent(${jsArg(a.id||a.agent_id)})">
             <span class="u-881f70f9">${a.avatar||'🤖'}</span>
             <div class="u-59eddc67">
               <div style="font-weight:600;color:var(--text-0);font-size:13px">${escHtml(a.name||a.id)}</div>
@@ -186,8 +186,8 @@ function lbRenderPolicies(policies) {
           <span style="background:var(--bg-3);padding:1px 6px;border-radius:4px;font-family:monospace;color:var(--accent-text);flex-shrink:0">${escHtml(p.agent_id||'*')}</span>
           <span style="font-weight:600;color:var(--text-1);flex-shrink:0">${escHtml(p.policy_type||'')}</span>
           <span style="color:var(--text-2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.policy_rule||'')}</span>
-          <button data-act-click="lbTogglePolicy(${JSON.stringify(p.id)},${p.enabled?0:1})" style="background:none;border:none;cursor:pointer;font-size:14px" title="${p.enabled?'Disable':'Enable'} policy">${p.enabled?'✅':'❌'}</button>
-          <button data-act-click="lbDeletePolicy(${JSON.stringify(p.id)})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px" title="Delete policy">🗑</button>
+          <button data-act-click="lbTogglePolicy(${jsArg(p.id)},${p.enabled?0:1})" style="background:none;border:none;cursor:pointer;font-size:14px" title="${p.enabled?'Disable':'Enable'} policy">${p.enabled?'✅':'❌'}</button>
+          <button data-act-click="lbDeletePolicy(${jsArg(p.id)})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px" title="Delete policy">🗑</button>
         </div>`).join('') : '<div style="color:var(--text-3);padding:16px;text-align:center">No policies configured</div>'}
     </div>`;
 }
@@ -271,7 +271,7 @@ async function lbChangeDays(days) {
           const rating = a.avg_rating ? '★'.repeat(Math.min(5,Math.round(a.avg_rating))) : '—';
           return `<div style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:10px 14px;border-top:1px solid var(--border);align-items:center;cursor:pointer;transition:background .1s"
                        data-hover="bg:var(--bg-3)" data-hover-out="bg:"
-                       data-act-click="lbViewAgent(${JSON.stringify(a.agent_id)})">
+                       data-act-click="lbViewAgent(${jsArg(a.agent_id)})">
             <div style="font-weight:700;color:var(--text-3);font-size:12px">${medal||('#'+(i+1))}</div>
             <div class="u-b9199e22">${a.avatar||'🤖'}</div>
             <div>
@@ -326,8 +326,8 @@ async function lbViewAgent(agentId) {
         </div>
         ${byType ? `<div><h4 style="font-size:11px;color:var(--text-3);text-transform:uppercase;margin:0 0 8px">By Task Type</h4>${byType}</div>` : ''}
         <div style="margin-top:16px;display:flex;gap:8px">
-          <button class="btn-sm" data-act-click="lbRateAgent(${JSON.stringify(agentId)})">⭐ Rate</button>
-          <button class="btn-sm" style="color:var(--danger);border-color:var(--danger)" data-act-click="lbClearAgent(${JSON.stringify(agentId)})" data-close="closest:[style*=fixed]">🗑 Clear Data</button>
+          <button class="btn-sm" data-act-click="lbRateAgent(${jsArg(agentId)})">⭐ Rate</button>
+          <button class="btn-sm" style="color:var(--danger);border-color:var(--danger)" data-act-click="lbClearAgent(${jsArg(agentId)})" data-close="closest:[style*=fixed]">🗑 Clear Data</button>
         </div>
       </div>`;
     overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
