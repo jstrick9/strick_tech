@@ -2250,6 +2250,14 @@ document.addEventListener('keydown', function masterEscapeHandler(e) {
       document.getElementById('account-settings-modal'),
       document.getElementById('shortcuts-modal'),
       document.getElementById('ctx-help-overlay'),
+      // Bespoke overlay-modals created ad hoc with a `className='…-modal-overlay'`
+      // scrim. These were mouse-only: Escape left them open (a WCAG 2.1.2
+      // keyboard trap). All close by removing the overlay, so a single remove()
+      // path is safe. Keyed by id to avoid touching an unrelated overlay.
+      document.getElementById('gm-create-modal'),
+      document.getElementById('dag-launch-modal'),
+      document.getElementById('a2a-delegate-modal'),
+      document.getElementById('a2a-register-modal'),
       document.querySelector('.modal-back[style*="flex"]'),
       document.querySelector('.modal-back[style*="block"]')
     ].filter(m => m && (m.classList.contains('open') || m.style.display !== 'none' || m.style.opacity === '1'));
@@ -2284,6 +2292,11 @@ document.addEventListener('keydown', function masterEscapeHandler(e) {
         } else if (m.id === 'account-settings-modal') {
           if (typeof window.closeAccountSettings === 'function') window.closeAccountSettings();
           else m.remove();
+        } else if (m.id === 'gm-create-modal' || m.id === 'dag-launch-modal' ||
+                   m.id === 'a2a-delegate-modal' || m.id === 'a2a-register-modal') {
+          // Bespoke overlay-modals are torn down with .remove(); hiding them
+          // leaves a stale scrim in the DOM that still catches clicks.
+          m.remove();
         } else {
           m.style.display = 'none';
         }
