@@ -56,5 +56,6 @@ App running at **port 8787**. Refresh to see the density/elevation/state changes
 
 ## Verification
 - Frontend suite **195 passing**; bundle served live as head+chunks+app (3 requests, not 88).
+- Remote HEAD now past **#057** (`4b9e5ba`).
 - axe-core scan of the static app shell: **0 violations** (critical/serious and all impacts).
 - Every change ships with a jsdom regression test; onboarding-enter & composer verified **red on pre-fix**.

@@ -42,6 +42,7 @@
 
   let _state = null;      // merged {profile, prefs, license} loaded from backend
   let _activeTab = 'profile';
+  let settingsPrevFocus = null; // element to refocus when the modal closes
 
   function esc(s) { return typeof escHtml === 'function' ? escHtml(String(s ?? '')) : String(s ?? ''); }
   function fireToast(msg, type, dur) { if (typeof toast === 'function') toast(msg, type, dur); }
@@ -84,12 +85,12 @@
     if (existing) { existing.remove(); }
 
     _activeTab = initialTab || _activeTab || 'profile';
-    _state = await loadAccountData();
 
     const overlay = document.createElement('div');
     overlay.id = 'account-settings-modal';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Account settings');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(4,6,14,.72);backdrop-filter:blur(3px);z-index:9990;display:flex;align-items:center;justify-content:center;padding:24px';
     overlay.innerHTML = `
       <div id="account-settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;width:100%;max-width:860px;height:min(680px,90vh);display:flex;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.6)">
@@ -104,22 +105,54 @@
         <div id="account-settings-body" style="flex:1;overflow-y:auto;padding:26px 30px"></div>
       </div>`;
     document.body.appendChild(overlay);
+    // Show the rail geometry immediately and put a loading state in the body,
+    // then populate once data is ready. Previously the modal rendered only
+    // AFTER the awaits resolved (a slow profile/prefs/license API = a click
+    // that appears to do nothing).
+    const body = overlay.querySelector('#account-settings-body');
+    if (window.stateFeedback && window.stateFeedback.loadingElement) {
+      body.innerHTML = window.stateFeedback.loadingElement('Loading account settings…');
+    }
 
-    // Tab rail
     const tabRail = overlay.querySelector('#account-settings-tabs');
     tabRail.innerHTML = TABS.map(t => `
-      <button type="button" class="account-tab-btn" data-tab="${t.id}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;background:${t.id === _activeTab ? 'var(--accent)' : 'transparent'};color:${t.id === _activeTab ? '#fff' : 'var(--text-1)'};border:none;cursor:pointer;font-size:13px;font-weight:700;text-align:left;transition:background .12s,color .12s">
+      <button type="button" id="account-tab-${t.id}" class="account-tab-btn" data-tab="${t.id}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;background:${t.id === _activeTab ? 'var(--accent)' : 'transparent'};color:${t.id === _activeTab ? '#fff' : 'var(--text-1)'};border:none;cursor:pointer;font-size:13px;font-weight:700;text-align:left;transition:background .12s,color .12s">
         <span>${t.icon}</span><span>${esc(t.label)}</span>
       </button>`).join('');
     tabRail.querySelectorAll('.account-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => selectAccountTab(btn.dataset.tab));
+      // WAI-ARIA tabs pattern: Arrow/Home/End move between tabs (they behave
+      // as a roving group, matching the vertical rail layout).
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-selected', String(btn.dataset.tab === _activeTab));
+      btn.addEventListener('keydown', (e) => {
+        const btns = Array.from(tabRail.querySelectorAll('.account-tab-btn'));
+        let idx = btns.indexOf(e.currentTarget);
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); idx = Math.min(idx + 1, btns.length - 1); }
+        else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); idx = Math.max(idx - 1, 0); }
+        else if (e.key === 'Home') { e.preventDefault(); idx = 0; }
+        else if (e.key === 'End') { e.preventDefault(); idx = btns.length - 1; }
+        else return;
+        const next = btns[idx];
+        next.focus();
+        selectAccountTab(next.dataset.tab);
+      });
     });
+    tabRail.setAttribute('role', 'tablist');
+    tabRail.setAttribute('aria-orientation', 'vertical');
+    // Move focus into the dialog on open; remember what to restore.
+    settingsPrevFocus = (document.activeElement && document.activeElement !== document.body) ? document.activeElement : null;
+    setTimeout(() => { const t = tabRail.querySelector('.account-tab-btn'); if (t) t.focus(); }, 0);
 
     overlay.querySelector('#account-settings-close-btn').addEventListener('click', window.closeAccountSettings);
     overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) window.closeAccountSettings(); });
     document.addEventListener('keydown', accountSettingsEscHandler);
 
-    renderAccountTabBody(_activeTab);
+    _state = await loadAccountData();
+    // Replace the loading spinner with the real content.
+    if (document.getElementById('account-settings-modal')) {
+      renderAccountTabBody(_activeTab);
+    }
   };
 
   function accountSettingsEscHandler(e) {
@@ -132,6 +165,13 @@
     const el = document.getElementById('account-settings-modal');
     if (el) el.remove();
     document.removeEventListener('keydown', accountSettingsEscHandler);
+    // Restore focus to wherever the user was before opening (keyboard users
+    // otherwise fall off the page). Only if no other modal has since taken focus.
+    if (settingsPrevFocus && settingsPrevFocus.isConnected &&
+        (document.activeElement === document.body || !document.activeElement)) {
+      settingsPrevFocus.focus();
+    }
+    settingsPrevFocus = null;
   };
 
   // Re-shows the modal if it's just hidden (display:none) rather than
@@ -156,6 +196,7 @@
       const active = btn.dataset.tab === tabId;
       btn.style.background = active ? 'var(--accent)' : 'transparent';
       btn.style.color = active ? '#fff' : 'var(--text-1)';
+      btn.setAttribute('aria-selected', String(active));
     });
     renderAccountTabBody(tabId);
   }
@@ -171,6 +212,8 @@
   function renderAccountTabBody(tabId) {
     const body = document.querySelector('#account-settings-modal #account-settings-body');
     if (!body) return;
+    body.setAttribute('role', 'tabpanel');
+    body.setAttribute('aria-labelledby', 'account-tab-' + tabId);
     const renderers = {
       profile: renderProfileTab,
       preferences: renderPreferencesTab,
