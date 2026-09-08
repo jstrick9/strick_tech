@@ -239,3 +239,10 @@ protocol modules.
   0 → "1". All guarded with `typeof === 'number'`; HITL card derives one
   conf/interrupt. Tests: zero-fidelity (6); behavioral score + pattern guards.
   Suite 126.
+- **#034 (shipped `55042a2`)** — `.card-elevated` and `.surface-z1..z4` were used
+  across ~26 panes but defined in NO stylesheet (rendered as bare inline-styled
+  divs). styles-system.css now defines the full token-driven elevation scale
+  plus `.card-elevated` base, button press affordance (`.btn:active`) and a
+  standard 36px full-size control height (btn-sm stays 28px); hover lift gated
+  behind prefers-reduced-motion. Guard: design-system-guard.test.js (4).
+  Suite 130.
