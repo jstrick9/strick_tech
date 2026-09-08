@@ -42,3 +42,13 @@ The app is running at **port 8787**. The density/hierarchy refresh (buttons, car
 - Roll the shared state components out to more panes (Inbox/ICM, Goals, Kanban) for the consistent-states goal.
 - Extend axe scanning to a rendered pane or two.
 - Further component-primitive unification (inputs/selects/modals) via tokens.
+
+## Continued (autonomous objective items) — #036, #037
+- **#036** Composer branch-preview list: no `r.ok` check + bare `catch(e){}` caused a false "No snapshots yet" on outage / eternal blank on network failure. Now renders the shared error (role=alert + Retry) on non-ok or thrown error; only a genuine healthy empty shows empty state. (composer-branch-state.test.js, 3 tests, verified red pre-fix.)
+- **#037** Two more zero-fidelity instances: Ollama "ONLINE (N models)" with models_count 0 → showed "1 models"; red-team "(8 attacks)" when attacks.count is 0. Now `typeof === 'number'`. (zero-fidelity guards → 8 tests.)
+
+**Frontend suite: 136 passing.** Bundle rebuilt & reproducible; served live as head+chunks+app (3 requests, not 88) — confirmed no perf gap.
+
+## Verification note
+- The static app shell scans **0 axe violations** (even at moderate/minor impact) — genuine accessibility.
+- The production bundle is wired at serve time (backend `asset_bundle.rewrite_html`): live index.html serves `/static/dist/head`, `/static/dist/chunks`, `/static/dist/app` in place of the 88 individual `<script>` tags.
