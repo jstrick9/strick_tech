@@ -534,6 +534,39 @@
 .tag-success, .tag.green { background: rgba(61,186,122,.1); border-color: rgba(61,186,122,.25); color: #3dba7a; }
 .tag-warning, .tag.yellow { background: rgba(232,162,55,.1); border-color: rgba(232,162,55,.25); color: #e8a237; }
 .tag-danger, .tag.red { background: rgba(232,82,82,.1); border-color: rgba(232,82,82,.25); color: #e85252; }
+
+/* ── .badge — same geometry & tint vocabulary as .tag ─────────────────── */
+/* `.badge` was defined THREE times across the loaded sheets (unified ~1246,
+   extracted ~97 legacy, extracted ~803 modern). The modern definition wins
+   (loads last), so there was no runtime colour conflict — BUT it used 2px 8px
+   while its sibling `.tag` used 1px 8px, and the two are used side by side in
+   the same clusters (mkt-card-tags / mkt-card-badges), so a tag and a badge
+   rendered at different heights in the same row. Reconciled (authoritative,
+   loads last) to the SAME geometry as `.tag`: identical padding, radius, line
+   height, weight and type scale. The legacy compound modifiers (`.badge.live`
+   / `.badge.green` / `.badge.blue`) are dead (0 JS uses) but kept as aliases of
+   the canonical tokens so any inherited markup still renders the right tint. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--bg-3);
+  color: var(--text-2);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.badge-default { background: var(--bg-3); border-color: var(--border); color: var(--text-2); }
+.badge-accent, .badge.blue { background: var(--accent-glow); border-color: rgba(91,138,248,.3); color: var(--accent-hi); }
+.badge-success, .badge.green { background: rgba(61,186,122,.1); border-color: rgba(61,186,122,.25); color: #3dba7a; }
+.badge-warning { background: rgba(232,162,55,.1); border-color: rgba(232,162,55,.25); color: #e8a237; }
+.badge-danger { background: rgba(232,82,82,.1); border-color: rgba(232,82,82,.25); color: #e85252; }
+.badge-live, .badge.live { background: rgba(61,186,122,.1); border-color: rgba(61,186,122,.25); color: #3dba7a; animation: badge-pulse 2s ease-in-out infinite; }
 .wg-tag,
 .dag-node-agent-tag, .hook-event-tag, .mkt-tag, .model-used-tag,
 .ttd-node-type-tag, .icm-stage-in {
