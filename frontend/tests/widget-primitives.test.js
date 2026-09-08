@@ -87,6 +87,14 @@ describe('styles-system.css bold component primitives', () => {
     expect(/\.ttd-badge\.running/.test(SYS)).toBe(true);
   });
 
+  it('gives every bespoke modal a fixed full-screen scrim', () => {
+    for (const c of ['a2a-modal-overlay', 'dag-modal-overlay', 'gm-modal-overlay']) {
+      const block = SYS.split(/\/\* Modal scrim/)[1] || '';
+      expect(block.includes('.' + c), `overlay ${c} missing scrim`).toBe(true);
+      expect(/position:\s*fixed/.test(block)).toBe(true);
+    }
+  });
+
   it('covers the icon, tab, badge, tag, chip, toggle, field, table and modal widgets', () => {
     for (const c of ICON_BTNS) expect(SYS.includes('.' + c), `icon ${c}`).toBe(true);
     for (const c of TABS) expect(SYS.includes('.' + c), `tab ${c}`).toBe(true);

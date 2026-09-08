@@ -629,6 +629,34 @@
   width: 100%;
 }
 .a2a-modal { padding: var(--space-5); }
+
+/* Modal scrim: every modal is appended to the DOM via `overlay.className =
+   '…-modal-overlay'`. The three bespoke scrims had NO CSS in any loaded
+   sheet, so their modal content dropped into the document flow (the backdrop
+   was a plain statically-positioned div). Give them the fixed full-screen
+   scrim. Clicking the blank area cancels (the pane binds its own close). */
+.wg-modal-overlay,
+.a2a-modal-overlay, .dag-modal-overlay, .gm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: rgba(4,6,14,0.7);
+  backdrop-filter: blur(6px);
+  animation: modal-scrim-in 0.15s ease;
+}
+@keyframes modal-scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wg-modal-overlay, .a2a-modal-overlay, .dag-modal-overlay, .gm-modal-overlay {
+    animation: none;
+  }
+}
 .gm-modal-row, .a2a-modal-row, .dag-modal-row {
   display: flex;
   gap: var(--space-2);
