@@ -146,10 +146,23 @@ def index_html(frontend_dir: Path) -> str:
     path = frontend_dir / 'index.html'
     mtime = path.stat().st_mtime
 
+    # Version the cached document by BOTH the index.html mtime and the bundle
+    # manifest mtime. Otherwise a rebuilt bundle (which changes the content-hashed
+    # <script> filenames) keeps pointing the served page at the previous — and
+    # since dist/ is rewritten, now missing — bundle until index.html is touched
+    # or the server restarted.
+    manifest_mtime = 0.0
+    if bundle_enabled():
+        man_path = frontend_dir / 'dist' / 'manifest.json'
+        try:
+            manifest_mtime = man_path.stat().st_mtime
+        except OSError:
+            manifest_mtime = 0.0
+
     key = f'{path}:{bundle_enabled()}'
     with _lock:
         cached = _cache.get(key)
-        if cached and cached[0] == mtime:
+        if cached and len(cached) >= 3 and cached[0] == mtime and cached[2] == manifest_mtime:
             return cached[1]
 
     html = path.read_text(encoding='utf-8')
@@ -159,7 +172,7 @@ def index_html(frontend_dir: Path) -> str:
             html = rewrite_html(html, manifest)
 
     with _lock:
-        _cache[key] = (mtime, html)
+        _cache[key] = (mtime, html, manifest_mtime)
     return html
 
 
