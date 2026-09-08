@@ -2,7 +2,7 @@
 
 **Focus:** Consistent UI states + cohesive density/hierarchy + bug/UX hunting.
 **Ship style:** incremental — fix + regression test + commit + push each item.
-**Frontend suite:** 111 → **158 passing** · bundle rebuilt & reproducible · live app on port 8787.
+**Frontend suite:** 111 → **164 passing** · bundle rebuilt & reproducible · live app on port 8787.
 
 ---
 
@@ -26,6 +26,8 @@
 9. **#042 — Goals pane a11y.** 3 filter `<select>`s get `aria-label`s; goal cards are now keyboard-operable (`role="button" tabindex="0" data-keys`) with `aria-selected`. (goals-a11y 2)
 10. **#043 — Workflow property editor a11y.** 8 property `<select>`s (Node type, Agent, Trigger event, Output target, Condition method/action, Mode) get `aria-label`s.
 11. **#044 — Accessible names for all icon-only buttons (33 modules).** Added `aria-label`+`title` to every icon-only button that had no accessible name — close (✕/×), delete (🗑), edit (✏), stop (🛑), revive (♻), export (📦), resolve (✓), copy-webhook. Includes a repo-wide regression guard that also catches buttons whose icon was accidentally stripped (empty `<button></button>`). (icon-button-name 3)
+12. **#045 — Accessible names for unlabeled controls & images.** Workflow/node config inputs, prompt-library variable inputs, goals milestone inputs, DB-studio cell inputs, ICM stage name, marketplace/ordering + HITL delegation selects, and a screenshot `<img alt>`. (control-labels 4)
+13. **#046 — Keyboard-operable mouse-only click divs (13 modules).** Leaf `data-act-click` tabs/nav/cards/rows (agent selector, SDK packs, TTD nodes/lanes, dag nodes, github/mcp/notification/leaderboard rows, onboarding theme picker, drop targets, goal decomposition tasks) got `role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1"`. (keyboard-clickable 2)
 
 ---
 
@@ -33,6 +35,6 @@
 App running at **port 8787**. Refresh to see the density/elevation/state changes and the four UX improvements.
 
 ## Verification
-- Frontend suite **158 passing**; bundle served live as head+chunks+app (3 requests, not 88).
+- Frontend suite **164 passing**; bundle served live as head+chunks+app (3 requests, not 88).
 - axe-core scan of the static app shell: **0 violations** (critical/serious and all impacts).
 - Every change ships with a jsdom regression test; onboarding-enter & composer verified **red on pre-fix**.
