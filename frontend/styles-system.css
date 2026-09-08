@@ -1,0 +1,194 @@
+/* ============================================================================
+ * Agentic OS — Consolidated Design System (styles-system.css)
+ * Loaded LAST so it is authoritative. This file is the single source of truth
+ * for design tokens and for the shared inline state components
+ * (loading / empty / error) that every pane renders via js/00-state-feedback.js.
+ *
+ * Token values are copied verbatim from styles-redesign.css (the previously
+ * authoritative, W3C-contrast-validated set) so this refresh is value-neutral:
+ * no visual regression, but one clearly-documented home for the system.
+ * ========================================================================== */
+
+/* ── Design tokens ──────────────────────────────────────────────────────── */
+:root, [data-theme="dark"] {
+  --bg-base: #0a0a0a;
+  --bg-0: #0f0f0f;
+  --bg-1: #171717;
+  --bg-2: #1e1e1e;
+  --bg-3: #2a2a2a;
+  --bg-4: #363636;
+  --bg-5: #444444;
+
+  --border: rgba(255,255,255,0.08);
+  --border-hi: rgba(255,255,255,0.15);
+
+  --text-0: #f5f5f5;
+  --text-1: #d4d4d4;
+  --text-2: #a0a0a0;
+  --text-3: #949494;
+
+  /* --accent/#6a6df2 carries --on-accent at 4.58:1 (WCAG AA). See notes in
+     styles-redesign.css. */
+  --accent: #6a6df2;
+  --accent-hi: #818cf8;
+  --accent-glow: rgba(99,102,241,0.15);
+  --on-accent: #0b1020;
+
+  --success: #22c55e;
+  --warning: #eab308;
+  /* --danger/#f26565 reads 5.42:1 on --bg-2 (AA). */
+  --danger: #f26565;
+  --info: #3b82f6;
+
+  --green: var(--success);
+  --red: var(--danger);
+  --yellow: var(--warning);
+  --orange: #f97316;
+  --teal: #14b8a6;
+  --purple: #a855f7;
+
+  --sidebar-w: 260px;
+  --topbar-h: 56px;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* Spacing scale (1u = 4px) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 12.5px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+
+  --transition: 0.15s ease;
+}
+
+[data-theme="light"] {
+  --bg-base: #f9fafb;
+  --bg-0: #ffffff;
+  --bg-1: #f9fafb;
+  --bg-2: #f3f4f6;
+  --bg-3: #e5e7eb;
+  --bg-4: #d1d5db;
+  --bg-5: #9ca3af;
+
+  --border: rgba(0,0,0,0.08);
+  --border-hi: rgba(0,0,0,0.15);
+
+  --text-0: #111827;
+  --text-1: #374151;
+  --text-2: #5f6672;
+  --text-3: #5d6573;
+
+  --accent: #6a6df2;
+  --accent-hi: #4f46e5;
+  --accent-glow: rgba(99,102,241,0.1);
+  --on-accent: #ffffff;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.15);
+}
+
+/* ── Shared inline state components ────────────────────────────────────── */
+/* Every pane's loading / empty / error inline state renders through these.
+   Markup produced by js/00-state-feedback.js. */
+
+.data-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-6);
+  min-height: 140px;
+  text-align: center;
+  color: var(--text-2);
+}
+
+.data-state-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 46ch;
+}
+
+.data-state-title {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-0);
+  line-height: 1.35;
+}
+
+.data-state-msg {
+  font-size: var(--font-size-sm);
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.data-state-icon {
+  font-size: 26px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+/* Spinner */
+.data-state-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--border-hi);
+  border-top-color: var(--accent);
+  animation: data-state-spin 0.8s linear infinite;
+}
+@keyframes data-state-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty state sits flush & quiet to read as "no data yet", not an error. */
+.state-empty { padding: var(--space-6); min-height: 0; }
+.state-empty .data-state-icon { font-size: 30px; opacity: 0.7; }
+.state-empty .data-state-title { color: var(--text-1); font-size: var(--font-size-md); }
+
+/* Error state is the one that must be noticed. */
+.state-error {
+  background: radial-gradient(circle at 50% 0%, rgba(242,101,101,0.08), transparent 70%);
+  border-radius: var(--radius);
+}
+.state-error .data-state-title { color: var(--danger); font-weight: 700; }
+.state-error .data-state-msg { color: var(--text-1); }
+
+/* Honor prefers-reduced-motion: no spinning animation, static marker instead. */
+@media (prefers-reduced-motion: reduce) {
+  .data-state-spinner {
+    animation: none;
+    border: 3px solid var(--border-hi);
+    border-top-color: var(--accent);
+    position: relative;
+  }
+  .data-state-spinner::after {
+    content: "\2026";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+}

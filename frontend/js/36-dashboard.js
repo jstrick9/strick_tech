@@ -32,21 +32,26 @@ async function renderDashboard() {
         <button data-act-click="renderDashboard()" class="btn btn-ghost btn-sm">⟳ Refresh</button>
       </div>
     </div>
-    <div id="dash-body" style="color:var(--text-2);font-size:13px">Loading…</div>`;
+    <div id="dash-body" style="color:var(--text-2);font-size:13px"></div>`;
+
+  const bodyEl = document.getElementById('dash-body');
+  if (window.stateFeedback) window.stateFeedback.setLoading(bodyEl, { label: 'Loading dashboard…' });
 
   const days = document.getElementById('dash-days')?.value || '30';
   try {
     const r = await fetch(`/api/analytics/dashboard?days=${days}`);
     if (!r.ok) {
-      const el = document.getElementById('dash-body');
-      if (el) el.innerHTML = `<div style="color:var(--danger)">${escHtml(humanError(httpError(r), {action:'load your analytics', dataSafe:true}))}<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
+      const message = humanError(httpError(r), {action:'load your analytics', dataSafe:true});
+      if (window.stateFeedback) window.stateFeedback.setError(bodyEl, { title:'Couldn\u2019t load the dashboard', message, retry:'renderDashboard()' });
+      else if (bodyEl) bodyEl.innerHTML = `<div style="color:var(--danger)">${escHtml(message)}<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
       return;
     }
     dashData = await r.json();
     renderDashBody(dashData);
   } catch(ex) {
-    const el = document.getElementById('dash-body');
-    if (el) el.innerHTML = `<div style="color:var(--danger)">${escHtml(humanError(ex, {action:'load your dashboard', dataSafe:true}))}<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
+    const message = humanError(ex, {action:'load your dashboard', dataSafe:true});
+    if (window.stateFeedback) window.stateFeedback.setError(bodyEl, { title:'Couldn\u2019t load the dashboard', message, retry:'renderDashboard()' });
+    else if (bodyEl) bodyEl.innerHTML = `<div style="color:var(--danger)">${escHtml(message)}<br><button class="btn-sm" data-act-click="renderDashboard()" style="margin-top:6px">↻ Retry</button></div>`;
   }
   // Auto-refresh every 30s
   clearTimeout(_dashRefreshTimer);
