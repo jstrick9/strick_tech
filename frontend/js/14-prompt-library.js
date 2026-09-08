@@ -1078,8 +1078,19 @@ document.addEventListener('keydown',e=>{
   if((e.metaKey||e.ctrlKey)&&e.key==='\\'){e.preventDefault();toggleSplitWorkspace();}
 });
 
-// Auto-focus chat on startup
-setTimeout(()=>{if(document.querySelector('.pane.active')?.id==='pane-chat')document.getElementById('chat-input')?.focus();},1200);
+// Auto-focus chat on startup.
+// Guard: only when no dialog/palette is open. This timer fired 1.2s after load
+// and unconditionally focused chat-input, so a user who opened the command
+// palette (or another modal) within that window had focus ripped out from under
+// them into the chat box behind the modal — arrow/Enter then went to chat, not
+// the palette. (#071) Yields to an open dialog instead.
+setTimeout(()=>{
+  let openDialog = false;
+  try { openDialog = (typeof collectOpenModals === 'function' && collectOpenModals().length > 0); } catch (_) {}
+  if (openDialog) return;
+  if (document.querySelector('.pane.active')?.id === 'pane-chat')
+    document.getElementById('chat-input')?.focus();
+},1200);
 
 // Add to command palette
 if(typeof PALETTE_CMDS!=='undefined'){
