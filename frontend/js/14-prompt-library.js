@@ -163,7 +163,7 @@ function wireCategoryFilterEvents() {
 }
 
 async function createCategory() {
-  const name = (window.prompt('New category name (e.g. "Marketing Copy"):') || '').trim();
+  const name = ((await window.gmPrompt('New Category', 'New category name (e.g. "Marketing Copy")')) || '').trim();
   if (!name) return;
   try {
     const r = await fetch('/api/prompts/categories', {

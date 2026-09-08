@@ -235,7 +235,7 @@
   }
 
   async function icmwsOpen(path) {
-    if (dirty && !window.confirm('Discard unsaved changes?')) return;
+    if (dirty && !(await window.gmDanger('Discard changes', 'Discard unsaved changes?', 'Discard'))) return;
     currentFile = path;
     dirty = false;
     renderTree();
@@ -367,7 +367,7 @@
   }
 
   async function icmwsUseTemplate(templateId) {
-    const name = window.prompt('Name for the new workspace');
+    const name = await window.gmPrompt('New Workspace', 'Name for the new workspace');
     if (!name || !name.trim()) return;
     try {
       const d = await api('/api/icm/templates/' + encodeURIComponent(templateId) + '/instantiate', {
@@ -380,17 +380,17 @@
       currentFile = '';
       icmwsTab('folders');
     } catch (e) {
-      window.alert('Could not create it: ' + e.message);
+      await window.gmAlert('Could not create it', e.message);
     }
   }
 
   async function icmwsDeleteTemplate(templateId) {
-    if (!window.confirm('Delete the template ' + templateId + '? Workspaces made from it are unaffected.')) return;
+    if (!(await window.gmDanger('Delete template', `Delete the template "${templateId}"? Workspaces made from it are unaffected.`, 'Delete'))) return;
     try {
       await api('/api/icm/templates/' + encodeURIComponent(templateId), {method: 'DELETE'});
       renderIcmTemplates();
     } catch (e) {
-      window.alert(e.message);
+      await window.gmAlert('Delete template failed', e.message);
     }
   }
 
@@ -836,9 +836,7 @@
   async function icmwsApply() {
     const out = document.getElementById('icm-apply-out');
     if (!out || !auditPlan) return;
-    if (!window.confirm(
-      'Copy ' + (auditPlan.moves || []).length + ' files into _icm-restructured/?\n\n'
-      + 'Your original files are not moved, changed or deleted.')) return;
+    if (!(await window.gmDanger('Restructure', 'Copy ' + (auditPlan.moves || []).length + ' files into _icm-restructured/? Your original files are not moved, changed or deleted.', 'Restructure'))) return;
     out.innerHTML = '<div style="color:var(--text-2);font-size:13px">Copying…</div>';
     try {
       const d = await api('/api/icm/restructure/apply', {
@@ -889,11 +887,9 @@
 
   // ── create ──────────────────────────────────────────────────────────────
   async function icmwsNewWorkspace() {
-    const name = window.prompt('Workspace name (e.g. "client reports")');
+    const name = await window.gmPrompt('New Workspace', 'Workspace name (e.g. "client reports")');
     if (!name || !name.trim()) return;
-    const stagesRaw = window.prompt(
-      'Stages in order, comma separated.\n\nOne stage, one job — a stage that researches does not also write.',
-      'research, draft, review');
+    const stagesRaw = await window.gmPrompt('Stages', 'Stages in order, comma separated. One stage, one job — a stage that researches does not also write.', 'research, draft, review');
     if (stagesRaw === null) return;
     const stages = stagesRaw.split(',').map((s) => s.trim()).filter(Boolean);
     if (!stages.length) return;
@@ -908,7 +904,7 @@
       await loadWorkspaces();
       icmwsTab('folders');
     } catch (e) {
-      window.alert('Could not create workspace: ' + e.message);
+      await window.gmAlert('Could not create workspace', e.message);
     }
   }
 

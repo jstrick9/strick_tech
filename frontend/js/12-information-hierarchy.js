@@ -167,7 +167,7 @@
       if (del) {
         e.stopPropagation();
         const pid = del.dataset.hDelete;
-        const confirmFn = window.gmDanger || (async (t, m) => window.confirm(m));
+        const confirmFn = window.gmDanger;
         if (!(await confirmFn('Delete Project Hierarchy',
               `Delete "${pid}" and all five IVREN files? This cannot be undone.`))) return;
         try {

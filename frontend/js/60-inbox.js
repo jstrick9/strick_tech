@@ -207,7 +207,7 @@
   }
 
   async function inboxDelete(id) {
-    if (!window.confirm('Delete this captured item?')) return;
+    if (!(await window.gmDanger('Delete item', 'Delete this captured item? This cannot be undone.', 'Delete'))) return;
     try {
       await api('/api/inbox/items/' + encodeURIComponent(id), {method: 'DELETE'});
       await loadInbox();
