@@ -41,7 +41,7 @@ async function renderLoops() {
       <div class="settings-card">
         <h3>Running Loops</h3>
         <div id="loop-list" style="display:flex;flex-direction:column;gap:8px">
-          <div style="color:var(--text-3);font-size:13px">Loading…</div>
+          ${stateFeedback.loadingElement('Loading…')}
         </div>
       </div>
       <div class="settings-card u-56f43562" >

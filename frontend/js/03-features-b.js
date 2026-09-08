@@ -26,7 +26,7 @@ async function renderSpecs() {
       <input id="spec-search" type="search" placeholder="Search specs…" aria-label="Search specs"
         data-act-input="specSearch($value)" data-no-busy="1"
         style="width:100%;margin:6px 0;padding:6px 9px;background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;box-sizing:border-box">
-      <div class="spec-list" id="spec-list"><div style="color:var(--text-3);font-size:12px;padding:8px">Loading…</div></div>
+      <div class="spec-list" id="spec-list">${stateFeedback.loadingElement('Loading…')}</div>
       <div id="spec-list-footer" style="padding:6px 8px;font-size:11px;color:var(--text-2);border-top:1px solid var(--border)"></div>
     </div>
     <div class="spec-main">
@@ -292,7 +292,7 @@ function specShowPhase(phase, desc='') {
       <div class="spec-stream-log" id="spec-log" style="display:none"></div>
     `;
   } else if (phase === 'tasks') {
-    content.innerHTML = `<div style="color:var(--text-2)">Loading tasks…</div>`;
+    content.innerHTML = stateFeedback.loadingElement('Loading tasks…');
     specLoadTasks();
   } else if (phase === 'execute') {
     content.innerHTML = `
@@ -559,7 +559,7 @@ async function renderHooks() {
       <!-- Recent runs -->
       <div style="margin-top:24px">
         <div class="u-f9e226da">📋 Recent Hook Runs</div>
-        <div id="hook-runs-list" style="font-size:11px;color:var(--text-2)">Loading…</div>
+        <div id="hook-runs-list" style="font-size:11px;color:var(--text-2)">${stateFeedback.loadingElement('Loading…')}</div>
       </div>
     </div>`;
 

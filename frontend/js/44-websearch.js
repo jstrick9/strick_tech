@@ -138,7 +138,7 @@ async function renderWebSearch() {
         <button type="button" class="btn-sm" data-ws-action="refresh-history">🔄 Refresh</button>
         <button type="button" class="btn-sm" style="color:var(--danger)" data-ws-action="clear-history">🗑️ Clear All</button>
       </div>
-      <div id="ws-history-list"><div style="color:var(--text-3);font-size:13px">Loading…</div></div>
+      <div id="ws-history-list">${stateFeedback.loadingElement('Loading…')}</div>
     </div>
   </div>`;
 
@@ -366,7 +366,7 @@ async function research() {
 async function loadHistory() {
   const el = $('ws-history-list');
   if (!el) return;
-  el.innerHTML = '<div style="color:var(--text-3);font-size:13px">Loading…</div>';
+  el.innerHTML = stateFeedback.loadingElement('Loading…');
   try {
     const r = await fetch('/api/websearch/history?limit=50');
     if (!r.ok) throw new Error(`HTTP ${r.status}`);

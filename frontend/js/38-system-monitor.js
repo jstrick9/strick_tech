@@ -17,7 +17,7 @@ async function renderSystem() {
       <button data-act-click="doGitCommit()" class="btn btn-primary btn-sm">📦 Git Commit</button>
     </div>
   </div>
-  <div id="sys-body"><div style="color:var(--text-2);font-size:13px">Loading…</div></div>`;
+  <div id="sys-body">${stateFeedback.loadingElement('Loading…')}</div>`;
   refreshSystem();
   clearInterval(sysRefreshTimer);
   sysRefreshTimer = setInterval(refreshSystem, 10000);

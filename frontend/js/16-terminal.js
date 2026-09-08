@@ -191,7 +191,7 @@ function termNewSession(){const id='s'+Date.now().toString(36);
 async function renderSecretsVault() {
   const pane = document.getElementById('pane-secrets');
   if (!pane) return;
-  pane.innerHTML = '<div style="padding:24px;color:var(--text-2)">Loading vault…</div>';
+  pane.innerHTML = stateFeedback.loadingElement('Loading vault…');
   let data = {};
   try {
     const r = await fetch('/api/secrets/list');

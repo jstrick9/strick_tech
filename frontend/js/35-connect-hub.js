@@ -35,7 +35,7 @@ async function renderConnectHub() {
     <input id="connect-search" placeholder="Search…" value="${escHtml(connectQuery)}"
       style="flex:1;min-width:160px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 11px;color:var(--text-0);font-size:13px;outline:none">
   </div>
-  <div id="connect-body"><div style="color:var(--text-2);padding:20px">Loading…</div></div>
+  <div id="connect-body">${stateFeedback.loadingElement('Loading…')}</div>
   <div id="connect-drawer"></div>`;
 
   const search = document.getElementById('connect-search');

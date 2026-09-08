@@ -3,7 +3,7 @@
 // ── Integrations + Docs + Rules ─────────────────────────────────
 async function renderIntegrations() {
   const pane=document.getElementById('pane-integrations'); if(!pane)return;
-  pane.innerHTML='<div style="padding:20px;color:var(--text-2)">Loading…</div>';
+  pane.innerHTML=stateFeedback.loadingElement('Loading…');
   try {
     const [iR,cR,dR,rR]=await Promise.all([
       fetch('/api/integrations'),

@@ -87,7 +87,7 @@ async function renderEvals() {
 
     <!-- History tab -->
     <div id="eval-pane-history" style="display:none">
-      <div id="eval-history-list">Loading…</div>
+      <div id="eval-history-list">${stateFeedback.loadingElement('Loading…')}</div>
     </div>
 
     <!-- Datasets tab -->
@@ -440,7 +440,7 @@ async function renderObservability() {
         <input id="obs-search" placeholder="Search traces…" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 10px" data-act-input="obsSearchTraces($value)">
         <button class="btn-sm" data-act-click="obsLoadTraces()">↺</button>
       </div>
-      <div id="obs-traces-list">Loading…</div>
+      <div id="obs-traces-list">${stateFeedback.loadingElement('Loading…')}</div>
     </div>
 
     <!-- DORA -->

@@ -46,7 +46,7 @@ async function renderA2A() {
         <button class="a2a-btn primary" data-act-click="a2aOpenDelegate()">📤 Delegate Task</button>
       </div>
       <div class="a2a-content" id="a2a-content">
-        <div style="color:var(--text-3);padding:20px">Loading…</div>
+        ${stateFeedback.loadingElement('Loading…')}
       </div>
     </div>
   </div>`;
@@ -198,7 +198,7 @@ function a2aRenderNetwork(container) {
 
 // ── Tasks tab ─────────────────────────────────────────────────────────
 async function a2aRenderTasks(container) {
-  container.innerHTML = `<div style="color:var(--text-3);padding:20px">Loading…</div>`;
+  container.innerHTML = stateFeedback.loadingElement('Loading…');
   const d = await fetch('/api/a2a/tasks?limit=50').then(r=>r.ok?r.json():{tasks:[]}).catch(()=>({tasks:[]}));
   _a2aTasks = d.tasks || [];
 

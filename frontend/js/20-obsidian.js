@@ -5,7 +5,7 @@ async function renderObsidian() {
   const pane = document.getElementById('pane-obsidian');
   if (!pane) return;
   pane.innerHTML = `<div class="section-head"><div><h2>🧿 Obsidian Vault</h2><p>Bi-directional sync with your Obsidian vault → Memory Galaxy</p></div></div>
-    <div id="obs-body"><div style="color:var(--text-2);font-size:13px">Loading…</div></div>`;
+    <div id="obs-body">${stateFeedback.loadingElement('Loading…')}</div>`;
   try {
     const r = await fetch('/api/obsidian/status');
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -57,7 +57,7 @@ function renderObsidianBody(s) {
         <div style="display:flex;gap:6px;margin-bottom:8px">
           <input id="obs-search" placeholder="Search notes…" data-act-input="searchNotes()" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none">
         </div>
-        <div id="obs-notes" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">Loading…</div>
+        <div id="obs-notes" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">${stateFeedback.loadingElement('Loading…')}</div>
       </div>
       <div class="settings-card u-56f43562" >
         <h3>✏️ Quick Note</h3>

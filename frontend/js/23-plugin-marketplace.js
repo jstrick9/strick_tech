@@ -14,7 +14,7 @@ async function renderPlugins() {
   </div>
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="plugin-cats"></div>
   <div id="plugin-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
-    <div style="color:var(--text-2)">Loading marketplace…</div>
+    ${stateFeedback.loadingElement('Loading marketplace…')}
   </div>`;
   await loadPluginRegistry();
 }

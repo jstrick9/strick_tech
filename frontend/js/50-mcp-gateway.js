@@ -86,7 +86,7 @@ async function renderMCPGateway() {
         </div>
       </div>
       <div class="prb-policy-list" id="prb-policy-list">
-        <div style="color:var(--text-3);font-size:12px;padding:8px">Loading…</div>
+        ${stateFeedback.loadingElement('Loading…')}
       </div>
       <div class="prb-sidebar-foot">
         <div class="prb-bulk-row">
@@ -113,7 +113,7 @@ async function renderMCPGateway() {
         <div class="prb-tab"        id="prb-tab-servers"   data-act-click="prbSetTab('servers')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">🖥️ Servers</div>
       </div>
       <div class="prb-content" id="prb-content">
-        <div style="padding:40px;text-align:center;color:var(--text-3)">Loading…</div>
+        ${stateFeedback.loadingElement('Loading…')}
       </div>
     </div>
   </div>`;
@@ -768,7 +768,7 @@ function prbSimulateFromRow(polId) {
 // ── Conflicts tab ─────────────────────────────────────────────────
 function prbRenderConflictsTab(container) {
   if (!_prbConflicts) {
-    container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-3)">Loading conflict analysis…</div>`;
+    container.innerHTML = stateFeedback.loadingElement('Loading conflict analysis…');
     fetch('/api/mcp-gateway/policies/conflicts').then(r=>r.ok?r.json():null).then(d=>{
       if (d) { _prbConflicts=d; prbRenderConflictsTab(container); }
     }).catch(()=>{});

@@ -48,7 +48,7 @@
   window.renderCspMonitor = async function () {
     var host = document.getElementById('csp-monitor-body');
     if (!host) return;
-    host.textContent = 'Loading…';
+    host.innerHTML = stateFeedback.loadingElement('Loading…');
 
     var data;
     try {

@@ -832,7 +832,7 @@
       return;
     }
 
-    host.innerHTML = '<div class="icm-muted">Loading workspaces…</div>';
+    host.innerHTML = stateFeedback.loadingElement('Loading workspaces…');
 
     const data = await icmGet('/workspaces');
     if (!data) {
@@ -863,7 +863,7 @@
         <button class="btn-sm" data-act-click="icmNewWorkspace()">+ New</button>
         <button class="btn-sm" data-act-click="renderIcmWorkspaces()">↺ Refresh</button>
       </div>
-      <div id="icm-detail"><div class="icm-muted">Loading…</div></div>`;
+      <div id="icm-detail">${stateFeedback.loadingElement('Loading…')}</div>`;
 
     await icmRenderDetail();
   }

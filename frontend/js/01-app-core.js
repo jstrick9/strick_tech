@@ -3571,10 +3571,7 @@ function showLoadingSkeleton(containerId, count = 3) {
 
 function showInlineLoading(el, message = 'Loading…') {
   if (!el) return;
-  el.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:16px;color:var(--text-2);font-size:13px">
-    <div class="skeleton" style="width:20px;height:20px;border-radius:50%;flex-shrink:0"></div>
-    <span>${escHtml(message)}</span>
-  </div>`;
+  el.innerHTML = stateFeedback.loadingElement(message);
 }
 
 
@@ -4899,7 +4896,7 @@ window.toggleStudioVersionHistory = async function() {
 async function studioRenderVersionHistory() {
   const list = document.getElementById('studio-version-history-list');
   if (!list) return;
-  list.innerHTML = '<div style="padding:8px;color:var(--text-3);font-size:11px">Loading…</div>';
+  list.innerHTML = stateFeedback.loadingElement('Loading…');
   try {
     const r = await fetch('/api/preview/history?path=' + encodeURIComponent(Studio.currentFile));
     const hist = r.ok ? await r.json() : [];

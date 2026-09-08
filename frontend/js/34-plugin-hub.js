@@ -40,7 +40,7 @@ async function renderPluginHub() {
     <input id="hub-search" placeholder="Search plugins…" value="${escHtml(hubQuery)}"
            style="flex:1;min-width:180px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 11px;color:var(--text-0);font-size:13px;outline:none">
   </div>
-  <div id="hub-body"><div style="color:var(--text-2);padding:20px">Loading…</div></div>
+  <div id="hub-body">${stateFeedback.loadingElement('Loading…')}</div>
   <div id="hub-drawer"></div>`;
 
   const search = document.getElementById('hub-search');
@@ -196,7 +196,7 @@ function hubCardHtml(p) {
 async function hubShowDetail(packId) {
   const drawer = document.getElementById('hub-drawer');
   if (!drawer) return;
-  drawer.innerHTML = '<div style="padding:16px;color:var(--text-2)">Loading…</div>';
+  drawer.innerHTML = stateFeedback.loadingElement('Loading…');
   try {
     const r = await fetch(`/api/hub/pack/${encodeURIComponent(packId)}`);
     if (!r.ok) { toast('Could not load that plugin', 'err'); drawer.innerHTML = ''; return; }

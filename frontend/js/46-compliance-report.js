@@ -85,7 +85,7 @@ async function renderAuditLog() {
         <button class="crc-action-btn" data-act-click="crcRefresh()" title="Refresh">↺ Refresh</button>
       </div>
       <div class="crc-content" id="crc-content">
-        <div style="padding:40px;text-align:center;color:var(--text-3)">Loading…</div>
+        ${stateFeedback.loadingElement('Loading…')}
       </div>
     </div>
   </div>`;
@@ -491,7 +491,7 @@ async function crcDeleteReport(reportId) {
 
 // ── Audit chain tab ──────────────────────────────────────────────────
 async function crcRenderAuditChain(container) {
-  container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-3)">Loading audit chain…</div>`;
+  container.innerHTML = stateFeedback.loadingElement('Loading audit chain…');
 
   let url = '/api/audit-log?limit=100';
   if (_crcAuditFilter.risk)    url += `&risk_level=${encodeURIComponent(_crcAuditFilter.risk)}`;

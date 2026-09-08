@@ -50,7 +50,7 @@ async function promptError(r, fallback) {
 async function renderPrompts() {
   const pane = document.getElementById('pane-prompts');
   if (!pane) return;
-  pane.innerHTML = '<div style="padding:20px;color:var(--text-2)">Loading…</div>';
+  pane.innerHTML = stateFeedback.loadingElement('Loading…');
   try {
     const [pr, cr, ar] = await Promise.all([
       fetch('/api/prompts'),

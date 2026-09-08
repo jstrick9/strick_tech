@@ -241,7 +241,7 @@
     renderTree();
     const ed = document.getElementById('icm-editor');
     if (!ed) return;
-    ed.innerHTML = '<div style="color:var(--text-2);font-size:13px">Loading…</div>';
+    ed.innerHTML = stateFeedback.loadingElement('Loading…');
     try {
       const d = await api('/api/icm/workspaces/' + encodeURIComponent(currentWs)
         + '/file?path=' + encodeURIComponent(path));
@@ -305,7 +305,7 @@
   async function renderIcmTemplates() {
     const body = document.getElementById('icm-body');
     if (!body) return;
-    body.innerHTML = '<div style="padding:22px;color:var(--text-2);font-size:13px">Loading…</div>';
+    body.innerHTML = stateFeedback.loadingElement('Loading…');
     let list = [];
     try {
       list = (await api('/api/icm/templates')).templates || [];
@@ -857,7 +857,7 @@
   async function renderLog() {
     const body = document.getElementById('icm-body');
     if (!body) return;
-    body.innerHTML = '<div style="padding:24px;color:var(--text-2);font-size:13px">Loading…</div>';
+    body.innerHTML = stateFeedback.loadingElement('Loading…');
     let rows = [];
     try {
       rows = (await api('/api/icm/route/log?limit=100')).decisions || [];

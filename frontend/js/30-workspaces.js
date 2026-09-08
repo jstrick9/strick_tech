@@ -52,7 +52,7 @@ async function renderWorkspaces() {
           <div style="font-weight:700;font-size:14px">Full Backup &amp; Restore</div>
         </div>
         <div style="font-size:12px;color:var(--text-2);margin-bottom:12px">Export your entire Agentic OS database — agents, chat history, memory, tasks, prompts, and skills — as one portable JSON file. Restore it here or on another machine.</div>
-        <div id="ws-backup-stats" style="font-size:11.5px;color:var(--text-3);margin-bottom:12px">Loading stats…</div>
+        <div id="ws-backup-stats" style="font-size:11.5px;color:var(--text-3);margin-bottom:12px">${stateFeedback.loadingElement('Loading stats…')}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <button data-act-click="exportFullBackup()" class="btn btn-primary btn-sm">💾 Export Full Backup</button>
           <label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">

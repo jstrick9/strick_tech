@@ -95,7 +95,7 @@ async function renderAgentMonitor() {
         <button class="bdd-header-btn" data-act-click="bddDetectAll()" style="background:var(--accent);border-color:var(--accent-text);color:var(--on-accent)">🔍 Detect All</button>
       </div>
       <div class="bdd-content" id="bdd-content">
-        <div style="padding:40px;text-align:center;color:var(--text-3)">Loading…</div>
+        ${stateFeedback.loadingElement('Loading…')}
       </div>
     </div>
   </div>`;
@@ -282,7 +282,7 @@ function bddRenderAgents(container) {
 }
 
 async function bddRenderAgentDetail(container, agentId) {
-  container.innerHTML = `<div style="color:var(--text-3);padding:20px">Loading ${escHtml(agentId)}…</div>`;
+  container.innerHTML = stateFeedback.loadingElement('Loading ' + (agentId || '') + '…');
 
   const d = await fetch(`/api/drift/agent/${encodeURIComponent(agentId)}`)
     .then(r=>r.ok?r.json():null).catch(()=>null);
@@ -529,7 +529,7 @@ function bddRenderAlerts(container) {
 
 // ── History tab ─────────────────────────────────────────────────────
 async function bddRenderHistory(container) {
-  container.innerHTML = `<div style="color:var(--text-3);padding:20px">Loading history…</div>`;
+  container.innerHTML = stateFeedback.loadingElement('Loading history…');
   const d = await fetch('/api/drift/history?hours=24&limit=200').then(r=>r.ok?r.json():{history:[]}).catch(()=>({history:[]}));
   const hist = d.history || [];
 

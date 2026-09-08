@@ -55,7 +55,7 @@ async function renderReplay() {
         </select>
       </div>
       <div class="ttd-run-list" id="ttd-run-list">
-        <div style="color:var(--text-3);font-size:12px;padding:10px">Loading…</div>
+        ${stateFeedback.loadingElement('Loading…')}
       </div>
       <div class="ttd-sidebar-foot">
         <button class="ttd-toolbar-btn u-2cc6475e"  data-act-click="ttdOpenDiffMode()">↔ Diff Runs</button>
@@ -820,7 +820,7 @@ async function ttdOpenDiffMode() {
 async function ttdRunDiff(idA, idB) {
   const cont = document.getElementById('ttd-diff-content');
   if (!cont) return;
-  cont.innerHTML = '<div style="color:var(--text-3);padding:20px;font-size:13px">Loading diff…</div>';
+  cont.innerHTML = stateFeedback.loadingElement('Loading diff…');
   try {
     const r = await fetch(`/api/replay/diff/${encodeURIComponent(idA)}/${encodeURIComponent(idB)}`);
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -1227,7 +1227,7 @@ async function renderCollabEdit() {
         <h3>✍️ Collab Docs</h3>
         <button data-act-click="ceNewDoc()" style="width:100%;padding:6px;background:var(--accent);border:none;border-radius:7px;color:var(--on-accent);font-size:12px;font-weight:600;cursor:pointer">＋ New Document</button>
       </div>
-      <div class="ce-doc-list" id="ce-doc-list">Loading…</div>
+      <div class="ce-doc-list" id="ce-doc-list">${stateFeedback.loadingElement('Loading…')}</div>
     </div>
 
     <div class="ce-main">
@@ -1706,7 +1706,7 @@ let _mktInstalled = {};
 async function renderMarketplace() {
   const pane = document.getElementById('pane-marketplace');
   if (!pane) return;
-  pane.innerHTML = `<div style="padding:20px;color:var(--text-2)">Loading marketplace…</div>`;
+  pane.innerHTML = stateFeedback.loadingElement('Loading marketplace…');
 
   try {
     const [stats, featured, cats, inst] = await Promise.all([
@@ -1783,7 +1783,7 @@ async function renderMarketplace() {
           <div class="mkt-section-title u-11696618" >All Packs</div>
           <div style="margin-left:auto;font-size:11px;color:var(--text-3)" id="mkt-result-count"></div>
         </div>
-        <div class="mkt-grid" id="mkt-grid">Loading…</div>
+        <div class="mkt-grid" id="mkt-grid">${stateFeedback.loadingElement('Loading…')}</div>
       </div>
     </div>`;
 
@@ -1844,7 +1844,7 @@ function mktCardHTML(p, featured=false) {
 async function mktLoadPacks(q='', category='', sort='featured') {
   const grid = document.getElementById('mkt-grid');
   if (!grid) return;
-  grid.innerHTML = '<div style="color:var(--text-3);padding:12px">Loading…</div>';
+  grid.innerHTML = stateFeedback.loadingElement('Loading…');
   try {
     const params = new URLSearchParams({q,sort,limit:'48'});
     if (category) params.set('category',category);

@@ -78,7 +78,7 @@ async function renderComposer() {
           <button data-act-click="createBranchPreview()" class="btn btn-primary btn-sm">+ Snapshot</button>
         </div>
         <p style="font-size:12.5px;color:var(--text-2)">Snapshot current state as a named preview URL. Share with clients before making changes.</p>
-        <div id="branch-list" style="display:flex;flex-direction:column;gap:6px">Loading…</div>
+        <div id="branch-list" style="display:flex;flex-direction:column;gap:6px">${stateFeedback.loadingElement('Loading…')}</div>
       </div>
     </div>
   </div>`;

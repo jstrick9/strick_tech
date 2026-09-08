@@ -1168,7 +1168,7 @@ async function renderDocs() {
 
     <!-- Content -->
     <div style="flex:1;overflow-y:auto;padding:20px 24px" id="docs-content">
-      <div style="color:var(--text-2)">Loading…</div>
+      ${stateFeedback.loadingElement('Loading…')}
     </div>
   </div>`;
 
@@ -1397,7 +1397,7 @@ async function docsShowQuickStart(qsId) {
   if (typeof nav === 'function') nav('docs');
   const content = document.getElementById('docs-content');
   if (!content) return;
-  content.innerHTML = '<div style="color:var(--text-2);padding:20px">Loading quick start steps…</div>';
+  content.innerHTML = stateFeedback.loadingElement('Loading quick start steps…');
   try {
     const r = await fetch(`/api/docs/quick-starts/${encodeURIComponent(qsId)}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);

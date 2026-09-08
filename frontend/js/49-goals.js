@@ -116,7 +116,7 @@ async function renderGoals() {
         </div>
       </div>
       <div class="gm-goal-list" id="gm-goal-list">
-        <div style="color:var(--text-3);font-size:12px;padding:10px">Loading…</div>
+        ${stateFeedback.loadingElement('Loading…')}
       </div>
       <div class="gm-sidebar-foot">
         <button class="gm-new-btn" data-act-click="gmOpenCreate()">+ New Goal</button>

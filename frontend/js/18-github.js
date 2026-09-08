@@ -9,7 +9,7 @@ async function renderGitHub() {
     <div><h2>🐙 GitHub Integration</h2><p>Bidirectional sync, branch management, PRs, Pages deploy — all from Agentic OS</p></div>
     <button data-act-click="renderGitHub()" class="btn btn-ghost btn-sm">⟳ Refresh</button>
   </div>
-  <div id="gh-body"><div style="color:var(--text-2);font-size:13px">Loading…</div></div>`;
+  <div id="gh-body">${stateFeedback.loadingElement('Loading…')}</div>`;
 
   try {
     const r = await fetch('/api/github/status');

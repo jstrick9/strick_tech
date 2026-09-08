@@ -366,7 +366,7 @@ async function fusionOptimizeCost() {
 async function fusionLoadHistory() {
   const el = document.getElementById('fusion-history');
   if (!el) return;
-  el.innerHTML = '<div style="color:var(--text-3);font-size:12px">Loading…</div>';
+  el.innerHTML = stateFeedback.loadingElement('Loading…');
   try {
     const r = await fetch('/api/fusion/history?limit=10');
     if (!r.ok) { el.innerHTML = `<div style="color:var(--danger)">Failed (HTTP ${r.status})</div>`; return; }

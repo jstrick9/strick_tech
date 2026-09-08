@@ -58,7 +58,7 @@
       + '<span id="tmpl-count" style="font-size:11px;color:var(--text-3)"></span>'
       + '</div>'
       + '<div id="tmpl-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">'
-      + '<div style="color:var(--text-2);grid-column:1/-1">Loading templates…</div>'
+      + stateFeedback.loadingElement('Loading templates…')
       + '</div>'
       + '</div>';
 

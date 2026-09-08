@@ -87,7 +87,7 @@ async function renderDeploy() {
   </div>
   <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px">
     <div style="font-weight:700;margin-bottom:12px">📋 Deploy History</div>
-    <div id="deploy-history">Loading…</div>
+    <div id="deploy-history">${stateFeedback.loadingElement('Loading…')}</div>
   </div>`;
   loadDeployHistory();
 }

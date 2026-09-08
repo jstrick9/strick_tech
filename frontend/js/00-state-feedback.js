@@ -65,14 +65,26 @@
     opts = opts || {};
     var el = makeBase(root, 'state-loading', 'status');
     if (prefersReducedMotion()) el.classList.add('state-reduced-motion');
-    var label = esc(opts.label || 'Loading\u2026');
-    el.innerHTML =
-      '<span class="data-state-spinner" aria-hidden="true"></span>' +
-      '<span class="data-state-copy"><span class="data-state-title">' + label + '</span></span>';
+    el.innerHTML = loadingHtml(opts.label || 'Loading\u2026');
     if (typeof window.announceToScreenReader === 'function') {
-      window.announceToScreenReader(label);
+      window.announceToScreenReader(esc(opts.label || 'Loading\u2026'));
     }
     return el;
+  }
+
+  // The exact inner markup a loading state uses. Exposed as loadingElement()
+  // so panes that render their loading placeholder inside a larger static
+  // template can embed the SAME .data-state component markup instead of a
+  // hand-rolled inline-styled div — one DOM shape for every loading state.
+  function loadingHtml(label) {
+    var l = esc(label || 'Loading\u2026');
+    return '<span class="data-state-spinner" aria-hidden="true"></span>' +
+      '<span class="data-state-copy"><span class="data-state-title">' + l + '</span></span>';
+  }
+
+  function loadingElement(label) {
+    return '<div class="data-state state-loading" role="status" aria-live="polite">' +
+      loadingHtml(label) + '</div>';
   }
 
   function setEmpty(root, opts) {
@@ -111,5 +123,5 @@
     return el;
   }
 
-  window.stateFeedback = { setLoading: setLoading, setEmpty: setEmpty, setError: setError, clearState: clearState };
+  window.stateFeedback = { setLoading: setLoading, setEmpty: setEmpty, setError: setError, clearState: clearState, loadingElement: loadingElement };
 })();

@@ -131,7 +131,7 @@ async function renderLeaderboard() {
                style="flex:1;min-width:120px;max-width:200px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-0);font-size:12px;padding:5px 8px">
         <button class="btn-sm" data-act-click="lbAddPolicy()">＋ Add Policy</button>
       </div>
-      <div id="lb-policies-list">Loading…</div>
+      <div id="lb-policies-list">${stateFeedback.loadingElement('Loading…')}</div>
     </div>
   </div>`;
 
@@ -155,7 +155,7 @@ let _lbAllPolicies = [];
 async function lbLoadPolicies() {
   const el = document.getElementById('lb-policies-list');
   if (!el) return;
-  el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:12px">Loading…</div>';
+  el.innerHTML = stateFeedback.loadingElement('Loading…');
   try {
     const r = await fetch('/api/agent-leaderboard/policies');
     if (!r.ok) { el.innerHTML = `<div style="color:var(--danger);padding:12px">Failed (HTTP ${r.status})</div>`; return; }
@@ -245,7 +245,7 @@ async function lbChangeDays(days) {
   const task = document.getElementById('lb-task-select')?.value || '';
   const container = document.getElementById('lb-table-container');
   if (!container) return;
-  container.innerHTML = '<div style="color:var(--text-3);padding:12px">Loading…</div>';
+  container.innerHTML = stateFeedback.loadingElement('Loading…');
   try {
     const params = new URLSearchParams({days: d, limit:'20'});
     if (task) params.set('task_type', task);

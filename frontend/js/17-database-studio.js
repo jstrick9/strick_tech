@@ -89,7 +89,7 @@ async function dbLoadTable(name) {
   dbActiveTable = name;
   const el = document.getElementById('db-table-data');
   if (!el) return;
-  el.innerHTML = `<div style="color:var(--text-2);padding:12px">Loading ${escHtml(name)}…</div>`;
+  el.innerHTML = stateFeedback.loadingElement('Loading ' + (name || '') + '…');
   try {
     const r    = await fetch(`/api/db/sqlite/table/${encodeURIComponent(name)}?limit=100`);
     if (r.status === 403) {
@@ -590,7 +590,7 @@ const DB_AUDIT_ACTIONS = [
 ];
 
 async function renderDBAuditTab(el) {
-  el.innerHTML = '<div style="color:var(--text-2);padding:16px">Loading audit trail…</div>';
+  el.innerHTML = stateFeedback.loadingElement('Loading audit trail…');
   let entries = [];
   let verified = null;
   try {

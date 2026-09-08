@@ -1459,7 +1459,7 @@ function wfToggleLog() {
 async function renderProfiler() {
   const pane = document.getElementById('pane-profiler');
   if (!pane) return;
-  pane.innerHTML = `<div style="padding:20px;color:var(--text-2)">Loading profiler…</div>`;
+  pane.innerHTML = stateFeedback.loadingElement('Loading profiler…');
 
   try {
     const [sum, ep, db, at] = await Promise.all([
@@ -1732,7 +1732,7 @@ let _sdkCurrentPack = null;
 async function renderPluginSDK() {
   const pane = document.getElementById('pane-pluginsdk');
   if (!pane) return;
-  pane.innerHTML = `<div style="padding:20px;color:var(--text-2)">Loading Plugin SDK…</div>`;
+  pane.innerHTML = stateFeedback.loadingElement('Loading Plugin SDK…');
 
   try {
     const [packsR, regR] = await Promise.all([

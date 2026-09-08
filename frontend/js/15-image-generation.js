@@ -46,7 +46,7 @@ async function igError(r, fallback) {
 async function renderImageGen() {
   const pane = document.getElementById('pane-imagegen');
   if (!pane) return;
-  pane.innerHTML = '<div style="padding:20px;color:var(--text-2)">Loading…</div>';
+  pane.innerHTML = stateFeedback.loadingElement('Loading…');
   try {
     const [sR, gR, mR] = await Promise.all([
       fetch('/api/imagegen/styles'),

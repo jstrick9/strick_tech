@@ -85,7 +85,7 @@ async function renderSupervisor() {
           </div>
         </div>
         <div class="dag-run-list" id="dag-run-list">
-          <div style="color:var(--text-3);font-size:12px;padding:10px">Loading…</div>
+          ${stateFeedback.loadingElement('Loading…')}
         </div>
         <div class="dag-sidebar-foot">
           <button class="dag-launch-btn" data-act-click="dagOpenLaunch()">⚡ Launch New Goal</button>
@@ -224,7 +224,7 @@ async function renderSupervisor() {
              invented laptop/GPU hardware with fake sub-millisecond latencies,
              shown regardless of what was actually registered. -->
         <div id="cluster-node-list" style="display:flex;flex-direction:column;gap:12px;font-family:monospace">
-          <div style="color:var(--text-3);font-size:12px">Loading cluster nodes…</div>
+          ${stateFeedback.loadingElement('Loading cluster nodes…')}
         </div>
       </div>
     </div>
