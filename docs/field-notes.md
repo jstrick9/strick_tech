@@ -223,3 +223,19 @@ well-hardened, no action:
 Conclusion: the frontend is now comprehensively hardened for escaping and
 honest-state; remaining surfaced bugs are logic-level and mostly in low-usage
 protocol modules.
+
+## Round 5 — UI/UX + consistent states + design-system
+
+- **#032 (shipped `2a21f2a`)** — Added `styles-system.css` (authoritative design
+  tokens + shared `.data-state` loading/empty/error components, loaded last) and
+  `js/00-state-feedback.js` (`window.stateFeedback.setLoading/setEmpty/setError/
+  clearState`; role=status / role=alert, escHtml + jsArg, prefers-reduced-motion
+  guard). Refactored Dashboard onto it. Tests: state-feedback (7) + dashboard
+  (2). Suite 120.
+- **#033 (shipped `60c4a99`)** — Zero-fidelity: a legitimate 0 value was silently
+  replaced by an optimistic `||` default in rendered scores/counts/confidence:
+  `bbShowResults` score 0 → green 75/100; KG entity confidence 0 → 100%; HITL
+  confidence 0 → 65% AND mislabelled GATED (contradictory); CSP directive count
+  0 → "1". All guarded with `typeof === 'number'`; HITL card derives one
+  conf/interrupt. Tests: zero-fidelity (6); behavioral score + pattern guards.
+  Suite 126.
