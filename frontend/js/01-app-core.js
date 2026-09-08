@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 // ── State ───────────────────────────────────────────────────────
-var currentAgent = null, monacoEditor = null, diffEditor = null, agentModalId = null, studioMonacoLoaded = false;
+var currentAgent = null, monacoEditor = null, diffEditor = null, agentModalId = null, studioMonacoLoaded = false, studioMonacoLoading = false;
 const _S_DEFAULTS = {
   agents: [], currentAgent: null,
   chatHistory: [],
@@ -4603,6 +4603,17 @@ window.initStudio = initStudio;
 function studioLoadMonaco() {
   if (window.monaco && studioMonacoLoaded) { studioSetupMonaco(); return; }
   if (window.monaco) { studioSetupMonaco(); return; }
+  // #067: while the loader is in flight, `window.monaco` is undefined and
+  // `studioMonacoLoaded` is still false (it is set only once the editor is
+  // set up). So every `initStudio()` call before the load finished re-appended
+  // ANOTHER `<script src=loader.js>`. Monaco's loader declares a top-level
+  // `_amdLoaderGlobal`, so the second script throws
+  // `Identifier '_amdLoaderGlobal' has already been declared`, leaving `define`
+  // undefined and the editor never bootstrapping (reproduced: 3 loader requests
+  // and 1 SyntaxError from rapidly toggling to Studio). Guard with an
+  // in-flight flag so the loader is appended exactly once.
+  if (studioMonacoLoading) return;
+  studioMonacoLoading = true;
   const host = document.getElementById('studio-monaco-host');
   const s = document.createElement('script');
   // Vendored at 0.47.0. Besides removing cdn.jsdelivr.net from script-src,
@@ -4615,6 +4626,10 @@ function studioLoadMonaco() {
     require(['vs/editor/editor.main'], studioSetupMonaco);
   };
   s.onerror = () => {
+    // The in-flight guard must be released so a transient loader failure can
+    // be retried on the next open (otherwise the flag stuck true and Monaco
+    // would never load again).
+    studioMonacoLoading = false;
     if (host && !Studio.editor) {
       host.innerHTML = `<textarea id="studio-fallback-textarea" spellcheck="false" style="width:100%;height:100%;background:var(--bg-0);color:var(--text-0);font-family:monospace;font-size:13.5px;padding:14px;border:none;outline:none;resize:none;line-height:1.6"></textarea>`;
       const ta = document.getElementById('studio-fallback-textarea');
