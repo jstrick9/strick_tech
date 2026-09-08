@@ -260,3 +260,437 @@
     transition: box-shadow var(--transition), border-color var(--transition);
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BOLD COMPONENT PRIMITIVES — shared pane widgets (#052)
+   ──────────────────────────────────────────────────────────────────────────
+   Every per-pane widget below was styled ONLY in `frontend/styles.css`, which
+   `index.html` does NOT link (the same "rule exists but never loads" defect
+   that closed the `.ce-*` collab-editor module). Audited programmatically:
+   these class names appear in the pane markup but are defined in none of the
+   five loaded stylesheets, so each rendered as a bare browser control. The
+   palette-preserving refresh unifies them onto a small, token-driven set of
+   bold primitives. *Purely additive*: these selectors were previously
+   unstyled, so nothing is lost, and any inline `style=` still wins.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Shared buttery control base ………………………………………………… */
+/* One height/radius/type rhythm for every compact action control. Icon-only
+   widgets (below) override size; text + icon widgets inherit this. */
+.wg-btn,
+.a2a-btn, .bdd-alert-btn, .bdd-detect-btn, .bdd-header-btn, .crc-action-btn,
+.crc-fmt-btn, .crc-gen-btn, .crc-rep-btn, .dag-copy-btn, .dag-launch-btn,
+.dag-toolbar-btn, .dag-zoom-btn, .fusion-preset-btn, .gm-action-btn, .gm-new-btn,
+.mkt-cat-btn, .mkt-install-btn, .prb-bulk-btn, .prb-new-btn, .prb-row-btn,
+.prb-sim-btn, .steer-delete-btn, .steer-edit-btn, .steer-modal-cancel-btn,
+.ttd-copy-btn, .ttd-ctrl-btn, .ttd-rerun-btn, .ttd-toolbar-btn, .ttd-zoom-btn,
+.arena-vote-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text-0);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition), border-color var(--transition),
+              color var(--transition), transform var(--transition),
+              box-shadow var(--transition);
+}
+.wg-btn:hover,
+.a2a-btn:hover, .bdd-alert-btn:hover, .bdd-detect-btn:hover, .bdd-header-btn:hover,
+.crc-action-btn:hover, .crc-fmt-btn:hover, .crc-gen-btn:hover, .crc-rep-btn:hover,
+.dag-copy-btn:hover, .dag-launch-btn:hover, .dag-toolbar-btn:hover, .dag-zoom-btn:hover,
+.fusion-preset-btn:hover, .gm-action-btn:hover, .gm-new-btn:hover, .mkt-cat-btn:hover,
+.mkt-install-btn:hover, .prb-bulk-btn:hover, .prb-new-btn:hover, .prb-row-btn:hover,
+.prb-sim-btn:hover, .steer-delete-btn:hover, .steer-edit-btn:hover,
+.steer-modal-cancel-btn:hover, .ttd-copy-btn:hover, .ttd-ctrl-btn:hover,
+.ttd-rerun-btn:hover, .ttd-toolbar-btn:hover, .ttd-zoom-btn:hover, .arena-vote-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--border-hi);
+}
+.wg-btn:active,
+.a2a-btn:active, .bdd-alert-btn:active, .bdd-detect-btn:active, .bdd-header-btn:active,
+.crc-action-btn:active, .crc-fmt-btn:active, .crc-gen-btn:active, .crc-rep-btn:active,
+.dag-copy-btn:active, .dag-launch-btn:active, .dag-toolbar-btn:active, .dag-zoom-btn:active,
+.fusion-preset-btn:active, .gm-action-btn:active, .gm-new-btn:active, .mkt-cat-btn:active,
+.mkt-install-btn:active, .prb-bulk-btn:active, .prb-new-btn:active, .prb-row-btn:active,
+.prb-sim-btn:active, .steer-delete-btn:active, .steer-edit-btn:active,
+.steer-modal-cancel-btn:active, .ttd-copy-btn:active, .ttd-ctrl-btn:active,
+.ttd-rerun-btn:active, .ttd-toolbar-btn:active, .ttd-zoom-btn:active, .arena-vote-btn:active {
+  background: var(--bg-4);
+  transform: translateY(1px) scale(0.985);
+}
+/* Bold primary fill — the most important action in the widget. */
+.a2a-btn.primary, .crc-action-btn.primary, .gm-action-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent, #fff);
+  font-weight: 600;
+}
+.a2a-btn.primary:hover, .crc-action-btn.primary:hover, .gm-action-btn.primary:hover {
+  background: var(--accent-hi);
+  border-color: var(--accent-hi);
+}
+/* Destructive action — clearly dangerous, keeps AA on the tinted surface. */
+.bdd-alert-btn.danger, .dag-toolbar-btn.danger, .gm-action-btn.danger,
+.prb-row-btn.danger {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.bdd-alert-btn.danger:hover, .dag-toolbar-btn.danger:hover, .gm-action-btn.danger:hover,
+.prb-row-btn.danger:hover {
+  background: var(--danger);
+  color: #fff;
+}
+/* Selected filter/category button (marketing, monitor). */
+.mkt-cat-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent, #fff);
+  font-weight: 600;
+}
+
+/* ── Icon-only controls …………………………………………………………… */
+/* Square pick target for delete/zoom/collapse actions. */
+.wg-ibtn,
+.ctx-icon-btn, .cust-pin-btn, .cust-toggle-btn, .fav-remove-btn,
+.file-row-delete-btn, .ig-del-btn, .tab-close, .steer-modal-close-btn,
+.ttd-fit-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  flex: none;
+}
+.tab-close { font-size: 11px; color: var(--text-3); }
+.tab-close:hover { color: var(--text-0); }
+
+/* ── Tabs ……………………………………………………………………………… */
+/* Tab rail + item. The `active` modifier marks the selected tab; a bottom
+   accent rthe selected tab reads as a segmented control on the dark surface. */
+.wg-tabs,
+.ci-tabs, .mt-tab-bar, .prb-tab-bar, .ttd-view-tabs, .gm-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+}
+.wg-tab,
+.ci-tab, .docs-tab, .eval-tab, .gitai-tab, .obs-tab, .prb-tab, .ttd-tab,
+.mt-new-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: calc(var(--radius-sm) - 2px);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition),
+              border-color var(--transition);
+}
+.wg-tab:hover,
+.ci-tab:hover, .docs-tab:hover, .eval-tab:hover, .gitai-tab:hover,
+.obs-tab:hover, .prb-tab:hover, .ttd-tab:hover, .mt-new-tab:hover {
+  color: var(--text-0);
+  background: var(--bg-2);
+}
+.wg-tab.active,
+.ci-tab.active, .docs-tab.active, .eval-tab.active, .gitai-tab.active,
+.obs-tab.active, .prb-tab.active, .ttd-tab.active {
+  background: var(--bg-3);
+  border-color: var(--border-hi);
+  color: var(--accent-hi);
+  font-weight: 600;
+}
+.mt-new-tab { width: 28px; padding: 0; justify-content: center; }
+
+/* ── Badges ──────────────────────────────────────────────────────────── */
+/* Small semantic status pill. Borderless-tinted; AA text on dark. */
+.wg-badge,
+.a2a-badge, .a2a-trust-badge, .bb-severity-badge, .bdd-alert-badge,
+.ci-type-badge, .crc-status-badge, .dag-badge, .gm-badge, .gm-tab-badge,
+.kg-type-badge, .mkt-featured-badge, .pass-badge, .prb-policy-action-badge,
+.prb-priority-badge, .prb-tab-badge, .steer-auto-badge, .ttd-badge,
+.ttd-detail-badge, .ttd-diff-changed-badge, .ttd-diff-same-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--bg-3);
+  color: var(--text-1);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.wg-badge,
+.a2a-trust-badge, .bb-severity-badge, .crc-status-badge, .pass-badge,
+.ttd-badge, .ttd-diff-changed-badge, .ttd-diff-same-badge { min-width: 0; }
+
+/* Status tints (runtime-injected tokens like `pass`/`fail`/`low`). These
+   come from the data via `${…}`, so they are not static classes — but when
+   present on a wg badge they must read as colored, not grey. */
+.pass-badge.success, .pass-badge.pass, .ttd-badge.done, .ttd-badge.success,
+.ttd-diff-same-badge { color: var(--success); border-color: var(--success); }
+.pass-badge.fail, .pass-badge.error, .ttd-badge.error, .ttd-badge.fail,
+.ttd-diff-changed-badge { color: var(--danger); border-color: var(--danger); }
+.bb-severity-badge.low, .bb-severity-badge.info { color: var(--info); border-color: var(--info); }
+.bb-severity-badge.medium, .ttd-badge.running, .ttd-badge.pending {
+  color: var(--warning); border-color: var(--warning);
+}
+.bb-severity-badge.high, .bb-severity-badge.critical { color: var(--danger); border-color: var(--danger); }
+.kg-type-badge { color: var(--accent-hi); border-color: var(--accent-hi); }
+.steer-auto-badge { color: var(--accent-hi); border-color: var(--accent-hi); }
+
+/* ── Tags & chips …────────────────────────────────────────────────────── */
+.wg-tag,
+.dag-node-agent-tag, .hook-event-tag, .mkt-tag, .model-used-tag,
+.ttd-node-type-tag, .icm-stage-in {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.wg-chip,
+.amb-cat-pill, .crc-report-chip, .crc-risk-chip, .dag-toolbar-pill,
+.dag-wave-pill, .gm-score-chip, .prb-action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.crc-report-chip, .crc-risk-chip { border-radius: var(--radius-sm); }
+
+/* ── Toggle switches …─────────────────────────────────────────────────── */
+/* A switch that reads identically across the six bespoke toggles. */
+.wg-toggle,
+.acct-notif-toggle, .cust-toggle-btn, .hook-toggle, .prb-toggle, .steer-toggle {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 34px;
+  height: 20px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-hi);
+  background: var(--bg-3);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  vertical-align: middle;
+}
+.wg-toggle::after,
+.acct-notif-toggle::after, .cust-toggle-btn::after, .hook-toggle::after,
+.prb-toggle::after, .steer-toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: var(--text-2);
+  transition: transform var(--transition), background var(--transition);
+}
+.wg-toggle.on, .cust-toggle-btn.on, .hook-toggle.on, .prb-toggle.on,
+.steer-toggle.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.wg-toggle.on::after, .cust-toggle-btn.on::after, .hook-toggle.on::after,
+.prb-toggle.on::after, .steer-toggle.on::after {
+  transform: translateX(14px);
+  background: var(--on-accent, #fff);
+}
+/* `.acct-notif-toggle` is a real <input type=checkbox>; keep its native
+   accent-coloured box but normalise size & focus. */
+.acct-notif-toggle { appearance: auto; accent-color: var(--accent); }
+
+/* ── Form fields …─────────────────────────────────────────────────────── */
+/* Bespoke textarea/input/select controls get the shared field treatment. */
+.wg-field,
+.a2a-input, .a2a-select, .a2a-textarea, .arena-model-select, .crc-date-input,
+.crc-filter-input, .crc-title-input, .gm-filter-select, .gm-form-input,
+.gm-form-select, .gm-form-textarea, .mkt-sort-select, .prb-input, .prb-select,
+.pv-input, .ttd-run-input, .ttd-speed-select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  color: var(--text-0);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  padding: 7px 10px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  min-height: 34px;
+}
+.wg-field::placeholder, .a2a-input::placeholder, .a2a-textarea::placeholder,
+.crc-date-input::placeholder, .crc-filter-input::placeholder, .crc-title-input::placeholder,
+.gm-form-input::placeholder, .gm-form-textarea::placeholder, .prb-input::placeholder,
+.pv-input::placeholder, .ttd-run-input::placeholder { color: var(--text-3); }
+.wg-field:focus, .a2a-input:focus, .a2a-select:focus, .a2a-textarea:focus,
+.arena-model-select:focus, .crc-date-input:focus, .crc-filter-input:focus,
+.crc-title-input:focus, .gm-filter-select:focus, .gm-form-input:focus,
+.gm-form-select:focus, .gm-form-textarea:focus, .mkt-sort-select:focus,
+.prb-input:focus, .prb-select:focus, .pv-input:focus, .ttd-run-input:focus,
+.ttd-speed-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.a2a-textarea, .gm-form-textarea { resize: vertical; min-height: 80px; }
+.a2a-select, .gm-form-select, .gm-filter-select, .mkt-sort-select, .prb-select,
+.ttd-speed-select { min-height: auto; }
+
+/* ── Tables ───────────────────────────────────────────────────────────── */
+.wg-table,
+.a2a-task-table, .bdd-hist-table, .crc-audit-table, .gm-history-table,
+.prb-rules-table, .prb-trace-table, .ttd-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+.wg-table thead th, .a2a-task-table thead th, .bdd-hist-table thead th,
+.crc-audit-table thead th, .gm-history-table thead th, .prb-rules-table thead th,
+.prb-trace-table thead th, .ttd-diff-table thead th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-2);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-hi);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.wg-table tbody td, .a2a-task-table tbody td, .bdd-hist-table tbody td,
+.crc-audit-table tbody td, .gm-history-table tbody td, .prb-rules-table tbody td,
+.prb-trace-table tbody td, .ttd-diff-table tbody td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-1);
+  vertical-align: top;
+}
+.wg-table tbody tr:last-child td, .a2a-task-table tbody tr:last-child td,
+.bdd-hist-table tbody tr:last-child td, .crc-audit-table tbody tr:last-child td,
+.gm-history-table tbody tr:last-child td, .prb-rules-table tbody tr:last-child td,
+.prb-trace-table tbody tr:last-child td, .ttd-diff-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Modals …──────────────────────────────────────────────────────────── */
+/* Bespoke modal surfaces get the shared elevated dialog shell. Inner rows are
+   kept visually separate so the pane can compose freely. */
+.wg-modal,
+.a2a-modal, .dag-modal, .gm-modal {
+  background: var(--bg-2);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-5);
+  max-width: 520px;
+  width: 100%;
+}
+.a2a-modal { padding: var(--space-5); }
+.gm-modal-row, .a2a-modal-row, .dag-modal-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: var(--space-2) 0;
+}
+.gm-modal-sub { color: var(--text-2); font-size: var(--font-size-sm); line-height: 1.5; }
+.gm-modal-ms-list {
+  display: flex; flex-direction: column; gap: var(--space-2); margin: var(--space-3) 0;
+}
+.gm-modal-ms-item {
+  display: flex; align-items: center; gap: var(--space-2);
+}
+.gm-modal-ms-input { flex: 1; }
+.dag-modal-example { font-size: var(--font-size-sm); color: var(--text-2); }
+
+/* Every interactive widget honours the shared focus ring (WCAG 2.4.7).
+   The app already defines `html [class]:focus-visible`; this widens it to
+   the newly-primitive widgets so keyboard users always see a target. */
+.wg-btn, .a2a-btn, .bdd-alert-btn, .bdd-detect-btn, .bdd-header-btn, .crc-action-btn,
+.crc-fmt-btn, .crc-gen-btn, .crc-rep-btn, .dag-copy-btn, .dag-launch-btn,
+.dag-toolbar-btn, .dag-zoom-btn, .fusion-preset-btn, .gm-action-btn, .gm-new-btn,
+.mkt-cat-btn, .mkt-install-btn, .prb-bulk-btn, .prb-new-btn, .prb-row-btn,
+.prb-sim-btn, .steer-delete-btn, .steer-edit-btn, .steer-modal-cancel-btn,
+.ttd-copy-btn, .ttd-ctrl-btn, .ttd-rerun-btn, .ttd-toolbar-btn, .ttd-zoom-btn,
+.arena-vote-btn, .ctx-icon-btn, .cust-pin-btn, .cust-toggle-btn, .fav-remove-btn,
+.file-row-delete-btn, .ig-del-btn, .tab-close, .steer-modal-close-btn, .ttd-fit-btn,
+.ci-tab, .docs-tab, .eval-tab, .gitai-tab, .obs-tab, .prb-tab, .ttd-tab, .mt-new-tab,
+.wg-toggle, .acct-notif-toggle, .cust-toggle-btn, .hook-toggle, .prb-toggle,
+.steer-toggle {
+  outline-offset: 2px;
+}
+.wg-btn:focus-visible, .a2a-btn:focus-visible, .bdd-alert-btn:focus-visible,
+.bdd-detect-btn:focus-visible, .bdd-header-btn:focus-visible, .crc-action-btn:focus-visible,
+.crc-fmt-btn:focus-visible, .crc-gen-btn:focus-visible, .crc-rep-btn:focus-visible,
+.dag-copy-btn:focus-visible, .dag-launch-btn:focus-visible, .dag-toolbar-btn:focus-visible,
+.dag-zoom-btn:focus-visible, .fusion-preset-btn:focus-visible, .gm-action-btn:focus-visible,
+.gm-new-btn:focus-visible, .mkt-cat-btn:focus-visible, .mkt-install-btn:focus-visible,
+.prb-bulk-btn:focus-visible, .prb-new-btn:focus-visible, .prb-row-btn:focus-visible,
+.prb-sim-btn:focus-visible, .steer-delete-btn:focus-visible, .steer-edit-btn:focus-visible,
+.steer-modal-cancel-btn:focus-visible, .ttd-copy-btn:focus-visible, .ttd-ctrl-btn:focus-visible,
+.ttd-rerun-btn:focus-visible, .ttd-toolbar-btn:focus-visible, .ttd-zoom-btn:focus-visible,
+.arena-vote-btn:focus-visible, .ctx-icon-btn:focus-visible, .cust-pin-btn:focus-visible,
+.cust-toggle-btn:focus-visible, .fav-remove-btn:focus-visible, .file-row-delete-btn:focus-visible,
+.ig-del-btn:focus-visible, .tab-close:focus-visible, .steer-modal-close-btn:focus-visible,
+.ttd-fit-btn:focus-visible, .ci-tab:focus-visible, .docs-tab:focus-visible,
+.eval-tab:focus-visible, .gitai-tab:focus-visible, .obs-tab:focus-visible,
+.prb-tab:focus-visible, .ttd-tab:focus-visible, .mt-new-tab:focus-visible,
+.wg-toggle:focus-visible, .acct-notif-toggle:focus-visible, .hook-toggle:focus-visible,
+.prb-toggle:focus-visible, .steer-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+/* Honour reduced-motion (no movement affordances). */
+@media (prefers-reduced-motion: reduce) {
+  .wg-btn, .a2a-btn, .bdd-alert-btn, .bdd-detect-btn, .bdd-header-btn, .crc-action-btn,
+  .crc-fmt-btn, .crc-gen-btn, .crc-rep-btn, .dag-copy-btn, .dag-launch-btn,
+  .dag-toolbar-btn, .dag-zoom-btn, .fusion-preset-btn, .gm-action-btn, .gm-new-btn,
+  .mkt-cat-btn, .mkt-install-btn, .prb-bulk-btn, .prb-new-btn, .prb-row-btn,
+  .prb-sim-btn, .steer-delete-btn, .steer-edit-btn, .steer-modal-cancel-btn,
+  .ttd-copy-btn, .ttd-ctrl-btn, .ttd-rerun-btn, .ttd-toolbar-btn, .ttd-zoom-btn,
+  .arena-vote-btn {
+    transition: none;
+  }
+}
