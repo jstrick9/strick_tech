@@ -1184,7 +1184,11 @@ async function docsTab(tab, el) {
   if (!content) return;
 
   if (tab === 'quickstarts') {
-    const d = await fetch('/api/docs/quick-starts').then(r=>r.ok?r.json():null).catch(()=>({quick_starts:[]}));
+    // Defensive parse: `r.ok ? r.json() : null` yields null on a non-2xx, and
+    // .catch() only covers a network rejection — so a server hiccup left `d`
+    // null and `d.quick_starts` threw, blanking the whole tab. Resolve to an
+    // empty list instead of crashing.
+    const d = (await fetch('/api/docs/quick-starts').then(r=>r.ok?r.json():null).catch(()=>null)) || {};
     content.innerHTML = `
       <div style="font-size:13px;font-weight:700;color:var(--text-0);margin-bottom:12px">Get started with these guides</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px" id="docs-qs-grid">
@@ -1204,7 +1208,7 @@ async function docsTab(tab, el) {
     });
   }
   else if (tab === 'features') {
-    const d = await fetch('/api/docs/features').then(r=>r.ok?r.json():null).catch(()=>({features:[]}));
+    const d = (await fetch('/api/docs/features').then(r=>r.ok?r.json():null).catch(()=>null)) || {};
     const features = d.features || [];
     content.innerHTML = `
       <div style="font-size:13px;font-weight:700;color:var(--text-0);margin-bottom:12px">Feature Reference</div>
