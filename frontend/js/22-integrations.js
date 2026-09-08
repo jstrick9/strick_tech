@@ -87,7 +87,7 @@ async function renderIntegrations() {
     </div>
     </div>`;
   } catch(e) {
-    pane.innerHTML = '<div style="padding:20px;color:var(--error)">Error loading integrations: ' + escHtml(e?.message||'') + '</div>';
+    pane.innerHTML = stateFeedback.errorElement({ title: 'Couldn\u2019t load integrations', message: e?.message||'' });
   }
 }
 let currentIntTab='ints';

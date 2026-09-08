@@ -158,12 +158,12 @@ async function lbLoadPolicies() {
   el.innerHTML = stateFeedback.loadingElement('Loading…');
   try {
     const r = await fetch('/api/agent-leaderboard/policies');
-    if (!r.ok) { el.innerHTML = `<div style="color:var(--danger);padding:12px">Failed (HTTP ${r.status})</div>`; return; }
+    if (!r.ok) { el.innerHTML = stateFeedback.errorElement({ message: `Failed (HTTP ${r.status})` }); return; }
     const d = await r.json();
     _lbAllPolicies = d.policies || [];
     lbRenderPolicies(_lbAllPolicies);
   } catch(ex) {
-    el.innerHTML = `<div style="color:var(--danger);padding:12px">Error: ${escHtml(ex?.message||String(ex))}</div>`;
+    el.innerHTML = stateFeedback.errorElement({ title: 'Error', message: ex?.message||String(ex) });
   }
 }
 
@@ -250,7 +250,7 @@ async function lbChangeDays(days) {
     const params = new URLSearchParams({days: d, limit:'20'});
     if (task) params.set('task_type', task);
     const r = await fetch(`/api/agent-leaderboard?${encodeURIComponent(params)}`);
-    if (!r.ok) { container.innerHTML = `<div style="color:var(--danger)">Failed (HTTP ${r.status})</div>`; return; }
+    if (!r.ok) { container.innerHTML = stateFeedback.errorElement({ message: `Failed (HTTP ${r.status})` }); return; }
     const lb = await r.json();
     if (!(lb.leaderboard||[]).length) {
       container.innerHTML = '<div style="color:var(--text-3);padding:20px;text-align:center">No data for selected period/task</div>';
@@ -287,7 +287,7 @@ async function lbChangeDays(days) {
         }).join('')}
       </div>`;
   } catch(ex) {
-    if(container) container.innerHTML = `<div style="color:var(--danger)">Error: ${escHtml(ex?.message||String(ex))}</div>`;
+    if(container) container.innerHTML = stateFeedback.errorElement({ title: 'Error', message: ex?.message||String(ex) });
   }
 }
 

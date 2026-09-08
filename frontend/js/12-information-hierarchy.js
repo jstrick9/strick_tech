@@ -836,7 +836,7 @@
 
     const data = await icmGet('/workspaces');
     if (!data) {
-      host.innerHTML = '<div class="icm-empty">Could not load ICM workspaces.</div>';
+      host.innerHTML = stateFeedback.errorElement({ message: 'Could not load ICM workspaces.' });
       return;
     }
     const list = data.workspaces || [];

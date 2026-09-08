@@ -1430,8 +1430,7 @@ async function docsShowQuickStart(qsId) {
       if (btn) docsShowQuickStart(btn.dataset.relatedQsId);
     });
   } catch(ex) {
-    content.innerHTML = `<div style="color:var(--danger);padding:20px">${escHtml(ex?.message||String(ex))}<br><button type="button" class="btn-sm btn-3d u-8a77e5a3" id="docs-qs-retry-btn" >Retry</button></div>`;
-    document.getElementById('docs-qs-retry-btn')?.addEventListener('click', () => docsShowQuickStart(qsId));
+    content.innerHTML = stateFeedback.errorElement({ title: 'Couldn\u2019t load quick start', message: ex?.message||String(ex), retry: 'docsShowQuickStart(' + JSON.stringify(qsId) + ')' });
   }
 }
 

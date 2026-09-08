@@ -72,7 +72,7 @@ async function hubLoad() {
     hubRenderBody();
   } catch (ex) {
     const b = document.getElementById('hub-body');
-    if (b) b.innerHTML = `<div style="color:var(--red);padding:16px">Could not load the plugin hub: ${escHtml(ex.message)}</div>`;
+    if (b) b.innerHTML = stateFeedback.errorElement({ title: 'Couldn\u2019t load the plugin hub', message: ex.message });
   }
 }
 

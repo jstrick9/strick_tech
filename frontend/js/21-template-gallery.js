@@ -122,7 +122,7 @@
       renderTemplateGrid();
     } catch(ex) {
       var g = document.getElementById('tmpl-grid');
-      if (g) g.innerHTML = '<div style="color:var(--danger);grid-column:1/-1">' + escHtml(humanError(ex, {action:'load your templates', dataSafe:true})) + '<br><button class="btn-sm u-8a77e5a3" data-act-click="renderTemplates()" >↻ Retry</button></div>';
+      g.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t load your templates', message: humanError(ex, {action:'load your templates', dataSafe:true}), retry: 'renderTemplates()' });
     }
   }
 

@@ -167,7 +167,7 @@ async function doGxSearch() {
   el.innerHTML = '<div style="color:var(--text-2);font-size:12px;padding:12px">Searching…</div>';
   try {
     const r = await fetch(`/api/memory/search?q=${encodeURIComponent(q)}&mode=hybrid&limit=20`);
-    if (!r.ok) { el.innerHTML = `<div style="color:var(--danger);font-size:12px;padding:12px">Search failed (HTTP ${r.status})</div>`; return; }
+    if (!r.ok) { el.innerHTML = stateFeedback.errorElement({ message: `Search failed (HTTP ${r.status})` }); return; }
     const results = await r.json();
     if (!results.length) {
       el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:12px">No memories found for that query.</div>';
@@ -200,7 +200,7 @@ async function doGxSearch() {
       deleteGxNode(button.dataset.memoryId);
     }));
   } catch(e) {
-    el.innerHTML = `<div style="color:var(--danger);font-size:12px;padding:12px">Error: ${escHtml(e?.message||String(e))}</div>`;
+    el.innerHTML = stateFeedback.errorElement({ title: 'Error', message: e?.message||String(e) });
   }
 }
 

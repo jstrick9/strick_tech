@@ -1603,7 +1603,7 @@ async function renderProfiler() {
     renderFlamegraph();
 
   } catch(e) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(e, {action:'load the profiler', dataSafe:true}))}</div>`;
+    pane.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t load the profiler', message: humanError(e, {action:'load the profiler', dataSafe:true}) });
   }
 }
 
@@ -1834,7 +1834,7 @@ async function renderPluginSDK() {
       </div>
     </div>`;
   } catch(e) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(e, {action:'load the plugin SDK'}))}</div>`;
+    pane.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t load the plugin SDK', message: humanError(e, {action:'load the plugin SDK'}) });
   }
 }
 

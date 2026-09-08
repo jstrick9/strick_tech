@@ -107,21 +107,34 @@
   function setError(root, opts) {
     opts = opts || {};
     var el = makeBase(root, 'state-error', 'alert');
-    var title = opts.title || 'Couldn\u2019t load';
-    var retry = opts.retry
-      ? '<button type="button" class="btn btn-sm" data-act-click="' + jsArg(opts.retry) + '">\u21bb Retry</button>'
-      : '';
-    el.innerHTML =
-      '<span class="data-state-icon" aria-hidden="true">\u26a0\ufe0f</span>' +
-      '<div class="data-state-copy">' +
-      '<div class="data-state-title">' + esc(title) + '</div>' +
-      (opts.message ? '<div class="data-state-msg">' + esc(opts.message) + '</div>' : '') +
-      '</div>' + retry;
+    el.innerHTML = errorHtml(opts);
     if (typeof window.announceToScreenReader === 'function') {
-      window.announceToScreenReader(title + (opts.message ? ': ' + opts.message : ''));
+      window.announceToScreenReader((opts.title || 'Couldn\u2019t load') + ((opts.message) ? ': ' + opts.message : ''));
     }
     return el;
   }
 
-  window.stateFeedback = { setLoading: setLoading, setEmpty: setEmpty, setError: setError, clearState: clearState, loadingElement: loadingElement };
+  // The exact markup an error state uses. Exposed as errorElement() so panes can
+  // embed the SAME .data-state state-error component in a static template (or
+  // assign it imperatively) instead of a hand-rolled inline error div.
+  function errorHtml(opts) {
+    opts = opts || {};
+    var title = esc(opts.title || 'Couldn\u2019t load');
+    var retry = opts.retry
+      ? '<button type="button" class="btn btn-sm" data-act-click="' + jsArg(opts.retry) + '">\u21bb Retry</button>'
+      : '';
+    return '<span class="data-state-icon" aria-hidden="true">\u26a0\ufe0f</span>' +
+      '<div class="data-state-copy">' +
+      '<div class="data-state-title">' + title + '</div>' +
+      (opts.message ? '<div class="data-state-msg">' + esc(opts.message) + '</div>' : '') +
+      '</div>' + retry;
+  }
+
+  function errorElement(opts) {
+    opts = opts || {};
+    return '<div class="data-state state-error" role="alert" aria-live="assertive">' +
+      errorHtml(opts) + '</div>';
+  }
+
+  window.stateFeedback = { setLoading: setLoading, setEmpty: setEmpty, setError: setError, clearState: clearState, loadingElement: loadingElement, errorElement: errorElement };
 })();

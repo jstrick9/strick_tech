@@ -62,7 +62,7 @@ async function connectLoad() {
     connectRenderBody();
   } catch (ex) {
     const b = document.getElementById('connect-body');
-    if (b) b.innerHTML = `<div style="color:var(--red);padding:16px">Could not load: ${escHtml(ex.message)}</div>`;
+    if (b) b.innerHTML = stateFeedback.errorElement({ title: 'Couldn\u2019t load', message: ex.message });
   }
 }
 

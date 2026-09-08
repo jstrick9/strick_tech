@@ -674,7 +674,7 @@ async function kgShowEntity(entityId) {
   const el=document.getElementById('kg-detail');
   if(!el) return;
   const d=await fetch(`/api/knowledge-graph/entities/${encodeURIComponent(entityId)}`).then(r=>r.ok?r.json():null).catch(()=>null);
-  if(!d){el.innerHTML='<div style="color:var(--danger)">Failed to load entity</div>';return;}
+  if(!d){el.innerHTML = stateFeedback.errorElement({ message: 'Failed to load entity' });return;}
 
   el.innerHTML=`
     <div class="u-534c2d64">

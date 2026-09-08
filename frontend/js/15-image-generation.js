@@ -205,8 +205,7 @@ async function renderImageGen() {
     });
 
   } catch(ex) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(ex, {action:'open the image generator'}))}<br>
-      <button class="btn-sm u-8a77e5a3" data-act-click="renderImageGen()" >↻ Retry</button></div>`;
+    pane.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t open the image generator', message: humanError(ex, {action:'open the image generator'}), retry: 'renderImageGen()' });
   }
 }
 

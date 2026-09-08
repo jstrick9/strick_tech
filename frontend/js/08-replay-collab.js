@@ -1789,7 +1789,7 @@ async function renderMarketplace() {
 
     await mktLoadPacks();
   } catch(e) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(e, {action:'load the marketplace'}))}</div>`;
+    pane.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t load the marketplace', message: humanError(e, {action:'load the marketplace'}) });
   }
 }
 
@@ -1849,14 +1849,14 @@ async function mktLoadPacks(q='', category='', sort='featured') {
     const params = new URLSearchParams({q,sort,limit:'48'});
     if (category) params.set('category',category);
     const r = await fetch(`/api/marketplace?${encodeURIComponent(params)}`);
-    if (!r.ok) { grid.innerHTML = `<div style="color:var(--danger);padding:12px">${escHtml(humanError(httpError(r), {action:'load this view', dataSafe:true}))}</div>`; return; }
+    if (!r.ok) { grid.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t load this view', message: humanError(httpError(r), {action:'load this view', dataSafe:true}) }); return; }
     const d = await r.json();
     const cnt = document.getElementById('mkt-result-count');
     if (cnt) cnt.textContent = `${d.total||0} result${d.total!==1?'s':''}`;
     grid.innerHTML = (d.packs||[]).map((p) =>mktCardHTML(p)).join('') ||
       '<div style="color:var(--text-3);padding:20px;text-align:center">No packs found matching your criteria</div>';
   } catch(e) {
-    grid.innerHTML = `<div style="color:var(--danger);padding:12px">${escHtml(humanError(e, {action:'load this view', dataSafe:true}))}</div>`;
+    grid.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t load this view', message: humanError(e, {action:'load this view', dataSafe:true}) });
   }
 }
 

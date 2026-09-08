@@ -144,8 +144,7 @@ async function renderPrompts() {
     wirePromptGridEvents();
 
   } catch(ex) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">${escHtml(humanError(ex, {action:'load your prompts', dataSafe:true}))}<br>
-      <button class="btn-sm u-8a77e5a3" data-act-click="renderPrompts()" >↻ Retry</button></div>`;
+    pane.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t load your prompts', message: humanError(ex, {action:'load your prompts', dataSafe:true}), retry: 'renderPrompts()' });
   }
 }
 

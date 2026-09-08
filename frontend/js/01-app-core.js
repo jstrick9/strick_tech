@@ -4912,7 +4912,7 @@ async function studioRenderVersionHistory() {
         <button type="button" class="btn-3d btn-ghost btn-sm u-04562604"  data-act-click="studioRestoreVersion(${v.id})" title="Restore this version">↶</button>
       </div>`).join('');
   } catch(e) {
-    list.innerHTML = '<div style="padding:8px;color:var(--danger)">Failed to load history.</div>';
+    list.innerHTML = stateFeedback.errorElement({ title: 'Couldn\u2019t load history', message: 'Failed to load history.' });
   }
 }
 
@@ -5763,7 +5763,7 @@ async function showShortcuts() {
   if (list && !list.children.length) {
     try {
       const r = await fetch('/api/onboarding/shortcuts');
-      if (!r.ok) { list.innerHTML = '<div style="color:var(--danger)">Failed to load shortcuts</div>'; }
+      if (!r.ok) { list.innerHTML = stateFeedback.errorElement({ title: 'Couldn\u2019t load shortcuts', message: 'Failed to load shortcuts' }); }
       else {
         const shortcutsRaw = await r.json();
         const shortcuts = Array.isArray(shortcutsRaw) ? shortcutsRaw : (shortcutsRaw?.shortcuts || []);
@@ -5777,7 +5777,7 @@ async function showShortcuts() {
         ).join('');
       }
     } catch(ex) {
-      if (list) list.innerHTML = `<div style="color:var(--danger)">Error: ${escHtml(ex?.message||String(ex))}</div>`;
+      if (list) list.innerHTML = stateFeedback.errorElement({ title: 'Error', message: ex?.message||String(ex) });
     }
   }
   document.getElementById('shortcuts-modal').style.display = 'flex';

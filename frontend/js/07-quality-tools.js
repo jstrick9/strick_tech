@@ -361,7 +361,7 @@ async function renderHealth() {
 
     bbLoadHealthHistory();
   } catch(ex) {
-    pane.innerHTML = `<div style="padding:20px;color:var(--danger)">Health check failed: ${escHtml(ex.message)}</div>`;
+    pane.innerHTML = stateFeedback.errorElement({ title: 'Health check failed', message: ex.message });
   }
 }
 
