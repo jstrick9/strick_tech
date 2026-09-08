@@ -2263,8 +2263,27 @@ function collectOpenModals() {
   // so any bespoke scrim is now discovered without hardcoding an id per module.
   const adHoc = Array.from(document.querySelectorAll('[class*="-modal-overlay"], [role="dialog"], [class~="dialog"]'))
     .filter(el => el.isConnected && !named.includes(el));
-  return [...named, ...adHoc].filter(m => m && m.isConnected &&
-    (m.style.display !== 'none' || m.style.opacity === '1' || m.classList.contains('open')));
+  // Determine openness from COMPUTED visibility, not inline style. Some modals
+  // hide via a stylesheet class (e.g. #palette-modal is `display:none` in CSS
+  // until `.open` is added) and have an EMPTY inline `m.style.display`; testing
+  // `m.style.display !== 'none'` therefore reported them as open on every page
+  // even when they were hidden. That made Escape fire a spurious
+  // `✕ Modal closed` toast with nothing open, and made the Tab focus-trap
+  // consider closed dialogs. (#072)
+  // Dedupe by node identity: e.g. #agent-modal is both in `named` (by id) and
+  // matched by `.modal-back[style*="flex"]` (its class + inline display), so it
+  // was returned twice — making Escape/toast logic and the Tab trap run twice
+  // on one element. (#072)
+  const seen = new Set();
+  return [...named, ...adHoc].filter(m => m && m.isConnected && (() => {
+    const cs = getComputedStyle(m);
+    const open = cs.display !== 'none' && cs.visibility !== 'hidden';
+    if (open) {
+      if (seen.has(m)) return false;
+      seen.add(m);
+    }
+    return open;
+  })());
 }
 
 // Only elements that really serve as a dialog container should trap focus —
