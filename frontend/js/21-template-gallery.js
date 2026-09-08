@@ -50,7 +50,7 @@
       + '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">'
       + '<input id="tmpl-search" placeholder="Search templates…" data-act-input="filterTemplates()" '
       + 'style="flex:1;max-width:300px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-0);font-size:13px;outline:none">'
-      + '<select id="tmpl-sort" data-act-change="tmplChangeSort($value)" '
+      + '<select id="tmpl-sort" aria-label="Sort templates" data-act-change="tmplChangeSort($value)" '
       + 'style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text-0);font-size:12px;outline:none">'
       + '<option value="name">A-Z</option>'
       + '<option value="category">By Category</option>'

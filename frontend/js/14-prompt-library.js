@@ -81,7 +81,7 @@ async function renderPrompts() {
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
         <input id="prompt-search" placeholder="Search prompts…" data-act-input="filterPrompts()"
                style="flex:1;max-width:280px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;color:var(--text-0);font-size:13px;outline:none">
-        <select id="prompt-sort" data-act-change="changePromptSort($value)"
+        <select id="prompt-sort" aria-label="Sort prompts" data-act-change="changePromptSort($value)"
                 style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:12px;outline:none">
           <option value="updated">Recently updated</option>
           <option value="used">Most used</option>
@@ -108,7 +108,7 @@ async function renderPrompts() {
           <div class="form-group"><label class="form-label">Title *</label><input id="pm-title" class="input" placeholder="e.g. Security code review"></div>
           <div class="form-group"><label class="form-label">Prompt *</label><textarea id="pm-content" class="input" style="min-height:120px;font-family:monospace;font-size:12px" placeholder="The full prompt text… Use {placeholder} for variables."></textarea></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-            <div class="form-group u-11696618" ><label class="form-label">Category</label>
+            <div class="form-group u-11696618" ><label class="form-label" for="pm-category">Category</label>
               <select id="pm-category" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none">
                 <!-- Was a hardcoded list of the 12 built-ins, so a custom
                      category could never be selected even once it existed. -->
@@ -119,7 +119,7 @@ async function renderPrompts() {
               <input id="pm-tags" class="input" placeholder="security, api…">
             </div>
           </div>
-          <div class="form-group"><label class="form-label">Agent (optional)</label>
+          <div class="form-group"><label class="form-label" for="pm-agent">Agent (optional)</label>
             <!-- Was a free-text input, which let a prompt be pinned to an agent
                  that doesn't exist — the ?agent_id= filter then never matched it
                  and the prompt was unreachable. A picker makes that impossible. -->

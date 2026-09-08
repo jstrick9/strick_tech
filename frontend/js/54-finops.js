@@ -169,7 +169,7 @@ async function renderFinOps() {
         <div><div style="font-size:10px;color:var(--text-3);margin-bottom:3px">Agent</div>
           <input id="fo-agent" placeholder="builder" style="background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text-0);width:100px"></div>
         <div><div style="font-size:10px;color:var(--text-3);margin-bottom:3px">Source</div>
-          <select id="fo-src" style="background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text-0)">
+          <select id="fo-src" aria-label="Cost source" style="background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text-0)">
             ${['llm','mcp','connector','supervisor','loop'].map(s=>`<option>${s}</option>`).join('')}</select></div>
         <div><div style="font-size:10px;color:var(--text-3);margin-bottom:3px">Cost ($)</div>
           <input id="fo-cost" type="number" step="0.0001" placeholder="0.0050" style="background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--text-0);width:100px"></div>

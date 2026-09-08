@@ -23,7 +23,7 @@ async function renderDashboard() {
                 title="Check or change your AI connection">Checking AI connection…</button>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
-        <select id="dash-days" data-act-change="renderDashboard()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:12px;padding:4px 8px">
+        <select id="dash-days" aria-label="Dashboard time range" data-act-change="renderDashboard()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:12px;padding:4px 8px">
           <option value="7">7 days</option>
           <option value="30" selected>30 days</option>
           <option value="90">90 days</option>

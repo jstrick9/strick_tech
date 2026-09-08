@@ -50,7 +50,7 @@ async function renderReplay() {
       <div class="ttd-sidebar-head">
         <p class="ttd-sidebar-title">⏮ Run History</p>
         <input class="ttd-search" id="ttd-search" placeholder="🔍  Search runs…" data-act-input="ttdSearchRuns($value)">
-        <select class="ttd-wf-filter" id="ttd-wf-filter" data-act-change="ttdFilterByWf($value)">
+        <select class="ttd-wf-filter" id="ttd-wf-filter" aria-label="Filter by workflow" data-act-change="ttdFilterByWf($value)">
           <option value="">All workflows</option>
         </select>
       </div>

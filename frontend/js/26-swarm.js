@@ -143,7 +143,7 @@ function renderSwarm() {
           </div>
           <div class="u-56f43562">
             <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Strategy</div>
-            <select id="sw-strategy" style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none">
+            <select id="sw-strategy" aria-label="Strategy" style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none">
               <option value="judge">Judge — pick best (fast)</option>
               <option value="merge">Merge — fuse top 2</option>
               <option value="fanout">Fan-out — show all</option>

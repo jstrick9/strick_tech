@@ -103,7 +103,7 @@ async function renderImageGen() {
             ${styles.map(s=>`<button type="button" class="term-btn" id="style-${escHtml(s.id)}" data-style-id="${escHtml(s.id)}" title="${escHtml(s.prompt)}">${escHtml(s.label)}</button>`).join('')}
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <select id="img-size" style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none">
+            <select id="img-size" aria-label="Image size" style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none">
               <option value="256x256">256×256 (Fastest)</option>
               <option value="512x512">512×512 (Fast)</option>
               <option value="1024x1024" selected>1024×1024</option>
@@ -137,7 +137,7 @@ async function renderImageGen() {
             <p style="font-size:11px;color:var(--text-2);margin-bottom:8px">AI reconstructs your Figma design as working code.</p>
             <input id="figma-url" class="input" placeholder="https://www.figma.com/design/…" style="margin-bottom:6px;font-size:12px">
             <div style="display:flex;gap:6px;margin-bottom:6px">
-              <select id="figma-framework" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none">
+              <select id="figma-framework" aria-label="Figma output framework" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none">
                 <option value="html">HTML + Tailwind</option>
                 <option value="react">React + Tailwind</option>
                 <option value="vue">Vue + Tailwind</option>
@@ -152,7 +152,7 @@ async function renderImageGen() {
             <h3 class="u-fdf33f23">🎨 Style Transfer</h3>
             <input id="st-prompt" class="input" placeholder="Describe your subject…" style="margin-bottom:6px;font-size:12px">
             <div style="display:flex;gap:6px">
-              <select id="st-style" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none">
+              <select id="st-style" aria-label="Style-transfer target" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-0);font-size:12px;outline:none">
                 ${['cinematic','anime','oil_painting','watercolor','neon_noir','minimal','fantasy','retro','sketch','pixel_art'].map(s=>`<option value="${s}">${s.replace(/_/g,' ')}</option>`).join('')}
               </select>
               <button data-act-click="igStyleTransfer()" class="btn btn-primary btn-sm">→ Apply</button>

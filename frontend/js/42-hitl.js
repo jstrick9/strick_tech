@@ -139,13 +139,13 @@ async function renderHITL() {
         <div class="u-fb336a29">
           <div class="u-a27006d4">Default Timeout</div>
           <div style="display:flex;align-items:center;gap:6px">
-            <input type="number" id="hitl-timeout" value="300" min="30" max="1800" style="width:70px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text-0);font-size:12px">
+            <input type="number" id="hitl-timeout" aria-label="Default timeout (seconds)" value="300" min="30" max="1800" style="width:70px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text-0);font-size:12px">
             <span style="color:var(--text-3)">seconds</span>
           </div>
         </div>
         <div class="u-fb336a29">
           <div class="u-a27006d4">On Timeout</div>
-          <select id="hitl-timeout-action" style="font-size:11px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text-0);width:100%">
+          <select id="hitl-timeout-action" aria-label="On-timeout action" style="font-size:11px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text-0);width:100%">
             <option value="pause">Pause agent (safe default)</option>
             <option value="reject">Auto-reject action</option>
             <option value="escalate">Escalate to admin</option>

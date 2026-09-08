@@ -75,7 +75,7 @@ async function renderEvals() {
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
         <input id="eval-expected" placeholder="Expected answer (optional)" style="flex:2;background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 10px">
-        <select id="eval-agent" style="background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 8px">
+        <select id="eval-agent" aria-label="Evaluating agent" style="background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 8px">
           <option value="builder">builder</option>
           <option value="researcher">researcher</option>
           <option value="orchestrator">orchestrator</option>
@@ -133,7 +133,7 @@ async function renderEvals() {
         Run OWASP LLM Top 10 attacks against your agent. Tests: prompt injection, jailbreak, PII extraction, goal hijacking, and more.
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <select id="redteam-agent" style="background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 8px">
+        <select id="redteam-agent" aria-label="Red-team target agent" style="background:var(--bg-2);border:1px solid var(--border);border-radius:7px;color:var(--text-0);font-size:12px;padding:7px 8px">
           <option value="builder">builder</option>
           <option value="researcher">researcher</option>
         </select>

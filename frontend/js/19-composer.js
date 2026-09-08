@@ -16,7 +16,7 @@ async function renderComposer() {
       <div class="settings-card">
         <h3>🤖 Multi-File Agent</h3>
         <p>Like Cursor Composer — describe what to build, AI creates all needed files across your project.</p>
-        <select id="comp-framework" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none;margin-bottom:8px">
+        <select id="comp-framework" aria-label="Composer target framework" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none;margin-bottom:8px">
           <option value="web">🌐 Web (HTML/CSS/JS)</option>
           <option value="nextjs">⚛️ Next.js</option>
           <option value="sveltekit">🔥 SvelteKit</option>
@@ -54,7 +54,7 @@ async function renderComposer() {
           <img id="screenshot-img" style="max-width:100%;max-height:200px;border-radius:var(--radius-sm);border:1px solid var(--border)" alt="Uploaded screenshot preview">
         </div>
         <div style="display:flex;gap:8px">
-          <select id="s2c-framework" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px;color:var(--text-0);font-size:12.5px;outline:none">
+          <select id="s2c-framework" aria-label="Screenshot-to-code framework" style="flex:1;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px;color:var(--text-0);font-size:12.5px;outline:none">
             <option value="web">Web (HTML)</option>
             <option value="react">React</option>
           </select>

@@ -46,11 +46,11 @@ async function renderLeaderboard() {
     <!-- Leaderboard tab -->
     <div id="lb-tab-leaderboard">
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
-        <label style="font-size:11px;color:var(--text-3)">Days:</label>
+        <label style="font-size:11px;color:var(--text-3)" for="lb-days-select">Days:</label>
         <select id="lb-days-select" data-act-change="lbChangeDays($value)" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:11px;padding:3px 8px">
           <option value="7">7d</option><option value="30" selected>30d</option><option value="90">90d</option><option value="365">1y</option>
         </select>
-        <label style="font-size:11px;color:var(--text-3)">Task:</label>
+        <label style="font-size:11px;color:var(--text-3)" for="lb-task-select">Task:</label>
         <select id="lb-task-select" data-act-change="lbChangeDays()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:11px;padding:3px 8px">
           <option value="">All tasks</option>
           <option value="code">Code</option><option value="research">Research</option>

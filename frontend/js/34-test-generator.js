@@ -31,13 +31,13 @@ async function renderTestGen() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
         <div class="card">
           <h3 class="u-2b583d73">Generate Tests</h3>
-          <div class="form-group"><label class="form-label">Source File</label>
+          <div class="form-group"><label class="form-label" for="tg-file">Source File</label>
             <select id="tg-file" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none">
               <option value="">Select a file…</option>
               ${codeFiles.map(f=>`<option value="${escHtml(f.path)}">${escHtml(f.path)}</option>`).join('')}
             </select>
           </div>
-          <div class="form-group"><label class="form-label">Framework</label>
+          <div class="form-group"><label class="form-label" for="tg-framework">Framework</label>
             <select id="tg-framework" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none">
               ${fwList.map(f=>`<option value="${f.id}">${f.id} — ${f.lang}</option>`).join('')}
             </select>

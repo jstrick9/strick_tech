@@ -42,7 +42,7 @@ async function renderFusion() {
 
 Try: 'What are the best practices for building production-ready FastAPI services?'"></textarea>
       <div style="padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center">
-        <select id="fusion-preset-select" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:12px;padding:5px 8px">
+        <select id="fusion-preset-select" aria-label="Preset" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-size:12px;padding:5px 8px">
           ${Object.keys(presets.presets||{}).map(k=>`<option value="${k}" ${k==='budget'?'selected':''}>${k}</option>`).join('')}
         </select>
         <button class="btn" data-act-click="fusionRun()" id="fusion-run-btn">⚡ Run Fusion</button>
@@ -90,7 +90,7 @@ Try: 'What are the best practices for building production-ready FastAPI services
         <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Like OpenRouter Subagent: orchestrator model breaks task into subtasks, delegates to cheaper workers</div>
         <textarea id="subagent-task" rows="3" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:13px;padding:10px;resize:none;box-sizing:border-box" placeholder="Complex task to delegate (e.g. 'Research FastAPI, write 3 code examples, explain authentication patterns')"></textarea>
         <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
-          <label style="font-size:11px;color:var(--text-3)">Max subtasks:</label>
+          <label style="font-size:11px;color:var(--text-3)" for="subagent-max">Max subtasks:</label>
           <input id="subagent-max" type="number" min="1" max="8" value="4" style="width:60px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;color:var(--text-0);font-size:12px;padding:5px 8px">
           <button class="btn" data-act-click="fusionSubagent()">🤖 Delegate</button>
         </div>
