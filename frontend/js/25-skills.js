@@ -130,6 +130,16 @@ function openSkillModal(skillId) {
     </div>`).join('') || '<div style="color:var(--text-2);font-size:13px">No inputs required — click Run to execute.</div>';
   document.getElementById('srm-result').style.display = 'none';
   document.getElementById('skill-run-modal').style.display = 'flex';
+  // Keyboard-dismissable: Escape closes the modal. Bound once here (and removed
+  // on close) so it never accumulates.
+  if (!closeSkillModal.__escBound) {
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.getElementById('skill-run-modal')?.style.display === 'flex') {
+        closeSkillModal();
+      }
+    });
+    closeSkillModal.__escBound = true;
+  }
 }
 
 function closeSkillModal() {

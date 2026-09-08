@@ -297,6 +297,39 @@
   });
 })();
 
+// Keyboard-dismiss for the ad-hoc full-screen fixed overlays opened via the
+// shared data-act-click handlers above. They close on their ✕/Cancel buttons
+// but not on Escape. This single delegated handler makes them Escape-dismissable.
+// Scoped to body-level full-screen overlays only: they are created via
+// createElement('div') with an inline cssText, so they have NO id and an
+// `inset:0` background. #gmodal (id-bearing, own Escape handling via _gm_cancel)
+// and toasts (bottom/right, not inset:0) are excluded; only the topmost open
+// overlay is closed, mirroring the existing ✕/Cancel behaviour.
+(function () {
+  var escBound = false;
+  function bind() {
+    if (escBound) return;
+    escBound = true;
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      // Direct body children with no id and an inline position:fixed are the
+      // ad-hoc full-screen overlays (created via createElement + cssText).
+      // #gmodal (id-bearing) and toasts (children of #toast-container, not
+      // direct body children) are excluded. `style*="fixed"` is substring-safe
+      // against the attribute being serialized with spaces.
+      var overlays = document.querySelectorAll('body > div:not([id])[style*="fixed"]');
+      if (!overlays.length) return;
+      e.preventDefault();
+      overlays[overlays.length - 1].remove();
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bind);
+  } else {
+    bind();
+  }
+})();
+
 // Skip-link target focus.
 //
 // A bare href="#content" scrolls but does NOT move focus in most browsers, so
