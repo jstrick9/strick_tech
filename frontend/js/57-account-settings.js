@@ -201,8 +201,11 @@
     renderAccountTabBody(tabId);
   }
 
-  function fieldLabel(text) {
-    return `<label style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">${esc(text)}</label>`;
+  function fieldLabel(text, forId) {
+    // `for` ties the label to its control (WCAG 3.3.2). Without it the label is
+    // rendered but NOT associated, so the field is announced with no name.
+    const forAttr = forId ? ` for="${esc(""+forId)}"` : '';
+    return `<label${forAttr} style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">${esc(text)}</label>`;
   }
   function textInputStyle() {
     return 'width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-0);font-size:13px;outline:none;font-family:inherit';
@@ -245,17 +248,17 @@
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-        <div>${fieldLabel('Display Name')}<input id="acct-name" type="text" value="${esc(p.name || '')}" style="${textInputStyle()}"></div>
-        <div>${fieldLabel('Email')}<input id="acct-email" type="email" value="${esc(p.email || '')}" placeholder="you@example.com" style="${textInputStyle()}"></div>
+        <div>${fieldLabel('Display Name','acct-name')}<input id="acct-name" type="text" value="${esc(p.name || '')}" style="${textInputStyle()}"></div>
+        <div>${fieldLabel('Email','acct-email')}<input id="acct-email" type="email" value="${esc(p.email || '')}" placeholder="you@example.com" style="${textInputStyle()}"></div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
         <div>
-          ${fieldLabel('Job Title')}
+          ${fieldLabel('Job Title','acct-title')}
           <input id="acct-title" type="text" value="${esc(p.job_title || '')}" placeholder="e.g. Senior Architect" style="${textInputStyle()}">
         </div>
         <div>
-          ${fieldLabel('Role Preset (personalizes defaults)')}
+          ${fieldLabel('Role Preset (personalizes defaults)','acct-role')}
           <select id="acct-role" style="${textInputStyle()};cursor:pointer">
             ${ROLE_PRESETS.map(r => `<option value="${r.id}" ${p.role === r.id ? 'selected' : ''}>${esc(r.label)}</option>`).join('')}
           </select>
@@ -263,7 +266,7 @@
       </div>
 
       <div class="u-49f14f8f">
-        ${fieldLabel('Skill Level')}
+        ${fieldLabel('Skill Level','acct-skill')}
         <select id="acct-skill" style="${textInputStyle()};cursor:pointer;max-width:220px">
           ${SKILL_LEVELS.map(s => `<option value="${s}" ${p.skill_level === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}
         </select>

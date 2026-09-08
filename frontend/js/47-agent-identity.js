@@ -65,7 +65,7 @@ async function renderAgentIdentity() {
         </div>
         <div>
           <div style="font-size:11px;color:var(--text-3);margin-bottom:4px">Authority Level</div>
-          <select id="id-new-authority" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--text-0)">
+          <select id="id-new-authority" aria-label="Authority level" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--text-0)">
             <option value="minimal">Minimal (read-only)</option>
             <option value="standard" selected>Standard</option>
             <option value="elevated">Elevated</option>

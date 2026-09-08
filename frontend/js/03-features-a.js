@@ -1899,7 +1899,7 @@ async function sdkSelectPack(packId) {
           <!-- Pack JSON editor -->
           <div class="u-1b0f4999">
             <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px">Pack JSON</div>
-            <textarea id="sdk-json-editor" rows="14" style="
+            <textarea id="sdk-json-editor" aria-label="Pack JSON" rows="14" style="
               width:100%;font-family:monospace;font-size:11px;
               background:var(--bg-3);border:1px solid var(--border);border-radius:8px;
               color:var(--text-0);padding:10px;resize:vertical;

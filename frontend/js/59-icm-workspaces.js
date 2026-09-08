@@ -247,7 +247,7 @@
         <div style="font-size:11.5px;color:var(--text-2);margin-bottom:8px">
           Every output is an edit surface — edit here and the next stage reads what you left.
         </div>
-        <textarea id="icm-file-body" spellcheck="false"
+        <textarea id="icm-file-body" aria-label="File content" spellcheck="false"
           style="width:100%;min-height:460px;background:var(--bg-1);color:var(--text-0);
                  border:1px solid var(--border-0);border-radius:8px;padding:14px;
                  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
@@ -342,7 +342,7 @@
               Your workspace is not modified.
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <select id="icm-tpl-src"
+              <select id="icm-tpl-src" aria-label="Template source workspace"
                 style="padding:9px 11px;background:var(--bg-1);color:var(--text-0);
                        border:1px solid var(--border-0);border-radius:7px;font-size:13px">
                 ${wsList.map((w) => `<option value="${esc(w.workspace_id)}">${esc(w.name)}</option>`).join('')}
@@ -595,7 +595,7 @@
           </div>
           <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="font-size:12px;color:var(--text-2)">Repeating unit:</span>
-            <select id="icm-form-pick"
+            <select id="icm-form-pick" aria-label="Repeating unit form"
               style="padding:7px 10px;background:var(--bg-1);color:var(--text-0);
                      border:1px solid var(--border-0);border-radius:6px;font-size:12.5px">
               ${(_forms || []).map((f) => `<option value="${esc(f.id)}"

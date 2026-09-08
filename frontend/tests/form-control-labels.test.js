@@ -39,6 +39,19 @@ const FIXES = {
   'pm-agent':              { f: '14-prompt-library.js',     a: 'label-for' },
   'dash-days':             { f: '36-dashboard.js',          a: 'aria-label' },
   'redteam-agent':         { f: '05-evals-observability.js', a: 'aria-label' },
+  'sdk-json-editor':        { f: '03-features-a.js',          a: 'aria-label' },
+  'steer-edit-ta':         { f: '12-information-hierarchy.js', a: 'aria-label' },
+  'preview-compiled-textarea': { f: '12-information-hierarchy.js', a: 'aria-label' },
+  'id-new-authority':      { f: '47-agent-identity.js',        a: 'aria-label' },
+  'ctx-rename-folder-input':{ f: '56-chat-history.js',         a: 'aria-label' },
+  'icm-file-body':         { f: '59-icm-workspaces.js',        a: 'aria-label' },
+  'icm-tpl-src':           { f: '59-icm-workspaces.js',        a: 'aria-label' },
+  'icm-form-pick':         { f: '59-icm-workspaces.js',        a: 'aria-label' },
+  'acct-name':             { f: '57-account-settings.js',      a: 'fieldlabel' },
+  'acct-email':            { f: '57-account-settings.js',      a: 'fieldlabel' },
+  'acct-title':            { f: '57-account-settings.js',      a: 'fieldlabel' },
+  'acct-role':             { f: '57-account-settings.js',      a: 'fieldlabel' },
+  'acct-skill':            { f: '57-account-settings.js',      a: 'fieldlabel' },
 };
 
 describe('form controls carry accessible names (browser-verified gaps)', () => {
@@ -56,12 +69,17 @@ describe('form controls carry accessible names (browser-verified gaps)', () => {
         expect(code, 'missing <label for="' + id + '">').toMatch(new RegExp('<label\\b[^>]*\\bfor\\s*=\\s*["\']' + id + '["\']', 'i'));
       } else if (a === 'title') {
         expect(tag, 'missing title').toMatch(/\btitle\s*=/i);
+      } else if (a === 'fieldlabel') {
+        // label is built at runtime by the fieldLabel(text, id) helper; assert
+        // the helper is called WITH the id and that the helper emits `for=`.
+        expect(code, 'fieldLabel call must pass the id').toMatch(new RegExp("fieldLabel\\s*\\([^,]*,\\s*[\"']" + id + "[\"']"));
+        expect(code, 'fieldLabel helper must derive a for attribute from the id').toMatch(/forAttr\s*=\s*forId/);
       }
     });
   }
 
   it('no regression on the returned set', () => {
     // assert the curated set is stable so a removed/fixed id doesn't silently rot
-    expect(Object.keys(FIXES).length).toBe(26);
+    expect(Object.keys(FIXES).length).toBe(39);
   });
 });

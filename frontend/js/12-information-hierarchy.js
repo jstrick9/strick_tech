@@ -455,7 +455,7 @@
           <h3 style="margin:0;flex:1">✏ ${escHtml(f.title||fileId)}</h3>
           <button aria-label="Close" title="Close" class="steer-modal-close-btn" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
-        <textarea id="steer-edit-ta" rows="18" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;font-family:monospace;padding:10px;resize:none">${escHtml(f.content||'')}</textarea>
+        <textarea id="steer-edit-ta" aria-label="File content" rows="18" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;font-family:monospace;padding:10px;resize:none">${escHtml(f.content||'')}</textarea>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button class="btn-sm steer-modal-cancel-btn">Cancel</button>
           <button class="btn steer-modal-save-btn">💾 Save</button>
@@ -747,7 +747,7 @@
           <div style="font-size:12.5px;color:var(--text-2);margin-bottom:12px;flex-shrink:0">
             This exact XML/Markdown context is automatically injected into every Agentic OS chat, swarm query, and specialized agent session:
           </div>
-          <textarea id="preview-compiled-textarea" readonly style="flex:1;min-height:360px;width:100%;background:var(--bg-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;color:var(--text-0);font-family:monospace;font-size:12px;line-height:1.5;resize:none;outline:none"></textarea>
+          <textarea id="preview-compiled-textarea" aria-label="Compiled context preview" readonly style="flex:1;min-height:360px;width:100%;background:var(--bg-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;color:var(--text-0);font-family:monospace;font-size:12px;line-height:1.5;resize:none;outline:none"></textarea>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;flex-shrink:0">
             <span id="preview-compiled-stats" style="font-size:11.5px;color:var(--text-3);font-weight:600"></span>
             <button data-hide="id:hierarchy-preview-modal" class="btn btn-primary">Close Preview</button>
