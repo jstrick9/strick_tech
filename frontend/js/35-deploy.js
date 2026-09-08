@@ -200,7 +200,7 @@ async function loadDeployHistory() {
     const j = await AgenticAPI.get('/api/deploy/history');
     const el = document.getElementById('deploy-history');
     if (!el) return;
-    if (!j.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:13px">No deploys yet.</div>'; return; }
+    if (!j.length) { el.innerHTML = emptyState({icon:'🚀', title:'No deploys yet', body:'Choose a provider above and run your first deployment — it will show up here.', actions:[{label:'🚀 Deploy now', action:'renderDeploy()', primary:true}]}); return; }
     el.innerHTML = j.slice(0,10).map(d =>
       `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px">
         <span style="color:var(--green)">🚀</span>

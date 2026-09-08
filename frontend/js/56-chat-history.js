@@ -145,7 +145,8 @@
       el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:32px 16px;text-align:center">'
         + '<div style="font-size:36px;margin-bottom:12px;opacity:.6">💬</div>'
         + '<div style="font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:4px">No conversations yet</div>'
-        + '<div style="font-size:11.5px;color:var(--text-3)">Start a chat to see history here</div></div>';
+        + '<div style="font-size:11.5px;color:var(--text-3);margin-bottom:14px">Start a chat to see history here</div>'
+        + '<button type="button" class="btn btn-primary btn-sm" data-act-click="nav(\'chat\')">💬 Start a chat</button></div>';
       return;
     }
     var q = (document.getElementById('chat-sessions-search')?.value||'').trim().toLowerCase();

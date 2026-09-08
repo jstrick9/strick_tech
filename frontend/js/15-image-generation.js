@@ -172,7 +172,10 @@ async function renderImageGen() {
           </div>
         </div>
         ${gallery.images.length === 0
-          ? '<div style="text-align:center;padding:20px;color:var(--text-3);font-size:12px">No images yet — generate or upload one above</div>'
+          ? emptyState({icon:'🖼️', title:'No images yet', body:'Generate a new image or upload one to build your design library.', actions:[
+              {label:'🎨 Generate', action:'renderImageGen()', primary:true},
+              {label:'⬆ Upload', action:'igUpload()'}
+            ]})
           : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;max-height:220px;overflow-y:auto" id="asset-library-grid">
               ${gallery.images.map((img, idx)=>`
                 <div data-gallery-idx="${idx}" style="aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border);cursor:pointer;position:relative;group" title="${escHtml(img.name)}">

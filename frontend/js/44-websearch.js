@@ -373,7 +373,7 @@ async function loadHistory() {
     const d = await r.json();
     state.history = d.items || [];
     if (!state.history.length) {
-      el.innerHTML = '<div style="color:var(--text-3);font-size:13px;padding:20px;text-align:center">No search history yet</div>';
+      el.innerHTML = '<div style="color:var(--text-3);font-size:13px;padding:20px;text-align:center">No search history yet<br><button type="button" class="btn btn-ghost btn-sm" style="margin-top:10px" data-ws-tab="search">🔍 New search</button></div>';
       return;
     }
     // BUG FIX: previously interpolated JSON.stringify(item.query)/
