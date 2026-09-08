@@ -264,13 +264,23 @@ async function runScreenshotToCode() {
 
 // Branch previews
 async function loadBranchPreviews() {
+  const el = document.getElementById('branch-list');
+  if (!el) return;
+  if (window.stateFeedback) window.stateFeedback.setLoading(el, { label: 'Loading branch previews…' });
   try {
     const r = await fetch('/api/composer/preview/branches');
     const j = await r.json();
-    const el = document.getElementById('branch-list');
-    if (!el) return;
+    // Distinguish "no snapshots yet" (a real, healthy empty) from "the server
+    // failed". Previously a non-ok response fell through to j.branches?.length
+    // and rendered a false "No snapshots yet" empty state on an outage, and a
+    // thrown network error was swallowed by the bare catch, leaving an eternal
+    // "Loading…".
+    if (!r.ok) {
+      if (window.stateFeedback) window.stateFeedback.setError(el, { title: 'Couldn\u2019t load branch previews', message: (j && j.error) || `HTTP ${r.status}`, retry: 'loadBranchPreviews()' });
+      return;
+    }
     if (!j.branches?.length) {
-      el.innerHTML = '<div style="color:var(--text-3);font-size:12.5px">No snapshots yet. Click "+ Snapshot" to capture the current state.</div>';
+      if (window.stateFeedback) window.stateFeedback.setEmpty(el, { icon: '🌿', title: 'No snapshots yet', message: 'Click "+ Snapshot" to capture the current state.', action: 'createBranchPreview()', actionLabel: '+ Snapshot' });
       return;
     }
     el.innerHTML = j.branches.map(b => `
@@ -282,7 +292,10 @@ async function loadBranchPreviews() {
         <a href="${safeUrl(b.url)}" target="_blank" class="btn btn-ghost btn-sm">View ↗</a>
         <button data-act-click="deleteBranchPreview(${jsArg(b.name)})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button>
       </div>`).join('');
-  } catch(e) {}
+  } catch(e) {
+    // Never leave the pane at an eternal "Loading…" on a network failure.
+    if (window.stateFeedback) window.stateFeedback.setError(el, { title: 'Couldn\u2019t load branch previews', message: (e && e.message) || 'Network error', retry: 'loadBranchPreviews()' });
+  }
 }
 
 async function createBranchPreview() {
