@@ -91,6 +91,15 @@ function showOnboarding() {
       </div>`).join('');
   }
 
+  // Pressing Enter in the text field should advance, not silently do nothing.
+  // Bound once so the handler never stacks across steps/opens.
+  if (!inp.__obEnterBound) {
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); obNext(); }
+    });
+    inp.__obEnterBound = true;
+  }
+
   // Back button
   document.getElementById('ob-back').style.display = obStep > 0 ? 'inline-flex' : 'none';
   // Skip button

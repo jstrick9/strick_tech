@@ -1558,6 +1558,24 @@ window.pullOllamaModel = async function(modelName) {
   }
 };
 
+// Enter in the settings API-key / base-URL fields should save, not sit there.
+// Bound once, delegated, so it covers the OpenRouter key field and the custom
+// endpoint's URL/key fields without per-field listeners.
+(function () {
+  var entered = false;
+  function ensure() {
+    if (entered) return; entered = true;
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' || e.defaultPrevented) return;
+      var id = e.target && e.target.id;
+      if (id === 'or-key-input') { e.preventDefault(); saveApiKey(); }
+      else if (id === 'custom-api-key' || id === 'custom-api-base-url') { e.preventDefault(); window.saveCustomConnection(); }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensure);
+  else ensure();
+})();
+
 window.saveCustomConnection = async function() {
   const baseUrl = document.getElementById('custom-api-base-url')?.value?.trim();
   const apiKey  = document.getElementById('custom-api-key')?.value?.trim();
