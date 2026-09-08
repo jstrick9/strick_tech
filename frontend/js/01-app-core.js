@@ -2230,7 +2230,7 @@ function paletteKey(e) {
 // (which dismisses them) and the Tab focus-trap (which keeps keyboard focus
 // from walking into the page behind a dialog — WCAG 2.4.3).
 function collectOpenModals() {
-  return [
+  const named = [
     document.getElementById('onboarding-overlay'),
     document.getElementById('onboarding-modal'),
     document.getElementById('gmodal'),
@@ -2253,7 +2253,18 @@ function collectOpenModals() {
     document.getElementById('a2a-register-modal'),
     document.querySelector('.modal-back[style*="flex"]'),
     document.querySelector('.modal-back[style*="block"]')
-  ].filter(m => m && (m.style.display !== 'none' || m.style.opacity === '1' || m.classList.contains('open')));
+  ].filter(Boolean);
+  // BUG FIX: the named list above can't know about ad-hoc dialog scrims that
+  // other modules create on the fly and mount directly — e.g. the kanban edit /
+  // delete modal, which is `<div class="kanban-modal-overlay" id="kanban-modal-overlay">`.
+  // Those were never collected, so Escape left them open (a WCAG 2.1.2 keyboard
+  // trap) and the Tab focus-trap below skipped them (WCAG 2.4.3). Each is keyed
+  // by a `*-modal-overlay` class or an explicit role=dialog, matching isTrapRoot,
+  // so any bespoke scrim is now discovered without hardcoding an id per module.
+  const adHoc = Array.from(document.querySelectorAll('[class*="-modal-overlay"], [role="dialog"], [class~="dialog"]'))
+    .filter(el => el.isConnected && !named.includes(el));
+  return [...named, ...adHoc].filter(m => m && m.isConnected &&
+    (m.style.display !== 'none' || m.style.opacity === '1' || m.classList.contains('open')));
 }
 
 // Only elements that really serve as a dialog container should trap focus —
@@ -2279,30 +2290,10 @@ document.addEventListener('keydown', function masterEscapeHandler(e) {
       return;
     }
 
-    const openModals = [
-      document.getElementById('onboarding-overlay'),
-      document.getElementById('onboarding-modal'),
-      document.getElementById('gmodal'),
-      document.getElementById('agent-modal'),
-      document.getElementById('skill-run-modal'),
-      document.getElementById('palette-modal'),
-      document.getElementById('review-overlay'),
-      document.getElementById('profile-panel'),
-      document.getElementById('sidebar-customizer'),
-      document.getElementById('account-settings-modal'),
-      document.getElementById('shortcuts-modal'),
-      document.getElementById('ctx-help-overlay'),
-      // Bespoke overlay-modals created ad hoc with a `className='…-modal-overlay'`
-      // scrim. These were mouse-only: Escape left them open (a WCAG 2.1.2
-      // keyboard trap). All close by removing the overlay, so a single remove()
-      // path is safe. Keyed by id to avoid touching an unrelated overlay.
-      document.getElementById('gm-create-modal'),
-      document.getElementById('dag-launch-modal'),
-      document.getElementById('a2a-delegate-modal'),
-      document.getElementById('a2a-register-modal'),
-      document.querySelector('.modal-back[style*="flex"]'),
-      document.querySelector('.modal-back[style*="block"]')
-    ].filter(m => m && (m.classList.contains('open') || m.style.display !== 'none' || m.style.opacity === '1'));
+    // Same dynamic discovery as collectOpenModals() so Escape also closes the
+    // ad-hoc `*-modal-overlay` scrims (kanban edit/delete, gm-create, a2a, dag)
+    // that are not in any hardcoded id list.
+    const openModals = collectOpenModals();
 
     if (openModals.length > 0) {
       e.preventDefault();
@@ -2334,11 +2325,14 @@ document.addEventListener('keydown', function masterEscapeHandler(e) {
         } else if (m.id === 'account-settings-modal') {
           if (typeof window.closeAccountSettings === 'function') window.closeAccountSettings();
           else m.remove();
-        } else if (m.id === 'gm-create-modal' || m.id === 'dag-launch-modal' ||
-                   m.id === 'a2a-delegate-modal' || m.id === 'a2a-register-modal') {
-          // Bespoke overlay-modals are torn down with .remove(); hiding them
-          // leaves a stale scrim in the DOM that still catches clicks. Restore
-          // focus to whatever opened it (the focus-trap recorded it).
+        } else if (/-modal-overlay/.test(m.id || '') ||
+                   /-modal-overlay/.test(m.className || '')) {
+          // Bespoke overlay-modals (a `*-modal-overlay` scrim, e.g. the kanban
+          // edit/delete modal) are torn down with .remove() — hiding them leaves
+          // a stale scrim in the DOM that still catches clicks. Restore focus to
+          // whatever opened it (the focus-trap recorded it). This now matches ANY
+          // such scrim, not only four hardcoded ids, so a newly-added bespoke
+          // dialog is covered without editing this handler.
           if (m.__ovOpener && m.__ovOpener.isConnected) m.__ovOpener.focus();
           m.remove();
         } else {

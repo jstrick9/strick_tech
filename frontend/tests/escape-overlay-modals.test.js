@@ -18,14 +18,16 @@ describe('master Escape handler dismisses bespoke overlay-modals', () => {
   });
 
   it('removes (not merely hides) each overlay-modal on Escape', () => {
-    const listIdx = SRC.indexOf("m.id === 'gm-create-modal'");
+    // #064: the bespoke-removal branch is now generic — it matches ANY
+    // `*-modal-overlay` scrim (id or className) rather than a hardcoded id list,
+    // so a newly-added bespoke dialog (e.g. kanban) is torn down too.
+    const listIdx = SRC.indexOf("-modal-overlay/.test(m.id");
     expect(listIdx).toBeGreaterThan(0);
     // The overlay branch runs remove(); it must NOT reuse the generic
     // display:none fallback. The branch ends at the next `} else {`.
     const branchEnd = SRC.indexOf('} else {', listIdx);
     const branch = SRC.slice(listIdx, branchEnd);
-    expect(branch).toMatch(/m\.id === 'gm-create-modal' \|\| m\.id === 'dag-launch-modal'/);
-    expect(branch).toMatch(/a2a-delegate-modal.*a2a-register-modal/);
+    expect(branch).toMatch(/m\.className/);
     expect(branch).toMatch(/m\.remove\(\)/);
     expect(branch).not.toMatch(/m\.style\.display/);
   });

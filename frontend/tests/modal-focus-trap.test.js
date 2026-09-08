@@ -27,6 +27,37 @@ describe('master handler focus-traps the non-#gmodal dialogs', () => {
       .forEach(id => expect(collect).toContain(`'${id}'`));
   });
 
+  it('dynamically discovers ANY `*-modal-overlay` scrim, not just four hardcoded ids', () => {
+    // #064 regression: the kanban edit/delete modal
+    // (`class="kanban-modal-overlay" id="kanban-modal-overlay"`) was absent from
+    // the hardcoded id list, so Escape left it open (WCAG 2.1.2 keyboard trap)
+    // and the Tab trap skipped it (WCAG 2.4.3). The collection must query for
+    // all `-modal-overlay` scrims instead of enumerating ids.
+    const collect = seg('function collectOpenModals()', 'function isTrapRoot');
+    expect(collect).toMatch(/querySelectorAll/);
+    expect(collect).toMatch(/-modal-overlay/);
+    expect(collect).toMatch(/role.*dialog|role="dialog"/);
+    // It must merge the enumerated ids with the discovered ones and de-dupe.
+    expect(collect).toMatch(/isConnected/);
+    expect(collect).toMatch(/filter\(m => m && m.isConnected/);
+  });
+
+  it('Escape handler uses the same shared dynamic collection (no duplicate hardcoded list)', () => {
+    const esc = seg("masterEscapeHandler", "if (e.key === 'Tab')");
+    expect(esc).toMatch(/const openModals = collectOpenModals\(\)/);
+    // No second, hand-maintained id list that could drift out of sync.
+    expect(esc).not.toMatch(/getElementById\('gm-create-modal'\)/);
+  });
+
+  it('Escape tears down ANY `*-modal-overlay` scrim by remove() + focus restore', () => {
+    const esc = seg("masterEscapeHandler", "if (e.key === 'Tab')");
+    // The bespoke-removal branch must match the scrim class, not four ids.
+    expect(esc).toMatch(/\/-modal-overlay\/\.test\(m\.id/);
+    expect(esc).toMatch(/\/-modal-overlay\/\.test\(m\.className/);
+    expect(esc).toMatch(/m\.__ovOpener\.focus\(\)/);
+    expect(esc).toMatch(/m\.remove\(\)/);
+  });
+
   it('traps Tab only for real dialog containers (modal/dialog), excluding #gmodal', () => {
     const trap = seg("if (e.key === 'Tab')", "if ((e.metaKey||e.ctrlKey) && e.key === 'k')");
     expect(trap).toMatch(/collectOpenModals\(\)\.reverse\(\)\.find\(isTrapRoot\)/);
@@ -42,7 +73,9 @@ describe('master handler focus-traps the non-#gmodal dialogs', () => {
   });
 
   it('restores the recorded opener when a bespoke overlay is removed on Escape', () => {
-    const esc = seg("m.id === 'gm-create-modal'");
+    // #064: the bespoke-removal branch is now generic (any `*-modal-overlay`
+    // scrim), not a hardcoded id list.
+    const esc = seg("if (e.key === 'Escape'", "if (e.key === 'Tab')");
     expect(esc).toMatch(/__ovOpener/);
     expect(esc).toMatch(/m\.__ovOpener\.focus\(\)/);
     expect(esc).toMatch(/m\.remove\(\)/);
@@ -58,7 +91,10 @@ function loadRealHandler() {
   const start = SRC.indexOf('function collectOpenModals()');
   const end = SRC.indexOf('}, { capture: true });', start) + '}, { capture: true });'.length;
   const code = SRC.slice(start, end);
-  new Function('document', 'window', 'openPalette', 'toggleSidebar', code)(document, window, () => {}, () => {});
+  // Expose the helper so tests can assert discovery directly; it is local to
+  // this Function scope, so it would otherwise not be reachable.
+  new Function('document', 'window', 'openPalette', 'toggleSidebar',
+    code + '\nwindow.collectOpenModals = collectOpenModals;')(document, window, () => {}, () => {});
 }
 
 describe('real handler traps focus in an open bespoke overlay (jsdom)', () => {
@@ -107,6 +143,26 @@ describe('real handler traps focus in an open bespoke overlay (jsdom)', () => {
     behind.focus(); // focus is OUTSIDE the dialog
     tab(behind);
     expect(document.activeElement).toBe(ov.querySelector('button')); // pulled into the modal
+  });
+
+  it('#064: a kanban editorial overlay (id not in the hardcoded list) is discovered and trapped', () => {
+    loadRealHandler();
+    const ov = document.createElement('div');
+    ov.id = 'kanban-modal-overlay';            // absent from the enumerated ids
+    ov.className = 'kanban-modal-overlay';     // but matches the `*-modal-overlay` discovery
+    ov.style.display = 'flex';
+    ov.innerHTML = '<button id="kb1">Save</button><input id="kb2"><button id="kb3">Cancel</button>';
+    document.body.appendChild(ov);
+    makeVisible(ov);
+    const kb1 = ov.querySelector('#kb1'), kb2 = ov.querySelector('#kb2'), kb3 = ov.querySelector('#kb3');
+    // It is picked up by collectOpenModals() through the dynamic query.
+    const found = collectOpenModals().some(el => el.id === 'kanban-modal-overlay');
+    expect(found).toBe(true);
+    // And the trap wraps focus within it.
+    kb3.focus(); tab(kb3);
+    expect(document.activeElement).toBe(kb1);
+    kb1.focus(); tab(kb1, { shiftKey: true });
+    expect(document.activeElement).toBe(kb3);
   });
 
   it('does not trap #gmodal (it self-traps; the shared trap must not steal it)', () => {
