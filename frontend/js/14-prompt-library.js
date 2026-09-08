@@ -787,7 +787,15 @@ function toggleReviewOverlay(){
 async function shareProject(){
   toast('🌐 Getting share URL…','ok',2000);
   const r=await fetch('/api/project/share',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target:'web'})});
-  const j=await r.json();
+  // Defensive parse: a non-2xx can return a non-JSON body (e.g. a plain-text
+  // 500), so r.json() would throw `Unexpected token 'I'...` on a server hiccup
+  // instead of reporting a friendly failure.
+  let j=null;
+  try { j = await r.json(); } catch(e) { j = null; }
+  if(!r.ok || !j){
+    toast('❌ Could not get share URL — try again in a moment','err');
+    return;
+  }
   if(j.ok){
     const url=j.public_url||j.lan_url;
     await gmAlert('🌐 Share Your App',`

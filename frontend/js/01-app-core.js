@@ -4429,9 +4429,15 @@ window.addEventListener('message', e => {
     consoleMessages.push(msg);
     if (consoleMessages.length > 200) consoleMessages.shift();
     updateConsolePanel();
-    // Flash console badge
-    const badge = document.getElementById('console-count-badge');
-    if (badge) { badge.textContent = consoleMessages.length; badge.style.display = ''; }
+    // Flash console badge. Two badges exist — the console panel header and the
+    // Console toggle button — with distinct ids; both must show the count.
+    // (These previously shared the id #console-count-badge, so getElementById
+    // returned only the first and the button badge never updated. Duplicate
+    // ids are also invalid HTML.)
+    ['console-count-badge', 'console-btn-count-badge'].forEach(id => {
+      const badge = document.getElementById(id);
+      if (badge) { badge.textContent = consoleMessages.length; badge.style.display = ''; }
+    });
   }
 });
 
@@ -4514,7 +4520,7 @@ function updateConsolePanel() {
   btn.id    = 'console-toggle-btn';
   btn.className = 'device-btn';
   btn.title    = 'Toggle DevTools console';
-  btn.innerHTML = '🔧 Console <span id="console-count-badge" style="display:none;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:99px;margin-left:3px">0</span>';
+  btn.innerHTML = '🔧 Console <span id="console-btn-count-badge" style="display:none;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:99px;margin-left:3px">0</span>';
   btn.onclick  = toggleConsole;
   toolbar.appendChild(btn);
 })();
