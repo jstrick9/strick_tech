@@ -2,7 +2,7 @@
 
 **Focus:** Consistent UI states + cohesive density/hierarchy + bug/UX hunting.
 **Ship style:** incremental — fix + regression test + commit + push each item.
-**Frontend suite:** 111 → **153 passing** · bundle rebuilt & reproducible · live app on port 8787.
+**Frontend suite:** 111 → **158 passing** · bundle rebuilt & reproducible · live app on port 8787.
 
 ---
 
@@ -22,12 +22,17 @@
 7. **#040 — Keyboard-dismissable modals + focus restore.** Locked the gm-modal contract (Escape dismiss, focus-restore to opener, prompt focuses its input) with a behavioral test; made the Skills run-modal Escape-dismissable; added a shared delegated Escape handler so all ad-hoc full-screen overlays (steering/replay/evals) are keyboard-dismissable — scoped to never touch `#gmodal`. (gm-modal-a11y 3, overlay-escape 3)
 8. **#041 — Settings/onboarding flow tightening.** Enter now advances the onboarding input and saves the settings API-key / custom-endpoint fields (delegated, bound once). (onboarding-enter 2, settings-enter 2)
 
+### Accessibility pass (icon-button names + keyboard/ARIA)
+9. **#042 — Goals pane a11y.** 3 filter `<select>`s get `aria-label`s; goal cards are now keyboard-operable (`role="button" tabindex="0" data-keys`) with `aria-selected`. (goals-a11y 2)
+10. **#043 — Workflow property editor a11y.** 8 property `<select>`s (Node type, Agent, Trigger event, Output target, Condition method/action, Mode) get `aria-label`s.
+11. **#044 — Accessible names for all icon-only buttons (33 modules).** Added `aria-label`+`title` to every icon-only button that had no accessible name — close (✕/×), delete (🗑), edit (✏), stop (🛑), revive (♻), export (📦), resolve (✓), copy-webhook. Includes a repo-wide regression guard that also catches buttons whose icon was accidentally stripped (empty `<button></button>`). (icon-button-name 3)
+
 ---
 
 ## Live preview
 App running at **port 8787**. Refresh to see the density/elevation/state changes and the four UX improvements.
 
 ## Verification
-- Frontend suite **153 passing**; bundle served live as head+chunks+app (3 requests, not 88).
+- Frontend suite **158 passing**; bundle served live as head+chunks+app (3 requests, not 88).
 - axe-core scan of the static app shell: **0 violations** (critical/serious and all impacts).
 - Every change ships with a jsdom regression test; onboarding-enter & composer verified **red on pre-fix**.
