@@ -57,6 +57,7 @@
     if (role) el.setAttribute('role', role);
     if (className === 'state-loading') el.setAttribute('aria-live', 'polite');
     if (role === 'alert') el.setAttribute('aria-live', 'assertive');
+    if (role === 'status') el.setAttribute('aria-live', 'polite');
     root.appendChild(el);
     return el;
   }
@@ -89,7 +90,7 @@
 
   function setEmpty(root, opts) {
     opts = opts || {};
-    var el = makeBase(root, 'state-empty', null);
+    var el = makeBase(root, 'state-empty', 'status');
     el.innerHTML = emptyHtml(opts);
     return el;
   }
@@ -114,7 +115,11 @@
 
   function emptyElement(opts) {
     opts = opts || {};
-    return '<div class="data-state state-empty">' + emptyHtml(opts) + '</div>';
+    // An injected empty state must be announced, like loading. Polite (not
+    // assertive) so it never interrupts; the presence/absence of data is a
+    // status, not a problem to be shouted.
+    return '<div class="data-state state-empty" role="status" aria-live="polite">' +
+      emptyHtml(opts) + '</div>';
   }
 
   function setError(root, opts) {

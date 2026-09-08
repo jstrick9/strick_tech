@@ -39,13 +39,15 @@ describe('stateFeedback inline states', () => {
     expect(el.classList.contains('state-reduced-motion')).toBe(true);
   });
 
-  it('setEmpty renders no role and carries an optional action button', () => {
+  it('setEmpty renders role=status + aria-live=polite and carries an optional action button', () => {
     const el = window.stateFeedback.setEmpty(host, {
       icon: '📭', title: 'No runs yet', message: 'Run your first task to see it here.',
       action: "showPrompt('run')", actionLabel: 'Run a task',
     });
     expect(el.className).toContain('state-empty');
-    expect(el.getAttribute('role')).toBeNull();
+    // A dynamically-inserted empty state must be announced (polite status).
+    expect(el.getAttribute('role')).toBe('status');
+    expect(el.getAttribute('aria-live')).toBe('polite');
     expect(el.textContent).toContain('No runs yet');
     const btn = el.querySelector('button');
     expect(btn).toBeTruthy();

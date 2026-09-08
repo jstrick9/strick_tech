@@ -3123,7 +3123,9 @@ function emptyState({ icon, title, body, actions = [] }) {
         `<button type="button" data-act-click="${a.action}" class="btn ${a.primary ? 'btn-primary' : 'btn-ghost'}">${escHtml(a.label)}</button>`
       ).join('')}</div>`
     : '';
-  return `<div class="data-state state-empty" role="status">${inner}${actionRow}</div>`;
+  // role=status + aria-live=polite, matching loadingElement/emptyElement so a
+  // dynamically-inserted empty state is announced to screen readers.
+  return `<div class="data-state state-empty" role="status" aria-live="polite">${inner}${actionRow}</div>`;
 }
 
 // ── Help panel factory (novice guidance) ───────────────────────────

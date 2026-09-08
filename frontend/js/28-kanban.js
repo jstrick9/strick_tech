@@ -120,15 +120,23 @@ function kanbanRenderBoard() {
     // Distinguish "the board is empty" from "we could not load the board".
     // Rendering empty columns here would repeat the original bug in a
     // quieter form: the user still could not tell that their tasks exist.
-    board.innerHTML = `
-      <div class="empty-state" role="alert" style="grid-column:1/-1">
-        <div class="empty-state__icon">⚠️</div>
-        <div class="empty-state__title">Couldn't load your tasks</div>
-        <div class="empty-state__body">Your tasks are safe — this is a
-          connection problem, not lost work. (${escHtml(kanbanLoadError)})</div>
-        <button type="button" class="btn btn-primary btn-sm"
-                data-act-click="renderKanban()">↻ Try again</button>
-      </div>`;
+    // Route through the shared error component (role=alert, Retry button,
+    // .data-state state-error) instead of bespoke .empty-state__* markup.
+    const errEl = (typeof window.stateFeedback !== 'undefined' && window.stateFeedback.errorElement)
+      ? window.stateFeedback.errorElement({ title: "Couldn't load your tasks",
+          message: 'Your tasks are safe — this is a connection problem, not lost work. (' + escHtml(kanbanLoadError) + ')',
+          retry: 'renderKanban()' })
+      : `<div class="data-state state-error" role="alert" aria-live="assertive">
+           <span class="data-state-icon" aria-hidden="true">⚠️</span>
+           <div class="data-state-copy">
+             <div class="data-state-title">Couldn't load your tasks</div>
+             <div class="data-state-msg">Your tasks are safe — this is a connection problem, not lost work. (${escHtml(kanbanLoadError)})</div>
+           </div>
+           <button type="button" class="btn btn-sm" data-act-click="renderKanban()">↻ Try again</button>
+         </div>`;
+    board.innerHTML = errEl;
+    const first = board.firstElementChild;
+    if (first) first.style.gridColumn = '1/-1';
     return;
   }
 

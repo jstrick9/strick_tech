@@ -28,18 +28,22 @@
     
     var errorDiv = document.createElement('div');
     errorDiv.className = 'pane-error-state card-elevated surface-z2';
-    errorDiv.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px;text-align:center;flex:1;margin:20px;border-radius:18px';
-    errorDiv.innerHTML = 
-      '<div class="neural-orb-3d" style="width:50px;height:50px;margin:0 auto 16px;filter:hue-rotate(140deg)"></div>' +
-      '<div style="font-size:18px;font-weight:800;color:var(--text-0);margin-bottom:8px">Workstation Panel Notice</div>' +
-      '<div style="font-size:13px;color:var(--text-2);max-width:440px;line-height:1.6;margin-bottom:20px">' +
-        'The <strong>' + paneId + '</strong> workstation encountered a rendering check while loading (' + (error || 'status refresh') + '). ' +
-        'You can retry initialization or return to active chat.' +
-      '</div>' +
-      '<div style="display:flex;gap:10px">' +
-        '<button type="button" class="btn-3d btn-primary btn-sm" data-act-click="retryPane(\'' + paneId + '\')" style="padding:8px 18px">↻ Retry Workstation</button>' +
-        '<button type="button" class="btn-3d btn-ghost btn-sm" data-act-click="nav(\'chat\')" style="padding:8px 18px">← Back to Chat</button>' +
-      '</div>';
+    var useShared = (typeof window.stateFeedback !== 'undefined' && window.stateFeedback.errorElement);
+    var title = 'This pane hit a snag';
+    var message = 'The <strong>' + paneId + '</strong> workstation encountered a rendering check while loading (' + (error || 'status refresh') + '). ' +
+        'You can retry initialization or return to active chat.';
+    var html = useShared
+      ? window.stateFeedback.errorElement({ title: title, message: message }) +
+        '<div class="data-state-actions"><button type="button" class="btn btn-primary btn-sm" data-act-click="retryPane(\'' + paneId + '\')">↻ Retry Workstation</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-act-click="nav(\'chat\')">← Back to Chat</button></div>'
+      : '<div class="data-state state-error" role="alert" aria-live="assertive">' +
+        '<span class="data-state-icon" aria-hidden="true">⚠️</span>' +
+        '<div class="data-state-copy"><div class="data-state-title">' + title + '</div>' +
+        '<div class="data-state-msg">' + message + '</div></div>' +
+        '<div class="data-state-actions"><button type="button" class="btn btn-primary btn-sm" data-act-click="retryPane(\'' + paneId + '\')">↻ Retry Workstation</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-act-click="nav(\'chat\')">← Back to Chat</button></div></div>';
+    errorDiv.style.cssText = 'flex:1;margin:20px;display:flex;flex-direction:column;justify-content:center';
+    errorDiv.innerHTML = html;
     pane.appendChild(errorDiv);
   };
 
@@ -50,20 +54,35 @@
     window.nav(paneId);
   };
 
-  // Add helpful empty states for panes that load successfully but have no data
+  // Add helpful empty states for panes that load successfully but have no data.
+  // Routes through the shared .data-state state-empty component (role=status +
+  // aria-live=polite) instead of bespoke .empty-state__* markup.
   window.showEmptyState = function(paneId, config) {
     var pane = document.getElementById('pane-' + paneId);
     if (!pane) return;
     var target = pane.querySelector('.page-content') || pane;
-    var existing = target.querySelector('.empty-state');
+    var existing = target.querySelector('[class*="data-state"], .empty-state');
     if (existing) return;
+    var icon = (config.icon || '🛠️');
+    var useShared = (typeof window.stateFeedback !== 'undefined' && window.stateFeedback.emptyElement);
+    var html = useShared
+      ? window.stateFeedback.emptyElement({
+          icon: icon,
+          title: config.title || 'Workstation Ready',
+          message: config.body || 'This specialist workstation is armed and waiting for your first task.',
+          action: config.action,
+          actionLabel: config.actionLabel || '⚡ Launch Task',
+        })
+      : // fallback (shared wiring not loaded yet): equivalent .data-state markup
+        '<div class="data-state state-empty" role="status" aria-live="polite">' +
+          '<span class="data-state-icon" aria-hidden="true">' + (icon || '') + '</span>' +
+          '<div class="data-state-copy"><div class="data-state-title">' + (config.title || 'Workstation Ready') + '</div>' +
+          '<div class="data-state-msg">' + (config.body || 'This specialist workstation is armed and waiting for your first task.') + '</div></div>' +
+          (config.action ? '<button type="button" class="btn btn-primary" data-act-click="' + config.action + '">' + (config.actionLabel || '⚡ Launch Task') + '</button>' : '') +
+        '</div>';
     var emptyDiv = document.createElement('div');
-    emptyDiv.className = 'empty-state surface-z1';
-    emptyDiv.innerHTML = 
-      (config.icon ? '<div class="empty-state__icon">' + config.icon + '</div>' : '<div class="neural-orb-3d" style="width:48px;height:48px;margin:0 auto 16px"></div>') +
-      '<div class="empty-state__title">' + (config.title || 'Workstation Ready') + '</div>' +
-      '<div class="empty-state__body">' + (config.body || 'This specialist workstation is armed and waiting for your first task.') + '</div>' +
-      (config.action ? '<div role="button" tabindex="0" class="empty-state__actions"><button type="button" class="btn-3d btn-primary" data-act-click="' + config.action + '">' + (config.actionLabel || '⚡ Launch Task') + '</button></div>' : '');
+    emptyDiv.className = 'surface-z1';
+    emptyDiv.innerHTML = html;
     target.appendChild(emptyDiv);
   };
 

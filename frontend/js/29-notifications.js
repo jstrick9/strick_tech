@@ -130,23 +130,26 @@ async function refreshNotifications() {
   }
 
   if (loadError) {
-    el.innerHTML = `
-      <div style="text-align:center;padding:40px 20px;color:var(--text-3)" role="alert">
-        <div style="font-size:32px;margin-bottom:12px">⚠️</div>
-        <div style="font-size:14px;font-weight:600;color:var(--text-2);margin-bottom:4px">Couldn't load notifications</div>
-        <div class="u-6cb285c6">${escapeHtml(loadError)}</div>
-      </div>
-    `;
+    // Route through the shared error component (role=alert, aria-live=assertive)
+    // instead of bespoke inline-styled markup.
+    el.innerHTML = (typeof window.stateFeedback !== 'undefined' && window.stateFeedback.errorElement)
+      ? window.stateFeedback.errorElement({ title: "Couldn't load notifications", message: escapeHtml(loadError) })
+      : `<div class="data-state state-error" role="alert" aria-live="assertive">
+           <span class="data-state-icon" aria-hidden="true">⚠️</span>
+           <div class="data-state-copy"><div class="data-state-title">Couldn't load notifications</div>
+             <div class="data-state-msg">${escapeHtml(loadError)}</div></div>
+         </div>`;
     return;
   }
   if (!notifs.length) {
-    el.innerHTML = `
-      <div style="text-align:center;padding:40px 20px;color:var(--text-3)">
-        <div style="font-size:32px;margin-bottom:12px">🔔</div>
-        <div style="font-size:14px;font-weight:600;color:var(--text-2);margin-bottom:4px">No notifications</div>
-        <div class="u-6cb285c6">You're all caught up!</div>
-      </div>
-    `;
+    // Route through the shared empty component (role=status, aria-live=polite).
+    el.innerHTML = (typeof window.stateFeedback !== 'undefined' && window.stateFeedback.emptyElement)
+      ? window.stateFeedback.emptyElement({ icon: '🔔', title: 'No notifications yet', message: 'New activity from your agents and collaborators will appear here.' })
+      : `<div class="data-state state-empty" role="status" aria-live="polite">
+           <span class="data-state-icon" aria-hidden="true">🔔</span>
+           <div class="data-state-copy"><div class="data-state-title">No notifications yet</div>
+             <div class="data-state-msg">New activity from your agents and collaborators will appear here.</div></div>
+         </div>`;
     return;
   }
 
