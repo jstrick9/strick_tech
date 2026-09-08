@@ -630,6 +630,39 @@
     createContextMenu();
     initDrawerResizer();
 
+    // Mobile responsive fix: the 280px chat-history drawer is a flex-shrink:0
+    // child of the chat pane, so on a narrow (phone-width) viewport it shoved
+    // the message area down to ~100px on first load, making chat unusable.
+    // Default-collapse it on mobile (the toggle button still reopens it, as an
+    // overlay-ish peek) and auto-collapse if the user resizes down to phone
+    // width. (#073)
+    var isMobileQuery = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
+    if (isMobileQuery && isMobileQuery.matches && typeof window.toggleChatHistoryDrawer === 'function') {
+      window.toggleChatHistoryDrawer(); // starts shown -> collapses it
+    }
+    if (isMobileQuery && isMobileQuery.addEventListener) {
+      var _autoCollapsed = false;
+      var onMobileChange = function(e) {
+        var dr = document.getElementById('chat-history-drawer');
+        if (e.matches) {
+          // Entering phone width: collapse only if currently shown (don't undo
+          // a manual re-open), and remember we did it so we can restore.
+          if (dr && dr.style.display !== 'none' && typeof window.toggleChatHistoryDrawer === 'function') {
+            window.toggleChatHistoryDrawer();
+            _autoCollapsed = true;
+          }
+        } else {
+          // Leaving phone width: restore the drawer if we auto-collapsed it,
+          // so a desktop user who briefly resized doesn't lose their panel.
+          if (_autoCollapsed && dr && dr.style.display === 'none' && typeof window.toggleChatHistoryDrawer === 'function') {
+            window.toggleChatHistoryDrawer();
+          }
+          _autoCollapsed = false;
+        }
+      };
+      isMobileQuery.addEventListener('change', onMobileChange);
+    }
+
     var newFolderBtn = document.getElementById('new-folder-btn');
     if (newFolderBtn) {
       newFolderBtn.addEventListener('click', function(e) {
