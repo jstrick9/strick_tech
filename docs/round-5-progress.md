@@ -56,7 +56,7 @@ App running at **port 8787**. Refresh to see the density/elevation/state changes
 App running at **port 8787**. Refresh to see the density/elevation/state changes and the four UX improvements.
 
 ## Verification
-- Frontend suite **276 passing**; bundle served live as head+chunks+app (3 requests, not 88).
+- Frontend suite **278 passing**; bundle served live as head+chunks+app (3 requests, not 88).
 - Remote HEAD now past **#057** (`4b9e5ba`).
 - axe-core scan of the static app shell: **0 violations** (critical/serious and all impacts).
 - Every change ships with a jsdom regression test; onboarding-enter & composer verified **red on pre-fix**.
@@ -91,3 +91,5 @@ App running at **port 8787**. Refresh to see the density/elevation/state changes
 37. **#070 — Duplicate `/api/cost` polling loop fired twice every 30s.** `setInterval(updateCostBar, 30000)` was registered in both the Studio section and the Prompt Library (Sprint 13) section of `01-app-core.js`, firing `/api/cost` twice every 30s for the app's whole lifetime. `updateCostBar` is idempotent/side-effect-free (writes `total_cost_usd` into `#sb-cost`), so the duplicate only wasted one request per cycle. Removed the second registration; the single upstream interval owns the poll. (Verified live: once per cycle after.) (cost-bar-single-poll 2. Suite 272→274.)
 
 38. **#071 — Startup auto-focus timer ripped focus out of an open dialog.** `14-prompt-library.js` scheduled `setTimeout(()=>{…focus chat-input…},1200)` and ran unconditionally when `pane-chat` was active, so a user who opened the command palette or another modal within ~1.2s of load had focus wrenched into the chat box behind the modal (arrow/Enter went to chat, not the palette). Timer now consults `collectOpenModals()` and bails when any dialog is open. Verified live: open palette fast, wait past the 1.2s timer, focus stays on `palette-input`, Enter activates kanban and closes the palette. (startup-chat-focus-yields-modal 2. Suite 274→276.)
+
+39. **#072 — `collectOpenModals()` reported closed modals as open; Escape toasted spuriously.** The "is open" predicate tested inline `m.style.display`/`m.style.opacity`; modals hidden by a stylesheet class (e.g. `#palette-modal`) have an empty inline style, so they were collected as open on every page. With nothing open, pressing Escape ran the close branch and fired a spurious `✕ Modal closed` toast; the Tab focus-trap also considered closed dialogs. The same node could also be collected twice (`#agent-modal` is both in the named list and matched by `.modal-back[style*="flex"]`). Fixed by testing computed visibility (`getComputedStyle().display/visibility`, stylesheet-aware) and deduping by identity. (collect-open-modals-computed 2. Suite 276→278.)
