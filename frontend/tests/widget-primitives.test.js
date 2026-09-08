@@ -87,6 +87,13 @@ describe('styles-system.css bold component primitives', () => {
     expect(/\.ttd-badge\.running/.test(SYS)).toBe(true);
   });
 
+  it('wraps the badge/tag clusters and modal-example lists', () => {
+    const cluster = SYS.split(/Container clusters/)[1] || '';
+    expect(/\.mkt-card-badges\s*,/.test(SYS)).toBe(true);
+    expect(cluster.includes('flex-wrap: wrap')).toBe(true);
+    expect(/\.dag-modal-examples\s*\{[^}]*flex-direction: column/.test(SYS)).toBe(true);
+  });
+
   it('gives every bespoke modal a fixed full-screen scrim', () => {
     for (const c of ['a2a-modal-overlay', 'dag-modal-overlay', 'gm-modal-overlay']) {
       const block = SYS.split(/\/\* Modal scrim/)[1] || '';

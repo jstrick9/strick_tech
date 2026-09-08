@@ -497,6 +497,16 @@
   white-space: nowrap;
 }
 .crc-report-chip, .crc-risk-chip { border-radius: var(--radius-sm); }
+/* Container clusters for the now-styled badges/tags/examples. These were plain
+   unstyled block divs, so their pills stacked vertically; give them a wrap-only
+   row so a cluster reads as a tag list. */
+.mkt-card-badges, .mkt-card-tags, .wg-tag-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.dag-modal-examples { display: flex; flex-direction: column; gap: var(--space-1); margin: var(--space-3) 0; }
 
 /* ── Toggle switches …─────────────────────────────────────────────────── */
 /* A switch that reads identically across the six bespoke toggles. */
