@@ -29,6 +29,9 @@
 12. **#045 — Accessible names for unlabeled controls & images.** Workflow/node config inputs, prompt-library variable inputs, goals milestone inputs, DB-studio cell inputs, ICM stage name, marketplace/ordering + HITL delegation selects, and a screenshot `<img alt>`. (control-labels 4)
 13. **#046 — Keyboard-operable mouse-only click divs (13 modules).** Leaf `data-act-click` tabs/nav/cards/rows (agent selector, SDK packs, TTD nodes/lanes, dag nodes, github/mcp/notification/leaderboard rows, onboarding theme picker, drop targets, goal decomposition tasks) got `role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1"`. (keyboard-clickable 2)
 
+### Backend/quality
+14. **#047 — Bundle cache picks up rebuilds without touching index.html.** The served index was cached against `index.html`'s mtime only; a rebuilt bundle (new content-hashed filenames) was never served until the file was touched or the server restarted, leaving the live preview pointing at removed artifacts. Cache validity now also tracks `dist/manifest.json`'s mtime. (regression test_reg_07)
+
 ---
 
 ## Live preview
