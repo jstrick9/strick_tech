@@ -87,14 +87,14 @@ async function renderGoals() {
         </div>
         <div class="gm-filters">
           <div class="gm-filter-row">
-            <select class="gm-filter-select" id="gm-filter-status" data-act-change="gmFilterChange()">
+            <select class="gm-filter-select" id="gm-filter-status" aria-label="Filter goals by status" data-act-change="gmFilterChange()">
               <option value="">All statuses</option>
               <option value="active">Active</option>
               <option value="paused">Paused</option>
               <option value="done">Done</option>
               <option value="blocked">Blocked</option>
             </select>
-            <select class="gm-filter-select" id="gm-filter-priority" data-act-change="gmFilterChange()">
+            <select class="gm-filter-select" id="gm-filter-priority" aria-label="Filter goals by priority" data-act-change="gmFilterChange()">
               <option value="">All priorities</option>
               <option value="critical">Critical</option>
               <option value="high">High</option>
@@ -102,7 +102,7 @@ async function renderGoals() {
               <option value="low">Low</option>
             </select>
           </div>
-          <select class="gm-filter-select" id="gm-filter-domain" data-act-change="gmFilterChange()">
+          <select class="gm-filter-select" id="gm-filter-domain" aria-label="Filter goals by domain" data-act-change="gmFilterChange()">
             <option value="">All domains</option>
             <option value="Work">💼 Work</option>
             <option value="Health">🏃 Health</option>
@@ -213,7 +213,7 @@ function gmRenderList() {
     const isActive = _goalSelected?.goal?.id === g.id;
     const score  = g.outcome_score != null ? Math.round(g.outcome_score*100) : null;
     const icon   = GOAL_DOMAIN_ICONS[g.domain] || '📌';
-    return `<div class="gm-goal-card ${isActive?'active':''}" style="border-left-color:${pCol}" data-goal-id="${escHtml(g.id)}">
+    return `<div class="gm-goal-card ${isActive?'active':''}" style="border-left-color:${pCol}" data-goal-id="${escHtml(g.id)}" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" aria-selected="${isActive?'true':'false'}">
       <div class="gm-goal-card-top">
         <span class="gm-goal-icon">${icon}</span>
         <span class="gm-goal-title">${escHtml(g.title.slice(0,55))}</span>
