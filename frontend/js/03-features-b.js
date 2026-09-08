@@ -765,12 +765,7 @@ async function renderCodeIndex() {
         <canvas id="ci-graph-canvas" class="ci-graph-canvas"></canvas>
         <div id="ci-tab-content" style="position:absolute;inset:0;overflow:auto;display:none;padding:16px;background:var(--bg-0)"></div>
         <div id="ci-empty-state" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-3)">
-          <div class="u-5c383099">🕸️</div>
-          <div class="u-5f73ae8a">Codebase Index</div>
-          <div style="font-size:13px;max-width:340px;text-align:center;line-height:1.6">
-            Like Windsurf Codemaps & Augment Code — index your project to see a live dependency graph, find complex functions, detect dead code.
-          </div>
-          <button class="btn u-1b0f4999" data-act-click="ciIndexNow()" >🔄 Index Now</button>
+          ${stateFeedback.emptyElement({ icon: '🕸️', title: 'No code indexed yet', message: 'Like Windsurf Codemaps & Augment Code — index your project to see a live dependency graph, find complex functions, detect dead code.', action: 'ciIndexNow()', actionLabel: '🔄 Index Now' })}
         </div>
         <div id="ci-node-tooltip" style="position:absolute;display:none;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--text-0);pointer-events:none;z-index:10;max-width:220px"></div>
       </div>

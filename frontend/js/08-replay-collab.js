@@ -109,12 +109,7 @@ async function renderReplay() {
 
           <!-- Empty state (shown when no run selected) -->
           <div class="ttd-empty" id="ttd-empty">
-            <div class="ttd-empty-icon">⏮️</div>
-            <div class="ttd-empty-title">No Run Selected</div>
-            <div class="ttd-empty-sub">
-              Select a run from the sidebar to replay it frame-by-frame on the graph canvas,
-              or run a workflow from the <strong style="color:var(--accent-text);cursor:pointer" data-act-click="nav('workflow')">Workflows</strong> pane first.
-            </div>
+            ${stateFeedback.emptyElement({ icon: '⏮️', title: 'No Run Selected', message: 'Select a run from the sidebar to replay it frame-by-frame on the graph canvas, or start with a workflow first.', action: "nav('workflow')", actionLabel: 'Open Workflows' })}
           </div>
 
           <!-- Zoom controls -->

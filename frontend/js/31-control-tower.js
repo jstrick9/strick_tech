@@ -53,7 +53,7 @@ async function refreshControlTower() {
         <div>
           <div class="u-cbf73b78">Agent Runs</div>
           <div style="display:flex;flex-direction:column;gap:5px">
-            ${runList.length === 0 ? emptyState({icon:'📊',title:'No runs yet',body:'Agent runs appear here with full traces and cost breakdown.'}) :
+            ${runList.length === 0 ? emptyState({icon:'📊',title:'No runs yet',body:'Agent runs appear here with full traces and cost breakdown.',actions:[{label:'▶ Run a workflow',action:"nav('workflow')",primary:true}]}) :
             runList.slice(0,10).map(r=>{
               const sCol = {running:'var(--warning)',done:'var(--success)',error:'var(--danger)',killed:'var(--text-3)'}[r.status]||'var(--text-2)';
               return `<div class="card card-interactive" data-act-click="showRunTrace(${jsArg(r.run_id)})" style="padding:9px 12px" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
@@ -91,7 +91,7 @@ async function refreshControlTower() {
       </div>
       </div>`;
   } catch(e) {
-    pane.innerHTML = `<div class="page-content">${emptyState({icon:'⚠️',title:'Error',body:escHtml(e.message)})}</div>`;
+    pane.innerHTML = `<div class="page-content">${emptyState({icon:'⚠️',title:'Couldn\u2019t load this',body:escHtml(e.message),actions:[{label:'\u21bb Try again',action:'refreshControlTower()',primary:true}]})}</div>`;
   }
 }
 async function showRunTrace(runId) {

@@ -140,11 +140,7 @@ async function renderWorkflow() {
 
       <!-- Empty state -->
       <div id="wf-empty-state" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-3);pointer-events:none">
-        <div style="font-size:48px;margin-bottom:16px;opacity:.4">🗺️</div>
-        <div style="font-size:16px;font-weight:600;color:var(--text-1);margin-bottom:8px">No Workflow Selected</div>
-        <div style="font-size:13px;max-width:320px;text-align:center;line-height:1.6">
-          Select a workflow from the sidebar, create a new one, or drag nodes from the palette onto the canvas.
-        </div>
+        ${stateFeedback.emptyElement({ icon: '🗺️', title: 'No Workflow Selected', message: 'Select a workflow from the sidebar, create a new one, or drag nodes from the palette onto the canvas.' })}
       </div>
 
       <!-- Run log -->

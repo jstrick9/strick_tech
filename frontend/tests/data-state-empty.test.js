@@ -46,4 +46,20 @@ describe('data-area empty states use the shared .data-state empty component', ()
     const fb = fs.readFileSync(path.join(JS, '03-features-b.js'), 'utf8');
     expect(fb).toContain('stateFeedback.emptyElement({ icon: \'🎯\'');
   });
+
+  it('the bespoke pane empties are now the shared component (with CTAs)', () => {
+    // Control-tower "No runs yet" got a Run-a-workflow CTA.
+    const ct = fs.readFileSync(path.join(JS, '31-control-tower.js'), 'utf8');
+    expect(ct).toContain("action:\"nav('workflow')\"");
+    expect(ct).toContain("refreshControlTower()");
+    // Replay "No Run Selected" and code-insights and workflow-canvas empties.
+    const rp = fs.readFileSync(path.join(JS, '08-replay-collab.js'), 'utf8');
+    expect(rp).toContain("icon: '⏮️'");
+    expect(rp).toContain("action: \"nav('workflow')\"");
+    const fb = fs.readFileSync(path.join(JS, '03-features-b.js'), 'utf8');
+    expect(fb).toContain("icon: '🕸️'");
+    expect(fb).toContain("action: 'ciIndexNow()'");
+    const fa = fs.readFileSync(path.join(JS, '03-features-a.js'), 'utf8');
+    expect(fa).toContain("icon: '🗺️'");
+  });
 });
