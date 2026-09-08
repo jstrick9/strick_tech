@@ -500,6 +500,40 @@
 .steer-auto-badge { color: var(--accent-hi); border-color: var(--accent-hi); }
 
 /* ── Tags & chips …────────────────────────────────────────────────────── */
+/* The pre-existing shared `.tag` component lived in the SAME stylesheet but
+   with a different vocabulary and geometry than its sibling `.badge`: it used
+   hardcoded hex modifiers (`.tag.green/.yellow/.red/.blue`), 10px/2px7px and a
+   99px radius, while `.badge` used the token family (badge-default/accent/
+   success/warning/danger) and AA tints. Two shared components that were
+   visually the same object but spoke different shells — so a `.tag` and a
+   `.badge` in the same row rendered two sizes. Reconciled here (authoritative,
+   loads last): `.tag` now uses the SAME geometry and the SAME modifier tokens
+   as `.badge`; the legacy hex modifiers are kept as aliases so existing markup
+   keeps working, just consistent. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid;
+  background: var(--bg-3);
+  color: var(--text-2);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+/* Modifier tokens. New class names (tag-default/-accent/-success/-warning/
+   -danger) are the canonical vocabulary, matching .badge-*; the legacy
+   `.tag.green/.yellow/.red/.blue` modifiers are aliases of the same tints so
+   existing markup renders identically, now consistent with .badge. */
+.tag-default { background: var(--bg-3); border-color: var(--border); color: var(--text-2); }
+.tag-accent, .tag.blue { background: var(--accent-glow); border-color: rgba(91,138,248,.3); color: var(--accent-hi); }
+.tag-success, .tag.green { background: rgba(61,186,122,.1); border-color: rgba(61,186,122,.25); color: #3dba7a; }
+.tag-warning, .tag.yellow { background: rgba(232,162,55,.1); border-color: rgba(232,162,55,.25); color: #e8a237; }
+.tag-danger, .tag.red { background: rgba(232,82,82,.1); border-color: rgba(232,82,82,.25); color: #e85252; }
 .wg-tag,
 .dag-node-agent-tag, .hook-event-tag, .mkt-tag, .model-used-tag,
 .ttd-node-type-tag, .icm-stage-in {
