@@ -246,3 +246,8 @@ protocol modules.
   standard 36px full-size control height (btn-sm stays 28px); hover lift gated
   behind prefers-reduced-motion. Guard: design-system-guard.test.js (4).
   Suite 130.
+- **#035 (shipped `014ea34`)** — Added axe-core (dev) + jsdom WCAG regression test
+  scanning the static app shell for critical/serious WCAG 2.x A/AA violations.
+  color-contrast/region disabled (jsdom can't compute contrast; contrast already
+  measured in real Chromium). Static shell scans 0 violations -> durable guard.
+  Package: frontend/package.json (axe-core devDep). Suite 131.
