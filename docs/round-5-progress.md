@@ -36,12 +36,22 @@
 17. **#050 — Data-area empty states route through the `.data-state` empty component (~25 sites).** Added `stateFeedback.emptyElement(opts)` (icon/title/message/action). Converted ~25 hand-rolled inline empty divs across ~17 panes (evals, quality, replay/collab, hierarchy, prompt-library search, fusion, websearch, leaderboard, supervisor, goals, chat history, ICM, template gallery, galaxy, loops, hooks, battles, flamegraph, console), each preserving its next-action CTA. Compact list notes / table rows / per-op statuses / success lines intentionally left. (data-state-empty 4)
 18. **#051 — Empty-state CTAs + unify bespoke pane empties.** `emptyState()`-factory audit: control-tower 'No runs yet' + its error state gained CTAs (all other factory sites already had them). Unified the id'd bespoke empties — workflow canvas 'No Workflow Selected', code-insights 'Codebase Index' (+Index Now CTA) and replay 'No Run Selected' (+Open Workflows CTA, replacing an inline clickable span with a real button) — to the shared `state-empty` component. `docs-search-empty` is a contextual in-search empty, intentionally left. (data-state-empty now 4)
 
+### The parked "bold redesign" branch — shared component primitives
+19. **#052 — Consolidated ~110 per-pane widgets onto bold shared primitives.** Audited programmatically and confirmed: every bespoke pane widget (buttons, badges, tags, chips, tabs, toggles, fields, tables, modals across A2A, compliance, agent-monitor, goals, supervisor, MCP-gateway, replay/collab, evals, quality, account-settings, workflow-specs, marketplace, prompt-library, ICM…) was styled ONLY in `frontend/styles.css`, which index.html does NOT link — the same "rule exists but never loads" defect that took down `.ce-*`. Each rendered as a bare browser control. Unified them onto a small token-driven set of bold primitives in the authoritative `styles-system.css` (`wg-btn`/`wg-ibtn`, `wg-tabs`/`wg-tab`, `wg-badge`, `wg-tag`, `wg-chip`, `wg-toggle`, `wg-field`, `wg-table`, `wg-modal`), with `.primary`/`.danger`/`.active` variants and AA status tints (pass/fail, low/medium/high/critical, running/done/pending). Purely additive; honours `prefers-reduced-motion`; carries a `:focus-visible` ring. (widget-primitives 7)
+20. **#053 — Shared fixed modal scrim for bespoke dialogs.** `a2a-modal-overlay`, `dag-modal-overlay` and `gm-modal-overlay` were appended via `overlay.className='…'` with no inline style and no CSS in any loaded sheet, so their dialog content dropped into the document flow instead of centering over a full-screen scrim. Added a `wg-modal-overlay` primitive (fixed inset scrim, blurred backdrop, centered flex) applied to all three. (widget-primitives 8)
+21. **#054 — Escape dismisses the bespoke overlay-modals (item #3).** `gm-create-modal`, `dag-launch-modal`, `a2a-delegate-modal`, `a2a-register-modal` were added to the global master Escape handler (discovery by id) and given a `remove()` branch — they must be removed, not `display:none`, or a stale scrim keeps catching clicks. (escape-overlay-modals 2)
+
+---
+
+## Live preview
+App running at **port 8787**. Refresh to see the density/elevation/state changes and the four UX improvements.
+
 ---
 
 ## Live preview
 App running at **port 8787**. Refresh to see the density/elevation/state changes and the four UX improvements.
 
 ## Verification
-- Frontend suite **167 passing**; bundle served live as head+chunks+app (3 requests, not 88).
+- Frontend suite **185 passing**; bundle served live as head+chunks+app (3 requests, not 88).
 - axe-core scan of the static app shell: **0 violations** (critical/serious and all impacts).
 - Every change ships with a jsdom regression test; onboarding-enter & composer verified **red on pre-fix**.
