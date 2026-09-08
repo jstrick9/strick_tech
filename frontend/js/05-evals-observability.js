@@ -137,7 +137,7 @@ async function renderEvals() {
           <option value="builder">builder</option>
           <option value="researcher">researcher</option>
         </select>
-        <button class="btn" style="background:rgba(232,82,82,.2);border-color:var(--danger);color:var(--danger)" data-act-click="evalRunRedTeam()">🔴 Run Red Team (${attacks.count||8} attacks)</button>
+        <button class="btn" style="background:rgba(232,82,82,.2);border-color:var(--danger);color:var(--danger)" data-act-click="evalRunRedTeam()">🔴 Run Red Team (${typeof attacks.count === 'number' ? attacks.count : 8} attacks)</button>
       </div>
       <div id="redteam-result"></div>
     </div>

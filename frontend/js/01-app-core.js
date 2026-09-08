@@ -1497,7 +1497,7 @@ window.testOllamaConnection = async function() {
     });
     const j = await r.json();
     if (j.ok) {
-      if (statusEl) { statusEl.textContent = `ONLINE (${j.models_count || 1} models)`; statusEl.style.color = 'var(--success)'; }
+      if (statusEl) { statusEl.textContent = `ONLINE (${typeof j.models_count === 'number' ? j.models_count : 1} models)`; statusEl.style.color = 'var(--success)'; }
       if (modelsEl) modelsEl.innerHTML = `<div style="color:var(--success);font-weight:700;margin-bottom:6px">${escHtml(j.message || 'Ollama connection active!')}</div>`;
       toast('⚡ Local Ollama connection confirmed active!', 'ok', 3000);
       if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();

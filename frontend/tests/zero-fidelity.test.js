@@ -44,10 +44,14 @@ describe('zero-fidelity: no truthy-fallback on numeric renders (pattern guard)',
     ['05-evals-observability.js', /d\.confidence\s*\|\|\s*1\)/],
     ['42-hitl.js', /item\.confidence\s*\|\|\s*0\.65/],
     ['58-csp-monitor.js', /v\.count\s*\|\|\s*1/],
+    ['01-app-core.js', /models_count\s*\|\|\s*1/],
+    ['05-evals-observability.js', /attacks\.count\s*\|\|\s*8/],
   ];
   for (const [file, re] of guards) {
     it(`${file} does not swallow 0 with a numeric || default`, () => {
-      expect(readJS(file).match(re)).toBeNull();
+      // Strip // comments so documented prior fixes don't trip the guard.
+      const code = readJS(file).replace(/\/\/[^\n]*/g, '');
+      expect(code.match(re)).toBeNull();
     });
   }
 });
