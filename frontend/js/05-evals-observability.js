@@ -226,7 +226,7 @@ async function evalLoadHistory() {
             <div><span class="pass-badge ${r.pass_fail}">${r.pass_fail}</span></div>
             <div style="color:var(--text-2)">${Math.round((r.faithfulness||0)*100)}%</div>
             <div style="color:var(--text-2)">${Math.round((r.hallucination||0)*100)}%</div>
-          </div>`).join('') || '<div style="padding:20px;text-align:center;color:var(--text-3)">No eval runs yet. Run an eval above.</div>'}
+          </div>`).join('') || stateFeedback.emptyElement({ title: 'No eval runs yet', message: 'Run an eval above.' })}
       </div>`;
   } catch(e) { el.textContent='Error loading history'; }
 }
@@ -538,7 +538,7 @@ async function obsLoadTraces(q='') {
             <div style="color:var(--text-2)">${t.total_latency_ms||0}ms</div>
             <div style="color:var(--text-2)">${(t.total_tokens||0).toLocaleString()}</div>
             <div><span style="font-size:10px;padding:2px 6px;border-radius:4px;${t.status==='error'?'background:rgba(232,82,82,.15);color:var(--danger)':'background:rgba(61,186,122,.15);color:var(--success)'}">${t.status||'ok'}</span></div>
-          </div>`).join('') || '<div style="padding:20px;text-align:center;color:var(--text-3)">No traces yet. Agent calls will appear here automatically.</div>'}
+          </div>`).join('') || stateFeedback.emptyElement({ title: 'No traces yet', message: 'Agent calls will appear here automatically.' })}
       </div>`;
   } catch(e) { el.textContent='Error loading traces'; }
 }
@@ -625,7 +625,7 @@ async function renderKnowledgeGraph() {
               <span style="font-weight:600;color:var(--text-0);font-size:12px">${escHtml(e.name||'')}</span>
             </div>
             <div style="font-size:11px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((e.description||'').slice(0,60))}</div>
-          </div>`).join('') || '<div style="color:var(--text-3);font-size:12px;padding:8px">No entities yet. Add one or extract from text.</div>'}
+          </div>`).join('') || stateFeedback.emptyElement({ title: 'No entities yet', message: 'Add one or extract from text.' })}
       </div>
     </div>
 

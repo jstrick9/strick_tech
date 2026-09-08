@@ -356,7 +356,7 @@
             </div>
             <div style="font-size:11px;color:var(--text-2);font-family:monospace;line-height:1.6;max-height:80px;overflow:hidden">${escHtml((f.content||'').slice(0,300))}${(f.content||'').length>300?'…':''}</div>
           </div>
-        `).join('') || '<div style="color:var(--text-3);padding:16px;text-align:center">No rule files yet. Create one or click Auto-Learn.</div>'}
+        `).join('') || stateFeedback.emptyElement({ title: 'No rule files yet', message: 'Create one or click Auto-Learn.' })}
       </div>
 
       ${(patternsData.patterns||[]).length ? `

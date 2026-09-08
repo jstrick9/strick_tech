@@ -92,11 +92,7 @@ async function renderLeaderboard() {
           }).join('')}
         </div>
       ` : `
-        <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:40px;text-align:center;color:var(--text-3)">
-          <div class="u-da61af79">🏆</div>
-          <div style="font-size:15px;font-weight:600;margin-bottom:8px">No performance data yet</div>
-          <div style="font-size:13px;max-width:340px;margin:0 auto">Use your agents and performance data will appear here. Click "Seed Test Data" to demo.</div>
-        </div>`}
+        stateFeedback.emptyElement({ icon: '🏆', title: 'No performance data yet', message: 'Use your agents and performance data will appear here. Click \u201cSeed Test Data\u201d to demo.' })`}
       </div>
     </div>
 
@@ -120,7 +116,7 @@ async function renderLeaderboard() {
               </span>
               <span style="font-size:10px;color:var(--text-3)">${a.policy_count||0} policies</span>
             </div>
-          </div>`).join('') : '<div style="color:var(--text-3);padding:20px;text-align:center">No agents found</div>'}
+          </div>`).join('') : stateFeedback.emptyElement({ title: 'No agents found' })}
       </div>
     </div>
 
@@ -253,7 +249,7 @@ async function lbChangeDays(days) {
     if (!r.ok) { container.innerHTML = stateFeedback.errorElement({ message: `Failed (HTTP ${r.status})` }); return; }
     const lb = await r.json();
     if (!(lb.leaderboard||[]).length) {
-      container.innerHTML = '<div style="color:var(--text-3);padding:20px;text-align:center">No data for selected period/task</div>';
+      container.innerHTML = stateFeedback.emptyElement({ title: 'No data for this period', message: 'No data for the selected period/task.' });
       return;
     }
     container.innerHTML = `

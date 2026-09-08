@@ -1854,7 +1854,7 @@ async function mktLoadPacks(q='', category='', sort='featured') {
     const cnt = document.getElementById('mkt-result-count');
     if (cnt) cnt.textContent = `${d.total||0} result${d.total!==1?'s':''}`;
     grid.innerHTML = (d.packs||[]).map((p) =>mktCardHTML(p)).join('') ||
-      '<div style="color:var(--text-3);padding:20px;text-align:center">No packs found matching your criteria</div>';
+      stateFeedback.emptyElement({ title: 'No packs found', message: 'No packs match your criteria.' });
   } catch(e) {
     grid.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t load this view', message: humanError(e, {action:'load this view', dataSafe:true}) });
   }

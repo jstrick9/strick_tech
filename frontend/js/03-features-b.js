@@ -373,10 +373,7 @@ async function specLoadTasks() {
 
     if (!d.count) {
       html += `
-        <div style="color:var(--text-3);font-size:12px;padding:20px;text-align:center">
-          No tasks yet.<br>
-          <button class="btn u-56f43562" data-act-click="specGenTasks()" >✅ Generate Tasks from Design</button>
-        </div>`;
+        stateFeedback.emptyElement({ icon: '🎯', title: 'No tasks yet', message: 'Generate tasks from your design spec.', action: 'specGenTasks()', actionLabel: '✅ Generate Tasks from Design' })`;
     } else {
       for (const [wave, tasks] of Object.entries(waves)) {
         html += `<div class="spec-wave-label"><span>Wave ${wave}</span><div class="spec-wave-line"></div><span style="font-size:10px;color:var(--text-3)">${tasks.length} parallel task${tasks.length>1?'s':''}</span></div>`;
@@ -553,7 +550,7 @@ async function renderHooks() {
 
       <!-- Hook cards -->
       <div id="hook-list">
-        ${hookList.map((h) => hookCardHTML(h, eventMap)).join('') || '<div style="color:var(--text-3);padding:20px;text-align:center">No hooks yet. Create one or enable a built-in hook below.</div>'}
+        ${hookList.map((h) => hookCardHTML(h, eventMap)).join('') || stateFeedback.emptyElement({ title: 'No hooks yet', message: 'Create one or enable a built-in hook below.' })}
       </div>
 
       <!-- Recent runs -->
@@ -1191,7 +1188,7 @@ async function renderArena() {
               <span style="color:var(--text-3);width:80px;text-align:right">${m.win_rate}% WR</span>
               <span style="color:var(--text-3);width:60px;text-align:right">${m.battles}B</span>
             </div>`;
-        }).join('') : '<div style="color:var(--text-3);padding:16px;text-align:center">No battles yet — start one above!</div>'}
+        }).join('') : stateFeedback.emptyElement({ title: 'No battles yet', message: 'Start one above!' })}
       </div>
     </div>
   </div>`;

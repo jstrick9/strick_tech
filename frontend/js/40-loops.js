@@ -66,7 +66,7 @@ async function refreshLoops() {
     if (badge) badge.textContent = loops.length;
     if (!el) return;
     if (!loops.length) {
-      el.innerHTML = '<div style="color:var(--text-3);font-size:13px">No loops running. Create one ←</div>';
+      el.innerHTML = stateFeedback.emptyElement({ title: 'No loops running', message: 'Create one to get started.' });
       return;
     }
     el.innerHTML = loops.map(l => `

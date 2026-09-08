@@ -371,7 +371,7 @@ async function fusionLoadHistory() {
     const r = await fetch('/api/fusion/history?limit=10');
     if (!r.ok) { el.innerHTML = `<div style="color:var(--danger)">Failed (HTTP ${r.status})</div>`; return; }
     const d = await r.json();
-    if (!d.history?.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:12px">No runs yet. Run a fusion first!</div>'; return; }
+    if (!d.history?.length) { el.innerHTML = stateFeedback.emptyElement({ title: 'No runs yet', message: 'Run a fusion first!' }); return; }
     el.innerHTML = d.history.map(h => `
       <div style="border-top:1px solid var(--border);padding:8px 0;font-size:12px">
         <div style="display:flex;gap:6px;margin-bottom:3px">

@@ -168,7 +168,7 @@
     if (cnt) cnt.textContent = filtered.length + ' template' + (filtered.length !== 1 ? 's' : '');
 
     if (!filtered.length) {
-      grid.innerHTML = '<div style="color:var(--text-3);grid-column:1/-1;text-align:center;padding:40px">No templates match "' + escHtml(q) + '"</div>';
+      grid.innerHTML = stateFeedback.emptyElement({ icon: '🔍', title: 'No templates found', message: 'No templates match \u201c" + escHtml(q) + "\u201d' });
       return;
     }
 

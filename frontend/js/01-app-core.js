@@ -4363,7 +4363,7 @@ function updateConsolePanel() {
       <span style="color:var(--text-3);flex-shrink:0">${m.time}</span>
       <span style="color:${c};flex:1;white-space:pre-wrap;word-break:break-all">${escHtml(m.text||'')}</span>
     </div>`;
-  }).join('') || '<div style="color:var(--text-3);padding:16px;text-align:center;font-size:12px">No console output yet</div>';
+  }).join('') || stateFeedback.emptyElement({ title: 'No console output yet' });
   el.scrollTop = el.scrollHeight;
 }
 

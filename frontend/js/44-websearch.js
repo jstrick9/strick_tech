@@ -309,7 +309,7 @@ async function search() {
         </div>
         <div style="font-size:12px;color:var(--text-2);line-height:1.5">${escHtml(res.snippet||'')}</div>
         <div style="font-size:10px;color:var(--text-3);margin-top:4px">${escHtml(res.url||'')}</div>
-      </div>`).join('') || '<div style="color:var(--text-3);padding:20px;text-align:center">No results found</div>';
+      </div>`).join('') || stateFeedback.emptyElement({ title: 'No results found', message: 'Try a different query.' });
   } catch(ex) {
     renderRetryError(el, ex, 'search');
   }
@@ -373,7 +373,7 @@ async function loadHistory() {
     const d = await r.json();
     state.history = d.items || [];
     if (!state.history.length) {
-      el.innerHTML = '<div style="color:var(--text-3);font-size:13px;padding:20px;text-align:center">No search history yet<br><button type="button" class="btn btn-ghost btn-sm" style="margin-top:10px" data-ws-tab="search">🔍 New search</button></div>';
+      el.innerHTML = stateFeedback.emptyElement({ icon: '🔍', title: 'No search history yet', message: 'Your searches will appear here.', action: "document.getElementById('ws-tab-search').click()", actionLabel: '🔍 New search' });
       return;
     }
     // BUG FIX: previously interpolated JSON.stringify(item.query)/

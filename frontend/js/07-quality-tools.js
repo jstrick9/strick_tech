@@ -120,7 +120,7 @@ async function renderBugBot() {
               <div style="font-size:11px;color:var(--text-3)">${new Date(r.created_at).toLocaleString()}</div>
             </div>
             <span class="bb-severity-badge ${r.severity||'low'}">${r.severity||'low'}</span>
-          </div>`).join('') || '<div style="color:var(--text-3);padding:20px;text-align:center">No reviews yet</div>'}
+          </div>`).join('') || stateFeedback.emptyElement({ title: 'No reviews yet' })}
       </div>
     </div>
 
@@ -685,7 +685,7 @@ async function renderAmbient() {
           </div>
           ${s.description?`<div style="font-size:11px;color:var(--text-2)">${escHtml(s.description)}</div>`:''}
           ${s.file_path?`<div style="font-size:10px;font-family:monospace;color:var(--text-3);margin-top:3px">${escHtml(s.file_path)}${s.line_no?':'+s.line_no:''}</div>`:''}
-        </div>`).join('') || '<div style="color:var(--text-3);padding:20px;text-align:center">No suggestions yet. Click "Run Scan" to analyze your project.</div>'}
+        </div>`).join('') || stateFeedback.emptyElement({ title: 'No suggestions yet', message: 'Click \u201cRun Scan\u201d to analyze your project.' })}
     </div>
 
     <!-- Background Tasks -->

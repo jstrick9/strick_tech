@@ -170,7 +170,7 @@ async function doGxSearch() {
     if (!r.ok) { el.innerHTML = stateFeedback.errorElement({ message: `Search failed (HTTP ${r.status})` }); return; }
     const results = await r.json();
     if (!results.length) {
-      el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:12px">No memories found for that query.</div>';
+      el.innerHTML = stateFeedback.emptyElement({ title: 'No memories found', message: 'No memories match that query.' });
       return;
     }
     // BUG FIX: hybrid search silently falls back to "most recent memories"

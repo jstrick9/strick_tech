@@ -639,7 +639,7 @@ function gmTabHistory() {
   const ci     = _goalSelected.checkins      || [];
 
   if (!scores.length && !ci.length) {
-    return `<div style="color:var(--text-3);font-size:13px;text-align:center;padding:40px">No history yet. Score the goal to start tracking progress over time.</div>`;
+    return stateFeedback.emptyElement({ title: 'No history yet', message: 'Score the goal to start tracking progress over time.' });
   }
 
   // Sparkline SVG

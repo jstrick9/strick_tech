@@ -1614,7 +1614,7 @@ async function renderFlamegraph() {
   try {
     const d = await fetch('/api/profiler/flamegraph').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({}));
     const root = (d.flamegraph||[])[0];
-    if (!root) { container.innerHTML = '<div style="color:var(--text-3)">No flamegraph data</div>'; return; }
+    if (!root) { container.innerHTML = stateFeedback.emptyElement({ title: 'No flamegraph data' }); return; }
     
     const totalVal = root.value;
     const renderNode = (node, depth=0) => {

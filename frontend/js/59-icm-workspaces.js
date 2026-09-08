@@ -120,18 +120,10 @@
     const body = document.getElementById('icm-body');
     if (!body) return;
     if (!wsList.length) {
-      body.innerHTML = `<div style="padding:48px;text-align:center;color:var(--text-2);margin:auto">
-        <div style="font-size:34px">🗂</div>
-        <div style="font-weight:600;color:var(--text-0);margin-top:10px">No projects yet</div>
-        <div style="font-size:13px;margin-top:6px;max-width:420px">
-          Start with a blank space or describe what you're working on. You can keep
-          notes and files here, and the AI can find and use them when you ask.</div>
-        <div style="display:flex;gap:10px;justify-content:center;margin-top:16px">
-          <button type="button" class="btn" data-act-click="icmwsTab('describe')">
-            Describe your work</button>
-          <button type="button" class="btn" data-act-click="icmwsNewWorkspace()">
-            Set up stages manually</button>
-        </div></div>`;
+      body.innerHTML = stateFeedback.emptyElement({ icon: '🗂', title: 'No projects yet', message: "Start with a blank space or describe what you're working on. You can keep notes and files here, and the AI can find and use them when you ask." });
+      body.insertAdjacentHTML('beforeend', '<div style="display:flex;gap:10px;justify-content:center;margin-top:16px">' +
+        '<button type="button" class="btn" data-act-click="icmwsTab(\'describe\')">Describe your work</button>' +
+        '<button type="button" class="btn" data-act-click="icmwsNewWorkspace()">Set up stages manually</button></div>');
       return;
     }
     body.innerHTML = `

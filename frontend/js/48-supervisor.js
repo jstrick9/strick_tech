@@ -417,9 +417,7 @@ function dagRenderRunList() {
   const list = document.getElementById('dag-run-list');
   if (!list) return;
   if (!_dagRuns.length) {
-    list.innerHTML = `<div style="color:var(--text-3);font-size:12px;padding:12px;line-height:1.7">
-      No runs yet.<br>Launch your first goal above.
-    </div>`;
+    list.innerHTML = stateFeedback.emptyElement({ title: 'No runs yet', message: 'Launch your first goal above.' });
     return;
   }
   list.innerHTML = _dagRuns.map(r => {

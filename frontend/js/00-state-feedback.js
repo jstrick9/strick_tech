@@ -90,18 +90,31 @@
   function setEmpty(root, opts) {
     opts = opts || {};
     var el = makeBase(root, 'state-empty', null);
+    el.innerHTML = emptyHtml(opts);
+    return el;
+  }
+
+  // The exact markup an empty state uses. Exposed as emptyElement() so panes can
+  // embed the SAME .data-state state-empty component in a static template (or
+  // assign it imperatively as a `||` fallback) instead of a hand-rolled inline
+  // "No X yet" div — one DOM shape for every empty state.
+  function emptyHtml(opts) {
+    opts = opts || {};
     var icon = opts.icon ? '<span class="data-state-icon" aria-hidden="true">' + esc(opts.icon) + '</span>' : '';
     var action = '';
     if (opts.action) {
       action = '<button type="button" class="btn btn-sm" data-act-click="' + jsArg(opts.action) +
         '">' + esc(opts.actionLabel || opts.action || 'Do it') + '</button>';
     }
-    var html = icon + '<div class="data-state-copy">' +
+    return icon + '<div class="data-state-copy">' +
       '<div class="data-state-title">' + esc(opts.title || 'Nothing here yet') + '</div>' +
       (opts.message ? '<div class="data-state-msg">' + esc(opts.message) + '</div>' : '') +
       '</div>' + action;
-    el.innerHTML = html;
-    return el;
+  }
+
+  function emptyElement(opts) {
+    opts = opts || {};
+    return '<div class="data-state state-empty">' + emptyHtml(opts) + '</div>';
   }
 
   function setError(root, opts) {
@@ -136,5 +149,5 @@
       errorHtml(opts) + '</div>';
   }
 
-  window.stateFeedback = { setLoading: setLoading, setEmpty: setEmpty, setError: setError, clearState: clearState, loadingElement: loadingElement, errorElement: errorElement };
+  window.stateFeedback = { setLoading: setLoading, setEmpty: setEmpty, setError: setError, clearState: clearState, loadingElement: loadingElement, errorElement: errorElement, emptyElement: emptyElement };
 })();
