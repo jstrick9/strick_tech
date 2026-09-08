@@ -5965,8 +5965,10 @@ if (typeof PALETTE_CMDS !== 'undefined') {
 // ══════════════════════════════════════════════════════
 //  PROMPT LIBRARY
 // ══════════════════════════════════════════════════════
-// ── Cost tracking polling ─────────────────────────────────────────
-setInterval(updateCostBar, 30000);
+// NOTE: the cost-tracking poller is NOT registered here. It is defined once
+// in the Studio block above; a second setInterval(updateCostBar, 30000) here
+// fired /api/cost twice every 30s for the app lifetime. updateCostBar is
+// idempotent and side-effect free, so the duplicate only wasted a request.
 
 setTimeout(() => {
   if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
