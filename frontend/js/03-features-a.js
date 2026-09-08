@@ -151,7 +151,7 @@ async function renderWorkflow() {
       <div class="wf-run-log" id="wf-run-log">
         <div class="wf-log-header">
           <span>📋 Run Log</span>
-          <button class="wf-log-close" data-act-click="wfToggleLog()">✕</button>
+          <button aria-label="Close" title="Close" class="wf-log-close" data-act-click="wfToggleLog()">✕</button>
         </div>
         <div class="wf-log-lines" id="wf-log-lines"></div>
       </div>
@@ -161,7 +161,7 @@ async function renderWorkflow() {
     <div class="wf-properties" id="wf-properties">
       <div class="wf-props-header">
         <h4 id="wf-props-title">Properties</h4>
-        <button class="wf-props-close" data-act-click="wfCloseProps()">✕</button>
+        <button aria-label="Close" title="Close" class="wf-props-close" data-act-click="wfCloseProps()">✕</button>
       </div>
       <div class="wf-props-body" id="wf-props-content">
         <div style="color:var(--text-3);font-size:12px">Click a node to edit its properties.</div>
@@ -1879,7 +1879,7 @@ async function sdkSelectPack(packId) {
             <button class="btn-sm sdk-validate" data-pack-id="${escHtml(packId)}">✔ Validate</button>
             <button class="btn-sm sdk-publish" data-pack-id="${escHtml(packId)}">🚀 Publish</button>
             <button class="btn-sm sdk-export" data-pack-id="${escHtml(packId)}">⬇ Export ZIP</button>
-            <button class="btn-sm sdk-delete" style="color:var(--danger);border-color:var(--danger)" data-pack-id="${escHtml(packId)}">🗑</button>
+            <button aria-label="Delete" title="Delete" class="btn-sm sdk-delete" style="color:var(--danger);border-color:var(--danger)" data-pack-id="${escHtml(packId)}">🗑</button>
           </div>
         </div>
         <div class="u-287f770e">
@@ -1894,7 +1894,7 @@ async function sdkSelectPack(packId) {
                   <div style="font-size:11px;color:var(--text-3)">${escHtml((s.description||'').slice(0,60))}</div>
                 </div>
                 <button class="btn-sm sdk-test" data-pack-id="${escHtml(packId)}" data-skill-id="${escHtml(s.id)}">▶ Test</button>
-                <button class="btn-sm sdk-edit" data-idx="${i}">✏</button>
+                <button class="btn-sm sdk-edit" aria-label="Edit SDK" title="Edit SDK" data-idx="${i}">✏</button>
               </div>
             `).join('') || '<div style="color:var(--text-3);font-size:12px">No skills yet</div>'}
           </div>

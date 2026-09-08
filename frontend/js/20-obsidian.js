@@ -208,7 +208,7 @@ async function viewNote(path) {
           <div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:8px">
             <span style="font-weight:700;color:var(--text-0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${escHtml(name)}</span>
             <span style="font-size:10px;color:var(--text-3)">${j.size||0}B · ${j.modified||''}</span>
-            <button data-close="closest:[style*=fixed]" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+            <button aria-label="Close" title="Close" data-close="closest:[style*=fixed]" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
           </div>
           <div style="padding:14px 16px;overflow-y:auto;flex:1;font-size:12px;line-height:1.7;color:var(--text-1);white-space:pre-wrap;font-family:monospace">${escHtml((j.content||'').slice(0,6000))}${(j.content||'').length>6000?'\n\n[... truncated]':''}</div>
           <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:7px;align-items:center">

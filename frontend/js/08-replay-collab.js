@@ -156,7 +156,7 @@ async function renderReplay() {
         <div class="ttd-detail collapsed" id="ttd-detail">
           <div class="ttd-detail-head">
             <h4 id="ttd-detail-node-name">Frame Detail</h4>
-            <button data-act-click="ttdToggleDetail()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:13px">✕</button>
+            <button aria-label="Close" title="Close" data-act-click="ttdToggleDetail()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:13px">✕</button>
           </div>
           <div class="ttd-detail-body" id="ttd-detail-body">
             <div style="color:var(--text-3);font-size:12px">Click a node to see its details.</div>
@@ -1949,7 +1949,7 @@ async function mktViewDetail(packId) {
             <h2 style="margin:0;color:var(--text-0)">${escHtml(d.name||packId)}</h2>
             <div style="color:var(--text-3);font-size:12px">by ${escHtml(d.author||'')} · v${d.latest_ver||'1.0.0'} · ${(d.downloads||0).toLocaleString()} downloads</div>
           </div>
-          <button data-act-click="hCloseFixedPanel($this)" style="margin-left:auto;background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
+          <button aria-label="Close" title="Close" data-act-click="hCloseFixedPanel($this)" style="margin-left:auto;background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
         </div>
         <p style="color:var(--text-2);font-size:13px;line-height:1.6">${escHtml(d.description||'')}</p>
         <div class="u-87c136df">
@@ -2035,7 +2035,7 @@ async function mktShowInstalled() {
     overlay.innerHTML=`<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:460px;width:100%;max-height:70vh;overflow-y:auto;padding:24px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <h3 style="margin:0;color:var(--text-0)">📦 Installed Packs (${d.count||0})</h3>
-        <button data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+        <button aria-label="Close" title="Close" data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
       </div>
       ${items||'<div style="color:var(--text-3)">No packs installed</div>'}
     </div>`;

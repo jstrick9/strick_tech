@@ -390,7 +390,7 @@ async function loadHistory() {
         <span class="u-1444c6ea">${KIND_ICONS[item.kind] || '🔎'}</span>
         <span style="flex:1;font-size:13px;color:var(--text-0)">${escHtml(item.query)}</span>
         <span style="font-size:11px;color:var(--text-3)">${item.results} results</span>
-        <button type="button" class="btn-sm" data-ws-delete-idx="${idx}" style="font-size:10px;padding:2px 6px;color:var(--danger)">✕</button>
+        <button aria-label="Close" title="Close" type="button" class="btn-sm" data-ws-delete-idx="${idx}" style="font-size:10px;padding:2px 6px;color:var(--danger)">✕</button>
       </div>`).join('');
   } catch(ex) {
     el.innerHTML = `<div style="color:var(--danger);font-size:13px">${escHtml(ex?.message||String(ex))}</div>`;

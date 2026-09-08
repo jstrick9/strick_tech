@@ -87,7 +87,7 @@ function renderTrialBanner(cfg) {
     
     <span>⏰ ${msg}</span>
     <button data-act-click="showUpgradeModal('trial-banner')" style="background:#fff2;border:1px solid #fff6;border-radius:5px;color:#fff;padding:2px 10px;cursor:pointer;font-size:11px;font-weight:700">Upgrade</button>
-    <button data-close="closest:#trial-banner" style="background:none;border:none;color:#fff8;cursor:pointer;font-size:14px;margin-left:4px">✕</button>
+    <button aria-label="Close" title="Close" data-close="closest:#trial-banner" style="background:none;border:none;color:#fff8;cursor:pointer;font-size:14px;margin-left:4px">✕</button>
   `;
   document.body.prepend(banner);
 
@@ -302,7 +302,7 @@ function showSidebarCustomizer() {
         <span class="u-4ff818ff">🎛️</span>
         <h3 style="margin:0;color:var(--text-0)">Customize Sidebar</h3>
         <span style="font-size:11px;color:var(--text-3);margin-left:4px">${totalPanes} panes</span>
-        <button type="button" id="sidebar-customizer-close-x" style="margin-left:auto;background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+        <button aria-label="Close" title="Close" type="button" id="sidebar-customizer-close-x" style="margin-left:auto;background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
       </div>
       <div style="padding:12px 16px;font-size:12px;color:var(--text-2);border-bottom:1px solid var(--border);flex-shrink:0">
         Toggle which panes appear in your sidebar. Hidden panes are still accessible via keyboard shortcuts.
@@ -547,7 +547,7 @@ async function showTierPlans() {
   <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:20px;max-width:860px;width:100%;padding:28px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h2 style="margin:0;color:var(--text-0)">Choose Your Plan</h2>
-      <button data-close="closest:#tier-plans-modal" style="background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
+      <button aria-label="Close" title="Close" data-close="closest:#tier-plans-modal" style="background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
       ${tiers.map((t) =>`
@@ -844,7 +844,7 @@ function showOnboarding() {
   overlay.onclick = function(e) { if (e.target === overlay) { if (typeof window.closeOnboardingModal === 'function') window.closeOnboardingModal(); else overlay.remove(); } };
   overlay.innerHTML = `
     <div id="onboarding-card" style="background:var(--bg-2);border:1px solid var(--border);border-radius:20px;max-width:500px;width:100%;box-shadow:0 32px 64px rgba(0,0,0,.5);overflow:hidden;position:relative">
-      <button data-act-click="hCloseOnboarding()" style="position:absolute;top:16px;right:20px;background:none;border:none;color:var(--text-2);font-size:26px;cursor:pointer;z-index:999999;line-height:1">×</button>
+      <button aria-label="Close" title="Close" data-act-click="hCloseOnboarding()" style="position:absolute;top:16px;right:20px;background:none;border:none;color:var(--text-2);font-size:26px;cursor:pointer;z-index:999999;line-height:1">×</button>
       <!-- Progress bar -->
       <div style="height:3px;background:var(--bg-4)">
         <div id="ob-progress" style="height:100%;background:var(--accent);transition:width .3s;width:0%"></div>
@@ -1615,7 +1615,7 @@ window.openInspectionDrawer = function(doc) {
           <span style="font-size:11px;color:var(--accent-text);font-weight:700">${escHtml((doc.tier||'PRO').toUpperCase())} TIER WORKSTATION</span>
         </div>
       </div>
-      <button type="button" id="insp-drawer-close-btn" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:14px">✕</button>
+      <button aria-label="Close" title="Close" type="button" id="insp-drawer-close-btn" class="btn-3d btn-ghost btn-sm" style="padding:4px 10px;font-size:14px">✕</button>
     </div>
     <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px">
       <div class="surface-z2" style="padding:14px;border-radius:12px;font-size:13px;color:var(--text-1);line-height:1.65">

@@ -221,8 +221,8 @@ function kanbanRenderCard(task) {
           ${priority.label}
         </span>
         <div class="kanban-card-actions">
-          <button type="button" class="kanban-card-action" data-act-click="kanbanOpenEditModal(${jsArg(taskId)})" data-stop="1">✏️</button>
-          <button type="button" class="kanban-card-action" data-act-click="kanbanDeleteTask(${jsArg(taskId)})" data-stop="1">🗑️</button>
+          <button type="button" class="kanban-card-action" aria-label="Edit task" title="Edit task" data-act-click="kanbanOpenEditModal(${jsArg(taskId)})" data-stop="1">✏️</button>
+          <button type="button" class="kanban-card-action" aria-label="Delete task" title="Delete task" data-act-click="kanbanDeleteTask(${jsArg(taskId)})" data-stop="1">🗑️</button>
         </div>
       </div>
       <div class="kanban-card-title">${kanbanEscapeHtml(task.title)}</div>
@@ -463,7 +463,7 @@ function kanbanOpenCreateModal(defaultColumn = 'todo') {
       <div class="kanban-modal" id="kanban-modal-content">
         <div class="kanban-modal-header">
           <h2>Create Task</h2>
-          <button type="button" class="kanban-modal-close" id="kanban-modal-close-btn">✕</button>
+          <button aria-label="Close" title="Close" type="button" class="kanban-modal-close" id="kanban-modal-close-btn">✕</button>
         </div>
         <form id="kanban-create-form" class="kanban-modal-body">
           <div class="kanban-field">
@@ -597,7 +597,7 @@ function kanbanOpenEditModal(taskId) {
       <div class="kanban-modal" id="kanban-modal-content">
         <div class="kanban-modal-header">
           <h2>Edit Task #${taskId}</h2>
-          <button type="button" class="kanban-modal-close" id="kanban-modal-close-btn">✕</button>
+          <button aria-label="Close" title="Close" type="button" class="kanban-modal-close" id="kanban-modal-close-btn">✕</button>
         </div>
         <form id="kanban-edit-form" class="kanban-modal-body">
           <div class="kanban-field">

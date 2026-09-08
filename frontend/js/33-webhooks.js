@@ -36,11 +36,11 @@ async function renderWebhooks() {
             </div>
             <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:11px;font-family:monospace;color:var(--accent-text);margin-bottom:8px;display:flex;align-items:center;gap:6px">
               <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">POST /api/webhooks/${w.id}/trigger</span>
-              <button data-act-click="hCopyWebhookUrl(${jsArg(w.id)})" style="background:none;border:none;color:var(--text-2);cursor:pointer">📋</button>
+              <button data-act-click="hCopyWebhookUrl(${jsArg(w.id)})" aria-label="Copy webhook URL" title="Copy webhook URL" style="background:none;border:none;color:var(--text-2);cursor:pointer">📋</button>
             </div>
             <div style="display:flex;gap:6px">
               <button data-act-click="testWebhook(${jsArg(w.id)})" class="btn btn-ghost btn-sm">▶ Test</button>
-              <button data-act-click="deleteWebhook(${jsArg(w.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;margin-left:auto">🗑</button>
+              <button data-act-click="deleteWebhook(${jsArg(w.id)})" aria-label="Delete webhook" title="Delete webhook" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;margin-left:auto">🗑</button>
             </div>
           </div>`).join('')}
         </div>

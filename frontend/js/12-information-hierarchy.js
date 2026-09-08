@@ -350,8 +350,8 @@
               <span class="steer-cat">${escHtml(f.category||'general')}</span>
               ${f.auto_learned?'<span class="steer-auto-badge">Auto-learned</span>':''}
               <div style="margin-left:auto;display:flex;gap:5px">
-                <button class="btn-sm steer-edit-btn">✏</button>
-                <button class="btn-sm steer-delete-btn" style="color:var(--danger)">🗑</button>
+                <button class="btn-sm steer-edit-btn" aria-label="Edit" title="Edit">✏</button>
+                <button aria-label="Delete" title="Delete" class="btn-sm steer-delete-btn" style="color:var(--danger)">🗑</button>
               </div>
             </div>
             <div style="font-size:11px;color:var(--text-2);font-family:monospace;line-height:1.6;max-height:80px;overflow:hidden">${escHtml((f.content||'').slice(0,300))}${(f.content||'').length>300?'…':''}</div>
@@ -409,7 +409,7 @@
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;width:600px;max-height:80vh;display:flex;flex-direction:column;padding:20px;gap:12px">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <h3 class="u-11696618">New Rule File: ${escHtml(title)}</h3>
-          <button data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button aria-label="Close" title="Close" data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         <textarea id="steer-new-content" rows="15" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;font-family:monospace;padding:10px;resize:none" placeholder="# ${escHtml(title)}\n\nWrite your project rules and conventions here..."></textarea>
         <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -453,7 +453,7 @@
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;width:700px;max-height:85vh;display:flex;flex-direction:column;padding:20px;gap:12px">
         <div style="display:flex;align-items:center;gap:8px">
           <h3 style="margin:0;flex:1">✏ ${escHtml(f.title||fileId)}</h3>
-          <button class="steer-modal-close-btn" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button aria-label="Close" title="Close" class="steer-modal-close-btn" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         <textarea id="steer-edit-ta" rows="18" style="flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;font-family:monospace;padding:10px;resize:none">${escHtml(f.content||'')}</textarea>
         <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -545,7 +545,7 @@
             <div style="font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px">
               <span>🤖</span> AI Interview: Build Universal Context in 2 Minutes
             </div>
-            <button data-hide="id:hierarchy-interview-modal" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
+            <button aria-label="Close" title="Close" data-hide="id:hierarchy-interview-modal" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
           </div>
           <div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:20px">
             Answer these 4 master questions once. We'll automatically structure your 4 Tier 1 Markdown files (<code style="color:var(--accent-text)">about_me</code>, <code style="color:var(--accent-text)">about_my_business</code>, <code style="color:var(--accent-text)">about_my_voice</code>, <code style="color:var(--accent-text)">about_my_offers</code>).
@@ -620,7 +620,7 @@
             <div style="font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px">
               <span>📁</span> Create Tier 2 Project Hierarchy (IVREN)
             </div>
-            <button data-hide="id:hierarchy-new-project-modal" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
+            <button aria-label="Close" title="Close" data-hide="id:hierarchy-new-project-modal" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
           </div>
           <div style="font-size:12.5px;color:var(--text-2);margin-bottom:18px">
             Every project gets the exact same 5 compounding subfolders: <strong style="color:var(--text-0)">I</strong>nstructions, <strong style="color:var(--text-0)">V</strong>oice, <strong style="color:var(--text-0)">R</strong>eferences, <strong style="color:var(--text-0)">E</strong>xamples, and <strong style="color:var(--text-0)">N</strong>otes.
@@ -742,7 +742,7 @@
             <div style="font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px">
               <span>📜</span> Live XML System Prompt Injection Preview
             </div>
-            <button data-hide="id:hierarchy-preview-modal" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
+            <button aria-label="Close" title="Close" data-hide="id:hierarchy-preview-modal" style="background:none;border:none;color:var(--text-2);font-size:20px;cursor:pointer">×</button>
           </div>
           <div style="font-size:12.5px;color:var(--text-2);margin-bottom:12px;flex-shrink:0">
             This exact XML/Markdown context is automatically injected into every Agentic OS chat, swarm query, and specialized agent session:

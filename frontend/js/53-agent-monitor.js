@@ -718,8 +718,8 @@ function renderAgentMonitorCard(a, statusColor, statusIcon) {
     <div style="display:flex;gap:5px">
       <button class="btn-sm u-0d5be05f" data-act-click="bddViewAgent(${jsArg(a.agent_id||a.id)})" >📊 Drift</button>
       ${!a.is_killed ?
-        `<button class="btn-sm" data-act-click="bddKillAgent(${jsArg(a.agent_id||a.id)})" style="color:var(--danger);border-color:var(--danger);font-size:10px">🛑</button>` :
-        `<button class="btn-sm" data-act-click="monitorReviveAgent(${jsArg(a.agent_id||a.id)})" style="color:var(--success);font-size:10px">♻️</button>`}
+        `<button class="btn-sm" aria-label="Kill agent" title="Kill agent" data-act-click="bddKillAgent(${jsArg(a.agent_id||a.id)})" style="color:var(--danger);border-color:var(--danger);font-size:10px">🛑</button>` :
+        `<button class="btn-sm" aria-label="Revive agent" title="Revive agent" data-act-click="monitorReviveAgent(${jsArg(a.agent_id||a.id)})" style="color:var(--success);font-size:10px">♻️</button>`}
     </div>
   </div>`;
 }

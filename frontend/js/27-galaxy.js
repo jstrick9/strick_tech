@@ -189,7 +189,7 @@ async function doGxSearch() {
         <div class="gx-hit-text">${escHtml((m.content||'').slice(0,150))}</div>
         <div style="margin-top:4px;display:flex;gap:4px">
           <button data-memory-content="${escHtml((m.content||'').slice(0,60))}" class="btn btn-ghost btn-sm gx-chat-memory u-0d5be05f" >💬 Chat</button>
-          <button data-memory-id="${escHtml(String(m.id))}" class="btn btn-ghost btn-sm gx-delete-memory" style="font-size:10px;color:var(--danger)">🗑</button>
+          <button aria-label="Delete" title="Delete" data-memory-id="${escHtml(String(m.id))}" class="btn btn-ghost btn-sm gx-delete-memory" style="font-size:10px;color:var(--danger)">🗑</button>
         </div>
       </div>`).join('');
     el.querySelectorAll('.gx-chat-memory').forEach(button => button.addEventListener('click', () => {

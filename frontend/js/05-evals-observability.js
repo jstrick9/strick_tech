@@ -558,7 +558,7 @@ async function obsShowTrace(traceId) {
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;max-width:700px;width:100%;max-height:80vh;overflow-y:auto;padding:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <h3 style="margin:0;color:var(--text-0)">Trace: ${traceId}</h3>
-        <button data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+        <button aria-label="Close" title="Close" data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
       </div>
       <div style="font-size:12px;color:var(--text-2);margin-bottom:12px">
         Agent: ${d.trace?.agent_id||'?'} · ${d.trace?.total_latency_ms||0}ms · ${d.trace?.total_tokens||0} tokens · $${((d.trace?.total_cost||0)).toFixed(5)}
@@ -812,7 +812,7 @@ async function renderRAG() {
               </div>
               <div style="display:flex;gap:6px">
                 <button class="btn-sm" data-act-click="ragOpenPipeline(${jsArg(p.id)},${jsArg(p.name||'')})">Open</button>
-                <button class="btn-sm" style="color:var(--danger)" data-act-click="ragDeletePipeline(${jsArg(p.id)})">🗑</button>
+                <button aria-label="Delete" title="Delete" class="btn-sm" style="color:var(--danger)" data-act-click="ragDeletePipeline(${jsArg(p.id)})">🗑</button>
               </div>
             </div>
           </div>`).join('')}
@@ -875,7 +875,7 @@ async function ragOpenPipeline(pipelineId, name) {
             <span>📄</span>
             <span style="color:var(--text-1);flex:1">${escHtml(doc.filename||'')}</span>
             <span style="color:var(--text-3)">${doc.chunk_count||0} chunks</span>
-            <button class="btn-sm" style="color:var(--danger)" data-act-click="ragDeleteDoc(${jsArg(pipelineId)},${jsArg(doc.id)})">🗑</button>
+            <button aria-label="Delete" title="Delete" class="btn-sm" style="color:var(--danger)" data-act-click="ragDeleteDoc(${jsArg(pipelineId)},${jsArg(doc.id)})">🗑</button>
           </div>`).join('')}
       </div>`:''}
 

@@ -210,7 +210,7 @@ async function hubShowDetail(packId) {
             <div style="font-size:19px;font-weight:800">${escHtml(d.name)}</div>
             <div style="font-size:12px;color:var(--text-3)">by ${escHtml(d.author)} · v${escHtml(d.version)} · ${escHtml(d.category)}</div>
           </div>
-          <button data-act-click="hubCloseDetail()" class="btn btn-ghost btn-sm">✕</button>
+          <button aria-label="Close" title="Close" data-act-click="hubCloseDetail()" class="btn btn-ghost btn-sm">✕</button>
         </div>
         <p style="font-size:13px;color:var(--text-1);line-height:1.6">${escHtml(d.description)}</p>
         <div style="margin:14px 0">

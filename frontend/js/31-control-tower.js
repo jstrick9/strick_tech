@@ -67,7 +67,7 @@ async function refreshControlTower() {
                     <div style="font-size:11px;color:${sCol};font-weight:700">${r.status}</div>
                     <div style="font-size:10px;color:var(--text-3)">$${(r.total_cost||0).toFixed(4)}</div>
                   </div>
-                  ${r.status==='running'?`<button data-act-click="killRun(${jsArg(r.run_id)})" data-stop="1" class="btn btn-danger btn-sm">🛑</button>`:''}
+                  ${r.status==='running'?`<button aria-label="Stop run" title="Stop run" data-act-click="killRun(${jsArg(r.run_id)})" data-stop="1" class="btn btn-danger btn-sm">🛑</button>`:''}
                 </div>
               </div>`;}).join('')}
           </div>
@@ -84,7 +84,7 @@ async function refreshControlTower() {
               <div class="u-97445a8d"><div style="font-size:12.5px;font-weight:600">${escHtml(r.name)}</div>
               <div style="font-size:11px;color:var(--text-2)">Max $${r.max_cost} · ${r.action}</div></div>
               <span class="badge ${r.enabled?'badge-success':'badge-default'}">${r.enabled?'On':'Off'}</span>
-              <button data-act-click="deleteBudgetRule(${jsArg(r.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer">🗑</button>
+              <button aria-label="Delete" title="Delete" data-act-click="deleteBudgetRule(${jsArg(r.id)})" style="background:none;border:none;color:var(--text-3);cursor:pointer">🗑</button>
             </div>`).join('')}
           </div>
         </div>

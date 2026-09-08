@@ -73,7 +73,7 @@ function createNotifPanel() {
       </div>
       <div style="display:flex;gap:6px">
         <button data-act-click="markAllNotifRead()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:4px 8px;border-radius:6px;transition:all 0.15s">Mark all read</button>
-        <button data-act-click="toggleNotifPanel()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;padding:2px">✕</button>
+        <button aria-label="Close" title="Close" data-act-click="toggleNotifPanel()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;padding:2px">✕</button>
       </div>
     </div>
     <div id="notif-list" style="flex:1;overflow-y:auto;padding:4px"></div>

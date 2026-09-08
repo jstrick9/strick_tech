@@ -27,9 +27,9 @@ async function renderWorkspaces() {
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             ${w.is_current
               ?`<button data-act-click="exportCurrentZip()" class="btn btn-ghost btn-sm">📦 Export</button>`
-              :`<button data-workspace-id="${escHtml(w.id)}" data-workspace-name="${escHtml(w.name)}" data-act-click="activateWorkspace($data.workspaceId,$data.workspaceName)" class="btn btn-primary btn-sm">Switch →</button>
-                <button data-workspace-id="${escHtml(w.id)}" data-act-click="exportWorkspace($data.workspaceId)" class="btn btn-ghost btn-sm">📦</button>
-                <button data-workspace-id="${escHtml(w.id)}" data-workspace-name="${escHtml(w.name)}" data-act-click="deleteWorkspace($data.workspaceId,$data.workspaceName)" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">🗑</button>`}
+              :`<button aria-label="Export workspace" title="Export workspace" data-workspace-id="${escHtml(w.id)}" data-workspace-name="${escHtml(w.name)}" data-act-click="activateWorkspace($data.workspaceId,$data.workspaceName)" class="btn btn-primary btn-sm">Switch →</button>
+                <button aria-label="Export workspace" title="Export workspace" data-workspace-id="${escHtml(w.id)}" data-act-click="exportWorkspace($data.workspaceId)" class="btn btn-ghost btn-sm">📦</button>
+                <button aria-label="Delete" title="Delete" data-workspace-id="${escHtml(w.id)}" data-workspace-name="${escHtml(w.name)}" data-act-click="deleteWorkspace($data.workspaceId,$data.workspaceName)" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">🗑</button>`}
           </div>
         </div>`).join('')}
         <div class="card card-interactive" data-act-click="createNewWorkspace()" style="display:flex;align-items:center;justify-content:center;min-height:120px;border-style:dashed;cursor:pointer" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">

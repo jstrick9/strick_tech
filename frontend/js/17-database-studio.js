@@ -126,7 +126,7 @@ async function dbLoadTable(name) {
             ${rows.map((row, idx) => `
               <tr class="u-1008415a" data-hover="bg:var(--bg-3)" data-hover-out="bg:">
                 ${columns.map(c => `<td style="padding:6px 10px;color:var(--text-1);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(String(row[c]??''))}">${escHtml(String(row[c]??''))}</td>`).join('')}
-                <td style="padding:6px 10px"><button data-row-idx="${idx}" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button></td>
+                <td style="padding:6px 10px"><button aria-label="Delete" title="Delete" data-row-idx="${idx}" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button></td>
               </tr>`).join('')}
           </tbody>
         </table>

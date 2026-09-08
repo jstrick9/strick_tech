@@ -1356,7 +1356,7 @@ window.showNoviceApiGuide = function() {
   modal.style.cssText = 'position:fixed;inset:0;z-index:11000;display:flex;align-items:center;justify-content:center;background:rgba(4,6,15,0.85);backdrop-filter:blur(8px)';
   modal.innerHTML = `
     <div class="card-elevated surface-z4" style="max-width:620px;width:95%;padding:28px;border:2px solid var(--accent);border-radius:20px;position:relative;max-height:90vh;overflow-y:auto">
-      <button data-close="id:novice-api-guide-modal" style="position:absolute;top:16px;right:18px;background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
+      <button aria-label="Close" title="Close" data-close="id:novice-api-guide-modal" style="position:absolute;top:16px;right:18px;background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer">✕</button>
       
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
         <div class="neural-orb-3d" style="width:46px;height:46px;flex-shrink:0"></div>
@@ -2787,7 +2787,7 @@ function showE2ETrace(run) {
   overlay.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
     <span style="font-size:15px;font-weight:800">🧪 E2E Trace</span>
     <span style="color:${scoreColor};font-weight:700;margin-left:auto">${passed}/${total} · ${run.engine||'heuristic'}</span>
-    <button data-close="parent:2" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:16px">×</button>
+    <button aria-label="Close" title="Close" data-close="parent:2" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:16px">×</button>
   </div>
   ${summary}
   ${screenshots}
@@ -3440,7 +3440,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0">
         <button data-act-click="nav('templates')" data-close="id:welcome-banner" class="btn btn-primary btn-sm">🎨 Templates</button>
-        <button data-close="id:welcome-banner" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:18px;padding:0 4px">×</button>
+        <button aria-label="Close" title="Close" data-close="id:welcome-banner" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:18px;padding:0 4px">×</button>
       </div>`;
     document.body.appendChild(banner);
     setTimeout(() => banner?.remove(), 12000);
@@ -4185,7 +4185,7 @@ async function showSessionStats() {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:400px;width:100%;padding:20px">
         <div style="display:flex;justify-content:space-between;margin-bottom:14px">
           <h3 style="margin:0;color:var(--text-0)">📊 Session Stats</h3>
-          <button data-close="closest:[style*=fixed]" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button aria-label="Close" title="Close" data-close="closest:[style*=fixed]" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
           ${[
@@ -4414,7 +4414,7 @@ function updateConsolePanel() {
         <span style="font-size:11.5px;font-weight:700;color:var(--text-2)">Console</span>
         <span id="console-count-badge" style="display:none;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:99px">0</span>
         <button data-act-click="hClearConsole()" style="margin-left:auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px">Clear</button>
-        <button data-act-click="toggleConsole()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">×</button>
+        <button aria-label="Close" title="Close" data-act-click="toggleConsole()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">×</button>
       </div>
       <div id="console-messages" style="flex:1;overflow-y:auto"></div>`;
     frameWrap.parentElement?.insertBefore(consolePanel, frameWrap);

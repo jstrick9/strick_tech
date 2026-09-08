@@ -180,7 +180,7 @@ async function renderImageGen() {
               ${gallery.images.map((img, idx)=>`
                 <div data-gallery-idx="${idx}" style="aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border);cursor:pointer;position:relative;group" title="${escHtml(img.name)}">
                   <img src="${escHtml(img.url)}" style="width:100%;height:100%;object-fit:cover" loading="lazy" alt="Generated image">
-                  <button type="button" data-gallery-delete-idx="${idx}"
+                  <button aria-label="Delete" title="Delete" type="button" data-gallery-delete-idx="${idx}"
                           style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);border:none;border-radius:4px;color:#fff;font-size:10px;cursor:pointer;padding:1px 4px;display:none" class="ig-del-btn">🗑</button>
                 </div>`).join('')}
             </div>`}
@@ -431,7 +431,7 @@ async function igVariations() {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:520px;width:100%;padding:20px">
         <div style="display:flex;justify-content:space-between;margin-bottom:12px">
           <h3 style="margin:0;color:var(--text-0)">⊞ Variations (${j.count})</h3>
-          <button type="button" data-modal-close style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button aria-label="Close" title="Close" type="button" data-modal-close style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px" id="var-grid">${variantsHtml}</div>
         <div style="display:flex;justify-content:flex-end">

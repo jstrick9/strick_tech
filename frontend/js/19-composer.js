@@ -290,7 +290,7 @@ async function loadBranchPreviews() {
           <div style="font-size:11px;color:var(--text-3)">${b.files} files · ${(b.created_at||'').slice(0,16)}</div>
         </div>
         <a href="${safeUrl(b.url)}" target="_blank" class="btn btn-ghost btn-sm">View ↗</a>
-        <button data-act-click="deleteBranchPreview(${jsArg(b.name)})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button>
+        <button aria-label="Delete" title="Delete" data-act-click="deleteBranchPreview(${jsArg(b.name)})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑</button>
       </div>`).join('');
   } catch(e) {
     // Never leave the pane at an eternal "Loading…" on a network failure.

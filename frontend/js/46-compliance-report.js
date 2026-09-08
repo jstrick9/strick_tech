@@ -463,7 +463,7 @@ function crcReportCard(r) {
     <div class="crc-report-actions">
       <span class="crc-status-badge" style="background:${sc}22;color:${sc}">${r.status}</span>
       ${r.status==='done' ? `<button class="crc-rep-btn" data-act-click="crcRegenReport(${jsArg(r)})">↺ Re-run</button>` : ''}
-      <button class="crc-rep-btn" style="color:var(--danger)" data-act-click="crcDeleteReport(${jsArg(r.report_id)})">🗑</button>
+      <button aria-label="Delete" title="Delete" class="crc-rep-btn" style="color:var(--danger)" data-act-click="crcDeleteReport(${jsArg(r.report_id)})">🗑</button>
     </div>
   </div>`;
 }

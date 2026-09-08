@@ -167,7 +167,7 @@ async function connectShowDetail(id) {
           <span style="font-size:32px">${d.icon || '🔧'}</span>
           <div class="u-97445a8d"><div class="u-80b90e3a">${escHtml(d.name)}</div>
             <div style="font-size:12px;color:var(--text-3)">${escHtml(d.kind)} · ${escHtml(d.category)} · ${d.ready?'ready':'needs setup'}</div></div>
-          <button data-act-click="connectClose()" class="btn btn-ghost btn-sm">✕</button>
+          <button aria-label="Close" title="Close" data-act-click="connectClose()" class="btn btn-ghost btn-sm">✕</button>
         </div>
         <p style="font-size:13px;color:var(--text-1);line-height:1.6;margin-top:10px">${escHtml(d.description||'')}</p>
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px;font-size:12.5px;margin:12px 0">

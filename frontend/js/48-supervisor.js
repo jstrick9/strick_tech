@@ -169,7 +169,7 @@ async function renderSupervisor() {
           <div class="dag-detail collapsed" id="dag-detail">
             <div class="dag-detail-head">
               <h4 id="dag-detail-title">Task Detail</h4>
-              <button data-act-click="dagToggleDetail()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:13px">✕</button>
+              <button aria-label="Close" title="Close" data-act-click="dagToggleDetail()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:13px">✕</button>
             </div>
             <div class="dag-detail-body" id="dag-detail-body">
               <div style="color:var(--text-3);font-size:12px">Click a task node to see its details.</div>

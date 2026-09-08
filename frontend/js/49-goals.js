@@ -299,7 +299,7 @@ function gmRenderDetail() {
         <button class="gm-action-btn" data-act-click="gmAddCheckin()">📈 Check-in</button>
         <button class="gm-action-btn" data-act-click="gmAddMilestone()">📌 Add Milestone</button>
         <button class="gm-action-btn" data-act-click="gmEditGoal()">✏️ Edit</button>
-        <button class="gm-action-btn danger" data-act-click="gmDeleteGoal()">🗑</button>
+        <button aria-label="Delete" title="Delete" class="gm-action-btn danger" data-act-click="gmDeleteGoal()">🗑</button>
       </div>
     </div>
 
@@ -913,7 +913,7 @@ function gmOpenCreate() {
         <div class="gm-form-group full">
           <label class="gm-form-label">Initial Milestones (optional)</label>
           <div class="gm-modal-ms-list" id="gcf-ms-list">
-            <div class="gm-modal-ms-item"><input class="gm-modal-ms-input" placeholder="Milestone 1…"><button data-close="parent" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">✕</button></div>
+            <div class="gm-modal-ms-item"><input class="gm-modal-ms-input" placeholder="Milestone 1…"><button aria-label="Close" title="Close" data-close="parent" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">✕</button></div>
           </div>
           <button data-act-click="gcfAddMilestone()" style="margin-top:6px;font-size:11px;padding:4px 10px;border-radius:5px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);cursor:pointer">+ Add Milestone</button>
         </div>
@@ -937,7 +937,7 @@ function gcfAddMilestone() {
   if (!list) return;
   const item = document.createElement('div');
   item.className = 'gm-modal-ms-item';
-  item.innerHTML = `<input class="gm-modal-ms-input" placeholder="Milestone…"><button data-close="parent" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">✕</button>`;
+  item.innerHTML = `<input class="gm-modal-ms-input" placeholder="Milestone…"><button aria-label="Close" title="Close" data-close="parent" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px">✕</button>`;
   list.appendChild(item);
 }
 

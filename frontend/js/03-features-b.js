@@ -588,8 +588,8 @@ function hookCardHTML(h, eventMap) {
         </div>
         <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
           <button class="btn-sm" data-act-click="hookManualRun(${jsArg(h.id)})">▶ Run</button>
-          <button class="btn-sm" data-act-click="hookEdit(${jsArg(h.id)})">✏</button>
-          <button class="btn-sm" style="color:var(--danger)" data-act-click="hookDelete(${jsArg(h.id)})">🗑</button>
+          <button class="btn-sm" aria-label="Edit hook" title="Edit hook" data-act-click="hookEdit(${jsArg(h.id)})">✏</button>
+          <button aria-label="Delete" title="Delete" class="btn-sm" style="color:var(--danger)" data-act-click="hookDelete(${jsArg(h.id)})">🗑</button>
         </div>
       </div>
     </div>`;
@@ -1073,7 +1073,7 @@ async function ciShowReferences(symbolName) {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;max-width:500px;width:100%;padding:20px;max-height:70vh;overflow-y:auto">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <h3 style="margin:0;color:var(--text-0)">References: ${escHtml(symbolName)}</h3>
-          <button data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button aria-label="Close" title="Close" data-act-click="hCloseFixedPanel($this)" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         <div style="font-size:12px;color:var(--text-2);margin-bottom:10px">Defined in ${(d.defined_in||[]).length} place(s) · Called ${d.ref_count} time(s)</div>
         ${(d.defined_in||[]).map((s) =>`
@@ -1678,7 +1678,7 @@ async function showVoiceHistory() {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:480px;width:100%;max-height:70vh;overflow-y:auto;padding:20px">
         <div style="display:flex;justify-content:space-between;margin-bottom:12px">
           <h3 style="margin:0;color:var(--text-0)">🎤 Voice History (${d.count})</h3>
-          <button data-close="closest:[style*=fixed]" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button aria-label="Close" title="Close" data-close="closest:[style*=fixed]" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         ${items}
         <button class="btn-sm" style="margin-top:10px;color:var(--danger)" data-act-click="hClearVoiceHistory($this)">🗑 Clear History</button>

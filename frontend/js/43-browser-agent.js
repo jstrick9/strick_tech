@@ -380,7 +380,7 @@ async function loadHistory() {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:620px;width:100%;max-height:80vh;overflow-y:auto;padding:20px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
           <h3 style="margin:0;color:var(--text-0)">📋 Browser Session History (${sessions.length})</h3>
-          <button type="button" data-ba-modal-close style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button aria-label="Close" title="Close" type="button" data-ba-modal-close style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         ${sessions.map((s, idx) => `
           <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;font-size:12px">
@@ -433,7 +433,7 @@ async function viewSession(sessionId) {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto;padding:20px">
         <div style="display:flex;justify-content:space-between;margin-bottom:12px">
           <h3 style="margin:0;color:var(--text-0)">Session ${escHtml(sessionId)}</h3>
-          <button type="button" data-ba-modal-close style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button aria-label="Close" title="Close" type="button" data-ba-modal-close style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         <div style="font-size:12px;color:var(--text-2);margin-bottom:8px">Task: ${escHtml(d.task||'')}</div>
         <div style="font-size:11px;color:var(--text-3);margin-bottom:12px">URL: ${escHtml(d.url||'')} · Status: ${escHtml(d.status||'')} · ${d.step_count||0} steps</div>
@@ -490,7 +490,7 @@ async function listScreenshots() {
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;max-width:640px;width:100%;max-height:80vh;overflow-y:auto;padding:20px">
         <div style="display:flex;justify-content:space-between;margin-bottom:14px">
           <h3 style="margin:0;color:var(--text-0)">🖼 Screenshots (${screenshots.length})</h3>
-          <button type="button" data-ba-modal-close style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
+          <button aria-label="Close" title="Close" type="button" data-ba-modal-close style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
           ${screenshots.map((s, idx) => `

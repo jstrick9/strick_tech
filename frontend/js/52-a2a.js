@@ -167,7 +167,7 @@ function a2aRenderNetwork(container) {
           <div class="a2a-agent-actions">
             <button class="a2a-btn" data-act-click="a2aDelegateToAgent(${jsArg(ag.agent_id)})" data-stop="1">📤 Delegate</button>
             ${!isLocal?`<button class="a2a-btn" data-act-click="a2aVerifyAgent(${jsArg(ag.agent_id)})" data-stop="1">🔍 Verify</button>`:''}
-            ${!isLocal?`<button class="a2a-btn" data-act-click="a2aDeleteAgent(${jsArg(ag.agent_id)})" data-stop="1" style="color:var(--danger)">🗑</button>`:''}
+            ${!isLocal?`<button aria-label="Delete" title="Delete" class="a2a-btn" data-act-click="a2aDeleteAgent(${jsArg(ag.agent_id)})" data-stop="1" style="color:var(--danger)">🗑</button>`:''}
           </div>
         </div>`;
       }).join('')}
@@ -241,7 +241,7 @@ async function a2aRenderTasks(container) {
             <td style="font-size:10px;color:var(--text-3)">${new Date(t.created_at).toLocaleString()}</td>
             <td data-stop="1">
               ${!['completed','failed','canceled'].includes(t.state) ?
-                `<button class="a2a-btn" data-act-click="a2aCancelTask(${jsArg(t.task_id)})" style="font-size:10px;color:var(--danger)">✕</button>` : ''}
+                `<button aria-label="Close" title="Close" class="a2a-btn" data-act-click="a2aCancelTask(${jsArg(t.task_id)})" style="font-size:10px;color:var(--danger)">✕</button>` : ''}
             </td>
           </tr>`;
         }).join('')}

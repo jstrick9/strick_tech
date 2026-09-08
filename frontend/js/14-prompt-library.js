@@ -728,7 +728,7 @@ async function reviewCurrentFile(){
       <span id="review-score" style="font-size:11px;color:var(--text-2)"></span>
       <div style="margin-left:auto;display:flex;gap:5px">
         <button data-act-click="reviewCurrentFile()" class="btn btn-ghost btn-sm">⟳</button>
-        <button data-act-click="toggleReviewOverlay()" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:16px">×</button>
+        <button aria-label="Close" title="Close" data-act-click="toggleReviewOverlay()" style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:16px">×</button>
       </div>
     </div>
     <div id="review-summary" style="padding:9px 12px;font-size:12.5px;color:var(--text-2);border-bottom:1px solid var(--border);flex-shrink:0"></div>
@@ -1106,7 +1106,7 @@ async function showPromptHistory(pid) {
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;max-width:640px;width:100%;max-height:80vh;overflow:auto;padding:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <h3 style="margin:0;color:var(--text-0);font-size:15px">🕘 Version history — ${escHtml(p?.title || pid)}</h3>
-        <button type="button" class="btn btn-ghost btn-sm" data-ph="close">✕</button>
+        <button aria-label="Close" title="Close" type="button" class="btn btn-ghost btn-sm" data-ph="close">✕</button>
       </div>
       <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:12px;background:var(--bg-1)">
         <div style="font-size:10px;color:var(--accent-text);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Current</div>
