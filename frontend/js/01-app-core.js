@@ -2226,6 +2226,48 @@ function paletteKey(e) {
 }
 
 // Keyboard shortcuts & Master Global Escape Interceptor
+// Collect the currently-open dialogs/overlays. Shared by the Escape handler
+// (which dismisses them) and the Tab focus-trap (which keeps keyboard focus
+// from walking into the page behind a dialog — WCAG 2.4.3).
+function collectOpenModals() {
+  return [
+    document.getElementById('onboarding-overlay'),
+    document.getElementById('onboarding-modal'),
+    document.getElementById('gmodal'),
+    document.getElementById('agent-modal'),
+    document.getElementById('skill-run-modal'),
+    document.getElementById('palette-modal'),
+    document.getElementById('review-overlay'),
+    document.getElementById('profile-panel'),
+    document.getElementById('sidebar-customizer'),
+    document.getElementById('account-settings-modal'),
+    document.getElementById('shortcuts-modal'),
+    document.getElementById('ctx-help-overlay'),
+    // Bespoke overlay-modals created ad hoc with a `className='…-modal-overlay'`
+    // scrim. These were mouse-only: Escape left them open (a WCAG 2.1.2
+    // keyboard trap). All close by removing the overlay, so a single remove()
+    // path is safe. Keyed by id to avoid touching an unrelated overlay.
+    document.getElementById('gm-create-modal'),
+    document.getElementById('dag-launch-modal'),
+    document.getElementById('a2a-delegate-modal'),
+    document.getElementById('a2a-register-modal'),
+    document.querySelector('.modal-back[style*="flex"]'),
+    document.querySelector('.modal-back[style*="block"]')
+  ].filter(m => m && (m.style.display !== 'none' || m.style.opacity === '1' || m.classList.contains('open')));
+}
+
+// Only elements that really serve as a dialog container should trap focus —
+// not the palette, onboarding, or transient overlays that have their own
+// keyboard behaviour or are app chrome (not a modal). Matches the bespoke
+// `*-modal-overlay` scrims (id + className on the same element) and any
+// element that declares itself a dialog. #gmodal traps itself and is excluded.
+function isTrapRoot(m) {
+  if (!m || m.id === 'gmodal') return false;
+  const cls = m.className || '';
+  const roleDialog = m.getAttribute && m.getAttribute('role') === 'dialog';
+  return /-modal-overlay/.test(cls) || /(^|\s)dialog/.test(cls) || roleDialog;
+}
+
 document.addEventListener('keydown', function masterEscapeHandler(e) {
   if (e.key === 'Escape' || e.key === 'Esc') {
     const inspDrawer = document.getElementById('inspection-drawer');
@@ -2295,7 +2337,9 @@ document.addEventListener('keydown', function masterEscapeHandler(e) {
         } else if (m.id === 'gm-create-modal' || m.id === 'dag-launch-modal' ||
                    m.id === 'a2a-delegate-modal' || m.id === 'a2a-register-modal') {
           // Bespoke overlay-modals are torn down with .remove(); hiding them
-          // leaves a stale scrim in the DOM that still catches clicks.
+          // leaves a stale scrim in the DOM that still catches clicks. Restore
+          // focus to whatever opened it (the focus-trap recorded it).
+          if (m.__ovOpener && m.__ovOpener.isConnected) m.__ovOpener.focus();
           m.remove();
         } else {
           m.style.display = 'none';
@@ -2303,6 +2347,31 @@ document.addEventListener('keydown', function masterEscapeHandler(e) {
       });
       if (typeof toast === 'function') toast('✕ Modal closed', 'ok', 1200);
       return;
+    }
+  }
+  // Focus trap for the non-#gmodal dialogs. #gmodal traps itself (see _gm_show);
+  // these bespoke / ad-hoc dialogs had no trap, so Tab could walk into the page
+  // behind them — a WCAG 2.4.3 focus-order failure. Mirrors #gmodal's trap at
+  // the document level so every dialog is covered by one code path.
+  if (e.key === 'Tab') {
+    const modal = collectOpenModals().reverse().find(isTrapRoot);
+    if (modal && modal.isConnected) {
+      const items = Array.from(modal.querySelectorAll('button,input,textarea,select,a[href],[tabindex]'))
+        .filter(el => el.offsetParent !== null && el.getAttribute('tabindex') !== '-1');
+      if (items.length) {
+        // If focus has wandered onto <body> or an element in the page behind the
+        // dialog, pull it back in. Remember the real opener so it can be
+        // restored when this dialog closes (the Escape handler removes it).
+        if (!modal.contains(document.activeElement)) {
+          if (modal.__ovOpener === undefined) modal.__ovOpener = document.activeElement;
+          e.preventDefault();
+          (e.shiftKey ? items[items.length - 1] : items[0]).focus();
+          return;
+        }
+        const first = items[0], last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
     }
   }
   if ((e.metaKey||e.ctrlKey) && e.key === 'k') { e.preventDefault(); openPalette(); }
