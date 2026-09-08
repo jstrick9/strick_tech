@@ -2,7 +2,7 @@
 
 **Focus:** Consistent UI states + cohesive density/hierarchy + bug/UX hunting.
 **Ship style:** incremental — fix + regression test + commit + push each item.
-**Frontend suite:** 111 → **167 passing** · bundle rebuilt & reproducible · live app on port 8787.
+**Frontend suite:** 111 → **171 passing** · bundle rebuilt & reproducible · live app on port 8787.
 
 ---
 
@@ -32,6 +32,7 @@
 ### Backend/quality
 14. **#047 — Bundle cache picks up rebuilds without touching index.html.** The served index was cached against `index.html`'s mtime only; a rebuilt bundle (new content-hashed filenames) was never served until the file was touched or the server restarted, leaving the live preview pointing at removed artifacts. Cache validity now also tracks `dist/manifest.json`'s mtime. (regression test_reg_07)
 15. **#048 — Every pane's loading state routes through the `.data-state` component (~48 sites).** Added `stateFeedback.loadingElement(label)` (embed-in-template AND imperative, identical markup). Converted ~48 hand-rolled inline-styled `Loading…` divs across ~32 panes plus dynamic-label loaders and the `showInlineLoading` helper to the shared spinner + `role=status` + `aria-live` component. (data-state-loading 3)
+16. **#049 — Pane-body error states route through the `.data-state` error component (~22 sites).** Added `stateFeedback.errorElement(opts)` (with optional Retry). Converted full-pane `humanError` loads and data-container load failures (history, shortcuts, entity, leaderboard, agent detail, ICM, plugin/connect-hub, galaxy, quick-start, dashboard) and the ad-hoc error+manual-Retry blocks to the `role=alert` component; dashboard fixed to use guarded `setError`. Small inline form/result status spans intentionally left. (data-state-error 4)
 
 ---
 
