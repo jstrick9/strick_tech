@@ -1762,7 +1762,7 @@ async function renderPluginSDK() {
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Your Packs (${packs.count||0})</div>
           <div id="sdk-pack-list">
             ${(packs.packs||[]).map(p => `
-              <div class="sdk-pack-card" data-act-click="sdkSelectPack(${jsArg(p.id)})" style="
+              <div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" class="sdk-pack-card" data-act-click="sdkSelectPack(${jsArg(p.id)})" style="
                 background:var(--bg-2);border:1px solid var(--border);border-radius:10px;
                 padding:12px;margin-bottom:8px;cursor:pointer;transition:all .12s;
               " data-hover="bc:var(--accent)" data-hover-out="bc:var(--border)">
@@ -2896,7 +2896,7 @@ window.renderFinetuneWorkstation = async function() {
             <button data-act-click="toggleSplitWorkspace(true,'finetune')" class="btn-3d btn-ghost btn-sm u-6c51dbca" >🗂️ Secondary Dock</button>
           </div>
         </div>
-        <div id="lora-drop-zone" style="background:#04060f;border:2px dashed rgba(56,189,248,0.4);border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:all 0.2s"
+        <div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" id="lora-drop-zone" style="background:#04060f;border:2px dashed rgba(56,189,248,0.4);border-radius:12px;padding:22px;text-align:center;cursor:pointer;transition:all 0.2s"
           data-act-click="finetuneConvertIVREN()" data-hover="bc:var(--accent)" data-hover-out="bc:rgba(56,189,248,0.4)">
           <div class="u-d137430a">🗂️ ➔ 📋</div>
           <div style="font-weight:800;font-size:13.5px;color:var(--text-0);margin-bottom:4px">Click or drop IVREN Markdown files / JSONL corpora here</div>

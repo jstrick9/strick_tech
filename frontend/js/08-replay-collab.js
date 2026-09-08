@@ -393,7 +393,7 @@ function ttdBuildGraph() {
   nodesG.innerHTML = nodes.map(n => {
     const col = TTD_COLORS[n.type] || '#7a8aaa';
     const icon = TTD_ICONS[n.type] || '⬡';
-    return `<div class="ttd-node n-pending" id="ttdn-${n.id}"
+    return `<div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" class="ttd-node n-pending" id="ttdn-${n.id}"
               style="left:${n.x||0}px;top:${n.y||0}px;border-color:${col}22"
               data-act-click="ttdClickNode($event,${jsArg(n.id)})">
       <div class="ttd-node-hdr">
@@ -754,7 +754,7 @@ function ttdBuildTimeline() {
       const left  = (start / totalMs * 100).toFixed(2);
       const width = Math.max(dur / totalMs * 100, 0.4).toFixed(2);
       const isErr = f.error && f.error.length > 0;
-      return `<div class="ttd-lane-block ${isErr?'lb-error':''}"
+      return `<div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" class="ttd-lane-block ${isErr?'lb-error':''}"
                 style="left:${left}%;width:${width}%;background:${isErr?'#e85252':col};min-width:4px"
                 title="${escHtml(nodeLabel)}: ${dur}ms${isErr?' — ERROR':''}"
                 data-act-click="ttdGoToDbFrame(${f.id})">

@@ -584,7 +584,7 @@ function dagNodeHTML(t) {
   const durStr = t.duration_ms > 0 ? `${(t.duration_ms/1000).toFixed(1)}s` : '';
   const preview = t.output ? t.output.slice(0, 90) + (t.output.length > 90 ? '…' : '') : (t.status === 'running' ? 'Running…' : '');
 
-  return `<div class="dag-node ${stCls} ${_dagSelectedTask===t.task_id?'n-selected':''}" id="dagn-${t.task_id}"
+  return `<div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" class="dag-node ${stCls} ${_dagSelectedTask===t.task_id?'n-selected':''}" id="dagn-${t.task_id}"
               style="left:${t.x||0}px;top:${t.y||0}px"
               data-act-click="dagClickTask($event,${jsArg(t.task_id)})">
     <div class="dag-node-hdr">

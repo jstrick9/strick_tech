@@ -456,7 +456,7 @@ function gmTabDecompose() {
   const nodesHTML = decomp.map(t => {
     const col = GOAL_AGENT_COLORS[t.agent_hint] || '#7a8aaa';
     const icon = GOAL_AGENT_ICONS[t.agent_hint] || '🤖';
-    return `<div class="gm-decomp-task" id="gdt-${t.id}"
+    return `<div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" class="gm-decomp-task" id="gdt-${t.id}"
       style="left:${t._x}px;top:${t._y}px;border-color:${col}33"
       data-decomp-id="${escHtml(t.id)}" data-act-click="gmSelectDecompTask(${jsArg(t.id)})">
       <div class="gm-decomp-task-hdr">

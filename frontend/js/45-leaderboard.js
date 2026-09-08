@@ -74,7 +74,7 @@ async function renderLeaderboard() {
                         : rank_s>=80?'var(--success)':rank_s>=60?'var(--warning)':'var(--danger)';
             const rating = a.avg_rating ? '★'.repeat(Math.round(a.avg_rating)) : '—';
             return `
-              <div style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:10px 14px;border-top:1px solid var(--border);align-items:center;cursor:pointer;transition:background .1s"
+              <div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:10px 14px;border-top:1px solid var(--border);align-items:center;cursor:pointer;transition:background .1s"
                    data-hover="bg:var(--bg-3)" data-hover-out="bg:"
                    data-act-click="lbViewAgent(${jsArg(a.agent_id)})">
                 <div style="font-weight:700;color:var(--text-3);font-size:12px">${medal||('#'+(i+1))}</div>
@@ -104,7 +104,7 @@ async function renderLeaderboard() {
     <div id="lb-tab-discover" style="display:none">
       <div class="u-f132e9db">
         ${(discovered.agents||[]).length ? (discovered.agents||[]).map((a) =>`
-          <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer"
+          <div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer"
                data-hover="bg:var(--bg-3)" data-hover-out="bg:"
                data-act-click="lbViewAgent(${jsArg(a.id||a.agent_id)})">
             <span class="u-881f70f9">${a.avatar||'🤖'}</span>
@@ -269,7 +269,7 @@ async function lbChangeDays(days) {
           const col   = a.low_confidence ? 'var(--text-3)'
                       : rank_s>=80?'var(--success)':rank_s>=60?'var(--warning)':'var(--danger)';
           const rating = a.avg_rating ? '★'.repeat(Math.min(5,Math.round(a.avg_rating))) : '—';
-          return `<div style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:10px 14px;border-top:1px solid var(--border);align-items:center;cursor:pointer;transition:background .1s"
+          return `<div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" style="display:grid;grid-template-columns:30px 40px 1fr 85px 70px 80px 70px 60px;padding:10px 14px;border-top:1px solid var(--border);align-items:center;cursor:pointer;transition:background .1s"
                        data-hover="bg:var(--bg-3)" data-hover-out="bg:"
                        data-act-click="lbViewAgent(${jsArg(a.agent_id)})">
             <div style="font-weight:700;color:var(--text-3);font-size:12px">${medal||('#'+(i+1))}</div>

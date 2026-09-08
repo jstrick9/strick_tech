@@ -58,7 +58,7 @@ async function loadMCPTools() {
     if (hdr) hdr.textContent = `Available Tools (${j.count || j.tools?.length || 0})`;
     if (sel) sel.innerHTML = j.tools.map(t => `<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('');
     if (list) list.innerHTML = j.tools.map(t => `
-      <div style="display:flex;gap:10px;padding:7px 10px;background:var(--bg-3);border-radius:var(--radius-sm);cursor:pointer"
+      <div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" style="display:flex;gap:10px;padding:7px 10px;background:var(--bg-3);border-radius:var(--radius-sm);cursor:pointer"
            data-act-click="hSetFieldValue('mcp-tool-sel',${jsArg(t.name)})">
         <code style="color:var(--accent-text);font-size:12px;min-width:140px">${t.name}</code>
         <span style="font-size:12px;color:var(--text-2)">${t.description}</span>

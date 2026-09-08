@@ -363,7 +363,7 @@ function renderAgentList() {
     let advOpen = false;
     try { advOpen = localStorage.getItem('agentic_os_show_advanced_agents') === 'true'; } catch {}
     const advRow = (a) => `
-      <div class="agent-row ${S.currentAgent?.id === a.id ? 'active-agent' : ''}"
+      <div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" class="agent-row ${S.currentAgent?.id === a.id ? 'active-agent' : ''}"
            data-agent="${escHtml(JSON.stringify(a))}" data-act-click="hSetActiveAgent($json.agent)"
            data-act-dblclick="openAgentModal(${jsArg(a.id)})">
         <div class="agent-avatar" style="background:${a.color}22;border:1px solid ${a.color}44">

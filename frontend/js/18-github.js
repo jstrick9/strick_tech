@@ -93,7 +93,7 @@ function renderGitHubBody(s) {
       <div style="font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:6px">Recent Repos</div>
       <div style="display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto">
         ${(s.recent_repos||[]).length ? (s.recent_repos||[]).map(r => `
-          <div data-act-click="ghSetRepo(${jsArg(r.full_name)})"
+          <div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" data-act-click="ghSetRepo(${jsArg(r.full_name)})"
                style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition)"
                data-hover="bg:var(--bg-3)" data-hover-out="bg:">
             <span class="u-6cb285c6">${r.private?'🔒':'📂'}</span>
