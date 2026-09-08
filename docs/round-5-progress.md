@@ -60,3 +60,8 @@ App running at **port 8787**. Refresh to see the density/elevation/state changes
 - Remote HEAD now past **#057** (`4b9e5ba`).
 - axe-core scan of the static app shell: **0 violations** (critical/serious and all impacts).
 - Every change ships with a jsdom regression test; onboarding-enter & composer verified **red on pre-fix**.
+
+
+26. **#059 — Reconcile `.badge` onto the `.tag` geometry & tint vocabulary; audit `.card`.**
+    `.badge`'s winning definition (styles-extracted ~803) used `2px 8px` while its sibling `.tag` (reconciled in #057) used `1px 8px`, so a tag and a badge in the same cluster (mkt-card-tags / mkt-card-badges) rendered at different heights. It was also defined three times (unified ~1246, extracted ~97 legacy, extracted ~803 modern) — the modern one wins so no runtime colour conflict, but the shadowing was dead code. Reconciled in the authoritative styles-system.css to the SAME geometry as `.tag` (1px 8px, radius-full, lh 1.6, weight 600, type scale), with the legacy `.badge.green/.blue/.live` modifiers kept as aliases of the canonical tokens. (badge-reconcile 4.)
+    Audited the parked `.card` additive rules (redesign ~1466–1490): they are deliberate containment guards (`overflow-wrap:anywhere` + `min-width:0` on non-interactive children, with an explicit `:not(button…)` list so tap targets stay 44px). They do not shadow the `.card` base — **no change made** (fixing would regress the touch-target audit).
