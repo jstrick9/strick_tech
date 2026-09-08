@@ -261,3 +261,25 @@ Round 5 continuation (autonomous objective items):
   "ONLINE (N models)" with models_count 0 -> "ONLINE (1 models)"; red-team
   "(8 attacks)" when attacks.count is 0. Now typeof===number. Extended
   zero-fidelity pattern-guards to 8 tests (comments stripped). Suite 136.
+
+## Round 5 — UX consistency batch (4 items, all shipped)
+
+- **#038 (7a9d671)** Empty states offer a next action (consistency). Routed the
+  action-less empty states through the shared emptyState() factory with a CTA:
+  Image Asset Library (Generate/Upload), Deploy history (Deploy now), Chat
+  history (Start a chat), Web search history (New search). Agent-Identity/ICM
+  already had CTAs. empty-state-cta.test.js (5).
+- **#039 (fbe0cf2)** All destructive prompts now use gm modals, not native
+  dialogs (Tauri-unreliable + inconsistent): inboxDelete -> gmDanger; ICM
+  open/delete/create/restructure (4 dialogs); prompt-library createCategory ->
+  gmPrompt; hierarchy delete fallback -> gmDanger. delete-confirm.test.js (2)
+  is a repo-wide native-dialog guard. Suite 143.
+- **#040 (639bb54)** Keyboard-dismissable modals + focus-restore. Locked in the
+  gm modal contract (Escape dismiss, focus-restore, prompt focuses input) with
+  gm-modal-a11y.test.js (3); Skills run-modal closes on Escape; new shared
+  delegated Escape handler in 00-handlers.js so all ad-hoc full-screen
+  overlays (steering/replay/evals) are Escape-dismissable, scoped to exclude
+  #gmodal. overlay-escape.test.js (3). Suite 149.
+- **#041 (8d8864c)** Settings + onboarding flow tightening: Enter advances the
+  onboarding input and saves the settings key/URL fields (delegated, bound
+  once). onboarding-enter (2, verified red) + settings-enter (2). Suite 153.
