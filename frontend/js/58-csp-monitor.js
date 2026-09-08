@@ -121,7 +121,7 @@
         var third = isThirdParty(v.source_file);
         tr.appendChild(el('td',
           'padding:6px 10px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums',
-          String(v.count || 1)));
+          String(typeof v.count === 'number' ? v.count : 0)));
         tr.appendChild(el('td',
           'padding:6px 10px;border-bottom:1px solid var(--border);color:var(--accent-text)',
           v.directive || '—'));

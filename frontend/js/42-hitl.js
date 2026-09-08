@@ -52,15 +52,15 @@ async function renderHITL() {
     <!-- Pending queue with Side-by-Side Diff Verification (Phase 4) -->
     <div class="u-f9e226da">⏳ Pending Approval & Diff Verification (${(queue.interrupts||[]).length})</div>
     <div id="hitl-queue">
-      ${(queue.interrupts||[]).map(item=>`
-        <div class="card-elevated surface-z3" style="border:2px solid ${(item.confidence < 0.85) ? '#ff4444' : (riskColors[item.risk_level]||'var(--border)')};border-radius:14px;padding:18px;margin-bottom:14px;position:relative;box-shadow:${(item.confidence < 0.85) ? '0 0 28px rgba(255,68,68,0.22)' : 'var(--shadow)'}">
+      ${(queue.interrupts||[]).map(item=>{ const conf = typeof item.confidence === 'number' ? item.confidence : 0.65; const interrupt = conf < 0.85; return `
+        <div class="card-elevated surface-z3" style="border:2px solid ${interrupt ? '#ff4444' : (riskColors[item.risk_level]||'var(--border)')};border-radius:14px;padding:18px;margin-bottom:14px;position:relative;box-shadow:${interrupt ? '0 0 28px rgba(255,68,68,0.22)' : 'var(--shadow)'}">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
             <div style="display:flex;align-items:center;gap:8px">
               <span style="font-size:11px;padding:3px 8px;border-radius:4px;font-weight:800;background:${riskColors[item.risk_level]||'var(--text-3)'}22;color:${riskColors[item.risk_level]||'var(--text-3)'};text-transform:uppercase">${item.risk_level||'high'}</span>
               <strong style="color:var(--text-0);font-size:14px">${escHtml(item.action_type||'Protected State Modification')}</strong>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
-              <span class="badge ${(item.confidence < 0.85) ? 'badge-danger' : 'badge-warning'}">${Math.round((item.confidence||0.65)*100)}% Confidence ${(item.confidence < 0.85) ? '⚠️ < 85% INTERRUPT' : 'GATED'}</span>
+              <span class="badge ${interrupt ? 'badge-danger' : 'badge-warning'}">${Math.round(conf*100)}% Confidence ${interrupt ? '⚠️ < 85% INTERRUPT' : 'GATED'}</span>
               <span style="font-size:11px;color:var(--text-3);font-family:monospace">${new Date(item.created_at).toLocaleTimeString()}</span>
             </div>
           </div>
@@ -86,7 +86,7 @@ async function renderHITL() {
             </div>
             <button data-act-click="toggleSplitWorkspace(true,'hitl')" class="btn-3d btn-ghost btn-sm u-884e19b1" >🗂️ Secondary Dock</button>
           </div>
-        </div>`).join('') || '<div style="color:var(--text-3);padding:24px;text-align:center;background:var(--surface-z1);border-radius:12px;border:1px dashed var(--border)">No pending interruptions — autonomous agents operating safely within set confidence thresholds.</div>'}
+         </div>`;}).join('') || '<div style="color:var(--text-3);padding:24px;text-align:center;background:var(--surface-z1);border-radius:12px;border:1px dashed var(--border)">No pending interruptions — autonomous agents operating safely within set confidence thresholds.</div>'}
     </div>
 
     <!-- Confidence threshold settings -->

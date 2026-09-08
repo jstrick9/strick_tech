@@ -681,7 +681,7 @@ async function kgShowEntity(entityId) {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
         <span class="kg-type-badge u-11a50812" >${d.type||'concept'}</span>
         <h3 style="margin:0;color:var(--text-0)">${escHtml(d.name||'')}</h3>
-        <span style="margin-left:auto;font-size:11px;color:var(--text-3)">Confidence: ${Math.round((d.confidence||1)*100)}%</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--text-3)">Confidence: ${Math.round((typeof d.confidence === 'number' ? d.confidence : 1)*100)}%</span>
       </div>
       ${d.description?`<p style="font-size:13px;color:var(--text-2);margin:0 0 12px">${escHtml(d.description)}</p>`:''}
 

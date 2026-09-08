@@ -219,7 +219,7 @@ function bbShowResults(d) {
   const el = document.getElementById('bb-results');
   if (!el) return;
   const issues  = d.issues||[];
-  const score   = d.score||75;
+  const score   = typeof d.score === 'number' ? d.score : 75;
   const sev     = d.severity||'low';
   const col     = score>=80?'var(--success)':score>=60?'var(--warning)':'var(--danger)';
   const bySev   = {};
