@@ -160,10 +160,20 @@
   to { transform: rotate(360deg); }
 }
 
-/* Empty state sits flush & quiet to read as "no data yet", not an error. */
+/* Empty state sits flush & quiet to read as "no data yet", not an error.
+   .data-state-actions* is the CTA cluster emitted by the unified emptyState()
+   factory (see js/01-app-core.js) for the multi-action empty states that have
+   a next step — it sits under the message, on its own row. */
 .state-empty { padding: var(--space-6); min-height: 0; }
 .state-empty .data-state-icon { font-size: 30px; opacity: 0.7; }
 .state-empty .data-state-title { color: var(--text-1); font-size: var(--font-size-md); }
+.data-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: center;
+  margin-top: var(--space-2);
+}
 
 /* Error state is the one that must be noticed. */
 .state-error {
@@ -231,22 +241,48 @@
   overflow: hidden;
 }
 
-/* ── Control density & affordance (palette-preserving) ────────────────── */
-/* Standard control height for full-size controls + clear press feedback.
-   .btn-sm stays explicitly 28px (see styles-unified/extracted). Idle colour
-   unchanged; only adds :active affordance. */
+/* ── BUTTONS — one reconciled system (#056) ──────────────────────────── */
+/* `.btn` and `.btn-3d` were two parallel button classes that drifted apart:
+   `.btn-3d` carried padding 8x16, a 6px-radius and 600 weight plus a hover
+   lift, while `.btn` carried 7x14, a 12px-radius, 500 weight and no lift. Two
+   systems meant two looks for the same control — e.g. a primary action in the
+   workflow pane (`.btn`) and a primary action in the DAG pane (`.btn-3d`)
+   rounded and weighted differently. Consolidated: `.btn-3d` is now a pure
+   alias that resolves to the exact same base as `.btn`, so any control reads
+   identically no matter which class authored it. *Idle colours and the
+   `.btn-primary/ghost/danger` fills are untouched* — this only unifies
+   geometry, type weight and hover/active behaviour. */
 .btn,
 .btn-3d {
   --ctl-h: 36px;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
   min-height: var(--ctl-h);
 }
-.btn-3d { border-radius: var(--radius-sm); }
+/* BUG FIX: `.btn-sm` set height:28px but the base set min-height:36px, and
+   min-height beats height — so EVERY small button rendered 36px tall and
+   `.btn-sm` did nothing. `--ctl-h` is now overridden to 28px for `.btn-sm`,
+   which is the small-control intent the variable existed to serve. */
+.btn-sm {
+  --ctl-h: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+/* Press + hover: same on both classes (the old `.btn-3d` hover lift is gone —
+   a raised chip and a flat button are two affordances, and consistency is the
+   point). */
+.btn:hover, .btn-3d:hover { transform: none; }
 .btn:active,
 .btn-3d:active {
   transform: translateY(1px) scale(0.985);
   background: var(--bg-4);
 }
 .btn-ghost { font-weight: 500; }
+.btn-primary, .btn-3d.btn-primary { font-weight: 600; }
 
 /* Cards & list rows get a gentle lift on hover to signal interactivity,
    using the existing border/shadow tokens. Disabled on reduced-motion. */

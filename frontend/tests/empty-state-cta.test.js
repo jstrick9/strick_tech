@@ -20,13 +20,20 @@ function loadEmptyState() {
 describe('shared emptyState factory offers a next action', () => {
   const emptyState = loadEmptyState();
 
-  it('renders a primary action button when actions are supplied', () => {
+  it('renders inside the shared .data-state state-empty component', () => {
     const html = emptyState({ icon:'🚀', title:'No deploys yet', body:'Run one to see it here.',
       actions:[{ label:'Deploy now', action:'renderDeploy()', primary:true }] });
-    expect(html).toContain('empty-state');
+    expect(html).toContain('data-state state-empty');
     expect(html).toContain('Deploy now');
     expect(html).toContain("data-act-click=\"renderDeploy()\"");
     expect(html).toContain('btn-primary');
+  });
+
+  it('routes the copy through the shared data-state markup', () => {
+    const html = emptyState({ icon:'🚀', title:'No deploys yet', body:'Run one to see it here.',
+      actions:[] });
+    expect(html).toContain('data-state-title');
+    expect(html).toContain('data-state-msg');
   });
 
   it('escapes title/body but keeps the action expression intact (quotes survive)', () => {
@@ -43,6 +50,7 @@ describe('shared emptyState factory offers a next action', () => {
                { label:'Upload', action:'igUpload()' }] });
     expect(html).toContain('Generate');
     expect(html).toContain('Upload');
+    expect(html).toContain('data-state-actions'); // row makes multiple CTAs flow
   });
 });
 

@@ -41,6 +41,7 @@
 20. **#053 — Shared fixed modal scrim for bespoke dialogs.** `a2a-modal-overlay`, `dag-modal-overlay` and `gm-modal-overlay` were appended via `overlay.className='…'` with no inline style and no CSS in any loaded sheet, so their dialog content dropped into the document flow instead of centering over a full-screen scrim. Added a `wg-modal-overlay` primitive (fixed inset scrim, blurred backdrop, centered flex) applied to all three. (widget-primitives 8)
 21. **#054 — Escape dismisses the bespoke overlay-modals (item #3).** `gm-create-modal`, `dag-launch-modal`, `a2a-delegate-modal`, `a2a-register-modal` were added to the global master Escape handler (discovery by id) and given a `remove()` branch — they must be removed, not `display:none`, or a stale scrim keeps catching clicks. (escape-overlay-modals 2)
 22. **#055 — Badge/tag cluster + modal-example layout.** Follow-up to the primitive sweep: the now-styled badges/tags/examples sit in plain unstyled block wrappers, so their pills stacked vertically. Gave the cluster wrappers a wrap-only row and the DAG modal examples a stacked list. (widget-primitives 9)
+23. **#056 — Reconcile the `.btn`/`.btn-3d` dual system + migrate `emptyState()` to `state-empty`.** (a) `.btn` and `.btn-3d` were two parallel button classes that had drifted apart (8×16/6px-radius/600+lift vs 7×14/12px-radius/500). Consolidated in `styles-system.css` so both resolve to one shared base (padding/radius/weight/active identical; the `.btn-3d`-only hover lift removed) — a primary action reads the same in the workflow pane and the DAG pane. *Idle colours and primary/ghost/danger fills untouched.* Also fixed a **latent bug**: the base set `min-height:36px` via `--ctl-h`, which beat every `.btn-sm{height:28px}` (min-height overrides height), so every small button was silently 36px tall; `--ctl-h` is now overridden to 28px for `.btn-sm`. (button-system 4 — red on pre-fix.) (b) The `emptyState({icon,title,body,actions})` factory (js/01-app-core.js) — used by all 6 pane empty states (image-gen, terminal/secrets, workspaces, webhooks, test-gen, deploy) plus the fatal error fallback — now renders the shared `.data-state state-empty` component via `stateFeedback.emptyHtml` (with an inline fallback so it's safe pre-init), and emits multiple CTAs in a `.data-state-actions` row. One DOM shape for every pane's empty state. (empty-state-cta 6 — previously 3.)
 
 ---
 
@@ -53,6 +54,6 @@ App running at **port 8787**. Refresh to see the density/elevation/state changes
 App running at **port 8787**. Refresh to see the density/elevation/state changes and the four UX improvements.
 
 ## Verification
-- Frontend suite **186 passing**; bundle served live as head+chunks+app (3 requests, not 88).
+- Frontend suite **191 passing**; bundle served live as head+chunks+app (3 requests, not 88).
 - axe-core scan of the static app shell: **0 violations** (critical/serious and all impacts).
 - Every change ships with a jsdom regression test; onboarding-enter & composer verified **red on pre-fix**.

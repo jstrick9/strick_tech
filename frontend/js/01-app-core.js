@@ -3102,15 +3102,28 @@ function skeletonPage(_title = 'Loading…') {
 }
 
 // ── Empty state factory ────────────────────────────────────────────
+// Unified empty-state renderer. Routes through the shared stateFeedback
+// component (.data-state state-empty) so every pane's empty state — the fatal
+// error fallback, the terminal/secrets vault, workspaces, the control tower,
+// webhooks, the test generator and deploy history — renders the SAME DOM
+// shape, the SAME accent icon treatment and the SAME button system. Multiple
+// CTAs are wrapped in a shared .data-state-actions row.
 function emptyState({ icon, title, body, actions = [] }) {
-  return `<div class="empty-state">
-    <div class="empty-state__icon">${icon}</div>
-    <div class="empty-state__title">${escHtml(title)}</div>
-    <div class="empty-state__body">${escHtml(body)}</div>
-    <div class="empty-state__actions">${actions.map(a =>
-      `<button data-act-click="${a.action}" class="btn ${a.primary ? 'btn-primary' : 'btn-ghost'}">${a.label}</button>`
-    ).join('')}</div>
-  </div>`;
+  const wiring = (typeof window !== 'undefined' && window.stateFeedback) || {};
+  // Prefer the shared data-state markup (same shape as loading/error states);
+  // fall back to an equivalent inline render so the factory is safe to call in
+  // any context (e.g. tests, before 00-state-feedback has loaded).
+  const inner = wiring.emptyHtml
+    ? wiring.emptyHtml({ icon: icon, title: title, message: body })
+    : `<span class="data-state-icon" aria-hidden="true">${escHtml(icon)}</span>` +
+      `<div class="data-state-copy"><div class="data-state-title">${escHtml(title)}</div>` +
+      (body ? `<div class="data-state-msg">${escHtml(body)}</div>` : '') + `</div>`;
+  const actionRow = actions.length
+    ? `<div class="data-state-actions">${actions.map(a =>
+        `<button type="button" data-act-click="${a.action}" class="btn ${a.primary ? 'btn-primary' : 'btn-ghost'}">${escHtml(a.label)}</button>`
+      ).join('')}</div>`
+    : '';
+  return `<div class="data-state state-empty" role="status">${inner}${actionRow}</div>`;
 }
 
 // ── Help panel factory (novice guidance) ───────────────────────────
