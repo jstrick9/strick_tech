@@ -251,3 +251,13 @@ protocol modules.
   color-contrast/region disabled (jsdom can't compute contrast; contrast already
   measured in real Chromium). Static shell scans 0 violations -> durable guard.
   Package: frontend/package.json (axe-core devDep). Suite 131.
+Round 5 continuation (autonomous objective items):
+- **#036 (shipped `df74f20`)** — Composer `loadBranchPreviews()` had no `r.ok`
+  check + bare `catch(e){}`: non-ok fell through to a false "No snapshots yet"
+  on outage; thrown errors swallowed leaving eternal blank. Now non-ok->shared
+  error(role=alert+Retry), thrown->error state, only healthy empty->empty state.
+  Tests: composer-branch-state (3), verified red pre-fix. Suite 134.
+- **#037 (shipped `5ce7cca`)** — Two more zero-fidelity instances: Ollama test
+  "ONLINE (N models)" with models_count 0 -> "ONLINE (1 models)"; red-team
+  "(8 attacks)" when attacks.count is 0. Now typeof===number. Extended
+  zero-fidelity pattern-guards to 8 tests (comments stripped). Suite 136.
