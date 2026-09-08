@@ -123,7 +123,7 @@ async function renderHITL() {
               <div class="u-eed0f8fb">${label}</div>
               <div style="font-size:10px;color:var(--text-3)">${defaultVal}</div>
             </div>
-            <select class="hitl-deleg-sel" data-actions="${actions}" style="font-size:11px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text-0)">
+            <select aria-label="Delegation action" class="hitl-deleg-sel" data-actions="${actions}" style="font-size:11px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text-0)">
               <option value="auto">Auto-approve</option>
               <option value="auto_high" ${defaultVal.includes('80')? 'selected':''}>Auto if ≥80%</option>
               <option value="interrupt" ${defaultVal.includes('Always approve')? 'selected':''}>Always interrupt</option>

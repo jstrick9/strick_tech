@@ -187,7 +187,7 @@ function dbShowInsertForm(table, cols) {
     const long = /text|json|blob/i.test(c.type || '');
     const control = long
       ? `<textarea data-col="${escHtml(c.name)}" rows="2" class="input" style="height:auto;padding:8px 10px;resize:vertical"></textarea>`
-      : `<input data-col="${escHtml(c.name)}" class="input" ${/int|real|num/i.test(c.type || '') ? 'type="number"' : ''}>`;
+      : `<input data-col="${escHtml(c.name)}" aria-label="Column ${escHtml(c.name)}" class="input" ${/int|real|num/i.test(c.type || '') ? 'type="number"' : ''}>`;
     return `<label style="display:block;margin-bottom:10px">
       <span style="display:block;font-size:11.5px;font-weight:700;margin-bottom:4px;color:var(--text-2)">${escHtml(c.name)}${required}${hint}</span>
       ${control}

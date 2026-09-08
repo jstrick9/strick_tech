@@ -618,7 +618,7 @@
               <div style="display:flex;gap:10px;align-items:center;padding:6px 0">
                 <span style="font-size:11.5px;color:var(--text-2);min-width:24px">
                   ${String(i + 1).padStart(2, '0')}</span>
-                <input type="text" class="icm-stage-in" value="${esc(s.name)}"
+                <input type="text" aria-label="Stage name" class="icm-stage-in" value="${esc(s.name)}"
                   style="width:170px;padding:7px 10px;background:var(--bg-1);color:var(--text-0);
                          border:1px solid var(--border-0);border-radius:6px;font-size:12.5px">
                 <span style="flex:1;font-size:12px;color:var(--text-2);overflow:hidden;

@@ -2776,6 +2776,7 @@ function showE2ETrace(run) {
     .filter(s => s.screenshot_b64)
     .slice(0, 3)
     .map(s => `<img src="data:image/png;base64,${s.screenshot_b64}"
+      alt="${escHtml(s.step||s.step_name||'Screenshot')}"
       title="${escHtml(s.step||s.step_name||'')}"
       style="width:100%;border-radius:6px;margin-top:6px;border:1px solid var(--border)"
       data-hide-on-error="1">`)

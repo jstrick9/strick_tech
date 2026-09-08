@@ -453,7 +453,7 @@ function askForVariables(title, names) {
         ${names.map((n, i) => `
           <div class="form-group">
             <label class="form-label">${escHtml(n)}</label>
-            <input class="input pv-input" data-var-name="${escHtml(n)}"${i === 0 ? ' autofocus' : ''}
+            <input aria-label="Value for ${escHtml(n)}" class="input pv-input" data-var-name="${escHtml(n)}"${i === 0 ? ' autofocus' : ''}
                    placeholder="Value for {${escHtml(n)}}">
           </div>`).join('')}
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">

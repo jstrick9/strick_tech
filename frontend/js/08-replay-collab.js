@@ -1756,7 +1756,7 @@ async function renderMarketplace() {
         `).join('')}
 
         <h4 class="u-1b0f4999">Sort By</h4>
-        <select class="mkt-sort-select" style="width:100%" data-act-change="mktChangeSort($value)">
+        <select aria-label="Sort marketplace" class="mkt-sort-select" style="width:100%" data-act-change="mktChangeSort($value)">
           <option value="featured" selected>⭐ Featured</option>
           <option value="downloads">⬇ Most Downloaded</option>
           <option value="rating">⭐ Top Rated</option>

@@ -781,7 +781,7 @@ function wfSelectNode(nodeId) {
   cont.innerHTML = `
     <div class="wf-prop-group">
       <label>Label</label>
-      <input value="${escHtml(node.label||'')}" data-act-input="wfUpdateNodeProp('label',$value)" placeholder="Node label">
+      <input value="${escHtml(node.label||'')}" aria-label="Node label" data-act-input="wfUpdateNodeProp('label',$value)" placeholder="Node label">
     </div>
     <div class="wf-prop-group">
       <label>Type</label>
@@ -803,7 +803,7 @@ function wfSelectNode(nodeId) {
     </div>
     <div class="wf-prop-group">
       <label>Max Tokens</label>
-      <input type="number" min="100" max="8192" value="${node.config?.max_tokens||1024}" data-act-input="wfUpdateConfig('max_tokens',$nvalue)">
+      <input type="number" aria-label="Max tokens" min="100" max="8192" value="${node.config?.max_tokens||1024}" data-act-input="wfUpdateConfig('max_tokens',$nvalue)">
     </div>` : ''}
     ${node.type==='trigger' ? `
     <div class="wf-prop-group">
@@ -818,7 +818,7 @@ function wfSelectNode(nodeId) {
     ${node.config?.event==='schedule' ? `
     <div class="wf-prop-group">
       <label>Cron Expression</label>
-      <input value="${escHtml(node.config?.cron||'0 9 * * *')}" data-act-input="wfUpdateConfig('cron',$value)" placeholder="0 9 * * *">
+      <input value="${escHtml(node.config?.cron||'0 9 * * *')}" aria-label="Cron schedule" data-act-input="wfUpdateConfig('cron',$value)" placeholder="0 9 * * *">
       <div class="wf-prop-hint">Standard cron: minute hour day month weekday</div>
     </div>` : ''}` : ''}
     ${node.type==='output' ? `
@@ -836,12 +836,12 @@ function wfSelectNode(nodeId) {
     </div>
     <div class="wf-prop-group">
       <label>True Edge Label</label>
-      <input value="${escHtml(node.config?.true_label||'yes')}" data-act-input="wfUpdateConfig('true_label',$value)" placeholder="yes">
+      <input value="${escHtml(node.config?.true_label||'yes')}" aria-label="Yes label" data-act-input="wfUpdateConfig('true_label',$value)" placeholder="yes">
     </div>` : ''}
     ${node.type==='delay' ? `
     <div class="wf-prop-group">
       <label>Delay Seconds</label>
-      <input type="number" min="0" max="60" value="${node.config?.seconds||1}" data-act-input="wfUpdateConfig('seconds',$nvalue)">
+      <input type="number" aria-label="Delay seconds" min="0" max="60" value="${node.config?.seconds||1}" data-act-input="wfUpdateConfig('seconds',$nvalue)">
     </div>` : ''}
     ${node.type==='loop' ? `
     <div class="wf-prop-group">
@@ -857,17 +857,17 @@ function wfSelectNode(nodeId) {
     </div>
     <div class="wf-prop-group">
       <label>Iterations</label>
-      <input type="number" min="1" max="10" value="${node.config?.iterations||3}" data-act-input="wfUpdateConfig('iterations',$nvalue)">
+      <input type="number" aria-label="Loop iterations" min="1" max="10" value="${node.config?.iterations||3}" data-act-input="wfUpdateConfig('iterations',$nvalue)">
     </div>
     <div class="wf-prop-group">
       <label>Stop Keyword (optional)</label>
-      <input value="${escHtml(node.config?.stop_keyword||'')}" data-act-input="wfUpdateConfig('stop_keyword',$value)" placeholder="e.g. done">
+      <input value="${escHtml(node.config?.stop_keyword||'')}" aria-label="Stop keyword" data-act-input="wfUpdateConfig('stop_keyword',$value)" placeholder="e.g. done">
       <div class="wf-prop-hint">Loop stops early if this keyword appears in the output</div>
     </div>` : ''}
     ${node.type==='webhook' ? `
     <div class="wf-prop-group">
       <label>Endpoint URL</label>
-      <input value="${escHtml(node.config?.url||'')}" data-act-input="wfUpdateConfig('url',$value)" placeholder="https://...">
+      <input value="${escHtml(node.config?.url||'')}" aria-label="URL" data-act-input="wfUpdateConfig('url',$value)" placeholder="https://...">
     </div>
     <div class="wf-prop-group">
       <label>Method</label>
