@@ -2,7 +2,7 @@
 
 **Focus:** Consistent UI states + cohesive density/hierarchy + bug/UX hunting.
 **Ship style:** incremental — fix + regression test + commit + push each item.
-**Frontend suite:** 111 → **164 passing** · bundle rebuilt & reproducible · live app on port 8787.
+**Frontend suite:** 111 → **167 passing** · bundle rebuilt & reproducible · live app on port 8787.
 
 ---
 
@@ -31,6 +31,7 @@
 
 ### Backend/quality
 14. **#047 — Bundle cache picks up rebuilds without touching index.html.** The served index was cached against `index.html`'s mtime only; a rebuilt bundle (new content-hashed filenames) was never served until the file was touched or the server restarted, leaving the live preview pointing at removed artifacts. Cache validity now also tracks `dist/manifest.json`'s mtime. (regression test_reg_07)
+15. **#048 — Every pane's loading state routes through the `.data-state` component (~48 sites).** Added `stateFeedback.loadingElement(label)` (embed-in-template AND imperative, identical markup). Converted ~48 hand-rolled inline-styled `Loading…` divs across ~32 panes plus dynamic-label loaders and the `showInlineLoading` helper to the shared spinner + `role=status` + `aria-live` component. (data-state-loading 3)
 
 ---
 
@@ -38,6 +39,6 @@
 App running at **port 8787**. Refresh to see the density/elevation/state changes and the four UX improvements.
 
 ## Verification
-- Frontend suite **164 passing**; bundle served live as head+chunks+app (3 requests, not 88).
+- Frontend suite **167 passing**; bundle served live as head+chunks+app (3 requests, not 88).
 - axe-core scan of the static app shell: **0 violations** (critical/serious and all impacts).
 - Every change ships with a jsdom regression test; onboarding-enter & composer verified **red on pre-fix**.
