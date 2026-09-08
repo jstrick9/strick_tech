@@ -460,6 +460,12 @@ async function kanbanPersistOrder(columnId, movedId, dropIndex, opts = {}) {
 
 // ── Create Task Modal ─────────────────────────────────────────────
 function kanbanOpenCreateModal(defaultColumn = 'todo') {
+  // #065: the global master Escape handler removes the overlay DOM node
+  // directly (m.remove()) but cannot call kanbanCloseModal(), so this flag can
+  // be left true after an Escape close — which made EVERY later open refuse
+  // (a single-use modal). Reconcile the flag against the actual DOM first: if
+  // the overlay is no longer mounted, treat the modal as closed.
+  if (kanbanModalOpen && !document.getElementById('kanban-modal-overlay')) kanbanModalOpen = false;
   if (kanbanModalOpen) return;
   kanbanModalOpen = true;
 
@@ -591,6 +597,9 @@ async function kanbanSubmitCreate(event) {
 
 // ── Edit Task Modal ───────────────────────────────────────────────
 function kanbanOpenEditModal(taskId) {
+  // #065: reconcile the open flag against the DOM so an Escape-force-removed
+  // overlay doesn't permanently disable the modal (see kanbanOpenCreateModal).
+  if (kanbanModalOpen && !document.getElementById('kanban-modal-overlay')) kanbanModalOpen = false;
   if (kanbanModalOpen) return;
   kanbanModalOpen = true;
 
