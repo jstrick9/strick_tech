@@ -192,3 +192,71 @@
     font-weight: 700;
   }
 }
+
+/* ── Surfaces: the missing elevation hierarchy (surface-z1..z4) ──────── */
+/* These classes are used across ~26 panes (card-elevated + surface-z1..4)
+   but were defined in NO stylesheet, so the elements rendered as bare
+   inline-styled divs with no coherent elevation. Defining them here gives a
+   consistent, token-driven elevation scale. Purely additive: any element with
+   an inline box-shadow/border keeps it (inline > class). */
+.surface-z1 {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.surface-z2 {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.surface-z3 {
+  background: var(--bg-3);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.surface-z4 {
+  background: var(--bg-2);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-elevated {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* ── Control density & affordance (palette-preserving) ────────────────── */
+/* Standard control height for full-size controls + clear press feedback.
+   .btn-sm stays explicitly 28px (see styles-unified/extracted). Idle colour
+   unchanged; only adds :active affordance. */
+.btn,
+.btn-3d {
+  --ctl-h: 36px;
+  min-height: var(--ctl-h);
+}
+.btn-3d { border-radius: var(--radius-sm); }
+.btn:active,
+.btn-3d:active {
+  transform: translateY(1px) scale(0.985);
+  background: var(--bg-4);
+}
+.btn-ghost { font-weight: 500; }
+
+/* Cards & list rows get a gentle lift on hover to signal interactivity,
+   using the existing border/shadow tokens. Disabled on reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .card:hover,
+  .card-elevated:hover,
+  .surface-z2:hover,
+  .surface-z3:hover {
+    border-color: var(--border-hi);
+    box-shadow: var(--shadow-lg);
+    transition: box-shadow var(--transition), border-color var(--transition);
+  }
+}
