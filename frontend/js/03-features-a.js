@@ -785,14 +785,14 @@ function wfSelectNode(nodeId) {
     </div>
     <div class="wf-prop-group">
       <label>Type</label>
-      <select data-act-change="wfUpdateNodeProp('type',$value)">
+      <select aria-label="Node type" data-act-change="wfUpdateNodeProp('type',$value)">
         ${_wfNodeTypes.map(t=>`<option value="${t.id}" ${t.id===node.type?'selected':''}>${t.label}</option>`).join('')}
       </select>
     </div>
     ${node.type==='agent' ? `
     <div class="wf-prop-group">
       <label>Agent ID</label>
-      <select data-act-change="wfUpdateConfig('agent_id',$value)">
+      <select aria-label="Agent" data-act-change="wfUpdateConfig('agent_id',$value)">
         ${['orchestrator','researcher','builder','reviewer','creative','brain','memory','local'].map(a=>`<option value="${a}" ${a===node.config?.agent_id?'selected':''}>${a}</option>`).join('')}
       </select>
     </div>
@@ -808,7 +808,7 @@ function wfSelectNode(nodeId) {
     ${node.type==='trigger' ? `
     <div class="wf-prop-group">
       <label>Trigger Event</label>
-      <select data-act-change="wfUpdateConfig('event',$value)">
+      <select aria-label="Trigger event" data-act-change="wfUpdateConfig('event',$value)">
         <option value="manual" ${node.config?.event==='manual'?'selected':''}>Manual</option>
         <option value="chat" ${node.config?.event==='chat'?'selected':''}>Chat Input</option>
         <option value="webhook" ${node.config?.event==='webhook'?'selected':''}>Webhook</option>
@@ -824,7 +824,7 @@ function wfSelectNode(nodeId) {
     ${node.type==='output' ? `
     <div class="wf-prop-group">
       <label>Output Target</label>
-      <select data-act-change="wfUpdateConfig('target',$value)">
+      <select aria-label="Output target" data-act-change="wfUpdateConfig('target',$value)">
         ${['chat','deploy','notification','file','memory','slack','email'].map(t=>`<option value="${t}" ${t===node.config?.target?'selected':''}>${t}</option>`).join('')}
       </select>
     </div>` : ''}
@@ -846,7 +846,7 @@ function wfSelectNode(nodeId) {
     ${node.type==='loop' ? `
     <div class="wf-prop-group">
       <label>Agent ID</label>
-      <select data-act-change="wfUpdateConfig('agent_id',$value)">
+      <select aria-label="Agent" data-act-change="wfUpdateConfig('agent_id',$value)">
         ${['orchestrator','researcher','builder','reviewer','creative','brain','memory','local'].map(a=>`<option value="${a}" ${a===node.config?.agent_id?'selected':''}>${a}</option>`).join('')}
       </select>
     </div>
@@ -871,14 +871,14 @@ function wfSelectNode(nodeId) {
     </div>
     <div class="wf-prop-group">
       <label>Method</label>
-      <select data-act-change="wfUpdateConfig('method',$value)">
+      <select aria-label="Condition method" data-act-change="wfUpdateConfig('method',$value)">
         ${['POST','GET','PUT','PATCH'].map(m=>`<option ${m===node.config?.method?'selected':''}>${m}</option>`).join('')}
       </select>
     </div>` : ''}
     ${node.type==='memory' ? `
     <div class="wf-prop-group">
       <label>Action</label>
-      <select data-act-change="wfUpdateConfig('action',$value)">
+      <select aria-label="Condition action" data-act-change="wfUpdateConfig('action',$value)">
         <option value="write" ${node.config?.action==='write'?'selected':''}>Write to memory</option>
         <option value="read"  ${node.config?.action==='read'?'selected':''}>Read from memory</option>
         <option value="search"${node.config?.action==='search'?'selected':''}>Search memory</option>
@@ -887,7 +887,7 @@ function wfSelectNode(nodeId) {
     ${node.type==='transform' ? `
     <div class="wf-prop-group">
       <label>Mode</label>
-      <select data-act-change="wfUpdateConfig('mode',$value)">
+      <select aria-label="Mode" data-act-change="wfUpdateConfig('mode',$value)">
         <option value="passthrough" ${node.config?.mode==='passthrough'?'selected':''}>Pass through</option>
         <option value="merge" ${node.config?.mode==='merge'?'selected':''}>Merge all inputs</option>
         <option value="filter" ${node.config?.mode==='filter'?'selected':''}>Filter / extract</option>
