@@ -56,7 +56,7 @@ App running at **port 8787**. Refresh to see the density/elevation/state changes
 App running at **port 8787**. Refresh to see the density/elevation/state changes and the four UX improvements.
 
 ## Verification
-- Frontend suite **272 passing**; bundle served live as head+chunks+app (3 requests, not 88).
+- Frontend suite **274 passing**; bundle served live as head+chunks+app (3 requests, not 88).
 - Remote HEAD now past **#057** (`4b9e5ba`).
 - axe-core scan of the static app shell: **0 violations** (critical/serious and all impacts).
 - Every change ships with a jsdom regression test; onboarding-enter & composer verified **red on pre-fix**.
@@ -87,3 +87,5 @@ App running at **port 8787**. Refresh to see the density/elevation/state changes
 35. **#068 — `shareProject()` throws on a non-JSON 5xx.** It did `const j = await r.json()` on `/api/project/share` with no guard, so a non-2xx carrying a non-JSON body (e.g. a plain-text "Internal Server Error") made `r.json()` throw `Unexpected token 'I'...` — an unhandled promise rejection surfaced by an automated click-fuzz instead of a friendly failure. Now parses defensively (non-JSON → null) and toasts an error + returns on `!r.ok || !j`. (share-project-defensive 1.)
 
 36. **#069 — Studio console badge created with a duplicate id.** `addConsoleBtn()` created `#console-count-badge` twice — once in the console panel header and once inside the Console toggle button. Duplicate ids are invalid HTML, and the flash handler's `getElementById('console-count-badge')` resolved to the first match only, so the toggle-button badge never updated (confirmed live: the id was duplicated across every pane). The button badge now uses `#console-btn-count-badge` and the handler updates both. (console-badge-unique-id 2. Suite 269→272.)
+
+37. **#070 — Duplicate `/api/cost` polling loop fired twice every 30s.** `setInterval(updateCostBar, 30000)` was registered in both the Studio section and the Prompt Library (Sprint 13) section of `01-app-core.js`, firing `/api/cost` twice every 30s for the app's whole lifetime. `updateCostBar` is idempotent/side-effect-free (writes `total_cost_usd` into `#sb-cost`), so the duplicate only wasted one request per cycle. Removed the second registration; the single upstream interval owns the poll. (Verified live: once per cycle after.) (cost-bar-single-poll 2. Suite 272→274.)
