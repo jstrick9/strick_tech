@@ -4876,8 +4876,18 @@ async function studioOpenFile(path) {
     const langMap = {html:'html',css:'css',js:'javascript',jsx:'javascript',ts:'typescript',tsx:'typescript',json:'json',md:'markdown',py:'python'};
     const lang = langMap[ext] || 'plaintext';
     if (window.monaco?.editor?.createModel) {
+      // BUG FIX (memory leak): every file open created a brand-new anonymous
+      // model via createModel() and setModel() without disposing the previous
+      // one. Models are reference-counted by Monaco but an anonymous model
+      // (no URI) is not automatically collected, so switching files kept every
+      // model alive forever. Measured: opening 2 files repeatedly grew
+      // monaco.editor.getModels() from 1 to 9. Dispose the model we're leaving
+      // before attaching the new one. Guard against disposing the diff
+      // editor's models (those live on Studio.diffEditor, not this editor).
+      const prevModel = Studio.editor.getModel();
       const model = monaco.editor.createModel(text, lang);
       Studio.editor.setModel(model);
+      if (prevModel) prevModel.dispose();
     } else if (typeof Studio.editor.setValue === 'function') {
       Studio.editor.setValue(text);
     }
