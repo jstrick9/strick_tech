@@ -18,7 +18,7 @@ polish are in scope.
 | 9 | **Search / Code** | (search) | search.py, codesearch.py, codeindex.py | Knowledge | VERIFIED (no defect) |
 | 10 | **ICM Router / Memory** | — | icm_router.py, memory.py, memory_tiers.py | Ops | VERIFIED (no defect) |
 | 11 | **Supervisor / Swarm** | 48-supervisor.js, 26-swarm.js | supervisor.py, swarm.py | Ops/collab | VERIFIED (no defect) |
-| 12 | **Goals / Loops / Fusion** | 49-goals.js, 40-loops.js, 41-fusion.js | goal_manager.py, loops.py, fusion.py | Ops/collab | backlog |
+| 12 | **Goals / Loops / Fusion** | 49-goals.js, 40-loops.js, 41-fusion.js | goal_manager.py, loops.py, fusion.py | Ops/collab | VERIFIED (no defect) |
 | 13 | **MCP / Connectors / Plugins** | 39-mcp-panel.js, 50-mcp-gateway.js, 35-connect-hub.js, 34-plugin-hub.js | mcp.py, mcp_gateway.py, connectors.py | Integrations | backlog |
 | 14 | **Evals / Observability** | 05-evals-observability.js | evals.py, observability.py, eval_framework.py | Quality | backlog |
 | 15 | **Terminal / Security / System** | 16-terminal.js | terminal.py, security.py, system.py | Ops | backlog |
