@@ -56,7 +56,7 @@ App running at **port 8787**. Refresh to see the density/elevation/state changes
 App running at **port 8787**. Refresh to see the density/elevation/state changes and the four UX improvements.
 
 ## Verification
-- Frontend suite **281 passing**; bundle served live as head+chunks+app (3 requests, not 88).
+- Frontend suite **285 passing**; bundle served live as head+chunks+app (3 requests, not 88).
 - Remote HEAD now past **#057** (`4b9e5ba`).
 - axe-core scan of the static app shell: **0 violations** (critical/serious and all impacts).
 - Every change ships with a jsdom regression test; onboarding-enter & composer verified **red on pre-fix**.
@@ -95,3 +95,5 @@ App running at **port 8787**. Refresh to see the density/elevation/state changes
 39. **#072 — `collectOpenModals()` reported closed modals as open; Escape toasted spuriously.** The "is open" predicate tested inline `m.style.display`/`m.style.opacity`; modals hidden by a stylesheet class (e.g. `#palette-modal`) have an empty inline style, so they were collected as open on every page. With nothing open, pressing Escape ran the close branch and fired a spurious `✕ Modal closed` toast; the Tab focus-trap also considered closed dialogs. The same node could also be collected twice (`#agent-modal` is both in the named list and matched by `.modal-back[style*="flex"]`). Fixed by testing computed visibility (`getComputedStyle().display/visibility`, stylesheet-aware) and deduping by identity. (collect-open-modals-computed 2. Suite 276→278.)
 
 40. **#073 — Chat history drawer crushed chat to ~100px on mobile.** `#chat-history-drawer` is a `flex-shrink:0` child of the chat pane shown at 280px by default, so on phone width it shoved the message area to ~100px on first load. `#sidebar` is hidden on mobile but the history drawer was not. Fixed by default-collapsing the drawer on mobile (toggle still reopens for a peek) and auto-collapsing/restoring across the 768px breakpoint (restores on returning to desktop). (chat-history-drawer-mobile-collapse 3. Suite 278→281.)
+
+41. **#074 — Studio/Galaxy workstation host panes squeezed their body to ZERO width on narrow viewports; hierarchy header clipped.** The workstation refactor groups panes under a host that renders a top tab strip (`#ws-tabs-*`) plus absorbed bodies (`#ws-bodies > .ws-body`). `#pane-studio`/`#pane-galaxy` still set `flex-direction:row` from a pre-workstation layout, which turned the tab strip into a left column and squeezed `#ws-bodies` to ZERO width — the studio editor/preview/toolbars clipped off-screen and galaxy had no width (also collapsed codesearch/obsidian). Forced those hosts to column (desktop unchanged). Also fixed the hierarchy header action group + sub-tab bar (nowrap flex rows) that ran to x=611 on a 390px viewport, via new `.hier-header-actions`/`.hier-tab-bar` classes wrapping on mobile. 26-pane mobile sweep -> 0 overflow. (studio-galaxy-workstation-column 4. Suite 281→285.)
