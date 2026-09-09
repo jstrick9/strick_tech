@@ -7,7 +7,7 @@ polish are in scope.
 
 | # | Module | Frontend | Backend | Priority | Status |
 |---|--------|----------|---------|----------|--------|
-| 1 | **Chat** | 01-app-core.js (chat) | chat.py, engine.py, llm.py | Core daily | IN PROGRESS |
+| 1 | **Chat** | 01-app-core.js (chat) | chat.py, engine.py, llm.py | Core daily | DONE (#077) |
 | 2 | **Studio** | 02-studio.js | builder.py, multifile_agent.py, multitab.py | Core daily | DONE (#078) |
 | 3 | **Tasks / Kanban** | 28-kanban.js | tasks.py | Core daily | VERIFIED (no defect) |
 | 4 | **ICM Workspaces** | 59-icm-workspaces.js, 60-inbox.js | icm.py + icm_* services | Core daily | VERIFIED (no defect) |
