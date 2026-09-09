@@ -1544,10 +1544,33 @@ html :focus:not(:focus-visible) {
    .studio-sidebar is a fixed-width file panel; below this width it shares the
    row with the editor and its controls (+, collapse, delete, Clear) landed at
    673-706px, outside the viewport entirely. */
+/* Workstation host panes must lay their children out in a COLUMN: the tab
+   strip (#ws-tabs-*) is a top bar (sticky top, border-bottom), and the
+   absorbed pane body (#ws-bodies > .ws-body, which owns the real content)
+   takes the remaining height/width. #pane-studio (and #pane-galaxy) still set
+   `flex-direction:row` from a pre-workstation layout where the studio sidebar
+   and editor sat side by side directly under the pane; the workstation refactor
+   moved those inside .ws-body (now a column), leaving the pane's `row` to turn
+   the tab strip into a left-hand column and squeeze #ws-bodies to ZERO width —
+   so the studio editor, preview and their toolbars clipped off-screen on
+   narrow/desktop-small viewports. Force the column. (#074) */
+#pane-studio { flex-direction: column !important; }
+#pane-galaxy { flex-direction: column !important; }
+
 @media (max-width: 900px) {
   #next-action-bar {
     left: 0 !important;
   }
+
+  /* AI Context & Guidelines (hierarchy) header: the action-button group
+     (AI Interview Me / New Project / Preview / Split) and the sub-tab bar are
+     fixed-width flex rows of nowrap buttons/tabs, so on a phone they ran off to
+     x=611 with the pane clipping them (scrollWidth 607 vs 386 client). Let both
+     wrap and let text break, so every button stays reachable. (#074) */
+  .hier-header-actions { flex-wrap: wrap; }
+  .hier-header-actions .btn { white-space: normal; min-width: 0; }
+  .hier-tab-bar { flex-wrap: wrap; gap: 12px; }
+  .hier-tab-bar .h-tab { white-space: normal; min-width: 0; }
 
   .studio-sidebar {
     max-width: 100%;
