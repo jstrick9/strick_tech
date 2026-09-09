@@ -41,6 +41,16 @@ Object.keys(_S_DEFAULTS).forEach(function(key) {
 });
 window.S = S;
 
+// Persist the active chat session id so an accidental page refresh (or crash)
+// resumes the same conversation instead of silently discarding it. The session
+// row is real server-side (created on first send), so we only remember it once
+// a message has actually been composed — a brand-new chat is not remembered
+// until the user sends something, and `loadChatSession()` restores the last
+// one on the first arrival after a reload.
+const _ACTIVE_CHAT_SESS_KEY = 'agentic_os_active_chat_session';
+function _rememberActiveChatSession() { try { _safeLS.set(_ACTIVE_CHAT_SESS_KEY, window.S.sessionId || ''); } catch {} }
+function _clearActiveChatSession() { try { _safeLS.rm(_ACTIVE_CHAT_SESS_KEY); } catch {} }
+
 // Keep the active model visible everywhere without duplicating model selectors.
 // The control remains the same DOM element, so existing model sync behavior works.
 // Model control stays in chat header where it belongs
@@ -328,7 +338,21 @@ window.nav = function(pane) {
     try { window.showSmartSuggestionsForPane(pane); } catch(e) {}
   }
   if (pane === 'chat' && typeof window.loadChatSessions === 'function') {
-    window.loadChatSessions();
+    // After a page reload the in-memory transcript is gone. Restore the last
+    // active chat session once on the first arrival after boot, so a refresh
+    // resumes the conversation instead of silently dropping to an empty
+    // launchpad. Later navigations keep the existing transcript.
+    if (!window._chatHistoryRestoreTried) {
+      window._chatHistoryRestoreTried = true;
+      const _act = _safeLS.get(_ACTIVE_CHAT_SESS_KEY);
+      if (_act && !(S.chatHistory && S.chatHistory.length) && typeof window.loadChatSession === 'function') {
+        window.loadChatSession(_act);
+      } else {
+        window.loadChatSessions();
+      }
+    } else {
+      window.loadChatSessions();
+    }
   }
 
   // A user navigation gets a history entry so Back returns to the previous
@@ -817,7 +841,7 @@ async function sendChat() {
       agent_id: selectedPersonaId || 'default',
       description: cleanFolder
     })
-  }).then(() => { if (typeof window.loadChatSessions === 'function') window.loadChatSessions(); }).catch(()=>{});
+  }).then(() => { if (typeof window.loadChatSessions === 'function') window.loadChatSessions(); _rememberActiveChatSession(); }).catch(()=>{});
 
   // Thinking indicator
   const thinkingId = 'thinking_' + Date.now();
@@ -1847,6 +1871,9 @@ window.changeChatPage = function(delta) {
 window.loadChatSession = async function(sid) {
   if (!sid) return;
   S.sessionId = sid;
+  // Remember the session we're now viewing so a reload resumes it rather than
+  // creating/changing to a fresh one.
+  _rememberActiveChatSession();
   toast('💬 Loading chat history...', 'ok', 1000);
   try {
     const [infoR, msgsR] = await Promise.all([
@@ -1905,6 +1932,10 @@ window.loadChatSession = async function(sid) {
 window.startNewChatSession = function() {
   S.sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
   S.sessionName = '';
+  // A fresh chat is not yet a real server-side session; forget the previous
+  // active id so a reload shows the launchpad rather than restoring a session
+  // the user intentionally left. It is remembered again on the first send.
+  _clearActiveChatSession();
   S.sessionFolder = window._activeChatFolder && window._activeChatFolder !== 'All' ? window._activeChatFolder : 'General';
   S.chatHistory = [];
   const msgsContainer = document.getElementById('chat-messages');
