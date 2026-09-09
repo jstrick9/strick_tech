@@ -114,3 +114,6 @@ workspaces/*/preview/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+
+# ICM workspace templates (runtime-seeded, regenerated from BUILTINS on list)
+memory/icm-templates/
