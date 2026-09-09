@@ -12,10 +12,10 @@ async function renderEvals() {
   if (!pane) return;
 
   const [summary, datasets, abTests, attacks] = await Promise.all([
-    fetch('/api/evals/summary').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({summary:{},trend:[],by_agent:[]})),
-    fetch('/api/evals/datasets').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({datasets:[]})),
-    fetch('/api/evals/ab-tests').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({tests:[]})),
-    fetch('/api/evals/red-team/attacks').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({attacks:[]})),
+    fetch('/api/evals/summary').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({summary:{},trend:[],by_agent:[]})),
+    fetch('/api/evals/datasets').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({datasets:[]})),
+    fetch('/api/evals/ab-tests').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({tests:[]})),
+    fetch('/api/evals/red-team/attacks').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({attacks:[]})),
   ]);
 
   const s = summary.summary || {};
@@ -385,9 +385,9 @@ async function renderObservability() {
   if (!pane) return;
 
   const [analytics, dora, compliance] = await Promise.all([
-    fetch('/api/observability/analytics?days=7').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({summary:{},by_model:[],hourly:[]})),
-    fetch('/api/observability/dora').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({})),
-    fetch('/api/observability/compliance/eu-ai-act').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({checks:[],score:0})),
+    fetch('/api/observability/analytics?days=7').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({summary:{},by_model:[],hourly:[]})),
+    fetch('/api/observability/dora').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({})),
+    fetch('/api/observability/compliance/eu-ai-act').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({checks:[],score:0})),
   ]);
 
   const s = analytics.summary || {};
@@ -591,8 +591,8 @@ async function renderKnowledgeGraph() {
   const pane=document.getElementById('pane-knowledge-graph');
   if(!pane) return;
 
-  const stats=await fetch('/api/knowledge-graph/stats').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({}));
-  const entities=await fetch('/api/knowledge-graph/entities?limit=20').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({entities:[]}));
+  const stats=await fetch('/api/knowledge-graph/stats').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({}));
+  const entities=await fetch('/api/knowledge-graph/entities?limit=20').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({entities:[]}));
 
   pane.innerHTML=`
   
@@ -654,8 +654,8 @@ async function renderKnowledgeGraph() {
 async function kgSearch(q) {
   const el=document.getElementById('kg-entity-list');
   if(!el) return;
-  if(!q) { const d=await fetch('/api/knowledge-graph/entities?limit=20').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({entities:[]})); renderKGList(d.entities||[],el); return; }
-  const d=await fetch(`/api/knowledge-graph/entities?q=${encodeURIComponent(q)}&limit=20`).then(r=>r.ok?r.json():null).catch(()=>({entities:[]}));
+  if(!q) { const d=await fetch('/api/knowledge-graph/entities?limit=20').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({entities:[]})); renderKGList(d.entities||[],el); return; }
+  const d=await fetch(`/api/knowledge-graph/entities?q=${encodeURIComponent(q)}&limit=20`).then(r=>r.ok?r.json():{}).catch(()=>({entities:[]}));
   renderKGList(d.entities||[],el);
 }
 
@@ -788,7 +788,7 @@ async function renderRAG() {
   const pane=document.getElementById('pane-rag');
   if(!pane) return;
 
-  const pipelines=await fetch('/api/rag/pipelines').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({pipelines:[]}));
+  const pipelines=await fetch('/api/rag/pipelines').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({pipelines:[]}));
 
   pane.innerHTML=`
   <div class="u-f8d5799a">
