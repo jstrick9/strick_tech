@@ -22,7 +22,7 @@ polish are in scope.
 | 13 | **MCP / Connectors / Plugins** | 39-mcp-panel.js, 50-mcp-gateway.js, 35-connect-hub.js, 34-plugin-hub.js | mcp.py, mcp_gateway.py, connectors.py | Integrations | VERIFIED (no defect) |
 | 14 | **Evals / Observability** | 05-evals-observability.js | evals.py, observability.py, eval_framework.py | Quality | VERIFIED (no defect) |
 | 15 | **Terminal / Security / System** | 16-terminal.js | terminal.py, security.py, system.py | Ops | VERIFIED (no defect) |
-| 16 | **Templates / Prompts / Skills** | 21-template-gallery.js, 14-prompt-library.js, 25-skills.js | templates.py, prompts.py, skills.py | Content | backlog |
+| 16 | **Templates / Prompts / Skills** | 21-template-gallery.js, 14-prompt-library.js, 25-skills.js | templates.py, prompts.py, skills.py | Content | VERIFIED (no defect) |
 | 17 | **Workspaces / Deploy / Git** | 30-workspaces.js, 35-deploy.js, 18-github.js | workspaces.py, deploy.py, github.py, gitai.py | Ops | backlog |
 
 Rules:
