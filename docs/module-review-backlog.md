@@ -12,9 +12,9 @@ polish are in scope.
 | 3 | **Tasks / Kanban** | 28-kanban.js | tasks.py | Core daily | VERIFIED (no defect) |
 | 4 | **ICM Workspaces** | 59-icm-workspaces.js, 60-inbox.js | icm.py + icm_* services | Core daily | VERIFIED (no defect) |
 | 5 | **Settings / Account** | 57-account-settings.js | secrets.py, userprofile.py, auth.py | Core daily | VERIFIED (no defect) |
-| 6 | **Knowledge Graph** | 05-evals-observability.js | knowledge_graph.py | Knowledge | backlog (#076 null-deref fixed) |
-| 7 | **RAG** | 05-evals-observability.js | rag.py | Knowledge | backlog |
-| 8 | **Docs / Knowledge** | 12-information-hierarchy.js | hierarchy.py, docs_center.py | Knowledge | backlog |
+| 6 | **Knowledge Graph** | 05-evals-observability.js | knowledge_graph.py | Knowledge | VERIFIED (no defect) |
+| 7 | **RAG** | 05-evals-observability.js | rag.py | Knowledge | VERIFIED (no defect) |
+| 8 | **Docs / Knowledge** | 12-information-hierarchy.js | hierarchy.py, docs_center.py | Knowledge | VERIFIED (no defect) |
 | 9 | **Search / Code** | (search) | search.py, codesearch.py, codeindex.py | Knowledge | backlog |
 | 10 | **ICM Router / Memory** | — | icm_router.py, memory.py, memory_tiers.py | Ops | backlog |
 | 11 | **Supervisor / Swarm** | 48-supervisor.js, 26-swarm.js | supervisor.py, swarm.py | Ops/collab | backlog |
