@@ -102,11 +102,12 @@ memory/digital_twin/anchors/
 workspaces/*/preview/
 !workspaces/71951640/
 
-# The built frontend JS bundle IS committed, deliberately: it lets a fresh
-# clone run `python run.py` and get the fast frontend with no build step.
-# The generic `dist/` rule above would otherwise exclude it.
-!frontend/dist/
-!frontend/dist/**
+# The built frontend JS bundle is NOT committed. It is a regenerable build
+# artifact (`scripts/build_bundle.py`); every source change produces a new
+# content-hashed bundle and the old ones were piling up in git history,
+# bloating the repo. The server falls back to unbundled (dev) mode when
+# `frontend/dist` is absent, so a fresh clone runs fine. Rebuild locally at
+# runtime: python3 scripts/build_bundle.py && python3 run.py
 
 # Test/lint caches — regenerated on every run, never committed.
 *.pyc
