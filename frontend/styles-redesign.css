@@ -1557,7 +1557,38 @@ html :focus:not(:focus-visible) {
 #pane-studio { flex-direction: column !important; }
 #pane-galaxy { flex-direction: column !important; }
 
+/* #ws-body-studio holds the .studio-sidebar (280px, border-right = a LEFT
+   column) and #studio-main-area (flex:1). The workstation refactor moved these
+   into a column .ws-body, stacking the sidebar ON TOP of the editor — the
+   main area (and its 170px console child) then swallowed the height and the
+   Monaco editor + live preview collapsed to 0px tall, so the desktop studio
+   editor was invisible. Restore the intended side-by-side: row on desktop,
+   stack back to column on mobile (where .studio-sidebar is full-width). (#075) */
+#ws-body-studio { flex-direction: row; }
+
 @media (max-width: 900px) {
+  #ws-body-studio {
+    flex-direction: column;
+    /* On a phone the studio sidebar (file tree + scaffold + AI chat) is taller
+       than the viewport, and as a column the flex:1 #studio-main-area below
+       collapsed to 0px — so the Monaco editor and live preview were
+       unreachable on mobile. Let the body scroll vertically and give the
+       editor its own height so it is reachable below the sidebar. (#075) */
+    overflow-y: auto;
+  }
+  #studio-sidebar { flex: 0 0 auto; }
+  #studio-main-area { flex: 0 0 auto; min-height: 480px; }
+  #studio-main-area,
+  #studio-editor-row { overflow: visible; }
+  /* On mobile the editor and preview stack (the row wraps) but each had only
+     ~100px, leaving the Monaco editor 5px tall and unusable. Give the editor
+     a real height; the user scrolls the pane to reach editor then preview. */
+  .studio-editor-panel { min-height: 0; height: 340px; }
+  .studio-preview-panel { min-height: 0; height: 300px; }
+  /* Collapse the 170px console drawer on mobile so it can't starve the editor;
+     the toolbar still allows the user to re-expand it. */
+  #studio-console-drawer { height: 54px; }
+
   #next-action-bar {
     left: 0 !important;
   }
