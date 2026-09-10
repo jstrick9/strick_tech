@@ -9,6 +9,8 @@ import hashlib
 import hmac
 import logging
 import secrets
+import threading
+import time
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -18,7 +20,7 @@ from pydantic import BaseModel
 router = APIRouter(prefix='/api/auth', tags=['auth'])
 log = logging.getLogger('agentic.auth')
 
-from ..services.memory_db import get_conn
+from ..services.memory_db import audit_log, get_conn
 
 # ── Schema ─────────────────────────────────────────────────────────────────
 _AUTH_SCHEMA = """
@@ -56,19 +58,129 @@ _ensure_auth_schema()
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
+# Password hashing: PBKDF2-HMAC-SHA256 (stdlib, no new dependency).
+#
+# The original scheme was a single unsalted-algorithm SHA-256 pass over
+# "salt:password" — a few billion guesses per second on a modern GPU. A vault
+# key and every stored credential deserve a KDF that is *slow on purpose*.
+# OWASP's current guidance for PBKDF2-HMAC-SHA256 is 600,000 iterations; that
+# costs ~300ms per login on this hardware, which is a poor trade for a
+# local-first app whose login is rare. 200,000 keeps each login under ~100ms
+# while still making offline attack ~5 orders of magnitude costlier than
+# before. The iteration count is stored in the hash so it can be raised
+# without invalidating existing credentials, and _verify_password accepts any
+# sane count (old hashes stay verifiable at their original cost).
+_PBKDF2_ITERATIONS = 200_000
+_PBKDF2_MIN_ITERATIONS = 10_000        # sanity floor: refuse absurd stored counts
+_PBKDF2_MAX_ITERATIONS = 5_000_000     # sanity ceiling: refuse DoS-by-iteration
+
+
 def _hash_password(password: str) -> str:
-    """Hash a password with a random salt using SHA-256."""
+    """Hash a password with PBKDF2-HMAC-SHA256 and a random salt.
+
+    Format: pbkdf2$<iterations>$<salt-hex>$<dk-hex> — self-describing so the
+    parameters can be raised later without a migration flag day.
+    """
     salt = secrets.token_hex(16)
-    h = hashlib.sha256(f'{salt}:{password}'.encode()).hexdigest()
-    return f'{salt}${h}'
+    dk = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), _PBKDF2_ITERATIONS)
+    return f'pbkdf2${_PBKDF2_ITERATIONS}${salt}${dk.hex()}'
 
 
 def _verify_password(password: str, stored: str) -> bool:
-    """Verify a password against a salt$hash string."""
-    if '$' not in stored:
+    """Verify a password against a stored hash.
+
+    Understands both the current `pbkdf2$…` format and the legacy
+    `salt$sha256` format so existing accounts keep working; login upgrades
+    them transparently (see `login_user`).
+    """
+    if not stored:
         return False
-    salt, h = stored.split('$', 1)
-    return hmac.compare_digest(h, hashlib.sha256(f'{salt}:{password}'.encode()).hexdigest())
+    parts = stored.split('$')
+    if len(parts) == 4 and parts[0] == 'pbkdf2':
+        try:
+            iterations = int(parts[1])
+        except ValueError:
+            return False
+        if not (_PBKDF2_MIN_ITERATIONS <= iterations <= _PBKDF2_MAX_ITERATIONS):
+            return False
+        salt, expected = parts[2], parts[3]
+        try:
+            dk = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), iterations)
+        except (ValueError, TypeError):
+            return False
+        return hmac.compare_digest(dk.hex(), expected)
+    if len(parts) == 2:  # legacy: salt$sha256(password)
+        salt, expected = parts
+        return hmac.compare_digest(
+            expected, hashlib.sha256(f'{salt}:{password}'.encode()).hexdigest()
+        )
+    return False
+
+
+def _password_needs_upgrade(stored: str) -> bool:
+    """True when a hash predates PBKDF2 and should be re-hashed on next login."""
+    return not (stored or '').startswith('pbkdf2$')
+
+
+# A real PBKDF2 hash of an unguessable throwaway value. When the username does
+# not exist we still run a full verification against THIS, so "no such user"
+# and "wrong password" take the same ~80ms. Without it the login endpoint
+# answered unknown usernames in microseconds — a trivially measurable oracle
+# for enumerating valid usernames. The one-time cost is paid at import.
+_DUMMY_HASH = _hash_password(
+    'timing-equalizer-' + secrets.token_hex(16)
+)
+
+
+# ── Login throttling ───────────────────────────────────────────────────────
+# The global per-IP rate limit in app.py bounds REQUESTS; it does not track
+# FAILURES, and it resets the moment an attacker slows below one request per
+# window tick. Password guessing needs a counter that only successful logins
+# clear. Keyed by (username, ip) so one attacker cannot lock out other users,
+# and in-memory because the auth surface is already per-process (sessions are
+# in SQLite, but a single-worker uvicorn is the documented deployment).
+_LOGIN_MAX_FAILURES = 10
+_LOGIN_FAILURE_WINDOW = 900.0  # 15 minutes
+_LOGIN_FAILURES_CAP = 10_000   # distinct (username, ip) keys kept
+_login_failures: dict[tuple[str, str], list[float]] = {}
+_login_failures_lock = threading.Lock()
+
+
+def _login_key(username: str, ip: str) -> tuple[str, str]:
+    return (username.strip().lower(), ip or 'unknown')
+
+
+def _login_blocked(username: str, ip: str) -> tuple[bool, int]:
+    """(blocked?, seconds until the oldest counted failure ages out)."""
+    key = _login_key(username, ip)
+    now = time.monotonic()
+    with _login_failures_lock:
+        hits = [t for t in _login_failures.get(key, ()) if now - t < _LOGIN_FAILURE_WINDOW]
+        if hits:
+            _login_failures[key] = hits
+        if len(hits) >= _LOGIN_MAX_FAILURES:
+            return True, max(1, int(_LOGIN_FAILURE_WINDOW - (now - hits[0])) + 1)
+        return False, 0
+
+
+def _note_login_failure(username: str, ip: str) -> None:
+    key = _login_key(username, ip)
+    now = time.monotonic()
+    with _login_failures_lock:
+        hits = [t for t in _login_failures.get(key, ()) if now - t < _LOGIN_FAILURE_WINDOW]
+        hits.append(now)
+        _login_failures[key] = hits
+        if len(_login_failures) > _LOGIN_FAILURES_CAP:
+            # Evict the least recently failed keys rather than grow forever.
+            for old_key, _ in sorted(_login_failures.items(), key=lambda kv: kv[1][-1] if kv[1] else 0):
+                _login_failures.pop(old_key, None)
+                if len(_login_failures) <= _LOGIN_FAILURES_CAP:
+                    break
+
+
+def _clear_login_failures(username: str, ip: str) -> None:
+    with _login_failures_lock:
+        _login_failures.pop(_login_key(username, ip), None)
 
 
 def _generate_api_key() -> str:
@@ -232,8 +344,31 @@ class LoginRequest(BaseModel):
 
 
 @router.post('/login')
-def login_user(req: LoginRequest):
+async def login_user(req: LoginRequest, request: Request):
     """Login and get a session token."""
+    ip = request.client.host if request.client else 'unknown'
+
+    # Failure throttle BEFORE the user lookup: an attacker who is already
+    # locked out must not learn anything further, including whether the
+    # username exists (the timing profile of the lookup is itself a signal).
+    blocked, retry_after = _login_blocked(req.username, ip)
+    if blocked:
+        try:
+            audit_log('auth_login_lockout', f'user={req.username} ip={ip}')
+        except Exception:
+            pass
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': (
+                    f'Too many failed sign-in attempts for this account. '
+                    f'Try again in {retry_after}s.'
+                ),
+            },
+            status_code=429,
+            headers={'Retry-After': str(retry_after)},
+        )
+
     con = get_conn()
     try:
         user = con.execute(
@@ -241,8 +376,28 @@ def login_user(req: LoginRequest):
             (req.username,)
         ).fetchone()
 
-        if not user or not _verify_password(req.password, user['password_hash']):
+        if not user:
+            # Burn the same PBKDF2 cost a real verification would have cost,
+            # so a missing username and a wrong password are indistinguishable
+            # by response time (see _DUMMY_HASH).
+            _verify_password(req.password, _DUMMY_HASH)
+            _note_login_failure(req.username, ip)
             return JSONResponse({'ok': False, 'error': 'Invalid username or password'}, status_code=401)
+
+        if not _verify_password(req.password, user['password_hash']):
+            _note_login_failure(req.username, ip)
+            return JSONResponse({'ok': False, 'error': 'Invalid username or password'}, status_code=401)
+
+        _clear_login_failures(req.username, ip)
+
+        # Transparent KDF upgrade: the credential was just proven correct, so
+        # this is the one moment a legacy salt$sha256 hash can be replaced
+        # with PBKDF2 without ever asking the user to reset anything.
+        if _password_needs_upgrade(user['password_hash']):
+            con.execute(
+                'UPDATE auth_users SET password_hash=? WHERE id=?',
+                (_hash_password(req.password), user['id']),
+            )
 
         token = _generate_session_token()
         # `expires_at` was `datetime.now(...)` -- the instant of issue, with no
@@ -256,11 +411,24 @@ def login_user(req: LoginRequest):
             'INSERT INTO auth_sessions (token, user_id, expires_at) VALUES (?,?,?)',
             (token, user['id'], expires)
         )
+        # Expired sessions were deleted only when their OWN token was
+        # presented again — which by definition never happens for an expired
+        # token a client has already discarded. Every login now sweeps them,
+        # so the table cannot grow without bound on a long-running server.
+        con.execute(
+            'DELETE FROM auth_sessions WHERE expires_at <= ?',
+            (now,),
+        )
         con.execute(
             'UPDATE auth_users SET last_login=? WHERE id=?',
             (now, user['id'])
         )
         con.commit()
+
+        try:
+            audit_log('auth_login', f'user={user["username"]} ip={ip}')
+        except Exception:
+            pass
 
         return {
             'ok': True,
@@ -310,16 +478,38 @@ async def logout(request: Request):
 
 
 @router.get('/me')
-async def get_current_user(user_id: str = Depends(require_api_key)):
-    """Get current user info from API key."""
-    if not user_id:
-        return {'ok': True, 'authenticated': False, 'message': 'No authentication configured'}
+async def get_current_user(user_id: str | None = Depends(require_api_key)):
+    """Get current user info from API key.
+
+    Also reports `auth_configured` (are there any registered users at all) so
+    a UI can tell the three states apart WITHOUT probing register:
+      * 200 + authenticated=False + auth_configured=False → auth is OFF
+      * 401                                              → auth is ON, not signed in
+      * 200 + authenticated=True                          → signed in
+    """
     con = get_conn()
     try:
+        count = con.execute('SELECT COUNT(*) FROM auth_users').fetchone()[0]
+        if not user_id:
+            return {
+                'ok': True,
+                'authenticated': False,
+                'auth_configured': count > 0,
+                'message': (
+                    'No authentication configured — the first registered user becomes admin.'
+                    if count == 0
+                    else 'Authentication is configured. Sign in to continue.'
+                ),
+            }
         user = con.execute('SELECT id, username, display_name, role, last_login FROM auth_users WHERE id=?', (user_id,)).fetchone()
         if not user:
             return JSONResponse({'ok': False, 'error': 'User not found'}, status_code=404)
-        return {'ok': True, 'authenticated': True, 'user': dict(user)}
+        return {
+            'ok': True,
+            'authenticated': True,
+            'auth_configured': True,
+            'user': dict(user),
+        }
     finally:
         con.close()
 
