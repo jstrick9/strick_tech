@@ -1484,6 +1484,7 @@ async function saveApiKey() {
     const count = window._lastVerifiedModelCount || 0;
     toast(`✅ OpenRouter key verified and saved${count ? ` — ${count} models unlocked` : ''}.`, 'ok', 5000);
     updateKeyStatus(true);
+    invalidateOpenRouterKeyStatus();
     document.getElementById('or-key-input').value = '';
     if (window.markChecklistStep) markChecklistStep('api_key');
     if (badge) { badge.textContent = count ? `ONLINE (${count} MODELS)` : 'ONLINE'; badge.style.color = 'var(--success)'; }
@@ -1507,6 +1508,7 @@ window.removeApiKey = async function() {
     if (badge) { badge.textContent = 'NOT CONFIGURED'; badge.style.color = 'var(--text-2)'; }
     if (resEl) { resEl.style.display = 'block'; resEl.innerHTML = '<span style="color:var(--text-2)">API key removed from local vault.</span>'; }
     updateKeyStatus(false);
+    invalidateOpenRouterKeyStatus();
     toast('🗑 OpenRouter API key removed', 'ok', 2000);
     if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
   } catch(e) {
@@ -1664,7 +1666,7 @@ window.checkVaultIntegrity = async function() {
   try {
     const [listRes, keyRes] = await Promise.all([
       fetch('/api/secrets/list'),
-      fetch('/api/secrets/get?key=OPENROUTER_API_KEY'),
+      getOpenRouterKeyStatus(),
     ]);
 
     if (!listRes.ok) {
@@ -1677,10 +1679,10 @@ window.checkVaultIntegrity = async function() {
     }
 
     const info = await listRes.json().catch(() => ({}));
-    // A 404 here means "no OpenRouter key stored", which is a normal state and
-    // must not be reported as an error — but must not be reported as a pass
-    // either. It is simply "not configured".
-    const keyInfo = keyRes.ok ? await keyRes.json().catch(() => ({})) : {};
+    // A null here means "no OpenRouter key stored" (404) or the fetch failed,
+    // which is a normal state and must not be reported as an error — but must
+    // not be reported as a pass either. It is simply "not configured".
+    const keyInfo = keyRes || {};
 
     const encrypted = info.encrypted === true;
     const count     = Number(info.count || 0);
@@ -2046,7 +2048,7 @@ window.syncOpenWebUIConnections = async function() {
   try {
     const [modR, secR] = await Promise.all([
       fetch('/api/agents/models').then(r => r.ok ? r.json().catch(()=>{}) : null).catch(() => null),
-      fetch('/api/secrets/get?key=OPENROUTER_API_KEY').then(r => r.ok ? r.json().catch(()=>{}) : null).catch(() => null)
+      getOpenRouterKeyStatus()
     ]);
 
     const orBadge = document.getElementById('or-key-status-badge');
@@ -2478,11 +2480,37 @@ function updateKeyStatus(hasKey) {
   if (banner) banner.style.display = hasKey ? 'none' : 'block';
 }
 
+// ONE authoritative source for "is the OpenRouter key configured?".
+// Three startup paths each fetched /api/secrets/get?key=OPENROUTER_API_KEY
+// independently (measured: 4 requests inside the first second of a cold
+// load — all of them 404s on a fresh install, since "not set" is the
+// normal state). Same answer, one request: in-flight de-dup plus a short
+// TTL, so the readiness poll and a user-triggered vault audit reuse the
+// same response instead of re-asking. Saving or removing a key drops the
+// cache so the next poll sees the new truth immediately.
+let _orKeyStatusPromise = null;
+let _orKeyStatusAt = 0;
+
+function getOpenRouterKeyStatus(maxAgeMs = 15000) {
+  if (_orKeyStatusPromise && Date.now() - _orKeyStatusAt < maxAgeMs) {
+    return _orKeyStatusPromise;
+  }
+  _orKeyStatusAt = Date.now();
+  _orKeyStatusPromise = fetch('/api/secrets/get?key=OPENROUTER_API_KEY')
+    .then(r => (r.ok ? r.json().catch(() => null) : null))
+    .catch(() => null);
+  return _orKeyStatusPromise;
+}
+
+function invalidateOpenRouterKeyStatus() {
+  _orKeyStatusPromise = null;
+  _orKeyStatusAt = 0;
+}
+
 async function checkKeyStatus() {
   try {
-    const r = await fetch('/api/secrets/get?key=OPENROUTER_API_KEY');
-    const j = await r.json();
-    updateKeyStatus(j.ok && j.fingerprint);
+    const j = await getOpenRouterKeyStatus();
+    updateKeyStatus(j && j.ok && j.fingerprint);
   } catch(e) {}
 }
 
