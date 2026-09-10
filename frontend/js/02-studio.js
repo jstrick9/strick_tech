@@ -171,7 +171,7 @@ function showQuickActions(pane) {
   if (!bar) return;
   if (!actions || !actions.length) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
-  bar.innerHTML = `<span style="font-size:10px;color:var(--text-3);margin-right:4px;flex-shrink:0">Quick:</span>` +
+  bar.innerHTML = `<span style="font-size:10px;color:var(--text-3);margin-right:4px;flex-shrink:0">Quick actions:</span>` +
     actions.map(([label, action]) =>
       action ? `<button data-act-click="${action}" class="chat-tool" style="font-size:11px;padding:3px 9px">${label}</button>` : ''
     ).join('');

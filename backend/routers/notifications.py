@@ -16,10 +16,12 @@ from pydantic import BaseModel
 router = APIRouter(prefix='/api/notifications', tags=['notifications'])
 
 # In-memory notification store (initialized with helpful welcome and status notifications)
+from ..version import VERSION as _APP_VERSION
+
 _NOTIFICATIONS: list[dict[str, Any]] = [
     {
         'id': 'notif-welcome',
-        'title': 'Welcome to Agentic OS v6.0',
+        'title': f'Welcome to Agentic OS v{_APP_VERSION}',
         'message': 'Explore the multi-agent Swarm, Memory Galaxy 3D, and Studio builder.',
         'type': 'info',
         'timestamp': time.time() - 3600,
