@@ -68,6 +68,13 @@ function formatAgentName(value) {
 function toast(msg, type = 'ok', duration = 3000) {
   const c = document.getElementById('toast-container');
   if (!c) return;
+  // Error copy: every 'err' message passes through the humanizer, so the
+  // 160+ call sites that still toast raw strings ("Create failed: server
+  // error 500", "runs.filter is not a function") get a sentence a person
+  // can act on. Already-human messages pass through unchanged.
+  if (type === 'err' && typeof window.humanizeRawError === 'function') {
+    msg = window.humanizeRawError(msg);
+  }
   const t = document.createElement('div');
   t.className = 'toast ' + type;
   t.innerHTML = `<span>${escHtml(msg)}</span><span class="toast-close" data-close="parent">×</span>`;

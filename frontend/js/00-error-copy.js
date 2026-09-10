@@ -135,4 +135,50 @@
 
   window.humanError = humanError;
   window.httpError = httpError;
+
+  /**
+   * Upgrade a raw error string at the display boundary.
+   *
+   * 160+ existing call sites still toast strings like
+   * "Create failed: server error 500" or "runs.filter is not a
+   * function" — a status code or a stack frame in the place reserved
+   * for an explanation. Rewriting them all by hand was explicitly out
+   * of scope when this module landed (call sites opt in via
+   * humanError()), so the ones that never opted in keep shipping
+   * protocol-speak to users. This function is the compromise: toast()
+   * passes every 'err' message through it, and anything that already
+   * looks human passes straight back out unchanged.
+   *
+   * Returns the original string unless it matches one of the known raw
+   * anti-patterns, in which case it returns
+   * "<the caller's own words>. <what that means for the person>."
+   */
+  function humanizeRawError(msg) {
+    if (typeof msg !== 'string' || !msg) return msg;
+    var s = msg.trim();
+    // Already human: produced by humanError() or a thoughtful call site.
+    if (/^(Couldn.t|Something went wrong|That request|You need to|You do not)/i.test(s)) return msg;
+    // Status-bearing raw messages: "X failed: server error 500",
+    // "Load failed — HTTP 502", "Error: status 404".
+    var m = s.match(/^(.*?)[\s:–—-]*(?:server error|http|status|error code)\s*[:#]?\s*(\d{3})\b/i);
+    if (m) {
+      var code = parseInt(m[2], 10);
+      if (code >= 400 && code <= 599) {
+        var lead = m[1].replace(/[\s:–—-]+$/, '').trim();
+        // "Error loading X", "X failed" — keep the caller's own words as
+        // the lead sentence; they usually name the thing that failed.
+        if (!lead || /^error$/i.test(lead)) lead = 'Something went wrong';
+        var why = statusSentence(code);
+        return why ? lead + '. ' + why : msg;
+      }
+    }
+    // Stack-frame messages with no status at all.
+    if (RUNTIME_NOISE.test(s)) {
+      return 'Something went wrong. The response from the server was not ' +
+             'what the app expected. (' + s.slice(0, 120) + ')';
+    }
+    return msg;
+  }
+
+  window.humanizeRawError = humanizeRawError;
 })();
