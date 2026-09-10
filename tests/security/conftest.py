@@ -122,3 +122,176 @@ def no_path_escape(r, label):
             f"SEC PATH: {label} — Found '{d}' in response (path traversal?): {r.text[:200]}"
 
 pytest_plugins = ('pytest_asyncio',)
+
+
+# ── Live-instance pollution guard ─────────────────────────────────────────────
+#
+# WHY THIS EXISTS
+#
+# The security suite drives a real server against the operator's real
+# memory/agentic.db — that is the point of it (the enforced CSRF path, the
+# rate limiter, the real middleware stack). But the tests create rows to probe
+# with: injection payloads become task titles, webhook names, MCP server URLs,
+# supervisor goals, eval suites, memories, chat sessions… One measured run
+# left +2,300 rows across 43 tables, plus payload-named files under
+# preview/templates/, six lines on the ICM route log, and (before its own
+# fixture) a stack of real git commits. After a few rounds the operator's
+# kanban shows 800+ `flood_N` cards and the webhooks pane lists 150+
+# payload-named endpoints — the suite's residue actively degrades the very
+# product UI it is supposed to be protecting.
+#
+# WHAT THIS DOES
+#
+# An autouse fixture snapshots the rowid set of every table the suite is known
+# to dirty (measured, see the list below), the set of files under preview/,
+# and the byte size of the ICM route log, before each test. After the test it
+# removes exactly what appeared: rows with rowids not in the snapshot, files
+# not in the snapshot, route-log bytes past the mark. Pre-existing data is
+# never touched — a rowid SET is used rather than a max-rowid threshold
+# precisely because SQLite reuses rowids after tail deletions, and because
+# the operator may legitimately write to the same tables while a run is in
+# flight.
+#
+# The one deliberate pairing: memory_fts is an external-content FTS5 table
+# (content='memory'), so deleting a memory row must be mirrored by deleting
+# its FTS row — the same dual delete the /api/memory router performs. Every
+# other table is a plain row delete.
+#
+# Logs (audit, observability, cost ledger) are included: they are append-only
+# from the app's point of view, and deleting the TAIL of an append-only log
+# (or of the hash-chained audit log, which is a linked list where any prefix
+# is valid) is safe.
+
+_POLLUTABLE_TABLES = [
+    # user-visible content the suite fills with payloads
+    'tasks', 'webhooks', 'mcp_servers', 'connector_registry',
+    'supervisor_tasks', 'supervisor_runs', 'goals_v2', 'goal_milestones',
+    'eval_suites', 'eval_cases', 'memory', 'agents', 'agent_identities',
+    'agent_permissions', 'agent_performance', 'agent_hooks', 'workspaces',
+    'chat_sessions', 'chat_log', 'specs', 'steering_files', 'secrets',
+    'prompt_library', 'crdt_docs', 'hitl_queue', 'rag_pipelines',
+    'arena_battles', 'mkt_reviews', 'shadow_tests', 'agent_kill_switches',
+    'mcp_gateway_policies', 'mcp_gateway_calls', 'budget_caps',
+    # session lifecycle (the auth-rebinding test registers real users)
+    'auth_users', 'auth_sessions',
+    # logs the suite appends to
+    'audit', 'audit_log_chain', 'audit_receipts', 'obs_traces', 'obs_spans',
+    'e2e_traces', 'cost_ledger', 'cost_alerts', 'identity_audit',
+    'health_snapshots',
+]
+
+_REPO_ROOT = _pathlib.Path(__file__).resolve().parents[2]
+_DB_PATH = _REPO_ROOT / 'memory' / 'agentic.db'
+_ROUTE_LOG = _REPO_ROOT / 'memory' / 'icm' / 'route-log.jsonl'
+_PREVIEW_DIR = _REPO_ROOT / 'preview'
+
+
+def _snapshot_rowids(con):
+    snap = {}
+    for t in _POLLUTABLE_TABLES:
+        try:
+            snap[t] = set(r[0] for r in con.execute(f'SELECT rowid FROM "{t}"'))
+        except Exception:
+            snap[t] = None  # table missing on this install — nothing to guard
+    return snap
+
+
+def _remove_new_rows(con, before):
+    for t, ids in before.items():
+        if ids is None:
+            continue
+        try:
+            now = set(r[0] for r in con.execute(f'SELECT rowid FROM "{t}"'))
+        except Exception:
+            continue
+        new = now - ids
+        if not new:
+            continue
+        marks = ','.join('?' * len(new))
+        con.execute(f'DELETE FROM "{t}" WHERE rowid IN ({marks})', tuple(new))
+        if t == 'memory':  # external-content FTS5 pairing (see docstring)
+            try:
+                con.execute(f'DELETE FROM memory_fts WHERE rowid IN ({marks})', tuple(new))
+            except Exception:
+                pass
+
+
+@pytest.fixture(autouse=True)
+def _guard_live_instance():
+    """Remove whatever this test writes into the operator's live instance."""
+    import sqlite3 as _s3
+
+    if not _DB_PATH.exists():
+        yield
+        return
+
+    try:
+        con = _s3.connect(str(_DB_PATH), timeout=5)
+        con.execute('PRAGMA busy_timeout=5000')
+        before_rows = _snapshot_rowids(con)
+        con.commit()
+        con.close()
+    except Exception:
+        before_rows = None
+
+    def _list_preview():
+        try:
+            return {str(p) for p in _PREVIEW_DIR.rglob('*') if p.is_file()}
+        except Exception:
+            return set()
+
+    files_before = _list_preview()
+    route_size = _ROUTE_LOG.stat().st_size if _ROUTE_LOG.exists() else None
+
+    # JSON stores the app rewrites wholesale on any touch (a skill run bumps
+    # use_count and re-serialises the whole file with shuffled key order).
+    # Probe runs must not bump the operator's counters or leave ordering churn
+    # in the working tree, so both are restored byte-for-byte.
+    _json_stores = [
+        _REPO_ROOT / 'skills' / 'skills.json',
+        _REPO_ROOT / 'docs' / 'module-risk.json',
+    ]
+    _json_before = {}
+    for jp in _json_stores:
+        try:
+            _json_before[jp] = jp.read_bytes()
+        except OSError:
+            _json_before[jp] = None
+
+    yield
+
+    # ── teardown: put the instance back the way we found it ────────────────
+    try:
+        if before_rows is not None:
+            con = _s3.connect(str(_DB_PATH), timeout=5)
+            con.execute('PRAGMA busy_timeout=5000')
+            _remove_new_rows(con, before_rows)
+            con.commit()
+            con.close()
+    except Exception:
+        pass
+
+    # payload-named scaffold files (/scaffold-custom writes into preview/)
+    for f in _list_preview() - files_before:
+        try:
+            _pathlib.Path(f).unlink()
+        except OSError:
+            pass
+
+    # ICM route log: truncate appended lines
+    if route_size is not None and _ROUTE_LOG.exists():
+        try:
+            if _ROUTE_LOG.stat().st_size > route_size:
+                with open(_ROUTE_LOG, 'r+b') as fh:
+                    fh.truncate(route_size)
+        except OSError:
+            pass
+
+    # whole-file JSON stores: restore the exact bytes we started with
+    for jp, blob in _json_before.items():
+        if blob is None:
+            continue
+        try:
+            jp.write_bytes(blob)
+        except OSError:
+            pass

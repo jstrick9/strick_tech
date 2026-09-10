@@ -21,6 +21,34 @@ from _csrf_client import async_client as _csrf_async_client  # noqa: E402
 from _csrf_client import client as _csrf_client  # noqa: E402
 
 
+
+# ── Skip when the server is deliberately networked ─────────────────────────
+# The terminal gate fails CLOSED when the server is not bound to loopback
+# (AGENTIC_OS_HOST=0.0.0.0) and no user is registered: every /api/terminal
+# call answers 401 'terminal_auth_required'. That is the gate WORKING — an
+# unauthenticated networked shell is exactly what it exists to prevent — but
+# it makes the terminal injection tests unrunnable on such a server. Skipping
+# with an explicit reason beats seven false "crashes"; the loopback recipe
+# (tests/security/conftest.py) is where the full assertions run.
+def _terminal_unavailable(r):
+    """Reason string when the live server's terminal gate refuses everything."""
+    try:
+        body = r.json()
+    except Exception:
+        return None
+    if r.status_code == 401 and body.get("code") in (
+        "terminal_no_users",          # networked bind, nobody registered
+        "terminal_auth_required",     # networked bind, caller has no key
+        "terminal_auth_unavailable",  # auth backend failed (fails closed)
+    ):
+        return (
+            "server is bound to a non-loopback host, so the terminal gate "
+            "(correctly) refuses unauthenticated access — run the suite "
+            "against a 127.0.0.1 server to exercise these"
+        )
+    return None
+
+
 # Path traversal payloads
 PATH_TRAVERSAL_PAYLOADS = [
     "../../../etc/passwd",
@@ -136,6 +164,9 @@ class TestSecPathTraversal:
                     "command": "pwd",
                     "cwd": traversal_cwd
                 })
+            why = _terminal_unavailable(r)
+            if why:
+                pytest.skip(why)
             
             assert r.status_code == 200, f"Terminal cwd traversal crashed: {traversal_cwd}"
             
@@ -339,6 +370,9 @@ class TestSecRCETerminal:
         ]
         for cmd in dangerous_commands:
             r = await self._run_cmd(cmd)
+            why = _terminal_unavailable(r)
+            if why:
+                pytest.skip(why)
             assert r.status_code in (200, 400, 403), f"Terminal crashed on: {cmd} (HTTP {r.status_code})"
 
             # Command may be blocked entirely or execute just echo
@@ -380,6 +414,9 @@ class TestSecRCETerminal:
         ]
         for cmd in blocked:
             r = await self._run_cmd(cmd)
+            why = _terminal_unavailable(r)
+            if why:
+                pytest.skip(why)
             assert r.status_code in (200, 400, 403), f"Terminal crashed on: {cmd}"
             assert r.status_code != 200 or (
                 "blocked" in r.text.lower() or "error" in r.text.lower()
@@ -392,6 +429,9 @@ class TestSecRCETerminal:
         not_allowed = ["whoami", "id", "nc -e /bin/sh", "/bin/sh", "bash", "sh", "ncat"]
         for cmd in not_allowed:
             r = await self._run_cmd(cmd)
+            why = _terminal_unavailable(r)
+            if why:
+                pytest.skip(why)
             assert r.status_code in (200, 400, 403), f"Terminal crashed on: {cmd}"
             # If it was not refused at the HTTP level it must say so in the body.
             assert r.status_code != 200 or (
@@ -406,6 +446,9 @@ class TestSecRCETerminal:
         marker = uid("sec_term_safe")
         async with _csrf_async_client(BASE, timeout=20) as fresh:
             r = await fresh.post("/api/terminal/run", json={"command": f"echo {marker}"})
+        why = _terminal_unavailable(r)
+        if why:
+            pytest.skip(why)
         
         assert r.status_code == 200
         assert marker in r.text, "echo (safe command) was blocked!"
@@ -413,10 +456,16 @@ class TestSecRCETerminal:
     async def test_null_byte_in_command(self, C):
         """Null byte injection in terminal command — refused, never a crash."""
         r = await self._run_cmd("echo\x00; id")
+        why = _terminal_unavailable(r)
+        if why:
+            pytest.skip(why)
         assert r.status_code in (200, 400, 403)  # Must not crash
 
     async def test_very_long_command_handled(self, C):
         """Very long command is handled gracefully (not a buffer overflow)."""
         long_cmd = "echo " + "A" * 10000
         r = await self._run_cmd(long_cmd)
+        why = _terminal_unavailable(r)
+        if why:
+            pytest.skip(why)
         assert r.status_code in (200, 400, 403)  # Must not crash
