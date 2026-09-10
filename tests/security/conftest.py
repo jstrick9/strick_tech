@@ -41,6 +41,7 @@ HOW TO RUN (live server recipe):
 """
 from __future__ import annotations
 import asyncio, json, uuid
+import sqlite3
 import httpx
 import pytest
 
@@ -172,6 +173,7 @@ _POLLUTABLE_TABLES = [
     'prompt_library', 'crdt_docs', 'hitl_queue', 'rag_pipelines',
     'arena_battles', 'mkt_reviews', 'shadow_tests', 'agent_kill_switches',
     'mcp_gateway_policies', 'mcp_gateway_calls', 'budget_caps',
+    'ws_search_history',
     # session lifecycle (the auth-rebinding test registers real users)
     'auth_users', 'auth_sessions',
     # logs the suite appends to
@@ -216,6 +218,106 @@ def _remove_new_rows(con, before):
                 pass
 
 
+# Tables whose EXISTING rows the suite can mutate in place (measured: an
+# agent-update test overwrote the seed `brain` agent's name and system_prompt
+# with an injection payload — the row was still "the same row", so the
+# row-addition guard saw nothing). These tables are small and seed-defined, so
+# the guard snapshots their full content and restores any changed row.
+_CONTENT_GUARDED_TABLES = {
+    'agents': 'id',
+    'eval_suites': 'suite_id',
+    'mcp_servers': 'server_id',
+    'connector_registry': 'connector_id',
+    'budget_caps': 'cap_id',
+}
+
+
+def _snapshot_table_content(con, table, key):
+    try:
+        old_rf = con.row_factory
+        con.row_factory = sqlite3.Row
+        try:
+            return {r[key]: dict(r) for r in con.execute(f'SELECT * FROM "{table}"')}
+        finally:
+            con.row_factory = old_rf
+    except Exception:
+        return None
+
+
+def _restore_table_content(con, table, key, before):
+    if not before:
+        return
+    try:
+        old_rf = con.row_factory
+        con.row_factory = sqlite3.Row
+        try:
+            cols = [r[1] for r in con.execute(f'PRAGMA table_info("{table}")')]
+            now = {r[key]: dict(r) for r in con.execute(f'SELECT * FROM "{table}"')}
+        finally:
+            con.row_factory = old_rf
+    except Exception:
+        return
+    for k, old in before.items():
+        cur = now.get(k)
+        if cur is None:
+            ph = ','.join('?' * len(cols))
+            con.execute(
+                f'INSERT INTO "{table}" ({",".join(cols)}) VALUES ({ph})',
+                tuple(old.get(c) for c in cols),
+            )
+        elif any(cur.get(c) != old.get(c) for c in cols):
+            sets = ','.join(f'"{c}"=?' for c in cols if c != key)
+            vals = tuple(old.get(c) for c in cols if c != key) + (k,)
+            con.execute(f'UPDATE "{table}" SET {sets} WHERE "{key}"=?', vals)
+
+
+_TELEMETRY_TABLES = [
+    # Async-written logs: the server records traces/ledger/audit entries AFTER
+    # the HTTP response is delivered, so a row can land between a test's last
+    # assertion and the per-test teardown — measured as 2 obs_traces + 3
+    # cost_ledger rows surviving a full green run. The per-test guard cannot
+    # close that window; this session-final sweep can. Telemetry only: content
+    # tables are written synchronously with the response and are fully covered
+    # per-test, and restricting the sweep means operator data written during
+    # the run in CONTENT tables is never touched by it.
+    'obs_traces', 'obs_spans', 'cost_ledger', 'cost_alerts',
+    'audit', 'audit_log_chain', 'audit_receipts', 'e2e_traces',
+    'identity_audit', 'health_snapshots', 'mcp_gateway_calls',
+]
+
+
+@pytest.fixture(scope='session', autouse=True)
+def _guard_session_stragglers():
+    """Final sweep for rows the server wrote asynchronously after a teardown."""
+    import sqlite3 as _s3
+
+    if not _DB_PATH.exists():
+        yield
+        return
+
+    try:
+        con = _s3.connect(str(_DB_PATH), timeout=5)
+        con.execute('PRAGMA busy_timeout=5000')
+        before = _snapshot_rowids(con)
+        con.commit()
+        con.close()
+    except Exception:
+        before = None
+
+    yield
+
+    if before is None:
+        return
+    try:
+        con = _s3.connect(str(_DB_PATH), timeout=5)
+        con.execute('PRAGMA busy_timeout=5000')
+        _remove_new_rows(con, {t: before.get(t) for t in _TELEMETRY_TABLES})
+        con.commit()
+        con.close()
+    except Exception:
+        pass
+
+
 @pytest.fixture(autouse=True)
 def _guard_live_instance():
     """Remove whatever this test writes into the operator's live instance."""
@@ -229,10 +331,15 @@ def _guard_live_instance():
         con = _s3.connect(str(_DB_PATH), timeout=5)
         con.execute('PRAGMA busy_timeout=5000')
         before_rows = _snapshot_rowids(con)
+        content_before = {
+            t: _snapshot_table_content(con, t, key)
+            for t, key in _CONTENT_GUARDED_TABLES.items()
+        }
         con.commit()
         con.close()
     except Exception:
         before_rows = None
+        content_before = {}
 
     def _list_preview():
         try:
@@ -266,6 +373,8 @@ def _guard_live_instance():
             con = _s3.connect(str(_DB_PATH), timeout=5)
             con.execute('PRAGMA busy_timeout=5000')
             _remove_new_rows(con, before_rows)
+            for t, key in _CONTENT_GUARDED_TABLES.items():
+                _restore_table_content(con, t, key, content_before.get(t))
             con.commit()
             con.close()
     except Exception:
