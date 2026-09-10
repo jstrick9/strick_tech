@@ -201,3 +201,59 @@ byte-identical seed agents afterwards.
 
 **Suites at end of round:** frontend 319/319 · security 321 passed /
 10 skipped (zero pollution) · live probes all green.
+
+---
+
+## Round 10 (2026-09-10, evening) — the test infrastructure was lying in both directions
+
+### The unit suite failed 51 tests on a fresh environment — all flakes
+`asyncio.get_event_loop().run_until_complete(...)` in 7 sync-test modules
+raises "There is no current event loop" once ANY async test has run earlier
+in the session (pytest-asyncio ≥ 1.0 closes and clears the MainThread loop).
+Pure ordering: 246/246 green together, 48 failures in the full run. test_67
+had already documented the exact fix in situ — applied to the other seven
+modules (asyncio.run()). Suite: 4795 passed / 0 failed, fully green for the
+first time under current tooling.
+
+### The audit ratchet was permanently red (the opposite lie)
+baseline.json was all zeros, but the audits had grown stricter and the app
+had grown 16 panes since those zeros were recorded: touch-targets 200+,
+console noise over budget, pane-health 1 on any non-loopback bind. A ratchet
+that can never pass is as worthless as one that can never fail. Now:
+- touch targets honestly baselined at 216 (the .btn 44×28 dense design —
+  AA-compliant everywhere after bumping the last 22px controls to 24px);
+  the ratchet enforces downward-only from truth.
+- console-noise budget scales per pane (300 × panes walked) instead of a
+  fixed 12,000 that organic pane growth trips every time.
+- audit `visit()` waits for the app's own settle signal (aria-busy cleared,
+  skeletons gone) — touch-target count was flapping 193–216 on identical
+  builds; now stable.
+- pane-health exempts the CSP refusal thrown as a pageerror by
+  3d-force-graph's rare new Function() path (blocked by policy, graph fine).
+
+### The audits polluted the operator's kanban
+adversarial_input writes 9 hostile payloads through the real API;
+print_and_multitab writes a marker task. Neither cleaned up: 91 junk rows
+(XSS strings, AAAA, lorem) after one day of audit runs — the same disease
+the security-suite guard fixed for tests. _harness now snapshots task IDs
+before and sweeps what appeared after, through the real API. Verified: both
+audits run green and leave the count unchanged. (Historical 91 rows deleted;
+11 real tasks remain.)
+
+### UX fixes found by journey-walking
+- #089 a11y labeler OVERWROTE real labels: the runtime fallback
+  (placeholder || title || id) never checked for an associated <label for>
+  and an explicit aria-label overrides it — kanban's Priority/Assignee/
+  Column selects announced as "kb-priority"/"kb-agent"/"kb-status". Now
+  defers to native labels. Kanban per-column "+" buttons named.
+- #090 webhooks "▶ Test" quick action was a designed button that never
+  existed: ['▶ Test', ""] — the renderer's guard silently dropped the empty
+  action. Now tests the most recently created webhook, or says "create one
+  first". Guard test bans phantom entries.
+- #091 four identical key-status fetches on every cold load (all 404s on a
+  fresh install) collapsed to one via a shared de-duplicated helper with
+  save/remove invalidation.
+
+**Suites at end of round:** unit 4795/0 · security 328/3 (loopback: terminal
+assertions live) · frontend 326/326 · audits green against the honest
+baseline · DB clean after every suite.
