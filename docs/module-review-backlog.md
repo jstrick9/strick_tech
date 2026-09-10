@@ -257,3 +257,51 @@ audits run green and leave the count unchanged. (Historical 91 rows deleted;
 **Suites at end of round:** unit 4795/0 · security 328/3 (loopback: terminal
 assertions live) · frontend 326/326 · audits green against the honest
 baseline · DB clean after every suite.
+
+---
+
+## Round 11 (2026-09-10, night) — labels that labelled nothing, and error copy at the boundary
+
+### #092 51 labels visually paired with controls but associated with nothing
+Forms across 11 files pair a bare <label> with the following id'd control —
+visually adjacent, no for=, so no assistive technology associates them, and
+the runtime fallback announced placeholders or machine ids ("gcf-domain",
+"Input field"). All 51 statically-id'd pairs now carry for= (mechanical
+transform, guard test bans future bare labels before id'd controls); the
+runtime fixer gained the missing middle case (bare sibling label before an
+id-less dynamic row). MCP gateway: filter selects and per-rule bulk-select
+checkboxes named.
+
+### #093 MCP gateway condition fields ignored their toggles (real bug)
+style="display:none;…;display:flex" — duplicate display, last wins — so the
+time-window and day-picker condition groups rendered expanded with their
+toggles unchecked. Verified fixed live: none → flex on check → none on
+uncheck.
+
+### #094 every browser audit silently skipped on a fresh environment
+_CHROME_CANDIDATES pinned playwright's chromium-1148 path; current Playwright
+installs chromium-1234/chrome-linux64. On any fresh environment the audits
+SKIPped while a good Chromium sat one directory over. Now globs any
+downloaded build. Found live: the fresh sandbox exposed it immediately.
+
+### #095 160 raw error strings upgraded at the toast boundary
+humanError() was opt-in; 17 files adopted it, ~25 files still toast
+"Create failed: server error 500" / "runs.filter is not a function". The
+upgrade moved to the one boundary all error toasts cross: toast() passes
+'err' messages through humanizeRawError() — keeps the caller's lead
+sentence, appends what the status means, demotes stack frames to
+parentheses, passes human/custom messages through untouched.
+
+### Also
+- Touch-target baseline 216 → 217: the old number was measured against a
+  stale dist missing 6 pane registrations (70 panes walk now, not 64).
+- history-navigation audit: Back-restore wait was a fixed 1400ms sleep —
+  flaked red under ratchet load (NO-RESTORE for a pane about to render);
+  now waits for real content, bounded.
+- DB residue: task 6's title had been destroyed by a Sept-9 edit-probe
+  (renamed honestly, flagged in-description); probe task 11 deleted;
+  goals live in goals_v2 (the conftest guard already covers it — zero
+  pollution verified across the whole 126-table schema this round).
+
+**Suites at end of round:** frontend 332/332 · all 19 ratchet audits green
+against the honest baseline · DB clean.
