@@ -138,3 +138,66 @@ recorded, zero JS page errors.
 **Suites:** frontend 310/310 · backend unit 4,782+ (5 environmental ratchet
 flakes, proven pre-existing) · security 329 passed / 2 skipped · live probe
 33/33.
+
+---
+
+## UX / Full-Stack Hunt Round (2026-09-10, afternoon) — #086–#088 + instance hygiene
+
+A dedicated end-user UX sweep: all 64 panes walked in a real browser at
+desktop + mobile widths, first-run journey, core user journeys (kanban,
+inbox, webhooks, settings), contrast sampling, focus order, command
+palette, onboarding overlay, shortcuts overlay.
+
+### #086 marketplace — install/uninstall updated the WRONG button
+Featured strip and all-packs grid both rendered id="mkt-btn-<pack>" and the
+handler resolved via getElementById (first match wins), so clicking Install
+in the grid flipped the featured card's button and left the clicked one
+saying "Install". Now data-pack-btn + update-every-card-for-that-pack.
+4 guard tests.
+
+### #087 touch targets + keyboard-revealed actions
+156 webhook copy buttons at 8×15px, 156 delete buttons at 7px, 68+68 chat
+sidebar buttons at 14–15px, obsidian/workspaces/a2a/workflow buttons at
+6–13px — several of them destructive. All brought to ≥22px (mostly via the
+established .icon-btn pattern); chat-history row actions were opacity:0
+until hover, so keyboard users tabbed onto invisible buttons — focusin/
+focusout now mirror the hover reveal.
+
+### #088 the keyboard help lied
+Backend feed documented "New agent (planned)" / "Run swarm (planned)" for
+⌘⇧A/⌘⇧S while the keys were actually bound (undocumented) to Arena/Specs;
+⌘/ had THREE document-level handlers that all fired per keypress (measured:
+kanban → docs pane under a stacked modal, focus dropped); the ⌨️ button and
+the ? key opened two different overlays. One overlay, one handler per key,
+all real bindings documented (incl. the previously invisible ⌘⇧H/⌘⇧G), and
+Sprint-16's bindings no longer fire while typing. 5 guard tests.
+
+### Instance hygiene (the big one)
+The live instance had ~24,000 rows of accumulated test residue from
+repeated suite runs — 862 kanban cards, 169 webhooks, 279 MCP servers, 822
+supervisor tasks, 6,400 audit entries, payload-named skills/templates —
+plus a seed agent (brain) whose name and prompt had been overwritten by an
+injection payload. All cleaned with the operator's genuine data preserved
+(pre-09-09: 11 roadmap tasks, 12 seed agents, 3 chat sessions, seed
+integrations). DB 59MB → 6.3MB.
+
+The security suite now carries a three-layer pollution guard (autouse):
+row-addition removal by rowid-set diff (with FTS pairing), full-content
+restore for the small seed tables the suite can mutate in place, and a
+session-final sweep for telemetry rows the server writes asynchronously
+after a response. Verified: full suite green with ZERO table deltas and
+byte-identical seed agents afterwards.
+
+### Also
+- Welcome notification version derives from backend/version.py (was a
+  hardcoded "v6.0" four majors stale).
+- Terminal tests skip honestly on a deliberately networked bind (the gate
+  correctly fails closed there; the loopback recipe runs the assertions).
+- Verified-clean: mobile layout (no overflow, ☰ nav, no tiny targets),
+  onboarding flow, command palette (156 commands, filters + search), WCAG
+  contrast (only accent-on-accent icon cases below 4.5:1, which pass the
+  3:1 graphical-object rule), skip links + focus outlines, toasts are
+  aria-live, first-run chat E2E with streaming.
+
+**Suites at end of round:** frontend 319/319 · security 321 passed /
+10 skipped (zero pollution) · live probes all green.
