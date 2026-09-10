@@ -1824,7 +1824,7 @@ function mktCardHTML(p, featured=false) {
         <span class="mkt-dl">⬇ ${(p.downloads||0).toLocaleString()}</span>
         <button class="mkt-install-btn ${isInstalled?'installed':''}"
                 data-act-click="mktInstallOrUninstall(${jsArg(p.id)},${jsArg(p.name)},${isInstalled ? 1 : 0})"
-                id="mkt-btn-${p.id}">
+                data-pack-btn="${escHtml(p.id)}">
           ${isInstalled?'✓ Installed':'Install'}
         </button>
       </div>
@@ -1877,6 +1877,19 @@ function mktChangeSort(sort) {
   mktLoadPacks(_mktQuery, _mktCategory, sort);
 }
 
+// Every card currently showing this pack — the featured strip AND the all-packs
+// grid can both contain it, so a state change must update both or the two views
+// disagree. The old code used a per-pack element id plus getElementById, which
+// (a) produced duplicate IDs because the same pack renders twice, and (b)
+// always resolved to the FIRST match, so clicking Install in the grid updated
+// the featured card's button and left the clicked one saying "Install".
+// data-pack-btn + dataset matching avoids both; no selector interpolation.
+function mktButtonsFor(packId) {
+  return [...document.querySelectorAll('[data-pack-btn]')].filter(
+    (b) => b.getAttribute('data-pack-btn') === packId
+  );
+}
+
 async function mktInstallOrUninstall(packId, packName, isInstalled) {
   if (isInstalled) {
     const ok = await gmDanger(`Uninstall "${packName}"?`, `Remove this pack and all its skills from your workspace?`);
@@ -1887,8 +1900,7 @@ async function mktInstallOrUninstall(packId, packName, isInstalled) {
       const d = await r.json();
       if (d.ok) {
         delete _mktInstalled[packId];
-        const btn = document.getElementById(`mkt-btn-${packId}`);
-        if (btn) { btn.textContent='Install'; btn.classList.remove('installed'); }
+        mktButtonsFor(packId).forEach((btn) => { btn.textContent='Install'; btn.classList.remove('installed'); });
         showToast(`🗑️ ${packName} uninstalled.`);
       } else {
         gmAlert('Uninstall failed: '+(d.error||'Unknown error'));
@@ -1897,22 +1909,22 @@ async function mktInstallOrUninstall(packId, packName, isInstalled) {
       gmAlert('Uninstall error: '+ex?.message);
     }
   } else {
-    const btn = document.getElementById(`mkt-btn-${packId}`);
-    if (btn) { btn.textContent='Installing…'; btn.disabled=true; }
+    const btns = mktButtonsFor(packId);
+    btns.forEach((btn) => { btn.textContent='Installing…'; btn.disabled=true; });
     try {
       const r = await fetch(`/api/marketplace/${encodeURIComponent(packId)}/install`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
-      if (!r.ok) { if (btn) { btn.textContent='Install'; btn.disabled=false; } gmAlert('Install request failed: '+r.status); return; }
+      if (!r.ok) { btns.forEach((btn) => { btn.textContent='Install'; btn.disabled=false; }); gmAlert('Install request failed: '+r.status); return; }
       const d = await r.json();
       if (d.ok) {
         _mktInstalled[packId] = d.version || 'latest';
-        if (btn) { btn.textContent='✓ Installed'; btn.classList.add('installed'); btn.disabled=false; }
+        btns.forEach((btn) => { btn.textContent='✓ Installed'; btn.classList.add('installed'); btn.disabled=false; });
         showToast(d.message||`✅ ${packName} installed!`);
       } else {
-        if (btn) { btn.textContent='Install'; btn.disabled=false; }
+        btns.forEach((btn) => { btn.textContent='Install'; btn.disabled=false; });
         gmAlert('Install failed: '+(d.error||'Unknown error'));
       }
     } catch(ex) {
-      if (btn) { btn.textContent='Install'; btn.disabled=false; }
+      btns.forEach((btn) => { btn.textContent='Install'; btn.disabled=false; });
       gmAlert('Install error: '+ex?.message);
     }
   }
