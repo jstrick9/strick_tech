@@ -224,7 +224,7 @@
 
       var editBtn = document.createElement('button');
       editBtn.textContent = '✏️'; editBtn.title = 'Rename'; editBtn.setAttribute('aria-label','Rename folder');
-      editBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:12px;padding:3px 4px;min-width:22px;min-height:22px;border-radius:5px;color:var(--text-3);line-height:1';
+      editBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:12px;padding:3px 4px;min-width:24px;min-height:24px;border-radius:5px;color:var(--text-3);line-height:1';
       editBtn.addEventListener('click', function(e){e.stopPropagation();startFolderRename(folder,name);});
       fActions.appendChild(editBtn);
 
@@ -232,7 +232,7 @@
         var delBtn = document.createElement('button');
         delBtn.textContent = '🗑'; delBtn.title = 'Delete folder (moves chats to Uncategorized)';
         delBtn.setAttribute('aria-label','Delete folder');
-        delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:12px;padding:3px 4px;min-width:22px;min-height:22px;border-radius:5px;color:var(--text-3);line-height:1';
+        delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:12px;padding:3px 4px;min-width:24px;min-height:24px;border-radius:5px;color:var(--text-3);line-height:1';
         delBtn.addEventListener('click', function(e){e.stopPropagation();deleteFolder(folder);});
         fActions.appendChild(delBtn);
       }
@@ -309,7 +309,7 @@
 
     actionsDiv=document.createElement('div');actionsDiv.className='session-actions';actionsDiv.style.cssText='display:flex;gap:1px;flex-shrink:0;opacity:0;transition:opacity .12s';
 
-    var delBtn=document.createElement('button');delBtn.title='Delete';delBtn.setAttribute('aria-label','Delete chat');delBtn.style.cssText='background:none;border:none;color:var(--text-3);font-size:12px;cursor:pointer;padding:4px 5px;min-width:22px;min-height:22px;border-radius:5px;line-height:1';delBtn.textContent='✕';
+    var delBtn=document.createElement('button');delBtn.title='Delete';delBtn.setAttribute('aria-label','Delete chat');delBtn.style.cssText='background:none;border:none;color:var(--text-3);font-size:12px;cursor:pointer;padding:4px 5px;min-width:24px;min-height:24px;border-radius:5px;line-height:1';delBtn.textContent='✕';
     var delC=false,delT=null;
     delBtn.addEventListener('mouseenter',function(){if(!delC)delBtn.style.color='var(--danger)';});
     delBtn.addEventListener('mouseleave',function(){if(!delC)delBtn.style.color='var(--text-3)';});
@@ -320,7 +320,7 @@
     });
     actionsDiv.appendChild(delBtn);
 
-    var moreBtn=document.createElement('button');moreBtn.title='More options';moreBtn.setAttribute('aria-label','More options for this chat');moreBtn.style.cssText='background:none;border:none;color:var(--text-3);font-size:13px;cursor:pointer;padding:4px 5px;min-width:22px;min-height:22px;border-radius:5px;line-height:1';moreBtn.textContent='⋯';
+    var moreBtn=document.createElement('button');moreBtn.title='More options';moreBtn.setAttribute('aria-label','More options for this chat');moreBtn.style.cssText='background:none;border:none;color:var(--text-3);font-size:13px;cursor:pointer;padding:4px 5px;min-width:24px;min-height:24px;border-radius:5px;line-height:1';moreBtn.textContent='⋯';
     moreBtn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();showSessionCtx(e.clientX,e.clientY,s);});
     actionsDiv.appendChild(moreBtn);
     div.appendChild(actionsDiv);

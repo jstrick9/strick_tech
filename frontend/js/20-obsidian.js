@@ -182,7 +182,7 @@ async function loadObsidianNotes(q='') {
         </div>
         <span style="font-size:10px;color:var(--text-3)">${Math.round(n.size/1024*10)/10}K</span>
         <button data-act-click="obsDeleteNote(${jsArg(n.path)})" data-stop="1"
-                style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;opacity:.55;padding:3px 4px;min-width:22px;min-height:22px;border-radius:5px" aria-label="Delete note" title="Delete">🗑</button>
+                style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;opacity:.55;padding:3px 4px;min-width:24px;min-height:24px;border-radius:5px" aria-label="Delete note" title="Delete">🗑</button>
       </div>`).join('');
   } catch(ex) {
     el.innerHTML = `<div style="color:var(--danger);font-size:12px">Error: ${escHtml(ex?.message||String(ex))}</div>`;

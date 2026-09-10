@@ -189,7 +189,7 @@ function a2aRenderNetwork(container) {
         <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:11px;transition:all .12s" data-act-click="a2aViewLocalCard(${jsArg(a.agent_id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
           <span style="font-weight:600;color:var(--text-0)">${escHtml(a.name)}</span>
           <span style="color:var(--text-3);margin-left:6px">${escHtml((a.description||'').slice(0,30))}</span>
-          <a href="/a2a/${encodeURIComponent(a.agent_id)}/card" target="_blank" aria-label="View agent card" title="View agent card" style="color:var(--accent-text);font-size:11px;margin-left:8px;padding:4px;min-width:22px;min-height:22px;display:inline-flex;align-items:center;border-radius:5px" data-stop="1">🪪</a>
+          <a href="/a2a/${encodeURIComponent(a.agent_id)}/card" target="_blank" aria-label="View agent card" title="View agent card" style="color:var(--accent-text);font-size:11px;margin-left:8px;padding:4px;min-width:24px;min-height:24px;display:inline-flex;align-items:center;border-radius:5px" data-stop="1">🪪</a>
         </div>`).join('')}
     </div>` : ''}
   `;

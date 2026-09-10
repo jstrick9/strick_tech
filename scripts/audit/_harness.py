@@ -149,6 +149,23 @@ def visit(page, pane: str, settle: int = SETTLE_MS) -> None:
     """
     page.evaluate(f"window.nav && window.nav({json.dumps(pane)})")
     page.wait_for_timeout(settle)
+    # A fixed sleep alone under-measures: a pane that is still fetching
+    # renders fewer controls, which made the touch-target count flap
+    # 193–202 across runs of an identical build. Wait for the app's own
+    # settle signal — panes carry aria-busy while loading and skeleton
+    # placeholders while rendering — then let CSS transitions finish
+    # before anything measures.
+    try:
+        page.wait_for_function(
+            "() => !document.querySelector("
+            "'[aria-busy=\"true\"], .skeleton, .skeleton-loader, .spinner')",
+            timeout=4000,
+        )
+    except Exception:
+        # A pane that never settles must not hang the audit; the original
+        # settle window has already elapsed by now.
+        pass
+    page.wait_for_timeout(TRANSITION_MS)
 
 
 def pane_text(page, pane: str) -> str:

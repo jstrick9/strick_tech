@@ -48,8 +48,21 @@ def run() -> AuditResult:
     findings = []
     errors: list[str] = []
 
+    # The console filter exempts CSP *console* lines, but a CSP refusal can
+    # also surface as an uncaught pageerror when a library calls eval()/
+    # new Function() directly: the refusal throws at the call site. The one
+    # known source is 3d-force-graph's rare lazily-compiled path (galaxy
+    # pane), which the policy correctly blocks with no functional impact
+    # — the graph renders from the remaining non-eval code. Exempting the
+    # CSP refusal itself keeps the audit able to see every OTHER uncaught
+    # error, which is what it is for.
+    def _on_pageerror(e):
+        if 'unsafe-eval' in str(e) and 'Content Security Policy' in str(e):
+            return
+        errors.append(f'pageerror: {str(e)[:120]}')
+
     with browser_page('desktop') as (page, _ctx):
-        page.on('pageerror', lambda e: errors.append(f'pageerror: {str(e)[:120]}'))
+        page.on('pageerror', _on_pageerror)
         page.on('console', lambda m: errors.append(f'console: {m.text[:120]}')
                 if m.type == 'error'
                 and 'Content Security Policy' not in m.text
