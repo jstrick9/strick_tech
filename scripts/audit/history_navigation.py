@@ -46,6 +46,26 @@ IN_APP_JS = "() => typeof window.nav === 'function'"
 HASH_JS = "() => location.hash"
 
 
+def _wait_back_render(page, pane, budget_ms: int = 4000) -> None:
+    """Wait until the pane behind a Back step has actually rendered text.
+
+    A fixed 1400ms was the original wait, chosen on an idle server. Under
+    load — the ratchet runs all nineteen audits back-to-back against one
+    server — a restore can take longer, and the audit then reported
+    NO-RESTORE for a pane that was about to render. Waits for real
+    content with a bounded budget and falls through silently to the
+    original fixed wait, so a genuinely dead pane still produces the
+    finding it always did.
+    """
+    try:
+        page.wait_for_function(
+            f"() => (document.getElementById('pane-{pane}')?.innerText || '')"
+            '.trim().length >= 40',
+            timeout=budget_ms)
+    except Exception:
+        pass
+
+
 def run() -> AuditResult:
     preflight()
     findings = []
@@ -71,6 +91,7 @@ def run() -> AuditResult:
             expected = TRAIL[len(TRAIL) - 2 - step]
             page.go_back()
             page.wait_for_timeout(1400)
+            _wait_back_render(page, expected)
 
             if not page.evaluate(IN_APP_JS):
                 findings.append(
