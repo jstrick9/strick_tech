@@ -9,6 +9,7 @@
       {keys: ['⌘', '\\'], desc: 'Toggle sidebar'},
       {keys: ['⌘', ','], desc: 'Open settings'},
       {keys: ['Esc'], desc: 'Close modals / palette'},
+      {keys: ['⌘', '/'], desc: 'Focus chat input'},
     ]},
     {group: 'Chat', items: [
       {keys: ['Enter'], desc: 'Send message'},
@@ -21,10 +22,25 @@
       {keys: ['⌘', '⇧', 'E'], desc: 'Open Health'},
       {keys: ['⌘', '⇧', 'M'], desc: 'Open Marketplace'},
       {keys: ['⌘', '⇧', 'R'], desc: 'Open Replay'},
+      {keys: ['⌘', '⇧', 'A'], desc: 'Open Arena'},
+      {keys: ['⌘', '⇧', 'S'], desc: 'Open Spec Builder'},
+      {keys: ['⌘', '⇧', 'H'], desc: 'Open Hooks'},
+      {keys: ['⌘', '⇧', 'G'], desc: 'Open Code Index'},
+    ]},
+    {group: 'Editor', items: [
+      {keys: ['⌘', 'S'], desc: 'Save file in editor'},
+      {keys: ['⌘', 'Z'], desc: 'Undo in editor'},
+      {keys: ['⌘', '⇧', 'Z'], desc: 'Redo in editor'},
+      {keys: ['F7'], desc: 'Next diff'},
+      {keys: ['F8'], desc: 'Previous diff'},
+      {keys: ['Tab'], desc: 'Accept autocomplete'},
+    ]},
+    {group: 'Voice', items: [
+      {keys: ['Ctrl', '⇧', 'V'], desc: 'Toggle voice coding'},
+      {keys: ['Ctrl', '⇧', 'M'], desc: 'Toggle voice mode (TTS)'},
     ]},
     {group: 'General', items: [
       {keys: ['?'], desc: 'Show this help'},
-      {keys: ['⌘', 'S'], desc: 'Save (in editor)'},
     ]},
   ];
 

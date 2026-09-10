@@ -1845,6 +1845,9 @@ window.addEventListener('load', async () => {
 // Keyboard shortcut to open profile
 document.addEventListener('keydown', (e) => {
   if ((e.metaKey||e.ctrlKey) && e.shiftKey && e.key==='I') { e.preventDefault(); showUserProfile(); }
-  if ((e.metaKey||e.ctrlKey) && e.key==='/' ) { e.preventDefault(); nav('docs'); }
+  // NOTE: ⌘/ used to be bound here to nav('docs') as well — a THIRD
+  // document-level handler for the same key (01-app-core.js focuses the chat
+  // input, which is the documented behaviour; 02-studio.js opened a modal).
+  // All three fired on one keypress; removed so the documented one wins.
 });
 

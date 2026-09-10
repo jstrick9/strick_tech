@@ -1719,6 +1719,14 @@ document.addEventListener('keydown', (e) => {
 // Keyboard shortcuts Sprint 16
 document.addEventListener('keydown', (e) => {
   if (!e.metaKey && !e.ctrlKey) return;
+  // Not while typing: ⌘⇧S inside the code editor is "Save As" muscle memory,
+  // and navigating to the Specs pane mid-edit yanks focus out from under the
+  // user (the same reasoning as the ⌘⇧R guard in 08-replay-collab.js).
+  const t = e.target;
+  const tag = (t && t.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  if (t && t.isContentEditable) return;
+  if (t && t.closest && t.closest('.monaco-editor')) return;
   if (e.shiftKey && e.key==='S') { e.preventDefault(); nav('specs'); }
   if (e.shiftKey && e.key==='H') { e.preventDefault(); nav('hooks'); }
   if (e.shiftKey && e.key==='G') { e.preventDefault(); nav('codeindex'); }

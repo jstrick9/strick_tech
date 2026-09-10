@@ -102,13 +102,19 @@ nav = function(pane) {
   if (!actions) { setTimeout(addTopbarBtns, 400); return; }
   if (document.getElementById('shortcuts-btn')) return;
 
-  // Shortcuts button
+  // Shortcuts button — opens the SAME overlay the ? key opens. It previously
+  // called showShortcuts() (the older #shortcuts-modal fed from
+  // /api/onboarding/shortcuts), so the ⌨️ button and the ? key showed two
+  // DIFFERENT shortcut lists with different content — a consistency bug that
+  // also meant the "(planned)" lies lived in one and not the other. One help
+  // surface, one truth.
   const sb = document.createElement('button');
   sb.id = 'shortcuts-btn';
   sb.className = 'icon-btn';
   sb.title = 'Keyboard shortcuts';
+  sb.setAttribute('aria-label', 'Keyboard shortcuts');
   sb.textContent = '⌨️';
-  sb.onclick = showShortcuts;
+  sb.onclick = () => (window.showKeyboardShortcuts || showShortcuts)();
   actions.insertBefore(sb, actions.firstChild);
 })();
 
@@ -116,7 +122,7 @@ nav = function(pane) {
 PALETTE_CMDS.push(
   {icon:'🧩', label:'Plugin Marketplace', desc:'Install skill packs', action:()=>nav('plugins')},
   {icon:'🤝', label:'Start Collaboration', desc:'Share session with others', action:()=>startCollab()},
-  {icon:'⌨️', label:'Keyboard Shortcuts',  desc:'View all shortcuts', action:()=>showShortcuts()},
+  {icon:'⌨️', label:'Keyboard Shortcuts',  desc:'View all shortcuts', action:()=>(window.showKeyboardShortcuts||showShortcuts)()},
   {icon:'🎨', label:'Change Theme',        desc:'Switch dark theme variant', action:()=>nav('settings')},
   {icon:'📤', label:'Export Workspace',    desc:'Download agents, skills, memories', action:()=>exportWorkspaceData()},
   {icon:'🔄', label:'Run Onboarding',      desc:'Re-run setup wizard', action:async()=>{ await fetch('/api/onboarding/reset',{method:'POST'}); checkOnboarding(); }},

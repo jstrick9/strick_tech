@@ -262,15 +262,15 @@ document.addEventListener('keydown', e => {
   if ((e.metaKey||e.ctrlKey) && e.key === ',') {
     e.preventDefault(); nav('settings');
   }
-  // ⌘? shows keyboard shortcuts
-  if ((e.metaKey||e.ctrlKey) && e.key === '/') {
-    e.preventDefault();
-    if (typeof showShortcuts === 'function') showShortcuts();
-  }
-  // ? (question mark) alone — show help
-  if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
-    if (typeof showShortcuts === 'function') showShortcuts();
-  }
+  // NOTE: this block used to ALSO bind ⌘/ and bare "?" to showShortcuts().
+  // Both were duplicates: ⌘/ is bound in 01-app-core.js (focus the chat
+  // input — which is what the shortcuts overlay documents) and "?" is bound
+  // in 93-shortcuts-overlay.js (the unified help overlay). With three
+  // document-level handlers on the same keys, ONE keypress ran all of them:
+  // ⌘/ navigated to chat, opened this modal, and navigated to docs
+  // (04-workflow-specs.js had a third binding), landing the user on the docs
+  // pane under a stacked shortcuts modal with focus dropped. One key, one
+  // handler, one documented behaviour.
 });
 
 // ── 10. Status bar live metrics ────────────────────────────────
