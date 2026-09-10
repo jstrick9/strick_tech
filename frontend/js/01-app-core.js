@@ -1139,6 +1139,12 @@ window.switchSettingsTab = function(tabId) {
   if (tabId === 'security' && typeof window.renderCspMonitor === 'function') {
     window.renderCspMonitor();
   }
+  // Same lazy-load rule for the Access & Sign-in card: it probes /api/auth/me
+  // and renders a form, neither of which is worth doing for a tab that is
+  // never opened.
+  if (tabId === 'security' && typeof window.renderAuthAccess === 'function') {
+    window.renderAuthAccess();
+  }
 };
 
 window.setupSettingsWorkstation = function() {

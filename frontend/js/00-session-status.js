@@ -61,7 +61,10 @@
   // /api/auth/login answering 401 means "wrong password", not "session lost".
   // Announcing an expired session on top of a failed sign-in attempt is both
   // wrong and demoralising.
-  var IGNORED = ['/api/auth/login', '/api/auth/register', '/api/secrets/get'];
+  // /api/auth/me 401s whenever authentication is configured and the browser
+  // holds no session — the Access & Sign-in card polls it on tab open, and a
+  // user who simply never signed in must not be told their session "ended".
+  var IGNORED = ['/api/auth/login', '/api/auth/register', '/api/auth/me', '/api/secrets/get'];
 
   function ignored(path) {
     for (var i = 0; i < IGNORED.length; i++) {
@@ -115,6 +118,12 @@
           && typeof window.nav === 'function') {
         clear();
         window.nav('settings');
+        // Land directly on the Security tab, where Access & Sign-in lives —
+        // sending a user who just lost their session to a generic settings
+        // screen makes them hunt for the one card they need.
+        if (typeof window.switchSettingsTab === 'function') {
+          try { window.switchSettingsTab('security'); } catch (e) { /* saved-tab restore still applies */ }
+        }
       } else {
         location.reload();
       }

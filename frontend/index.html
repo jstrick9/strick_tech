@@ -1567,6 +1567,15 @@
 
             <!-- TAB 6: System Storage & Database Backup -->
             <div id="settings-tab-security" class="settings-tab-pane">
+              <!-- Access & Sign-in (authentication) -->
+              <div class="section-head u-8677744d" >
+                <h2 class="u-89c33dcc">🔑 Access &amp; Sign-in</h2>
+                <p style="color:var(--text-2);font-size:13.5px">Authentication is optional while the app runs on your machine. Create an account to enable personal sessions — the first account becomes the administrator, and authenticated surfaces (like the Terminal, when the server is not bound to loopback) then require signing in.</p>
+              </div>
+              <div class="settings-card u-3e024d13" >
+                <div id="auth-access-body" style="font-size:13px;color:var(--text-2)">Open this tab to load access settings.</div>
+              </div>
+
               <div class="section-head u-8677744d" >
                 <h2 class="u-89c33dcc">🛡️ Content Security Policy</h2>
                 <p style="color:var(--text-2);font-size:13.5px">The enforced policy blocks inline scripts outright. A second, stricter policy runs in report-only mode so the next tightening can be measured before it is applied — nothing below is currently being blocked.</p>
@@ -1904,6 +1913,7 @@
 <script src="/static/js/56-chat-history.js" defer></script>
 <script src="/static/js/57-account-settings.js" defer></script>
 <script src="/static/js/58-csp-monitor.js" defer></script>
+<script src="/static/js/61-auth-access.js" defer></script>
 <script src="/static/js/59-icm-workspaces.js" defer></script>
 <script src="/static/js/60-inbox.js" defer></script>
 

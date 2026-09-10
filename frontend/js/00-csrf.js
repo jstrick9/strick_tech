@@ -74,6 +74,21 @@
 
   const originalFetch = window.fetch.bind(window);
 
+  // ── Session bearer token ────────────────────────────────────────────────
+  // /api/auth/login mints a `ses_…` credential that authenticated surfaces
+  // (the terminal, /api/auth/me, /api/auth/rotate-key, …) expect as
+  // `Authorization: Bearer …`. Attaching it here — the app's single fetch
+  // wrapper — means every same-origin API call carries it without hundreds of
+  // call sites knowing authentication exists, and a call site that sets its
+  // own Authorization header is never overridden.
+  const AUTH_TOKEN_KEY = 'agentic_os_auth_token';
+  function bearerToken() {
+    try {
+      if (typeof _safeLS !== 'undefined' && _safeLS) return _safeLS.get(AUTH_TOKEN_KEY) || null;
+    } catch (_) { /* fall through to raw localStorage */ }
+    try { return window.localStorage.getItem(AUTH_TOKEN_KEY) || null; } catch (_) { return null; }
+  }
+
   window.fetch = async function (input, init) {
     init = init || {};
     const method = (init.method || (typeof input === 'object' && input.method) || 'GET').toUpperCase();
@@ -86,6 +101,24 @@
       const url = new URL(typeof input === 'string' ? input : input.url, window.location.origin);
       sameOrigin = url.origin === window.location.origin;
     } catch (_) { sameOrigin = true; }
+
+    // Attach the session credential to every same-origin API call. Reads as
+    // well as writes: the terminal gate and /api/auth/me are authenticated on
+    // GET/POST alike, and the token is worthless to anyone without access to
+    // this origin anyway.
+    if (sameOrigin) {
+      const token = bearerToken();
+      if (token) {
+        try {
+          const u = new URL(typeof input === 'string' ? input : (input && input.url) || '', window.location.origin);
+          if (u.pathname.indexOf('/api/') === 0) {
+            const headers = new Headers(init.headers || (typeof input === 'object' ? input.headers : undefined) || {});
+            if (!headers.has('Authorization')) headers.set('Authorization', 'Bearer ' + token);
+            init = Object.assign({}, init, { headers, credentials: init.credentials || 'same-origin' });
+          }
+        } catch (_) { /* attaching auth is best-effort; never block the call */ }
+      }
+    }
 
     if (MUTATING.has(method) && sameOrigin) {
       const token = await getToken();
