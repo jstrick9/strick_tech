@@ -976,14 +976,21 @@ async def pm_search(q: str = '', size: int = 12):
 
 # ── Health ─────────────────────────────────────────────────────────────────────
 @router.get('/api/health')
-def health():
+def health(debug: str = ''):
     """Health check — validates API is running and database is accessible.
 
-    Also reports which database file is in use and whether it is a test
-    sandbox. Live-server test suites talk to a SEPARATE process, so a pytest
-    fixture setting AGENTIC_TEST_DB cannot affect the server — those suites
-    were silently writing to production data with no way to notice. Exposing
-    the path lets conftest assert on it instead of guessing.
+    Also reports whether the database and data directory are test sandboxes.
+    Live-server test suites talk to a SEPARATE process, so a pytest fixture
+    setting AGENTIC_TEST_DB cannot affect the server — those suites were
+    silently writing to production data with no way to notice. The sandbox
+    FLAGS let conftest assert on that instead of guessing.
+
+    The absolute paths themselves (db_path, data_dir) are served ONLY behind
+    ?debug=paths. They used to ship by default, which contradicted the
+    security suite's rule that an unauthenticated health endpoint must not
+    reveal server internals (filesystem layout → username, OS, mount shape).
+    The flags carry everything a conftest needs; the one integration test
+    that builds a real path from the response opts in explicitly.
     """
     db_ok = False
     path = ''
@@ -999,18 +1006,21 @@ def health():
         pass
     from backend.version import VERSION
 
-    return {
+    out = {
         'ok': True,
         'version': VERSION,
         'service': 'Agentic OS',
         'db': 'ok' if db_ok else 'error',
-        'db_path': path,
         'db_is_test_sandbox': bool(os.environ.get('AGENTIC_TEST_DB')),
         # The DB sandbox flag above says nothing about where the server WRITES
         # FILES. Live-server suites were checking only the database while every
         # workspace, preview file and export landed in the real repo — 1158
         # stray directories and 3135 files committed to git before this was
         # noticed. Both halves are now reportable.
-        'data_dir': str(get_data_dir()),
         'data_dir_is_test_sandbox': bool(os.environ.get('AGENTIC_OS_DATA_DIR')),
     }
+    if (debug or '').strip() == 'paths':
+        out['db_path'] = path
+        out['data_dir'] = str(get_data_dir())
+    return out
+

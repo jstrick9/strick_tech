@@ -281,6 +281,65 @@ _ALLOWED_ORIGINS = [
     for origin in os.getenv('AGENTIC_OS_ALLOWED_ORIGINS', ','.join(_DEFAULT_ALLOWED_ORIGINS)).split(',')
     if origin.strip()
 ]
+
+# ── Host header validation (DNS-rebinding defense) ─────────────────────────
+# CORS does not protect a localhost server from DNS rebinding. An attacker
+# page at evil.example can, after its DNS record flips to 127.0.0.1, make the
+# browser treat requests to evil.example:8787 as SAME-ORIGIN — CORS is never
+# consulted, and the page can then READ responses such as
+# /api/secrets/get?reveal=true or the entire local API surface. The standard
+# defense (used by Jupyter, Home Assistant, etc.) is to validate the Host
+# header: a rebound name arrives as a public hostname, which the operator has
+# no reason to use for a local-first app.
+#
+# Allowed by default:
+#   * any IP literal (loopback, LAN, any port) — rebinding needs a DNS NAME
+#   * `localhost` and `*.localhost` (RFC 6761)
+#   * `*.local` and `*.internal` (mDNS / internal naming)
+#   * anything the operator adds via AGENTIC_OS_ALLOWED_HOSTS (comma list,
+#     exact names or `*.example.com` wildcards)
+_AGENTIC_OS_ALLOWED_HOSTS_ENV = os.getenv('AGENTIC_OS_ALLOWED_HOSTS', '')
+_ALLOWED_HOST_EXACT = {'localhost'}
+_ALLOWED_HOST_SUFFIXES = ('.localhost', '.local', '.internal')
+for _entry in _AGENTIC_OS_ALLOWED_HOSTS_ENV.split(','):
+    _entry = _entry.strip().lower()
+    if not _entry:
+        continue
+    if _entry.startswith('*.'):
+        # '*.example.com' -> suffix '.example.com'
+        _ALLOWED_HOST_SUFFIXES += (_entry[1:],)
+    elif _entry.startswith('.'):
+        # A bare leading dot (`.example.com`) is accepted as the same suffix —
+        # it is the more obvious way to write "this domain and anything under
+        # it", and an exact hostname can never begin with a dot.
+        _ALLOWED_HOST_SUFFIXES += (_entry,)
+    else:
+        _ALLOWED_HOST_EXACT.add(_entry)
+
+
+def _host_is_allowed(host_header: str) -> bool:
+    """True when the Host header is one this server should answer for."""
+    if not host_header:
+        return False
+    host = host_header.strip().lower()
+    # Strip the port. IPv6 hosts arrive bracketed: `[::1]:8787`.
+    if host.startswith('['):
+        host = host.split(']', 1)[0] + ']'
+    else:
+        host = host.split(':', 1)[0]
+    # IP literals are always allowed in any form.
+    import ipaddress
+
+    try:
+        ipaddress.ip_address(host.strip('[]'))
+        return True
+    except ValueError:
+        pass
+    if host in _ALLOWED_HOST_EXACT:
+        return True
+    return any(host.endswith(suffix) for suffix in _ALLOWED_HOST_SUFFIXES)
+
+
 app.add_middleware(
     CORSMiddleware,
     # SECURITY FIX: Never combine allow_credentials=True with wildcard origin ("*").
@@ -886,6 +945,46 @@ async def _security_middleware(request: Request, call_next):
     client_ip = request.client.host if request.client else 'unknown'
     path = request.url.path
     now = _time.time()
+
+    # ── Host header validation (DNS-rebinding defense) ───────────────────
+    # Runs before everything else — a rebound request must not even reach
+    # idempotency replay or the rate-limit store. OPTIONS (CORS preflight) is
+    # exempt because preflight carries no credentials and never returns data;
+    # /api/webhooks/ is exempt because GitHub/Stripe/CI callers hit whatever
+    # public hostname the operator registered and cannot be told to change.
+    # In-process tests are exempt the same way CSRF and rate limiting are:
+    # FastAPI's TestClient identifies itself as host "testserver", and the
+    # check is exercised against real sockets in tests/security instead.
+    if (request.method != 'OPTIONS' and not path.startswith('/api/webhooks/')
+            and not os.environ.get('PYTEST_CURRENT_TEST')):
+        host_header = request.headers.get('host', '')
+        if not _host_is_allowed(host_header):
+            log.warning(
+                'Blocked request with unrecognised Host %r from %s for %s %s '
+                '(DNS-rebinding defense). To serve this host, add it to '
+                'AGENTIC_OS_ALLOWED_HOSTS.',
+                host_header, client_ip, request.method, path,
+            )
+            # NOTE: aliased import — later branches of this function import
+            # JSONResponse locally (a leftover that shadows the module-level
+            # name for the whole function scope), so the bare name is NOT
+            # bound yet this early in the request path. Using the alias keeps
+            # this branch independent of that foot-gun.
+            from fastapi.responses import JSONResponse as _HostBlockedResponse
+
+            return _HostBlockedResponse(
+                {
+                    'ok': False,
+                    'error': (
+                        'Blocked: this server does not recognise the Host header it '
+                        'was asked to answer for. If you reach Agentic OS through a '
+                        'proxy or a custom hostname, add that host to the '
+                        'AGENTIC_OS_ALLOWED_HOSTS environment variable and restart.'
+                    ),
+                },
+                status_code=403,
+                headers={'X-Request-ID': str(request_id)},
+            )
 
     # ── Idempotency ──────────────────────────────────────────────────────
     # Measured before this existed: 5 concurrent identical POSTs to

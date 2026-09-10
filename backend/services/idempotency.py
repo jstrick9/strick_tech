@@ -111,6 +111,17 @@ def normalise_key(raw: str | None, method: str, path: str) -> str | None:
         return None
     if method.upper() not in PROTECTED_METHODS:
         return None
+    # Session-lifecycle routes must never be replayed. Idempotency exists so a
+    # double-clicked CREATE does not run twice; replaying /api/auth/login is a
+    # different proposition entirely — measured live: sign in, sign out, sign
+    # back in with the same credentials inside the client's 10s key window,
+    # and the replay returns the token that sign-out just REVOKED. The client
+    # stores a dead credential, every authenticated call 401s, and the UI
+    # shows the sign-in form again even though login "succeeded". A logout
+    # between two identical logins is exactly the state change a replay cache
+    # cannot know about, so these routes opt out entirely.
+    if path.startswith('/api/auth/'):
+        return None
     return f'{method.upper()} {path} {raw}'
 
 

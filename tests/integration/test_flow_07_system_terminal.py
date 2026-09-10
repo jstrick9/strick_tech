@@ -114,7 +114,7 @@ class TestTerminalProfilerIntegration:
 
         import httpx as _httpx
 
-        _health = _httpx.get(f'{BASE}/api/health', timeout=5).json()
+        _health = _httpx.get(f'{BASE}/api/health?debug=paths', timeout=5).json()
         target = _pl.Path(_health['data_dir']) / 'preview' / script
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text("print(99 + 1)\n")

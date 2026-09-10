@@ -5,7 +5,6 @@ Fernet AES-256 encrypted secrets. Never in git. Auto-injected to os.environ.
 
 from __future__ import annotations
 
-import base64
 import contextlib
 import hashlib
 import json
@@ -13,7 +12,7 @@ import logging
 import os
 import sqlite3
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 
 from ..services.memory_db import audit_log, ensure_schema, get_conn
@@ -104,15 +103,32 @@ def _encrypt(value: str) -> tuple[str, bool]:
     return '', False
 
 
-def _decrypt(enc: str, is_fernet: bool = True) -> str:
+def _decrypt(enc: str) -> str:
+    """Decrypt a stored blob with the vault key. Strict: Fernet or nothing.
+
+    The original fallback tried `base64.b64decode(enc)` when Fernet failed —
+    a legacy path from before the vault encrypted anything. Two problems with
+    keeping it now that every writer goes through `_encrypt`:
+
+    1. Python's b64decode VALIDATES NOTHING by default: it *discards*
+       characters outside the base64 alphabet and decodes whatever remains.
+       A row written in plaintext (the onboarding quick-setup bug, since
+       fixed) therefore "decrypted" into mojibake rather than failing — and
+       that garbage was injected into os.environ as an API key, silently
+       breaking every LLM call that used it.
+    2. It contradicted `_is_readable`, which reports such rows as
+       "unreadable" in the vault list. The screen said re-enter the value
+       while `reveal` happily returned nonsense for it.
+
+    Failing closed to '' is the only behaviour consistent with what the UI
+    claims.
+    """
     f = _get_fernet()
-    if f and is_fernet:
-        with contextlib.suppress(Exception):
-            return f.decrypt(enc.encode()).decode()
-    try:
-        return base64.b64decode(enc).decode()
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+    if not f:
         return ''
+    with contextlib.suppress(Exception):
+        return f.decrypt(enc.encode()).decode()
+    return ''
 
 
 def _is_readable(enc: str) -> bool:
@@ -122,15 +138,7 @@ def _is_readable(enc: str) -> bool:
     "this did not decrypt". Empty values cannot be stored (set_secret rejects
     them), so '' here unambiguously means unreadable.
     """
-    if not enc:
-        return False
-    f = _get_fernet()
-    if not f:
-        return False
-    try:
-        return bool(f.decrypt(enc.encode()).decode())
-    except Exception:
-        return False
+    return bool(_decrypt(enc))
 
 
 def _fingerprint(value: str) -> str:
@@ -171,6 +179,23 @@ def secrets_for_agent(agent_id: str) -> dict[str, str]:
     return out
 
 
+# Keys THIS PROCESS injected into os.environ from a global vault row. The
+# vault must never delete an environment variable it did not inject: an
+# operator-set variable (".env", systemd, container env) belongs to the
+# deployment, not the vault.
+#
+# The bug this set exists to prevent, measured live: with
+# OPENROUTER_API_KEY set in the server's environment, storing an
+# AGENT-scoped OPENROUTER_API_KEY through the vault ran
+# `os.environ.pop(key)` ("never leave a stale global copy"), which deleted
+# the operator's key outright. Deleting the secret afterwards did not
+# restore it. Every global/default consumer then silently lost the provider
+# and fell back to local inference — the vault had "narrowed" a key it
+# never owned. Only keys that came OUT of the vault (below) may be taken
+# back out of the environment.
+_VAULT_INJECTED_KEYS: set[str] = set()
+
+
 def _inject_to_env():
     """Load all vault secrets into os.environ on startup."""
     try:
@@ -187,7 +212,10 @@ def _inject_to_env():
         try:
             val = _decrypt(r['value_enc'])
             if val:
+                was_absent = r['key'] not in os.environ
                 os.environ.setdefault(r['key'], val)
+                if was_absent:
+                    _VAULT_INJECTED_KEYS.add(r['key'])
         except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError, sqlite3.Error):
             pass
 
@@ -340,9 +368,19 @@ async def set_secret(req: Request):
     # write path did not, so the scope only held until the next restart.
     if scope == 'global':
         os.environ[key] = value
+        # An explicit global vault value is now the source of truth for this
+        # key: it replaces whatever the environment had, and the vault owns
+        # the environment copy from here on.
+        _VAULT_INJECTED_KEYS.add(key)
     else:
-        # Never leave a stale global copy of a key that has just been narrowed.
-        os.environ.pop(key, None)
+        # A GLOBAL vault copy of this key must not keep serving every agent
+        # once the key is narrowed to one — but only if the vault is the one
+        # who put it there. An operator-provided environment variable
+        # (OPENROUTER_API_KEY=… in .env, systemd, or the container) belongs
+        # to the deployment and survives untouched; see _VAULT_INJECTED_KEYS.
+        if key in _VAULT_INJECTED_KEYS:
+            os.environ.pop(key, None)
+            _VAULT_INJECTED_KEYS.discard(key)
     try:
         audit_log('vault_set', f'{key} scope={scope} agent={agent}')
     except Exception:
@@ -482,8 +520,16 @@ async def test_secret_connection(req: Request):
 
 
 @router.get('/get')
-async def get_secret(key: str, reveal: bool = False):
-    """Retrieve and return get secret."""
+async def get_secret(key: str, reveal: bool = False, response: Response = None):
+    """Retrieve and return get secret.
+
+    FastAPI injects the `response` object so headers can be set on the reply.
+    """
+    # A revealed secret must never land in a browser cache or an intermediary:
+    # `no-store` is the strongest cache directive and applies to both branches
+    # (the masked branch carries a fingerprint, the reveal branch the value).
+    if response is not None:
+        response.headers['Cache-Control'] = 'no-store'
     key = key.strip().upper()
     con = get_conn()
     try:
@@ -535,6 +581,11 @@ def delete_secret_by_path(key: str):
     # success status code.
     if cur.rowcount == 0:
         return JSONResponse({'ok': False, 'error': f"Secret '{key}' not found"}, status_code=404)
-    os.environ.pop(key, None)
+    # Only take the environment copy back if the vault is the one that put it
+    # there — deleting an agent-scoped row must not erase an operator-set
+    # environment variable of the same name (see _VAULT_INJECTED_KEYS).
+    if key in _VAULT_INJECTED_KEYS:
+        os.environ.pop(key, None)
+        _VAULT_INJECTED_KEYS.discard(key)
     audit_log('vault_delete', key)
     return {'ok': True, 'deleted': key}
