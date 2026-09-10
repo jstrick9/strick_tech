@@ -177,6 +177,11 @@ def test_load_failures_use_human_error_copy():
 
 
 def test_a_failed_load_offers_a_retry():
-    """An error with no way to recover is a dead end."""
+    """An error with no way to recover is a dead end.
+
+    The retry affordance moved into the shared stateFeedback primitive
+    (setError with a `retry: '<handler>()'` option renders the button), so
+    the assertion checks the mechanism rather than the button's label text.
+    """
     block = JS[JS.index('async function renderDashboard'):][:2600]
-    assert 'Retry' in block
+    assert "retry:'renderDashboard()'" in block or 'retry: "renderDashboard()"' in block

@@ -4,6 +4,7 @@ Comprehensive RCE and path traversal tests across ALL components
 that could potentially execute code or access the filesystem.
 """
 import pytest
+from pathlib import Path
 from tests.security.conftest import *
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -396,6 +397,39 @@ class TestSecDeployRCE:
 
 class TestSecSystemGitRCE:
     """System git commands — must be sandboxed."""
+
+    @pytest.fixture(autouse=True)
+    def undo_commits_this_test_makes(self):
+        """The commit endpoint under test REALLY commits.
+
+        Each payload POST to /api/system/git/commit stages preview/ and
+        creates a commit whose message is the payload. That is correct
+        product behaviour (GitPython never invokes a shell), but it means
+        this test used to leave half a dozen junk commits — with names like
+        "$(whoami)" — permanently in the developer's repository, plus
+        whatever payload-named files other sweep payloads had dropped under
+        preview/ (found in a live run: six commits and five payload-named
+        template files after two suite runs). Capture HEAD first and restore
+        it after, keeping the working tree exactly as it was.
+        """
+        import subprocess
+
+        repo = Path(__file__).resolve().parents[2]
+
+        def _head() -> str:
+            return subprocess.run(
+                ["git", "rev-parse", "HEAD"], cwd=repo,
+                capture_output=True, text=True, check=True,
+            ).stdout.strip()
+
+        head_before = _head()
+        yield
+        head_after = _head()
+        if head_after != head_before:
+            subprocess.run(
+                ["git", "reset", "--mixed", head_before], cwd=repo,
+                capture_output=True, text=True,
+            )
 
     async def test_system_git_commit_injection(self, C):
         """System git commit with injected message."""

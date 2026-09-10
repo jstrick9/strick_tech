@@ -321,7 +321,14 @@ class TestSecRCETerminal:
         return r
 
     async def test_shell_metacharacter_injection(self, C):
-        """Shell metacharacters in echo command must not execute secondary commands."""
+        """Shell metacharacters in echo command must not execute secondary commands.
+
+        The terminal was hardened (module review round 4/15) to REFUSE
+        metacharacter commands with 403 rather than executing a filtered
+        subset; these assertions accept either the refusal or a safely
+        filtered execution — the security property under test is that the
+        SECONDARY command never runs.
+        """
         dangerous_commands = [
             "echo safe; whoami",
             "echo safe && id",
@@ -332,8 +339,8 @@ class TestSecRCETerminal:
         ]
         for cmd in dangerous_commands:
             r = await self._run_cmd(cmd)
-            assert r.status_code == 200, f"Terminal crashed on: {cmd}"
-            
+            assert r.status_code in (200, 400, 403), f"Terminal crashed on: {cmd} (HTTP {r.status_code})"
+
             # Command may be blocked entirely or execute just echo
             # If executed, output must not contain RCE evidence
             events = []
@@ -360,11 +367,11 @@ class TestSecRCETerminal:
             for marker in [m for m in rce_escalation_markers if m]:
                 assert marker not in combined_output, \
                     f"PRIVILEGE ESCALATION: '{cmd}' produced '{marker}'"
-            # Server must stay up regardless
-            assert r.status_code == 200
+            # Server must stay up regardless (a 403 refusal is fine; a 5xx is not)
+            assert r.status_code in (200, 400, 403)
 
     async def test_blocked_commands_are_blocked(self, C):
-        """Blocklist commands are rejected."""
+        """Blocklist commands are rejected (403 refusal since the hardening round)."""
         blocked = [
             "rm -rf /",
             "rm -rf ~",
@@ -373,20 +380,24 @@ class TestSecRCETerminal:
         ]
         for cmd in blocked:
             r = await self._run_cmd(cmd)
-            assert r.status_code == 200
-            assert "blocked" in r.text.lower() or "error" in r.text.lower() or \
-                   "not allowed" in r.text.lower(), \
+            assert r.status_code in (200, 400, 403), f"Terminal crashed on: {cmd}"
+            assert r.status_code != 200 or (
+                "blocked" in r.text.lower() or "error" in r.text.lower()
+                or "not allowed" in r.text.lower()
+            ), \
                 f"Dangerous command not blocked: {cmd}"
 
     async def test_not_allowed_commands_rejected(self, C):
-        """Commands not in SAFE_PREFIXES are rejected."""
+        """Commands not in SAFE_PREFIXES are rejected (403 refusal since the hardening round)."""
         not_allowed = ["whoami", "id", "nc -e /bin/sh", "/bin/sh", "bash", "sh", "ncat"]
         for cmd in not_allowed:
             r = await self._run_cmd(cmd)
-            assert r.status_code == 200
-            # Must be blocked or produce error
-            assert "not allowed" in r.text.lower() or "blocked" in r.text.lower() or \
-                   "error" in r.text.lower(), \
+            assert r.status_code in (200, 400, 403), f"Terminal crashed on: {cmd}"
+            # If it was not refused at the HTTP level it must say so in the body.
+            assert r.status_code != 200 or (
+                "not allowed" in r.text.lower() or "blocked" in r.text.lower()
+                or "error" in r.text.lower()
+            ), \
                 f"Unsafe command '{cmd}' was not rejected"
 
     async def test_safe_commands_still_work(self, C):
@@ -400,12 +411,12 @@ class TestSecRCETerminal:
         assert marker in r.text, "echo (safe command) was blocked!"
 
     async def test_null_byte_in_command(self, C):
-        """Null byte injection in terminal command."""
+        """Null byte injection in terminal command — refused, never a crash."""
         r = await self._run_cmd("echo\x00; id")
-        assert r.status_code == 200  # Must not crash
+        assert r.status_code in (200, 400, 403)  # Must not crash
 
     async def test_very_long_command_handled(self, C):
         """Very long command is handled gracefully (not a buffer overflow)."""
         long_cmd = "echo " + "A" * 10000
         r = await self._run_cmd(long_cmd)
-        assert r.status_code == 200  # Must not crash
+        assert r.status_code in (200, 400, 403)  # Must not crash

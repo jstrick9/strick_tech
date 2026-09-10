@@ -332,15 +332,23 @@ def test_webhook_prefix_is_the_only_wildcard_exemption():
     """/api/webhooks/* is exempt because deliveries carry an HMAC signature and
     come from GitHub/Stripe/CI, which cannot know a CSRF token. A SECOND
     prefix exemption would be a much bigger hole than a single path, so the
-    count is pinned."""
+    count is pinned.
+
+    Two gates now exempt that same prefix, both deliberately:
+      1. the CSRF check (the original exemption), and
+      2. the Host-header / DNS-rebinding gate, which exempts webhooks for
+         the same reason — external CI/GitHub/Stripe callers reach the
+         server via whatever public hostname the operator registered and
+         cannot be told to use a local one.
+    """
     import inspect
 
     import backend.app as app_mod
 
     src = inspect.getsource(app_mod)
     prefix_checks = src.count("path.startswith('/api/webhooks/')")
-    assert prefix_checks == 1, (
-        f'expected exactly one prefix-based CSRF exemption, found {prefix_checks}'
+    assert prefix_checks == 2, (
+        f'expected exactly two prefix exemptions (CSRF gate + Host gate), found {prefix_checks}'
     )
 
 

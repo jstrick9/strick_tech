@@ -187,13 +187,24 @@ class TestSecLicenseTierBypass:
             assert d["ok"] is False, f"Invalid prefix key '{key}' was accepted!"
 
     async def test_tier_resets_after_trial_reset(self, C):
-        """After reset-trial, tier correctly returns to 'trial'."""
+        """After reset-trial, the persisted tier correctly returns to 'trial'.
+
+        When license ENFORCEMENT is off (unlocked mode, the default for local
+        deployments), /status reports the effective tier as the unlock tier —
+        by design, so the UI does not lock panes the operator never gated. In
+        that mode the reset is still verifiable through `stored_tier`, which
+        reports exactly what was persisted.
+        """
         r = await POST(C, "/api/license/reset-trial", {})
         assert r.json()["ok"] is True
-        
+
         status = (await GET(C, "/api/license/status")).json()
-        assert status["tier"] == "trial", \
-            f"Tier not reset to trial after reset: {status['tier']}"
+        if status.get("unlocked"):
+            assert status["stored_tier"] == "trial", \
+                f"Stored tier not reset to trial: {status['stored_tier']}"
+        else:
+            assert status["tier"] == "trial", \
+                f"Tier not reset to trial after reset: {status['tier']}"
 
     async def test_pane_access_with_injected_params(self, C):
         """Query params can't override tier in pane access check."""

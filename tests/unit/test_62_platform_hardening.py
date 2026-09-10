@@ -135,10 +135,19 @@ class TestDatabaseIsolation:
             assert needle not in code_only(src), name + ' still bypasses the resolver'
 
     def test_health_reports_the_database_in_use(self, client):
-        """Live-server suites can't see the fixture; they check this instead."""
+        """Live-server suites can't see the fixture; they check this instead.
+
+        Since the information-disclosure fix, the absolute paths are served
+        only behind ?debug=paths; the default response carries the sandbox
+        FLAGS alone (the security suite forbids path disclosure on the
+        unauthenticated health endpoint).
+        """
         body = client.get('/api/health').json()
-        assert 'db_path' in body
+        assert 'db_path' not in body, 'default /api/health must not disclose paths'
         assert body['db_is_test_sandbox'] is True
+        debug = client.get('/api/health', params={'debug': 'paths'}).json()
+        assert 'db_path' in debug
+        assert debug['db_is_test_sandbox'] is True
 
     @pytest.mark.parametrize(
         'conftest',
