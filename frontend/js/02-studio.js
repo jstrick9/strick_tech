@@ -161,7 +161,7 @@ const QUICK_ACTIONS = {
   composer:   [['🪄 Build',"runComposer?.()"],['📷 Screenshot',"document.getElementById('screenshot-file')?.click()"]],
   control:    [['🛑 Kill All',"killAllRuns?.()"],['＋ Rule',"addBudgetRule?.()"],['⟳ Refresh',"refreshControlTower?.()"]],
   workspaces: [['＋ Project',"createNewWorkspace?.()"],['📦 Export',"exportCurrentZip?.()"]],
-  webhooks:   [['＋ Webhook',"createWebhook?.()"],['▶ Test',""]],
+  webhooks:   [['＋ Webhook',"createWebhook?.()"],['▶ Test',"testLatestWebhook?.()"]],
   testgen:    [['🧪 Generate',"generateTests?.()"]],
 };
 

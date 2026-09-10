@@ -100,6 +100,26 @@ async function installWebhookTemplate(id) {
     else toast('Create failed: ' + (j.error||''), 'err');
   } catch(ex) { toast('Template install error: ' + ex.message, 'err'); }
 }
+// Quick-action target for the webhooks pane's "▶ Test": tests the most
+// recently created webhook — the one you just set up is the one you want
+// to verify — and says what to do first when none exist yet. (The quick
+// bar previously carried a "▶ Test" entry with an empty action string,
+// which the renderer's guard silently dropped: a designed button that
+// never existed.)
+async function testLatestWebhook() {
+  try {
+    const r = await fetch('/api/webhooks');
+    if (!r.ok) { toast('Could not load webhooks: server error ' + r.status, 'err'); return; }
+    const raw = await r.json();
+    const whs = Array.isArray(raw) ? raw : (raw?.webhooks || []);
+    if (whs.length === 0) {
+      toast('No webhooks to test yet — create one first', 'err', 3500);
+      return;
+    }
+    testWebhook(whs[whs.length - 1].id);
+  } catch (ex) { toast('Test error: ' + ex.message, 'err'); }
+}
+
 async function testWebhook(id) {
   toast('▶ Sending test event…', 'ok', 1500);
   try {
