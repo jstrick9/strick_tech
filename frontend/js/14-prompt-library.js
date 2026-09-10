@@ -105,8 +105,8 @@ async function renderPrompts() {
       <div id="prompt-modal" role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(8px)" data-act-click="closePromptModal()" data-click-self="1">
         <div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:var(--radius-xl);padding:22px;width:100%;max-width:560px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto">
           <h2 style="font-size:17px;font-weight:800;margin-bottom:14px" id="pm-modal-title">New Prompt</h2>
-          <div class="form-group"><label class="form-label">Title *</label><input id="pm-title" class="input" placeholder="e.g. Security code review"></div>
-          <div class="form-group"><label class="form-label">Prompt *</label><textarea id="pm-content" class="input" style="min-height:120px;font-family:monospace;font-size:12px" placeholder="The full prompt text… Use {placeholder} for variables."></textarea></div>
+          <div class="form-group"><label for="pm-title" class="form-label">Title *</label><input id="pm-title" class="input" placeholder="e.g. Security code review"></div>
+          <div class="form-group"><label for="pm-content" class="form-label">Prompt *</label><textarea id="pm-content" class="input" style="min-height:120px;font-family:monospace;font-size:12px" placeholder="The full prompt text… Use {placeholder} for variables."></textarea></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
             <div class="form-group u-11696618" ><label class="form-label" for="pm-category">Category</label>
               <select id="pm-category" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text-0);font-size:13px;outline:none">
@@ -115,7 +115,7 @@ async function renderPrompts() {
                 ${cats.map(c=>`<option value="${escHtml(c.id)}">${escHtml(c.label||c.id)}</option>`).join('')}
               </select>
             </div>
-            <div class="form-group u-11696618" ><label class="form-label">Tags</label>
+            <div class="form-group u-11696618" ><label for="pm-tags" class="form-label">Tags</label>
               <input id="pm-tags" class="input" placeholder="security, api…">
             </div>
           </div>

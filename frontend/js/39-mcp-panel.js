@@ -12,11 +12,11 @@ async function renderMCP() {
       <div class="settings-card">
         <h3>Direct Tool Call</h3>
         <p>Call any tool directly and inspect the result.</p>
-        <label style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Tool</label>
+        <label for="mcp-tool-sel" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Tool</label>
         <select id="mcp-tool-sel" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;color:var(--text-0);font-size:13px;margin:6px 0 10px;outline:none">
           <option value="">Loading tools…</option>
         </select>
-        <label style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Args (JSON)</label>
+        <label for="mcp-args" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Args (JSON)</label>
         <textarea id="mcp-args" data-draft="mcp-args" placeholder='{"path": "index.html"}' style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;color:var(--text-0);font-size:13px;resize:none;min-height:60px;outline:none;font-family:monospace;margin:6px 0 10px"></textarea>
         <button data-act-click="runMCPTool()" class="btn btn-primary" style="width:100%">▶ Call Tool</button>
         <div id="mcp-result" style="margin-top:12px;background:var(--bg-0);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-family:monospace;font-size:12px;color:var(--text-1);white-space:pre-wrap;max-height:300px;overflow-y:auto;display:none"></div>

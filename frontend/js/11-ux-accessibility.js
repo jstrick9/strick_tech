@@ -329,6 +329,16 @@
             (id && document.querySelector('label[for="' + CSS.escape(id) + '"]')) ||
             input.closest('label');
           if (hasLabel) return;
+          // Dynamically generated rows (milestone inputs, matrix cells)
+          // pair a bare <label> sibling with an id-less control. That
+          // pairing is visual only — no for=, no wrapping — so honour it
+          // here before falling back to placeholder/title/id.
+          const sibling = input.previousElementSibling;
+          if (sibling && sibling.tagName === 'LABEL' &&
+              (sibling.textContent || '').trim()) {
+            input.setAttribute('aria-label', sibling.textContent.trim().slice(0, 80));
+            return;
+          }
           const placeholder = input.getAttribute('placeholder');
           const title = input.getAttribute('title');
           let labelText = placeholder || title || id || 'Input field';

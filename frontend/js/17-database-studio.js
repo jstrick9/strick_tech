@@ -315,11 +315,11 @@ async function renderSupabaseTab(el) {
       </div>
       <div style="display:flex;flex-direction:column;gap:8px">
         <div>
-          <label style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">SUPABASE_URL</label>
+          <label for="supa-url-input" style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">SUPABASE_URL</label>
           <input id="supa-url-input" placeholder="https://xxxx.supabase.co" class="key-input" style="width:100%">
         </div>
         <div>
-          <label style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">SUPABASE_ANON_KEY</label>
+          <label for="supa-key-input" style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">SUPABASE_ANON_KEY</label>
           <input id="supa-key-input" type="password" placeholder="eyJhbGci…" class="key-input" style="width:100%">
         </div>
         <button data-act-click="saveSupabaseKeys()" class="btn btn-primary">Connect Supabase</button>

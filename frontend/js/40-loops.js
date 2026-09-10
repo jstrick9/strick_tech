@@ -11,7 +11,7 @@ async function renderLoops() {
     <div class="settings-card">
       <h3>Create Loop</h3>
       <p>Define a recurring autonomous task.</p>
-      <label style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Goal / Prompt</label>
+      <label for="loop-prompt" style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px">Goal / Prompt</label>
       <textarea id="loop-prompt" placeholder="/goal Monitor the preview app for errors and auto-fix them every 15 minutes" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;color:var(--text-0);font-size:13px;resize:none;min-height:80px;outline:none;font-family:inherit;margin:6px 0 10px"></textarea>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
         <div>

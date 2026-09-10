@@ -234,25 +234,25 @@ async function renderSecretsVault() {
       <div style="font-weight:700;margin-bottom:14px;font-size:14px">Add / Update Secret</div>
       <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-bottom:10px">
         <div>
-          <label style="font-size:11px;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:4px">Key Name</label>
+          <label for="vault-key-input" style="font-size:11px;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:4px">Key Name</label>
           <input id="vault-key-input" class="vault-input" placeholder="OPENROUTER_API_KEY" autocomplete="off" spellcheck="false"
             data-act-input="hUpperSnakeCase($this)">
         </div>
         <div>
-          <label style="font-size:11px;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:4px">Value</label>
+          <label for="vault-value-input" style="font-size:11px;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:4px">Value</label>
           <input id="vault-value-input" class="vault-input" type="password" placeholder="sk-or-v1-…" autocomplete="new-password">
         </div>
       </div>
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
         <div class="u-97445a8d">
-          <label style="font-size:11px;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:4px">Scope</label>
+          <label for="vault-scope-select" style="font-size:11px;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:4px">Scope</label>
           <select id="vault-scope-select" style="width:100%;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text-0);font-size:13px;outline:none">
             <option value="global">global — all agents</option>
             <option value="agent">agent — specific agent</option>
           </select>
         </div>
         <div class="u-97445a8d">
-          <label style="font-size:11px;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:4px">Agent (if scoped)</label>
+          <label for="vault-agent-input" style="font-size:11px;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:4px">Agent (if scoped)</label>
           <input id="vault-agent-input" class="vault-input" placeholder="builder, reviewer, …">
         </div>
       </div>

@@ -65,11 +65,11 @@ async function renderEvals() {
     <div id="eval-pane-run">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px">
         <div>
-          <label style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px">Prompt / Task</label>
+          <label for="eval-prompt" style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px">Prompt / Task</label>
           <textarea id="eval-prompt" data-draft="eval-prompt" rows="4" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;padding:10px;resize:vertical;box-sizing:border-box" placeholder="What did the agent ask?"></textarea>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px">Agent Response</label>
+          <label for="eval-response" style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px">Agent Response</label>
           <textarea id="eval-response" data-draft="eval-response" rows="4" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text-0);font-size:12px;padding:10px;resize:vertical;box-sizing:border-box" placeholder="What did the agent respond?"></textarea>
         </div>
       </div>
@@ -111,11 +111,11 @@ async function renderEvals() {
     <div id="eval-pane-ab" style="display:none">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div>
-          <label style="font-size:11px;color:var(--accent-text);font-weight:700;display:block;margin-bottom:4px">Prompt A</label>
+          <label for="ab-prompt-a" style="font-size:11px;color:var(--accent-text);font-weight:700;display:block;margin-bottom:4px">Prompt A</label>
           <textarea id="ab-prompt-a" rows="5" style="width:100%;background:var(--bg-2);border:1px solid var(--accent)44;border-radius:8px;color:var(--text-0);font-size:12px;padding:10px;resize:vertical;box-sizing:border-box" placeholder="First prompt variant (use {{input}} for variable input)"></textarea>
         </div>
         <div>
-          <label style="font-size:11px;color:#9d74f5;font-weight:700;display:block;margin-bottom:4px">Prompt B</label>
+          <label for="ab-prompt-b" style="font-size:11px;color:#9d74f5;font-weight:700;display:block;margin-bottom:4px">Prompt B</label>
           <textarea id="ab-prompt-b" rows="5" style="width:100%;background:var(--bg-2);border:1px solid #9d74f544;border-radius:8px;color:var(--text-0);font-size:12px;padding:10px;resize:vertical;box-sizing:border-box" placeholder="Second prompt variant to compare"></textarea>
         </div>
       </div>

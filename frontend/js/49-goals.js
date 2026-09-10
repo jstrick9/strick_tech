@@ -869,19 +869,19 @@ function gmOpenCreate() {
       <p class="gm-modal-sub">Define your goal with clear success criteria. The Brain agent will decompose it into tasks and the Evaluator will score your progress over time.</p>
       <div class="gm-form-grid">
         <div class="gm-form-group full">
-          <label class="gm-form-label">Goal Title *</label>
+          <label for="gcf-title" class="gm-form-label">Goal Title *</label>
           <input class="gm-form-input" id="gcf-title" placeholder="What do you want to achieve?" required>
         </div>
         <div class="gm-form-group full">
-          <label class="gm-form-label">Description</label>
+          <label for="gcf-desc" class="gm-form-label">Description</label>
           <textarea class="gm-form-textarea" id="gcf-desc" placeholder="More detail about this goal, constraints, context…" rows="3"></textarea>
         </div>
         <div class="gm-form-group full">
-          <label class="gm-form-label">Success Criteria</label>
+          <label for="gcf-criteria" class="gm-form-label">Success Criteria</label>
           <textarea class="gm-form-textarea" id="gcf-criteria" placeholder="What does success look like? Be specific and measurable.&#10;• Criterion 1&#10;• Criterion 2" rows="3"></textarea>
         </div>
         <div class="gm-form-group">
-          <label class="gm-form-label">Domain</label>
+          <label for="gcf-domain" class="gm-form-label">Domain</label>
           <select class="gm-form-select" id="gcf-domain">
             <option value="Work">💼 Work</option>
             <option value="Research">🔬 Research</option>
@@ -894,7 +894,7 @@ function gmOpenCreate() {
           </select>
         </div>
         <div class="gm-form-group">
-          <label class="gm-form-label">Priority</label>
+          <label for="gcf-priority" class="gm-form-label">Priority</label>
           <select class="gm-form-select" id="gcf-priority">
             <option value="medium">Medium</option>
             <option value="high">High</option>
@@ -903,11 +903,11 @@ function gmOpenCreate() {
           </select>
         </div>
         <div class="gm-form-group">
-          <label class="gm-form-label">Deadline (YYYY-MM-DD)</label>
+          <label for="gcf-deadline" class="gm-form-label">Deadline (YYYY-MM-DD)</label>
           <input class="gm-form-input" id="gcf-deadline" type="date" placeholder="2026-12-31">
         </div>
         <div class="gm-form-group">
-          <label class="gm-form-label">Tags (comma-separated)</label>
+          <label for="gcf-tags" class="gm-form-label">Tags (comma-separated)</label>
           <input class="gm-form-input" id="gcf-tags" placeholder="sdk, python, api">
         </div>
         <div class="gm-form-group full">

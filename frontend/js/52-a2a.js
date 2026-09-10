@@ -345,15 +345,15 @@ function a2aOpenDelegate(preselectedId) {
     <h3>📤 Delegate Task via A2A</h3>
     <p>Send a task to a remote A2A-compatible agent. The task is submitted via JSON-RPC 2.0 tasks/send and the result is returned when complete.</p>
     <div class="a2a-form-group">
-      <label class="a2a-form-label">Target Agent *</label>
+      <label for="a2a-del-agent" class="a2a-form-label">Target Agent *</label>
       <select class="a2a-select" id="a2a-del-agent">${options}</select>
     </div>
     <div class="a2a-form-group">
-      <label class="a2a-form-label">Task Message *</label>
+      <label for="a2a-del-message" class="a2a-form-label">Task Message *</label>
       <textarea class="a2a-textarea" id="a2a-del-message" placeholder="Describe what you want the remote agent to do…&#10;&#10;Example: Research the top 5 agentic AI frameworks in 2026 and write a brief comparison."></textarea>
     </div>
     <div class="a2a-form-group">
-      <label class="a2a-form-label">Session ID (optional)</label>
+      <label for="a2a-del-session" class="a2a-form-label">Session ID (optional)</label>
       <input class="a2a-input" id="a2a-del-session" placeholder="For grouping related tasks">
     </div>
     <div class="a2a-modal-row">
@@ -422,19 +422,19 @@ function a2aOpenRegister() {
     <h3>➕ Register Remote A2A Agent</h3>
     <p>Connect to any A2A v1.0 compatible agent. After registering, click Verify to fetch its Agent Card and capabilities.</p>
     <div class="a2a-form-group">
-      <label class="a2a-form-label">Agent Name *</label>
+      <label for="a2a-reg-name" class="a2a-form-label">Agent Name *</label>
       <input class="a2a-input" id="a2a-reg-name" placeholder="e.g. LangChain Research Agent">
     </div>
     <div class="a2a-form-group">
-      <label class="a2a-form-label">A2A Endpoint URL *</label>
+      <label for="a2a-reg-url" class="a2a-form-label">A2A Endpoint URL *</label>
       <input class="a2a-input" id="a2a-reg-url" placeholder="https://example.com/a2a/agent">
     </div>
     <div class="a2a-form-group">
-      <label class="a2a-form-label">Description</label>
+      <label for="a2a-reg-desc" class="a2a-form-label">Description</label>
       <input class="a2a-input" id="a2a-reg-desc" placeholder="What this agent does">
     </div>
     <div class="a2a-form-group">
-      <label class="a2a-form-label">Authentication</label>
+      <label for="a2a-reg-auth" class="a2a-form-label">Authentication</label>
       <select class="a2a-select" id="a2a-reg-auth" data-act-change="a2aToggleAuthFields()">
         <option value="none">None (public)</option>
         <option value="bearer">Bearer Token</option>
@@ -443,7 +443,7 @@ function a2aOpenRegister() {
     </div>
     <div id="a2a-auth-fields" style="display:none">
       <div class="a2a-form-group">
-        <label class="a2a-form-label">Token / Key</label>
+        <label for="a2a-reg-token" class="a2a-form-label">Token / Key</label>
         <input class="a2a-input" id="a2a-reg-token" type="password" placeholder="sk-…">
       </div>
     </div>

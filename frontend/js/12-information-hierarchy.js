@@ -552,19 +552,19 @@
           </div>
           <div style="display:flex;flex-direction:column;gap:16px">
             <div>
-              <label style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;color:var(--text-0)">1. Who are you & what is your mission? (The 1-line dinner party intro)</label>
+              <label for="inv-q1" style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;color:var(--text-0)">1. Who are you & what is your mission? (The 1-line dinner party intro)</label>
               <textarea id="inv-q1" placeholder="e.g. I am Joshua Strickland, founder of Strick Tech. I build the Agentic OS Platform across Free, Pro, and Enterprise editions to empower autonomous multi-agent engineering workflows..." style="width:100%;height:64px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;resize:none"></textarea>
             </div>
             <div>
-              <label style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;color:var(--text-0)">2. What does your business do & who is your Ideal Customer Profile (ICP)?</label>
+              <label for="inv-q2" style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;color:var(--text-0)">2. What does your business do & who is your Ideal Customer Profile (ICP)?</label>
               <textarea id="inv-q2" placeholder="e.g. We sell Agentic OS Studio to technical founders, dev shops, and enterprise leaders who want local-first agent orchestration..." style="width:100%;height:64px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;resize:none"></textarea>
             </div>
             <div>
-              <label style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;color:var(--text-0)">3. How do you like things written? Tone, Words to LOVE & Words to AVOID (Highest Leverage)</label>
+              <label for="inv-q3" style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;color:var(--text-0)">3. How do you like things written? Tone, Words to LOVE & Words to AVOID (Highest Leverage)</label>
               <textarea id="inv-q3" placeholder="e.g. Crisp, punchy, high-signal. Use bullet points and exact code. LOVE: high-leverage, compounding, robust. AVOID: delve, synergy, game-changer..." style="width:100%;height:64px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;resize:none"></textarea>
             </div>
             <div>
-              <label style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;color:var(--text-0)">4. What are your current offers, pricing & packages?</label>
+              <label for="inv-q4" style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;color:var(--text-0)">4. What are your current offers, pricing & packages?</label>
               <textarea id="inv-q4" placeholder="e.g. Agentic OS Open Source (Free local app), Pro Pack ($49/mo), and Enterprise Governance Tower ($2,500 setup)..." style="width:100%;height:64px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;color:var(--text-0);font-size:13px;resize:none"></textarea>
             </div>
           </div>
@@ -627,19 +627,19 @@
           </div>
           <div style="display:flex;flex-direction:column;gap:12px">
             <div>
-              <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--text-0)">Project ID (URL-friendly)</label>
+              <label for="np-id" style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--text-0)">Project ID (URL-friendly)</label>
               <input id="np-id" placeholder="e.g. newsletter, client_work, youtube" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-0);font-size:13px">
             </div>
             <div>
-              <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--text-0)">Display Name</label>
+              <label for="np-name" style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--text-0)">Display Name</label>
               <input id="np-name" placeholder="e.g. Weekly AI Newsletter" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-0);font-size:13px">
             </div>
             <div>
-              <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--text-0)">Target Audience</label>
+              <label for="np-audience" style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--text-0)">Target Audience</label>
               <input id="np-audience" placeholder="e.g. AI builders and product managers" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-0);font-size:13px">
             </div>
             <div>
-              <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--text-0)">Brief Description</label>
+              <label for="np-desc" style="font-size:12px;font-weight:700;display:block;margin-bottom:4px;color:var(--text-0)">Brief Description</label>
               <input id="np-desc" placeholder="e.g. Weekly high-signal deep dives" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-0);font-size:13px">
             </div>
           </div>

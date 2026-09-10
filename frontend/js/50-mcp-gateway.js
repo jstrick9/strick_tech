@@ -74,13 +74,13 @@ async function renderMCPGateway() {
         </div>
         <input class="prb-search" id="prb-search" placeholder="🔍 Search rules…" data-act-input="prbSearchChange($value)">
         <div class="prb-filter-row">
-          <select class="prb-filter-sel" id="prb-filter-action" data-act-change="prbFilterChange()">
+          <select class="prb-filter-sel" id="prb-filter-action" aria-label="Filter rules by action" data-act-change="prbFilterChange()">
             <option value="">All actions</option>
             <option value="allow">✅ Allow</option>
             <option value="deny">🚫 Deny</option>
             <option value="require_hitl">🛂 Require HITL</option>
           </select>
-          <select class="prb-filter-sel" id="prb-filter-server" data-act-change="prbFilterChange()">
+          <select class="prb-filter-sel" id="prb-filter-server" aria-label="Filter rules by server" data-act-change="prbFilterChange()">
             <option value="">All servers</option>
           </select>
         </div>
@@ -199,7 +199,7 @@ function prbRenderList() {
     const isSelected = _prbSelected === p.policy_id;
     const isChecked  = _prbSelIds.has(p.policy_id);
     return `<div class="prb-policy-item ${!p.enabled?'disabled':''} ${isSelected?'selected':''}" data-policy-id="${escHtml(p.policy_id)}" style="border-left-color:${p.enabled?ac.border:'var(--text-3)'}">
-      <input type="checkbox" class="prb-policy-check" ${isChecked?'checked':''} data-act-click="prbToggleSelect(${jsArg(p.policy_id)},$checked)" data-stop="1">
+      <input type="checkbox" class="prb-policy-check" aria-label="Select rule ${escHtml(p.name)}" ${isChecked?'checked':''} data-act-click="prbToggleSelect(${jsArg(p.policy_id)},$checked)" data-stop="1">
       <div class="prb-policy-item-body">
         <div class="prb-policy-item-name">${escHtml(p.name)}</div>
         <div class="prb-policy-item-meta">
@@ -332,12 +332,12 @@ function prbRenderBuilderTab(container) {
     <!-- Form -->
     <div class="prb-form-grid">
       <div class="prb-form-group full">
-        <label class="prb-form-label">Rule Name <span class="required">*</span></label>
+        <label for="prb-f-name" class="prb-form-label">Rule Name <span class="required">*</span></label>
         <input class="prb-input" id="prb-f-name" placeholder="e.g. Block file delete in production" value="${escHtml(editing?.name||'')}">
       </div>
 
       <div class="prb-form-group full">
-        <label class="prb-form-label">Description</label>
+        <label for="prb-f-desc" class="prb-form-label">Description</label>
         <input class="prb-input" id="prb-f-desc" placeholder="What this rule does and why" value="${escHtml(editing?.description||'')}">
       </div>
     </div>
@@ -363,7 +363,7 @@ function prbRenderBuilderTab(container) {
     <div class="prb-form-grid">
       <!-- Agent -->
       <div class="prb-form-group">
-        <label class="prb-form-label">Agent ID</label>
+        <label for="prb-f-agent" class="prb-form-label">Agent ID</label>
         <select class="prb-select" id="prb-f-agent" data-act-change="prbUpdatePreview()">
           ${PRB_AGENTS.map(a=>`<option value="${a.id}" ${(editing?.agent_id||'*')===a.id?'selected':''}>${escHtml(a.label)}</option>`).join('')}
           <option value="custom_">Custom…</option>
@@ -374,7 +374,7 @@ function prbRenderBuilderTab(container) {
 
       <!-- Server -->
       <div class="prb-form-group">
-        <label class="prb-form-label">Server / Resource</label>
+        <label for="prb-f-server" class="prb-form-label">Server / Resource</label>
         <select class="prb-select" id="prb-f-server" data-act-change="prbUpdatePreview()">
           <option value="*">All Servers (*)</option>
           ${_prbServers.slice(0,10).map(s=>`<option value="${s.server_id}" ${(editing?.server_id||'*')===s.server_id?'selected':''}>${escHtml(s.name)}</option>`).join('')}
@@ -384,7 +384,7 @@ function prbRenderBuilderTab(container) {
 
       <!-- Tool pattern -->
       <div class="prb-form-group">
-        <label class="prb-form-label">Tool Pattern</label>
+        <label for="prb-f-tool" class="prb-form-label">Tool Pattern</label>
         <input class="prb-input" id="prb-f-tool" placeholder="* or fs.delete or http.*"
           value="${escHtml(editing?.tool_pattern||'*')}" data-act-input="prbUpdatePreview()">
         <div class="prb-form-hint">Glob pattern: * = all, fs.* = all fs tools, fs.delete = exact</div>
@@ -415,10 +415,10 @@ function prbRenderBuilderTab(container) {
             Active only during time window
           </label>
         </div>
-        <div id="prb-cond-time-fields" style="display:none;margin-left:20px;margin-top:8px;display:flex;gap:12px;align-items:center">
-          <label style="font-size:11px;color:var(--text-2)">From:</label>
+        <div id="prb-cond-time-fields" style="display:none;margin-left:20px;margin-top:8px;gap:12px;align-items:center">
+          <label for="prb-cond-start-hour" style="font-size:11px;color:var(--text-2)">From:</label>
           <input type="number" id="prb-cond-start-hour" min="0" max="23" value="9" class="prb-input" style="width:64px;padding:4px 6px">
-          <label style="font-size:11px;color:var(--text-2)">To:</label>
+          <label for="prb-cond-end-hour" style="font-size:11px;color:var(--text-2)">To:</label>
           <input type="number" id="prb-cond-end-hour" min="1" max="24" value="17" class="prb-input" style="width:64px;padding:4px 6px">
           <span style="font-size:10px;color:var(--text-3)">(24h)</span>
         </div>
@@ -428,7 +428,7 @@ function prbRenderBuilderTab(container) {
             Active only on specific days
           </label>
         </div>
-        <div id="prb-cond-days-fields" style="display:none;margin-left:20px;margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+        <div id="prb-cond-days-fields" style="display:none;margin-left:20px;margin-top:6px;gap:6px;flex-wrap:wrap">
           ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d,i)=>
             `<label style="display:flex;align-items:center;gap:3px;font-size:11px;cursor:pointer">
               <input type="checkbox" class="prb-day-check u-f1722f0d" value="${i}" checked >${d}
@@ -640,19 +640,19 @@ function prbRenderSimulatorTab(container) {
     <div class="prb-sim-form">
       <div class="prb-sim-row">
         <div>
-          <label style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">Agent ID</label>
+          <label for="sim-agent" style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">Agent ID</label>
           <select class="prb-select" id="sim-agent">
             ${PRB_AGENTS.map(a=>`<option value="${a.id}">${escHtml(a.label)}</option>`).join('')}
           </select>
         </div>
         <div>
-          <label style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">Server</label>
+          <label for="sim-server" style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">Server</label>
           <select class="prb-select" id="sim-server">
             ${_prbServers.slice(0,10).map(s=>`<option value="${s.server_id}">${escHtml(s.name)}</option>`).join('')}
           </select>
         </div>
         <div>
-          <label style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">Tool Name</label>
+          <label for="sim-tool" style="font-size:11px;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px">Tool Name</label>
           <input class="prb-input" id="sim-tool" placeholder="fs.delete" value="fs.list">
         </div>
         <button class="prb-sim-btn" data-act-click="prbRunSimulation()">▶ Simulate</button>

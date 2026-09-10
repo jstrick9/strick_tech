@@ -695,7 +695,7 @@ const ONBOARDING_STEPS = [
     subtitle: 'Personalize your experience',
     content:  `
       <div class="u-d8c02261">
-        <label style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:6px">Your Name</label>
+        <label for="ob-name" style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:6px">Your Name</label>
         <input id="ob-name" placeholder="Joshua Strickland, Strick Tech Leader, Senior Architect…" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;color:var(--text-0);font-size:15px;padding:12px 14px;box-sizing:border-box;margin-bottom:14px">
         <label style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:6px">What best describes you?</label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="ob-roles">
@@ -741,7 +741,7 @@ const ONBOARDING_STEPS = [
           3. Go to Keys → Create Key<br>
           4. Paste it below
         </div>
-        <label style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:6px">OpenRouter API Key</label>
+        <label for="ob-apikey" style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;display:block;margin-bottom:6px">OpenRouter API Key</label>
         <input id="ob-apikey" placeholder="sk-or-v1-…" type="password" style="width:100%;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;color:var(--text-0);font-size:14px;padding:11px 14px;box-sizing:border-box;font-family:monospace">
         <div style="margin-top:10px;font-size:12px;color:var(--text-3)">
           Your key is stored encrypted on this machine only. Never shared.
