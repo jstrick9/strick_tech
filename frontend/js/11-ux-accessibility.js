@@ -315,13 +315,24 @@
       // Form inputs and textareas
       document.querySelectorAll('input, textarea, select').forEach(input => {
         try {
-          if (!input.hasAttribute('aria-label') && !input.getAttribute('aria-labelledby')) {
-            const placeholder = input.getAttribute('placeholder');
-            const title = input.getAttribute('title');
-            const id = input.id;
-            let labelText = placeholder || title || id || 'Input field';
-            input.setAttribute('aria-label', labelText);
-          }
+          if (input.hasAttribute('aria-label') || input.getAttribute('aria-labelledby')) return;
+          // An associated <label for=…> (or a wrapping <label>) is the
+          // correct, native labelling mechanism — and an explicit
+          // aria-label set here would OVERRIDE it. The old fallback chain
+          // (placeholder || title || id) never checked for one, so
+          // properly labelled fields were re-labelled with machine ids:
+          // every select in the kanban create dialog announced as
+          // "kb-priority" / "kb-agent" / "kb-status" instead of
+          // "Priority" / "Assignee" / "Column". Defer to the real label.
+          const id = input.id;
+          const hasLabel =
+            (id && document.querySelector('label[for="' + CSS.escape(id) + '"]')) ||
+            input.closest('label');
+          if (hasLabel) return;
+          const placeholder = input.getAttribute('placeholder');
+          const title = input.getAttribute('title');
+          let labelText = placeholder || title || id || 'Input field';
+          input.setAttribute('aria-label', labelText);
         } catch(e) {}
       });
     } catch(err) {}

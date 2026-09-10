@@ -170,7 +170,7 @@ function kanbanRenderBoard() {
             <span>${col.label}</span>
             <span class="kanban-column-count">${columnTasks.length}</span>
           </div>
-          <button type="button" class="kanban-column-add" data-act-click="kanbanOpenCreateModal(${jsArg(col.id)})">+</button>
+          <button type="button" class="kanban-column-add" aria-label="Add task to ${escHtml(col.label)}" title="Add task to ${escHtml(col.label)}" data-act-click="kanbanOpenCreateModal(${jsArg(col.id)})">+</button>
         </div>
         <div class="kanban-column-body" 
              id="kanban-col-${col.id}"
