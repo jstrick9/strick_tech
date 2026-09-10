@@ -746,9 +746,9 @@ body {
       box-shadow:0 4px 16px rgba(0,0,0,.3);
     }
     .wf-toolbar button {
-      background:transparent;border:none;color:var(--text-2);font-size:11px;font-weight:600;
-      cursor:pointer;padding:4px 9px;border-radius: 8px;transition:all .12s;
-      display:flex;align-items:center;gap:4px;white-space:nowrap;
+      background:transparent;border:none;color:var(--text-2);font-size:12px;font-weight:600;
+      cursor:pointer;padding:4px 9px;min-width:28px;min-height:26px;border-radius: 8px;transition:all .12s;
+      display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;
     }
     .wf-toolbar button:hover { background:var(--bg-3);color:var(--text-0) }
     .wf-toolbar button:disabled { opacity:.4;cursor:not-allowed }

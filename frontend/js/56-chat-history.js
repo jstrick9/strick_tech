@@ -218,17 +218,21 @@
       fActions.style.cssText = 'display:flex;gap:2px;flex-shrink:0;opacity:0;transition:opacity .12s';
       header.addEventListener('mouseenter', function(){fActions.style.opacity='1';});
       header.addEventListener('mouseleave', function(){fActions.style.opacity='0';});
+      // Keyboard parity: reveal the folder actions when tabbed into as well.
+      header.addEventListener('focusin', function(){fActions.style.opacity='1';});
+      header.addEventListener('focusout', function(){fActions.style.opacity='0';});
 
       var editBtn = document.createElement('button');
-      editBtn.textContent = '✏️'; editBtn.title = 'Rename';
-      editBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:11px;padding:1px 3px;border-radius:3px;color:var(--text-3);line-height:1';
+      editBtn.textContent = '✏️'; editBtn.title = 'Rename'; editBtn.setAttribute('aria-label','Rename folder');
+      editBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:12px;padding:3px 4px;min-width:22px;min-height:22px;border-radius:5px;color:var(--text-3);line-height:1';
       editBtn.addEventListener('click', function(e){e.stopPropagation();startFolderRename(folder,name);});
       fActions.appendChild(editBtn);
 
       if (folder !== 'Uncategorized') {
         var delBtn = document.createElement('button');
         delBtn.textContent = '🗑'; delBtn.title = 'Delete folder (moves chats to Uncategorized)';
-        delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:11px;padding:1px 3px;border-radius:3px;color:var(--text-3);line-height:1';
+        delBtn.setAttribute('aria-label','Delete folder');
+        delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:12px;padding:3px 4px;min-width:22px;min-height:22px;border-radius:5px;color:var(--text-3);line-height:1';
         delBtn.addEventListener('click', function(e){e.stopPropagation();deleteFolder(folder);});
         fActions.appendChild(delBtn);
       }
@@ -285,6 +289,12 @@
     div.addEventListener('mouseenter', function(){if(!isCurrent){div.style.background='var(--bg-3)';div.style.borderColor='var(--border)';}if(actionsDiv)actionsDiv.style.opacity='1';});
     div.addEventListener('mouseleave', function(){if(!isCurrent){div.style.background='transparent';div.style.borderColor='transparent';}if(actionsDiv)actionsDiv.style.opacity='0';});
     div.addEventListener('click', function(e){if(e.target.closest('.session-actions'))return;window.loadChatSession(s.id);});
+    // Keyboard parity with the hover reveal: the action buttons are focusable
+    // but opacity:0 until the row is hovered, so a keyboard user tabbing into
+    // them landed on invisible buttons. focusin/focusout mirror the
+    // mouseenter/mouseleave pair above.
+    div.addEventListener('focusin', function(){if(actionsDiv)actionsDiv.style.opacity='1';});
+    div.addEventListener('focusout', function(){if(actionsDiv)actionsDiv.style.opacity='0';});
     div.addEventListener('contextmenu', function(e){e.preventDefault();e.stopPropagation();showSessionCtx(e.clientX,e.clientY,s);});
 
     if(s.pinned){var p=document.createElement('span');p.style.cssText='font-size:10px;flex-shrink:0';p.textContent='📌';div.appendChild(p);}
@@ -299,7 +309,7 @@
 
     actionsDiv=document.createElement('div');actionsDiv.className='session-actions';actionsDiv.style.cssText='display:flex;gap:1px;flex-shrink:0;opacity:0;transition:opacity .12s';
 
-    var delBtn=document.createElement('button');delBtn.title='Delete';delBtn.style.cssText='background:none;border:none;color:var(--text-3);font-size:11px;cursor:pointer;padding:1px 3px;border-radius:3px;line-height:1';delBtn.textContent='✕';
+    var delBtn=document.createElement('button');delBtn.title='Delete';delBtn.setAttribute('aria-label','Delete chat');delBtn.style.cssText='background:none;border:none;color:var(--text-3);font-size:12px;cursor:pointer;padding:4px 5px;min-width:22px;min-height:22px;border-radius:5px;line-height:1';delBtn.textContent='✕';
     var delC=false,delT=null;
     delBtn.addEventListener('mouseenter',function(){if(!delC)delBtn.style.color='var(--danger)';});
     delBtn.addEventListener('mouseleave',function(){if(!delC)delBtn.style.color='var(--text-3)';});
@@ -310,7 +320,7 @@
     });
     actionsDiv.appendChild(delBtn);
 
-    var moreBtn=document.createElement('button');moreBtn.title='More';moreBtn.style.cssText='background:none;border:none;color:var(--text-3);font-size:12px;cursor:pointer;padding:1px 3px;border-radius:3px;line-height:1';moreBtn.textContent='⋯';
+    var moreBtn=document.createElement('button');moreBtn.title='More options';moreBtn.setAttribute('aria-label','More options for this chat');moreBtn.style.cssText='background:none;border:none;color:var(--text-3);font-size:13px;cursor:pointer;padding:4px 5px;min-width:22px;min-height:22px;border-radius:5px;line-height:1';moreBtn.textContent='⋯';
     moreBtn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();showSessionCtx(e.clientX,e.clientY,s);});
     actionsDiv.appendChild(moreBtn);
     div.appendChild(actionsDiv);
