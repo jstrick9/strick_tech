@@ -43,7 +43,14 @@ BASE_URL = os.environ.get('AGENTIC_AUDIT_URL', 'http://localhost:8787')
 # Playwright ships several Chromium builds; the audits need the full browser,
 # not the headless shell, and the path has to be explicit in this sandbox.
 _CHROME_CANDIDATES = [
-    Path.home() / '.cache/ms-playwright/chromium-1148/chrome-linux/chrome',
+    # Any Chromium the installed Playwright version downloaded, newest first.
+    # The original list pinned chromium-1148/chrome-linux/chrome — a version
+    # path that no longer exists under any newer Playwright (they moved to
+    # chrome-linux64 and bumped the build number), so on a fresh environment
+    # every browser audit silently skipped even though a perfectly good
+    # Chromium was installed. Glob beats pin.
+    *sorted(Path.home().glob('.cache/ms-playwright/chromium-*/chrome-linux*/chrome'),
+            reverse=True),
     Path('/usr/bin/chromium'),
     Path('/usr/bin/google-chrome'),
 ]
