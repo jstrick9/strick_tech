@@ -180,7 +180,7 @@ def _swarm(monkeypatch, judge_payload, agent_texts=('answer one is long', 'two')
         async def json(self):
             return {'prompt': 'x', 'agents': ['brain', 'builder'], 'strategy': 'judge'}
 
-    r = asyncio.get_event_loop().run_until_complete(sw.swarm_run(Req()))
+    r = asyncio.run(sw.swarm_run(Req()))
     return json.loads(bytes(r.body).decode()) if hasattr(r, 'body') else r
 
 
@@ -253,7 +253,7 @@ def test_fanout_never_names_a_failed_run_as_the_winner(monkeypatch):
         async def json(self):
             return {'prompt': 'x', 'agents': ['brain', 'builder'], 'strategy': 'fanout'}
 
-    r = asyncio.get_event_loop().run_until_complete(sw.swarm_run(Req()))
+    r = asyncio.run(sw.swarm_run(Req()))
     body = json.loads(bytes(r.body).decode()) if hasattr(r, 'body') else r
     assert body['ok'] is True
     assert body['winner'] == 'builder', 'a failed run was selected as the swarm winner'
@@ -275,7 +275,7 @@ def test_fanout_with_every_agent_failing_is_a_503(monkeypatch):
         async def json(self):
             return {'prompt': 'x', 'agents': ['brain', 'builder'], 'strategy': 'fanout'}
 
-    r = asyncio.get_event_loop().run_until_complete(sw.swarm_run(Req()))
+    r = asyncio.run(sw.swarm_run(Req()))
     assert getattr(r, 'status_code', 200) == 503
 
 
@@ -304,7 +304,7 @@ def test_the_stub_is_marked_so_every_consumer_can_see_it(monkeypatch):
     from backend.services.llm import is_stub
 
     monkeypatch.delenv('OPENROUTER_API_KEY', raising=False)
-    result = asyncio.get_event_loop().run_until_complete(fu._call_model('m', [{'role': 'user', 'content': 'x'}]))
+    result = asyncio.run(fu._call_model('m', [{'role': 'user', 'content': 'x'}]))
     assert is_stub(result) is True
     assert result['error'] is True
 

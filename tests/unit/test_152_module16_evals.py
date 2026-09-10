@@ -41,7 +41,10 @@ def _fallback(expected: str, response: str) -> dict:
     orig = llm.complete
     llm.complete = fake
     try:
-        return asyncio.get_event_loop().run_until_complete(
+        # asyncio.run(), not get_event_loop(): after any async test has run,
+        # pytest-asyncio >= 1.0 has closed the MainThread loop and
+        # get_event_loop() raises — order-dependent, full-run-only failure.
+        return asyncio.run(
             ef._score_response('prompt', response, expected, [], 'builder')
         )
     finally:

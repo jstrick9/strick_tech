@@ -276,7 +276,9 @@ def _assess(text, action='rm -rf / on the production database'):
             return {'action': action}
 
     with patch('backend.services.llm.complete', new=AsyncMock(return_value={'ok': True, 'text': text, 'tokens': 5})):
-        return asyncio.get_event_loop().run_until_complete(hitl.assess_confidence(Req()))
+        # asyncio.run(): get_event_loop() raises once an earlier async test
+        # closed the MainThread loop (pytest-asyncio >= 1.0).
+        return asyncio.run(hitl.assess_confidence(Req()))
 
 
 def _body(resp):

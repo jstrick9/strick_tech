@@ -334,7 +334,6 @@ def test_collab_session_lifecycle(client):
 def test_collab_state_roundtrip(client):
     sid = client.post('/api/collab/sessions', json={'name': 'M18 state'}).json()['session_id']
     try:
-        asyncio.get_event_loop
         r = client.post(f'/api/collab/sessions/{sid}/state', json={'key': 'k', 'value': 42})
         assert r.status_code == 200 and r.json()['ok'] is True
         got = client.get(f'/api/collab/sessions/{sid}/state?key=k').json()

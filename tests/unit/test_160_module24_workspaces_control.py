@@ -276,7 +276,7 @@ def _pull(target):
             return {'repo': 'o/r', 'branch': 'main', 'target': target}
 
     with patch.object(gh, '_gh_token', lambda: 'ghp_fake_for_test'):
-        r = asyncio.get_event_loop().run_until_complete(gh.pull_from_github(Req()))
+        r = asyncio.run(gh.pull_from_github(Req()))
     if hasattr(r, 'body'):
         return getattr(r, 'status_code', 200), json.loads(bytes(r.body).decode())
     return 200, r

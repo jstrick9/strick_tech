@@ -262,7 +262,7 @@ def _wire(fn_name, payload, llm_text):
 
     fn = getattr(ig, fn_name)
     with patch('backend.services.llm.complete', new=AsyncMock(return_value={'ok': True, 'text': llm_text, 'tokens': 9})):
-        r = asyncio.get_event_loop().run_until_complete(fn(Req()))
+        r = asyncio.run(fn(Req()))
     if hasattr(r, 'body'):
         return getattr(r, 'status_code', 200), json.loads(bytes(r.body).decode())
     return 200, r
