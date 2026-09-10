@@ -32,6 +32,8 @@ from __future__ import annotations
 import json
 import os
 import sys
+import urllib.error
+import urllib.request
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -245,3 +247,59 @@ def preflight() -> None:
         print(f'SKIP: no server at {BASE_URL} — start one with `python run.py`',
               file=sys.stderr)
         raise SystemExit(2)
+
+
+def task_id_snapshot() -> set[int] | None:
+    """IDs of every task currently on the server (None if unreachable)."""
+    url = f'{BASE_URL}/api/tasks'
+    if not url.startswith(('http://', 'https://')):
+        return None
+    try:
+        with urllib.request.urlopen(url, timeout=15) as r:  # noqa: S310
+            body = json.loads(r.read())
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+    rows = body.get('tasks') if isinstance(body, dict) else body
+    if not isinstance(rows, list):
+        return None
+    return {row['id'] for row in rows if isinstance(row, dict) and 'id' in row}
+
+
+def sweep_created_tasks(before: set[int] | None) -> int:
+    """DELETE every task that appeared since `before`; returns how many.
+
+    Audits that write through the real API to measure real behaviour —
+    adversarial_input's XSS payloads, print_and_multitab's cross-tab
+    marker — used to leave every probe row behind. A day of audit runs
+    accumulated 91 junk tasks with payloads as titles in the operator's
+    kanban. Snapshot before, sweep after: the same discipline the
+    security suite's conftest guard applies to the same problem.
+    """
+    if before is None:
+        return 0
+    after = task_id_snapshot()
+    if after is None:
+        return 0
+    fresh = sorted(after - before)
+    if not fresh:
+        return 0
+    token = None
+    try:
+        with urllib.request.urlopen(  # noqa: S310
+                f'{BASE_URL}/api/security/csrf-token', timeout=10) as r:
+            body = json.loads(r.read())
+        token = body.get('csrf_token') or body.get('token')
+    except (urllib.error.URLError, OSError, ValueError):
+        return 0
+    removed = 0
+    for task_id in fresh:
+        req = urllib.request.Request(  # noqa: S310
+            f'{BASE_URL}/api/tasks/{task_id}', method='DELETE',
+            headers={'X-CSRF-Token': token or ''})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:  # noqa: S310
+                if 200 <= r.status < 300:
+                    removed += 1
+        except (urllib.error.URLError, OSError):
+            pass
+    return removed

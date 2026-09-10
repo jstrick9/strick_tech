@@ -59,7 +59,10 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _harness import BASE_URL, AuditResult, browser_page, emit, preflight, visit  # noqa: E402
+from _harness import (  # noqa: E402
+    BASE_URL, AuditResult, browser_page, emit, preflight, visit,
+    sweep_created_tasks, task_id_snapshot,
+)
 
 # Each payload names the property it is probing, so a finding says what broke.
 PAYLOADS = [
@@ -111,92 +114,103 @@ def run() -> AuditResult:
     preflight()
     findings = []
 
+    # The payloads below are written through the real API to prove the
+    # write path is actually exercised. Snapshot now so the finally block
+    # can sweep them afterwards: a day of audit runs left 81 payload-
+    # titled rows in the operator's kanban.
+    tasks_before = task_id_snapshot()
+
     token = _csrf()
     if not token:
         return AuditResult('adversarial-input', 0,
                            ['-- could not obtain a CSRF token; audit skipped'],
                            note='hostile, huge and unusual text through the UI')
 
-    written = [(name, value) for name, value in PAYLOADS
-               if _create_task(value, token)]
-    rejected = [name for name, _ in PAYLOADS
-                if name not in {n for n, _ in written}]
+    try:
+        written = [(name, value) for name, value in PAYLOADS
+                   if _create_task(value, token)]
+        rejected = [name for name, _ in PAYLOADS
+                    if name not in {n for n, _ in written}]
 
-    if not written:
-        return AuditResult('adversarial-input', 0,
-                           ['-- every write was rejected; audit measured '
-                            'nothing and is reporting so rather than PASS'],
-                           note='hostile, huge and unusual text through the UI')
-    if rejected:
-        # Not a finding: refusing hostile input at the API is a legitimate
-        # design. Recorded so the coverage of this run is visible.
-        findings.append(
-            f'-- server refused {len(rejected)} payload(s), not rendered: '
-            + ', '.join(rejected))
-
-    with browser_page('desktop') as (page, _ctx):
-        page.evaluate('window.__xss = 0')
-        baseline_width = page.evaluate('document.documentElement.scrollWidth')
-
-        visit(page, 'kanban', settle=1500)
-        page.wait_for_timeout(1200)
-
-        # ── 1. Execution ────────────────────────────────────────────────
-        if page.evaluate('window.__xss'):
+        if not written:
+            return AuditResult('adversarial-input', 0,
+                               ['-- every write was rejected; audit measured '
+                                'nothing and is reporting so rather than PASS'],
+                               note='hostile, huge and unusual text through the UI')
+        if rejected:
+            # Not a finding: refusing hostile input at the API is a legitimate
+            # design. Recorded so the coverage of this run is visible.
             findings.append(
-                'XSS-EXEC       stored markup EXECUTED when the pane rendered')
+                f'-- server refused {len(rejected)} payload(s), not rendered: '
+                + ', '.join(rejected))
 
-        # ── 2. Layout ───────────────────────────────────────────────────
-        width = page.evaluate('document.documentElement.scrollWidth')
-        viewport = page.evaluate('document.documentElement.clientWidth')
-        if width > max(baseline_width, viewport) + 4:
-            findings.append(
-                f'LAYOUT-BREAK   a long value widened the document to {width}px '
-                f'against a {viewport}px viewport')
+        with browser_page('desktop') as (page, _ctx):
+            page.evaluate('window.__xss = 0')
+            baseline_width = page.evaluate('document.documentElement.scrollWidth')
 
-        # Element-level overflow. The document can stay exactly viewport-wide
-        # while a value spills out of its own card over the top of its
-        # neighbours, which is what actually happened here.
-        spills = page.evaluate('''() => {
-            const out = [];
-            document.querySelectorAll('*').forEach(el => {
-                if (el.children.length) return;
-                const text = el.textContent || '';
-                if (text.length < 200) return;
-                if (el.scrollWidth <= el.clientWidth + 4) return;
-                const cs = getComputedStyle(el);
-                // A container that CLIPS or scrolls is a deliberate design
-                // choice, not a break. Only visible overflow spills.
-                if (cs.overflow !== 'visible' || cs.overflowX !== 'visible') return;
-                out.push({w: el.clientWidth, sw: el.scrollWidth,
-                          cls: String(el.className).slice(0, 40)});
-            });
-            return out;
-        }''')
-        if spills:
-            worst = max(spills, key=lambda s: s['sw'])
-            findings.append(
-                f'LAYOUT-BREAK   {len(spills)} element(s) overflow their own '
-                f'box with visible overflow; worst is {worst["sw"]}px of '
-                f'content in a {worst["w"]}px box ({worst["cls"] or "no class"})')
+            visit(page, 'kanban', settle=1500)
+            page.wait_for_timeout(1200)
 
-        # ── 3. Fidelity ─────────────────────────────────────────────────
-        # Read what the user SEES (innerText decodes entities), so a value
-        # that survived the round trip intact reads back identical.
-        shown = page.evaluate("""(() => {
-            const el = document.getElementById('pane-kanban');
-            return el ? el.innerText : document.body.innerText;
-        })()""")
-        for name, _value in written:
-            if name == 'apostrophe' and "Ali's Q3 plan" not in shown:
-                if '&#39;' in shown or '&amp;' in shown:
-                    findings.append(
-                        'LOST-VALUE     apostrophe rendered as an HTML entity '
-                        '(double-escaped)')
-            if name == 'emoji' and '🚀' not in shown and 'Ship it' in shown:
-                findings.append('LOST-VALUE     emoji stripped or mangled')
-            if name == 'rtl' and 'مرحبا' not in shown and len(shown) > 60:
-                findings.append('LOST-VALUE     right-to-left text lost')
+            # ── 1. Execution ────────────────────────────────────────────────
+            if page.evaluate('window.__xss'):
+                findings.append(
+                    'XSS-EXEC       stored markup EXECUTED when the pane rendered')
+
+            # ── 2. Layout ───────────────────────────────────────────────────
+            width = page.evaluate('document.documentElement.scrollWidth')
+            viewport = page.evaluate('document.documentElement.clientWidth')
+            if width > max(baseline_width, viewport) + 4:
+                findings.append(
+                    f'LAYOUT-BREAK   a long value widened the document to {width}px '
+                    f'against a {viewport}px viewport')
+
+            # Element-level overflow. The document can stay exactly viewport-wide
+            # while a value spills out of its own card over the top of its
+            # neighbours, which is what actually happened here.
+            spills = page.evaluate('''() => {
+                const out = [];
+                document.querySelectorAll('*').forEach(el => {
+                    if (el.children.length) return;
+                    const text = el.textContent || '';
+                    if (text.length < 200) return;
+                    if (el.scrollWidth <= el.clientWidth + 4) return;
+                    const cs = getComputedStyle(el);
+                    // A container that CLIPS or scrolls is a deliberate design
+                    // choice, not a break. Only visible overflow spills.
+                    if (cs.overflow !== 'visible' || cs.overflowX !== 'visible') return;
+                    out.push({w: el.clientWidth, sw: el.scrollWidth,
+                              cls: String(el.className).slice(0, 40)});
+                });
+                return out;
+            }''')
+            if spills:
+                worst = max(spills, key=lambda s: s['sw'])
+                findings.append(
+                    f'LAYOUT-BREAK   {len(spills)} element(s) overflow their own '
+                    f'box with visible overflow; worst is {worst["sw"]}px of '
+                    f'content in a {worst["w"]}px box ({worst["cls"] or "no class"})')
+
+            # ── 3. Fidelity ─────────────────────────────────────────────────
+            # Read what the user SEES (innerText decodes entities), so a value
+            # that survived the round trip intact reads back identical.
+            shown = page.evaluate("""(() => {
+                const el = document.getElementById('pane-kanban');
+                return el ? el.innerText : document.body.innerText;
+            })()""")
+            for name, _value in written:
+                if name == 'apostrophe' and "Ali's Q3 plan" not in shown:
+                    if '&#39;' in shown or '&amp;' in shown:
+                        findings.append(
+                            'LOST-VALUE     apostrophe rendered as an HTML entity '
+                            '(double-escaped)')
+                if name == 'emoji' and '🚀' not in shown and 'Ship it' in shown:
+                    findings.append('LOST-VALUE     emoji stripped or mangled')
+                if name == 'rtl' and 'مرحبا' not in shown and len(shown) > 60:
+                    findings.append('LOST-VALUE     right-to-left text lost')
+    finally:
+        # Whatever the audit found, the probe rows do not belong to the
+        # operator and must not survive the run.
+        sweep_created_tasks(tasks_before)
 
     return AuditResult(
         'adversarial-input',

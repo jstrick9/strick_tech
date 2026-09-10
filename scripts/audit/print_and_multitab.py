@@ -53,6 +53,8 @@ from _harness import (  # noqa: E402
     chrome_path,
     emit,
     preflight,
+    sweep_created_tasks,
+    task_id_snapshot,
 )
 
 PANES = ['kanban', 'goals', 'specs']
@@ -71,6 +73,10 @@ def _boot(context):
 def run() -> AuditResult:
     preflight()
     findings = []
+
+    # The multitab probe writes a marker task through the real API; sweep
+    # it afterwards so audit runs leave no rows in the operator's kanban.
+    tasks_before = task_id_snapshot()
 
     from playwright.sync_api import sync_playwright
 
@@ -180,6 +186,8 @@ def run() -> AuditResult:
         ctx_a.close()
         ctx_b.close()
         browser.close()
+
+    sweep_created_tasks(tasks_before)
 
     return AuditResult(
         'print-and-multitab',

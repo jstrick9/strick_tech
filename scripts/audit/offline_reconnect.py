@@ -50,7 +50,10 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _harness import AuditResult, browser_page, emit, pane_text, preflight, visit  # noqa: E402
+from _harness import (  # noqa: E402
+    AuditResult, browser_page, emit, pane_text, preflight, visit,
+    sweep_created_tasks, task_id_snapshot,
+)
 
 # Panes with a visible list and a create action, i.e. where a dropped write is
 # actually observable.
@@ -148,6 +151,11 @@ def _attempt_write(page) -> None:
 def run() -> AuditResult:
     preflight()
     findings = []
+
+    # The probe writes a task through the page's fetch(). The write is
+    # supposed to fail while offline — but if a reconnect-path change
+    # ever lets it land, it must not survive the audit run.
+    tasks_before = task_id_snapshot()
 
     with browser_page('desktop') as (page, ctx):
         visit(page, 'kanban', settle=600)
@@ -248,6 +256,8 @@ def run() -> AuditResult:
                 findings.append(
                     '-- kanban did not recover even after a reload; likely a '
                     'pane fault rather than a reconnect fault')
+
+    sweep_created_tasks(tasks_before)
 
     return AuditResult(
         'offline-reconnect',
