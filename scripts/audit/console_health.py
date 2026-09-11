@@ -118,12 +118,22 @@ def run() -> AuditResult:
         # The `response` event carries the URL, so exempt paths are recorded
         # here and the matching console line is suppressed by count.
         expected_404 = {'n': 0}
+        # The terminal's fail-closed auth gate (401/403 on every /api/terminal/
+        # route when the server is bound non-loopback, or TERMINAL_REQUIRE_AUTH
+        # / TERMINAL_DISABLED). Designed, and surfaced honestly in the pane as
+        # a warning banner — but Chromium logs the refused fetch as a console
+        # error regardless of how well the pane handles it. Same treatment as
+        # the 404s: count-matched suppression, so a NON-terminal 401/403 still
+        # surfaces.
+        expected_auth = {'n': 0}
 
         def on_response(response):
             if response.status < 400:
                 return
             if any(token in response.url for token in EXPECTED):
                 expected_404['n'] += 1
+            elif response.status in (401, 403) and '/api/terminal/' in response.url:
+                expected_auth['n'] += 1
 
         page.on('response', on_response)
         page.on('console', on_console)
@@ -148,13 +158,21 @@ def run() -> AuditResult:
     # Drop as many "Failed to load resource" lines as there were exempt 4xx
     # responses. Deliberately count-matched rather than removed wholesale: a
     # NON-exempt 404 still surfaces, which is the case worth knowing about.
+    # 401/403 lines draw from the auth-gate budget first so the two expected
+    # classes cannot mask each other's real failures.
     remaining = expected_404['n']
+    remaining_auth = expected_auth['n']
     filtered = []
     for text in console_errors:
-        if remaining and 'Failed to load resource' in text:
-            remaining -= 1
-            noise += 1
-            continue
+        if 'Failed to load resource' in text:
+            if ('status of 401' in text or 'status of 403' in text) and remaining_auth:
+                remaining_auth -= 1
+                noise += 1
+                continue
+            if remaining:
+                remaining -= 1
+                noise += 1
+                continue
         filtered.append(text)
     console_errors = filtered
 

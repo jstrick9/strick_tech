@@ -66,7 +66,15 @@ SESSION_WORDS = re.compile(
 # Any admission at all that something failed.
 ACKNOWLEDGES = re.compile(
     r"could ?n.t|cannot|can.t|unable|failed|error|problem|unavailable"
-    r"|try again|retry|went wrong|not reachable|expired",
+    r"|try again|retry|went wrong|not reachable|expired"
+    # Phrases the app renders verbatim from the server's own 401 bodies.
+    # This probe fulfils with {"error":"Authentication required"} and panes
+    # like the terminal display body.error as-is ("Authentication required
+    # — commands will not run until this is resolved"). That IS an honest
+    # acknowledgment — the vocabulary here just didn't contain it, so the
+    # terminal pane was reported SILENT while plainly telling the user
+    # what was wrong and what would not work.
+    r"|authentication required|unauthori[sz]ed|will not run|not be run",
     re.I)
 
 

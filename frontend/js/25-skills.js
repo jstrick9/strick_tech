@@ -58,20 +58,45 @@ async function renderSkills() {
 }
 
 async function loadSkills() {
-  try {
-    const [sData, cData] = await Promise.all([
-      fetch('/api/skills').then(r=>r.ok?r.json().catch(()=>{}):{skills:[]}).catch(()=>({skills:[]})),
-      fetch('/api/skills/categories').then(r=>r.ok?r.json().catch(()=>{}):{categories:[]}).catch(()=>({categories:[]}))
-    ]);
-    allSkills = Array.isArray(sData) ? sData : (Array.isArray(sData?.skills) ? sData.skills : []);
-    const cats = Array.isArray(cData) ? cData : (Array.isArray(cData?.categories) ? cData.categories : []);
-    // Render category pills
+  // Failure honesty: the old shape (`r.ok ? r.json() : {skills:[]}`) turned
+  // EVERY failed fetch — 401, 500, offline — into an empty list, and the
+  // catch even toasted "Loaded offline skills" in the success style while
+  // the hub rendered a healthy-looking "All (0)". A dead backend was
+  // indistinguishable from having no skills. The skills fetch is now
+  // tracked explicitly and failure renders an honest error state; only a
+  // SUCCESSFUL fetch that returns zero skills shows the empty state.
+  let failed = false;
+  const [sData, cData] = await Promise.all([
+    fetch('/api/skills')
+      .then(r => {
+        if (!r.ok) { failed = true; return { skills: [] }; }
+        return r.json().catch(() => { failed = true; return { skills: [] }; });
+      })
+      .catch(() => { failed = true; return { skills: [] }; }),
+    fetch('/api/skills/categories').then(r=>r.ok?r.json().catch(()=>{}):{categories:[]}).catch(()=>({categories:[]}))
+  ]);
+  if (failed) {
+    const grid = document.getElementById('skill-grid');
     const catEl = document.getElementById('skill-cats');
-    if (catEl) catEl.innerHTML =
-      `<span class="tag ${skillCategory==='all'?'blue':''} u-d2ed9c08" data-cat="all"  data-act-click="filterSkills('all')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">All (${allSkills.length})</span>` +
-      cats.map(c => `<span class="tag ${skillCategory===c.id?'blue':''} u-d2ed9c08" data-cat="${c.id}"  data-act-click="filterSkills(${jsArg(c.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(c.id)} (${c.count})</span>`).join('');
-    renderSkillGrid();
-  } catch(e) { console.warn('Failed to load skills:', e); toast('Loaded offline skills', 'ok'); }
+    if (catEl) catEl.innerHTML = '';
+    if (grid) grid.innerHTML = `
+      <div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--text-2)">
+        <div style="font-size:28px;margin-bottom:8px">⚠</div>
+        <div style="font-weight:700;margin-bottom:4px">Couldn't load skills</div>
+        <div style="font-size:12px;margin-bottom:12px">The skills backend is unreachable or refused the request.</div>
+        <button class="btn btn-sm" data-act-click="loadSkills()">↻ Retry</button>
+      </div>`;
+    toast('Failed to load skills', 'err');
+    return;
+  }
+  allSkills = Array.isArray(sData) ? sData : (Array.isArray(sData?.skills) ? sData.skills : []);
+  const cats = Array.isArray(cData) ? cData : (Array.isArray(cData?.categories) ? cData.categories : []);
+  // Render category pills
+  const catEl = document.getElementById('skill-cats');
+  if (catEl) catEl.innerHTML =
+    `<span class="tag ${skillCategory==='all'?'blue':''} u-d2ed9c08" data-cat="all"  data-act-click="filterSkills('all')" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">All (${allSkills.length})</span>` +
+    cats.map(c => `<span class="tag ${skillCategory===c.id?'blue':''} u-d2ed9c08" data-cat="${c.id}"  data-act-click="filterSkills(${jsArg(c.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">${escHtml(c.id)} (${c.count})</span>`).join('');
+  renderSkillGrid();
 }
 
 function filterSkills(cat) {
@@ -87,6 +112,18 @@ function renderSkillGrid() {
   const grid = document.getElementById('skill-grid');
   if (!grid) return;
   const filtered = skillCategory === 'all' ? allSkills : allSkills.filter(s => s.category === skillCategory);
+  if (!filtered.length) {
+    // Success with zero skills (vs. a failed fetch, which loadSkills renders
+    // as an error) — a hint, not a blank grid.
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--text-2)">
+        <div style="font-size:28px;margin-bottom:8px">🧩</div>
+        <div style="font-weight:700;margin-bottom:4px">No skills here yet</div>
+        <div style="font-size:12px;margin-bottom:12px">${skillCategory === 'all' ? 'Create your first skill to teach the agents a reusable capability.' : 'Nothing in this category — try All.'}</div>
+        ${skillCategory === 'all' ? '<button class="btn btn-primary btn-sm" data-act-click="openCreateSkill()">＋ New Skill</button>' : ''}
+      </div>`;
+    return;
+  }
   grid.innerHTML = filtered.map((s, idx) => `
     <div data-skill-idx="${idx}" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:var(--transition)"
          data-hover="bc:var(--border-hi)" data-hover-out="bc:var(--border)">

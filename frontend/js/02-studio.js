@@ -298,16 +298,32 @@ document.addEventListener('keydown', e => {
 })();
 
 // ── 11. Ensure all panes render on first nav ──────────────────
-// This is the failsafe — if a pane still shows skeleton after 3s,
-// try calling its render function directly
+// This is the failsafe — if a pane still shows skeleton LONG after nav,
+// try calling its render function directly. The window is 8s, not 3s:
+// at 3s the failsafe raced every slow-but-successful load — measured with
+// a 3s-delayed API, the workspaces pane's content landed at ~4.6s and the
+// failsafe fired at nav+3s anyway, wiping fresh content back to a skeleton
+// and restarting every fetch (the stats line then "loaded" for a further
+// 3s). A pane that is slow is not broken; this rescue is only for
+// renderers that died before replacing the skeleton at all.
 function ensurePaneRendered(pane) {
   const el = document.getElementById('pane-' + pane);
   if (!el) return;
-  
+
   // Check if still showing skeleton
   setTimeout(() => {
-    if (el.classList.contains('active') && el.querySelector('.skeleton')) {
-      console.warn('[Agentic OS] Pane still showing skeleton after 3s, forcing re-render:', pane);
+    // VISIBLE skeletons only. el.querySelectorAll('.skeleton') on a
+    // workstation HOST sweeps every absorbed pane moved into it — including
+    // hidden tabs (display:none) that legitimately sit on their own
+    // skeleton. Measured live: the workspaces host was fully rendered, a
+    // hidden Control Tower tab held 21 skeleton elements, and this failsafe
+    // "rescued" the healthy host by wiping it back to a skeleton and
+    // restarting every fetch — on a 3s-delayed connection the user watched
+    // the pane load twice.
+    const stuck = [...el.querySelectorAll('.skeleton')].some(
+      (s) => s.offsetParent !== null);
+    if (el.classList.contains('active') && stuck) {
+      console.warn('[Agentic OS] Pane still showing skeleton after 8s, forcing re-render:', pane);
       // Try all known render function names
       const renderFns = [
         `render${pane.charAt(0).toUpperCase()}${pane.slice(1)}`,
@@ -320,7 +336,7 @@ function ensurePaneRendered(pane) {
         }
       }
     }
-  }, 3000);
+  }, 8000);
 }
 
 // Patch into master nav

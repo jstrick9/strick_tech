@@ -61,8 +61,28 @@ def run() -> AuditResult:
             return
         errors.append(f'pageerror: {str(e)[:120]}')
 
+    # Auth-gate refusals the app surfaces honestly. The terminal fail-closes
+    # with 401/403 whenever the server is bound non-loopback (or
+    # TERMINAL_REQUIRE_AUTH=1 / TERMINAL_DISABLED=1) — by design — and the
+    # pane renders the refusal's guidance in a warning banner instead of a
+    # healthy-looking prompt. Chromium logs every non-2xx fetch as a console
+    # error regardless, so on the 0.0.0.0 preview topology this audit
+    # reported the gate itself as a pane error (the pane-health baseline 0
+    # was recorded on loopback, where the gate never fires). The console
+    # line carries no URL, so attribution happens after the walk: the
+    # 401/403 console line is exempt ONLY when every refused request in the
+    # entire walk came from /api/terminal/. Any other refusal — a pane
+    # probing an endpoint that unexpectedly started demanding auth — still
+    # reports.
+    auth_refusals: list[str] = []
+
+    def _on_response(r):
+        if r.status in (401, 403):
+            auth_refusals.append(r.url)
+
     with browser_page('desktop') as (page, _ctx):
         page.on('pageerror', _on_pageerror)
+        page.on('response', _on_response)
         page.on('console', lambda m: errors.append(f'console: {m.text[:120]}')
                 if m.type == 'error'
                 and 'Content Security Policy' not in m.text
@@ -114,12 +134,24 @@ def run() -> AuditResult:
             elif state['lost']:
                 findings.append(f'LOST   {host}: absorbed panes gone {state["lost"]}')
 
+    only_terminal_gate = bool(auth_refusals) and all(
+        '/api/terminal/' in u for u in auth_refusals)
+
     for message in dict.fromkeys(errors):
+        if (only_terminal_gate
+                and message.startswith('console: Failed to load resource')
+                and ('status of 401' in message or 'status of 403' in message)):
+            continue  # the terminal's fail-closed auth gate, see above
         findings.append(f'ERROR  {message}')
+
+    if only_terminal_gate:
+        findings.append(
+            f'--  terminal auth gate refused {len(auth_refusals)} request(s) '
+            'on this topology (expected on a non-loopback bind; exempted)')
 
     return AuditResult(
         'pane-health',
-        len(findings),
+        len([f for f in findings if not f.startswith('--')]),
         findings,
         note='blank panes, console errors, and destroyed workstations '
              'while the server is healthy',

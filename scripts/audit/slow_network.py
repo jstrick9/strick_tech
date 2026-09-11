@@ -64,10 +64,18 @@ PENDING_JS = """(pane) => {
     if (!el) return {missing: true};
     const own = document.getElementById('pane-' + pane);
     const ownHidden = !!own && own.offsetParent === null;
-    const busy = el.getAttribute('aria-busy') === 'true'
-              || !!el.querySelector('[aria-busy="true"]');
-    const skeleton = !!el.querySelector('.skeleton, [class*=skeleton]');
-    const spinner = !!el.querySelector('[class*=spinner], [class*=loading]');
+    // VISIBLE states only. A workstation HOST's querySelector('.skeleton')
+    // sweeps every absorbed pane moved into it, including hidden tabs
+    // (display:none) legitimately sitting on their own skeleton — measured
+    // live, a hidden Control Tower tab's 21 skeleton elements kept the
+    // fully-loaded workspaces host "pending" forever and the audit reported
+    // STUCK on a pane the user saw as finished. Same lesson the element
+    // resolution above already encodes: measure what the user is looking at.
+    const visible = (sel) => [...el.querySelectorAll(sel)]
+        .some((n) => n.offsetParent !== null);
+    const busy = el.getAttribute('aria-busy') === 'true' || visible('[aria-busy="true"]');
+    const skeleton = visible('.skeleton, [class*=skeleton]');
+    const spinner = visible('[class*=spinner], [class*=loading]');
     const text = (el.innerText || '').toLowerCase();
     const says = text.includes('loading') || text.includes('…');
     return {
