@@ -128,6 +128,22 @@ class TestWorkspaceExport:
         })
         assert r.status_code == 400
 
+    def test_import_skips_non_dict_rows(self, client):
+        """A hand-edited/tampered archive can put non-objects in `rows`.
+
+        row.keys() on a string raised AttributeError OUTSIDE the per-row try
+        (which only wrapped the execute), so this was a 500. Found live by
+        the round-13 backup/restore journey.
+        """
+        r = client.post('/api/workspace/import', json={
+            'format': 'agentic-os-workspace',
+            'tables': {'tasks': ['not', 'objects', 42, None]},
+        })
+        assert r.status_code == 200
+        d = r.json()
+        assert d['ok'] is True
+        assert d['imported']['tasks'] == 0
+
     def test_import_roundtrip(self, client):
         """Export then import should succeed without errors."""
         export_r = client.get('/api/workspace/export')

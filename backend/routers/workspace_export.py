@@ -154,6 +154,12 @@ async def import_workspace(req: Request):
 
             count = 0
             for row in rows:
+                # A tampered/hand-edited archive can put anything in `rows` —
+                # strings, numbers, nulls. row.keys() on those raises
+                # AttributeError OUTSIDE the per-row try below (which only
+                # wraps the execute), turning a malformed upload into a 500.
+                if not isinstance(row, dict):
+                    continue
                 columns = [c for c in row.keys() if c in real_columns]  # noqa: SIM118 - sqlite3.Row iterates values, not keys
                 if not columns:
                     continue
