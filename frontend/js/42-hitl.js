@@ -203,7 +203,8 @@ async function renderHITL() {
 async function hitlDecide(id, decision) {
   const note = decision==='reject' ? await gmPrompt('Reason for rejection:','') : '';
   try {
-    await fetch(`/api/hitl/interrupt/${encodeURIComponent(id)}/decide`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision,note,reviewer:'user'})});
+    const r = await fetch(`/api/hitl/interrupt/${encodeURIComponent(id)}/decide`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision,note,reviewer:'user'})});
+    if (!r.ok) { gmAlert('Decision failed: HTTP ' + r.status); return; }
     const _decLabel = decision==='approve'?'✅ Approved':decision==='modify'?'✏️ Modified':'❌ Rejected';
     showToast(`${_decLabel}: ${id}`);
     renderHITL();
@@ -219,10 +220,11 @@ async function hitlModify(id) {
   const note = await gmPrompt('Note (optional):','');
   if (note === null) return;     // cancelled the decision
   try {
-    await fetch(`/api/hitl/interrupt/${encodeURIComponent(id)}/decide`, {
+    const r = await fetch(`/api/hitl/interrupt/${encodeURIComponent(id)}/decide`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({decision:'modify', note, reviewer:'user', modified_action_data: data})
     });
+    if (!r.ok) { gmAlert('Modify failed: HTTP ' + r.status); return; }
     showToast('✏️ Modified & approved: ' + id);
     renderHITL();
   } catch(ex) { gmAlert('Modify failed: ' + ex.message); }

@@ -649,7 +649,8 @@ async function bddViewAgent(agentId) {
 }
 
 async function bddAckAlert(alertId) {
-  await fetch(`/api/drift/alerts/${encodeURIComponent(alertId)}/acknowledge`,{method:'POST'});
+  const r = await fetch(`/api/drift/alerts/${encodeURIComponent(alertId)}/acknowledge`,{method:'POST'});
+  if (!r.ok) { showToast('❌ Failed to acknowledge: HTTP ' + r.status, 'err'); return; }
   showToast('👁 Alert acknowledged');
   const hr = await fetch('/api/drift/alerts?limit=50').then(r=>r.ok?r.json():{alerts:[]});
   _driftAlerts = hr.alerts || [];
@@ -657,7 +658,8 @@ async function bddAckAlert(alertId) {
 }
 
 async function bddResolveAlert(alertId) {
-  await fetch(`/api/drift/alerts/${encodeURIComponent(alertId)}/resolve`,{method:'POST'});
+  const r = await fetch(`/api/drift/alerts/${encodeURIComponent(alertId)}/resolve`,{method:'POST'});
+  if (!r.ok) { showToast('❌ Failed to resolve: HTTP ' + r.status, 'err'); return; }
   showToast('✅ Alert resolved');
   const hr = await fetch('/api/drift/alerts?limit=50').then(r=>r.ok?r.json():{alerts:[]});
   _driftAlerts = hr.alerts || [];
@@ -743,7 +745,8 @@ async function monitorShadowTest(id) {
   showToast(d.ok ? `🔬 Shadow: ${d.test_id}` : '⚠️ Failed');
 }
 async function monitorResolveAnomaly(id) {
-  await fetch(`/api/agent-monitor/anomalies/${encodeURIComponent(id)}/resolve`,{method:'POST'});
+  const r = await fetch(`/api/agent-monitor/anomalies/${encodeURIComponent(id)}/resolve`,{method:'POST'});
+  if (!r.ok) { showToast('❌ Failed to resolve: HTTP ' + r.status, 'err'); return; }
   showToast('✅ Resolved');
   await bddRefresh();
 }

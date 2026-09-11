@@ -219,7 +219,8 @@ async function specDelete(specId, title) {
   // FIX 1: delete spec with confirmation
   if (!(await gmDanger('Delete Spec', `Delete "${title}"? This removes all requirements, design, and tasks permanently.`))) return;
   try {
-    await fetch(`/api/specs/${encodeURIComponent(specId)}`, {method:'DELETE'});
+    const r = await fetch(`/api/specs/${encodeURIComponent(specId)}`, {method:'DELETE'});
+    if (!r.ok) { showToast('❌ Delete failed: HTTP ' + r.status, 'err'); return; }
     if (_specCurrent?.id === specId) {
       _specCurrent = null;
       document.getElementById('spec-title-display').textContent = 'Select or create a spec';
@@ -655,8 +656,9 @@ async function hookFireTest() {
   const event = await gmPrompt('Event to fire:','file_save');
   if (!event) return;
   try {
-    await fetch('/api/hooks/fire',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r = await fetch('/api/hooks/fire',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({event,data:{file:{path:'test.py',content:'print("hello")',extension:'.py',size_lines:1}}})});
+    if (!r.ok) { showToast(`❌ Failed to fire "${event}": HTTP ` + r.status, 'err'); return; }
     showToast(`⚡ Fired "${event}" event`);
     setTimeout(hookLoadRuns, 2000);
   } catch(e) {}
@@ -1646,10 +1648,12 @@ async function processVoiceTranscript(transcript) {
         break;
       }
 
-      case 'stop_agents':
-        await fetch('/api/control/runs/kill-all', {method: 'POST'}).catch(() => {});
+      case 'stop_agents': {
+        const r = await fetch('/api/control/runs/kill-all', {method: 'POST'}).catch(() => null);
+        if (!r || !r.ok) { showToast('❌ Failed to stop agents' + (r ? ' (HTTP ' + r.status + ')' : ''), 'err'); break; }
         showToast('🛑 Stopped all agents');
         break;
+      }
 
       case 'change_model': {
         const modelName = d.payload;

@@ -753,7 +753,8 @@ async function kgAddEntity() {
   if (type === null) return;
   const desc=await gmPrompt('Description (optional):','');
   if (desc === null) return;
-  await fetch('/api/knowledge-graph/entities',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,type:type,description:desc})});
+  const er=await fetch('/api/knowledge-graph/entities',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,type:type,description:desc})});
+  if (!er.ok) { showToast('❌ Failed to add entity: HTTP ' + er.status, 'err'); return; }
   showToast(`✅ Entity "${name}" added`);
   renderKnowledgeGraph();
 }
@@ -771,7 +772,8 @@ async function kgAddRelation(fromId, fromName) {
   const relation=await gmChoose('Relation Type', `How does "${fromName}" relate to "${toName}"?`,
     ['DEPENDS_ON','USES','CREATED_BY','PART_OF','RELATED_TO'], 'RELATED_TO');
   if (relation === null) return;
-  await fetch('/api/knowledge-graph/relations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_id:fromId,to_id:toEntity.id,relation:relation})});
+  const rr=await fetch('/api/knowledge-graph/relations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_id:fromId,to_id:toEntity.id,relation:relation})});
+  if (!rr.ok) { showToast('❌ Failed to add relation: HTTP ' + rr.status, 'err'); return; }
   showToast(`✅ Relation added: ${fromName} → ${relation} → ${toName}`);
   kgShowEntity(fromId);
 }
@@ -952,7 +954,8 @@ async function ragDeleteDoc(pipelineId, docId) {
   // button sits in a per-row list, mis-clicking the wrong row is easy.
   const ok = await gmDanger('Delete Document', 'Remove this document from the pipeline? It will need to be re-indexed.');
   if (!ok) return;
-  await fetch(`/api/rag/pipelines/${encodeURIComponent(pipelineId)}/documents/${encodeURIComponent(docId)}`,{method:'DELETE'});
+  const r = await fetch(`/api/rag/pipelines/${encodeURIComponent(pipelineId)}/documents/${encodeURIComponent(docId)}`,{method:'DELETE'});
+  if (!r.ok) { showToast('❌ Failed to delete document: HTTP ' + r.status, 'err'); return; }
   showToast('Document deleted');
   // Stay in pipeline view, re-fetch pipeline name
   const pd=await fetch(`/api/rag/pipelines/${encodeURIComponent(pipelineId)}`).then(r=>r.ok?r.json():null).catch(()=>null);

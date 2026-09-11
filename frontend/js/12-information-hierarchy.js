@@ -428,8 +428,9 @@
     const content = document.getElementById('steer-new-content')?.value||'';
     if (!content.trim()) { gmAlert('Add some content first'); return; }
     try {
-      await fetch('/api/steering',{method:'POST',headers:{'Content-Type':'application/json'},
+      const r = await fetch('/api/steering',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({title,category:cat,content,enabled:true})});
+      if (!r.ok) { gmAlert('Save failed: HTTP ' + r.status); return; }
       btn.closest('[style*="fixed"]').remove();
       renderGuidelinesTab();
       if (window.toast) toast('✅ Rule file saved', 'ok');

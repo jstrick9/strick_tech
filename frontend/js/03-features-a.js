@@ -350,10 +350,11 @@ async function wfDeleteWf(wfId, name) {
 async function wfSave() {
   if (!_wfData) return;
   try {
-    await fetch(`/api/workflow/${encodeURIComponent(_wfData.id)}`, {
+    const r = await fetch(`/api/workflow/${encodeURIComponent(_wfData.id)}`, {
       method:'PUT', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(_wfData)
     });
+    if (!r.ok) { toast('⚠️ Save failed: HTTP ' + r.status, 'err'); return; }
     toast('💾 Saved');
     wfLoadWorkflows();
   } catch(e) { toast('⚠️ Save failed'); }

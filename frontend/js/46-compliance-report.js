@@ -481,7 +481,8 @@ async function crcRegenReport(r) {
 async function crcDeleteReport(reportId) {
   const ok = await gmDanger('Delete Report', `Delete report ${reportId}?`);
   if (!ok) return;
-  await fetch(`/api/compliance/reports/${encodeURIComponent(reportId)}`, {method:'DELETE'});
+  const r = await fetch(`/api/compliance/reports/${encodeURIComponent(reportId)}`, {method:'DELETE'});
+  if (!r.ok) { showToast('❌ Failed to delete report: HTTP ' + r.status, 'err'); return; }
   const hr = await fetch('/api/compliance/reports?limit=20').then(r=>r.ok?r.json():{reports:[]});
   _crcReports = hr.reports || [];
   crcRenderHistory(document.getElementById('crc-content'));
@@ -618,7 +619,8 @@ function renderAuditEntryRows(entries) { return ''; } // replaced
 async function auditVerifyChain() { await crcVerifyChain(); }
 async function auditReload() { if (_crcTab==='audit') await crcRenderAuditChain(document.getElementById('crc-content')); }
 async function auditAddTestEntry() {
-  await fetch('/api/audit-log/append',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:'user',agent_name:'User',action_type:'test_entry',action_detail:'Manual test audit entry from Compliance Center',authority:'user',risk_level:'low',outcome:'success'})});
+  const r = await fetch('/api/audit-log/append',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:'user',agent_name:'User',action_type:'test_entry',action_detail:'Manual test audit entry from Compliance Center',authority:'user',risk_level:'low',outcome:'success'})});
+  if (!r.ok) { showToast('❌ Failed to add test entry: HTTP ' + r.status, 'err'); return; }
   showToast('✅ Test audit entry added');
   if (_crcTab==='audit') await crcRenderAuditChain(document.getElementById('crc-content'));
 }

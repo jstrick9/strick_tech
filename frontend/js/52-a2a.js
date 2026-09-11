@@ -502,7 +502,8 @@ async function a2aVerifyAgent(agentId) {
 async function a2aDeleteAgent(agentId) {
   const ok = await gmDanger('Remove Agent', `Remove "${agentId}" from the A2A registry?`);
   if (!ok) return;
-  await fetch(`/api/a2a/agents/${encodeURIComponent(agentId)}`, {method:'DELETE'});
+  const r = await fetch(`/api/a2a/agents/${encodeURIComponent(agentId)}`, {method:'DELETE'});
+  if (!r.ok) { showToast('❌ Failed to remove agent: HTTP ' + r.status, 'err'); return; }
   showToast('🗑 Agent removed');
   await a2aRefresh();
 }

@@ -203,7 +203,8 @@ async function finopsCreateCap() {
 }
 
 async function finopsResolveAlert(alertId) {
-  await fetch(`/api/finops/alerts/${encodeURIComponent(alertId)}/resolve`,{method:'POST'});
+  const r = await fetch(`/api/finops/alerts/${encodeURIComponent(alertId)}/resolve`,{method:'POST'});
+  if (!r.ok) { showToast('❌ Failed to resolve: HTTP ' + r.status, 'err'); return; }
   showToast('✅ Alert resolved');
   renderFinOps();
 }

@@ -155,14 +155,16 @@ async function addBudgetRule() {
   const actionIn = await gmChoose('Action when limit hit', undefined, ['stop', 'warn'], 'stop');
   if (actionIn === null) return;
   const validAction = (actionIn.trim() === 'warn') ? 'warn' : 'stop';
-  await fetch('/api/control/budget-rules', {method:'POST', headers:{'Content-Type':'application/json'},
+  const r = await fetch('/api/control/budget-rules', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({name, max_cost: parseFloat(cost)||1.0, agent_id: agentId, action: validAction})});
+  if (!r.ok) { showToast('❌ Failed to create budget rule: HTTP ' + r.status, 'err'); return; }
   showToast('✅ Budget rule created');
   refreshControlTower();
 }
 async function deleteBudgetRule(id) {
   if (!(await gmDanger('Delete Rule', 'Remove this guardrail?'))) return;
-  await fetch(`/api/control/budget-rules/${encodeURIComponent(id)}`, {method:'DELETE'});
+  const r = await fetch(`/api/control/budget-rules/${encodeURIComponent(id)}`, {method:'DELETE'});
+  if (!r.ok) { toast('❌ Failed to delete rule: HTTP ' + r.status, 'err'); return; }
   toast('Rule deleted', 'ok', 1500); refreshControlTower();
 }
 

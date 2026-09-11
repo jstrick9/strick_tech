@@ -225,12 +225,16 @@ async function markNotifRead(id) {
 
 async function markAllNotifRead() {
   try {
-    await fetch('/api/notifications/mark-all-read', { method: 'POST' });
-  } catch (e) {}
-  
+    const r = await fetch('/api/notifications/mark-all-read', { method: 'POST' });
+    if (!r.ok) { toast(`Could not mark all read (HTTP ${r.status}).`, 'err', 4000); return; }
+  } catch (e) {
+    toast('Could not mark all read: ' + (e && e.message ? e.message : 'network error'), 'err', 4000);
+    return;
+  }
+
   // Update local sample notifications
   SAMPLE_NOTIFICATIONS.forEach(n => n.read = true);
-  
+
   refreshNotifications();
   if (typeof toast === 'function') toast('All notifications marked as read', 'ok');
 }

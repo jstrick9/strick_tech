@@ -318,7 +318,8 @@ async function createBranchPreview() {
 
 async function deleteBranchPreview(name) {
   if (!(await gmDanger('Delete Snapshot', `Delete snapshot "${name}"?`))) return;
-  await fetch(`/api/composer/preview/branches/${encodeURIComponent(name)}`, {method:'DELETE'});
+  const r = await fetch(`/api/composer/preview/branches/${encodeURIComponent(name)}`, {method:'DELETE'});
+  if (!r.ok) { toast('❌ Failed to delete snapshot: HTTP ' + r.status, 'err'); return; }
   toast('Snapshot deleted', 'ok', 1500);
   loadBranchPreviews();
 }

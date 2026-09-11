@@ -1510,7 +1510,8 @@ window.removeApiKey = async function() {
   const badge = document.getElementById('or-key-status-badge');
   const resEl = document.getElementById('settings-key-test-result');
   try {
-    await fetch('/api/secrets/OPENROUTER_API_KEY', { method: 'DELETE' });
+    const r = await fetch('/api/secrets/OPENROUTER_API_KEY', { method: 'DELETE' });
+    if (!r.ok) { toast('❌ Failed to remove key: HTTP ' + r.status, 'err'); return; }
     document.getElementById('or-key-input').value = '';
     if (badge) { badge.textContent = 'NOT CONFIGURED'; badge.style.color = 'var(--text-2)'; }
     if (resEl) { resEl.style.display = 'block'; resEl.innerHTML = '<span style="color:var(--text-2)">API key removed from local vault.</span>'; }
@@ -1753,7 +1754,8 @@ window.clearAllSecrets = async function() {
   const ok = await gmConfirm('Clear All Local Credentials?', 'This will permanently wipe all encrypted API keys (OpenRouter, OpenAI, custom tokens) from your local hardware vault. You will need to re-enter them.');
   if (!ok) return;
   try {
-    await fetch('/api/secrets/OPENROUTER_API_KEY', { method: 'DELETE' });
+    const r = await fetch('/api/secrets/OPENROUTER_API_KEY', { method: 'DELETE' });
+    if (!r.ok) { toast('❌ Failed to clear credentials: HTTP ' + r.status, 'err'); return; }
     try { _safeLS.rm('agentic_os_custom_base_url'); } catch {}
     try { _safeLS.rm('agentic_os_custom_api_key'); } catch {}
     document.getElementById('or-key-input').value = '';
@@ -4201,16 +4203,18 @@ window.branchFromMsg = async function(btn, msgId) {
 
   toast('⎇ Forking into new conversation...', 'ok', 1200);
   try {
-    await fetch('/api/sessions', {
+    const r1 = await fetch('/api/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: newSid, name: newName, agent_id: S.currentAgentId || 'default', description: folder })
     });
-    await fetch('/api/sessions/import-messages', {
+    if (!r1.ok) { toast('❌ Fork failed: HTTP ' + r1.status, 'err', 2500); return; }
+    const r2 = await fetch('/api/sessions/import-messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ session_id: newSid, messages: forkedMsgs })
     });
+    if (!r2.ok) { toast('❌ Fork failed to copy messages: HTTP ' + r2.status, 'err', 2500); return; }
     await window.loadChatSession(newSid);
     toast(`✅ ⎇ Forked into new chat: "${newName}"!`, 'ok', 2500);
   } catch(e) {

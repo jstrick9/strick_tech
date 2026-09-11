@@ -388,7 +388,7 @@ async function lbSeedData() {
   for (const aid of agents) {
     for (let i = 0; i < Math.floor(Math.random()*10+5); i++) {
       try {
-        await fetch('/api/agent-leaderboard/record', {
+        const r = await fetch('/api/agent-leaderboard/record', {
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
             agent_id:   aid,
@@ -399,7 +399,7 @@ async function lbSeedData() {
             latency_ms: Math.floor(Math.random()*3000)+200,
           })
         });
-        count++;
+        if (r.ok) count++;
       } catch(e) {}
     }
   }
