@@ -305,3 +305,41 @@ parentheses, passes human/custom messages through untouched.
 
 **Suites at end of round:** frontend 332/332 · all 19 ratchet audits green
 against the honest baseline · DB clean.
+
+---
+
+## Round 12 (2026-09-11) — the Cancel button that meant "run it anyway"
+
+### #096 the terminal pane rendered a healthy prompt over a dead backend
+renderTerminal() swallowed the /api/terminal/env failure with catch(e){} —
+tabs, quick commands, "Type a command", zero indication everything would
+fail (the last SILENT finding in failure-honesty), and the auth gate's own
+401 guidance never reached the screen. Now: 401/403 guidance verbatim,
+other failures via humanError(), network failure named. failure-honesty 1→0.
+
+### #097 Cancel meant "proceed with defaults" at 23 gmPrompt sites
+`await gmPrompt(..., default) || default` turns a Cancel (null) into the
+default: cancelling an eval run ran it anyway; cancelling a budget rule
+created it scoped to '*' (ALL agents); cancelling the last prompt of a hook
+edit PATCHed condition:null and WIPED the stored value; the goals check-in
+note was asked for and then silently discarded; connectors/JIT-token had
+dead null-checks (`|| ''` before the check) so cancel surfaced as
+"Invalid JSON". 23 sites across 11 files now null-check before defaulting
+(the pattern github push/template edit already used). Guard test bans any
+gmPrompt call followed by `||` (balanced-paren scan) — including the
+"safe because a later empty-check catches it" variant.
+
+### Also this round
+- Verified no unenforced audits (agent_reliability visibly skips without
+  the fake provider; computed_style_diff is a migration tool, tested by
+  test_106; module_risk is a generator with its own tests).
+- Journeys walked green: settings (vault audit reports real facts), eval
+  framework (create→run→results), workspaces (create→list→delete),
+  specs (healthy empty state).
+- Instance hygiene: 85 orphan hex-named workspace dirs deleted (DB had 1
+  workspace; all 441 tracked files under plugin_sdk/specs/workflows
+  restored intact after the first sweep over-reached — lesson: positive
+  pattern match, not exclusion lists).
+
+**Suites at end of round:** frontend 334/334 · security 321/10 (0.0.0.0
+bind: honest terminal skips) · failure-honesty 0 · DB clean.
