@@ -28,7 +28,11 @@ from ..services.request_body import as_text, json_body_or_error
 router = APIRouter(prefix='/api/fusion', tags=['fusion'])
 log = logging.getLogger('agentic.fusion')
 
-OR_BASE = 'https://openrouter.ai/api/v1'
+# The configured provider base (honours OPENROUTER_BASE_URL, e.g. a custom
+# endpoint or self-hosted gateway) — same source of truth as every other
+# LLM call in the app. This module previously hardcoded openrouter.ai, so
+# a deployment pointed at a custom endpoint silently called the real one.
+from ..services.llm import OPENROUTER_BASE as OR_BASE
 
 # ── Model presets (mirroring OpenRouter Fusion presets) ────────────────────────
 FUSION_PRESETS = {

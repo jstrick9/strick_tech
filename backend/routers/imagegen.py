@@ -55,7 +55,10 @@ def _assets_dir() -> Path:
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
     return ASSETS_DIR
 
-OR_BASE = 'https://openrouter.ai/api/v1'
+# The configured provider base (honours OPENROUTER_BASE_URL) — same source
+# of truth as every other LLM call. Previously hardcoded openrouter.ai, so
+# custom-endpoint deployments silently called the real one.
+from ..services.llm import OPENROUTER_BASE as OR_BASE
 
 VALID_SIZES = {'256x256', '512x512', '1024x1024', '1024x1792', '1792x1024'}
 

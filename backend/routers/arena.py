@@ -185,16 +185,24 @@ async def create_battle(req: Request):
 
                 import httpx
 
+                from ..services.llm import OPENROUTER_BASE
+
                 key = os.getenv('OPENROUTER_API_KEY', '')
                 if not key:
                     raise ValueError('No API key')
                 async with httpx.AsyncClient(timeout=30) as client:
                     async with client.stream(
                         'POST',
-                        'https://openrouter.ai/api/v1/chat/completions',
+                        f'{OPENROUTER_BASE}/chat/completions',
                         headers={'Authorization': f'Bearer {key}', 'Content-Type': 'application/json'},
                         json={'model': model_full, 'messages': messages, 'stream': True, 'max_tokens': 1024},
                     ) as resp:
+                        # httpx does not raise for a 4xx/5xx stream — without
+                        # this check a rejected call yields no data: lines at
+                        # all, and the battle renders as two EMPTY response
+                        # panels with zero indication either call failed.
+                        if resp.status_code != 200:
+                            raise ValueError(f'provider returned HTTP {resp.status_code}')
                         async for line in resp.aiter_lines():
                             if not line.startswith('data:'):
                                 continue
