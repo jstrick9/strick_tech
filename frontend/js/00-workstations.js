@@ -157,9 +157,25 @@ window.initWorkstation = function (host) {
     // Relocate the absorbed pane's element into this workstation.
     let childEl = document.getElementById('pane-' + pane);
     if (!childEl) {
-      childEl = document.createElement('div');
-      childEl.id = 'pane-' + pane;
+      // The host's own renderer may have replaced the host's innerHTML —
+      // which detaches every absorbed pane inside it — and the MutationObserver
+      // recovery below then lands HERE to rebuild the workstation. Creating an
+      // empty shell, as this used to, throws away whatever the pane was
+      // showing: a live arena battle, terminal scrollback, a half-written
+      // form. Detached subtrees stay intact in memory, and initWorkstation
+      // is the one place that still holds a reference — so re-attach the
+      // ORIGINAL element and its content survives the host wipe.
+      const saved = (window._wsPaneNodes || {})[pane];
+      if (saved && !saved.isConnected) {
+        childEl = saved;
+      } else {
+        childEl = document.createElement('div');
+        childEl.id = 'pane-' + pane;
+      }
     }
+    // Keep the reference for the next host wipe.
+    window._wsPaneNodes = window._wsPaneNodes || {};
+    window._wsPaneNodes[pane] = childEl;
     childEl.classList.remove('pane', 'active');
     childEl.classList.add('ws-body');
     childEl.style.display = 'none';

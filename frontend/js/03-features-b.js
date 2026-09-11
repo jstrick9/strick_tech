@@ -1090,10 +1090,27 @@ async function ciShowReferences(symbolName) {
 
 let _arenaBattleId = null;
 let _arenaModels = [];
+// True while a battle is live (started, streaming, or finished-but-unvoted).
+// renderArena() must not rebuild the pane during that window — see the guard
+// below for why.
+let _arenaBattleActive = false;
 
 async function renderArena() {
   const pane = document.getElementById('pane-arena');
   if (!pane) return;
+
+  // FIX: don't wipe a live battle. Arena is an absorbed enterprise-workstation
+  // tab, and the workstation host's async renderer rebuilds its absorbed panes
+  // once its own data fetches resolve — up to ~2s AFTER the first navigation
+  // (00-render-dedupe.js documents why that second render is legitimate).
+  // A user who types a prompt and hits Battle quickly has their battle
+  // streaming exactly when that rebuild lands, and it wiped both the
+  // streaming responses and the vote UI — reproduced deterministically:
+  // battle text visible at t+500ms, placeholders back at t+1500ms, vote
+  // controls never shown. Same pattern as the terminal pane's "preserve
+  // output across pane switches" guard: while a battle is live or awaiting
+  // a vote, keep the DOM that's already there.
+  if (_arenaBattleActive && pane.querySelector('#arena-go-btn')) return;
 
   const [models, lb, stats] = await Promise.all([
     fetch('/api/arena/models').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({models:[]})),
@@ -1234,7 +1251,7 @@ async function arenaStartBattle() {
         if (!part.startsWith('data:')) continue;
         try {
           const d = JSON.parse(part.slice(5).trim());
-          if (d.type==='battle_start') { _arenaBattleId = d.battle_id; }
+          if (d.type==='battle_start') { _arenaBattleId = d.battle_id; _arenaBattleActive = true; }
           else if (d.type==='chunk') {
             const el = document.getElementById(`arena-resp-${d.side}`);
             if (d.side==='a') textA+=d.text||'';
@@ -1256,6 +1273,8 @@ async function arenaStartBattle() {
                 // Both/one model failed. Voting would write a win/loss and an
                 // ELO delta derived from an error string.
                 voteEl.innerHTML = `<div class="arena-unvotable">⚠️ ${escHtml(d.reason || 'A model failed to respond — nothing to compare.')}</div>`;
+                // Nothing left to protect — allow the pane to re-render.
+                _arenaBattleActive = false;
               }
             }
           }
@@ -1283,6 +1302,8 @@ async function arenaVote(winner) {
 
     const labels = {a:'Model A 👈',b:'Model B 👉',tie:'Tie 🤝'};
     const voteEl = document.getElementById('arena-vote-area');
+    // The battle is concluded — the pane may re-render freely again.
+    _arenaBattleActive = false;
     if (voteEl) {
       voteEl.innerHTML = `
         <div style="font-size:16px;font-weight:700;color:var(--success)">✅ Vote recorded: <strong>${labels[winner]}</strong></div>
@@ -1318,6 +1339,8 @@ async function arenaAutoJudge() {
     const r = await fetch('/api/arena/auto-judge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({battle_id:_arenaBattleId})});
     const d = await r.json();
     if (d.ok) showToast(`🤖 Auto-judged: ${d.winner} wins — ${d.reason?.slice(0,50)}`);
+    // Judged = concluded — the pane may re-render freely again.
+    _arenaBattleActive = false;
   } catch(ex) {}
 }
 
