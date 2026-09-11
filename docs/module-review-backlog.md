@@ -445,6 +445,28 @@ CSRF-enforcing server — legacy live-verification scripts, not a gate.
 Sandbox resets this round wiped pip/playwright/node_modules//tmp twice;
 recovery recipe held (mock provider recreated from the session recipe).
 
+## Round 14 — cancel-semantics sweep + picker migration, part two (cont.)
+
+### #105 — the cancel sweep found eight more act-on-Cancel flows
+After #104, a systematic scan of ALL gmPrompt sites (does the value
+get a null-check before it's used?) found the pattern's long tail —
+eight flows where dismissing the dialog acted anyway, five of them
+mutating, two of them RUNS:
+
+- workflow run (cancel ran it with null input) and hook manual run
+  (cancel RAN THE HOOK) — the worst two.
+- spec create, plugin-SDK pack create, template create (four
+  unguarded prompts in one flow!), Stripe wire (cancel generated the
+  integration at the default price), galaxy memory add.
+
+Plus five more fixed-choice fields migrated to gmChoose: rule-file
+category, eval suite domain, eval case difficulty, connector auth
+type, finops cap scope + period.
+
+Empty input still passes where the field is optional — only Cancel
+aborts. Every flow verified live server-side (record counts
+unchanged after cancel). vitest 335/335 · security 321/10.
+
 ## Round 14 — picker migration, part two
 
 ### #104 — six more fixed-choice prompts typed free-hand
