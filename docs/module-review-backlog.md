@@ -414,6 +414,41 @@ Probe note: dismissing the first-run tour reliably requires
 window.closeOnboardingModal() — hiding the overlay leaves the tour
 alive and it re-asserts itself over the UI.
 
-**Suites at end of round:** frontend 335/335 (gmChoose contract test
-added) · security 321/10 (with image-capable mock provider) · unit
-4796/0 (import regression test added) · responsive/touch audits green.
+### #103 — addendum: the full-audit sweep on the 0.0.0.0 topology
+Running all 22 audits against the preview topology (not just the four
+checked during the mobile pass) surfaced five more findings, two of
+them real app bugs:
+
+- **skills pane swallowed load failures** (session-expiry: SILENT):
+  !r.ok became {skills:[]} and the catch toasted "Loaded offline
+  skills" in the success style — a dead backend was indistinguishable
+  from having no skills. Now: error state with retry; empty state only
+  on a successful empty fetch.
+- **ensurePaneRendered wiped healthy hosts** (slow-network: STUCK):
+  the failsafe's skeleton check swept HIDDEN absorbed tabs — a hidden
+  Control Tower tab's 21 skeleton elements made it "rescue" a fully
+  loaded workspaces host by resetting it to skeleton and refetching
+  everything. And its 3s window raced every slow-but-successful load.
+  Now: visible skeletons only, 8s window.
+- Three audit detectors were loopback-biased or vocabulary-blind:
+  pane-health and console-health counted the terminal's DESIGNED
+  fail-closed 401/403 gate (surfaced honestly as a pane banner) as a
+  console error on non-loopback binds; session-expiry's ACKNOWLEDGES
+  regex didn't recognize the message the app renders verbatim from the
+  server's own 401 body; slow-network's pending detector matched
+  hidden absorbed-tab skeletons. All four fixed with documented,
+  attribution-based exemptions or visibility filters — never wholesale
+  suppression (a NON-terminal 401 still reports).
+
+Also: tests/connectors/ (see #101) confirmed dead-as-run against a
+CSRF-enforcing server — legacy live-verification scripts, not a gate.
+Sandbox resets this round wiped pip/playwright/node_modules//tmp twice;
+recovery recipe held (mock provider recreated from the session recipe).
+
+**Suites at end of round (final):** full audit sweep on 0.0.0.0 — all
+22 audits at 0 (touch-targets 215 <= 217 baseline) · frontend vitest
+335/335 · security 321/10 (image-capable mock provider) · unit 4775
+passed / 0 failed / 187 skipped without a live server (each browser
+audit instead run directly against the live server, all <= baseline;
+the earlier "4796" figure in this file counted audit subprocesses
+differently — the ratchet assertions are identical).
