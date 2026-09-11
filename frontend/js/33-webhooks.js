@@ -71,7 +71,9 @@ async function renderWebhooks() {
 async function createWebhook() {
   const name = await gmPrompt('Webhook Name','e.g. GitHub Push Handler','');
   if (!name) return;
-  const agentId = await gmPrompt('Agent','e.g. reviewer, brain','brain')||'brain';
+  const agentIn = await gmPrompt('Agent','e.g. reviewer, brain','brain');
+  if (agentIn === null) return;   // cancelled — don't create the webhook anyway
+  const agentId = agentIn.trim() || 'brain';
   try {
     const r = await fetch('/api/webhooks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,agent_id:agentId})});
     if (!r.ok) { toast('Create failed: server error ' + r.status, 'err'); return; }

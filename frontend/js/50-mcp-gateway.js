@@ -951,8 +951,10 @@ async function prbToggleServer(serverId, disable) {
 async function prbRegisterServer() {
   const name     = await gmPrompt('Register MCP Server', 'Server name:');
   if (!name?.trim()) return;
-  const endpoint = await gmPrompt('Endpoint URL:', 'https://my-mcp-server.example.com') || '';
-  const desc     = await gmPrompt('Description:', '') || '';
+  const endpoint = await gmPrompt('Endpoint URL:', 'https://my-mcp-server.example.com');
+  if (endpoint === null) return;
+  const desc     = await gmPrompt('Description:', '');
+  if (desc === null) return;
   const r = await fetch('/api/mcp-gateway/servers', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({name, endpoint, description:desc, server_type:'external'})
@@ -980,9 +982,11 @@ function prbAddPolicyForServer(serverId, serverName) {
 // ── Old compat aliases (used by tests and other code) ────────────
 async function renderMCPGatewayLegacy() { return renderMCPGateway(); }
 async function mcgTestCall() {
-  const tool = await gmPrompt('Test MCP Gateway Call', 'Tool name (e.g. fs.list, search.web):') || '';
+  const tool = await gmPrompt('Test MCP Gateway Call', 'Tool name (e.g. fs.list, search.web):');
+  if (tool === null) return;      // cancelled
   if (!tool.trim()) return;
-  const argsStr = await gmPrompt('Args (JSON):', '{"path":"./"}') || '{}';
+  const argsStr = await gmPrompt('Args (JSON):', '{"path":"./"}');
+  if (argsStr === null) return;  // cancelled — don't call the tool anyway
   let args = {};
   try { args = JSON.parse(argsStr); } catch(e) { toast('⚠️ Invalid JSON args'); return; }
   toast('📞 Calling via MCP Gateway…');

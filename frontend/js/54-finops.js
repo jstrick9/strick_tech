@@ -184,9 +184,15 @@ async function renderFinOps() {
 async function finopsCreateCap() {
   const name     = await gmPrompt('Budget Cap', 'Cap name:');
   if (!name?.trim()) return;
-  const scope    = await gmPrompt('Scope type (agent/goal/platform):', 'agent') || 'agent';
-  const limitUsd = await gmPrompt('Limit ($USD):', '1.00') || '1.00';
-  const period   = await gmPrompt('Period (hour/day/week):', 'day') || 'day';
+  const scopeIn  = await gmPrompt('Scope type (agent/goal/platform):', 'agent');
+  if (scopeIn === null) return;
+  const scope    = scopeIn.trim() || 'agent';
+  const limitIn  = await gmPrompt('Limit ($USD):', '1.00');
+  if (limitIn === null) return;
+  const limitUsd = limitIn.trim() || '1.00';
+  const periodIn = await gmPrompt('Period (hour/day/week):', 'day');
+  if (periodIn === null) return;
+  const period   = periodIn.trim() || 'day';
   const r = await fetch('/api/finops/caps',{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({name,scope_type:scope,limit_usd:parseFloat(limitUsd)||0,period})

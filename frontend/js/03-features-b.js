@@ -674,6 +674,7 @@ async function hookEdit(hookId) {
     const prompt = await gmPrompt('AI prompt:', h.prompt || '');
     if (prompt === null) return;
     const cond   = await gmPrompt('Condition (optional):', h.condition || '');
+    if (cond === null) return;   // cancelled — a null condition would WIPE the existing one
 
     const pr = await fetch(`/api/hooks/${encodeURIComponent(hookId)}`, {
       method: 'PATCH',
@@ -1268,7 +1269,12 @@ async function arenaStartBattle() {
 
 async function arenaVote(winner) {
   if (!_arenaBattleId) return;
-  const reason = winner==='tie' ? '' : await gmPrompt('Why? (optional):', '') || '';
+  let reason = '';
+  if (winner !== 'tie') {
+    const why = await gmPrompt('Why? (optional):', '');
+    if (why === null) return;    // cancelled the vote
+    reason = why;
+  }
   try {
     await fetch(`/api/arena/battle/${encodeURIComponent(_arenaBattleId)}/vote`, {
       method:'POST', headers:{'Content-Type':'application/json'},

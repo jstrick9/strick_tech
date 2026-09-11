@@ -98,7 +98,7 @@ function renderConnectorCard(c, statusColor) {
 
 async function connectorConfigure(connId, name, authType) {
   const hints = {api_key:'API key / token', basic:'username:password or email:token', oauth:'OAuth token', smtp:'SMTP credentials', none:'No credentials needed'};
-  const note = await gmPrompt(`Configure: ${name}`, `${hints[authType]||'Enter credentials'}\n\nPaste as JSON: {"key":"value"}`,'{}') || '';
+  const note = await gmPrompt(`Configure: ${name}`, `${hints[authType]||'Enter credentials'}\n\nPaste as JSON: {"key":"value"}`,'{}');
   if (note===null) return;
   let creds = {};
   try { creds = JSON.parse(note); } catch(e) { showToast('⚠️ Invalid JSON — use {"key":"value"} format'); return; }
@@ -112,9 +112,11 @@ async function connectorConfigure(connId, name, authType) {
 }
 
 async function connectorExecute(connId, name, caps) {
-  const action = await gmPrompt(`Execute: ${name}`, `Action to run:\n${caps.map(c=>`• ${c}`).join('\n')}`, caps[0]||'') || '';
+  const action = await gmPrompt(`Execute: ${name}`, `Action to run:\n${caps.map(c=>`• ${c}`).join('\n')}`, caps[0]||'');
+  if (action === null) return;    // cancelled
   if (!action?.trim()) return;
-  const payloadStr = await gmPrompt('Payload (JSON):', '{"channel":"general","text":"Hello from Agentic OS!"}') || '{}';
+  const payloadStr = await gmPrompt('Payload (JSON):', '{"channel":"general","text":"Hello from Agentic OS!"}');
+  if (payloadStr === null) return;  // cancelled — don't execute anyway
   let payload = {};
   try { payload = JSON.parse(payloadStr); } catch(e) { showToast('⚠️ Invalid JSON payload'); return; }
   showToast(`🔌 Executing ${name}.${action}…`);
@@ -149,9 +151,12 @@ async function connectorTest(connId) {
 async function connectorRegister() {
   const name   = await gmPrompt('Custom Connector SDK', 'Connector name:');
   if (!name?.trim()) return;
-  const cat    = await gmPrompt('Category:', 'custom') || 'custom';
-  const auth   = await gmPrompt('Auth type (none/api_key/basic/oauth):', 'api_key') || 'api_key';
-  const capsStr= await gmPrompt('Capabilities (comma-separated):', 'my_action') || '';
+  const cat    = await gmPrompt('Category:', 'custom');
+  if (cat === null) return;
+  const auth   = await gmPrompt('Auth type (none/api_key/basic/oauth):', 'api_key');
+  if (auth === null) return;
+  const capsStr= await gmPrompt('Capabilities (comma-separated):', 'my_action');
+  if (capsStr === null) return;
   const caps   = capsStr.split(',').map(s=>s.trim()).filter(Boolean);
   const r = await fetch('/api/connectors',{
     method:'POST', headers:{'Content-Type':'application/json'},

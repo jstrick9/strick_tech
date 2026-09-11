@@ -140,9 +140,12 @@ async function addBudgetRule() {
   if (!name) return;
   const cost = await gmPrompt('Max cost (USD)', 'e.g. 1.00', '1.00');
   if (!cost) return;
-  const agentId = await gmPrompt('Agent ID (* = all agents)', 'e.g. builder or * for all', '*') || '*';
-  const action = await gmPrompt('Action when limit hit (stop / warn)', 'stop or warn', 'stop');
-  const validAction = (action === 'warn') ? 'warn' : 'stop';
+  const agentIn = await gmPrompt('Agent ID (* = all agents)', 'e.g. builder or * for all', '*');
+  if (agentIn === null) return;   // cancelled — don't create a rule for ALL agents
+  const agentId = agentIn.trim() || '*';
+  const actionIn = await gmPrompt('Action when limit hit (stop / warn)', 'stop or warn', 'stop');
+  if (actionIn === null) return;
+  const validAction = (actionIn.trim() === 'warn') ? 'warn' : 'stop';
   await fetch('/api/control/budget-rules', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({name, max_cost: parseFloat(cost)||1.0, agent_id: agentId, action: validAction})});
   showToast('✅ Budget rule created');

@@ -216,7 +216,8 @@ async function hitlModify(id) {
   if (mod === null) return;  // user cancelled
   let data = {};
   try { data = JSON.parse(mod||'{}'); } catch(e) { showToast('⚠️ Invalid JSON — using empty data'); }
-  const note = await gmPrompt('Note (optional):','') || '';
+  const note = await gmPrompt('Note (optional):','');
+  if (note === null) return;     // cancelled the decision
   try {
     await fetch(`/api/hitl/interrupt/${encodeURIComponent(id)}/decide`, {
       method:'POST', headers:{'Content-Type':'application/json'},

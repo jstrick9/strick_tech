@@ -107,14 +107,24 @@ async function renderEvalFramework() {
 let _evalRunId = null;
 async function evalRunSuite() {
   const agents = ['orchestrator','brain','builder','researcher','reviewer','creative'];
-  const agentId = await gmPrompt('Run Eval Suite', `Agent to evaluate:\n${agents.map(a=>`• ${a}`).join('\n')}`, 'builder') || 'builder';
-  if (!agentId?.trim()) return;
-  const suiteId = await gmPrompt('Suite ID:', 'suite_general') || 'suite_general';
-  await evalRunSpecific(suiteId, agentId);
+  const agentIn = await gmPrompt('Run Eval Suite', `Agent to evaluate:\n${agents.map(a=>`• ${a}`).join('\n')}`, 'builder');
+  if (agentIn === null) return;   // Cancel means cancel, not "run as builder"
+  const agentId = agentIn.trim() || 'builder';
+  if (!agents.includes(agentId)) {
+    showToast(`Unknown agent "${agentId}" — pick one of: ${agents.join(', ')}`);
+    return;
+  }
+  const suiteIn = await gmPrompt('Suite ID:', 'suite_general');
+  if (suiteIn === null) return;
+  await evalRunSpecific(suiteIn.trim() || 'suite_general', agentId);
 }
 
 async function evalRunSpecific(suiteId, agentId) {
-  if (!agentId) agentId = await gmPrompt('Agent ID:', 'builder') || 'builder';
+  if (!agentId) {
+    const a = await gmPrompt('Agent ID:', 'builder');
+    if (a === null) return;
+    agentId = a.trim() || 'builder';
+  }
   showToast(`🧪 Running eval suite "${suiteId}" on ${agentId}…`);
   const resp = await fetch('/api/eval-framework/run',{
     method:'POST',headers:{'Content-Type':'application/json'},
@@ -150,7 +160,8 @@ async function evalRunSpecific(suiteId, agentId) {
 async function evalHumanReview(resultId) {
   const score = await gmPrompt('Human Review', 'Your quality score (0.0 to 1.0):','0.8');
   if (score===null) return;
-  const notes = await gmPrompt('Notes (optional):','') || '';
+  const notes = await gmPrompt('Notes (optional):','');
+  if (notes === null) return;
   const r = await fetch(`/api/eval-framework/results/${encodeURIComponent(resultId)}/review`,{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({score:parseFloat(score)||0,notes,reviewer:'user'})
@@ -163,8 +174,12 @@ async function evalHumanReview(resultId) {
 async function evalCreateSuite() {
   const name   = await gmPrompt('New Eval Suite', 'Suite name:');
   if (!name?.trim()) return;
-  const domain = await gmPrompt('Domain (general/safety/coding/custom):', 'general') || 'general';
-  const thresh = await gmPrompt('Pass threshold (0.0–1.0):', '0.70') || '0.70';
+  const domainIn = await gmPrompt('Domain (general/safety/coding/custom):', 'general');
+  if (domainIn === null) return;
+  const domain = domainIn.trim() || 'general';
+  const threshIn = await gmPrompt('Pass threshold (0.0–1.0):', '0.70');
+  if (threshIn === null) return;
+  const thresh = threshIn.trim() || '0.70';
   const r = await fetch('/api/eval-framework/suites',{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({name,domain,pass_threshold:parseFloat(thresh)||0.7})
@@ -183,8 +198,11 @@ async function evalViewCases(suiteId) {
 async function evalAddCase(suiteId) {
   const prompt   = await gmPrompt('Add Eval Case', 'Test prompt:');
   if (!prompt?.trim()) return;
-  const expected = await gmPrompt('Expected output/answer (or keywords):','') || '';
-  const diff     = await gmPrompt('Difficulty (easy/medium/hard):', 'medium') || 'medium';
+  const expected = await gmPrompt('Expected output/answer (or keywords):','');
+  if (expected === null) return;
+  const diffIn   = await gmPrompt('Difficulty (easy/medium/hard):', 'medium');
+  if (diffIn === null) return;
+  const diff     = diffIn.trim() || 'medium';
   const r = await fetch(`/api/eval-framework/suites/${encodeURIComponent(suiteId)}/cases`,{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({prompt,expected,difficulty:diff})

@@ -209,7 +209,9 @@ async function openCreateSkill() {
   if (!name) return;
   const prompt_tmpl = await gmPrompt('Prompt Template', 'Use {placeholder} for inputs\ne.g. "Write a {tone} email about {topic}"', '', true);
   if (prompt_tmpl === null) return;
-  const agent = await gmPrompt('Agent', 'e.g. brain, builder, researcher', 'brain') || 'brain';
+  const agentIn = await gmPrompt('Agent', 'e.g. brain, builder, researcher', 'brain');
+  if (agentIn === null) return;   // cancelled — don't create the skill anyway
+  const agent = agentIn.trim() || 'brain';
   try {
     const r = await fetch('/api/skills', {
       method: 'POST', headers: {'Content-Type':'application/json'},

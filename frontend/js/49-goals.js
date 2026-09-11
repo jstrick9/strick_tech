@@ -782,10 +782,11 @@ async function gmAddCheckin() {
   const pct = await gmPrompt(`Check-in: ${g.title.slice(0,40)}`, 'New progress % (0–100):');
   if (pct === null) return;
   const n = Math.max(0, Math.min(100, parseInt(pct)||0));
-  const note = await gmPrompt('Check-in Note', 'Describe what was accomplished (or leave blank):') || '';
+  const note = await gmPrompt('Check-in Note', 'Describe what was accomplished (or leave blank):');
+  if (note === null) return;
   const r = await fetch(`/api/goals/${encodeURIComponent(g.id)}`, {
     method:'PATCH', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({progress:n})
+    body:JSON.stringify({progress:n, note})
   });
   if (!r.ok) { toast('⚠️ Progress not saved — goal no longer exists?', 'error'); await gmLoadGoals(); return; }
   if (note || n>0) {
@@ -804,7 +805,8 @@ async function gmAddMilestone() {
   const g = _goalSelected.goal;
   const title = await gmPrompt('New Milestone', 'Milestone title:');
   if (!title?.trim()) return;
-  const due = await gmPrompt('Due Date', 'Due date (YYYY-MM-DD) or blank:') || '';
+  const due = await gmPrompt('Due Date', 'Due date (YYYY-MM-DD) or blank:');
+  if (due === null) return;      // cancelled — don't create the milestone anyway
   const r = await fetch(`/api/goals/${encodeURIComponent(g.id)}/milestones`, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({title, due_date: due})
@@ -828,7 +830,9 @@ async function gmEditGoal() {
   const g = _goalSelected.goal;
   const title = await gmPrompt('Edit Goal Title', 'Title:', g.title);
   if (title === null) return;
-  const criteria = await gmPrompt('Success Criteria', 'Success criteria:', g.success_criteria||'') || '';
+  const criteriaIn = await gmPrompt('Success Criteria', 'Success criteria:', g.success_criteria||'');
+  if (criteriaIn === null) return;
+  const criteria = criteriaIn;   // empty confirm clears it; cancel keeps the old value
   const r = await fetch(`/api/goals/${encodeURIComponent(g.id)}`, {
     method:'PATCH', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({title: title||g.title, success_criteria: criteria})

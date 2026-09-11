@@ -173,7 +173,7 @@ async function identityProvisionOne() {
 }
 
 async function identityIssueToken(agentId) {
-  const taskId = await gmPrompt(`Issue JIT Token for ${agentId}`, 'Task ID (or leave blank):') || '';
+  const taskId = await gmPrompt(`Issue JIT Token for ${agentId}`, 'Task ID (or leave blank):');
   if (taskId === null) return;
   const r = await fetch(`/api/agent-identity/${encodeURIComponent(agentId)}/issue-token`, {
     method:'POST', headers:{'Content-Type':'application/json'},
