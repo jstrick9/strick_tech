@@ -75,7 +75,23 @@ async def create_agent(req: Request):
         )
 
     # auto-generate id from name
-    agent_id = body.get('id') or re.sub(r'[^a-z0-9_-]', '_', name.lower())[:32]
+    client_id = as_text(body.get('id'))[:64]
+    if client_id and not re.fullmatch(r'[a-z0-9_-]{1,64}', client_id):
+        # The generated path is slugified, but a client-supplied id used to
+        # pass through raw: an id with '/', '?' or '#' is unaddressable by
+        # every /api/agents/{id} route (and path-confusable), leaving an
+        # agent the API can list but never edit or delete.
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': (
+                    'Agent id may only contain lowercase letters, digits, '
+                    '_ and - (leave id empty to auto-generate from the name).'
+                ),
+            },
+            status_code=400,
+        )
+    agent_id = client_id or re.sub(r'[^a-z0-9_-]', '_', name.lower())[:32]
     # ensure uniqueness
     existing = {a['id'] for a in memory_db.agents_list()}
     if agent_id in existing:

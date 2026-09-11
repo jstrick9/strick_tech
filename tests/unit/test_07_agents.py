@@ -38,6 +38,23 @@ class TestAgentsCRUD:
             # ok might be False, or id might be absent
             assert d.get("ok") is False or "error" in d or "id" in d
 
+    def test_create_agent_rejects_unsafe_client_id(self, client):
+        # A client-supplied id with path/query characters is unaddressable by
+        # /api/agents/{id} routes — must be rejected, not stored raw.
+        for bad in ["a/b", "x?y", "z#w", "Upper", "space id", "../escape"]:
+            r = post_json(client, "/api/agents", {"name": "IdProbe", "id": bad})
+            assert r.status_code == 400, bad
+            assert r.json().get("ok") is False
+
+    def test_create_agent_accepts_slug_client_id(self, client):
+        r = post_json(client, "/api/agents", {"name": "IdProbeOk", "id": "probe_slug-1"})
+        assert r.status_code == 200
+        d = r.json()
+        agent = d.get("agent") or d
+        assert agent.get("id") == "probe_slug-1"
+        # cleanup so the seeded set stays stable for other tests
+        client.delete(f"/api/agents/{agent['id']}")
+
     def test_update_agent(self, client):
         r = post_json(client, "/api/agents",
                       {"name": "UpdateMe", "model": "gemini-flash", "system_prompt": "old"})
