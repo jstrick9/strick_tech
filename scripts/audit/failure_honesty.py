@@ -49,7 +49,7 @@ JARGON = re.compile(
 # Evidence that the pane admitted something went wrong.
 ACKNOWLEDGES = re.compile(
     r"could ?n.t|cannot|can.t|unable|failed|error|problem|unavailable"
-    r"|try again|retry|went wrong|not reachable",
+    r"|unreach|try again|retry|went wrong|not reachable",
     re.I)
 
 

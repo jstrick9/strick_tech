@@ -12,7 +12,30 @@ async function renderTerminal() {
     return;
   }
   let env = {};
-  try { const r = await fetch('/api/terminal/env'); env = await r.json(); } catch(e) {}
+  let envWarn = '';
+  try {
+    const r = await fetch('/api/terminal/env');
+    if (r.ok) {
+      env = await r.json();
+    } else {
+      // An auth gate response (401/403) carries user-facing guidance
+      // (register a user, or bind loopback) — show that verbatim.
+      // Anything else gets the humanError treatment; the pane must not
+      // render a healthy-looking prompt over a dead backend (SILENT
+      // finding), nor raw error-body text where an explanation belongs.
+      let body = null;
+      try { body = await r.json(); } catch (e) { /* non-JSON */ }
+      if ((r.status === 401 || r.status === 403) && body && body.error) {
+        envWarn = body.error;
+      } else if (window.humanError && window.httpError) {
+        envWarn = window.humanError(window.httpError(r), { action: 'reach the terminal backend' });
+      } else {
+        envWarn = 'the terminal backend is unreachable';
+      }
+    }
+  } catch (e) {
+    envWarn = 'the terminal backend is unreachable';
+  }
   const QUICK_COMMANDS = ['ls -la','git status','git log --oneline -5','npm install','npm run dev','npm run build','pip install -r requirements.txt','node --version','python3 --version'];
   pane.innerHTML = `
     <div class="terminal-tabs" id="term-tabs">
@@ -30,6 +53,7 @@ async function renderTerminal() {
         <span class="system">Agentic OS Terminal — ${env.cwd||'/preview'}</span>
         ${env.node?'<span class="system" style="display:block">node '+env.node+'</span>':''}
         ${env.python?'<span class="system" style="display:block">python '+env.python+'</span>':''}
+        ${envWarn?'<span class="stderr" style="display:block;margin-top:4px">⚠ '+escHtml(envWarn)+' — commands will not run until this is resolved.</span>':''}
         <span class="system" style="display:block;margin-top:4px">Type a command or click above ↑</span><br>
       </div>
       <div class="terminal-input-row">
