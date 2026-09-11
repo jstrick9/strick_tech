@@ -447,6 +447,25 @@ recovery recipe held (mock provider recreated from the session recipe).
 
 ## Round 14 — cancel-semantics sweep + picker migration, part two (cont.)
 
+### Round 14 close-out — all gates green
+Three units shipped (#104 pickers, #105 cancel sweep, url-safety
+hardening), all pushed (`7999e87`). Close-out verification on the
+rebuilt bundle, live server on 0.0.0.0:
+
+- full 22-audit sweep: **all at 0** (touch-targets 215 ≤ 217)
+- unit suite (server down): **4775 passed / 0 failed / 187 skipped** —
+  identical to the round-13 baseline
+- vitest 335/335 · security 321/10 (run per unit)
+- every fixed flow verified live: cancel leaves no server-side record
+  (specs, hooks, memories, integrations, packs, templates, caps,
+  budget rules, entities, pipelines), pickers render their choices,
+  full creates persist the chosen values
+
+Also scanned this round and found clean: gmDanger guards (all 60+
+destructive confirms check the result), URL interpolation (all ids
+server-generated/sanitized except the one pack-export path fixed),
+parseInt/parseFloat inputs (all have fallbacks).
+
 ### #105 — the cancel sweep found eight more act-on-Cancel flows
 After #104, a systematic scan of ALL gmPrompt sites (does the value
 get a null-check before it's used?) found the pattern's long tail —
