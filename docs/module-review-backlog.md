@@ -372,5 +372,48 @@ re-render doesn't replace a battle in progress. Full journey green:
 battle renders both sides, Cancel leaves unvoted, vote+reason records,
 ELO leaderboard updates.
 
-**Suites at end of round:** frontend 334/334 · security 321/10 (with
-image-capable mock provider) · arena journey + wipe probe green.
+### #100 — eval picker: free-text where a select belongs (+ gmChoose)
+"Run Eval Suite" made you TYPE an exact agent id (list shown as bullets
+in the prompt body; typo -> error toast) and an exact suite_id from
+memory. The shared gm dialog gained a select mode (`#gm-select`,
+`_gm_show({select})`, `gmChoose()` helper, Enter commits, focus lands
+on the select); eval agent + suite pickers now offer real choices —
+suites listed live from the API with case counts, free-text fallback
+only when the API is unreachable. Fixing `_gm_click` also killed a
+latent leak: the old `inp.value || ta.value` chain let text left in
+the hidden input by a PREVIOUS dialog win over an empty textarea.
+
+### #101 — connectors: configure accepted non-object credentials
+PATCH /configure stored any truthy `credentials` (string/list/number)
+verbatim and flipped the connector to status='active' — a "configured"
+connector that could never work, bricking every later execute inside
+`{**db_creds, ...}`. Now 400s unless credentials/config are JSON
+objects ({} still clears). Surveyed and left as documented internal
+contracts: unknown-connector execute returns 200 {ok:false}
+(execute_connector serves agents, not just HTTP); /test is a status
+check; webhook targets are per-call payload.url by design.
+tests/connectors/ is a legacy live-verification directory (real Notion
+workspace, live server, no CSRF token) outside every gate — left in
+place, removal needs owner approval.
+
+### #102 — workspace import: non-object rows were a 500
+The backup/restore journey passed end-to-end (export -> delete task ->
+import -> task restored by upsert; hostile archives handled) except
+one: `{'tasks': ['not','objects',42]}` crashed POST /api/workspace/
+import with HTTP 500 — row.keys() on a string sat OUTSIDE the per-row
+try that only wrapped the execute. Non-dict rows are now skipped;
+regression test added to test_63.
+
+### Mobile-width pass (green)
+responsive audit 0 document overflow at phone/tablet/desktop across
+all panes; touch targets 215 (baseline 217, ratchet enforces
+downward); the new gmChoose/gmPrompt dialogs measured at 390×844 —
+modal spans exactly the viewport, select is 44px tall, buttons above
+the fold, tap+select works; workstation tab strip does not overflow.
+Probe note: dismissing the first-run tour reliably requires
+window.closeOnboardingModal() — hiding the overlay leaves the tour
+alive and it re-asserts itself over the UI.
+
+**Suites at end of round:** frontend 335/335 (gmChoose contract test
+added) · security 321/10 (with image-capable mock provider) · unit
+4796/0 (import regression test added) · responsive/touch audits green.
