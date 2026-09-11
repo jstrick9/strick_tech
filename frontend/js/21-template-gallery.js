@@ -565,10 +565,16 @@
   window.showCreateTemplateForm = async function() {
     var name = await gmPrompt('Template name:', 'My Template');
     if (!name || !name.trim()) return;
+    // Cancel on ANY of these previously fell through and POSTed the
+    // template with null fields.
     var description = await gmPrompt('Description:', 'What does this template build?');
+    if (description === null) return;
     var category = await gmPrompt('Category:', 'custom');
+    if (category === null) return;
     var promptText = await gmPrompt('Chat prompt:', 'Build a ' + name.trim());
+    if (promptText === null) return;
     var emoji = await gmPrompt('Emoji icon:', '📄');
+    if (emoji === null) return;
 
     var id = 'custom-' + Date.now();
     var newTemplate = {

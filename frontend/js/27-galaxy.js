@@ -141,6 +141,7 @@ window.gxAddMemory = async function() {
   const source = await gmPrompt('Source / Category (e.g. user_prefs, project_rules, architecture):', 'user_prefs');
   if (!source) return;
   const tags = await gmPrompt('Tags (comma-separated, optional):', 'python, tailwind, ui');
+  if (tags === null) return;   // cancelled — don't store the memory anyway
   try {
     toast('⏳ Storing vector memory...', 'ok', 2000);
     const r = await fetch('/api/memory/add', {

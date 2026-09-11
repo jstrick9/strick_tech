@@ -153,7 +153,8 @@ async function connectorRegister() {
   if (!name?.trim()) return;
   const cat    = await gmPrompt('Category:', 'custom');
   if (cat === null) return;
-  const auth   = await gmPrompt('Auth type (none/api_key/basic/oauth):', 'api_key');
+  const auth   = await gmChoose('Auth Type', 'How does this connector authenticate?',
+    ['none','api_key','basic','oauth'], 'api_key');
   if (auth === null) return;
   const capsStr= await gmPrompt('Capabilities (comma-separated):', 'my_action');
   if (capsStr === null) return;

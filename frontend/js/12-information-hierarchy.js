@@ -402,7 +402,11 @@
   window.steerNew = async function() {
     const title = await gmPrompt('Rule file title:', 'My Convention');
     if (!title) return;
-    const cat   = await gmPrompt('Category (stack|style|architecture|context|custom):', 'custom');
+    // Picker + cancel check: the category is a fixed set, and a Cancel
+    // previously opened the editor anyway with a null category.
+    const cat   = await gmChoose('Rule Category', 'What kind of rule file is this?',
+      ['stack','style','architecture','context','custom'], 'custom');
+    if (cat === null) return;
     const overlay = document.createElement('div');
     overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
     overlay.innerHTML=`

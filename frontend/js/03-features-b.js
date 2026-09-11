@@ -184,6 +184,7 @@ async function specNew() {
   const title = await gmPrompt('Feature name:', 'User Authentication');
   if (!title) return;
   const desc  = await gmPrompt('Describe the feature (the more detail, the better):', '');
+  if (desc === null) return;   // cancelled — don't create the spec anyway
 
   try {
     const r = await fetch('/api/specs', {
@@ -606,6 +607,7 @@ async function hookToggle(hookId, btn) {
 async function hookManualRun(hookId) {
   try {
     const evData = await gmPrompt('Event data (JSON, optional):', '{}');
+    if (evData === null) return;   // cancelled — don't run the hook anyway
     let data = {};
     try { data = JSON.parse(evData||'{}'); } catch(e) {}
     const r = await fetch(`/api/hooks/${encodeURIComponent(hookId)}/run`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_data:data})});

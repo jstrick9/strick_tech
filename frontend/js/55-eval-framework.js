@@ -183,9 +183,9 @@ async function evalHumanReview(resultId) {
 async function evalCreateSuite() {
   const name   = await gmPrompt('New Eval Suite', 'Suite name:');
   if (!name?.trim()) return;
-  const domainIn = await gmPrompt('Domain (general/safety/coding/custom):', 'general');
-  if (domainIn === null) return;
-  const domain = domainIn.trim() || 'general';
+  const domain = await gmChoose('Domain', 'What does this suite evaluate?',
+    ['general','safety','coding','custom'], 'general');
+  if (domain === null) return;
   const threshIn = await gmPrompt('Pass threshold (0.0–1.0):', '0.70');
   if (threshIn === null) return;
   const thresh = threshIn.trim() || '0.70';
@@ -209,9 +209,9 @@ async function evalAddCase(suiteId) {
   if (!prompt?.trim()) return;
   const expected = await gmPrompt('Expected output/answer (or keywords):','');
   if (expected === null) return;
-  const diffIn   = await gmPrompt('Difficulty (easy/medium/hard):', 'medium');
-  if (diffIn === null) return;
-  const diff     = diffIn.trim() || 'medium';
+  const diff     = await gmChoose('Difficulty', 'How hard is this case?',
+    ['easy','medium','hard'], 'medium');
+  if (diff === null) return;
   const r = await fetch(`/api/eval-framework/suites/${encodeURIComponent(suiteId)}/cases`,{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({prompt,expected,difficulty:diff})

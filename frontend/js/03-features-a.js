@@ -1838,7 +1838,8 @@ async function sdkNewPack() {
   const name = await gmPrompt('Plugin pack name:', 'My Plugin Pack');
   if (!name) return;
   const desc = await gmPrompt('Description:', '');
-  
+  if (desc === null) return;   // cancelled — don't create the pack anyway
+
   try {
     const r = await fetch('/api/pluginsdk/packs', {
       method:'POST',

@@ -182,6 +182,7 @@ async function intStripeWire() {
   const product  = await gmPrompt('Product name:', 'Pro Plan');
   if (!product) return;
   const amtStr   = await gmPrompt('Amount in cents (e.g. 1999 for $19.99):', '1999');
+  if (amtStr === null) return;   // cancelled — don't generate the integration anyway
   const amount   = parseInt(amtStr||'1999');
   showToast('⚡ Generating Stripe integration…');
   try {
