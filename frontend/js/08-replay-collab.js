@@ -1843,7 +1843,10 @@ async function mktLoadPacks(q='', category='', sort='featured') {
   try {
     const params = new URLSearchParams({q,sort,limit:'48'});
     if (category) params.set('category',category);
-    const r = await fetch(`/api/marketplace?${encodeURIComponent(params)}`);
+    // URLSearchParams already serializes safely — encodeURIComponent here
+    // mangled & into %26 and = into %3D, so the server received ONE giant 'q'
+    // value and search/category/sort/limit were all silently ignored.
+    const r = await fetch(`/api/marketplace?${params}`);
     if (!r.ok) { grid.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t load this view', message: humanError(httpError(r), {action:'load this view', dataSafe:true}) }); return; }
     const d = await r.json();
     const cnt = document.getElementById('mkt-result-count');

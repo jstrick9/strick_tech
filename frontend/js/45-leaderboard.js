@@ -245,7 +245,10 @@ async function lbChangeDays(days) {
   try {
     const params = new URLSearchParams({days: d, limit:'20'});
     if (task) params.set('task_type', task);
-    const r = await fetch(`/api/agent-leaderboard?${encodeURIComponent(params)}`);
+    // URLSearchParams serializes safely — the old encodeURIComponent here
+    // collapsed days/limit/task_type into one ignored 'days' value, so the
+    // period and task filters never reached the server.
+    const r = await fetch(`/api/agent-leaderboard?${params}`);
     if (!r.ok) { container.innerHTML = stateFeedback.errorElement({ message: `Failed (HTTP ${r.status})` }); return; }
     const lb = await r.json();
     if (!(lb.leaderboard||[]).length) {
