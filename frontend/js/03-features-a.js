@@ -1913,7 +1913,7 @@ async function sdkSelectPack(packId) {
     // Wire delegated SDK editor buttons (quote-collision fix)
     area.querySelectorAll('.sdk-validate').forEach(btn => btn.addEventListener('click', () => sdkValidatePack(btn.dataset.packId)));
     area.querySelectorAll('.sdk-publish').forEach(btn => btn.addEventListener('click', () => sdkPublishPack(btn.dataset.packId)));
-    area.querySelectorAll('.sdk-export').forEach(btn => btn.addEventListener('click', () => { const a=document.createElement('a'); a.href=`/api/pluginsdk/export/${btn.dataset.packId}`; a.download=''; a.click(); }));
+    area.querySelectorAll('.sdk-export').forEach(btn => btn.addEventListener('click', () => { const a=document.createElement('a'); a.href=`/api/pluginsdk/export/${encodeURIComponent(btn.dataset.packId)}`; a.download=''; a.click(); }));
     area.querySelectorAll('.sdk-delete').forEach(btn => btn.addEventListener('click', () => sdkDeletePack(btn.dataset.packId)));
     area.querySelectorAll('.sdk-add-skill').forEach(btn => btn.addEventListener('click', () => sdkAddSkill(btn.dataset.packId)));
     area.querySelectorAll('.sdk-save').forEach(btn => btn.addEventListener('click', () => sdkSaveJSON(btn.dataset.packId)));

@@ -564,7 +564,7 @@ async function saveAgent() {
     system_prompt: document.getElementById('am-system').value.trim(),
   };
 
-  const url    = S.agentModalMode === 'edit' ? `/api/agents/${S.agentModalId}` : '/api/agents';
+  const url    = S.agentModalMode === 'edit' ? `/api/agents/${encodeURIComponent(S.agentModalId)}` : '/api/agents';
   const method = S.agentModalMode === 'edit' ? 'PATCH' : 'POST';
 
   let j;

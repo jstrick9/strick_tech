@@ -180,7 +180,7 @@ async function exportCurrentZip() {
   toast('📦 Download started', 'ok', 2000);
 }
 async function exportWorkspace(wsId) {
-  const a = document.createElement('a'); a.href=`/api/workspaces/${wsId}/export`; a.download=`workspace-${wsId}.zip`; a.click();
+  const a = document.createElement('a'); a.href=`/api/workspaces/${encodeURIComponent(wsId)}/export`; a.download=`workspace-${wsId}.zip`; a.click();
 }
 async function deleteWorkspace(wsId, name) {
   if (!(await gmDanger('Delete Project', `Delete "${name}"? This cannot be undone.`,'Delete'))) return;
