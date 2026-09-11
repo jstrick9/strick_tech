@@ -343,3 +343,34 @@ gmPrompt call followed by `||` (balanced-paren scan) — including the
 
 **Suites at end of round:** frontend 334/334 · security 321/10 (0.0.0.0
 bind: honest terminal skips) · failure-honesty 0 · DB clean.
+
+## Round 13 — arena journey (two live bugs)
+
+### #098 — OPENROUTER_BASE_URL ignored; stream 401s silently rendered EMPTY
+Arena battles against anything but the real OpenRouter endpoint produced
+two blank panels and zero errors. Three routers bypassed the override:
+arena `_run_model` hardcoded the full chat/completions URL, fusion and
+imagegen hardcoded `OR_BASE = 'https://openrouter.ai/api/v1'`. Worse,
+httpx `client.stream` does not raise on 401 — the SSE reader just saw no
+data lines and emitted a clean 0-token "response", and the server log
+had the real 401s all along. arena now uses `OPENROUTER_BASE` from
+services.llm and raises on non-200 (failure becomes an error chunk the
+user sees); fusion/imagegen import the same constant.
+
+### #099 — workstation host re-render destroyed absorbed panes mid-use
+Starting an arena battle inside the enterprise workstation worked for
+~1.5s, then the host renderer's async `innerHTML` rebuild wiped every
+absorbed pane moved into it; the MutationObserver recovery rebuilt the
+workstation with EMPTY pane shells and re-rendered, so any transient
+state (live battle, terminal scrollback, half-written form) was lost.
+Probe evidence: the `#pane-arena` element itself was replaced at
+t=1500ms. Fix: initWorkstation stashes each absorbed pane's element in
+`window._wsPaneNodes` and re-attaches the ORIGINAL (detached-but-intact)
+element after a host wipe instead of creating an empty shell; plus an
+`_arenaBattleActive` lifecycle flag so the legitimate post-rebuild
+re-render doesn't replace a battle in progress. Full journey green:
+battle renders both sides, Cancel leaves unvoted, vote+reason records,
+ELO leaderboard updates.
+
+**Suites at end of round:** frontend 334/334 · security 321/10 (with
+image-capable mock provider) · arena journey + wipe probe green.
