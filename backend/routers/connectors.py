@@ -4020,6 +4020,17 @@ async def configure_connector(connector_id: str, req: Request):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
     creds = body.get('credentials') or {}
     config = body.get('config') or {}
+    # Shape check. Before this, `credentials` could be ANY truthy value — a
+    # string, a list, a number — and the handler happily stored it and flipped
+    # the connector to status='active'. The pane then showed a configured
+    # connector that could never work, and every execute died inside
+    # `{**db_creds, ...}` ("argument of type 'str' is not a mapping") instead
+    # of at configure time where the mistake was made.
+    if not isinstance(creds, dict) or not isinstance(config, dict):
+        return JSONResponse(
+            {'ok': False, 'error': "'credentials' and 'config' must be JSON objects"},
+            status_code=400,
+        )
     status = 'active' if creds else 'unconfigured'
     con = _get_conn()
     try:
