@@ -3001,7 +3001,7 @@ let _gm_resolve = null;
 let _gm_opener = null;
 let _gm_keydown = null;
 
-function _gm_show({ title='', body='', input=false, textarea=false, placeholder='', buttons=[], value='' }) {
+function _gm_show({ title='', body='', input=false, textarea=false, select=null, placeholder='', buttons=[], value='' }) {
   return new Promise(resolve => {
     _gm_resolve = resolve;
     document.getElementById('gm-title').textContent = title;
@@ -3009,11 +3009,22 @@ function _gm_show({ title='', body='', input=false, textarea=false, placeholder=
     const wrap  = document.getElementById('gm-input-wrap');
     const inp   = document.getElementById('gm-input');
     const ta    = document.getElementById('gm-textarea');
-    wrap.style.display = (input||textarea) ? 'block' : 'none';
+    const sel   = document.getElementById('gm-select');
+    wrap.style.display = (input||textarea||select) ? 'block' : 'none';
     inp.style.display  = input   ? 'block' : 'none';
     ta.style.display   = textarea? 'block' : 'none';
+    if (sel) sel.style.display = select ? 'block' : 'none';
     if (input)    { inp.placeholder = placeholder; inp.value = value; }
     if (textarea) { ta.placeholder  = placeholder; ta.value  = value; }
+    if (select && sel) {
+      // Choices are {value,label} objects or plain strings (label === value).
+      sel.innerHTML = select.map(c => {
+        const v = typeof c === 'string' ? c : c.value;
+        const l = typeof c === 'string' ? c : (c.label || c.value);
+        return `<option value="${escHtml(v)}">${escHtml(l)}</option>`;
+      }).join('');
+      sel.value = value || (select[0] && (typeof select[0] === 'string' ? select[0] : select[0].value)) || '';
+    }
 
     const btns = document.getElementById('gm-btns');
     btns.innerHTML = buttons.map((b,i) =>
@@ -3032,7 +3043,7 @@ function _gm_show({ title='', body='', input=false, textarea=false, placeholder=
     // primary button. Focusing nothing leaves a screen-reader user unaware a
     // dialog opened at all.
     setTimeout(() => {
-      const first = input ? inp : (textarea ? ta : null);
+      const first = input ? inp : (textarea ? ta : ((select && sel) ? sel : null));
       if (first && first.focus) { first.focus(); return; }
       const primary = btns.querySelector('.btn-primary, .btn-danger') || btns.querySelector('button');
       if (primary) primary.focus();
@@ -3040,6 +3051,10 @@ function _gm_show({ title='', body='', input=false, textarea=false, placeholder=
 
     if (input) {
       inp.onkeydown = e => { if (e.key === 'Enter') _gm_click('ok'); };
+    }
+    if (select && sel) {
+      // A focused <select> commits with Enter like the text input does.
+      sel.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); _gm_click('ok'); } };
     }
 
     // Escape and focus trapping apply to EVERY dialog, not just prompts.
@@ -3074,7 +3089,15 @@ function _gm_teardown() {
   _gm_opener = null;
 }
 function _gm_click(id) {
-  const val = document.getElementById('gm-input').value || document.getElementById('gm-textarea').value;
+  const inp = document.getElementById('gm-input');
+  const ta  = document.getElementById('gm-textarea');
+  const sel = document.getElementById('gm-select');
+  // The value belongs to whichever control this dialog actually showed.
+  // (The old `inp.value || ta.value` chain cannot work for selects: a select
+  // with a chosen option would still lose to whatever text sat in the input.)
+  const val = sel && sel.style.display !== 'none' ? sel.value
+            : inp && inp.style.display !== 'none' ? inp.value
+            : ta ? ta.value : '';
   document.getElementById('gmodal').style.display = 'none';
   _gm_teardown();
   _gm_resolve?.({ id, value: val });
@@ -3097,6 +3120,15 @@ async function gmConfirm(title, body='') {
 }
 async function gmPrompt(title, placeholder='', value='', textarea=false) {
   const r = await _gm_show({ title, input:!textarea, textarea, placeholder, value,
+    buttons:[{id:'cancel',label:'Cancel'},{id:'ok',label:'OK',primary:true}] });
+  return r.id === 'ok' ? r.value : null;
+}
+// Pick from a fixed list instead of free-typing an exact ID. `choices` is an
+// array of strings or {value,label}. Resolves the chosen value, or null when
+// cancelled — same contract as gmPrompt, so call sites can be migrated
+// mechanically.
+async function gmChoose(title, question='', choices=[], value='') {
+  const r = await _gm_show({ title, body: question, select: choices.length ? choices : [''], value,
     buttons:[{id:'cancel',label:'Cancel'},{id:'ok',label:'OK',primary:true}] });
   return r.id === 'ok' ? r.value : null;
 }
@@ -6181,6 +6213,7 @@ window.autoDetectLocalModels = async function autoDetectLocalModels() {
 window.gmAlert = gmAlert;
 window.gmConfirm = gmConfirm;
 window.gmPrompt = gmPrompt;
+window.gmChoose = gmChoose;
 window.gmDanger = gmDanger;
 window.escHtml = escHtml;
 

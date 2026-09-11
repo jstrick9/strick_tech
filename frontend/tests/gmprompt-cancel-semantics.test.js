@@ -16,25 +16,27 @@ import * as path from 'path';
 
 const JS_DIR = path.join(__dirname, '..', 'js');
 
-/** Find every `gmPrompt(` whose closing paren is followed by `||`. */
+/** Find every `gmPrompt(`/`gmChoose(` whose closing paren is followed by `||`. */
 function fallbackCallSites() {
   const offenders = [];
   for (const file of fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js'))) {
     const src = fs.readFileSync(path.join(JS_DIR, file), 'utf8');
-    let idx = 0;
-    while ((idx = src.indexOf('gmPrompt(', idx)) !== -1) {
-      // balanced-paren scan to the call's real closing paren
-      let i = idx + 'gmPrompt('.length, depth = 1;
-      while (depth && i < src.length) {
-        if (src[i] === '(') depth += 1;
-        else if (src[i] === ')') depth -= 1;
-        i += 1;
+    for (const fn of ['gmPrompt(', 'gmChoose(']) {
+      let idx = 0;
+      while ((idx = src.indexOf(fn, idx)) !== -1) {
+        // balanced-paren scan to the call's real closing paren
+        let i = idx + fn.length, depth = 1;
+        while (depth && i < src.length) {
+          if (src[i] === '(') depth += 1;
+          else if (src[i] === ')') depth -= 1;
+          i += 1;
+        }
+        if (/^\s*\|\|/.test(src.slice(i, i + 8))) {
+          const line = src.slice(0, idx).split('\n').length;
+          offenders.push(`${file}:${line}`);
+        }
+        idx = i;
       }
-      if (/^\s*\|\|/.test(src.slice(i, i + 8))) {
-        const line = src.slice(0, idx).split('\n').length;
-        offenders.push(`${file}:${line}`);
-      }
-      idx = i;
     }
   }
   return offenders;
@@ -46,8 +48,13 @@ describe('gmPrompt cancel semantics', () => {
   });
 
   it('the representative flows null-check before defaulting', () => {
+    // Eval framework now picks the agent via gmChoose (a <select>), so the
+    // pinned shape is: cancel returns, and the chosen value is used verbatim
+    // (a select can't be "blank-defaulted" — no `.trim() || default` left).
     const evalSrc = fs.readFileSync(path.join(JS_DIR, '55-eval-framework.js'), 'utf8');
-    expect(evalSrc).toMatch(/if \(agentIn === null\) return;[\s\S]*?agentIn\.trim\(\) \|\| 'builder'/);
+    expect(evalSrc).toMatch(/const agentId = await gmChoose\('Run Eval Suite'[^;]*;\s*if \(agentId === null\) return;/);
+    // The free-text fallback path (suites unreachable) still honours cancel.
+    expect(evalSrc).toMatch(/const s = await gmPrompt\('Suite ID:', 'suite_general'\);\s*if \(s === null\) return;\s*suiteId = s\.trim\(\);/);
 
     const controlSrc = fs.readFileSync(path.join(JS_DIR, '31-control-tower.js'), 'utf8');
     expect(controlSrc).toMatch(/if \(agentIn === null\) return;\s*\/\/ cancelled — don't create a rule for ALL agents/);

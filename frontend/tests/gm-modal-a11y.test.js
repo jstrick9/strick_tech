@@ -12,7 +12,7 @@ const GMODAL_HTML = `
 <div id="gmodal" role="dialog" aria-modal="true" aria-labelledby="gm-title" aria-describedby="gm-body" style="display:none">
   <div id="gm-title"></div>
   <div id="gm-body"></div>
-  <div id="gm-input-wrap" style="display:none"><input id="gm-input"><textarea id="gm-textarea" style="display:none"></textarea></div>
+  <div id="gm-input-wrap" style="display:none"><input id="gm-input"><textarea id="gm-textarea" style="display:none"></textarea><select id="gm-select" style="display:none"></select></div>
   <div id="gm-btns"></div>
 </div>`;
 
@@ -26,7 +26,7 @@ function loadModule() {
   const end = src.indexOf('// ── Extend nav() for Sprint 4');
   const frag = src.slice(start, end);
   gm = new Function('window', 'document', 'escHtml', 'jsArg',
-    frag + ';return { gmAlert, gmConfirm, gmPrompt, gmDanger, cancel:function(){_gm_cancel()} };'
+    frag + ';return { gmAlert, gmConfirm, gmPrompt, gmChoose, gmDanger, cancel:function(){_gm_cancel()} };'
   )(globalThis.window, globalThis.document, escHtml, jsArg);
 }
 
@@ -77,5 +77,32 @@ describe('gm modal keyboard + focus contract', () => {
     expect(document.activeElement).toBe(document.getElementById('gm-input'));
     gm.cancel();
     await p;
+  });
+
+  it('gmChoose shows a select (input hidden), returns the chosen value, cancel resolves null', async () => {
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+    const p = gm.gmChoose('Run Eval Suite', 'Agent to evaluate:',
+      ['orchestrator', 'brain', 'builder'], 'brain');
+    const modal = document.getElementById('gmodal');
+    expect(modal.style.display).toBe('flex');
+    const sel = document.getElementById('gm-select');
+    const inp = document.getElementById('gm-input');
+    expect(sel.style.display).toBe('block');
+    expect(inp.style.display).toBe('none');
+    // Options built from the choices, default honoured.
+    expect([...sel.options].map(o => o.value)).toEqual(['orchestrator', 'brain', 'builder']);
+    expect(sel.value).toBe('brain');
+    // Focus lands on the select.
+    await new Promise(r => setTimeout(r, 80));
+    expect(document.activeElement).toBe(sel);
+    gm.cancel();
+    await expect(p).resolves.toBe(null);
+    // {value,label} objects map through.
+    const p2 = gm.gmChoose('Suite', 'Pick:', [{ value: 'suite_code', label: 'Code Quality' }]);
+    expect([...sel.options].map(o => o.textContent)).toEqual(['Code Quality']);
+    gm.cancel();
+    await expect(p2).resolves.toBe(null);
   });
 });

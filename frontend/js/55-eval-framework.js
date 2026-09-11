@@ -107,23 +107,32 @@ async function renderEvalFramework() {
 let _evalRunId = null;
 async function evalRunSuite() {
   const agents = ['orchestrator','brain','builder','researcher','reviewer','creative'];
-  const agentIn = await gmPrompt('Run Eval Suite', `Agent to evaluate:\n${agents.map(a=>`• ${a}`).join('\n')}`, 'builder');
-  if (agentIn === null) return;   // Cancel means cancel, not "run as builder"
-  const agentId = agentIn.trim() || 'builder';
-  if (!agents.includes(agentId)) {
-    showToast(`Unknown agent "${agentId}" — pick one of: ${agents.join(', ')}`);
-    return;
+  // Pickers, not free text: the old prompts made you TYPE an exact agent id
+  // (typo → error toast) and an exact suite_id from memory.
+  const agentId = await gmChoose('Run Eval Suite', 'Agent to evaluate:', agents, 'builder');
+  if (agentId === null) return;   // Cancel means cancel, not "run as builder"
+  let suiteId = null;
+  const resp = await fetch('/api/eval-framework/suites').catch(()=>null);
+  const data = resp && resp.ok ? await resp.json().catch(()=>null) : null;
+  if (data && (data.suites||[]).length) {
+    suiteId = await gmChoose('Eval Suite', 'Suite to run:',
+      data.suites.map(s => ({ value: s.suite_id, label: `${s.name} (${s.suite_id}) · ${s.cases_count||0} cases` })),
+      'suite_general');
+  } else {
+    // Can't list suites (offline or none yet) — fall back to free text.
+    const s = await gmPrompt('Suite ID:', 'suite_general');
+    if (s === null) return;
+    suiteId = s.trim();
   }
-  const suiteIn = await gmPrompt('Suite ID:', 'suite_general');
-  if (suiteIn === null) return;
-  await evalRunSpecific(suiteIn.trim() || 'suite_general', agentId);
+  if (suiteId === null || suiteId === '') return;
+  await evalRunSpecific(suiteId, agentId);
 }
 
 async function evalRunSpecific(suiteId, agentId) {
   if (!agentId) {
-    const a = await gmPrompt('Agent ID:', 'builder');
-    if (a === null) return;
-    agentId = a.trim() || 'builder';
+    const agents = ['orchestrator','brain','builder','researcher','reviewer','creative'];
+    agentId = await gmChoose('Run Suite "' + suiteId + '"', 'Agent to evaluate:', agents, 'builder');
+    if (agentId === null) return;
   }
   showToast(`🧪 Running eval suite "${suiteId}" on ${agentId}…`);
   const resp = await fetch('/api/eval-framework/run',{
