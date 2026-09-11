@@ -447,6 +447,21 @@ recovery recipe held (mock provider recreated from the session recipe).
 
 ## Round 14 — cancel-semantics sweep + picker migration, part two (cont.)
 
+### #106 — 25 mutating calls toasted success without reading the response
+Same family as the load-path honesty work: a scan of all 338 mutating
+fetches found 45 fire-and-forget calls, 25 of which toasted success
+unconditionally — a 403/500 was reported as "✅ done" and local state
+was updated to match the lie (vault key "removed", fork "created",
+HITL decision "approved", alerts "resolved", …). All 25 now check the
+response and toast the failure before touching local state; the
+existing humanizeRawError toast filter renders the reason in the
+standard human copy. Verified live by forcing 500/503 responses
+through a fetch shim: error toast shown, success suppressed. The
+remaining 20 unchecked calls are refresh-after-fire-and-forget
+(no lying toast) or deliberate best-effort telemetry — left as is.
+
+vitest 335/335 · security 321/10 · failure-honesty audit 0.
+
 ### Round 14 close-out — all gates green
 Three units shipped (#104 pickers, #105 cancel sweep, url-safety
 hardening), all pushed (`7999e87`). Close-out verification on the
