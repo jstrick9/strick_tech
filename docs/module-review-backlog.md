@@ -447,6 +447,20 @@ recovery recipe held (mock provider recreated from the session recipe).
 
 ## Round 14 — cancel-semantics sweep + picker migration, part two (cont.)
 
+### #109 — same id pass-through in five more routers
+plugins (the user-reachable one: pasted/URL-installed plugin JSON can
+carry any id — install succeeded, every manage call after 404'd),
+hooks, marketplace packs, observability traces/spans, and crdt docs
+all stored client-supplied ids verbatim. All five now slugify to the
+[a-z0-9_-] alphabet pluginsdk already used; agents keeps its explicit
+400. New unit test proves install/json with id "my/plugin?x=1" is
+stored as a slug, listed, and deletable. Verified the four other UIs
+never send ids (API-only hardening).
+
+Unit 4778/0/187 · vitest 335/335 · security 321/10 (live server up —
+NOTE: the security suite requires the live server; run with the
+server DOWN it fails ~325 tests environmentally).
+
 ### #108 — client-supplied agent ids passed through unsanitized
 create_agent slugifies name-derived ids but stored a client-supplied
 id verbatim — an id with '/', '?' or '#' is unaddressable by every
