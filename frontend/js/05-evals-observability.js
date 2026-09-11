@@ -745,9 +745,15 @@ async function kgExtract() {
 async function kgAddEntity() {
   const name=await gmPrompt('Entity name:','');
   if(!name) return;
-  const type=await gmPrompt('Type (person/project/tool/concept/decision):','concept');
+  // Pickers, not free text: the type must be one of five fixed values, and a
+  // Cancel previously fell through to `type || 'concept'` — dismissing the
+  // dialog still created the entity with the default type.
+  const type=await gmChoose('Entity Type', 'What kind of entity is this?',
+    ['person','project','tool','concept','decision'], 'concept');
+  if (type === null) return;
   const desc=await gmPrompt('Description (optional):','');
-  await fetch('/api/knowledge-graph/entities',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,type:type||'concept',description:desc})});
+  if (desc === null) return;
+  await fetch('/api/knowledge-graph/entities',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,type:type,description:desc})});
   showToast(`✅ Entity "${name}" added`);
   renderKnowledgeGraph();
 }
@@ -760,8 +766,12 @@ async function kgAddRelation(fromId, fromName) {
   const d=await r.json();
   const toEntity=d.entities?.[0];
   if(!toEntity) { gmAlert(`Entity "${toName}" not found. Add it first.`); return; }
-  const relation=await gmPrompt('Relation type (DEPENDS_ON/USES/CREATED_BY/PART_OF/RELATED_TO):','RELATED_TO');
-  await fetch('/api/knowledge-graph/relations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_id:fromId,to_id:toEntity.id,relation:relation||'RELATED_TO'})});
+  // Same fix as kgAddEntity: a Cancel previously created the relation with
+  // the default RELATED_TO anyway.
+  const relation=await gmChoose('Relation Type', `How does "${fromName}" relate to "${toName}"?`,
+    ['DEPENDS_ON','USES','CREATED_BY','PART_OF','RELATED_TO'], 'RELATED_TO');
+  if (relation === null) return;
+  await fetch('/api/knowledge-graph/relations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_id:fromId,to_id:toEntity.id,relation:relation})});
   showToast(`✅ Relation added: ${fromName} → ${relation} → ${toName}`);
   kgShowEntity(fromId);
 }
@@ -832,7 +842,9 @@ async function renderRAG() {
 async function ragNewPipeline() {
   const name=await gmPrompt('Pipeline name:','My Knowledge Base');
   if(!name) return;
-  const strategy=await gmPrompt('Chunk strategy (paragraph/sentence/fixed/semantic):','paragraph');
+  const strategy=await gmChoose('Chunk Strategy', 'How should documents be split into chunks?',
+    ['paragraph','sentence','fixed','semantic'], 'paragraph');
+  if (strategy === null) return;
   try {
     const r=await fetch('/api/rag/pipelines',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({name,chunk_strategy:strategy||'paragraph',chunk_size:500,retrieval_k:5})});

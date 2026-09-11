@@ -140,10 +140,19 @@ async function addBudgetRule() {
   if (!name) return;
   const cost = await gmPrompt('Max cost (USD)', 'e.g. 1.00', '1.00');
   if (!cost) return;
-  const agentIn = await gmPrompt('Agent ID (* = all agents)', 'e.g. builder or * for all', '*');
+  // Pickers, not free text: the agent list is live from app state, and
+  // stop/warn is a two-way choice. Previously a typo'd agent id silently
+  // created a rule that could never match anything.
+  const agentChoices = ['*'].concat(
+    (typeof S !== 'undefined' && Array.isArray(S.agents))
+      ? S.agents.map(a => a.id) : []);
+  const agentIn = await gmChoose('Agent', 'Apply this budget rule to:',
+    agentChoices.map(id => id === '*'
+      ? { value: '*', label: '* — all agents' } : { value: id, label: id }),
+    '*');
   if (agentIn === null) return;   // cancelled — don't create a rule for ALL agents
   const agentId = agentIn.trim() || '*';
-  const actionIn = await gmPrompt('Action when limit hit (stop / warn)', 'stop or warn', 'stop');
+  const actionIn = await gmChoose('Action when limit hit', undefined, ['stop', 'warn'], 'stop');
   if (actionIn === null) return;
   const validAction = (actionIn.trim() === 'warn') ? 'warn' : 'stop';
   await fetch('/api/control/budget-rules', {method:'POST', headers:{'Content-Type':'application/json'},

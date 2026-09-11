@@ -1980,10 +1980,17 @@ async function mktViewDetail(packId) {
 }
 
 async function mktLeaveReview(packId) {
-  const ratingStr = await gmPrompt('Rating (1-5 stars):', '5');
+  // A 1-5 rating is a choice, not text: the free-text version made users
+  // TYPE a number and then bounced invalid input back with an alert.
+  const ratingStr = await gmChoose('Rating', 'How would you rate this pack?', [
+    { value: '5', label: '⭐⭐⭐⭐⭐ Excellent' },
+    { value: '4', label: '⭐⭐⭐⭐ Good' },
+    { value: '3', label: '⭐⭐⭐ OK' },
+    { value: '2', label: '⭐⭐ Poor' },
+    { value: '1', label: '⭐ Terrible' },
+  ], '5');
   if (ratingStr === null) return;
-  const rating = parseInt(ratingStr||'5');
-  if (isNaN(rating)||rating<1||rating>5) { gmAlert('Rating must be between 1 and 5'); return; }
+  const rating = parseInt(ratingStr);
   const text = await gmPrompt('Review (optional):', '');
   if (text === null) return;
   try {
