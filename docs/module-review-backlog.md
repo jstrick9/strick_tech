@@ -447,6 +447,20 @@ recovery recipe held (mock provider recreated from the session recipe).
 
 ## Round 14 — cancel-semantics sweep + picker migration, part two (cont.)
 
+### #108 — client-supplied agent ids passed through unsanitized
+create_agent slugifies name-derived ids but stored a client-supplied
+id verbatim — an id with '/', '?' or '#' is unaddressable by every
+/api/agents/{id} route (and path-confusable), leaving an agent the
+API can list but never edit or delete. Client ids are now rejected
+unless they match the same [a-z0-9_-] alphabet the auto-slug uses.
+The UI never sends an id (verified — the agent modal posts name/
+model/provider/avatar/color/system_prompt only), so only direct API
+callers are affected. Verified live: a/b, x?y, Upper → 400; a valid
+slug is accepted and deletable. Workflow deep-flow journey same
+round: create → run-input cancel (no run started) → delete all clean.
+
+Unit 4777/0/187 (+2 new) · vitest 335/335 · security 321/10.
+
 ### #107 — double-encoded query strings made marketplace/leaderboard filters no-ops
 A secondary-flows journey surfaced malformed URLs in the server access
 log (`/api/marketplace?q%3D%26sort%3Dfeatured%26limit%3D48`): both
