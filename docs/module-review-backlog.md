@@ -447,6 +447,22 @@ recovery recipe held (mock provider recreated from the session recipe).
 
 ## Round 14 — cancel-semantics sweep + picker migration, part two (cont.)
 
+### #107 — double-encoded query strings made marketplace/leaderboard filters no-ops
+A secondary-flows journey surfaced malformed URLs in the server access
+log (`/api/marketplace?q%3D%26sort%3Dfeatured%26limit%3D48`): both
+list views built params with URLSearchParams and then wrapped the
+serialized string in encodeURIComponent. The server saw one giant 'q'
+value and used defaults — so marketplace search, category, sort and
+page size, and the leaderboard period/task filters, silently did
+nothing while the UI claimed "N results". Verified after the fix: a
+no-match search returns "0 results" with a clean URL; leaderboard
+days=7 reaches the server. Same journey also confirmed prompt
+version save/restore round-trips correctly, and noted one management
+gap (no delete for eval suites — they accumulate; small future item,
+no data risk).
+
+vitest 335/335 · security 321/10.
+
 ### #106 — 25 mutating calls toasted success without reading the response
 Same family as the load-path honesty work: a scan of all 338 mutating
 fetches found 45 fire-and-forget calls, 25 of which toasted success
