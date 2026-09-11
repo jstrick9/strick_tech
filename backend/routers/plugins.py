@@ -621,7 +621,11 @@ async def _install_plugin_data(data: dict) -> dict:
     if review['warnings']:
         log.warning('Plugin %s installed with warnings: %s', data.get('id'), review['warnings'])
 
-    plugin_id = data.get('id') or hashlib.sha256(str(data).encode()).hexdigest()[:12]
+    # Slugify the manifest id: a plugin JSON can carry any string here
+    # (pasted/URL-installed), and an id with '/', '?' or '#' is unaddressable
+    # by every /api/plugins/{id} route — installable but never manageable.
+    plugin_id = re.sub(r'[^a-z0-9_-]', '-', str(data.get('id') or '').lower()).strip('-') \
+        or hashlib.sha256(str(data).encode()).hexdigest()[:12]
     data['id'] = plugin_id
 
     # Persist custom plugin to custom registry file

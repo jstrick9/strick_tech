@@ -97,7 +97,9 @@ async def create_trace(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    tid = body.get('id') or f'tr_{uuid.uuid4().hex[:10]}'
+    import re as _re
+    tid = _re.sub(r'[^a-z0-9_-]', '-', str(body.get('id') or '').lower()).strip('-') \
+        or f'tr_{uuid.uuid4().hex[:10]}'
     from ..services.memory_db import get_conn
 
     con = get_conn()
@@ -161,7 +163,9 @@ async def create_span(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    sid = body.get('id') or f'sp_{uuid.uuid4().hex[:10]}'
+    import re as _re
+    sid = _re.sub(r'[^a-z0-9_-]', '-', str(body.get('id') or '').lower()).strip('-') \
+        or f'sp_{uuid.uuid4().hex[:10]}'
     from ..services.memory_db import get_conn
 
     con = get_conn()

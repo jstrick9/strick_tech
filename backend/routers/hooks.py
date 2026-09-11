@@ -538,7 +538,10 @@ async def create_hook(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    hook_id = body.get('id') or f'hook_{uuid.uuid4().hex[:8]}'
+    # Slugify a client-supplied id — same unaddressable-id rule as agents.
+    import re as _re
+    hook_id = _re.sub(r'[^a-z0-9_-]', '-', str(body.get('id') or '').lower()).strip('-') \
+        or f'hook_{uuid.uuid4().hex[:8]}'
     event = as_text(body.get('event')) or 'file_save'
     _event_raw = body.get('event')
     if _event_raw is not None and not str(_event_raw).strip():

@@ -604,7 +604,11 @@ async def create_doc(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    doc_id = body.get('id') or f'doc_{uuid.uuid4().hex[:8]}'
+    # Slugify a client-supplied id so every /api/crdt/docs/{id} route
+    # (op, history, edit, delete) can address it.
+    import re as _re
+    doc_id = _re.sub(r'[^a-z0-9_-]', '-', str(body.get('id') or '').lower()).strip('-') \
+        or f'doc_{uuid.uuid4().hex[:8]}'
     title = (body.get('title') or 'Untitled Document')[:120]
     content = body.get('content') or ''
     doc = CRDTDoc(doc_id, title, content)

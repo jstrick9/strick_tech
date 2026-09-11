@@ -1034,7 +1034,10 @@ async def submit_community_pack(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    pack_id = (body.get('id') or body.get('pack_id') or '').strip().lower().replace(' ', '-')
+    import re as _re
+    # Full slugify (the old strip/lower/replace left '/', '?', '#' in ids,
+    # making the pack unaddressable by /api/marketplace/.../{id} routes).
+    pack_id = _re.sub(r'[^a-z0-9_-]', '-', str(body.get('id') or body.get('pack_id') or '').lower()).strip('-')
     name = (as_text(body.get('name')) or pack_id)
     description = (as_text(body.get('description')) or 'Community skill pack')
     author = (as_text(body.get('author')) or 'Community Builder')

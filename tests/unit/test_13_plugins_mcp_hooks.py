@@ -31,6 +31,27 @@ class TestPlugins:
         })
         assert r.status_code in (200, 201, 400, 422)
 
+    def test_install_json_plugin_slugifies_unsafe_id(self, client):
+        # A plugin manifest can carry any id string; one with path/query
+        # characters must be slugified so /api/plugins/{id} can address it.
+        r = post_json(client, "/api/plugins/install/json", {
+            "id": "my/plugin?x=1",
+            "name": "IdSlugProbe",
+            "version": "1.0.0",
+            "description": "probe",
+            "skills": [],
+        })
+        assert r.status_code == 200
+        installed = client.get("/api/plugins/installed").json()
+        ids = [p.get("id") for p in (installed if isinstance(installed, list) else installed.get("plugins", []))]
+        assert "my/plugin?x=1" not in ids
+        assert any(i == "my-plugin-x-1" or "my-plugin" in str(i) for i in ids), ids
+        # cleanup
+        import json as _json
+        for p in (installed if isinstance(installed, list) else installed.get("plugins", [])):
+            if p.get("name") == "IdSlugProbe":
+                client.delete(f"/api/plugins/{p['id']}")
+
     def test_uninstall_nonexistent(self, client):
         r = client.post("/api/plugins/uninstall/nonexistent_plugin_xyz")
         assert r.status_code in (200, 404, 405)
