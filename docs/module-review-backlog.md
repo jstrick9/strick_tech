@@ -445,6 +445,30 @@ CSRF-enforcing server — legacy live-verification scripts, not a gate.
 Sandbox resets this round wiped pip/playwright/node_modules//tmp twice;
 recovery recipe held (mock provider recreated from the session recipe).
 
+## Round 14 — picker migration, part two
+
+### #104 — six more fixed-choice prompts typed free-hand
+The gmChoose migration (#100) left its siblings behind. Six prompts
+still made you TYPE a value from a fixed set, and three of them had NO
+cancel check — dismissing the dialog proceeded with the default (the
+cancel-semantics class from round 12, missed because the `||` sat on a
+later line than the gmPrompt call, outside the guard test's scan):
+
+- kg add-entity type + add-relation type: Cancel previously created
+  the entity/relation anyway (`type || 'concept'`,
+  `relation || 'RELATED_TO'`). Now pickers + null checks, verified
+  server-side that cancel leaves no record.
+- RAG new-pipeline chunk strategy: same fix.
+- marketplace review rating: free text "1-5" with a validate-and-alert
+  round trip → five-option star picker.
+- control tower budget rule agent: "e.g. builder or * for all" free
+  text (typo = rule that never matches) → picker over '*' + the LIVE
+  agent list from app state; action stop/warn → two-way picker.
+
+All six verified live (choices, defaults, cancel-aborts, full create
+with the chosen agent/action persisted). vitest 335/335 · security
+321/10.
+
 **Suites at end of round (final):** full audit sweep on 0.0.0.0 — all
 22 audits at 0 (touch-targets 215 <= 217 baseline) · frontend vitest
 335/335 · security 321/10 (image-capable mock provider) · unit 4775
