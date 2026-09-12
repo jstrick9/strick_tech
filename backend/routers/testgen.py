@@ -98,13 +98,18 @@ File: {filepath}
             # already on the wire by the time we could react. Buffer them: a
             # test suite is not useful token-by-token, and emitting text we may
             # have to retract is exactly how the placeholder reached the UI.
+            # `error` is checked too: llm.py marks every real provider failure
+            # on the terminal frame (OpenRouter outages, and the Ollama
+            # stream error whose prose used to stream as a plain delta) —
+            # without it, "The model could not be reached..." would be
+            # buffered and re-emitted as if it were a generated test suite.
             async for chunk in llm.stream(
                 messages, agent_id='reviewer', max_tokens=4096, temperature=0.2, inject_steering=False
             ):
                 try:
                     if chunk.startswith('data:'):
                         frame = json.loads(chunk[5:].strip())
-                        if llm.is_stub(frame):
+                        if llm.is_stub(frame) or frame.get('error'):
                             stubbed = True
                 except (ValueError, AttributeError):
                     pass

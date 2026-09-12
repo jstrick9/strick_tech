@@ -1142,7 +1142,16 @@ async def _ollama_stream(messages, model, temperature, max_tokens, timeout) -> A
         f'[Ollama stream error]: Could not stream or connect on `{base_clean}` ({last_error}).\n\n'
         f'Make sure Ollama (`ollama serve`) is running and model `{clean_model}` is installed via `ollama list`.'
     )
-    yield f'data: {json.dumps({"delta": ollama_stream_error_msg, "done": True})}\n\n'
+    # `error` is set so downstream consumers can tell guidance apart from a
+    # real completion. Without it this terminal frame streamed the error text
+    # as a plain delta with done:true — chat.py's memory-ingestion gate
+    # (`data.get('stub') or data.get('error')`) passed it as genuine model
+    # output, and "[Ollama stream error]: Could not stream or connect..."
+    # was ingested into long-term memory, where RAG could serve it back as
+    # "knowledge" in later conversations. Verified against the memory table
+    # before this fix. The OpenRouter failure path and the no-key stub path
+    # already carry error:/stub: respectively; this made the set complete.
+    yield f'data: {json.dumps({"delta": ollama_stream_error_msg, "done": True, "error": "ollama_stream_error"})}\n\n'
 
 
 # ── Ollama health check ─────────────────────────────────────────────────────────

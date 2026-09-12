@@ -4474,13 +4474,15 @@ async function studioFormatFile() {
         const d = JSON.parse(line.slice(5).trim());
         if (d.delta) formatted += d.delta;
         if (d.stub) isStub = true;
+        if (d.error) isStub = true;  // provider failure text is not a proposal either
       } catch(e) {}
     }
   }
   // BUG FIX: same stub-guard as studioAIEdit — without this, formatting a
   // file with no AI provider configured would silently overwrite the editor
   // buffer with the "No OPENROUTER_API_KEY set..." help text instead of
-  // leaving the file untouched.
+  // leaving the file untouched. Error-flagged frames (real provider
+  // failures, which llm.py marks with error:) get the same protection.
   if (isStub) {
     toast('⚠️ No AI provider configured — install a Monaco formatter or add an API key', 'warn', 3000);
     return;
@@ -5507,6 +5509,12 @@ async function studioAIEdit() {
     }
     let fullText = '';
     let isStub = false;
+    // Real provider failures stream their user-facing explanation with an
+    // `error` key on the terminal frame (llm.py marks every failure path;
+    // checking only `stub` let the OpenRouter "model could not be reached"
+    // text open as an Accept-able diff — Accept would overwrite the file
+    // with error prose).
+    let isError = false;
     // readStream() checks resp.ok first: a non-200 here used to either
     // throw on a null body or feed a JSON error through the SSE parser,
     // showing the user an empty reply instead of the server's message.
@@ -5523,6 +5531,7 @@ async function studioAIEdit() {
           const data = JSON.parse(line.slice(5).trim());
           if (data.delta) fullText += data.delta;
           if (data.stub) isStub = true;
+          if (data.error) isError = true;
         } catch(e) {}
       }
     }
@@ -5537,7 +5546,7 @@ async function studioAIEdit() {
     // clicking Accept would overwrite the real file with the plain-English
     // help text. Now we detect the stub flag and show it as plain chat text
     // instead of opening the diff overlay.
-    if (isStub) {
+    if (isStub || isError) {
       addStudioMsg(fullText.trim() || '⚠️ No AI provider configured. Add an OPENROUTER_API_KEY or start Ollama in Settings.', 'agent');
       return;
     }
