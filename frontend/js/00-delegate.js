@@ -232,12 +232,27 @@
   // a fast button never feels stuck.
   var BUSY = 'data-act-busy';
 
+  // Form fields must never take the real disabled state from the guard.
+  // Disabling a focused input/textarea/select BLURS it — a disabled control
+  // cannot hold focus — so every click into the collaborative editor
+  // (#ce-editor carries data-act-click for cursor sharing) kicked the caret
+  // out to <body> the instant the click dispatched, and the next keystrokes
+  // went nowhere: the editor could be clicked but not typed in. Verified
+  // live: click → focusin ce-editor → focusout to body within 1ms, caused by
+  // this guard. The BUSY attribute above still blocks a duplicate dispatch
+  // (the hasAttribute check in the handler), which is the part that matters
+  // for a field whose click handler is a cursor/selection update.
+  var NEVER_DISABLE = /^(?:INPUT|TEXTAREA|SELECT|OPTION|OPTGROUP)$/;
+  var busyDisables = function (el) {
+    return 'disabled' in el && !NEVER_DISABLE.test(el.tagName);
+  };
+
   function markBusy(el) {
     el.setAttribute(BUSY, '1');
     el.setAttribute('aria-busy', 'true');
     // Native controls also get the real disabled state, which stops the
     // browser dispatching the second click at all.
-    if ('disabled' in el) {
+    if (busyDisables(el)) {
       try { el.disabled = true; } catch (_) { /* not settable */ }
     }
   }
@@ -245,7 +260,7 @@
   function clearBusy(el) {
     el.removeAttribute(BUSY);
     el.removeAttribute('aria-busy');
-    if ('disabled' in el) {
+    if (busyDisables(el)) {
       try { el.disabled = false; } catch (_) { /* not settable */ }
     }
   }

@@ -1459,18 +1459,36 @@ function ceHandleInput() {
   _ceBuffer = newText;
   ceUpdateWordCount();
 
-  if (!op.length || !_ceWS || _ceWS.readyState!==WebSocket.OPEN) return;
+  if (!op.length) return;
+
+  // Queue the op — do NOT send only the latest one. The previous version
+  // debounced by replacing the pending send, so a burst of typing (anything
+  // faster than one character per 80ms — i.e. normal typing) shipped ONLY
+  // the last keystroke's op, computed against a local buffer that already
+  // contained every earlier keystroke. The server had never seen those
+  // earlier ops, so the op referenced characters the document did not have,
+  // was refused by the validator ("refers to N characters but the document
+  // has 0"), and NOTHING from the burst was ever persisted. Verified live:
+  // a full sentence typed at normal speed left the server-side document
+  // empty. Flushing the queue in order keeps each op valid against the
+  // document state produced by the op before it.
+  _cePendingOps.push(op);
 
   // Show syncing indicator
   const dot = document.getElementById('ce-sync-dot');
   if (dot) dot.className='ce-op-indicator syncing';
-  document.getElementById('ce-sync-label').textContent='syncing…';
+  const label = document.getElementById('ce-sync-label');
+  if (label) label.textContent = 'syncing…';
 
   // Debounce: send after 80ms quiet
   clearTimeout(_ceTypingTimer);
   _ceTypingTimer = setTimeout(() => {
-    if (_ceWS?.readyState===WebSocket.OPEN) {
-      _ceWS.send(JSON.stringify({type:'op', op, revision:_ceRevision}));
+    if (!_cePendingOps.length) return;
+    if (!_ceWS || _ceWS.readyState!==WebSocket.OPEN) return; // keep queued; a later keystroke retries
+    const batch = _cePendingOps;
+    _cePendingOps = [];
+    for (const one of batch) {
+      _ceWS.send(JSON.stringify({type:'op', op: one, revision:_ceRevision}));
     }
   }, 80);
 }

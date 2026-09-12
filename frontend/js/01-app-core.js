@@ -1144,7 +1144,20 @@ window.switchSettingsTab = function(tabId) {
   if (navBtn) navBtn.classList.add('active');
   if (pane) pane.classList.add('active');
   try { try { _safeLS.set('agentic_os_settings_tab', tabId); } catch {} } catch(e) {}
-  try { history.replaceState(null, '', '#/settings/' + tabId); } catch(e) {}
+  // Only record the tab in the URL while Settings is actually the pane on
+  // screen. At boot, setupSettingsWorkstation() restores the saved tab by
+  // calling switchSettingsTab() on EVERY load — and this replaceState used to
+  // run unconditionally, rewriting the hash to #/settings/<tab> before the
+  // deep-link router read it 100ms later. The router then treated that as a
+  // deep link and navigated there, so every cold boot landed the user on
+  // Settings regardless of where they actually were (verified live: a
+  // returning user with currentPane=chat and onboarding complete opened the
+  // app and got Settings, every time). Keeping the rewrite inside the pane
+  // preserves addressability — switching tabs while in Settings still
+  // updates the URL — without hijacking the boot navigation.
+  var _inSettings = (window.NavigationState && window.NavigationState.get() === 'settings')
+    || (document.getElementById('pane-settings') || {}).classList?.contains('active') === true;
+  if (_inSettings) { try { history.replaceState(null, '', '#/settings/' + tabId); } catch(e) {} }
   if (tabId === 'ollama' && typeof window.checkHardwareRecommendations === 'function') {
     window.checkHardwareRecommendations();
   }

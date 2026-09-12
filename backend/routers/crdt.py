@@ -524,7 +524,17 @@ class CRDTDoc:
                 continue
             try:
                 await ws.send_text(json.dumps(event, default=str))
-            except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+            except Exception:
+                # A peer that cannot be written to is gone — in practice that
+                # is starlette's WebSocketDisconnect / uvicorn's
+                # ClientDisconnected, neither of which is a subclass of the
+                # (KeyError, TypeError, ValueError, ...) tuple this used to
+                # catch. The disconnect escaped the loop, propagated into the
+                # SENDING peer's collab_ws handler and tore down their socket
+                # too (verified live: closing one editor tab while another
+                # user typed killed the typer's connection with an ASGI
+                # traceback). Any send failure means the peer is dead; drop
+                # them and keep broadcasting to everyone else.
                 dead.append(pid)
         for pid in dead:
             self.peers.pop(pid, None)

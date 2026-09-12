@@ -195,7 +195,13 @@ def test_navigation_works_by_click(loaded):
     CSP, every control in the product would be dead — and the DOM-presence
     tests would still pass."""
     loaded.click('[data-nav="kanban"]')
-    loaded.wait_for_timeout(600)
+    # wait_for_function, not a fixed sleep: the pane swap is synchronous but
+    # boot-time fetches can still be settling on a loaded page, and a fixed
+    # 600ms occasionally lost that race under the full-file run.
+    loaded.wait_for_function(
+        "() => { const p = document.getElementById('pane-kanban');"
+        "        return !!p && getComputedStyle(p).display !== 'none'; }",
+        timeout=5000)
     assert loaded.evaluate("""
         () => {
             const p = document.getElementById('pane-kanban');
@@ -228,7 +234,12 @@ def test_navigation_works_by_keyboard(loaded):
     assert focused == 'galaxy', f'nav item is not focusable (got {focused!r})'
 
     loaded.keyboard.press('Enter')
-    loaded.wait_for_timeout(600)
+    # Same race as the click test above: Enter fires the nav, but boot-time
+    # work can delay the pane swap past a fixed 600ms window.
+    loaded.wait_for_function(
+        "() => { const p = document.getElementById('pane-galaxy');"
+        "        return !!p && getComputedStyle(p).display !== 'none'; }",
+        timeout=5000)
     assert loaded.evaluate("""
         () => {
             const p = document.getElementById('pane-galaxy');

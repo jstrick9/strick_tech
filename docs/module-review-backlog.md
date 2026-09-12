@@ -650,3 +650,77 @@ per-IP rate limit saturates mid-run and ~27 tests cascade-fail
 environmentally; the conftest documents this).
 
 Commits: abe58e1 (#110), 294d83a (#111), 93ca33c (#112).
+
+## Round 16 — Unit 2: CollabEdit (fixed in this round, uncommitted→this commit)
+
+### #114 — the busy guard disabled the collaborative editor while you typed in it
+The delegated-action busy guard (00-delegate.js) set a real `disabled`
+attribute on the clicked control while an action ran. Controls that
+happen to be form fields — #ce-editor (a textarea), chat inputs, gm
+inputs — were being disabled by the very act of interacting with them:
+clicking into the collab editor gave it `disabled`, the browser dropped
+focus to <body>, and every keystroke went nowhere. Typing "worked" only
+in elements that aren't form controls. markBusy/clearBusy now skip the
+real `disabled` for INPUT/TEXTAREA/SELECT/OPTION/OPTGROUP (a
+NEVER_DISABLE pattern + busyDisables() helper); the data-act-busy
+attribute alone still blocks double-dispatch, and the aria-busy string
+is unchanged so the a11y tests (unit_122, e2e_browser_03) keep their
+signal. Verified live: click into #ce-editor keeps activeElement on it
+and keyboard input lands.
+
+### #115 — debounce shipped only the LAST keystroke, so typing never persisted
+ceHandleInput's 80ms debounce replaced the pending op on every
+keystroke: a 14-keystroke burst produced ONE op — computed against the
+client's final buffer, while the server still had the ORIGINAL content.
+The server's _validate_op correctly rejected the mismatched op
+("refers to 13 characters but the document has 0") and the client just
+dropped the error, so NOTHING from a typing burst ever reached the
+document — the server doc stayed empty at revision 0 while the editor
+showed the typed text (silent divergence; a reload lost the work).
+_cePendingOps existed but was never wired in. Each op is now pushed to
+the queue and the whole batch is flushed in order after 80ms of quiet
+(kept queued if the socket isn't open yet). Verified live: 14 ops → 14
+acks, server content+revision exact; journey typing round-trips at
+revision 27.
+
+### #116 — every cold boot landed on Settings (and stomped early navigation)
+setupSettingsWorkstation() restores the saved settings tab on EVERY
+boot by calling switchSettingsTab(), which unconditionally did
+history.replaceState('#/settings/<tab>') — rewriting the URL hash before
+the deep-link router's 100ms timer read it. The router then treated the
+app's own hash write as a user deep link and navigated to Settings:
+verified live, a returning user (onboarded, currentPane=chat) opened
+the app and got the Settings pane every single load, and any navigation
+performed in the first ~2s of a page load (e.g. a second tab opening a
+collab doc) could be silently overridden by the late boot nav. The
+rewrite is now gated on Settings actually being the active pane, so
+tab URLs still update while the user is in Settings, real deep links
+(#/settings/security) still work, and cold boots land where the user
+expectes (chat / last pane).
+
+### #117 — one peer closing their tab killed the OTHER user's editor socket
+CrdtDoc.broadcast() tried to clean up dead peers but its except tuple
+(KeyError, TypeError, ValueError, ...) doesn't include
+WebSocketDisconnect/ClientDisconnected — the exceptions a dead socket
+actually raises. A peer disconnecting mid-broadcast let the exception
+escape into the SENDING peer's collab_ws handler, tearing down their
+connection too (ASGI traceback in the server log; the surviving user's
+editor showed a disconnect blip until the client auto-reconnected).
+Now any send failure marks that peer dead and broadcast continues to
+everyone else. Verified live: hard-close one editor tab mid-typing in
+the other — sender stays Live (badge, revision, content all correct)
+and the log is clean.
+
+Journeyed clean this unit: full two-tab CollabEdit journey — doc list
+renders, doc create+open, WS status Live, typing persists (rev 27),
+tab two sees the same content, tab one receives tab two's edit live,
+undo, snapshot, delete, no page errors. e2e_browser_03's two nav tests
+hardened from fixed 600ms sleeps to wait_for_function after one
+environmental flake (both pass, full file 2× since).
+
+Suites at unit close: unit 4774/166 skipped (test_120_audit_ratchet
+excluded, server down) · vitest 335/335 · security 328/3 skipped
+(live-server recipe per tests/security/conftest.py) ·
+e2e_browser_03 20 passed/1 skipped ×2 full runs.
+
+Commits: (this commit) #114, #115, #116, #117.
