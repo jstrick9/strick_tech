@@ -125,6 +125,13 @@ Rules:
     async def generate():
         """Execute or process generate operation."""
         full_response = ''
+        # A terminal frame carrying `error` (provider failure mid-stream) or
+        # `stub` (no provider configured at all) means the streamed text is a
+        # notice for the user, not a build plan. The old code ignored those
+        # markers, parsed nothing out of the error prose, and ended the run
+        # with a green "done" event — the pane then showed "✅ Done — 0 files
+        # written" for an instruction the model never saw succeed.
+        model_failed = False
         t0 = time.time()
 
         yield f'data: {json.dumps({"type": "start", "run_id": run_id, "instruction": instruction[:200]})}\n\n'
@@ -139,6 +146,8 @@ Rules:
         ):
             try:
                 data = json.loads(chunk.split('data: ', 1)[1])
+                if data.get('error') or data.get('stub'):
+                    model_failed = True
                 delta = data.get('delta', '')
                 if delta:
                     full_response += delta
@@ -155,6 +164,25 @@ Rules:
         if not files:
             # Fallback: try to find any code blocks
             files = _extract_code_blocks(full_response, instruction)
+
+        if not files:
+            # Nothing buildable came back. Say why instead of ending with a
+            # success-shaped "done" that the pane renders as "✅ Done — 0
+            # files written": a run whose model failed is a failed run.
+            reply_preview = full_response.strip()
+            if model_failed:
+                msg = (
+                    'The AI provider failed, so no files were written. '
+                    + (reply_preview[:500] or 'No provider is configured — add an OpenRouter key in Settings or start Ollama.')
+                )
+            else:
+                msg = (
+                    'The model responded, but its reply contained no complete files to write. '
+                    + (reply_preview[:300] or 'The response was empty.')
+                )
+            memory_db.audit_log('composer_run', f'{run_id}: FAILED — {msg[:120]}')
+            yield f'data: {json.dumps({"type": "error", "error": msg, "model_failed": model_failed})}\n\n'
+            return
 
         # Write all files to preview/
         written = []
@@ -225,6 +253,11 @@ Rules:
             except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                 pass
     done_ev = next((e for e in events if e.get('type') == 'done'), {})
+    err_ev = next((e for e in events if e.get('type') == 'error'), None)
+    if err_ev and not done_ev:
+        # The run ended in the failure branch (model error / nothing
+        # parseable): report it as a failure, not ok with zero files.
+        return {'ok': False, 'run_id': run_id, 'error': err_ev.get('error', 'build failed'), 'events': events}
     return {'ok': True, 'run_id': run_id, **done_ev, 'events': events}
 
 

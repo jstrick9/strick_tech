@@ -160,6 +160,16 @@ async function runComposer() {
             else { const d = document.createElement('div'); d.innerHTML = msg; results.appendChild(d); }
           }
 
+          // The backend reports a failed/unreachable model (or a reply with
+          // nothing parseable) as an error event instead of letting the run
+          // end with a green "Done — 0 files written". Without this handler
+          // the pane showed ✅ for an instruction that produced nothing.
+          if (ev.type === 'error') {
+            status.textContent = '✗ ' + (ev.error || 'Build failed — no files were written');
+            results.innerHTML += `<div style="background:var(--bg-3);border:1px solid var(--border);border-left:3px solid var(--danger);border-radius:var(--radius-sm);padding:10px 12px;margin-top:10px;font-size:12px;color:var(--text-1)">${escHtml(ev.error || 'Build failed — no files were written')}</div>`;
+            toast('Composer build failed — see details', 'err', 4000);
+          }
+
           if (ev.type === 'done') {
             const written = ev.files_written || [];
             status.innerHTML = `✅ Done in ${ev.duration_ms}ms — ${written.length} files written`;
