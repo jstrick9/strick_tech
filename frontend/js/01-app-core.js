@@ -876,6 +876,13 @@ async function sendChat() {
 
   let fullText = '';
   let bubbleEl = null;
+  // /clear streams its confirmation as a normal assistant reply and then
+  // asks the client to wipe history (action:clear_history). Without this
+  // flag, the confirmation text itself was pushed onto the freshly-emptied
+  // S.chatHistory and shipped to the model as `history` on the next message
+  // — the model received a phantom prior turn reading "✅ Cleared 2
+  // messages from this conversation."
+  let clearHistorySeen = false;
 
   try {
     const resp = await fetch('/api/chat', {
@@ -938,6 +945,7 @@ async function sendChat() {
             }
           }
           if (data.action === 'clear_history') {
+            clearHistorySeen = true;
             clearChatHistory();
           }
           if (data.action === 'navigate' && data.target) {
@@ -965,7 +973,7 @@ async function sendChat() {
       }
     }
 
-    S.chatHistory.push({ role: 'assistant', content: fullText });
+    if (!clearHistorySeen) S.chatHistory.push({ role: 'assistant', content: fullText });
     if (bubbleEl && (fullText || '').trim().length > 0) {
       const finalId = bubbleEl.closest('.msg')?.id;
       if (finalId) {
