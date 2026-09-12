@@ -82,7 +82,12 @@ async function renderTerminal() {
   document.getElementById('term-clear-btn')?.addEventListener('click', termClear);
   const input = document.getElementById('term-input');
   if (input) { input.focus(); input.addEventListener('keydown', termKeyDown); input.addEventListener('input', termShowSuggestions); }
-  try { const r=await fetch('/api/terminal/history'); const h=await r.json(); Terminal.history['main']=(h||[]).map(x=>x.command||'').reverse(); Terminal.histIdx['main']=Terminal.history['main'].length; } catch(e){}
+  // Skip the history fetch when the env probe was refused: the auth gate in
+  // terminal.py covers the WHOLE terminal router, so this request can only
+  // 401 too — firing it just adds console noise and a pointless round trip.
+  if (!envWarn) {
+    try { const r=await fetch('/api/terminal/history'); const h=await r.json(); Terminal.history['main']=(h||[]).map(x=>x.command||'').reverse(); Terminal.histIdx['main']=Terminal.history['main'].length; } catch(e){}
+  }
 }
 async function termRun(cmd) { const i=document.getElementById('term-input'); if(i) i.value=cmd; await termExecute(cmd); }
 async function termExecute(cmd) {

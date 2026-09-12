@@ -148,7 +148,16 @@ def run() -> AuditResult:
             # A nearly-empty pane is a loading state, not a lie.
             if len(text) <= 60:
                 continue
-            if not ACKNOWLEDGES.search(combined):
+            # SILENT means the pane masquerades as a healthy empty state. It
+            # does not if the pane admits ANY failure — or names the session
+            # as the reason. The terminal pane is the case that split these:
+            # its honest-refusal banner (80e54ec) reads "Authentication
+            # required — commands will not run until this is resolved", which
+            # is session vocabulary, not generic-failure vocabulary, and the
+            # ACKNOWLEDGES-only check flagged the exact behaviour that commit
+            # introduced on purpose. Either vocabulary means the pane is not
+            # lying; only silence is SILENT.
+            if not (ACKNOWLEDGES.search(combined) or SESSION_WORDS.search(combined)):
                 findings.append(
                     f'SILENT     {pane:16} renders {len(text)} chars, '
                     f'no sign the session ended')
