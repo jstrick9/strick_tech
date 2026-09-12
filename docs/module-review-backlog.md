@@ -576,3 +576,77 @@ passed / 0 failed / 187 skipped without a live server (each browser
 audit instead run directly against the live server, all <= baseline;
 the earlier "4796" figure in this file counted audit subprocesses
 differently — the ratchet assertions are identical).
+
+## Round 15 (2026-09-12) — the model was being taught its own error messages
+
+Chat/Studio pane journeys with a mock-provider harness (two fake
+providers on 8790/8791, one with a FAIL-MARKER that force-fails every
+non-image request, so failure paths could be exercised live in a real
+browser).
+
+### #110 — provider error prose was ingested into long-term memory
+When Ollama streams an error mid-conversation, llm.py emitted a
+terminal frame with the raw error text as delta and no `error` marker.
+The chat pipeline treats a finished stream's text as assistant
+knowledge: the memory-ingestion step filed "Ollama stream error: 500 …"
+as a `memory` row (verified: 3 rows after repeated failures), and the
+next conversation's RAG context could retrieve the error as if it were
+something the assistant had said. The terminal frame now carries
+`"error": "ollama_stream_error"` (delta kept for display), and the
+Studio AI-edit guard, formatter and test-generator gates all treat
+`error` frames like stubs — refuse to buffer them as product, say so in
+chat instead. Verified live: failure probe → guidance rendered, 0 new
+memory rows, transcript still logged, both providers' happy paths still
+stream. llm.py + testgen.py + 01-app-core.js.
+
+### #111 — /clear's confirmation shipped to the model as conversation history
+/clear streams "✅ Cleared N messages…" as an assistant reply, then
+wipes the transcript (action: clear_history). clearChatHistory()
+emptied S.chatHistory mid-stream, but sendChat's post-stream
+bookkeeping pushed the confirmation onto the fresh history — so the
+NEXT message sent the phantom prior turn "✅ Cleared 2 messages from
+this conversation." as history to the provider (captured in the actual
+/api/chat POST payload). sendChat now skips the assistant push when the
+clear action was seen in the stream. Verified live: S.chatHistory ===
+[] after /clear and the next send's history field is []; visible UX
+unchanged (the confirmation bubble was already wiped by the clear
+action itself; the toast remains).
+
+### #112 — the Replay pane had nothing to replay
+The Replay pane's whole feature set — timeline scrubbing, frame
+inspection, run diff, re-run from here — only worked for runs made via
+the API-only /api/replay/workflow/{id}/run endpoint, which no frontend
+code calls. Runs launched from the Workflow pane went through
+/api/workflow/{id}/run: a workflow_runs row was persisted (FIX 6) but
+with no frames, total_ms=0 and node_count=0 (verified live), so every
+real run showed an empty timeline in the pane whose own empty state
+says "Run a workflow first". run_workflow now records through
+replay.py's writers (_create_run/_record_frame/_finish_run — one frame
+schema for both entry points): a 'running' row before the first node so
+interrupted runs stay auditable, node_start+node_output frames per node
+(failed nodes record their error), and real duration/node counts at
+completion. Recording is best-effort and guarded — a DB hiccup can't
+abort a live run — and the SSE stream is byte-identical to before.
+Verified live: 3-node workflow → 6 frames; pane renders the timeline on
+click; diff of two runs shows the input difference; rerun-from streams;
+a run with failing agent nodes records status='failed' with the
+provider error in its frames.
+
+Journeyed clean this round (no defects): HITL queue (high-risk queues,
+low-risk auto-approves AND is recorded, unrecognized risk level fails
+towards 'high', pane approve/reject, audit rows for both, unknown id
+404), Image Generator (mock image round-trip incl. save-to-gallery,
+path-traversal delete rejected, gallery delete removes the file, 404
+for missing), slash commands (/help /models /goal /memory /clear),
+Studio AI-edit (happy diff overlay + Accept & Apply; both-providers
+failure → plain chat text with the honest fallback chain, no overlay,
+editor untouched), Regenerate/Fork/Stop.
+
+Suites at round close: unit 4774/166 skipped (test_120_audit_ratchet
+excluded, server down) · vitest 335/335 · security 328/3 skipped —
+live-server recipe per tests/security/conftest.py: AGENTIC_OS_HOST=
+127.0.0.1 RATE_LIMIT_MAX=100000 (with the plain 0.0.0.0 recipe the
+per-IP rate limit saturates mid-run and ~27 tests cascade-fail
+environmentally; the conftest documents this).
+
+Commits: abe58e1 (#110), 294d83a (#111), 93ca33c (#112).
