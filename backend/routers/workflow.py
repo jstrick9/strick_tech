@@ -474,6 +474,24 @@ async def run_workflow(wf_id: str, req: Request):
 
     user_input = body.get('input', '')
 
+    # Recording for the Replay pane. Runs launched here were persisted as a
+    # workflow_runs row but with no frames, no duration and no node count, so
+    # the Replay pane could list them yet show an empty timeline — every
+    # replay feature (frame scrubbing, run diff, re-run from here) only worked
+    # for runs made through the API-only /api/replay/workflow/.../run
+    # endpoint, which the UI never calls. Record frames with replay.py's own
+    # writers so both entry points share one schema. Recording is
+    # best-effort: a DB hiccup must never abort a live run.
+    from .replay import _create_run as _replay_create_run
+    from .replay import _finish_run as _replay_finish_run
+    from .replay import _record_frame as _replay_record_frame
+
+    def _safe_record(*args) -> None:
+        try:
+            _replay_record_frame(*args)
+        except Exception as _e:
+            log.warning('Failed to record replay frame: %s', _e)
+
     async def _stream():
         nodes = {n['id']: n for n in wf.get('nodes', [])}
         edges = wf.get('edges', [])
@@ -491,6 +509,16 @@ async def run_workflow(wf_id: str, req: Request):
 
         context = {'input': user_input, 'prev_output': user_input}
         run_id = uuid.uuid4().hex[:8]
+        frame_no = 0
+        run_t0 = time.perf_counter()
+
+        # Row first, status 'running': a run interrupted mid-stream stays
+        # visible for audit instead of leaving orphan frames (mirrors
+        # replay.py's recorder).
+        try:
+            _replay_create_run(run_id, wf['id'], wf.get('name', ''), user_input)
+        except Exception as _e:
+            log.warning('Failed to persist workflow run: %s', _e)
 
         yield f'data: {json.dumps({"type": "start", "run_id": run_id, "workflow": wf["name"]})}\n\n'
 
@@ -512,6 +540,12 @@ async def run_workflow(wf_id: str, req: Request):
                 continue
 
             yield f'data: {json.dumps({"type": "node_start", "node_id": nid, "node_type": node["type"], "label": node.get("label", "")})}\n\n'
+            frame_no += 1
+            _safe_record(
+                run_id, frame_no, nid, node['type'], node.get('label', node['type']), 'node_start',
+                {'input': context['input'], 'prev_output': context['prev_output'][:500]}, '', '', 0,
+            )
+            node_t0 = time.perf_counter()
             await asyncio.sleep(0.05)
 
             cfg = node.get('config', {})
@@ -744,6 +778,20 @@ async def run_workflow(wf_id: str, req: Request):
                 if msg:
                     yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": msg})}\n\n'
 
+            # Record the completed node so the Replay pane has a per-node
+            # timeline for runs launched from the Workflow pane. The output
+            # snapshot is context['prev_output'] — in this engine each node's
+            # contribution IS what it leaves in prev_output (and a failed
+            # node leaves '' plus a node_errors entry, recorded as error).
+            frame_no += 1
+            _safe_record(
+                run_id, frame_no, nid, node['type'], node.get('label', node['type']), 'node_output',
+                {'input': context['input'], 'prev_output': context['prev_output'][:500]},
+                context['prev_output'][:500],
+                str(next((e['error'] for e in reversed(node_errors) if e['node_id'] == nid), '')),
+                int((time.perf_counter() - node_t0) * 1000),
+            )
+
             # FIX 11: Queue next nodes — filter by condition label for condition nodes
             for e in edges:
                 if e['from'] != nid:
@@ -763,32 +811,18 @@ async def run_workflow(wf_id: str, req: Request):
                 else:
                     queue.append(e['to'])
 
-        # FIX 6: Persist run to workflow_runs table for Replay pane
+        # FIX 6: Persist run to workflow_runs table for Replay pane. Uses
+        # replay.py's _finish_run so the final status, duration and node
+        # count land in the same columns the Replay pane reads (previously
+        # total_ms/node_count stayed 0 and no frames existed at all — see
+        # the recording note at the top of run_workflow).
         try:
-            from ..services.memory_db import get_conn as _get_conn
-
-            _con = _get_conn()
-            try:
-                _con.execute(
-                    """INSERT OR REPLACE INTO workflow_runs
-                       (id, workflow_id, workflow_nm, status, input, created_at)
-                       VALUES (?,?,?,?,?,datetime('now'))""",
-                    # BUG FIX: this was hardcoded to 'success'. A run whose
-                    # agent node errored outright was still recorded as a
-                    # success, so the Replay pane and any monitoring built on
-                    # workflow_runs were systematically wrong. Verified live:
-                    # a run that emitted node_error persisted status='success'.
-                    (
-                        run_id,
-                        wf['id'],
-                        wf['name'][:100],
-                        'failed' if node_errors else 'success',
-                        user_input[:1000],
-                    ),
-                )
-                _con.commit()
-            finally:
-                _con.close()
+            _replay_finish_run(
+                run_id,
+                'failed' if node_errors else 'done',
+                int((time.perf_counter() - run_t0) * 1000),
+                len(visited),
+            )
         except Exception as _e:
             log.warning('Failed to persist workflow run: %s', _e)
 
