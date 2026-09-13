@@ -1482,7 +1482,7 @@ def gateway_stats():
 
 
 @router.get('/agent-card/{agent_id}')
-def get_agent_card(agent_id: str):
+def get_agent_card(agent_id: str, request: Request = None):
     """Generate an A2A-compatible signed Agent Card for an agent."""
     con = _get_conn()
     try:
@@ -1510,7 +1510,11 @@ def get_agent_card(agent_id: str):
         'authority_level': identity['authority_level'] if identity else 'unknown',
         'capabilities': [p['action'] for p in perms],
         'tools_used': [t['tool_name'] for t in tools],
-        'endpoint': f'http://localhost:8787/api/agents/{agent_id}',
+        # request.base_url, not a hardcoded localhost — the card's endpoint is
+        # what an external MCP/A2A party would call back on, and on any
+        # non-loopback topology (LAN IP, tunnel, proxy) the hardcoded value
+        # pointed at the card reader's own machine.
+        'endpoint': f'{(str(request.base_url).rstrip("/") if request is not None else "http://localhost:8787")}/api/agents/{agent_id}',
         'protocols': ['mcp/1.0', 'a2a/1.0'],
         'issued_at': _now(),
         'card_hash': hashlib.sha256(f'{agent_id}{_now()}'.encode()).hexdigest()[:16],

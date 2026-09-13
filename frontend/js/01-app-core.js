@@ -4750,6 +4750,12 @@ function initStudio() {
   initStudioResizer();
   initStudioHMR();
   initStudioErrorBridge();
+  // The URL bar's static markup ships a placeholder value. Populate it with
+  // the real host on first open — studioReloadPreview already does this, but
+  // until the user clicked ⟳ the bar kept claiming localhost:8787 on every
+  // other topology (LAN IP, tunnel, proxy).
+  const urlBar = document.getElementById('studio-url-bar');
+  if (urlBar) urlBar.textContent = location.host + studioPreviewUrl();
   document.querySelectorAll('[data-nav]').forEach(el =>
     el.classList.toggle('active', el.dataset.nav === 'studio'));
 }

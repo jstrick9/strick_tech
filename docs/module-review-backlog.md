@@ -954,3 +954,47 @@ e2e_browser_03 20/1sk · connectors/a2a 72/72 (live server recipe:
 AGENTIC_OS_HOST=127.0.0.1 RATE_LIMIT_MAX=100000; the file's bare-POST
 style additionally needs the server started with PYTEST_CURRENT_TEST
 set — its POSTs predate CSRF enforcement and send no token).
+
+## Round 18 (2026-09-13) — Unit 1: localhost sweep, part two + fresh-surface journeys
+
+### #133 — the Studio URL bar showed its localhost placeholder until the first reload click
+Round 17's #130 fixed studioReloadPreview to write location.host into the
+URL bar — but that only ran when the user clicked ⟳. Opening the pane
+still displayed the static markup text "localhost:8787/preview/index.html"
+on every non-loopback topology (LAN IP, tunnel, proxy), in a monospace
+bar that looks authoritative. initStudio now populates the bar with
+location.host + the preview path on first open, and the static
+placeholder is host-neutral ("/preview/index.html") so even pre-JS paint
+claims no host. Verified live: pane open → "127.0.0.1:8787/preview/
+index.html", ⟳ click → same.
+
+### #134 — the MCP gateway agent card advertised a localhost endpoint to external parties
+GET /api/mcp-gateway/agent-card/{id} builds an "A2A-compatible" identity
+card whose endpoint field was hardcoded http://localhost:8787/api/agents/
+{id} — handed to whatever MCP/A2A party fetches the card, pointing their
+callbacks at their own machine on any non-loopback deployment. Same
+class as r17's #131. The endpoint is now derived from request.base_url
+(localhost survives only as the no-request in-process fallback).
+Verified live: card for builder over 127.0.0.1:8787 reports
+http://127.0.0.1:8787/api/agents/builder.
+
+Round 18 journeys (all clean, no bugs found — panes already hardened):
+pane sweep 59/59 rendered (settings' /api/secrets/get 404 is the
+key-not-set probe; terminal 401 is the by-design 0.0.0.0/no-users auth
+gate); imagegen 11/11 (styles/models load, enhance-prompt round-trip via
+mock LLM, no-image provider reply surfaced as an actionable error with
+the button re-enabled, FAIL-MARKER 500 surfaced, gallery upload→list→
+delete round-trip); browser 8/8 (loopback start_url blocked with the
+reason shown, bad scheme rejected, real Chromium run against
+example.com: navigate + done steps recorded as session br_*, detail +
+delete round-trip, screenshot endpoint returns a real PNG). One journey
+"failure" was a probe artifact: the pane renders the session id
+uppercase via CSS, so a br_* prefix check against innerText failed while
+the DB held the correct lowercase id.
+
+Decision on the r17 open candidate: /api/composer/context (multifile_
+agent.py) has no frontend caller but is a tested, documented
+introspection endpoint — left as public API surface, not dead code.
+
+Suites: unit 4776/164sk · vitest 335 (67 files) · security 328/3sk ·
+e2e_browser_03 20/1sk.
