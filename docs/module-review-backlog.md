@@ -875,3 +875,17 @@ Suites: unit 4774/166sk · security 328/3sk · e2e_browser_03 20/1sk
 
 Round 16 closed: #113–#127 shipped across five units
 (0cd0cd2, 321c528, 9475c2d, ccbbcc9, aaf922d, and this commit).
+## Round 17 (2026-09-13) — Unit 1: DB Studio row-count display
+
+### #128 — DDL statements were reported as "✅ -1 rows affected"
+CREATE TABLE / CREATE INDEX / DROP returned rows_affected = -1 (DB-API
+contract for statements without a rowcount — documented in
+test_74's docstring), and the SQL editor's write branch printed the
+number verbatim: "✅ -1 rows affected" after every CREATE. A negative
+count is the API's way of saying "no count", not a user-facing number.
+The write branch now says "Statement executed" when rows_affected is
+negative, and "N row(s) affected" (singular/plural) otherwise.
+Verified live: CREATE TABLE → "Statement executed"; INSERT → "1 row
+affected"; DELETE of 3 → "3 rows affected" (dbstudio journey 8/8,
+including audit tab, dry-run, insert modal, row delete).
+

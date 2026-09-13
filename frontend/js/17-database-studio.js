@@ -468,7 +468,15 @@ async function runSQL(opts) {
     return;
   }
   if (j.type === 'write') {
-    res.innerHTML = `<div style="color:var(--green)">✅ ${j.rows_affected} rows affected</div>
+    // sqlite3 reports rowcount = -1 for statements that don't affect rows
+    // (CREATE/DROP/ALTER…). Rendering that verbatim showed users
+    // "✅ -1 rows affected" after a successful CREATE TABLE (verified live)
+    // — a success message that reads like a failure. Negative means "no row
+    // count applies", so say what actually happened instead.
+    const n = typeof j.rows_affected === 'number' ? j.rows_affected : -1;
+    const label = n < 0 ? 'Statement executed'
+      : `${n} row${n === 1 ? '' : 's'} affected`;
+    res.innerHTML = `<div style="color:var(--green)">✅ ${label}</div>
       <div style="font-size:11px;color:var(--text-3);margin-top:6px">📜 Recorded in the audit trail</div>`;
     return;
   }
