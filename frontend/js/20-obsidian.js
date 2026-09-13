@@ -248,7 +248,12 @@ async function saveQuickNote() {
   const title   = titleEl?.value?.trim();
   const body    = bodyEl?.value?.trim() || '';
   if (!title) { showToast('⚠️ Enter a note title'); return; }
-  const content  = `# ${escHtml(title)}\n\n${body}`;
+  // Store the note as-typed. This used to escHtml() the title AND body into
+  // the markdown file, so a note containing "&", "<", quotes or an emoji
+  // sequence was permanently mangled on disk ("Tom & Jerry" →
+  // "Tom &amp; Jerry") — and kept re-escaping if re-saved. Escaping belongs
+  // to the DISPLAY path (viewNote), which already escapes when rendering.
+  const content  = `# ${title}\n\n${body}`;
   const filename = title.replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'_') + '.md';
   try {
     const r = await fetch('/api/obsidian/note', {

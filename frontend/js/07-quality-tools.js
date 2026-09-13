@@ -637,10 +637,19 @@ async function renderAmbient() {
   const pane = document.getElementById('pane-ambient');
   if (!pane) return;
 
-  const [suggs, tasks] = await Promise.all([
-    fetch('/api/ambient/suggestions?limit=30').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({suggestions:[]})),
-    fetch('/api/ambient/tasks?limit=10').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({tasks:[]})),
+  // r.ok?…:null used to hand `null` straight to `suggs.suggestions` below —
+  // one non-OK response (proxy 502 with an HTML body, DB error) threw
+  // "Cannot read properties of null" and the pane never rendered at all.
+  // Keep the failure signal instead of silently faking an empty list, and
+  // surface it as a retryable error state rather than a false "no
+  // suggestions yet".
+  const [suggsR, tasksR] = await Promise.all([
+    fetch('/api/ambient/suggestions?limit=30').then(r=>r.ok?r.json().catch(()=>null):null).catch(()=>null),
+    fetch('/api/ambient/tasks?limit=10').then(r=>r.ok?r.json().catch(()=>null):null).catch(()=>null),
   ]);
+  const failed = suggsR === null || tasksR === null;
+  const suggs = suggsR || {suggestions:[]};
+  const tasks = tasksR || {tasks:[]};
 
   const sev_icons = {high:'⚠️',medium:'⚡',info:'💡',critical:'🚨'};
   const cat_labels = {todo:'📌 TODO',security:'🔒 Security',complexity:'🔥 Complexity',error_handling:'⚠️ Error Handling',maintenance:'🔧 Maintenance'};
@@ -657,6 +666,8 @@ async function renderAmbient() {
         <button class="btn-sm" style="color:var(--danger)" data-act-click="ambientClearAll()">🗑 Clear</button>
       </div>
     </div>
+
+    ${failed ? stateFeedback.errorElement({ title: "Couldn't reach the ambient agent", message: 'One of the ambient endpoints failed to load. Suggestions and tasks below may be stale.', retry: 'renderAmbient()' }) : ''}
 
     <!-- Stats -->
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
@@ -713,7 +724,9 @@ async function ambientScan() {
     const r = await fetch('/api/ambient/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deep:false})});
     if (!r.ok) { gmAlert('Scan failed: server error ' + r.status); return; }
     const d = await r.json();
-    showToast(`✅ Found ${d.count||0} suggestions`);
+    // count = findings this scan; saved = rows actually new (re-scans no
+    // longer duplicate, so the split is honest and worth showing).
+    showToast(`✅ ${d.count||0} findings · ${d.saved||0} new`);
     renderAmbient();
   } catch(ex) { gmAlert('Scan failed: '+ex.message); }
 }

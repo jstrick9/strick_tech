@@ -786,3 +786,76 @@ runs (one intermittent single-test flake whose name was never captured
 hardened to wait_for_function earlier in the round).
 
 Commits: (this commit) #118, #119, #120, #121.
+
+## Round 16 — Unit 4: ambient agent + obsidian vault
+
+### #122 — every ambient re-scan duplicated its findings, and dismissals resurrected
+ambient_scan INSERTed each finding unconditionally: three scans a minute
+apart left three identical rows per TODO (measured 5 → 10 → 15 → 20), and
+a DISMISSED suggestion came back as a fresh active row on the next scan —
+dismissing anything was pointless. (Within a 10s window the app's fetch
+idempotency key masked this, which is why a quick double-click looked
+fine while real re-scans duplicated.) The save loop now skips findings
+already recorded — regardless of dismissed state — so repeated scans are
+stable and a dismissal sticks. The scan toast now honestly reports
+"N findings · M new". Verified live: scan → 1 row; re-scan after the
+idempotency window → still 1 row (per-finding and per-agent); dismiss +
+re-scan → no resurrection.
+
+### #123 — one failed endpoint crashed the whole ambient pane render
+renderAmbient fetched suggestions/tasks with `r.ok ? r.json() : null` and
+then read `suggs.suggestions` — a single non-OK response (proxy 502 with
+an HTML body, a DB error) handed null straight into the property access
+and threw "Cannot read properties of null", leaving the pane broken
+instead of showing an error. The fetches now fall back to empty shapes
+while keeping the failure signal, and the pane renders a retryable
+errorElement banner ("Couldn't reach the ambient agent") instead of a
+false "no suggestions yet". Verified live with a monkey-patched 502:
+no crash, error state + Retry button rendered.
+
+### #124 — failed background tasks reported as done
+_execute_background_task treated llm.complete's graceful failure shape
+(ok=False, human-readable error in text) as success: a task whose
+provider call failed got status 'done' and a ✅ in the list, with the LLM
+error text as its "result" (verified live against a failing provider).
+ok=False now maps to status 'failed' — the pane shows ❌ — while the
+message is kept as the result so the reason is still visible.
+
+### #125 — quick notes were HTML-escaped into the markdown file
+saveQuickNote ran escHtml() over the title AND body before writing the
+.md: a note "Tom & Jerry <3" was permanently stored as
+"Tom &amp; Jerry &lt;3" on disk. Notes are now stored as-typed;
+escaping stays where it belongs, in viewNote's display path. Verified
+live: save a note full of &/</quotes, read the file back raw — content
+and title unescaped.
+
+### #126 — no note could ever be deleted from the Obsidian pane
+The list/read APIs return vault-relative paths ('agentic-os/x.md'), and
+the pane's Delete buttons send that path back — but delete_note joined
+it onto the NOTES dir, producing 'agentic-os/agentic-os/x.md' and a 404
+for every note the app itself created. The server log showed every
+DELETE /api/obsidian/note in history returning 404. delete_note now
+accepts the vault-relative form too (resolved against the vault root,
+with the same containment check still the authority); vault-root paths
+outside agentic-os and traversal paths remain refused (verified live:
+403/404 both still enforced, UI delete now works end-to-end).
+
+Journeyed clean this unit: ambient 9/9 (scan finds planted TODO, re-scan
+>10s no dup, dismiss no resurrection, endpoint-failure error state,
+FAIL-MARKER task → failed ❌, happy task → done with result, no page
+errors); obsidian (pane renders, quick-note save round-trip unescaped,
+view overlay on top with content, delete via gmDanger, daily note,
+search no-match, index counts, export, security refusals). Probe-artifact
+false alarms during verification (overlay looked unstyled/truncated and
+delete looked hung) were traced to attribute-selector normalization
+('z-index: 9999' with spaces), a 60-char dump slice, and awaiting a
+modal-opening promise inside evaluate — the app was right; the probes
+were wrong.
+
+Note: brain/agentic-os runtime files (old exports/dailies) are tracked
+in git; cleanup restored them after a probe over-deleted.
+
+Suites at unit close: vitest 335/335 · unit 4774/166 skipped ·
+security 328/3 skipped · e2e_browser_03 20 passed/1 skipped.
+
+Commits: (this commit) #122, #123, #124, #125, #126.

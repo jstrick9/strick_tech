@@ -233,8 +233,29 @@ async def ambient_scan(req: Request):
     con = get_conn()
     saved = 0
     try:
+        # A re-scan used to INSERT every finding again, unconditionally: two
+        # scans a minute apart left two identical rows for every TODO (measured
+        # live: 5 → 10 → 15 → 20 rows across three scans), and worse, a
+        # DISMISSED suggestion resurrected as a fresh active row the next time
+        # the user scanned, so dismissing anything was pointless. Skip any
+        # finding already recorded — regardless of its dismissed flag — so a
+        # dismissal sticks and repeated scans are stable.
+        existing = {
+            (r['category'], r['title'], r['file_path'], r['line_no'])
+            for r in con.execute(
+                'SELECT category, title, file_path, line_no FROM ambient_suggestions'
+            )
+        }
         for s in suggestions[:50]:  # cap at 50 per scan
             try:
+                key = (
+                    s['category'],
+                    s['title'][:200],
+                    s.get('file_path', ''),
+                    s.get('line_no', 0),
+                )
+                if key in existing:
+                    continue
                 con.execute(
                     """INSERT INTO ambient_suggestions
                                (category,title,description,file_path,line_no,severity,action_type,action_data)
@@ -250,6 +271,7 @@ async def ambient_scan(req: Request):
                         s.get('action_data', '{}'),
                     ),
                 )
+                existing.add(key)
                 saved += 1
             except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                 pass
@@ -705,7 +727,13 @@ async def _execute_background_task(task_id: str, name: str, prompt: str, agent_i
             [{'role': 'user', 'content': prompt}], agent_id=agent_id, max_tokens=2000, inject_steering=False
         )
         output = result.get('text', '')
-        status = 'done'
+        # llm.complete answers provider failures with ok=False plus a
+        # human-readable message in `text` — it does not raise. Treating that
+        # as success marked failed tasks 'done', so the task list showed ✅
+        # with the LLM error text as the "result" (verified live against a
+        # failing provider). Keep the message — it says why — but report the
+        # task as failed so the icon and any automation see the truth.
+        status = 'failed' if result.get('ok') is False else 'done'
     except Exception as ex:
         output = f'Error: {ex}'
         status = 'failed'

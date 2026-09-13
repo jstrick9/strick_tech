@@ -499,6 +499,23 @@ async def delete_note(req: Request):
     note_dir = _note_dir()
     f = (note_dir / path).resolve()
 
+    # The list and read APIs return vault-relative paths ('agentic-os/x.md'),
+    # and the pane's Delete buttons send exactly that path back — which used
+    # to be joined onto the NOTES dir, producing 'agentic-os/agentic-os/x.md'
+    # and a 404 for every note the app itself created. Measured live: no note
+    # was deletable from the UI at all. Accept the vault-relative form too:
+    # resolve against the vault root and keep the containment check below as
+    # the authority on what may be deleted.
+    if not f.exists():
+        vp = _vault_path()
+        if vp is not None:
+            cand = (vp / path).resolve()
+            try:
+                cand.relative_to(note_dir.resolve())
+                f = cand
+            except ValueError:
+                pass
+
     try:
         f.relative_to(note_dir.resolve())
     except ValueError:
