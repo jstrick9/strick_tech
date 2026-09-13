@@ -859,3 +859,19 @@ Suites at unit close: vitest 335/335 · unit 4774/166 skipped ·
 security 328/3 skipped · e2e_browser_03 20 passed/1 skipped.
 
 Commits: (this commit) #122, #123, #124, #125, #126.
+
+### #127 — every project-health GET wrote a snapshot; the history was render noise
+GET /api/ambient/health unconditionally INSERTed a health_snapshots row on
+every call — and the bugbot pane's render fetches it (twice, a second
+apart). A month of ordinary use had accumulated 336 rows, nearly all
+byte-identical, so the "history" was a log of pane renders, not of
+changes. A snapshot is now written only when the six scores differ from
+the most recent row; the history becomes a timeline of actual changes.
+Verified live: 3 direct GETs + 2 bugbot pane renders → zero new rows
+(unchanged scores). Existing rows left untouched.
+
+Suites: unit 4774/166sk · security 328/3sk · e2e_browser_03 20/1sk
+(vitest unaffected — backend-only change; green at unit 4).
+
+Round 16 closed: #113–#127 shipped across five units
+(0cd0cd2, 321c528, 9475c2d, ccbbcc9, aaf922d, and this commit).

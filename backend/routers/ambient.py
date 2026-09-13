@@ -603,24 +603,34 @@ async def project_health():
 
     unmeasured = sorted(k for k, v in scores.items() if v is None)
 
-    # Save snapshot
+    # Save snapshot — but only when something changed. Every GET used to
+    # INSERT unconditionally: the bugbot pane's render fetches this endpoint
+    # (twice, a second apart), and ordinary use had accumulated 336 rows,
+    # nearly all byte-identical. A history that records every pane render is
+    # noise; a history that records changes is a timeline. Compare against
+    # the most recent row and skip the insert when the scores are unchanged.
     con = get_conn()
     try:
-        con.execute(
-            """INSERT INTO health_snapshots
-                       (overall_score,complexity_score,security_score,debt_score,docs_score,deps_score,details_json)
-                       VALUES (?,?,?,?,?,?,?)""",
-            (
-                overall,
-                scores['complexity'],
-                scores['security'],
-                scores['debt'],
-                scores['docs'],
-                scores['deps'],
-                json.dumps(details),
-            ),
+        current = (
+            overall,
+            scores['complexity'],
+            scores['security'],
+            scores['debt'],
+            scores['docs'],
+            scores['deps'],
         )
-        con.commit()
+        prev = con.execute(
+            'SELECT overall_score, complexity_score, security_score, debt_score, '
+            'docs_score, deps_score FROM health_snapshots ORDER BY id DESC LIMIT 1'
+        ).fetchone()
+        if prev is None or tuple(prev) != tuple(current):
+            con.execute(
+                """INSERT INTO health_snapshots
+                           (overall_score,complexity_score,security_score,debt_score,docs_score,deps_score,details_json)
+                           VALUES (?,?,?,?,?,?,?)""",
+                (*current, json.dumps(details)),
+            )
+            con.commit()
     finally:
         con.close()
 
