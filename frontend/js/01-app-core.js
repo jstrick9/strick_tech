@@ -5257,7 +5257,12 @@ function studioReloadPreview() {
   const src = studioPreviewUrl();
   frame.src = src + '?t=' + Date.now();
   const urlBar = document.getElementById('studio-url-bar');
-  if (urlBar) urlBar.textContent = `localhost:8787${src}`;
+  // location.host, not a hardcoded 'localhost:8787' — the bar is meant to
+  // show the preview's address, and on any other host (LAN IP, proxied
+  // domain, tunnel) the hardcoded text was the address of a different
+  // machine. Display-only, but a wrong address that looks authoritative is
+  // worse than none.
+  if (urlBar) urlBar.textContent = location.host + src;
 }
 
 // ── Device picker ──────────────────────────────────────────────────

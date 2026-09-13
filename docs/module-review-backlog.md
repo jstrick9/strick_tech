@@ -889,3 +889,24 @@ Verified live: CREATE TABLE → "Statement executed"; INSERT → "1 row
 affected"; DELETE of 3 → "3 rows affected" (dbstudio journey 8/8,
 including audit tab, dry-run, insert modal, row delete).
 
+## Round 17 — Unit 2: hardcoded localhost in user-facing URLs
+
+### #129 — the webhook-create alert told users to paste a localhost URL into GitHub/Stripe
+After creating a webhook, the success alert displayed the signing URL
+hardcoded as http://localhost:8787/api/webhooks/github/... — on any
+non-loopback deployment (LAN IP, tunnel, reverse proxy) the URL a user
+copied into GitHub/Stripe pointed at their own machine and silently
+never fired. The alert now builds the URL from location.origin (and
+escHtml's it, along with the secret, on the way out). The copy button
+already used location.origin — only the alert lied. Verified live:
+webhooks journey 10/10 (create via 2-prompt flow, alert origin correct,
+secret shown, test trigger + event, template install, delete-all, empty
+state).
+
+### #130 — the Studio preview URL bar hardcoded localhost:8787
+studioReloadPreview wrote localhost:8787/preview/index.html into the
+pane's URL bar regardless of where the app was actually served —
+misleading on LAN/tunnel topologies. It now uses location.host.
+(index.html's static placeholder text for the same bar is overwritten
+on the first preview reload; left as-is.)
+

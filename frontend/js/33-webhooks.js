@@ -79,9 +79,14 @@ async function createWebhook() {
     if (!r.ok) { toast('Create failed: server error ' + r.status, 'err'); return; }
     const j = await r.json();
     if (j.ok) {
+      // location.origin, not a hardcoded localhost:8787 — the user copies
+      // this URL straight into GitHub/Stripe/Zapier, and on any other host
+      // (LAN IP, proxied domain, tunnel) the hardcoded one was a dead
+      // endpoint. The copy button (hCopyWebhookUrl) already builds the
+      // URL correctly; this alert now matches it.
       await gmAlert('✅ Webhook Created!',`<div class="u-fdf33f23">Endpoint:</div>
-        <code style="display:block;background:var(--bg-0);padding:8px;border-radius:4px;font-size:12px;word-break:break-all">http://localhost:8787/api/webhooks/${j.id}/trigger</code>
-        <div style="margin-top:8px;font-size:12px;color:var(--text-2)">Header: <code>X-Webhook-Secret: ${j.secret}</code></div>`);
+        <code style="display:block;background:var(--bg-0);padding:8px;border-radius:4px;font-size:12px;word-break:break-all">${escHtml(location.origin + '/api/webhooks/' + j.id + '/trigger')}</code>
+        <div style="margin-top:8px;font-size:12px;color:var(--text-2)">Header: <code>X-Webhook-Secret: ${escHtml(j.secret || '')}</code></div>`);
       renderWebhooks();
     } else {
       toast('Create failed: ' + (j.error||'unknown error'), 'err');
