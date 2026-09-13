@@ -195,6 +195,12 @@ BUILTIN_CONNECTORS = [
 ]
 
 
+# Rows with these ids are platform built-ins (re-seeded by _ensure_schema);
+# anything else in connector_registry was registered by the user and is
+# deletable via DELETE /api/connectors/{id}.
+_BUILTIN_CONNECTOR_IDS = frozenset(c['connector_id'] for c in BUILTIN_CONNECTORS)
+
+
 def _get_conn():
     from ..services.memory_db import get_conn
 
@@ -249,6 +255,9 @@ def _connector_dict(row) -> dict:
     # Mask credentials
     if 'credentials' in d and isinstance(d['credentials'], dict):
         d['credentials'] = {k: '***' if v else '' for k, v in d['credentials'].items()}
+    # User-registered vs platform-built-in: the UI shows a delete control for
+    # custom rows only (built-ins are re-seeded by _ensure_schema anyway).
+    d['custom'] = d.get('connector_id') not in _BUILTIN_CONNECTOR_IDS
     return d
 
 
@@ -4009,6 +4018,38 @@ def get_connector(connector_id: str):
     if not row:
         return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     return {'ok': True, 'connector': _connector_dict(row)}
+
+
+@router.delete('/{connector_id}')
+def delete_connector(connector_id: str):
+    """Remove a custom connector.
+
+    POST /api/connectors writes a row into connector_registry, but there was
+    no inverse: a custom connector registered through the Connector SDK
+    (or its pane button) could never be removed — not via the API (no route;
+    DELETE /api/connectors/{id} was a 405) and not via the UI (no control).
+    Every registration, including a typo'd one, was permanent clutter in the
+    pane and in every agent's connector list. Built-ins stay protected.
+    """
+    if connector_id in _BUILTIN_CONNECTOR_IDS:
+        return JSONResponse(
+            {'ok': False, 'error': 'Cannot delete a built-in connector'}, status_code=400
+        )
+    con = _get_conn()
+    try:
+        existing = con.execute(
+            'SELECT connector_id FROM connector_registry WHERE connector_id=?', (connector_id,)
+        ).fetchone()
+        if not existing:
+            return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
+        con.execute('DELETE FROM connector_registry WHERE connector_id=?', (connector_id,))
+        # Execution history for the removed connector goes with it — it is
+        # unreachable through the API once the connector is gone.
+        con.execute('DELETE FROM connector_executions WHERE connector_id=?', (connector_id,))
+        con.commit()
+    finally:
+        con.close()
+    return {'ok': True, 'deleted': connector_id}
 
 
 @router.patch('/{connector_id}/configure')

@@ -998,3 +998,47 @@ introspection endpoint — left as public API surface, not dead code.
 
 Suites: unit 4776/164sk · vitest 335 (67 files) · security 328/3sk ·
 e2e_browser_03 20/1sk.
+
+## Round 19 (2026-09-13) — Unit 1: five pane journeys + a write-only registry
+
+### #135 — custom connectors could be registered but never removed
+POST /api/connectors writes a custom connector into connector_registry, but
+there was no inverse: DELETE /api/connectors/{id} was a 405 (no route
+existed) and the pane's Register button had no remove counterpart. Every
+registration — including a typo'd name or wrong capability list — was
+permanent clutter in the pane and in every agent's connector list, with
+the only escape hatch being direct DB surgery. Same shape as #126 (notes
+that could never be deleted). DELETE /api/connectors/{id} now removes a
+custom connector and its execution history; built-ins (the ids seeded by
+_ensure_schema) are refused with a 400; unknown ids 404. The list response
+marks each row custom:true/false so the UI shows a 🗑 (gmDanger-confirmed)
+on user-registered cards only. Verified live 10/10: builtin refuse, custom
+delete, gone-from-list, 404, flag correctness, 🗑 only on custom cards,
+UI delete round-trip; probe rows cleaned afterwards. Pinned by
+tests/unit/test_217_connector_delete.py (5 tests).
+
+Round 19 journeys — no bugs found in any of these (all previously
+hardened): kanban 7/7 (create via modal, real mouse drag todo→doing
+persisted, edit modal title+priority, delete via card 🗑 + gmDanger,
+priority filter); integrations 6/6 (category filter, .agenticrules
+save/load round-trip — probe content restored to the backend default
+afterwards — doc generate, Stripe Wire 3-prompt flow creating
+checkout.html via the mock provider); finops 7/7 (manual cost entry lands
+in ledger exactly, 4-step cap-create modal name→scope chooser→limit→period,
+cap delete, CSV export, preflight; the manual entry also correctly fired a
+cost alert, proving cap enforcement); leaderboard 7/7 (period filter,
+policy create/delete via the Policies tab); supervisor (launch modal →
+run executed to status 'done' with 3 tasks against the mock provider, dag
+endpoint, delete; 21 stale a2a_srun_* runs and 63 orphan task rows from
+the r17 connectors-suite run cleaned from the DB); loops (render + status;
+no create control is exposed in the pane UI).
+
+Probe-artifact false alarms this round (the app was right): kanban edit
+opens via the ✏️ card button, not card click; finops cap-create is a
+4-step modal (gmChoose renders #gm-select); leaderboard's Policies tab
+must be switched to before its buttons are visible; supervisor's success
+terminal state is 'done' (not 'completed'); {var!r} inside a
+single-quoted JS string breaks page.evaluate — interpolate raw.
+
+Suites: unit 4781/164sk (incl. new test_217) · vitest 335 (67 files) ·
+security 328/3sk · e2e_browser_03 20/1sk.

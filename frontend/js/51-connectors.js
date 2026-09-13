@@ -92,6 +92,7 @@ function renderConnectorCard(c, statusColor) {
         `<button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-connector-caps='${JSON.stringify(caps).replace(/\'/g, "&#39;")}' data-act-click="connectorExecute($data.connectorId,$data.connectorName,$json.connectorCaps)">▶ Execute</button>
          <button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-act-click="connectorHistory($data.connectorId)">📋 History</button>
          <button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-act-click="connectorTest($data.connectorId)">🧪 Test</button>`}
+      ${c.custom?`<button class="btn-sm" title="Remove custom connector" aria-label="Remove custom connector" style="color:var(--danger)" data-connector-id="${escHtml(c.connector_id)}" data-connector-name="${escHtml(c.name)}" data-act-click="connectorDelete($data.connectorId,$data.connectorName)">🗑</button>`:''}
     </div>
   </div>`;
 }
@@ -168,6 +169,21 @@ async function connectorRegister() {
   if (d.ok) renderConnectors();
 }
 
+async function connectorDelete(connId, name) {
+  // Custom connectors were write-only before the DELETE route existed: the
+  // pane offered Register but no remove, so registrations (typos included)
+  // accumulated forever. Confirmed via gmDanger — no accidental loss.
+  const ok = await gmDanger('Remove Connector',
+    `Remove the custom connector "${name}" (${connId})? Its execution history goes with it. Built-in connectors are not affected.`, 'Remove');
+  if (!ok) return;
+  try {
+    const r = await fetch(`/api/connectors/${encodeURIComponent(connId)}`, {method:'DELETE'});
+    const d = await r.json().catch(()=>({}));
+    if (r.ok && d.ok) { showToast(`🗑 ${name} removed`); renderConnectors(); }
+    else showToast('⚠️ '+(d.error||`Remove failed (HTTP ${r.status})`), 'err');
+  } catch(ex) { showToast('⚠️ ' + ex.message, 'err'); }
+}
+
 
 
 // ══════════════════════════════════════════════════════════════════
@@ -183,4 +199,5 @@ window.connectorExecute = connectorExecute;
 window.connectorHistory = connectorHistory;
 window.connectorRegister = connectorRegister;
 window.connectorTest = connectorTest;
+window.connectorDelete = connectorDelete;
 })(S, nav, toast, escHtml, fetch, document);
