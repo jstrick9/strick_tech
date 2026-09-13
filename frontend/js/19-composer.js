@@ -276,6 +276,12 @@ async function runScreenshotToCode() {
 async function loadBranchPreviews() {
   const el = document.getElementById('branch-list');
   if (!el) return;
+  // Clear previous rows before injecting a state node. stateFeedback helpers
+  // only remove their OWN .data-state nodes — they never touch rows a
+  // previous load rendered — so without this, deleting the last snapshot
+  // left its row on screen UNDER the "No snapshots yet" empty state, and a
+  // reload stacked "Loading…" beneath the existing list (verified live).
+  el.innerHTML = '';
   if (window.stateFeedback) window.stateFeedback.setLoading(el, { label: 'Loading branch previews…' });
   try {
     const r = await fetch('/api/composer/preview/branches');
@@ -319,9 +325,13 @@ async function createBranchPreview() {
   if (j.ok) {
     toast(`📸 Snapshot created! ${j.files} files`, 'ok', 3000);
     loadBranchPreviews();
+    // The share URL used to be hardcoded 'http://localhost:8787' — a dead
+    // link for everyone except a developer on the machine running the
+    // server. Share the URL the user is actually browsing (origin covers
+    // LAN IPs, proxied hosts and tunnel deployments alike).
     await gmAlert('Branch Preview Created 🌿',
       `<div>Share this URL with clients for review:</div>
-       <code style="display:block;background:var(--bg-0);padding:8px;border-radius:4px;margin:10px 0;font-size:12px">http://localhost:8787${j.url}</code>
+       <code style="display:block;background:var(--bg-0);padding:8px;border-radius:4px;margin:10px 0;font-size:12px;word-break:break-all">${escHtml(location.origin + j.url)}</code>
        <div style="font-size:12px;color:var(--text-2)">The snapshot is frozen — changes to your project won't affect it.</div>`);
   } else toast('Snapshot failed: ' + (j.error||''), 'err');
 }

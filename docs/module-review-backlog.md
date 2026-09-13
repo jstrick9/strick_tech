@@ -724,3 +724,65 @@ excluded, server down) · vitest 335/335 · security 328/3 skipped
 e2e_browser_03 20 passed/1 skipped ×2 full runs.
 
 Commits: (this commit) #114, #115, #116, #117.
+
+## Round 16 — Unit 3: composer sub-surfaces + dashboard timer
+
+### #118 — branch snapshot "share with clients" URL was hardcoded localhost
+The gmAlert after creating a branch preview told the user to share
+`http://localhost:8787/preview/branches/<name>/` — a dead link for every
+client not sitting at the server's own machine (LAN IP, proxied host,
+tunnel: all broken). The frontend now shows `location.origin + url`
+(the URL the user is actually browsing), and the API's `share_url`
+field is likewise built from the request's own base URL instead of a
+hardcoded literal. Verified live: alert shows 127.0.0.1:8787 when
+browsed there (and would show any real host).
+
+### #119 — the branch list kept ghost rows under its empty/loading states
+stateFeedback's setEmpty/setError/setLoading only remove their own
+.data-state nodes, never rows a previous load rendered. After deleting
+the last snapshot, the deleted row stayed on screen ABOVE the "No
+snapshots yet" empty state (verified live), and a pane re-visit stacked
+"Loading…" under the existing list. loadBranchPreviews now clears the
+container before injecting a state. Verified live: delete-last → clean
+empty state, no ghost row.
+
+### #120 — dashboard "auto-refresh" guard was dead code — it polled forever
+The 30s auto-refresh only re-rendered when
+`dash-body.closest('[style*="display:none"]')` matched — but panes are
+hidden by the .pane/.pane.active CSS classes, never inline styles, so
+the guard could not ever match. One visit to the dashboard meant a
+/analytics/dashboard fetch every 30s for the rest of the session,
+hidden or not. The check is now offsetParent-based (null exactly when
+an ancestor is display:none). Verified live: 1 fetch on visit, ZERO
+fetches across 70s hidden, refresh resumes on return.
+
+### #121 — one failed dashboard fetch permanently killed auto-refresh
+The !r.ok branch `return`ed past the timer re-arm, so a single failed
+fetch silently stopped the promised 30s auto-refresh and the pane sat
+on a stale error forever. The re-arm now lives in `finally`, so every
+path (success, HTTP error, network error) keeps the chain alive while
+the pane is visible.
+
+Journeyed clean this unit: composer sub-surfaces 14/14 — screenshot→code
+live round-trip (upload → convert → honest success → preview file
+replaced → jump to studio), branch snapshot create via gmPrompt, share
+URL uses real origin, snapshot URL serves frozen content, live project
+changes while snapshot keeps old content, delete removes snapshot 404 +
+clean empty state, no page errors. (The mock providers gained an s2c
+branch that answers 'Recreate this design' with a full HTML doc, and a
+composer <PLAN>/<FILE> branch, so these paths stay journeyable.)
+
+Environment note: the sandbox reset mid-unit (wiped /tmp, pip, npm,
+processes). Restored per the recovery recipe: requirements + test reqs,
+playwright + chromium system deps, npm install, mocks rebuilt, servers
+restarted. Repo and uncommitted fixes were unaffected.
+
+Suites at unit close: vitest 335/335 · unit 4774/166 skipped ×3
+consecutive clean runs (the first run after env restore had 4
+environmental flakes — cold caches; three full re-runs clean) ·
+security 328/3 skipped · e2e_browser_03 20 passed/1 skipped in 7 of 8
+runs (one intermittent single-test flake whose name was never captured
+— every immediate re-run passed; the two nav tests were already
+hardened to wait_for_function earlier in the round).
+
+Commits: (this commit) #118, #119, #120, #121.

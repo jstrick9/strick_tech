@@ -447,13 +447,18 @@ async def create_branch_preview(req: Request):
     }
 
     memory_db.audit_log('branch_preview_create', f'{branch_name}: {copied} files')
+    # share_url used to be hardcoded 'http://localhost:8787…' — wrong for every
+    # other host the server is reachable on (LAN IP, proxied domain, tunnel).
+    # Build it from the request's own base URL so API consumers get a link
+    # that actually resolves for them.
+    base = str(req.base_url).rstrip('/')
     return {
         'ok': True,
         'name': branch_name,
         'title': title,
         'url': preview_url,
         'files': copied,
-        'share_url': f'http://localhost:8787{preview_url}',
+        'share_url': f'{base}{preview_url}',
     }
 
 

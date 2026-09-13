@@ -50,13 +50,24 @@ async function renderDashboard() {
   } catch(ex) {
     const message = humanError(ex, {action:'load your dashboard', dataSafe:true});
     if (window.stateFeedback) window.stateFeedback.setError(bodyEl, { title:'Couldn\u2019t load the dashboard', message, retry:'renderDashboard()' });
+  } finally {
+    // Auto-refresh every 30s. Re-arm on EVERY path: the !r.ok branch used to
+    // `return` straight past this, so one failed fetch permanently killed
+    // the refresh chain and the pane sat on a stale error that never
+    // retried itself.
+    clearTimeout(_dashRefreshTimer);
+    _dashRefreshTimer = setTimeout(() => {
+      const db = document.getElementById('dash-body');
+      // The old guard, closest('[style*="display:none"]'), could never
+      // match: panes are hidden by the .pane/.pane.active CSS classes, not
+      // inline styles — dead code, which meant the dashboard kept polling
+      // analytics every 30s for the rest of the session after one visit.
+      // offsetParent is null exactly when the element or an ancestor is
+      // display:none, which is the real condition. When the pane is shown
+      // again the pane registry calls renderDashboard(), which re-arms.
+      if (db && db.offsetParent !== null) renderDashboard();
+    }, 30000);
   }
-  // Auto-refresh every 30s
-  clearTimeout(_dashRefreshTimer);
-  _dashRefreshTimer = setTimeout(() => {
-    const db = document.getElementById('dash-body');
-    if (db && db.closest('[style*="display:none"]') === null) renderDashboard();
-  }, 30000);
 }
 
 async function exportDashboardCSV() {
