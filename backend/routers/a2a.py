@@ -45,6 +45,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import sqlite3
 import time
 import uuid
 from datetime import datetime, timezone
@@ -590,7 +591,13 @@ async def _handle_jsonrpc(agent_id: str, body: dict, request: Request) -> dict:
         return {'_streaming': True, 'params': params, 'req_id': req_id}
 
     elif method == 'agents/getAuthenticatedExtendedCard':
-        card = _build_agent_card(agent_id)
+        # Base from the REQUEST, not the localhost default: a remote caller
+        # fetching the extended card over a LAN IP / proxied host / tunnel
+        # was handed a card whose url pointed at localhost — the caller's
+        # own machine, not this one. The per-agent card endpoint already
+        # threaded request.base_url through; this path missed it.
+        base = str(request.base_url).rstrip('/')
+        card = _build_agent_card(agent_id, base)
         if not card:
             return _jsonrpc_error(req_id, ERR_INTERNAL, f"Agent '{agent_id}' not found")
         return _jsonrpc_ok(req_id, card)
@@ -621,31 +628,50 @@ async def _handle_tasks_send(req_id, agent_id: str, params: dict, request: Reque
     caller_id = request.headers.get('X-A2A-Agent-Id', 'external')
     caller_ep = request.headers.get('X-A2A-Endpoint', '')
 
+    # A caller-supplied id may collide with an existing task (a2a_tasks.task_id
+    # is the PRIMARY KEY). This used to surface as an unhandled
+    # sqlite3.IntegrityError — an HTTP 500 with a traceback in the server log
+    # and a non-JSON-RPC body for the caller. A duplicate id is a client
+    # mistake: answer it in-protocol instead of crashing.
+    if params.get('id') is not None and _load_task(task_id):
+        return _jsonrpc_error(
+            req_id, ERR_INVALID_PARAMS,
+            f"Task id '{task_id}' already exists; use a new id or tasks/get to retrieve it",
+        )
+
     now = _now()
     con = _get_conn()
     try:
-        con.execute(
-            """
-            INSERT INTO a2a_tasks
-              (task_id,caller_agent_id,caller_endpoint,target_agent_id,state,
-               messages,artifacts,metadata,push_config,session_id,created_at,updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-        """,
-            (
-                task_id,
-                caller_id,
-                caller_ep,
-                agent_id,
-                'submitted',
-                json.dumps([message]),
-                '[]',
-                '{}',
-                json.dumps(push_cfg),
-                session_id,
-                now,
-                now,
-            ),
-        )
+        try:
+            con.execute(
+                """
+                INSERT INTO a2a_tasks
+                  (task_id,caller_agent_id,caller_endpoint,target_agent_id,state,
+                   messages,artifacts,metadata,push_config,session_id,created_at,updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+                (
+                    task_id,
+                    caller_id,
+                    caller_ep,
+                    agent_id,
+                    'submitted',
+                    json.dumps([message]),
+                    '[]',
+                    '{}',
+                    json.dumps(push_cfg),
+                    session_id,
+                    now,
+                    now,
+                ),
+            )
+        except sqlite3.IntegrityError:
+            # Lost a race with a concurrent send of the same id (the pre-check
+            # above is not atomic with the INSERT).
+            return _jsonrpc_error(
+                req_id, ERR_INVALID_PARAMS,
+                f"Task id '{task_id}' already exists; use a new id or tasks/get to retrieve it",
+            )
         con.execute(
             """
             INSERT INTO a2a_call_log (task_id,direction,remote_agent_id,remote_url,method,created_at)
@@ -870,7 +896,8 @@ async def _stream_task_subscribe(agent_id: str, params: dict, request: Request):
 
 # ── Outbound delegation to remote A2A agents ───────────────────────────────────
 async def _delegate_to_remote(
-    agent_id: str, endpoint: str, method: str, params: dict, auth_type: str = 'none', auth_config:dict | None = None
+    agent_id: str, endpoint: str, method: str, params: dict, auth_type: str = 'none', auth_config:dict | None = None,
+    self_base: str = '',
 ) -> dict:
     """
     Send a JSON-RPC 2.0 request to a remote A2A agent endpoint.
@@ -879,10 +906,17 @@ async def _delegate_to_remote(
     import httpx
 
     payload = {'jsonrpc': '2.0', 'id': str(uuid.uuid4()), 'method': method, 'params': params}
+    # X-A2A-Endpoint tells the REMOTE agent how to call us back. The
+    # hardcoded 'http://localhost:8787/...' pointed a remote party at its
+    # own loopback — the callback could never work off-box. Callers that
+    # know their public base URL (delegate_task has the request) pass it
+    # through self_base; the localhost fallback only survives for callers
+    # with no request context.
+    callback_base = self_base or 'http://localhost:8787'
     headers = {
         'Content-Type': 'application/json',
         'X-A2A-Agent-Id': 'agentic-os',
-        'X-A2A-Endpoint': 'http://localhost:8787/a2a/orchestrator',
+        'X-A2A-Endpoint': f'{callback_base}/a2a/orchestrator',
         'X-A2A-Protocol': 'a2a/1.0',
     }
     if auth_type == 'bearer' and auth_config:
@@ -1030,7 +1064,7 @@ async def a2a_task_stream(agent_id: str, task_id: str):
 
 # ── Registry: list / discover remote agents ────────────────────────────────────
 @router.get('/api/a2a/agents')
-def list_agents(trust_level: str = '', status: str = '', limit: int = 50):
+def list_agents(trust_level: str = '', status: str = '', limit: int = 50, request: Request = None):
     """List all registered A2A agents (local + remote)."""
     where, params = [], []
     if trust_level:
@@ -1074,7 +1108,9 @@ def list_agents(trust_level: str = '', status: str = '', limit: int = 50):
                     'agent_id': a['id'],
                     'name': a['name'],
                     'description': a['role'],
-                    'a2a_url': f'http://localhost:8787/a2a/{a["id"]}',
+                    # request.base_url, not a hardcoded localhost — the
+                    # listed a2a_url is what a consumer would call back.
+                    'a2a_url': f'{(str(request.base_url).rstrip("/") if request is not None else "http://localhost:8787")}/a2a/{a["id"]}',
                     'status': 'active',
                     'trust_level': 'local',
                     'skills': [],
@@ -1390,6 +1426,10 @@ async def delegate_task(request: Request):
     if not remote_agent_id or not message_text:
         return JSONResponse({'ok': False, 'error': 'agent_id and message required'}, status_code=400)
 
+    # Our own reachable base, for the caller_endpoint record and the
+    # X-A2A-Endpoint callback header — request-derived, not hardcoded.
+    self_base = str(request.base_url).rstrip('/')
+
     con = _get_conn()
     try:
         row = con.execute('SELECT * FROM a2a_agents WHERE agent_id=?', (remote_agent_id,)).fetchone()
@@ -1430,7 +1470,7 @@ async def delegate_task(request: Request):
             (
                 task_id,
                 'local',
-                'http://localhost:8787',
+                self_base,
                 remote_agent_id,
                 'submitted',
                 json.dumps([params['message']]),
@@ -1455,7 +1495,8 @@ async def delegate_task(request: Request):
 
     # Send to remote agent
     result = await _delegate_to_remote(
-        remote_agent_id, endpoint, 'tasks/send', params, auth_type=ag.get('auth_type', 'none'), auth_config=auth_cfg
+        remote_agent_id, endpoint, 'tasks/send', params, auth_type=ag.get('auth_type', 'none'), auth_config=auth_cfg,
+        self_base=self_base,
     )
 
     # Update call log

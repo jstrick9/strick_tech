@@ -875,6 +875,7 @@ Suites: unit 4774/166sk · security 328/3sk · e2e_browser_03 20/1sk
 
 Round 16 closed: #113–#127 shipped across five units
 (0cd0cd2, 321c528, 9475c2d, ccbbcc9, aaf922d, and this commit).
+
 ## Round 17 (2026-09-13) — Unit 1: DB Studio row-count display
 
 ### #128 — DDL statements were reported as "✅ -1 rows affected"
@@ -910,3 +911,46 @@ misleading on LAN/tunnel topologies. It now uses location.host.
 (index.html's static placeholder text for the same bar is overwritten
 on the first preview reload; left as-is.)
 
+## Round 17 — Unit 3: A2A protocol — localhost URLs + a 500
+
+### #131 — four protocol surfaces advertised localhost to the outside world
+The A2A router hardcoded http://localhost:8787 into URLs it hands to
+OTHER parties: (1) agents/getAuthenticatedExtendedCard built the card
+with a localhost base, so a remote caller fetching our extended card
+over a LAN IP/tunnel was told to call us back at their own loopback;
+(2) _delegate_to_remote sent X-A2A-Endpoint: http://localhost:8787 as
+the callback header — pointing the remote server's callbacks at the
+REMOTE's own machine; (3) list_agents' registry a2a_url for local
+agents; (4) delegate_task recorded localhost as the caller_endpoint in
+a2a_tasks. All four are now derived from request.base_url (localhost
+survives only as the no-request fallback for in-process callers).
+Verified live over 127.0.0.1:8787 — registry a2a_url, extended card
+url, and per-agent card url all request-derived. Connectors suite
+tests/connectors/test_a2a_protocol.py 72/72 after seeding its three
+documented demo agents (local_orchestrator, ext_langchain_agent,
+ext_crewai_writer) — the cloned DB ships with an empty registry, so
+the suite's "3 seeded demo agents" precondition had to be recreated;
+seeded rows and suite task residue removed afterwards.
+
+### #132 — tasks/send with a duplicate client-supplied id crashed with a 500
+A2A callers may supply their own task id in params.id; a2a_tasks.task_id
+is the primary key, so a send whose id already existed raised an
+unhandled sqlite3.IntegrityError — HTTP 500, a traceback in the server
+log, and a non-JSON-RPC body for the caller (found via test_32 after
+re-running a stale cancel_test_task). Duplicate ids are now answered
+in-protocol: JSON-RPC -32602 "Task id 'X' already exists; use a new id
+or tasks/get to retrieve it" (pre-check plus a race-safe IntegrityError
+catch). Verified live: duplicate send → HTTP 400 with the structured
+error; suite 72/72.
+
+Round 17 journeys: pane sweep 59/60 clean (terminal pane's 401
+/api/terminal/env is the by-design auth refusal for a 0.0.0.0 bind with
+no users — the pane shows an actionable banner, not a bug); dbstudio
+8/8; webhooks 10/10; goals 8/8 (the goals pane needed no fixes — its
+first-run "failures" were probe bugs around two-prompt gmPrompt flows).
+
+Suites: unit 4776/164sk · vitest 335 (67 files) · security 328/3sk ·
+e2e_browser_03 20/1sk · connectors/a2a 72/72 (live server recipe:
+AGENTIC_OS_HOST=127.0.0.1 RATE_LIMIT_MAX=100000; the file's bare-POST
+style additionally needs the server started with PYTEST_CURRENT_TEST
+set — its POSTs predate CSRF enforcement and send no token).
