@@ -103,10 +103,18 @@ class TestV80Features:
             assert "notice" in hw, "must explain why fine-tuning is unavailable"
 
         # Dataset preparation works regardless of training capability.
+        # custom_rows keeps this test self-sufficient: with source_type
+        # "chat_history" it would depend on chat residue left in the shared
+        # session DB by *other* test files, and 422 ("no training examples")
+        # on a fresh database — an order-dependence, not a product bug.
         ds_r = client.post("/api/finetune/datasets/create", json={
             "dataset_id": "v8_lora_ds",
             "name": "Agentic OS Domain Set",
-            "source_type": "chat_history"
+            "source_type": "chat_history",
+            "custom_rows": [
+                {"prompt": "Summarize the standup notes.", "response": "Three items shipped, one blocked."},
+                {"prompt": "Draft a follow-up email.", "response": "Thanks for the review — changes pushed."},
+            ],
         })
         assert ds_r.status_code == 200
         assert ds_r.json()["ok"] is True

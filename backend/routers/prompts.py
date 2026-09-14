@@ -1124,13 +1124,22 @@ def restore_version(prompt_id: str, version_no: int):
                 {'ok': False, 'error': f'Version {version_no} not found'}, status_code=404
             )
 
-        snapshot_version(con, prompt_id, dict(current), reason=f'pre-restore-v{version_no}')
         t = dict(target)
         # A category or agent valid when the snapshot was taken may have been
         # deleted since. Restore the wording regardless — that's the point —
         # but don't reintroduce a dangling reference.
-        category = t['category'] if t['category'] in valid_categories() else 'general'
-        agent_id = t['agent_id'] if t['agent_id'] in valid_agent_ids() else ''
+        # Both registries are read BEFORE snapshot_version: it opens the
+        # write transaction this function holds until commit, and
+        # valid_agent_ids() can seed default agents on a *second* connection
+        # — a write that then blocks on the first connection's lock until
+        # the busy timeout expires. On a fresh install (agents not yet
+        # seeded) the very first restore 500'd with "database is locked"
+        # after a 10-second hang.
+        known_categories = valid_categories()
+        known_agent_ids = valid_agent_ids()
+        snapshot_version(con, prompt_id, dict(current), reason=f'pre-restore-v{version_no}')
+        category = t['category'] if t['category'] in known_categories else 'general'
+        agent_id = t['agent_id'] if t['agent_id'] in known_agent_ids else ''
         con.execute(
             """UPDATE prompt_library
                SET title=?, content=?, category=?, tags=?, agent_id=?, updated_at=CURRENT_TIMESTAMP
