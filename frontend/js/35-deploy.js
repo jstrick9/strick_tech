@@ -105,8 +105,18 @@ async function doDeploy(provider) {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({})
     });
-    if (!r.ok) throw new Error(`Server error ${r.status}`);
-    const j = await r.json();
+    // The backend answers non-200 with a JSON body that says exactly what is
+    // missing ("GITHUB_TOKEN not set") and, for some providers, a step-by-step
+    // setup guide. The old `throw new Error('Server error ' + r.status)`
+    // discarded all of that and left the user with a bare "Server error 401".
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const setup = (j.setup && j.setup.length) ? '<div style="font-size:11.5px;color:var(--text-2);margin-top:6px">' + j.setup.map(s=>escHtml(s)).join('<br>') + '</div>' : '';
+      const alt = j.alternative ? `<div style="font-size:11px;color:var(--accent-text);margin-top:6px">${escHtml(j.alternative)}</div>` : '';
+      res.innerHTML = `<div style="color:var(--red);font-weight:700">⚠️ ${escHtml(j.error||`Server error ${r.status}`)}</div>${setup}${alt}`;
+      toast(`⚠️ ${providerLabel}: ${j.error||'deploy failed'}`, 'err', 5000);
+      return;
+    }
     if (j.ok && j.no_action) {
       // Some providers (Render) have no zip-upload/drag-drop deploy API —
       // the backend can only confirm the API key is valid and point the
@@ -160,8 +170,14 @@ async function startTunnel() {
   res.innerHTML = '<div style="color:var(--text-2);font-size:13px">Connecting to Cloudflare…</div>';
   try {
     const r = await fetch('/api/deploy/tunnel', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
-    if (!r.ok) throw new Error(`Server error ${r.status}`);
-    const j = await r.json();
+    // Same as doDeploy: a non-200 body carries the real reason — show it
+    // instead of a bare "Server error <code>".
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      res.innerHTML = `<div style="color:var(--red);font-weight:700">⚠️ ${escHtml(j.error||`Server error ${r.status}`)}</div>`;
+      toast(`⚠️ Tunnel: ${j.error||'failed'}`, 'err', 5000);
+      return;
+    }
     if (j.ok) {
       res.innerHTML = `<div style="color:var(--green);font-weight:700">✅ Tunnel active!</div>
         <a href="${safeUrl(j.url)}" target="_blank" style="color:var(--accent-text);font-size:14px;display:block;margin-top:4px;font-weight:700">${j.url}</a>

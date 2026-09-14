@@ -1159,3 +1159,43 @@ Note for future rounds: `frontend/dist` is snapshot-excluded, so a sandbox
 reset deletes the committed bundle — run scripts/build_bundle.py before
 any gate suite or the bundle-family tests fail on a missing manifest
 (test_180 rebuilds it mid-run and masks the cause).
+
+## Round 20 part 3 — the last panes, and one discarded error message
+
+**#142 deploy: non-200 responses threw away the server's reason.** The
+deploy backend answers a missing token with a precise JSON body —
+{"ok":false,"error":"GITHUB_TOKEN not set","code":"no_token"} — and for
+some providers a step-by-step setup guide. doDeploy checked `!r.ok`
+BEFORE reading the body and threw `Server error 401`, so the user saw a
+bare status code instead of "GITHUB_TOKEN not set" plus the fix. Same
+pattern in startTunnel. Both now parse the body first and render the
+real error, the setup steps, and the alternative. Verified live: vercel
+no-token shows the 4-step setup guide, github-pages shows
+"⚠️ GITHUB_TOKEN not set". Pinned by
+frontend/tests/deploy-error-honesty.test.js (4 tests).
+
+Round 20 part 3 journeys — all CLEAN (no bugs beyond #142): observability
+8/8 (stats honest, trace search filters 30→0→30 with a real empty state,
+trace detail modal opens/closes with live data); docs 5/5 (search,
+quick-starts, FAQ/shortcuts); rag 5/5 (gmPrompt name → gmChoose strategy
+→ pipeline created → detail view with real doc/chunk counters → DELETE);
+replay (graph/timeline/diff view switches); fusion (preset panel fans out
+through the mock with per-model cards — the backend honestly flags
+stub/no-key panel members as errors instead of scoring them); inbox
+(capture persists, sweep runs, item deleted via API); skills (category
+filter 83↔2, run modal opens with the real skill, run produces a real
+result through the mock); workspaces (create via gmPrompt → visible →
+DELETE 200); plugins (collection install via data-collection id, install
+state verified then cleaned); control (full 4-step budget-rule modal
+chain → rule created and enforced flag set → visible in pane → DELETE).
+
+With this, every pane named for the r20 hunt has been journeyed: github,
+testgen, chat, finetune, mobile nav, evals, observability, docs, rag,
+replay, fusion, inbox, skills, deploy, workspaces, plugins, control.
+
+Gate tallies after part 3: unit 4786/164sk, vitest 351 (70 files, +4),
+security 328/3sk, e2e_browser full directory 96/13sk. Probe residue
+cleaned: r20 workspace + budget rule + inbox item deleted via API,
+getting-started collection install rolled back (mkt_installed rows,
+plugins/installed.json restored, dropped pack file removed), eval/ab
+rows removed.
