@@ -114,9 +114,17 @@ def no_rce(r, label, markers=None):
         assert marker not in text, \
             f"SEC RCE: {label} — Found '{marker}' in response: {r.text[:300]}"
 
-def no_path_escape(r, label):
-    """Assert path traversal didn't succeed."""
-    dangerous = ["root:", "passwd", "/etc/", "secret", "private", "shadow"]
+def no_path_escape(r, label, dangerous=None):
+    """Assert path traversal didn't succeed.
+
+    `dangerous` overrides the default marker list. Needed because some
+    endpoints legitimately ECHO the app's own route namespace — the profiler
+    flamegraph is built from live traffic, so once the security suite has
+    exercised /api/secrets/* the graph contains those route names and the
+    bare word "secret" false-positives (order-dependent under
+    pytest-randomly). The real leak markers stay.
+    """
+    dangerous = dangerous or ["root:", "passwd", "/etc/", "secret", "private", "shadow"]
     text = r.text.lower()
     for d in dangerous:
         assert d not in text, \

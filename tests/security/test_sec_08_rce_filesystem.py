@@ -137,7 +137,15 @@ class TestSecProfilerRCE:
         for p in PATH_TRAVERSAL[:6]:
             r = await GET(C, f"/api/profiler/flamegraph?path={p}")
             sec_ok(r, f"Profiler flamegraph path: {p[:30]}")
-            no_path_escape(r, f"Profiler flamegraph: {p[:20]}")
+            # The flamegraph is built from LIVE traffic, so after the secrets
+            # tests have run (order is random) the graph legitimately contains
+            # /api/secrets/* route names — the bare word "secret" would
+            # false-positive. The actual file-content leak markers stay.
+            no_path_escape(
+                r,
+                f"Profiler flamegraph: {p[:20]}",
+                dangerous=["root:", "passwd", "/etc/", "private", "shadow"],
+            )
 
 
 class TestSecE2ERCE:
