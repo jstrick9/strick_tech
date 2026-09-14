@@ -1042,3 +1042,76 @@ single-quoted JS string breaks page.evaluate — interpolate raw.
 
 Suites: unit 4781/164sk (incl. new test_217) · vitest 335 (67 files) ·
 security 328/3sk · e2e_browser_03 20/1sk.
+
+## Round 20 (r20) — empty streams, the fine-tune pane's fiction, and a
+focus-stealing timer
+
+Five bugs, all end-user-first, found by live journey + full e2e sweep.
+
+**#136 testgen: an empty stream reported success.** A testgen generate
+stream that completed with no error AND no content delta (content-filtered
+or empty completion, or a 200 body that is not SSE) was forwarded as an
+empty stream; the pane then showed "✅ 1 lines generated" for an empty
+suite and a Save button that silently wrote nothing (`if(!generatedTestCode)`
+guard passed for ''). Backend now answers with an explicit
+`type=error, code=empty_stream, done=true` frame; the pane additionally
+refuses whitespace-only generatedTestCode (result cleared, Save hidden,
+toast). Verified live 9/9 (streaming happy path saves r20util.test.js with
+content; EMPTY-MARKER → ✗ + Save hidden; provider 500 → ✗; no-file no-op).
+Pinned by tests/unit/test_218_testgen_empty_stream.py (2 tests) and
+frontend/tests/chat-empty-stream.test.js's sibling guard in 34-test-generator.js.
+
+**#137 chat: blank bubble + poisoned history on empty streams.** The same
+zero-delta stream in chat rendered a completely blank agent bubble AND
+pushed `{role:'assistant', content:''}` into chatHistory — which was sent
+to the model as `history` on the next message. sendChat now shows
+"(no response — the model returned no content…)" instead, skips the
+history push, and never fires for action-only replies (slash-command
+routing) or user aborts. Verified live with the SSE mock: notice shown,
+history not polluted, /goal routing unaffected. Pinned by
+frontend/tests/chat-empty-stream.test.js (3 tests).
+
+**#138 finetune: Train buttons passed null.** The pane rendered
+`finetuneStartJob(${d.id})` but /api/finetune/datasets returns
+`dataset_id` (and `row_count`, not `rows`) — so with any real dataset,
+every Train button called finetuneStartJob(null) → 422, the dataset
+showed "0 training examples", and the create toast read "undefined
+(undefined rows)". All keys fixed + null guard in finetuneStartJob.
+Hidden until a dataset exists, which is why every earlier round missed it
+(the DB always had 0 datasets). Verified live: real id in handlers, real
+row counts, real toast. Also fixed the e2e probe's own d.id mapping in
+test_e2e_browser_06. Pinned by frontend/tests/finetune-no-fabrication.test.js.
+
+**#139 finetune: fabricated telemetry.** finetuneStartJob rendered Loss
+0.384 / Step 140/400 / ETA 1m 45s and a five-epoch loss chart BEFORE any
+job existed, toasted "initialized on local Metal accelerator" on any
+hardware, and on the backend's honest 501 ("no training backend
+installed" — most machines) the fake run just stayed on screen. The pane
+now shows a truthful starting state, the real job_id on success, and the
+server's actual refusal reason on failure. finetuneConvertIVREN was pure
+theater (setTimeout + hardcoded "84 training pairs!" toast, zero API
+calls) — it now really reads each project's five IVREN sections via
+/api/hierarchy/projects and builds a dataset through the custom_rows path
+(verified live: 5 real pairs from the actual hierarchy). The monitor's
+"Metal MPS acceleration" subtitle is now conditional on is_apple_silicon.
+Pinned by frontend/tests/finetune-no-fabrication.test.js (9 tests).
+
+**#140 startup auto-focus stole focus on mobile.** The 1.2s chat auto-focus
+timer (guarded only against dialogs since #071) focused chat-input even
+when the mobile nav drawer was open, and again after the drawer had closed
+and returned focus to the hamburger — on a phone it also summoned the
+on-screen keyboard over the UI uninvited. The timer now yields whenever
+anything already holds focus (user or component), when the drawer is open,
+and on coarse-pointer devices entirely; desktop keeps the convenience.
+Found via test_e2e_browser_04 flake (2/4 runs), reproduced with a focus
+log, fixed, 5/5 green after. Desktop autofocus + phone skip verified live.
+
+Round 20 journeys — github pane 7/7 CLEAN (bad-token banner + retry
+affordance, token delete, clean re-render). Gate tallies after the round:
+unit 4783/164sk (+test_218), vitest 347 (69 files, +12), security 328/3sk,
+e2e_browser FULL DIRECTORY 96/13sk — first full-dir run since the _06 key
+bug and the _04 flake were fixed (previously only _03 was a standing gate).
+Probe residue cleaned: r20* preview files, 3 probe datasets + old
+`_tmp_tmp7sbnbhuq_pwned` traversal-residue dataset (snapshot-restored test
+data) removed from memory/finetune/datasets/, icm route-log restored, no
+goal/session residue.

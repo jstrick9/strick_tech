@@ -90,7 +90,7 @@ def test_a_dataset_shown_as_trainable_can_actually_be_trained(app):
     real = app.evaluate("""async () => {
         const r = await fetch('/api/finetune/datasets');
         const j = await r.json();
-        return (j.datasets || []).map(d => d.id);
+        return (j.datasets || []).map(d => d.dataset_id ?? d.id);
     }""")
 
     for dataset_id in offered:

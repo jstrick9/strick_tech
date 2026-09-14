@@ -883,6 +883,13 @@ async function sendChat() {
   // — the model received a phantom prior turn reading "✅ Cleared 2
   // messages from this conversation."
   let clearHistorySeen = false;
+  // A stream can complete without error and without a single content delta
+  // (content-filtered or empty completion, or a 200 body that is not SSE at
+  // all). That used to render a blank agent bubble AND push an empty
+  // assistant turn into chatHistory — which was then sent to the model as
+  // `history` on the next message. Track whether any actionable/delta frame
+  // arrived so the notice below only fires on genuinely empty replies.
+  let sawActionFrame = false;
 
   try {
     const resp = await fetch('/api/chat', {
@@ -949,6 +956,10 @@ async function sendChat() {
             clearChatHistory();
           }
           if (data.action === 'navigate' && data.target) {
+            // Slash-command routing legitimately answers with an action and
+            // no text — that is not an empty reply, and must not trip the
+            // no-content notice below.
+            sawActionFrame = true;
             // Slash commands like /goal, /research, /code, /review, /ship,
             // /swarm route you to the right workstation instead of just
             // sending "/goal ..." as a literal chat message to the model
@@ -973,7 +984,12 @@ async function sendChat() {
       }
     }
 
-    if (!clearHistorySeen) S.chatHistory.push({ role: 'assistant', content: fullText });
+    const emptyReply = !(fullText || '').trim() && !sawActionFrame && !clearHistorySeen && !aborted;
+    if (emptyReply) {
+      fullText = '(no response — the model returned no content. Try again, or pick a different model in Settings.)';
+      if (bubbleEl) updateMessageBubble(bubbleEl, fullText);
+    }
+    if (!clearHistorySeen && !emptyReply) S.chatHistory.push({ role: 'assistant', content: fullText });
     if (bubbleEl && (fullText || '').trim().length > 0) {
       const finalId = bubbleEl.closest('.msg')?.id;
       if (finalId) {

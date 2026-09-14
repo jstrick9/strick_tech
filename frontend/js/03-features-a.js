@@ -2907,7 +2907,7 @@ window.renderFinetuneWorkstation = async function() {
           <h3 style="margin:0;font-size:16px;color:var(--text-0)">Prepared Datasets & Training Controls</h3>
           <div style="display:flex;gap:8px">
             <button data-act-click="finetuneCreateChatDataset()" class="btn-3d btn-ghost btn-sm u-6c51dbca" >＋ From Chat History</button>
-            ${(ds.datasets && ds.datasets.length) ? `<button data-act-click="finetuneStartJob(${jsArg(ds.datasets[0].id)})" class="btn-3d btn-primary btn-sm" style="padding:6px 16px;background:var(--success);border:none;color:#fff">⚡ Train on ${escHtml(ds.datasets[0].name || ds.datasets[0].id)}</button>` : ''}
+            ${(ds.datasets && ds.datasets.length) ? `<button data-act-click="finetuneStartJob(${jsArg(ds.datasets[0].dataset_id ?? ds.datasets[0].id)})" class="btn-3d btn-primary btn-sm" style="padding:6px 16px;background:var(--success);border:none;color:#fff">⚡ Train on ${escHtml(ds.datasets[0].name || ds.datasets[0].dataset_id)}</button>` : ''}
           </div>
         </div>
         
@@ -2922,12 +2922,12 @@ window.renderFinetuneWorkstation = async function() {
           ` : ds.datasets.map(d => `
             <div style="padding:14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
               <div>
-                <div style="font-weight:700;font-size:13.5px;color:var(--text-0)">${escHtml(d.name || d.id)}</div>
-                <div style="font-size:11.5px;color:var(--text-2)">ID: <code style="color:var(--accent-text)">${escHtml(d.id)}</code> · ${Number(d.rows || 0)} training examples formatted in instruction-response JSONL</div>
+                <div style="font-weight:700;font-size:13.5px;color:var(--text-0)">${escHtml(d.name || d.dataset_id)}</div>
+                <div style="font-size:11.5px;color:var(--text-2)">ID: <code style="color:var(--accent-text)">${escHtml(d.dataset_id)}</code> · ${Number(d.row_count ?? d.rows ?? 0)} training examples formatted in instruction-response JSONL</div>
               </div>
               <div style="display:flex;gap:8px;align-items:center">
                 <span style="font-size:11px;font-weight:800;color:var(--success);background:var(--bg-2);padding:4px 10px;border-radius:6px;border:1px solid var(--border)">${escHtml(d.status || 'READY')}</span>
-                <button data-act-click="finetuneStartJob(${jsArg(d.id)})" class="btn-3d btn-ghost btn-sm" style="padding:6px 12px">Train Adapter</button>
+                <button data-act-click="finetuneStartJob(${jsArg(d.dataset_id ?? d.id)})" class="btn-3d btn-ghost btn-sm" style="padding:6px 12px">Train Adapter</button>
               </div>
             </div>
           `).join('')}
@@ -2938,7 +2938,7 @@ window.renderFinetuneWorkstation = async function() {
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
           <div>
             <h3 style="margin:0 0 4px;font-size:16px;color:var(--text-0)">📈 Live Training Telemetry & Loss Curves</h3>
-            <span style="font-size:12px;color:var(--text-2)">Loss vs. Epochs progression • Metal MPS acceleration • Zero-swap RAM tracking</span>
+            <span style="font-size:12px;color:var(--text-2)">Loss vs. Epochs progression • ${hw && hw.is_apple_silicon ? 'Metal MPS acceleration' : 'CPU training backend'} • metrics reported by the running job only</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <span id="finetune-status-badge" class="badge badge-default">IDLE</span>
@@ -2962,10 +2962,14 @@ window.finetuneCreateChatDataset = async function() {
     });
     const j = await r.json();
     if (j.ok) {
-      toast('⚡ Created dataset: ' + j.dataset_id + ' (' + j.rows + ' rows)', 'ok', 4000);
+      // The API returns {ok, dataset:{dataset_id, row_count}, message} —
+      // the old toast read j.dataset_id / j.rows, which are undefined at
+      // the top level, so every success showed "undefined (undefined rows)".
+      const dsMeta = j.dataset || {};
+      toast('⚡ Created dataset: ' + (dsMeta.dataset_id || '?') + ' (' + (dsMeta.row_count ?? 0) + ' rows)', 'ok', 4000);
       if (typeof window.renderFinetuneWorkstation === 'function') window.renderFinetuneWorkstation();
     } else {
-      toast('⚠️ Dataset note: ' + (j.error || 'Check logs'), 'warn', 4000);
+      toast('⚠️ Dataset note: ' + (j.error || j.detail || 'Check logs'), 'warn', 4000);
     }
   } catch(e) {
     toast('⚠️ Network error creating dataset', 'warn', 3000);
@@ -2973,11 +2977,55 @@ window.finetuneCreateChatDataset = async function() {
 };
 
 window.finetuneConvertIVREN = async function() {
-  toast('⏳ Scanning IVREN Markdown folders (`about_me`, `about_my_business`, `about_my_voice`)...', 'ok', 3000);
-  setTimeout(() => {
-    toast('⚡ Converted 4-Tier IVREN corpus into 84 instruction-response JSONL training pairs!', 'ok', 4500);
-    if (typeof window.renderFinetuneWorkstation === 'function') window.renderFinetuneWorkstation();
-  }, 1400);
+  // Real conversion. The old version was pure theater: a 1.4s setTimeout and
+  // a hardcoded "Converted 4-Tier IVREN corpus into 84 instruction-response
+  // JSONL training pairs!" toast, with no API call at all. It now reads the
+  // actual Tier-2 IVREN sections (instructions, voice, references, examples,
+  // notes) for every project in the hierarchy and builds a real dataset from
+  // them through the same custom_rows path the chat-history builder uses.
+  toast('⏳ Scanning IVREN project sections (instructions, voice, references, examples, notes)...', 'ok', 3000);
+  try {
+    const pr = await fetch('/api/hierarchy/projects');
+    const pj = await pr.json();
+    const projects = pj.projects || [];
+    if (!projects.length) {
+      toast('⚠️ No IVREN projects found — create one in the Hierarchy pane first', 'warn', 5000);
+      return;
+    }
+    const rows = [];
+    for (const p of projects.slice(0, 20)) {
+      const pid = p.project_id || p.id;
+      if (!pid) continue;
+      const r = await fetch('/api/hierarchy/projects/' + encodeURIComponent(pid));
+      if (!r.ok) continue;
+      const j = await r.json().catch(() => ({}));
+      const ivren = j.ivren || {};
+      const pname = (j.meta && j.meta.name) || pid;
+      for (const section of Object.keys(ivren)) {
+        const text = (ivren[section] || '').trim();
+        if (!text) continue;
+        rows.push({ instruction: `Apply the ${section} guidance for project "${pname}"`, response: text.slice(0, 4000) });
+      }
+    }
+    if (!rows.length) {
+      toast('⚠️ IVREN projects exist but every section is empty', 'warn', 5000);
+      return;
+    }
+    const cr = await fetch('/api/finetune/datasets/create', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name: 'IVREN Corpus Set', source_type: 'custom_rows', custom_rows: rows})
+    });
+    const cj = await cr.json().catch(() => ({}));
+    if (cj.ok) {
+      const dsMeta = cj.dataset || {};
+      toast('⚡ Converted IVREN sections into ' + (dsMeta.row_count ?? rows.length) + ' instruction-response training pairs', 'ok', 4500);
+      if (typeof window.renderFinetuneWorkstation === 'function') window.renderFinetuneWorkstation();
+    } else {
+      toast('⚠️ ' + (cj.error || cj.detail || 'Dataset creation failed'), 'warn', 4000);
+    }
+  } catch(e) {
+    toast('⚠️ Network error converting IVREN projects', 'warn', 3000);
+  }
 };
 
 window.finetuneTestCheckpoint = function() {
@@ -2997,51 +3045,56 @@ window.finetuneTestCheckpoint = function() {
 };
 
 window.finetuneStartJob = async function(datasetId) {
+  // The dataset list renders ids from the API's `dataset_id` key; a null here
+  // means a mismatch or a missing dataset, and POSTing it would only produce
+  // a cryptic 422 from the schema validator.
+  if (!datasetId) { toast('⚠️ No dataset selected', 'warn', 3000); return; }
   const badge = document.getElementById('finetune-status-badge');
   const progressBox = document.getElementById('finetune-progress-box');
-  if (badge) { badge.textContent = 'TRAINING ACTIVE'; badge.style.color = 'var(--success)'; }
+  if (badge) { badge.textContent = 'STARTING…'; badge.style.color = 'var(--accent-text)'; }
   if (progressBox) {
+    // Honest "starting" state. The old version rendered a full telemetry
+    // panel — Loss 0.384, Step 140/400, ETA 1m 45s and a five-epoch loss
+    // chart — before any job existed, and left it up when the backend
+    // refused the job (501 on machines without a local training backend),
+    // presenting invented numbers as live measurements.
     progressBox.innerHTML = `
-      <div style="margin-bottom:12px;font-weight:700;color:var(--text-0);font-size:14px">⏳ Training LoRA Adapter (Dataset: ${escHtml(datasetId)})</div>
-      <div style="width:100%;background:var(--bg-0);border-radius:8px;height:12px;overflow:hidden;margin-bottom:12px;border:1px solid var(--border)">
-        <div id="finetune-prog-bar" style="width:35%;background:linear-gradient(90deg,var(--accent),#a855f7);height:100%;transition:width 0.4s"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-2);margin-bottom:14px">
-        <span>Loss: <strong style="color:var(--success)">0.384</strong></span>
-        <span>Step: <strong style="color:var(--accent-text)">140 / 400</strong></span>
-        <span>ETA: <strong>1m 45s</strong></span>
-      </div>
-      <!-- Real-Time Training Loss vs. Epochs Visual Chart -->
-      <div id="lora-loss-chart" style="background:#04060f;border:1px solid var(--border-hi);border-radius:10px;padding:14px;font-family:monospace;font-size:11px;color:#7dd3fc;text-align:left">
-        <div style="display:flex;justify-content:space-between;color:var(--accent-text);font-weight:700;margin-bottom:8px">
-          <span>📈 Training Loss vs. Epoch Progression</span>
-          <span>Target Loss < 0.25</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;align-items:end;height:70px;padding-top:10px">
-          <div style="background:var(--accent);height:100%;border-radius:4px 4px 0 0;position:relative" title="Epoch 1: Loss 1.84"></div>
-          <div style="background:var(--accent);height:72%;border-radius:4px 4px 0 0;position:relative" title="Epoch 2: Loss 1.32"></div>
-          <div style="background:var(--accent);height:48%;border-radius:4px 4px 0 0;position:relative" title="Epoch 3: Loss 0.88"></div>
-          <div style="background:#a855f7;height:30%;border-radius:4px 4px 0 0;position:relative" title="Epoch 4: Loss 0.54"></div>
-          <div style="background:#10b981;height:21%;border-radius:4px 4px 0 0;position:relative;animation:pulse 1.5s infinite" title="Epoch 5 (Active): Loss 0.384"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;color:var(--text-3);margin-top:6px;font-size:10px">
-          <span>Epoch 1 (1.84)</span>
-          <span>Epoch 3 (0.88)</span>
-          <span style="color:#10b981;font-weight:800">Epoch 5 (0.384)</span>
-        </div>
-      </div>
+      <div style="margin-bottom:12px;font-weight:700;color:var(--text-0);font-size:14px">⏳ Registering LoRA training job (Dataset: ${escHtml(datasetId)})…</div>
+      <div style="font-size:12px;color:var(--text-2)">Waiting for the training backend to accept the job. Real loss and step telemetry will appear here once training is underway — no estimates are shown before that.</div>
     `;
   }
-  toast('⚡ LoRA fine-tuning loop initialized on local Metal accelerator!', 'ok', 4000);
   try {
     const r = await fetch('/api/finetune/jobs/start', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({dataset_id: datasetId, base_model: 'llama3.1:8b', lora_rank: 16, lora_alpha: 32})
     });
-    const j = await r.json();
+    const j = await r.json().catch(() => ({}));
     if (j.ok) {
       toast('✅ Job registered: ' + j.job_id, 'ok', 4000);
+      if (badge) { badge.textContent = 'TRAINING ACTIVE'; badge.style.color = 'var(--success)'; }
+      if (progressBox) {
+        progressBox.innerHTML = `
+          <div style="margin-bottom:12px;font-weight:700;color:var(--text-0);font-size:14px">🟢 Training job <code style="color:var(--accent-text)">${escHtml(j.job_id)}</code> registered (Dataset: ${escHtml(datasetId)})</div>
+          <div style="font-size:12px;color:var(--text-2)">Loss and step metrics will come from the job itself as it runs.</div>
+        `;
+      }
+    } else {
+      // The backend refuses honestly (e.g. 501 "no local training backend");
+      // the pane must do the same instead of leaving the fake run on screen.
+      const reason = j.detail || j.error || ('HTTP ' + r.status);
+      if (badge) { badge.textContent = 'NOT TRAINING'; badge.style.color = 'var(--danger)'; }
+      if (progressBox) {
+        progressBox.innerHTML = `
+          <div style="margin-bottom:12px;font-weight:700;color:var(--text-0);font-size:14px">⚠️ Training not started (Dataset: ${escHtml(datasetId)})</div>
+          <div style="font-size:12px;color:var(--text-2)">${escHtml(String(reason))}</div>
+        `;
+      }
+      toast('⚠️ Training not started: ' + reason, 'warn', 5000);
     }
-  } catch(e) {}
+  } catch(e) {
+    if (badge) { badge.textContent = 'NOT TRAINING'; badge.style.color = 'var(--danger)'; }
+    if (progressBox) { progressBox.innerHTML = '<div style="font-weight:700;color:var(--text-0);font-size:14px">⚠️ Network error starting training job</div>'; }
+    toast('⚠️ Network error starting training job', 'warn', 3000);
+  }
 };
 

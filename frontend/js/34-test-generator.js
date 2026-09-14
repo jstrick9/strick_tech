@@ -96,6 +96,19 @@ async function generateTests() {
       toast(genError,'err',5000);
       return;
     }
+    // Defense in depth for streams that end without a single content delta
+    // (whitespace-only suites included): the backend now refuses these with
+    // an explicit error frame, but a plain count of '\n' split on an empty
+    // string is 1 — "✅ 1 lines generated" — and the Save button below would
+    // silently no-op on the empty guard in saveGeneratedTests.
+    if(!generatedTestCode.trim()){
+      generatedTestCode='';
+      res.textContent='The model returned no content — no tests were generated.';
+      st.textContent='✗ No tests generated';
+      if(saveBtn) saveBtn.style.display='none';
+      toast('The model returned no content','err',5000);
+      return;
+    }
     st.textContent=`✅ ${generatedTestCode.split('\n').length} lines generated`;
     if(saveBtn) saveBtn.style.display='';
   } catch(e) { st.textContent='✗ '+e.message; toast('Failed: '+e.message,'err'); }

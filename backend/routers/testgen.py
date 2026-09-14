@@ -93,6 +93,7 @@ File: {filepath}
         async def generate():
             """Stream the generated suite, refusing rather than faking one."""
             stubbed = False
+            saw_content = False
             buffered: list[str] = []
             # The stub flag only arrives on the TERMINAL frame, so deltas are
             # already on the wire by the time we could react. Buffer them: a
@@ -111,13 +112,36 @@ File: {filepath}
                         frame = json.loads(chunk[5:].strip())
                         if llm.is_stub(frame) or frame.get('error'):
                             stubbed = True
+                        if frame.get('delta'):
+                            saw_content = True
                 except (ValueError, AttributeError):
                     pass
                 buffered.append(chunk)
 
-            if not stubbed:
+            if not stubbed and saw_content:
                 for chunk in buffered:
                     yield chunk
+
+            elif not stubbed:
+                # A stream that completes without error AND without a single
+                # content delta (content-filtered or empty completion, or a
+                # 200 response that is not SSE at all) used to be forwarded as
+                # an empty stream — the pane then reported "1 lines
+                # generated" for an empty suite and offered a Save button
+                # that silently wrote nothing. Say what happened instead.
+                yield (
+                    'data: '
+                    + json.dumps({
+                        'type': 'error',
+                        'code': 'empty_stream',
+                        'error': (
+                            'The model returned no content, so no tests were generated. '
+                            'Try again, or pick a different model in Settings.'
+                        ),
+                        'done': True,
+                    })
+                    + '\n\n'
+                )
 
             if stubbed:
                 yield (

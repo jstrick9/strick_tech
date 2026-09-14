@@ -1088,6 +1088,19 @@ setTimeout(()=>{
   let openDialog = false;
   try { openDialog = (typeof collectOpenModals === 'function' && collectOpenModals().length > 0); } catch (_) {}
   if (openDialog) return;
+  // #140: the dialog guard was not enough. The mobile nav drawer is not a
+  // modal, so a drawer open at the 1.2s tick had focus moved beneath it, and
+  // a drawer that had just CLOSED (focus returned to the hamburger) had the
+  // focus stolen again a moment later. The honest condition for a startup
+  // auto-focus is that nobody else holds focus: yield whenever the user (or
+  // a component like the drawer's focus-restore) has already placed it.
+  const ae = document.activeElement;
+  if (ae && ae !== document.body && ae !== document.documentElement) return;
+  if (document.body.classList.contains('mobile-nav-open')) return;
+  // On a touch device an auto-focused <input> summons the on-screen keyboard
+  // over half the UI without the user asking for it — the same timer also
+  // left a keyboard up under the nav drawer. Desktop keeps the convenience.
+  try { if (window.matchMedia('(pointer: coarse)').matches) return; } catch (_) {}
   if (document.querySelector('.pane.active')?.id === 'pane-chat')
     document.getElementById('chat-input')?.focus();
 },1200);
