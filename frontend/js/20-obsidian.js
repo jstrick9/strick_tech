@@ -86,11 +86,11 @@ async function indexVault() {
       loadObsidianNotes();
     } else {
       if (st) st.textContent = '✗ '+(j.error||'failed');
-      showToast('Index failed: '+(j.error||'Unknown'));
+      showToast('Index failed: '+(j.error||'Unknown'), 'err');
     }
   } catch(ex) {
     if (st) st.textContent = '✗ '+ex?.message;
-    showToast('Index error: '+ex?.message);
+    showToast('Index error: '+ex?.message, 'err');
   } finally {
     if (btn) { btn.disabled=false; btn.textContent='📥 Index Vault → Memory Galaxy'; }
   }
@@ -99,27 +99,33 @@ async function indexVault() {
 async function createDailyNote() {
   try {
     const r = await fetch('/api/obsidian/daily_note', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
-    if (!r.ok) { showToast('Daily note failed: HTTP '+r.status); return; }
+    if (!r.ok) {
+      // Surface the server's reason (e.g. the 409 "already exists" guard)
+      // instead of a bare status code — and as an ERROR, not a green ✓.
+      const j = await r.json().catch(() => ({}));
+      showToast('📅 ' + (j.error || ('Daily note failed: HTTP ' + r.status)), 'err');
+      return;
+    }
     const j = await r.json();
     if (j.ok) { showToast(`📅 Daily note created: ${j.date}`); loadObsidianNotes(); }
-    else showToast('Daily note failed: '+(j.error||'Unknown'));
-  } catch(ex) { showToast('Daily note error: '+ex?.message); }
+    else showToast('📅 Daily note failed: '+(j.error||'Unknown'), 'err');
+  } catch(ex) { showToast('📅 Daily note error: '+ex?.message, 'err'); }
 }
 
 async function exportMemories() {
   try {
     const r = await fetch('/api/obsidian/export', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{"limit":50}'});
-    if (!r.ok) { showToast('Export failed: HTTP '+r.status); return; }
+    if (!r.ok) { showToast('Export failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
     if (j.ok) { showToast(`📤 Exported ${j.memories} memories → ${j.filename}`); loadObsidianNotes(); }
-    else showToast('Export failed: '+(j.error||'No memories'));
-  } catch(ex) { showToast('Export error: '+ex?.message); }
+    else showToast('Export failed: '+(j.error||'No memories'), 'err');
+  } catch(ex) { showToast('Export error: '+ex?.message, 'err'); }
 }
 
 async function startVaultWatch() {
   try {
     const r = await fetch('/api/obsidian/watch/start', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
-    if (!r.ok) { showToast('Watch failed: HTTP '+r.status); return; }
+    if (!r.ok) { showToast('Watch failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
     if (j.ok) {
       showToast('👁 Vault watcher started');
@@ -127,22 +133,22 @@ async function startVaultWatch() {
       if (btn) { btn.textContent='✅ Watching'; btn.style.color='var(--success)'; }
     } else {
       const msg = j.install_cmd ? `${j.error||'Failed'} — Run: ${j.install_cmd}` : (j.error||'Failed');
-      showToast('Watch: '+msg);
+      showToast('Watch: '+msg, 'err');
     }
-  } catch(ex) { showToast('Watch error: '+ex?.message); }
+  } catch(ex) { showToast('Watch error: '+ex?.message, 'err'); }
 }
 
 async function stopVaultWatch() {
   try {
     const r = await fetch('/api/obsidian/watch/stop', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
-    if (!r.ok) { showToast('Stop failed: HTTP '+r.status); return; }
+    if (!r.ok) { showToast('Stop failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
-    showToast(j.ok ? '■ Watcher stopped' : 'Stop failed: '+(j.error||''));
+    showToast(j.ok ? '■ Watcher stopped' : ('Stop failed: '+(j.error||'')), j.ok ? undefined : 'err');
     if (j.ok) {
       const btn = document.getElementById('obs-watch-btn');
       if (btn) { btn.textContent='👁 Start Auto-Watch'; btn.style.color=''; }
     }
-  } catch(ex) { showToast('Stop error: '+ex?.message); }
+  } catch(ex) { showToast('Stop error: '+ex?.message, 'err'); }
 }
 
 async function obsCheckWatchStatus() {
@@ -197,7 +203,7 @@ function searchNotes() {
 async function viewNote(path) {
   try {
     const r = await fetch('/api/obsidian/note?path=' + encodeURIComponent(path));
-    if (!r.ok) { showToast('Note not found: HTTP '+r.status); return; }
+    if (!r.ok) { showToast('Note not found: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
     if (j.ok) {
       const name = path.split('/').pop();
@@ -211,6 +217,7 @@ async function viewNote(path) {
             <button aria-label="Close" title="Close" data-close="closest:[style*=fixed]" style="background:none;border:none;color:var(--text-3);font-size:18px;cursor:pointer">✕</button>
           </div>
           <div style="padding:14px 16px;overflow-y:auto;flex:1;font-size:12px;line-height:1.7;color:var(--text-1);white-space:pre-wrap;font-family:monospace">${escHtml((j.content||'').slice(0,6000))}${(j.content||'').length>6000?'\n\n[... truncated]':''}</div>
+          <div id="obs-note-links" style="padding:6px 16px 0;font-size:11px;color:var(--text-2);line-height:1.5;max-height:56px;overflow-y:auto"></div>
           <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:7px;align-items:center">
             <button class="btn-sm" data-act-click="navigator.clipboard.writeText(${jsArg(j.content||'')})">📋 Copy</button>
             <button class="btn-sm" style="color:var(--danger)" data-act-click="obsDeleteNote(${jsArg(path)})" data-close="closest:[style*=fixed]">🗑 Delete</button>
@@ -219,11 +226,28 @@ async function viewNote(path) {
         </div>`;
       overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
       document.body.appendChild(overlay);
+      // The wiki-link graph (which notes link here, what this note links to)
+      // was a fully-built backend endpoint with no surface anywhere in the
+      // UI — users could never see it. Shown in the viewer, where it answers
+      // "what references this note?" exactly when you're reading it.
+      fetch('/api/obsidian/backlinks?note=' + encodeURIComponent(name.replace(/\.md$/, '')))
+        .then(r => r.json())
+        .then(b => {
+          if (!b.ok) return;
+          const box = overlay.querySelector('#obs-note-links');
+          if (!box) return;
+          const bl = (b.data && b.data.backlinks) || [];
+          const lk = (b.data && b.data.links) || [];
+          const fmt = (arr) => arr.slice(0, 15).map(x => escHtml(String(x))).join(', ') + (arr.length > 15 ? `, +${arr.length - 15} more` : '');
+          if (bl.length) box.innerHTML += `<div style="margin-bottom:2px">← <strong>${bl.length}</strong> backlink${bl.length > 1 ? 's' : ''}: ${fmt(bl)}</div>`;
+          if (lk.length) box.innerHTML += `<div>→ <strong>${lk.length}</strong> link${lk.length > 1 ? 's' : ''}: ${fmt(lk)}</div>`;
+        })
+        .catch(() => {});
     } else {
-      showToast('Could not read note: '+(j.error||'Unknown'));
+      showToast('Could not read note: '+(j.error||'Unknown'), 'err');
     }
   } catch(ex) {
-    showToast('View error: '+ex?.message);
+    showToast('View error: '+ex?.message, 'err');
   }
 }
 
@@ -235,11 +259,11 @@ async function obsDeleteNote(path) {
       method:'DELETE', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({path})
     });
-    if (!r.ok) { showToast('Delete failed: HTTP '+r.status); return; }
+    if (!r.ok) { showToast('Delete failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
     if (j.ok) { showToast('🗑 Note deleted'); loadObsidianNotes(); }
-    else showToast('Delete failed: '+(j.error||'Unknown'));
-  } catch(ex) { showToast('Delete error: '+ex?.message); }
+    else showToast('Delete failed: '+(j.error||'Unknown'), 'err');
+  } catch(ex) { showToast('Delete error: '+ex?.message, 'err'); }
 }
 
 async function saveQuickNote() {
@@ -247,7 +271,7 @@ async function saveQuickNote() {
   const bodyEl  = document.getElementById('obs-note-body');
   const title   = titleEl?.value?.trim();
   const body    = bodyEl?.value?.trim() || '';
-  if (!title) { showToast('⚠️ Enter a note title'); return; }
+  if (!title) { showToast('⚠️ Enter a note title', 'err'); return; }
   // Store the note as-typed. This used to escHtml() the title AND body into
   // the markdown file, so a note containing "&", "<", quotes or an emoji
   // sequence was permanently mangled on disk ("Tom & Jerry" →
@@ -260,7 +284,7 @@ async function saveQuickNote() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({path: filename, content})
     });
-    if (!r.ok) { showToast('Save failed: HTTP '+r.status); return; }
+    if (!r.ok) { showToast('Save failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
     if (j.ok) {
       showToast(`📝 Note saved: ${title}`);
@@ -268,7 +292,7 @@ async function saveQuickNote() {
       if (bodyEl)  bodyEl.value  = '';
       loadObsidianNotes();
     } else {
-      showToast('Save failed: '+(j.error||'Unknown'));
+      showToast('Save failed: '+(j.error||'Unknown'), 'err');
     }
-  } catch(ex) { showToast('Save error: '+ex?.message); }
+  } catch(ex) { showToast('Save error: '+ex?.message, 'err'); }
 }

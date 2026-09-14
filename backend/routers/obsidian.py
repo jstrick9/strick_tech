@@ -202,7 +202,7 @@ async def index_vault(req: Request):
         brain.mkdir(exist_ok=True)
         vp = brain
 
-    from ..services.memory_db import audit_log, memory_add, memory_search_fts
+    from ..services.memory_db import audit_log, memory_add, memory_list
 
     notes = list(vp.rglob('*.md'))[:max_notes]
     indexed = 0
@@ -211,6 +211,14 @@ async def index_vault(req: Request):
 
     for note in notes:
         try:
+            # Agentic_OS_Export_*.md files are generated mirrors of the memory
+            # DB itself (export_memories writes them). Ingesting them back
+            # re-adds every exported memory as a new near-duplicate row —
+            # each export→index cycle roughly doubles the galaxy's generated
+            # content. Skip them; they are output, not source material.
+            if note.name.startswith('Agentic_OS_Export_'):
+                skipped += 1
+                continue
             content = note.read_text(encoding='utf-8', errors='ignore')
             if not content.strip():
                 skipped += 1
@@ -221,12 +229,15 @@ async def index_vault(req: Request):
             title = note.stem
             source = f'obsidian:{note.relative_to(vp).as_posix()}'
 
-            # Skip if already indexed (unless re_index)
-            if not re_index:
-                existing = memory_search_fts(title[:60], limit=2)
-                if any(r.get('source', '').startswith('obsidian:') and title in r.get('content', '') for r in existing):
-                    skipped += 1
-                    continue
+            # Skip if already indexed (unless re_index). Exact source-column
+            # lookup, not an FTS title search: FTS tokenizes on word
+            # characters, so a title like "2026-09-14" searched as
+            # 2026 OR 09 OR 14 matched arbitrary rows and the dedup check
+            # silently failed — re-ingesting the same note as a fresh
+            # duplicate galaxy row on every Index click.
+            if not re_index and memory_list(limit=1, source=source):
+                skipped += 1
+                continue
 
             chunks = _chunk_text(f'# {title}\n\n{clean}', max_chars=1200)
             for i, chunk in enumerate(chunks):
@@ -328,6 +339,25 @@ async def create_daily_note(req: Request):
     daily_dir.mkdir(exist_ok=True)
     outfile = daily_dir / f'{today}.md'
 
+    # The note's own template invites the user to write in the "Notes"
+    # section. Regenerating used to overwrite the whole file, so pressing
+    # the prominent "Create Daily Note" button a second time silently
+    # destroyed whatever the user had written that day. Refuse instead —
+    # the note can be deleted explicitly (the pane has a delete button)
+    # and then regenerated.
+    if outfile.exists():
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': (
+                    f"A daily note for {today} already exists. Delete it first if you "
+                    'want to regenerate it — regenerating would overwrite any notes '
+                    'you have added.'
+                ),
+            },
+            status_code=409,
+        )
+
     done_lines = ''.join(f'- [{t["agent"]}] {t["title"]}\n' for t in tasks_done) or '- Nothing completed yet'
     doing_lines = ''.join(f'- [{t["agent"]}] {t["title"]}\n' for t in tasks_doing) or '- No active tasks'
 
@@ -383,8 +413,13 @@ def list_notes(limit: int = 100, q: str = ''):
     notes = []
     ql = q.lower().strip()
     for p in sorted(vp.rglob('*.md'), key=lambda x: -x.stat().st_mtime):
-        if ql and ql not in p.name.lower() and ql not in p.stem.lower():
-            continue
+        if ql:
+            # Match the whole relative path (folder included), not just the
+            # filename: the note list shows folders, and searching "Daily"
+            # or "agentic-os" for the folder's notes returned nothing.
+            rel = p.relative_to(vp).as_posix().lower()
+            if ql not in rel and ql not in p.stem.lower():
+                continue
         try:
             rel_path = p.relative_to(vp).as_posix()
             notes.append(
@@ -460,9 +495,27 @@ async def write_note(req: Request):
         return JSONResponse({'ok': False, 'error': err}, status_code=status)
 
     note_dir = _note_dir()
-    f = (note_dir / path).resolve()
 
-    # Defence in depth — validate_note_path() should make this unreachable.
+    # Round-trip safety: the list/read APIs return vault-relative paths
+    # ('agentic-os/x.md'), and writing one back used to join it onto the
+    # NOTES dir — creating a phantom 'agentic-os/agentic-os/x.md' duplicate
+    # instead of updating the note the caller meant. delete_note already
+    # resolves this form; the write path must too. (Verified live: a
+    # round-tripped path silently produced a nested duplicate file.)
+    # Existence-based, like delete_note: if the literal target exists it is
+    # a real note (possibly an old phantom — write it in place); only when
+    # it doesn't do we retry the path against the vault root, so an
+    # explicit nested path can never silently overwrite a different note.
+    f = (note_dir / path).resolve()
+    if not f.exists():
+        vp = _vault_path()
+        if vp is not None:
+            cand = (vp / path).resolve()
+            try:
+                cand.relative_to(note_dir.resolve())
+                f = cand
+            except ValueError:
+                pass
     try:
         f.relative_to(note_dir.resolve())
     except ValueError:

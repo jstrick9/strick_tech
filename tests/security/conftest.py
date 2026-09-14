@@ -192,6 +192,60 @@ _ROUTE_LOG = _REPO_ROOT / 'memory' / 'icm' / 'route-log.jsonl'
 _PREVIEW_DIR = _REPO_ROOT / 'preview'
 
 
+def _vault_dir():
+    """The Obsidian vault the server actually uses (env override aware)."""
+    import os as _os
+
+    vault = _os.getenv('OBSIDIAN_VAULT_PATH', '')
+    if vault and _pathlib.Path(vault).exists():
+        return _pathlib.Path(vault)
+    return _REPO_ROOT / 'brain'
+
+
+def _snapshot_tree(root):
+    """{relative path: bytes} for every file under root (small trees only).
+
+    Used for the Obsidian vault, which the security suite writes hostile
+    notes into: sec_08's URL-encoded traversal payloads are stored as
+    LITERAL filenames by design, and one of them was found committed to
+    the repo (brain/agentic-os/%2e%2e%2fetc%2fpasswd.md, 4 bytes of
+    "test") plus rendered in the operator's notes list forever. Byte-exact
+    restore also means a tracked file the test deletes comes back, so the
+    working tree stays clean after a run.
+    """
+    snap = {}
+    try:
+        for p in sorted(root.rglob('*')):
+            if p.is_file() and p.stat().st_size <= 1_000_000:
+                snap[str(p.relative_to(root))] = p.read_bytes()
+    except OSError:
+        pass
+    return snap
+
+
+def _restore_tree(root, snap):
+    if not root.exists():
+        return
+    # Remove files that were not there before the test.
+    for p in list(root.rglob('*')):
+        if p.is_file():
+            rel = str(p.relative_to(root))
+            if rel not in snap:
+                try:
+                    p.unlink()
+                except OSError:
+                    pass
+    # Restore exact bytes / recreate files the test deleted.
+    for rel, blob in snap.items():
+        f = root / rel
+        try:
+            if not f.exists() or f.read_bytes() != blob:
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_bytes(blob)
+        except OSError:
+            pass
+
+
 def _snapshot_rowids(con):
     snap = {}
     for t in _POLLUTABLE_TABLES:
@@ -352,6 +406,7 @@ def _guard_live_instance():
             return set()
 
     files_before = _list_preview()
+    vault_before = _snapshot_tree(_vault_dir())
     route_size = _ROUTE_LOG.stat().st_size if _ROUTE_LOG.exists() else None
 
     # JSON stores the app rewrites wholesale on any touch (a skill run bumps
@@ -394,6 +449,12 @@ def _guard_live_instance():
             _pathlib.Path(f).unlink()
         except OSError:
             pass
+
+    # Obsidian vault: put back exactly what was there before the test —
+    # removes hostile-named notes the suite wrote, restores any file it
+    # deleted or rewrote (tracked files must survive byte-for-byte or the
+    # working tree is dirty after every run).
+    _restore_tree(_vault_dir(), vault_before)
 
     # ICM route log: truncate appended lines
     if route_size is not None and _ROUTE_LOG.exists():

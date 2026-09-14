@@ -153,6 +153,75 @@ def isolated_agentic_dir(tmp_path_factory):
     return agentic_dir
 
 # ── TestClient (shared across all tests in one session) ────────────────────
+# ── Obsidian vault guard ────────────────────────────────────────────────────
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def _vault_dir():
+    vault = os.getenv("OBSIDIAN_VAULT_PATH", "")
+    if vault and os.path.isdir(vault):
+        return vault
+    return os.path.join(_REPO_ROOT, "brain")
+
+
+def _snapshot_tree(root):
+    snap = {}
+    try:
+        for dirpath, _dirnames, filenames in os.walk(root):
+            for fn in filenames:
+                p = os.path.join(dirpath, fn)
+                try:
+                    if os.path.getsize(p) <= 1_000_000:
+                        with open(p, "rb") as fh:
+                            snap[os.path.relpath(p, root)] = fh.read()
+                except OSError:
+                    pass
+    except OSError:
+        pass
+    return snap
+
+
+def _restore_tree(root, snap):
+    if not os.path.isdir(root):
+        return
+    for dirpath, _dirnames, filenames in os.walk(root):
+        for fn in filenames:
+            rel = os.path.relpath(os.path.join(dirpath, fn), root)
+            if rel not in snap:
+                try:
+                    os.unlink(os.path.join(dirpath, fn))
+                except OSError:
+                    pass
+    for rel, blob in snap.items():
+        p = os.path.join(root, rel)
+        try:
+            current = open(p, "rb").read() if os.path.isfile(p) else None
+            if current != blob:
+                os.makedirs(os.path.dirname(p), exist_ok=True)
+                with open(p, "wb") as fh:
+                    fh.write(blob)
+        except OSError:
+            pass
+
+
+@pytest.fixture(autouse=True)
+def _guard_obsidian_vault():
+    """Restore the Obsidian vault after any test that writes to it.
+
+    Two test-written files were found committed to the repo
+    (brain/agentic-os/unit-test-note.md and a percent-encoded traversal
+    payload), and the daily-note flow writes brain/agentic-os/Daily/. The
+    vault is user data rendered in the Obsidian pane — tests must leave it
+    exactly as they found it, byte for byte, including tracked files (or
+    the working tree is dirty after every run).
+    """
+    root = _vault_dir()
+    before = _snapshot_tree(root) if os.path.isdir(root) else None
+    yield
+    if before is not None:
+        _restore_tree(root, before)
+
+
 @pytest.fixture(scope="session")
 def client():
     """Create a single FastAPI TestClient for the entire session."""

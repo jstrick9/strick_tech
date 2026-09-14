@@ -170,6 +170,149 @@ class TestObsidian:
         bad = client.post("/api/obsidian/note", json={"title": "no path here"})
         assert bad.status_code == 400
 
+    def test_obsidian_daily_note_never_overwrites(self, client):
+        """Creating today's daily note twice must refuse, not clobber.
+
+        The note's template invites the user to write in the "Notes"
+        section, so a regenerate-overwrite destroyed their content —
+        pressing the pane's prominent button a second time silently wiped
+        whatever they had written that day.
+        """
+        import datetime as dt
+
+        today = dt.date.today()
+        r1 = client.post("/api/obsidian/daily_note", json={})
+        # First call either creates the note or (already exists from the
+        # app's own scheduler) refuses — both fine as a starting point.
+        assert r1.status_code in (200, 409), r1.status_code
+
+        r2 = client.post("/api/obsidian/daily_note", json={})
+        assert r2.status_code == 409, "second create overwrote the note"
+        assert "already exists" in r2.json()["error"]
+        assert str(today) in r2.json()["error"]
+
+    def test_obsidian_search_matches_folder(self, client):
+        """Searching must match folders, not just filenames.
+
+        The note list shows each note's folder, but the search box matched
+        only name/stem — searching "Daily" or "agentic-os" returned "no
+        notes" while Daily notes sat visible in the unfiltered list.
+        """
+        r = client.post("/api/obsidian/note", json={
+            "path": "Projects/zz-probe-folder-note",
+            "content": "# lives in a folder",
+        })
+        assert r.status_code == 200 and r.json().get("ok") is True
+
+        by_folder = client.get("/api/obsidian/notes?q=projects").json()
+        names = [n.get("path") for n in by_folder.get("notes", [])]
+        assert any("Projects/zz-probe-folder-note" in (p or "") for p in names), (
+            f"folder search missed the note: {names}"
+        )
+
+        # Filename search still works.
+        by_name = client.get("/api/obsidian/notes?q=zz-probe-folder-note").json()
+        assert any(
+            "zz-probe-folder-note" in (n.get("path") or "")
+            for n in by_name.get("notes", [])
+        )
+
+    def test_obsidian_index_skips_generated_exports(self, client):
+        """Index must not re-ingest Agentic_OS_Export_*.md files.
+
+        export_memories writes those files as mirrors of the memory DB.
+        Indexing one back in re-adds every exported memory as a fresh
+        near-duplicate row — each export→index cycle roughly doubles the
+        galaxy's generated content.
+        """
+        assert client.post("/api/obsidian/note", json={
+            "path": "Agentic_OS_Export_probe",
+            "content": "## [some-source] 2026-01-01\nexported memory text " * 80,
+        }).status_code == 200
+
+        r = client.post("/api/obsidian/index", json={"max_notes": 100})
+        assert r.status_code == 200
+        d = r.json()
+        assert d.get("ok") is True
+        # The export file must be counted as skipped, never indexed.
+        assert d.get("errors", 0) == 0
+        sources = set()
+        for n in client.get("/api/obsidian/notes?limit=100").json().get("notes", []):
+            if "Agentic_OS_Export_" in (n.get("name") or ""):
+                sources.add(n.get("name"))
+        # And no memory row may carry an export-file source.
+        mems = client.get("/api/memory/list?limit=200").json()
+        mems = mems if isinstance(mems, list) else mems.get("memories", [])
+        export_sources = [m.get("source") for m in mems
+                          if str(m.get("source", "")).startswith("obsidian:")
+                          and "Agentic_OS_Export_" in str(m.get("source", ""))]
+        assert not export_sources, f"export file ingested into memories: {export_sources[:3]}"
+
+    def test_obsidian_index_does_not_reindex_on_repeat(self, client):
+        """A second Index click must not duplicate already-indexed notes.
+
+        The old dedup searched memories by FTS title, but FTS tokenizes on
+        word characters — a title like "2026-09-14" matched arbitrary rows,
+        the check failed, and every Index click re-ingested the note as a
+        fresh duplicate galaxy row.
+        """
+        assert client.post("/api/obsidian/note", json={
+            "path": "zz-dedup-probe",
+            "content": "# Dedup probe\n\nUnique-enough body text for the source check.",
+        }).status_code == 200
+
+        first = client.post("/api/obsidian/index", json={"max_notes": 100}).json()
+        mems = client.get("/api/memory/list?limit=200").json()
+        mems = mems if isinstance(mems, list) else mems.get("memories", [])
+        n1 = [m for m in mems if m.get("source") == "obsidian:agentic-os/zz-dedup-probe.md"]
+        assert len(n1) == 1, f"expected exactly 1 row after first index, got {len(n1)}"
+
+        second = client.post("/api/obsidian/index", json={"max_notes": 100}).json()
+        mems2 = client.get("/api/memory/list?limit=200").json()
+        mems2 = mems2 if isinstance(mems2, list) else mems2.get("memories", [])
+        n2 = [m for m in mems2 if m.get("source") == "obsidian:agentic-os/zz-dedup-probe.md"]
+        assert len(n2) == 1, f"second index duplicated the note: {len(n2)} rows"
+        # re_index=True is the explicit escape hatch and must still re-ingest.
+        client.post("/api/obsidian/index", json={"max_notes": 100, "re_index": True})
+        mems3 = client.get("/api/memory/list?limit=200").json()
+        mems3 = mems3 if isinstance(mems3, list) else mems3.get("memories", [])
+        n3 = [m for m in mems3 if m.get("source") == "obsidian:agentic-os/zz-dedup-probe.md"]
+        assert len(n3) >= 2, "re_index=True did not re-ingest"
+
+    def test_obsidian_write_accepts_roundtrip_vault_relative_path(self, client):
+        """Writing back a path exactly as list/read return it must update the
+        note, not spawn a phantom nested duplicate.
+
+        list/read return vault-relative paths ('agentic-os/x.md'). write_note
+        used to join that onto the notes dir, creating
+        'agentic-os/agentic-os/x.md' — so an API round-trip silently produced
+        a duplicate note in a folder that exists nowhere in the UI.
+        """
+        r1 = client.post("/api/obsidian/note", json={
+            "path": "roundtrip-note",
+            "content": "first",
+        })
+        assert r1.status_code == 200 and r1.json().get("ok") is True
+        vault_rel = r1.json()["path"]  # e.g. 'agentic-os/roundtrip-note.md'
+        assert vault_rel.startswith("agentic-os/")
+
+        # Round-trip: write using exactly the path the API handed back.
+        r2 = client.post("/api/obsidian/note", json={
+            "path": vault_rel,
+            "content": "updated",
+        })
+        assert r2.status_code == 200 and r2.json().get("ok") is True
+        assert "agentic-os/agentic-os" not in r2.json().get("path", ""), (
+            "write created a phantom nested path"
+        )
+
+        # The note must read back updated — one note, not two.
+        got = client.get("/api/obsidian/note", params={"path": vault_rel}).json()
+        assert got.get("ok") is True
+        assert got.get("content") == "updated"
+        names = [n.get("path") for n in client.get("/api/obsidian/notes?limit=100").json().get("notes", [])]
+        assert sum(1 for p in names if p and "roundtrip-note" in p) == 1, names
+
     def test_obsidian_graph(self, client):
         r = client.get("/api/obsidian/index")
         assert r.status_code == 200
