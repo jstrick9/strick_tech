@@ -12,6 +12,7 @@ OWASP A01-A10 coverage for all Sprint A-D components:
   Sprint D — Eval Framework (prompt injection in test cases, result tampering)
 """
 import pytest, json
+from urllib.parse import quote
 from tests.security.conftest import *
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -170,9 +171,19 @@ class TestSecAgentIdentity:
         if not isinstance(agents, list) or not agents:
             pytest.skip("No agents")
         aid = agents[0]["id"]
-        for p in ["' OR 1=1 --", "admin", "*", "../../../"]:
-            r = await POST(C, f"/api/agent-identity/{aid}/permissions", {"action": p})
-            sec_ok(r, f"Permission escalation: {p}")
+        granted = []
+        try:
+            for p in ["' OR 1=1 --", "admin", "*", "../../../"]:
+                r = await POST(C, f"/api/agent-identity/{aid}/permissions", {"action": p})
+                sec_ok(r, f"Permission escalation: {p}")
+                # The grant persists and renders in the operator's
+                # agent-identity pane — remember what stuck so this test
+                # leaves the permission list as it found it.
+                if r.status_code == 200 and r.json().get("ok"):
+                    granted.append(p)
+        finally:
+            for p in granted:
+                await DELETE(C, f"/api/agent-identity/{aid}/permissions/{quote(p)}")
 
     async def test_key_rotation_idempotent_no_exposure(self, C):
         """Key rotation endpoint must not expose old/new private key."""

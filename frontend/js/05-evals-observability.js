@@ -632,7 +632,8 @@ async function renderKnowledgeGraph() {
           <div class="kg-entity-card" data-act-click="kgShowEntity(${jsArg(e.id)})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
               <span class="kg-type-badge">${e.type||'concept'}</span>
-              <span style="font-weight:600;color:var(--text-0);font-size:12px">${escHtml(e.name||'')}</span>
+              <span style="font-weight:600;color:var(--text-0);font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(e.name||'')}</span>
+              <button aria-label="Delete entity" title="Delete entity" data-act-click="kgDeleteEntity(${jsArg(e.id)}, ${jsArg(e.name||'')})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:11px;padding:2px">🗑</button>
             </div>
             <div style="font-size:11px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((e.description||'').slice(0,60))}</div>
           </div>`).join('') || stateFeedback.emptyElement({ title: 'No entities yet', message: 'Add one or extract from text.' })}
@@ -769,8 +770,23 @@ async function kgAddEntity() {
   renderKnowledgeGraph();
 }
 
-async function kgAddRelation(fromId, fromName) {
-  const toName=await gmPrompt(`Relate "${fromName}" to entity:`, '');
+async function kgDeleteEntity(entityId, name) {
+  // Entities could be created but never removed — the only cleanup was
+  // "clear graph", which wipes EVERY entity. A mistyped or junk node was
+  // permanent unless the user sacrificed the whole graph. Deleting also
+  // removes the entity's relations and facts server-side (they would
+  // otherwise dangle in traversals).
+  const ok = await gmDanger('Delete entity', `Delete "${name}" and its relations and facts? This cannot be undone.`);
+  if (!ok) return;
+  const r = await fetch(`/api/knowledge-graph/entities/${encodeURIComponent(entityId)}`, { method: 'DELETE' });
+  if (!r.ok) { showToast('❌ Failed to delete entity: HTTP ' + r.status, 'err'); return; }
+  const j = await r.json().catch(() => ({}));
+  if (j.ok === false) { showToast('❌ ' + (j.error || 'Delete failed'), 'err'); return; }
+  showToast(`✅ Entity "${name}" deleted`);
+  renderKnowledgeGraph();
+}
+
+async function kgAddRelation(fromId, fromName) {  const toName=await gmPrompt(`Relate "${fromName}" to entity:`, '');
   if(!toName) return;
   // Find entity by name
   const r=await fetch(`/api/knowledge-graph/entities?q=${encodeURIComponent(toName)}&limit=1`);

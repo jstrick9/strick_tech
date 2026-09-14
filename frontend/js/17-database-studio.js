@@ -112,6 +112,7 @@ async function dbLoadTable(name) {
         <div style="margin-left:auto;display:flex;gap:6px">
           <button data-act-click="dbInsertRow(${jsArg(name)})" class="btn btn-primary btn-sm">+ Row</button>
           <button data-act-click="dbSetTab('sql')" class="btn btn-ghost btn-sm">SQL</button>
+          <button data-act-click="dbDropTable(${jsArg(name)})" class="btn btn-ghost btn-sm" style="color:var(--red)" title="Drop this table">Drop</button>
         </div>
       </div>
       <div style="overflow:auto;flex:1" id="db-table-rows">
@@ -283,8 +284,24 @@ async function dbDeleteRow(table, value, pk) {
   } catch(ex) { toast('Delete error: ' + ex.message, 'err'); }
 }
 
+async function dbDropTable(table) {
+  // Tables could be created in the Schema Designer but never removed — a
+  // mistyped table was permanent (the SQL editor is read-only on purpose,
+  // so there was no escape hatch short of deleting the DB file). The
+  // dedicated DELETE endpoint refuses core/SQLite/FTS tables; everything
+  // else is an informed, confirmed, audit-logged admin action.
+  if (!(await gmDanger('Drop table', `Drop table "${table}" and ALL its rows? This cannot be undone.`))) return;
+  try {
+    const r = await fetch(`/api/db/sqlite/table/${encodeURIComponent(table)}`, { method: 'DELETE' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) { toast('Drop refused: ' + (j.error || ('server error ' + r.status)), 'err'); return; }
+    toast(`Table "${table}" dropped`, 'ok', 1500);
+    dbActiveTable = '';
+    dbSetTab('sqlite');
+  } catch(ex) { toast('Drop error: ' + ex.message, 'err'); }
+}
+
 async function renderSupabaseTab(el) {
-  let s = {connected: false, setup: {steps: [], url: ''}};
   try {
     const r = await fetch('/api/db/supabase/status');
     if (!r.ok) throw new Error('Supabase status error ' + r.status);

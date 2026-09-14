@@ -746,6 +746,18 @@ async def create_table(req: Request):
     name = body.get('name', '')
     cols = body.get('columns', [])  # [{name, type, pk, nullable}]
 
+    # A table name containing '/' is unaddressable forever after: every
+    # browser/drop route is /sqlite/table/{name}, and a percent-encoded
+    # slash does not survive routing — the table would show in the sidebar
+    # but could never be opened, queried, or dropped. One was found live
+    # ("../etc", created by an injection probe). Reject at creation with a
+    # clear error instead of manufacturing permanent junk.
+    if name and ('/' in name or '\\' in name or name.startswith('.')):
+        return JSONResponse(
+            {'ok': False, 'error': "Table names cannot contain '/', '\\' or start with '.' — such tables cannot be opened or dropped afterwards"},
+            status_code=400,
+        )
+
     if not sql and name and cols:
         # Build SQL from column definitions
         col_defs = []
@@ -789,6 +801,63 @@ async def create_table(req: Request):
         return {'ok': False, 'error': str(e), 'sql': sql}
     finally:
         con.close()
+
+
+@router.delete('/sqlite/table/{table}')
+async def drop_table(table: str):
+    """Drop a table created through the Schema Designer / table browser.
+
+    Asymmetry fix: tables could be created (POST /sqlite/table/create) but
+    never removed — a mistyped or junk table was permanent, and the only
+    escape hatch was deleting the whole database file. The read-only SQL
+    editor correctly refuses DDL, so removal needs this dedicated path.
+
+    Guardrails: the tables the app itself depends on (base schema + goals_v2),
+    SQLite internals, and FTS shadow tables are refused — dropping those
+    breaks core function or corrupts a parent table's search index. Feature
+    tables are lazily recreated by their routers, so dropping one loses its
+    data but the app self-heals structurally; the UI confirms first and the
+    drop is audit-logged like every other schema change.
+    """
+    name = (table or '').strip()
+    if not name or len(name) > 200:
+        return JSONResponse({'ok': False, 'error': 'invalid table name'}, status_code=400)
+    if name.startswith('sqlite_'):
+        return JSONResponse({'ok': False, 'error': 'SQLite internal tables cannot be dropped', 'forbidden': True}, status_code=403)
+    if '_fts' in name:
+        return JSONResponse({'ok': False, 'error': f"'{name}' is an FTS index shadow table; drop is refused to avoid corrupting its parent's search", 'forbidden': True}, status_code=403)
+    if name in _PROTECTED_CORE_TABLES:
+        return JSONResponse(
+            {'ok': False, 'error': f"'{name}' is a core application table and cannot be dropped", 'forbidden': True},
+            status_code=403,
+        )
+
+    con = _connect()
+    try:
+        exists = con.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+        ).fetchone()
+        if not exists:
+            return JSONResponse({'ok': False, 'error': f"no such table: {name}"}, status_code=404)
+        sql = f'DROP TABLE "{name}"'
+        con.execute(sql)
+        con.commit()
+        audit_sql(sql, action='db_schema_change', outcome='success', risk='high')
+        return {'ok': True, 'dropped': name}
+    except Exception as e:
+        audit_sql(f'DROP TABLE "{name}"', action='db_schema_change', outcome='failure', risk='high', extra={'error': str(e)[:300]})
+        return {'ok': False, 'error': str(e)}
+    finally:
+        con.close()
+
+
+# Base schema from services/memory_db.py ensure_schema() plus goals_v2 (the
+# live goals store, created lazily by the goals router). Losing any of these
+# breaks core function rather than one feature pane.
+_PROTECTED_CORE_TABLES = {
+    '_schema_migrations', 'memory', 'goals', 'goals_v2', 'chat_log', 'chat_sessions',
+    'tasks', 'audit', 'file_versions', 'e2e_traces', 'agents', 'swarm_history', 'secrets',
+}
 
 
 def _strip_markdown_sql(text: str) -> str:

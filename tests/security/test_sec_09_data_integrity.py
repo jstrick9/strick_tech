@@ -4,7 +4,9 @@ Tests: Secrets never exposed, data isolation, resource exhaustion prevention,
        HTTP security headers, sensitive endpoint protection.
 """
 import pytest, json, asyncio
+from urllib.parse import quote
 from tests.security.conftest import *
+from tests.security.conftest import _DB_PATH
 
 # CSRF is enforced by default; these construct their own clients, so they need
 # the token-attaching wrapper too. See tests/_csrf_client.py.
@@ -370,12 +372,65 @@ class TestSecDBStudio:
 
     async def test_db_create_table_injection(self, C):
         """Creating tables via DB Studio with injected names."""
-        for p in ["'; DROP TABLE agents; --", "evil\x00table", "../etc"]:
+        created = []
+        try:
+            for p in ["'; DROP TABLE agents; --", "evil\x00table", "../etc"]:
+                r = await POST(C, "/api/db/sqlite/table/create", {
+                    "name": p,
+                    "columns": [{"name": "id", "type": "INTEGER"}]
+                })
+                sec_ok(r, f"DB create table injection: {p[:30]}")
+                # Table create persists — remember whatever actually got made
+                # so this test does not leak hostile-named tables into the
+                # user's table browser on every run (the names render in the
+                # DB Studio sidebar forever otherwise). "../etc" is rejected
+                # outright (unaddressable name); "evil\x00table" never lands.
+                if (r.status_code == 200 and (r.json().get("ok"))
+                        and p not in ("evil\x00table", "../etc")):
+                    created.append(p)
+        finally:
+            for p in created:
+                await DELETE(C, f"/api/db/sqlite/table/{quote(p)}")
+
+    async def test_db_create_table_unaddressable_name_rejected(self, C):
+        """Names with '/' can never be opened or dropped — reject at create."""
+        for p in ["../etc", "a/b", "c\\d", ".hidden"]:
             r = await POST(C, "/api/db/sqlite/table/create", {
                 "name": p,
                 "columns": [{"name": "id", "type": "INTEGER"}]
             })
-            sec_ok(r, f"DB create table injection: {p[:30]}")
+            assert r.status_code == 400, (
+                f"unaddressable table name {p!r} accepted: {r.status_code}"
+            )
+            assert not r.json().get("ok"), f"{p!r} created despite validation"
+
+    async def test_db_drop_table_guardrails(self, C):
+        """DROP endpoint must refuse protected tables but remove user tables."""
+        # Core app tables, SQLite internals and FTS shadows must be refused.
+        for t in ["agents", "tasks", "audit", "_schema_migrations",
+                  "sqlite_master", "memory_fts"]:
+            r = await DELETE(C, f"/api/db/sqlite/table/{quote(t)}")
+            assert r.status_code in (403, 404), (
+                f"DROP of protected table {t} returned {r.status_code}"
+            )
+            if r.status_code == 200:
+                raise AssertionError(f"Dropped protected table {t}!")
+        tables = {t["name"] for t in (await GET(C, "/api/db/sqlite/tables")).json()}
+        assert "agents" in tables, "agents table vanished after drop attempts"
+
+        # A user table created through the Schema Designer must be droppable,
+        # and a second drop must 404 rather than crash.
+        r = await POST(C, "/api/db/sqlite/table/create", {
+            "name": "sec09_drop_probe",
+            "columns": [{"name": "id", "type": "INTEGER"}]
+        })
+        assert r.status_code == 200, f"probe table create failed: {r.status_code}"
+        r = await DELETE(C, "/api/db/sqlite/table/sec09_drop_probe")
+        assert r.status_code == 200 and r.json().get("ok"), (
+            f"user table drop failed: {r.status_code} {r.text[:120]}"
+        )
+        r = await DELETE(C, "/api/db/sqlite/table/sec09_drop_probe")
+        assert r.status_code == 404, f"re-drop should 404, got {r.status_code}"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -387,11 +442,55 @@ class TestSecKnowledgeGraphRAG:
 
     async def test_kg_entity_injection(self, C):
         """Injection in KG entity name/type."""
-        for p in ["' OR 1=1 --", "<script>", "$(whoami)", "'; DROP TABLE kg_entities; --"]:
-            r = await POST(C, "/api/knowledge-graph/entities", {
-                "name": p, "type": p, "properties": {"key": p}
-            })
-            sec_ok(r, f"KG entity injection: {p[:30]}")
+        made = []
+        try:
+            for p in ["' OR 1=1 --", "<script>", "$(whoami)", "'; DROP TABLE kg_entities; --"]:
+                r = await POST(C, "/api/knowledge-graph/entities", {
+                    "name": p, "type": p, "properties": {"key": p}
+                })
+                sec_ok(r, f"KG entity injection: {p[:30]}")
+                # POST /entities upserts and persists — remember the id so
+                # this test does not leave hostile-named entities rendered
+                # in the user's Knowledge Graph pane on every run.
+                if r.status_code == 200 and r.json().get("entity_id"):
+                    made.append(r.json()["entity_id"])
+        finally:
+            for eid in made:
+                await DELETE(C, f"/api/knowledge-graph/entities/{quote(eid)}")
+
+    async def test_kg_entity_delete_cascades(self, C):
+        """Entity delete removes the node and its relations/facts, 404s on miss."""
+        r = await POST(C, "/api/knowledge-graph/entities", {
+            "name": "sec09_del_probe_a", "type": "concept"
+        })
+        assert r.status_code == 200, f"create a failed: {r.status_code}"
+        aid = r.json()["entity_id"]
+        r = await POST(C, "/api/knowledge-graph/entities", {
+            "name": "sec09_del_probe_b", "type": "concept"
+        })
+        bid = r.json()["entity_id"]
+        await POST(C, "/api/knowledge-graph/relations", {
+            "from_id": aid, "to_id": bid, "relation": "USES"
+        })
+
+        r = await DELETE(C, f"/api/knowledge-graph/entities/{quote(aid)}")
+        assert r.status_code == 200 and r.json().get("ok"), (
+            f"delete failed: {r.status_code} {r.text[:120]}"
+        )
+        r = await DELETE(C, f"/api/knowledge-graph/entities/{quote(aid)}")
+        assert r.status_code == 404, f"re-delete should 404, got {r.status_code}"
+
+        # The relation that referenced the deleted entity must be gone too.
+        con = sqlite3.connect(str(_DB_PATH))
+        try:
+            dangling = con.execute(
+                "SELECT COUNT(*) FROM kg_relations WHERE from_id=? OR to_id=?",
+                (aid, aid),
+            ).fetchone()[0]
+        finally:
+            con.close()
+        assert dangling == 0, "delete left a dangling relation behind"
+        await DELETE(C, f"/api/knowledge-graph/entities/{quote(bid)}")
 
     async def test_kg_query_injection(self, C):
         """Injection in KG query."""

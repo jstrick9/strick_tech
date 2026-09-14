@@ -539,6 +539,37 @@ def graph_stats():
     }
 
 
+@router.delete('/entities/{entity_id}')
+def delete_entity(entity_id: str):
+    """Remove one entity and everything that references it.
+
+    Entities could be created (POST /entities upserts by name+type) but never
+    removed individually — the only cleanup was DELETE /clear, which wipes the
+    whole graph. A mistyped or junk entity was therefore permanent unless the
+    user sacrificed every other node. Deleting an entity also removes its
+    relations and facts; leaving those behind would render dangling edges in
+    traversal queries and orphan facts in the pane.
+    """
+    if not entity_id or len(entity_id) > 120:
+        return JSONResponse({'ok': False, 'error': 'invalid entity id'}, status_code=400)
+    from ..services.memory_db import get_conn
+
+    con = get_conn()
+    try:
+        row = con.execute('SELECT id FROM kg_entities WHERE id=?', (entity_id,)).fetchone()
+        if not row:
+            return JSONResponse({'ok': False, 'error': f"entity '{entity_id}' not found"}, status_code=404)
+        con.execute('DELETE FROM kg_relations WHERE from_id=? OR to_id=?', (entity_id, entity_id))
+        con.execute('DELETE FROM kg_facts WHERE subject_id=?', (entity_id,))
+        con.execute('DELETE FROM kg_entities WHERE id=?', (entity_id,))
+        with contextlib.suppress(Exception):
+            con.execute("INSERT INTO kg_entities_fts(kg_entities_fts) VALUES ('rebuild')")
+        con.commit()
+    finally:
+        con.close()
+    return {'ok': True, 'deleted': entity_id}
+
+
 @router.delete('/clear')
 def clear_graph():
     """Delete or remove specified clear graph."""
