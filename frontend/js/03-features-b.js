@@ -626,8 +626,23 @@ async function hookManualRun(hookId) {
 async function hookCreate() {
   const name  = await gmPrompt('Hook name:','My Hook');
   if (!name) return;
-  const event = await gmPrompt('Event (file_save, git_commit, schedule, etc.):','file_save');
-  if (!event) return;
+  // Picker, not free text: the event must be one of the types the backend
+  // actually fires. A typo ("file-save", "on_save") used to create a hook
+  // that rendered fine, toggled fine, and could never fire — silently dead
+  // forever. The valid types are already served by /api/hooks/events/types
+  // (the same list the filter bar uses).
+  let event = null;
+  const tr = await fetch('/api/hooks/events/types').catch(()=>null);
+  const td = tr && tr.ok ? await tr.json().catch(()=>null) : null;
+  if (td && (td.events||[]).length) {
+    event = await gmChoose('Hook Event', 'When should this hook fire?',
+      td.events.map(e => ({ value: e.id, label: `${e.label} (${e.id})` })), 'file_save');
+    if (event === null) return;
+  } else {
+    // Offline fallback — keep the old prompt so creation still works.
+    event = await gmPrompt('Event (file_save, git_commit, schedule, etc.):','file_save');
+    if (!event) return;
+  }
   const prompt= await gmPrompt('AI prompt (use {{file.path}}, {{commit.message}}, etc.):','Review this file: {{file.path}}\n{{file.content}}');
   if (!prompt) return;
   try {
