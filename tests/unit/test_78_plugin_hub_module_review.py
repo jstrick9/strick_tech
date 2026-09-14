@@ -335,3 +335,162 @@ def test_stats_endpoint_is_consistent_with_the_catalog(client):
     items = client.get('/api/hub/catalog').json()['items']
     assert stats['total_packs'] == len(items)
     assert stats['installed_packs'] == sum(1 for i in items if i['installed'])
+
+
+# ══ 6. Marketplace pack-id hygiene + delete (round 23) ═════════════════════════
+def _mkt_cleanup(client, pack_id):
+    with __import__('contextlib').suppress(Exception):
+        client.delete(f'/api/marketplace/{pack_id}')
+
+
+def test_publish_slugifies_ids_and_cannot_escape_packs_dir(client):
+    """publish took a raw caller-supplied pack id into filesystem paths.
+
+    Verified live pre-fix: publishing '../../../something' read and WROTE
+    json outside workspaces/plugin_sdk/packs/ with ok:true. The body id and
+    the manifest's own id field must both be slugified (community/submit
+    and /upload already did; publish was the hole).
+    """
+    from backend.config import get_data_dir
+
+    sdk = get_data_dir() / 'workspaces' / 'plugin_sdk' / 'packs'
+    sdk.mkdir(parents=True, exist_ok=True)
+    (sdk / 'zz-trav-sdk.json').write_text(json.dumps({
+        'id': '../../../zz-escaped', 'name': 'Trav Probe', 'description': 'd',
+        'version': '1.0.0', 'skills': [],
+    }))
+    try:
+        r = client.post('/api/marketplace/publish', json={'pack_id': '../../../zz-trav-sdk'})
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d['ok'] is True
+        assert '..' not in d['pack_id'], f'raw id escaped slugification: {d["pack_id"]}'
+        # The manifest's own (crafted) id is slugified too, and nothing was
+        # written outside the packs directory.
+        assert not (get_data_dir() / 'zz-escaped').exists(), 'file escaped the packs dir'
+        packs_dir = get_data_dir() / 'workspaces' / 'marketplace' / 'packs'
+        assert (packs_dir / 'zz-escaped' / 'manifest.json').exists()
+        assert client.get('/api/marketplace/zz-escaped').status_code == 200
+    finally:
+        _mkt_cleanup(client, 'zz-escaped')
+        (sdk / 'zz-trav-sdk.json').unlink(missing_ok=True)
+
+
+def test_publish_rejects_ids_that_slugify_to_empty(client):
+    r = client.post('/api/marketplace/publish', json={'pack_id': '../../..'})
+    assert r.status_code == 400
+    assert r.json().get('ok') is False
+
+
+def test_marketplace_invalid_pack_ids_are_400(client):
+    """Path params reach filesystem paths (install manifest read, uninstall
+    sdk-json unlink, download manifest read) — a traversal id must be
+    rejected, not attempted."""
+    assert client.post('/api/marketplace/a.b/install', json={}).status_code == 400
+    assert client.delete('/api/marketplace/a.b/uninstall').status_code == 400
+    assert client.get('/api/marketplace/a.b/download').status_code == 400
+    assert client.post('/api/marketplace/a.b/review', json={'rating': 5}).status_code == 400
+
+
+def test_delete_pack_removes_it_everywhere(client):
+    """Packs could be created three ways and removed zero ways — the grid
+    only grew. DELETE must clear the catalog row, reviews, install state,
+    the pack directory, and the SDK pack file."""
+    from backend.config import get_data_dir
+
+    sub = client.post('/api/marketplace/community/submit', json={
+        'id': 'zz-del-probe', 'name': 'Delete Probe', 'description': 'd',
+    })
+    assert sub.status_code == 200 and sub.json()['ok'], sub.text
+
+    assert client.post('/api/marketplace/zz-del-probe/install', json={}).status_code == 200
+    assert client.post('/api/marketplace/zz-del-probe/review', json={
+        'rating': 5, 'review': 'great',
+    }).status_code == 200
+
+    r = client.delete('/api/marketplace/zz-del-probe')
+    assert r.status_code == 200 and r.json()['ok'] is True and r.json()['deleted'] is True
+
+    ids = {p['id'] for p in client.get('/api/marketplace?limit=100').json()['packs']}
+    assert 'zz-del-probe' not in ids, 'deleted pack still listed'
+    assert client.get('/api/marketplace/zz-del-probe').status_code == 404
+    assert client.get('/api/marketplace/zz-del-probe/reviews').json()['count'] == 0
+    inst = client.get('/api/marketplace/installed/list').json()
+    assert all(i.get('pack_id') != 'zz-del-probe' for i in inst.get('installed', []))
+    sdk_json = get_data_dir() / 'workspaces' / 'plugin_sdk' / 'packs' / 'zz-del-probe.json'
+    assert not sdk_json.exists(), 'sdk pack file survived deletion'
+
+
+def test_delete_pack_refuses_reseeded_builtins(client):
+    """Curated packs are re-seeded at startup; deleting one would just make
+    it reappear — the button must say so instead of silently undoing."""
+    r = client.delete('/api/marketplace/agenticai-core')
+    assert r.status_code == 403
+    assert 're-seeded' in r.json()['error']
+    ids = {p['id'] for p in client.get('/api/marketplace?limit=100').json()['packs']}
+    assert 'agenticai-core' in ids, 'refused delete still removed the pack'
+
+
+def test_review_of_unknown_pack_is_404(client):
+    """Reviews for packs that don't exist returned ok:true with new_avg 0 —
+    the caller believed their review was recorded."""
+    r = client.post('/api/marketplace/zz-no-such-pack/review', json={'rating': 5})
+    assert r.status_code == 404
+    assert r.json().get('ok') is False
+
+
+# ══ 7. Uninstall must not eat skills it never installed (round 23) ═════════════
+def test_uninstall_keeps_seeded_skill_with_colliding_id(client):
+    """code_review ships in BOTH the default skills.json and the code-wizard
+    pack. Install reports it "already present" and skips it — but uninstall
+    used to remove by bare id and deleted the seeded copy anyway (verified
+    live: install + uninstall of code-wizard ate the default skill)."""
+    from backend.routers.skills import load_skills, save_skills
+
+    client.post('/api/marketplace/code-wizard/uninstall')
+    skills = load_skills()
+    if not any(s.get('id') == 'code_review' for s in skills):
+        skills.append({
+            'id': 'code_review', 'name': 'Code Review',
+            'prompt_template': 'Review: {{code}}',
+        })
+        save_skills(skills)
+
+    r = client.post('/api/marketplace/code-wizard/install', json={})
+    assert r.status_code == 200, r.text
+    assert r.json()['skills_already_present'] >= 1, 'seeded code_review not detected as present'
+
+    u = client.delete('/api/marketplace/code-wizard/uninstall')
+    assert u.status_code == 200 and u.json()['ok']
+
+    after = {s.get('id'): s for s in load_skills()}
+    assert 'code_review' in after, 'uninstall deleted the seeded code_review skill'
+    assert after['code_review'].get('source_plugin') is None, (
+        'uninstall mutated the seeded skill'
+    )
+
+
+def test_uninstall_removes_only_what_the_install_added(client):
+    """Skills the install DID add (tagged source_plugin) must be removed on
+    uninstall; the seeded ones must stay."""
+    from backend.routers.skills import load_skills, save_skills
+
+    client.post('/api/marketplace/code-wizard/uninstall')
+    # Seed one colliding skill; leave the rest of the pack's skills absent.
+    save_skills([{
+        'id': 'code_review', 'name': 'Seeded Code Review',
+        'prompt_template': 'Review: {{code}}',
+    }])
+
+    r = client.post('/api/marketplace/code-wizard/install', json={})
+    added = r.json()['skills_added']
+    assert added >= 1, 'expected the install to add pack skills'
+    before = {s.get('id'): s for s in load_skills()}
+    assert before['code_review'].get('source_plugin') is None, 'install overwrote the seeded skill'
+
+    client.delete('/api/marketplace/code-wizard/uninstall')
+    after_ids = {s.get('id') for s in load_skills()}
+    assert 'code_review' in after_ids, 'seeded skill eaten by uninstall'
+    for sid in before:
+        if before[sid].get('source_plugin') == 'code-wizard':
+            assert sid not in after_ids, f'installed skill {sid} not removed'

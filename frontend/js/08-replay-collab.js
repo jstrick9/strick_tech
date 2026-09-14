@@ -1849,6 +1849,7 @@ function mktCardHTML(p, featured=false) {
       <div style="display:flex;gap:5px;margin-top:2px">
         <button class="btn-sm" data-act-click="mktViewDetail(${jsArg(p.id)})">Details</button>
         <button class="btn-sm" data-act-click="hDownloadMarketplacePack(${jsArg(p.id)})">⬇ ZIP</button>
+        <button class="btn-sm" style="color:var(--danger)" aria-label="Delete pack" title="Delete pack" data-act-click="mktDeletePack(${jsArg(p.id)},${jsArg(p.name)})">🗑</button>
       </div>
     </div>
   `;
@@ -1909,6 +1910,34 @@ function mktButtonsFor(packId) {
   return [...document.querySelectorAll('[data-pack-btn]')].filter(
     (b) => b.getAttribute('data-pack-btn') === packId
   );
+}
+
+// Packs could be published/uploaded/submitted but never removed — the grid
+// only grew. Every non-built-in card gets a trash button; the server refuses
+// curated packs (they're re-seeded on restart) and the refusal is surfaced
+// instead of swallowed.
+async function mktDeletePack(packId, packName) {
+  const ok = await gmDanger(`Delete "${packName}"?`,
+    'Remove this pack from the marketplace, with its reviews and files? Installed skills from this pack will be removed.');
+  if (!ok) return;
+  try {
+    const r = await fetch(`/api/marketplace/${encodeURIComponent(packId)}`, {method:'DELETE'});
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      gmAlert('Delete failed: '+(d.error||('HTTP '+r.status)));
+      return;
+    }
+    const d = await r.json();
+    if (d.ok) {
+      showToast(d.deleted ? `🗑️ ${packName} deleted.` : `${packName} was already gone — refreshed.`);
+      delete _mktInstalled[packId];
+      mktLoadPacks(_mktQuery, _mktCategory, _mktSort);
+    } else {
+      gmAlert('Delete failed: '+(d.error||'Unknown error'));
+    }
+  } catch(ex) {
+    gmAlert('Delete error: '+ex?.message);
+  }
 }
 
 async function mktInstallOrUninstall(packId, packName, isInstalled) {

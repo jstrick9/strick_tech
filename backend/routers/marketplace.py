@@ -43,6 +43,32 @@ MKT_DIR.mkdir(parents=True, exist_ok=True)
 PACKS_DIR.mkdir(parents=True, exist_ok=True)
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
+
+# ── Pack id hygiene ────────────────────────────────────────────────────────────
+# community/submit and /upload slugify ids before use, but publish used a raw
+# caller-supplied id straight in filesystem paths — reading and WRITING json
+# outside workspaces/plugin_sdk/packs/ (verified live: a '../..' id published
+# a manifest to an arbitrary path with ok:true, and uninstall's sibling path
+# could unlink an arbitrary .json). One rule everywhere an id reaches a path.
+_PACK_ID_RE = re.compile(r'^[A-Za-z0-9_-]{1,128}$')
+
+
+def _clean_pack_id(raw: object) -> str:
+    """Slugify a caller-supplied pack id (same rule as community/submit)."""
+    return re.sub(r'[^a-z0-9_-]', '-', str(raw or '').lower()).strip('-')
+
+
+def _valid_pack_id(pack_id: str) -> bool:
+    """True if a pack id is safe to use in a filesystem path."""
+    return bool(_PACK_ID_RE.match(pack_id or ''))
+
+
+def _invalid_pack_id_response(pack_id: str):
+    return JSONResponse(
+        {'ok': False, 'error': f'Invalid pack id: {pack_id!r}'}, status_code=400
+    )
+
+
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_EXTRACTED_BYTES = 25 * 1024 * 1024
 
@@ -569,7 +595,9 @@ def _pack_row_to_dict(row) -> dict:
     # back to the skills_json column rather than reporting an empty pack.
     d['skills'] = []
     manifest_path = PACKS_DIR / d['id'] / 'manifest.json'
-    if manifest_path.exists():
+    # Guard: a legacy row with a non-slug id (possible from before publish
+    # slugified) must not turn the manifest read into an arbitrary file read.
+    if _valid_pack_id(d['id']) and manifest_path.exists():
         try:
             m = json.loads(manifest_path.read_text())
             d['skills'] = m.get('skills', [])
@@ -725,6 +753,8 @@ def get_pack(pack_id: str):
 @router.post('/{pack_id}/install')
 async def install_pack(pack_id: str, req: Request):
     """Execute or process install pack operation."""
+    if not _valid_pack_id(pack_id):
+        return _invalid_pack_id_response(pack_id)
     try:
         try:
             body = await req.json()
@@ -837,33 +867,18 @@ async def install_pack(pack_id: str, req: Request):
     }
 
 
-@router.delete('/{pack_id}/uninstall')
-def uninstall_pack(pack_id: str):
-    """Execute or process uninstall pack operation."""
-    from ..services.memory_db import get_conn
+def _remove_pack_skills(pack_id: str) -> None:
+    """Drop a pack's skills from the Skills Hub — only skills with pack
+    provenance (the source_plugin tag installs apply, by whichever pack
+    installed first), only when no other installed pack still claims them,
+    and only if the user hasn't modified them. Seeded default skills carry
+    no tag and always survive.
 
-    con = get_conn()
-    try:
-        cur = con.execute('DELETE FROM mkt_installed WHERE pack_id=?', (pack_id,))
-        removed = cur.rowcount or 0
-        con.commit()
-    finally:
-        con.close()
-    # Remove from SDK packs
-    sdk_pack = ROOT / 'workspaces' / 'plugin_sdk' / 'packs' / f'{pack_id}.json'
-    if sdk_pack.exists():
-        with contextlib.suppress(Exception):
-            sdk_pack.unlink()
-
-    # Sync uninstallation with active Skills Hub.
-    #
-    # This filtered on `source_plugin`, a tag only the MARKETPLACE installer
-    # applies. The plugins backend installs into the same skills.json without
-    # it, so a skill shipped by both (dockerfile: dev-toolkit + devops-toolkit)
-    # was orphaned — after removing BOTH owners it remained in the Skills pane
-    # with no pack behind it. Now uses the same ownership rule as the plugins
-    # backend: remove only when no other installed pack, in either registry,
-    # still claims it.
+    The bare-id rule that used to run here (and in the plugins backend's
+    uninstall) deleted same-id seeded default skills the install had skipped
+    over as "already present" — verified live with code_review, which ships
+    in both the default skills.json and the code-wizard pack.
+    """
     with contextlib.suppress(Exception):
         from .plugins import _find_pack_skills, _load_installed
         from .skills import load_skills, save_skills
@@ -881,15 +896,48 @@ def uninstall_pack(pack_id: str):
                 if isinstance(sk, dict) and sk.get('id')
             }
         to_remove = pack_skill_ids - retained
+        # Remove only skills with pack provenance (the source_plugin tag both
+        # installers apply), never a same-id seeded default the install
+        # skipped as "already present" — verified live: code_review ships in
+        # both the default skills.json and the code-wizard pack, and a bare-id
+        # match on uninstall ate the seeded copy. Provenance is "tagged by ANY
+        # pack": a shared skill is tagged by whichever pack installed first,
+        # so a tag==pack_id check would orphan it when the LAST owner goes.
         active_skills = [
             s for s in load_skills()
             if not (
-                (s.get('id') in to_remove
-                 or (s.get('source_plugin') == pack_id and s.get('id') not in retained))
+                s.get('source_plugin')
+                and s.get('id') in to_remove
                 and not s.get('user_modified')
             )
         ]
         save_skills(active_skills)
+
+
+@router.delete('/{pack_id}/uninstall')
+def uninstall_pack(pack_id: str):
+    """Execute or process uninstall pack operation."""
+    # The pack id reaches a filesystem path below (the SDK pack json unlink);
+    # a traversal id could delete an arbitrary .json. All creation paths
+    # slugify ids, so a non-slug id is never legitimate here.
+    if not _valid_pack_id(pack_id):
+        return _invalid_pack_id_response(pack_id)
+    from ..services.memory_db import get_conn
+
+    con = get_conn()
+    try:
+        cur = con.execute('DELETE FROM mkt_installed WHERE pack_id=?', (pack_id,))
+        removed = cur.rowcount or 0
+        con.commit()
+    finally:
+        con.close()
+    # Remove from SDK packs
+    sdk_pack = ROOT / 'workspaces' / 'plugin_sdk' / 'packs' / f'{pack_id}.json'
+    if sdk_pack.exists():
+        with contextlib.suppress(Exception):
+            sdk_pack.unlink()
+
+    _remove_pack_skills(pack_id)
 
     # Sync uninstallation with plugins registry
     with contextlib.suppress(Exception):
@@ -899,6 +947,62 @@ def uninstall_pack(pack_id: str):
             del p_inst[pack_id]
             _save_installed(p_inst)
 
+    return {'ok': True, 'deleted': removed > 0, 'pack_id': pack_id}
+
+
+@router.delete('/{pack_id}')
+def delete_pack(pack_id: str):
+    """Remove a pack from the marketplace entirely.
+
+    Packs could be published, uploaded, or community-submitted, but never
+    removed — the grid only ever grew, and an experimental or junk pack sat
+    in the catalog forever (same create-without-delete asymmetry as the
+    eval suites and datasets). Curated built-ins are refused: they are
+    re-seeded at startup, so deleting one would just make it reappear —
+    a button that silently undoes itself.
+    """
+    if not _valid_pack_id(pack_id):
+        return _invalid_pack_id_response(pack_id)
+    if any(p.get('id') == pack_id for p in CURATED_PACKS):
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': 'Built-in packs are re-seeded on restart and cannot be deleted',
+            },
+            status_code=403,
+        )
+
+    from ..services.memory_db import get_conn
+
+    con = get_conn()
+    try:
+        cur = con.execute('DELETE FROM mkt_packs WHERE id=?', (pack_id,))
+        removed = cur.rowcount or 0
+        con.execute('DELETE FROM mkt_reviews WHERE pack_id=?', (pack_id,))
+        con.execute('DELETE FROM mkt_releases WHERE pack_id=?', (pack_id,))
+        con.execute('DELETE FROM mkt_installed WHERE pack_id=?', (pack_id,))
+        con.commit()
+    finally:
+        con.close()
+
+    # Remove on-disk artifacts (uploaded zips / published manifests) and the
+    # SDK pack file, mirroring uninstall. Missing artifacts are fine.
+    shutil.rmtree(PACKS_DIR / pack_id, ignore_errors=True)
+    sdk_pack = ROOT / 'workspaces' / 'plugin_sdk' / 'packs' / f'{pack_id}.json'
+    with contextlib.suppress(OSError):
+        sdk_pack.unlink(missing_ok=True)
+
+    # If it was installed, its skills must leave the Skills Hub too.
+    _remove_pack_skills(pack_id)
+    with contextlib.suppress(Exception):
+        from .plugins import _load_installed, _save_installed
+        p_inst = _load_installed()
+        if pack_id in p_inst:
+            del p_inst[pack_id]
+            _save_installed(p_inst)
+
+    from ..services.memory_db import audit_log
+    audit_log('marketplace_pack_delete', pack_id)
     return {'ok': True, 'deleted': removed > 0, 'pack_id': pack_id}
 
 
@@ -978,6 +1082,8 @@ async def update_all():
 @router.post('/{pack_id}/review')
 async def submit_review(pack_id: str, req: Request):
     """Execute or process submit review operation."""
+    if not _valid_pack_id(pack_id):
+        return _invalid_pack_id_response(pack_id)
     try:
         body = await req.json()
     except (json.JSONDecodeError, TypeError, ValueError):
@@ -996,6 +1102,12 @@ async def submit_review(pack_id: str, req: Request):
 
     con = get_conn()
     try:
+        # Reviews for packs that don't exist used to return ok:true (with
+        # new_avg 0) — the pack id was never checked, so rating_sum updates
+        # hit zero rows and the caller believed their review was recorded.
+        if not con.execute('SELECT id FROM mkt_packs WHERE id=?', (pack_id,)).fetchone():
+            con.close()
+            return JSONResponse({'ok': False, 'error': 'Pack not found'}, status_code=404)
         con.execute(
             'INSERT INTO mkt_reviews(pack_id,reviewer,rating,review_text) VALUES (?,?,?,?)',
             (pack_id, name, rating, text),
@@ -1085,7 +1197,9 @@ async def publish_pack(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    pack_id = body.get('pack_id', '')
+    pack_id = _clean_pack_id(body.get('pack_id', ''))
+    if not pack_id:
+        return _invalid_pack_id_response(str(body.get('pack_id', '')))
 
     # Load from SDK
     sdk_path = ROOT / 'workspaces' / 'plugin_sdk' / 'packs' / f'{pack_id}.json'
@@ -1093,6 +1207,17 @@ async def publish_pack(req: Request):
         return {'ok': False, 'error': 'Pack not found in SDK. Create it in Plugin SDK first.'}
 
     pack = json.loads(sdk_path.read_text())
+    # The manifest's own id field is caller-controlled too. It used to flow
+    # raw into `PACKS_DIR / pack['id']` for the manifest write AND the DB —
+    # a crafted SDK pack (id '../../../somewhere') published files outside
+    # the packs directory with ok:true. Same slug rule, applied here. A
+    # pack file without an id (or not an object at all) previously crashed
+    # with KeyError 500; it now falls back to the file's own slugified name.
+    if not isinstance(pack, dict):
+        return JSONResponse(
+            {'ok': False, 'error': 'Pack file is not a valid JSON object'}, status_code=400
+        )
+    pack['id'] = _clean_pack_id(pack.get('id')) or pack_id
 
     from ..services.memory_db import get_conn
 
@@ -1227,6 +1352,8 @@ async def upload_pack(file: UploadFile = File(...)):
 @router.get('/{pack_id}/download')
 def download_pack(pack_id: str, version: str = ''):
     """Execute or process download pack operation."""
+    if not _valid_pack_id(pack_id):
+        return _invalid_pack_id_response(pack_id)
     from ..services.memory_db import get_conn
 
     con = get_conn()

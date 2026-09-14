@@ -545,6 +545,46 @@ class TestSecA08IntegrityFailures:
         })
         sec_ok(r, "Marketplace publish injection")
 
+    async def test_marketplace_publish_path_traversal(self, C):
+        """publish used the raw pack_id in filesystem paths (SDK json read,
+        packs-dir manifest write). A '../..' id read and wrote files outside
+        workspaces/ with ok:true (verified live pre-fix). The id must be
+        slugified like every other creation route, and a traversal that
+        slugifies to empty must be rejected outright."""
+        r = await POST(C, "/api/marketplace/publish", {"pack_id": "../../../package"})
+        sec_ok(r, "Marketplace publish traversal")
+        assert r.status_code in (200, 400), r.status_code
+        body = r.json()
+        assert body.get("ok") is not True or ".." not in str(body.get("pack_id", "")), (
+            "publish accepted a traversal id"
+        )
+
+        empty = await POST(C, "/api/marketplace/publish", {"pack_id": "../../.."})
+        sec_ok(empty, "Marketplace publish traversal (empty slug)")
+        assert empty.status_code == 400, "traversal that slugifies to empty was not rejected"
+
+    async def test_marketplace_traversal_pack_ids_on_path_routes(self, C):
+        """install/uninstall/download/review take the pack id from the URL
+        and use it in filesystem paths (manifest read, sdk-json unlink).
+        Traversal-shaped ids must be rejected, not attempted."""
+        for path, method in [
+            ("/api/marketplace/..%2F..%2Fetc%2Fpasswd/install", "POST"),
+            ("/api/marketplace/..%2F..%2Fetc%2Fpasswd/uninstall", "DELETE"),
+            ("/api/marketplace/..%2F..%2Fetc%2Fpasswd/download", "GET"),
+            ("/api/marketplace/a.b/install", "POST"),
+            ("/api/marketplace/a.b/uninstall", "DELETE"),
+        ]:
+            if method == "POST":
+                r = await POST(C, path)
+            elif method == "DELETE":
+                r = await DELETE(C, path)
+            else:
+                r = await GET(C, path)
+            sec_ok(r, f"Marketplace path-route traversal: {path}")
+            assert r.status_code in (400, 404, 422), (
+                f"{path} answered {r.status_code} instead of rejecting the id"
+            )
+
     async def test_workflow_import_injection(self, C):
         """Workflow import with injected payloads."""
         malicious_workflow = {

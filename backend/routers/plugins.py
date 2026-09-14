@@ -696,7 +696,12 @@ async def install_plugin(plugin_id: str, req: Request):
             log.warning('Skipping malformed skill (missing required fields): %s', skill.get('id', '?'))
             continue
         if skill['id'] not in existing_ids:
-            skills.append(skill)
+            # Tag what this install added. The uninstall path removes by this
+            # tag; without it a seeded default skill that happens to share an
+            # id with a pack skill (code_review ships in BOTH the default
+            # skills.json and the code-wizard pack) was deleted on uninstall
+            # even though this install never added it — verified live.
+            skills.append({**skill, 'source_plugin': plugin_id})
             added += 1
 
     save_skills(skills)
@@ -772,14 +777,23 @@ def uninstall_plugin(plugin_id: str):
     to_remove = pack_skill_ids - retained_by_others
     kept_shared = sorted(pack_skill_ids & retained_by_others)
 
-    # A skill the user has since edited is preserved rather than deleted. The
-    # editor saves under a `_custom` id so the original is usually untouched,
-    # but a skill carrying explicit user modification must never be removed by
-    # an unrelated uninstall.
+    # Remove only skills with pack provenance (the source_plugin tag installs
+    # apply), never a same-id seeded default the install skipped over. The
+    # bare-id rule that used to run here deleted the default `code_review`
+    # skill when code-wizard was uninstalled, though the install had reported
+    # it as "already present" and never touched it. Provenance is "tagged by
+    # ANY pack", not just this one: a shared skill (dockerfile in dev-toolkit
+    # and devops-toolkit) is tagged by whichever pack installed first, so a
+    # tag==plugin_id check would orphan it when the LAST owner is uninstalled.
+    # Skills another installed pack still claims are kept (to_remove already
+    # excludes them), as are skills the user has edited.
     survivors, removed = [], 0
     for sk in load_skills():
-        sid = sk.get('id')
-        if sid in to_remove and not sk.get('user_modified'):
+        if (
+            sk.get('source_plugin')
+            and sk.get('id') in to_remove
+            and not sk.get('user_modified')
+        ):
             removed += 1
             continue
         survivors.append(sk)
