@@ -1115,3 +1115,47 @@ Probe residue cleaned: r20* preview files, 3 probe datasets + old
 `_tmp_tmp7sbnbhuq_pwned` traversal-residue dataset (snapshot-restored test
 data) removed from memory/finetune/datasets/, icm route-log restored, no
 goal/session residue.
+
+## Round 20 part 2 — the evals pane believed a verdict that was never given
+
+**#141 evals: unmeasured verdicts rendered as failures (and one crashed
+mid-stream).** The eval runner deliberately reports overall_score NULL with
+pass_fail 'unmeasured' when the judge model returns nothing usable, so
+"not evaluated" can never look like "evaluated, and it failed". Three
+consumers broke that contract:
+
+- The pane's score card printed "null/100" with "0%" for every unmeasured
+  metric; the history table showed the same. Both now render "—"/"not
+  measured".
+- /api/evals/summary coerced every AVG() NULL to 0, so a run set made
+  entirely of unmeasured runs displayed as a failing 0/100 average. The
+  counters stay numeric; the averages stay NULL and render "—".
+- /api/evals/ab-test summed the per-case (None) scores: TypeError killed
+  the SSE stream mid-test, and had the scores been 0 it would have
+  declared a winner between two prompts the judge never scored. The
+  stream survives, averages are None, winner is 'unmeasured', and the
+  card explains it in plain language. (The first fix attempt missed the
+  `diff` computation — the new unit test caught it: a mid-generator
+  exception yields a 200 with a completely empty body under TestClient.)
+
+Verified live 5/5 (avg card "—", "Overall Score: not measured" card,
+history "—", A/B "Winner: not measured — the judge returned no usable
+scores", no page errors). Pinned by tests/unit/test_219_evals_unmeasured.py
+(3 tests).
+
+**#140 follow-up (mobile focus):** the coarse-pointer guard passed its
+probe, but the e2e phone viewport (no touch emulation — i.e. a narrow
+desktop window, itself a real device class) still let the startup
+auto-focus put focus on chat-input before the drawer opened, so Escape
+restored it there instead of the hamburger. openNav now focuses the burger
+on open, making the restore point the control that opened the drawer on
+every platform — which is what the drawer's own documentation promises.
+6/6 consecutive runs green, full e2e directory 96/13sk.
+
+Gate tallies after part 2: unit 4786/164sk (+test_219), vitest 347 (69
+files), security 328/3sk, e2e_browser full directory 96/13sk. Probe
+residue cleaned: eval_runs 5, ab_tests 1 removed; DB back to defaults.
+Note for future rounds: `frontend/dist` is snapshot-excluded, so a sandbox
+reset deletes the committed bundle — run scripts/build_bundle.py before
+any gate suite or the bundle-family tests fail on a missing manifest
+(test_180 rebuilds it mid-run and masks the cause).

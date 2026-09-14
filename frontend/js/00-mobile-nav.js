@@ -77,6 +77,17 @@
   function openNav() {
     if (!isMobile() || isOpen()) return;
     lastFocus = document.activeElement;
+    // #140 (follow-up): a synthetic click on the burger does not focus it in
+    // headless Chromium (real keyboard activation does), so with focus
+    // sitting on chat-input from the startup auto-focus timer, Escape
+    // "restored" focus there instead of to the control that opened the
+    // drawer. Focusing the trigger on open makes the restore point
+    // deterministic on every platform — and matches what the drawer already
+    // promises: focus returns to the hamburger on close.
+    var b0 = burger();
+    if (b0 && typeof b0.focus === 'function') {
+      try { b0.focus(); lastFocus = b0; } catch (e) { /* detached node */ }
+    }
     document.body.classList.add(OPEN_CLASS);
     syncInert();
     // Focus the DRAWER, not the first row.

@@ -457,9 +457,14 @@ def eval_summary(agent_id: str = '', days: int = 30):
     finally:
         con.close()
     s = dict(stats) if stats else {}
-    # Coerce None values from AVG() on empty table to 0
-    for k in list(s.keys()):
-        if s[k] is None:
+    # SUM() returns NULL over zero rows; counters genuinely are 0. But the
+    # AVG() fields must stay None when nothing was measured (empty table, or
+    # every run is 'unmeasured' with a NULL overall_score): coercing them to
+    # 0 made "no measured runs" render as a failing 0/100 average — the same
+    # confusion the unmeasured verdict exists to prevent. Callers render
+    # None as "—".
+    for k in ('total', 'passes', 'failures', 'total_cost'):
+        if s.get(k) is None:
             s[k] = 0
     s['pass_rate'] = round(int(s.get('passes', 0)) / max(int(s.get('total', 1)), 1) * 100, 1)
     return {
@@ -643,9 +648,15 @@ async def create_ab_test(req: Request):
 
             yield f'data: {json.dumps({"type": "ab_case", "input": inp[:50], "score_a": score_a["overall_score"], "score_b": score_b["overall_score"]})}\n\n'
 
-        avg_a = round(sum(r['score'] for r in results_a) / max(len(results_a), 1), 1)
-        avg_b = round(sum(r['score'] for r in results_b) / max(len(results_b), 1), 1)
-        winner = 'A' if avg_a > avg_b else 'B' if avg_b > avg_a else 'tie'
+        avg_a = round(sum(r['score'] for r in results_a if r['score'] is not None) / max(len([r for r in results_a if r['score'] is not None]), 1), 1) if any(r['score'] is not None for r in results_a) else None
+        avg_b = round(sum(r['score'] for r in results_b if r['score'] is not None) / max(len([r for r in results_b if r['score'] is not None]), 1), 1) if any(r['score'] is not None for r in results_b) else None
+        # An unjudged side cannot win, and two unjudged sides cannot tie at
+        # zero — that would render "not measured" as "measured, equally
+        # good". sum() over None scores used to raise TypeError here.
+        if avg_a is None or avg_b is None:
+            winner = 'unmeasured'
+        else:
+            winner = 'A' if avg_a > avg_b else 'B' if avg_b > avg_a else 'tie'
 
         from ..services.memory_db import get_conn
 
@@ -659,7 +670,8 @@ async def create_ab_test(req: Request):
         finally:
             con.close()
 
-        yield f'data: {json.dumps({"type": "ab_done", "test_id": test_id, "avg_a": avg_a, "avg_b": avg_b, "winner": winner, "diff": round(abs(avg_a - avg_b), 1)})}\n\n'
+        diff = round(abs(avg_a - avg_b), 1) if (avg_a is not None and avg_b is not None) else None
+        yield f'data: {json.dumps({"type": "ab_done", "test_id": test_id, "avg_a": avg_a, "avg_b": avg_b, "winner": winner, "diff": diff})}\n\n'
 
     return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
     )

@@ -19,7 +19,10 @@ async function renderEvals() {
   ]);
 
   const s = summary.summary || {};
-  const passColor = (s.avg_score||0)>=70?'var(--success)':(s.avg_score||0)>=50?'var(--warning)':'var(--danger)';
+  // avg_score is null when every run is unmeasured (SQL AVG skips NULLs) —
+  // show that as "—", not "0/100" in failure red.
+  const noAvg = s.avg_score == null;
+  const passColor = noAvg?'var(--text-3)':(s.avg_score||0)>=70?'var(--success)':(s.avg_score||0)>=50?'var(--warning)':'var(--danger)';
 
   pane.innerHTML = `
   
@@ -39,7 +42,7 @@ async function renderEvals() {
     <!-- Stats -->
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px">
       ${[
-        ['📊','Avg Score',`${Math.round(s.avg_score||0)}/100`,passColor],
+        ['📊','Avg Score',noAvg?'—':`${Math.round(s.avg_score||0)}/100`,passColor],
         ['✅','Pass Rate',`${s.pass_rate||0}%`,'var(--success)'],
         ['🧪','Total Runs',s.total||0,'var(--text-0)'],
         ['❌','Failures',s.failures||0,'var(--danger)'],
@@ -179,23 +182,30 @@ async function evalSubmit() {
 }
 
 function evalScoreHTML(d) {
-  const col=d.overall_score>=70?'var(--success)':d.overall_score>=50?'var(--warning)':'var(--danger)';
+  // The backend reports overall_score: null with pass_fail 'unmeasured' when
+  // too little of the response was actually judged (e.g. the judge model
+  // returned unusable JSON). Rendering that as "null/100" with 0% metrics
+  // made "not evaluated" look like "evaluated, and it failed" — the exact
+  // confusion the backend's unmeasured verdict exists to prevent.
+  const unmeasured = d.overall_score == null;
+  const col=unmeasured?'var(--text-3)':d.overall_score>=70?'var(--success)':d.overall_score>=50?'var(--warning)':'var(--danger)';
+  const pct = (v) => v == null ? '—' : Math.round(v*100)+'%';
   return `
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:10px">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
-        <div style="width:60px;height:60px;border-radius:50%;border:3px solid ${col};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:${col}">${d.overall_score}</div>
+        <div style="width:60px;height:60px;border-radius:50%;border:3px solid ${col};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:${col}">${unmeasured?'—':d.overall_score}</div>
         <div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-0)">Overall Score: ${d.overall_score}/100</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text-0)">Overall Score: ${unmeasured?'not measured':d.overall_score+'/100'}</div>
           <span class="pass-badge ${d.pass_fail}">${d.pass_fail?.toUpperCase()}</span>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">
         ${[
-          ['Task Completion',Math.round((d.task_completion||0)*100)+'%'],
-          ['Faithfulness',Math.round((d.faithfulness||0)*100)+'%'],
-          ['Hallucination',(Math.round((d.hallucination||0)*100))+'%'],
-          ['Quality',d.response_quality+'/100'],
-          ['Safety',Math.round((d.safety_score||0)*100)+'%'],
+          ['Task Completion',pct(d.task_completion)],
+          ['Faithfulness',pct(d.faithfulness)],
+          ['Hallucination',pct(d.hallucination)],
+          ['Quality',d.response_quality==null?'—':d.response_quality+'/100'],
+          ['Safety',pct(d.safety_score)],
         ].map(([label,val])=>`
           <div style="background:var(--bg-3);border-radius:8px;padding:8px;text-align:center">
             <div style="font-size:10px;color:var(--text-3)">${label}</div>
@@ -222,7 +232,7 @@ async function evalLoadHistory() {
         ${(d.runs||[]).map((r) =>`
           <div class="eval-run-row">
             <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-1)">${escHtml((r.prompt||'').slice(0,80))}</div>
-            <div style="color:${r.overall_score>=70?'var(--success)':r.overall_score>=50?'var(--warning)':'var(--danger)'};font-weight:700">${r.overall_score}</div>
+            <div style="color:${r.overall_score==null?'var(--text-3)':r.overall_score>=70?'var(--success)':r.overall_score>=50?'var(--warning)':'var(--danger)'};font-weight:700">${r.overall_score==null?'—':r.overall_score}</div>
             <div><span class="pass-badge ${r.pass_fail}">${r.pass_fail}</span></div>
             <div style="color:var(--text-2)">${Math.round((r.faithfulness||0)*100)}%</div>
             <div style="color:var(--text-2)">${Math.round((r.hallucination||0)*100)}%</div>
@@ -302,18 +312,18 @@ async function evalRunAB() {
             el.innerHTML=`
               <div class="u-534c2d64">
                 <div style="font-size:16px;font-weight:700;color:var(--text-0);margin-bottom:12px">
-                  Winner: <span style="color:${d.winner==='A'?'var(--accent)':'#9d74f5'}">Prompt ${d.winner}</span>
-                  <span style="font-size:12px;color:var(--text-3)"> (+${d.diff} points)</span>
+                  Winner: <span style="color:${d.winner==='A'?'var(--accent)':'#9d74f5'}">${d.winner==='unmeasured'?'not measured — the judge returned no usable scores':`Prompt ${d.winner}`}</span>
+                  ${d.winner!=='unmeasured'?`<span style="font-size:12px;color:var(--text-3)"> (+${d.diff} points)</span>`:''}
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                   <div style="background:var(--bg-3);border-radius:8px;padding:12px;border:2px solid ${d.winner==='A'?'var(--accent)':'transparent'}">
                     <div style="font-weight:700;color:var(--accent-text)">Prompt A</div>
-                    <div style="font-size:22px;font-weight:800;color:var(--text-0)">${d.avg_a}</div>
+                    <div style="font-size:22px;font-weight:800;color:var(--text-0)">${d.avg_a==null?'—':d.avg_a}</div>
                     <div style="font-size:10px;color:var(--text-3)">avg score</div>
                   </div>
                   <div style="background:var(--bg-3);border-radius:8px;padding:12px;border:2px solid ${d.winner==='B'?'#9d74f5':'transparent'}">
                     <div style="font-weight:700;color:#9d74f5">Prompt B</div>
-                    <div style="font-size:22px;font-weight:800;color:var(--text-0)">${d.avg_b}</div>
+                    <div style="font-size:22px;font-weight:800;color:var(--text-0)">${d.avg_b==null?'—':d.avg_b}</div>
                     <div style="font-size:10px;color:var(--text-3)">avg score</div>
                   </div>
                 </div>
