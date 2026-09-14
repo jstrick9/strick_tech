@@ -494,3 +494,80 @@ def test_uninstall_removes_only_what_the_install_added(client):
     for sid in before:
         if before[sid].get('source_plugin') == 'code-wizard':
             assert sid not in after_ids, f'installed skill {sid} not removed'
+
+
+# ══ 8. Plugin SDK publish/delete lifecycle (round 24) ══════════════════════════
+_ZZ_PACK = {
+    'id': 'zz-sdk-lifecycle', 'name': 'SDK Lifecycle Probe', 'version': '1.0.0',
+    'description': 'probe', 'author': 'probe', 'icon': '🧪',
+    'skills': [
+        {'id': 'zz_sdk_probe_skill', 'name': 'Probe Skill',
+         'prompt': 'Echo: {{input}}', 'description': 'd'},
+    ],
+}
+
+
+def _zz_cleanup(client):
+    with __import__('contextlib').suppress(Exception):
+        client.delete('/api/pluginsdk/packs/zz-sdk-lifecycle')
+
+
+def test_sdk_publish_actually_lands_in_the_marketplace(client):
+    """The publish toast says "now in the Plugin Marketplace" — it used to be
+    a lie: the pack went to the SDK registry only and never appeared in the
+    marketplace grid (verified live). Publish must register the pack in the
+    marketplace catalog so it is installable/uninstallable/deletable there."""
+    from backend.routers.skills import load_skills
+
+    _zz_cleanup(client)
+    assert client.post('/api/pluginsdk/packs', json=_ZZ_PACK).json()['ok']
+    r = client.post('/api/pluginsdk/publish/zz-sdk-lifecycle')
+    assert r.status_code == 200 and r.json()['ok'], r.text
+
+    ids = {p['id'] for p in client.get('/api/marketplace?limit=100').json()['packs']}
+    assert 'zz-sdk-lifecycle' in ids, 'published pack missing from marketplace grid'
+    # Skills installed by publish carry the ownership tag.
+    tags = {s['id']: s.get('source_plugin') for s in load_skills()}
+    assert tags.get('zz_sdk_probe_skill') == 'zz-sdk-lifecycle', tags.get('zz_sdk_probe_skill')
+
+
+def test_sdk_delete_is_a_full_teardown(client):
+    """Deleting an SDK pack used to unlink only the pack json — the skill,
+    the published-registry entry, the plugins/installed.json row and the
+    marketplace listing all survived (verified live: every one orphaned)."""
+    from backend.config import get_data_dir
+    from backend.routers.skills import load_skills
+
+    _zz_cleanup(client)
+    client.post('/api/pluginsdk/packs', json=_ZZ_PACK)
+    client.post('/api/pluginsdk/publish/zz-sdk-lifecycle')
+
+    r = client.delete('/api/pluginsdk/packs/zz-sdk-lifecycle')
+    assert r.status_code == 200 and r.json()['ok'] is True
+    assert r.json()['deleted'] is True
+
+    root = get_data_dir()
+    assert not (root / 'workspaces' / 'plugin_sdk' / 'packs' / 'zz-sdk-lifecycle.json').exists()
+    assert not (root / 'workspaces' / 'plugin_sdk' / 'published' / 'zz-sdk-lifecycle.json').exists()
+    assert not any(s.get('id') == 'zz_sdk_probe_skill' for s in load_skills()), 'skill orphaned by SDK delete'
+    assert 'zz-sdk-lifecycle' not in json.loads(
+        (root / 'plugins' / 'installed.json').read_text()
+    ), 'installed.json row orphaned by SDK delete'
+    ids = {p['id'] for p in client.get('/api/marketplace?limit=100').json()['packs']}
+    assert 'zz-sdk-lifecycle' not in ids, 'marketplace listing orphaned by SDK delete'
+
+
+def test_sdk_publish_refuses_reserved_curated_ids(client):
+    """Publishing over a curated id would rewrite the built-in marketplace
+    listing (and a later SDK delete would remove the re-seeded built-in)."""
+    pack = {**_ZZ_PACK, 'id': 'agenticai-core'}
+    client.post('/api/pluginsdk/packs', json=pack)
+    try:
+        r = client.post('/api/pluginsdk/publish/agenticai-core')
+        # 400 via the platform's ok:false convention — an honest refusal
+        # with the reason, not a crash.
+        assert r.status_code == 400
+        assert r.json()['ok'] is False
+        assert 'reserved' in r.json()['error']
+    finally:
+        client.delete('/api/pluginsdk/packs/agenticai-core')

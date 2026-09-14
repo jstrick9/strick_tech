@@ -162,16 +162,55 @@ async def update_pack(pack_id: str, req: Request):
 
 @router.delete('/packs/{pack_id}')
 def delete_pack(pack_id: str):
-    """Delete or remove specified pack."""
+    """Delete a pack and everything its publish created.
+
+    This used to unlink only the pack json. A published pack's skills,
+    published-registry entry, plugins/installed.json row, and marketplace
+    listing all survived the delete (verified live: every one of them was
+    orphaned), leaving skills in the Skills pane with no pack behind them
+    and "installed" plugins that no longer existed. Teardown now mirrors
+    the publish path.
+    """
     p = PACKS_DIR / f'{pack_id}.json'
     existed = p.exists()
-    if existed:
+
+    # Marketplace-side cleanup (catalog row, reviews, releases, install
+    # state, on-disk manifest, SDK pack json, plugins/installed.json row,
+    # and the skills the publish tagged as its own). Refuses curated ids —
+    # publish already refuses to publish over a curated id, so a curated
+    # id here means the caller is trying to delete a built-in through the
+    # SDK door.
+    mkt_result = None
+    try:
+        from .marketplace import CURATED_PACKS, delete_pack as mkt_delete
+
+        if not any(c.get('id') == pack_id for c in CURATED_PACKS):
+            mkt_result = mkt_delete(pack_id)
+    except Exception as ex:
+        log.warning('Marketplace cleanup for %s failed: %s', pack_id, ex)
+
+    # SDK-side artifacts: the pack json (marketplace delete may already have
+    # removed it) and the published-registry entry.
+    if p.exists():
         p.unlink()
-    # `deleted` distinguishes "removed it" from "there was nothing to remove".
-    # Status stays 200 so the endpoint stays idempotent and safe to retry;
-    # without this flag the caller could not tell the two apart, and the UI
-    # reported success after a typo or a stale list.
-    return {'ok': True, 'deleted': existed, 'pack_id': pack_id}
+    published = PUBLISHED / f'{pack_id}.json'
+    published_removed = False
+    if published.exists():
+        published.unlink()
+        published_removed = True
+
+    from ..services.memory_db import audit_log
+
+    audit_log('pluginsdk_pack_delete', pack_id)
+    # `deleted` distinguishes "removed it" from "there was nothing to
+    # remove". Status stays 200 so the endpoint stays idempotent and safe
+    # to retry; without this flag the caller could not tell the two apart,
+    # and the UI reported success after a typo or a stale list.
+    return {
+        'ok': True,
+        'deleted': existed or published_removed or bool(mkt_result and mkt_result.get('deleted')),
+        'pack_id': pack_id,
+    }
 
 
 # ── Validation ────────────────────────────────────────────────────────────────
@@ -267,6 +306,20 @@ def publish_pack(pack_id: str):
             'score': verdict['score'],
         }
 
+    # A curated id is reserved: publishing over it would rewrite the built-in
+    # marketplace listing, and deleting the SDK pack would then remove the
+    # re-seeded built-in from the catalog. Refuse up front with a clear error.
+    try:
+        from .marketplace import CURATED_PACKS
+
+        if any(p.get('id') == pack['id'] for p in CURATED_PACKS):
+            return {
+                'ok': False,
+                'error': f'"{pack["id"]}" is a reserved built-in pack id. Rename your pack.',
+            }
+    except Exception:  # pragma: no cover - marketplace optional
+        pass
+
     pack['published'] = True
     pack['published_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     pack['downloads'] = pack.get('downloads', 0)
@@ -307,7 +360,10 @@ def publish_pack(pack_id: str):
         all_skills = load_skills()
         for skill in pack.get('skills', []):
             if skill.get('id') and skill['id'] not in existing_skill_ids:
-                # Convert SDK skill format to skills.py format
+                # Convert SDK skill format to skills.py format. Tagged with
+                # source_plugin like every other installer, so a later
+                # uninstall/delete of the pack removes what it added and
+                # never a same-id seeded default.
                 all_skills.append(
                     {
                         'id': skill['id'],
@@ -318,11 +374,23 @@ def publish_pack(pack_id: str):
                         'agent': 'brain',
                         'inputs': [{'id': 'input', 'label': 'Input', 'type': 'text', 'required': True}],
                         'prompt_template': skill.get('prompt', '{{input}}').replace('{{input}}', '{input}'),
+                        'source_plugin': pack_id,
                     }
                 )
         save_skills(all_skills)
     except Exception as ex:
         log.warning('Could not register published pack in plugin store: %s', ex)
+
+    # The success toast says "now in the Plugin Marketplace" — it used to be
+    # a lie: the pack went to this registry only and never appeared in the
+    # marketplace grid (verified live). Register it there for real so the
+    # pack is installable, uninstallable and deletable from one place.
+    try:
+        from .marketplace import _register_pack_in_marketplace
+
+        _register_pack_in_marketplace(pack)
+    except Exception as ex:
+        log.warning('Could not register published pack in marketplace: %s', ex)
 
     return {'ok': True, 'pack': pack, 'registry_url': f'/api/pluginsdk/registry/{pack_id}'}
 

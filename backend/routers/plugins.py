@@ -817,11 +817,13 @@ def uninstall_plugin(plugin_id: str):
 
 
 def _find_pack_skills(pack_id: str) -> list[dict]:
-    """Skills declared by `pack_id` in EITHER backend.
+    """Skills declared by `pack_id` in ANY of the three pack systems.
 
-    Ownership has to span both registries: the plugins backend and the
-    marketplace both install into the same skills.json, so a plugins-side
-    uninstall must respect a marketplace pack's claim and vice versa.
+    Ownership has to span all registries: the plugins backend, the
+    marketplace, and the Plugin SDK all install into the same skills.json,
+    so an uninstall in one must respect another's claim — and a pack that
+    exists in only one of them (an SDK-built pack) must still be resolvable
+    for its own teardown.
     """
     for pack in BUILTIN_REGISTRY:
         if pack.get('id') == pack_id:
@@ -833,6 +835,16 @@ def _find_pack_skills(pack_id: str) -> list[dict]:
             if pack.get('id') == pack_id:
                 return pack.get('skills') or []
     except Exception:  # pragma: no cover - marketplace optional
+        pass
+    # Plugin SDK packs live as json files (their skills use the SDK shape:
+    # 'prompt' rather than 'prompt_template' — callers here only read ids).
+    try:
+        sdk_path = get_data_dir() / 'workspaces' / 'plugin_sdk' / 'packs' / f'{pack_id}.json'
+        if sdk_path.exists():
+            m = json.loads(sdk_path.read_text())
+            if isinstance(m, dict) and m.get('id') == pack_id:
+                return m.get('skills') or []
+    except (OSError, ValueError):
         pass
     return []
 

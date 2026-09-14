@@ -1975,12 +1975,14 @@ async function sdkValidatePack(packId) {
 }
 
 async function sdkPublishPack(packId) {
-  const ok = await gmDanger('Publish this pack to the local registry? This makes it available in the Plugin Marketplace and installs its skills.');
+  const ok = await gmDanger('Publish this pack to the local registry? This makes it available in the Plugin Marketplace and installs its skills.', '', 'Publish');
   if (!ok) return;
   try {
     const r = await fetch(`/api/pluginsdk/publish/${encodeURIComponent(packId)}`, {method:'POST'});
-    if (!r.ok) { toast('Publish failed: server error ' + r.status, 'err'); return; }
-    const d = await r.json();
+    const d = await r.json().catch(() => ({}));
+    // Surface the server's reason (reserved built-in id, failed validation)
+    // — "server error 400" hid it.
+    if (!r.ok) { toast('Publish failed: '+(d.error||('HTTP '+r.status)), 'err'); return; }
     if (d.ok) {
       gmAlert('🚀 Published! Your pack is now in the Plugin Marketplace and skills are installed.');
       renderPluginSDK();
@@ -2001,7 +2003,8 @@ async function sdkDeletePack(packId) {
   if (!ok) return;
   try {
     const r = await fetch(`/api/pluginsdk/packs/${encodeURIComponent(packId)}`, {method:'DELETE'});
-    if (!r.ok) { toast('Delete failed: server error ' + r.status, 'err'); return; }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { toast('Delete failed: '+(d.error||('HTTP '+r.status)), 'err'); return; }
     _sdkCurrentPack = null;
     toast('Pack deleted', 'ok', 1500);
     renderPluginSDK();
@@ -2051,7 +2054,7 @@ async function sdkSaveJSON(packId) {
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify(pack)
     });
-    if (!r.ok) { gmAlert('Save failed: server error ' + r.status); return; }
+    if (!r.ok) { const d = await r.json().catch(() => ({})); gmAlert('Save failed: '+(d.error||('server error '+r.status))); return; }
     _sdkCurrentPack = pack;
     toast('✅ Pack saved!', 'ok', 2000);
   } catch(e) {

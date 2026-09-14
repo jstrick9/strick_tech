@@ -931,13 +931,16 @@ def uninstall_pack(pack_id: str):
         con.commit()
     finally:
         con.close()
+    # Skills first, artifacts second: _remove_pack_skills derives the pack's
+    # skill ids partly from the SDK pack json, so unlinking that file before
+    # the skills step left SDK-published packs' skills orphaned.
+    _remove_pack_skills(pack_id)
+
     # Remove from SDK packs
     sdk_pack = ROOT / 'workspaces' / 'plugin_sdk' / 'packs' / f'{pack_id}.json'
     if sdk_pack.exists():
         with contextlib.suppress(Exception):
             sdk_pack.unlink()
-
-    _remove_pack_skills(pack_id)
 
     # Sync uninstallation with plugins registry
     with contextlib.suppress(Exception):
@@ -985,15 +988,17 @@ def delete_pack(pack_id: str):
     finally:
         con.close()
 
+    # Skills first, artifacts second: _remove_pack_skills derives the pack's
+    # skill ids partly from the SDK pack json, so unlinking that file before
+    # the skills step left SDK-published packs' skills orphaned.
+    _remove_pack_skills(pack_id)
+
     # Remove on-disk artifacts (uploaded zips / published manifests) and the
     # SDK pack file, mirroring uninstall. Missing artifacts are fine.
     shutil.rmtree(PACKS_DIR / pack_id, ignore_errors=True)
     sdk_pack = ROOT / 'workspaces' / 'plugin_sdk' / 'packs' / f'{pack_id}.json'
     with contextlib.suppress(OSError):
         sdk_pack.unlink(missing_ok=True)
-
-    # If it was installed, its skills must leave the Skills Hub too.
-    _remove_pack_skills(pack_id)
     with contextlib.suppress(Exception):
         from .plugins import _load_installed, _save_installed
         p_inst = _load_installed()
@@ -1191,34 +1196,11 @@ def list_community_packs():
 
 
 # ── Publish user packs ─────────────────────────────────────────────────────────
-@router.post('/publish')
-async def publish_pack(req: Request):
-    """Publish a user-created pack from Plugin SDK to marketplace."""
-    body, _body_err = await json_body_or_error(req)
-    if _body_err:
-        return _body_err
-    pack_id = _clean_pack_id(body.get('pack_id', ''))
-    if not pack_id:
-        return _invalid_pack_id_response(str(body.get('pack_id', '')))
-
-    # Load from SDK
-    sdk_path = ROOT / 'workspaces' / 'plugin_sdk' / 'packs' / f'{pack_id}.json'
-    if not sdk_path.exists():
-        return {'ok': False, 'error': 'Pack not found in SDK. Create it in Plugin SDK first.'}
-
-    pack = json.loads(sdk_path.read_text())
-    # The manifest's own id field is caller-controlled too. It used to flow
-    # raw into `PACKS_DIR / pack['id']` for the manifest write AND the DB —
-    # a crafted SDK pack (id '../../../somewhere') published files outside
-    # the packs directory with ok:true. Same slug rule, applied here. A
-    # pack file without an id (or not an object at all) previously crashed
-    # with KeyError 500; it now falls back to the file's own slugified name.
-    if not isinstance(pack, dict):
-        return JSONResponse(
-            {'ok': False, 'error': 'Pack file is not a valid JSON object'}, status_code=400
-        )
-    pack['id'] = _clean_pack_id(pack.get('id')) or pack_id
-
+def _register_pack_in_marketplace(pack: dict) -> None:
+    """Upsert a pack dict into the marketplace catalog (DB row + on-disk
+    manifest). Shared by /publish (SDK → marketplace) and the Plugin SDK's
+    own publish flow, so a pack published from either door actually appears
+    in the marketplace grid."""
     from ..services.memory_db import get_conn
 
     con = get_conn()
@@ -1267,6 +1249,36 @@ async def publish_pack(req: Request):
     finally:
         con.close()
 
+
+@router.post('/publish')
+async def publish_pack(req: Request):
+    """Publish a user-created pack from Plugin SDK to marketplace."""
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
+    pack_id = _clean_pack_id(body.get('pack_id', ''))
+    if not pack_id:
+        return _invalid_pack_id_response(str(body.get('pack_id', '')))
+
+    # Load from SDK
+    sdk_path = ROOT / 'workspaces' / 'plugin_sdk' / 'packs' / f'{pack_id}.json'
+    if not sdk_path.exists():
+        return {'ok': False, 'error': 'Pack not found in SDK. Create it in Plugin SDK first.'}
+
+    pack = json.loads(sdk_path.read_text())
+    # The manifest's own id field is caller-controlled too. It used to flow
+    # raw into `PACKS_DIR / pack['id']` for the manifest write AND the DB —
+    # a crafted SDK pack (id '../../../somewhere') published files outside
+    # the packs directory with ok:true. Same slug rule, applied here. A
+    # pack file without an id (or not an object at all) previously crashed
+    # with KeyError 500; it now falls back to the file's own slugified name.
+    if not isinstance(pack, dict):
+        return JSONResponse(
+            {'ok': False, 'error': 'Pack file is not a valid JSON object'}, status_code=400
+        )
+    pack['id'] = _clean_pack_id(pack.get('id')) or pack_id
+
+    _register_pack_in_marketplace(pack)
     return {'ok': True, 'pack_id': pack['id'], 'message': f'Published {pack.get("name", "")} to marketplace'}
 
 
