@@ -447,10 +447,24 @@ async def create_skill(req: Request):
 def delete_skill(skill_id: str):
     """Delete or remove specified skill."""
     skills = load_skills()
-    before = len(skills)
-    skills = [s for s in skills if s['id'] != skill_id]
-    if len(skills) == before:
+    target = next((s for s in skills if s['id'] == skill_id), None)
+    if target is None:
         return JSONResponse({'ok': False, 'error': 'Skill not found'}, status_code=404)
+    # Pack-owned skills are managed by their pack: deleting one piecemeal
+    # leaves the pack "installed" while silently missing a skill it ships
+    # (and the skill returns on the next install anyway). Uninstall the pack.
+    if target.get('source_plugin'):
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': (
+                    f'This skill belongs to the pack "{target["source_plugin"]}" — '
+                    'uninstall the pack to remove it.'
+                ),
+            },
+            status_code=409,
+        )
+    skills = [s for s in skills if s['id'] != skill_id]
     if not save_skills(skills):
         return {'ok': False, 'error': 'Failed to save — disk write error'}
     return {'ok': True, 'deleted': skill_id}

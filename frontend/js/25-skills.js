@@ -46,9 +46,10 @@ async function renderSkills() {
       <h2 id="srm-title" style="font-size:18px;font-weight:800;margin-bottom:6px"></h2>
       <p id="srm-desc" style="font-size:13px;color:var(--text-2);margin-bottom:18px"></p>
       <div id="srm-inputs" class="u-87c136df"></div>
-      <div style="display:flex;gap:8px;margin-bottom:16px">
+      <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
         <button data-act-click="execSkill()" class="btn btn-primary u-97445a8d"  id="srm-run">▶ Run Skill</button>
         <button data-act-click="closeSkillModal()" class="btn btn-ghost">Cancel</button>
+        <span id="srm-owner" style="flex:1"></span>
       </div>
       <div id="srm-result" style="display:none;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-size:13px;line-height:1.6;max-height:400px;overflow-y:auto"></div>
     </div>
@@ -166,6 +167,17 @@ function openSkillModal(skillId) {
       }
     </div>`).join('') || '<div style="color:var(--text-2);font-size:13px">No inputs required — click Run to execute.</div>';
   document.getElementById('srm-result').style.display = 'none';
+  // Ownership footer: pack-installed skills belong to their pack (uninstall
+  // the pack to remove them); everything else can be deleted right here —
+  // custom skills could previously be created in this pane but never removed.
+  const ownerEl = document.getElementById('srm-owner');
+  if (ownerEl) {
+    if (activeSkill.source_plugin) {
+      ownerEl.innerHTML = `<span style="font-size:11px;color:var(--text-3)">📦 from pack: ${escHtml(activeSkill.source_plugin)}</span>`;
+    } else {
+      ownerEl.innerHTML = `<button aria-label="Delete skill" title="Delete skill" class="btn-sm" style="color:var(--danger);border-color:var(--danger);margin-left:auto" data-act-click="deleteSkill(${jsArg(activeSkill.id)})">🗑 Delete</button>`;
+    }
+  }
   document.getElementById('skill-run-modal').style.display = 'flex';
   // Keyboard-dismissable: Escape closes the modal. Bound once here (and removed
   // on close) so it never accumulates.
@@ -182,6 +194,25 @@ function openSkillModal(skillId) {
 function closeSkillModal() {
   document.getElementById('skill-run-modal').style.display = 'none';
   activeSkill = null;
+}
+
+async function deleteSkill(skillId) {
+  const skill = allSkills.find(s => s.id === skillId);
+  const name = skill?.name || skillId;
+  const ok = await gmDanger(`Delete "${name}"?`, 'This removes the skill permanently. Pack-installed skills come back on reinstall.', 'Delete Skill');
+  if (!ok) return;
+  try {
+    const r = await fetch(`/api/skills/${encodeURIComponent(skillId)}`, {method:'DELETE'});
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { toast('Delete failed: '+(d.error||('HTTP '+r.status)), 'err'); return; }
+    if (d.ok) {
+      closeSkillModal();
+      toast(`🗑️ ${name} deleted.`, 'ok');
+      loadSkills();
+    } else {
+      toast('Delete failed: '+(d.error||'Unknown'), 'err');
+    }
+  } catch(ex) { toast('Delete error: '+ex?.message, 'err'); }
 }
 
 async function execSkill() {

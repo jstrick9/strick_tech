@@ -356,3 +356,40 @@ def test_review_pack_is_unsafe_only_for_errors():
 def test_a_traversal_template_would_really_execute():
     """Grounds the whole module: this is what the scanner is preventing."""
     assert TRAVERSAL.format(topic='hello') == "Value: (<class 'str'>, <class 'object'>)"
+
+
+# ══ Skill delete ownership (round 25) ══════════════════════════════════════════
+def test_pack_owned_skill_refuses_delete(client):
+    """Deleting a pack-installed skill piecemeal leaves the pack 'installed'
+    while missing a skill it ships (and the skill returns on the next
+    install anyway). The pack must be uninstalled instead."""
+    from backend.routers.skills import load_skills, save_skills
+
+    skills = load_skills()
+    skills.append({
+        'id': 'zz_pack_owned_probe', 'name': 'Pack Owned', 'prompt_template': 'x',
+        'source_plugin': 'zz-some-pack',
+    })
+    save_skills(skills)
+    try:
+        r = client.delete('/api/skills/zz_pack_owned_probe')
+        assert r.status_code == 409, r.status_code
+        assert 'uninstall the pack' in r.json()['error']
+        assert any(s['id'] == 'zz_pack_owned_probe' for s in load_skills()), (
+            'refused delete still removed the skill'
+        )
+    finally:
+        save_skills([s for s in load_skills() if s['id'] != 'zz_pack_owned_probe'])
+
+
+def test_custom_skill_deletes_cleanly(client):
+    from backend.routers.skills import load_skills, save_skills
+
+    skills = load_skills()
+    skills.append({'id': 'zz_custom_del_probe', 'name': 'Custom', 'prompt_template': 'x'})
+    save_skills(skills)
+    r = client.delete('/api/skills/zz_custom_del_probe')
+    assert r.status_code == 200 and r.json()['ok'] is True
+    assert not any(s['id'] == 'zz_custom_del_probe' for s in load_skills())
+    # Second delete is an honest 404.
+    assert client.delete('/api/skills/zz_custom_del_probe').status_code == 404
