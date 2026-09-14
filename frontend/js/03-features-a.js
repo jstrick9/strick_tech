@@ -2204,6 +2204,14 @@ async function mtNewTab(url) {
     }
   }
   try {
+    // Reuse instead of stacking duplicates: opening a URL that already has a
+    // tab activates it. Nothing deduped this before, so every open of the
+    // same file POSTed a fresh tab and the bar grew without limit — the
+    // runtime state file was found carrying 42 copies of the same three
+    // URLs. (Browsers keep "duplicate tab" as an explicit action; a plain
+    // open should not duplicate.)
+    const existing = (_mtTabs || []).find(t => (t.url || '') === src);
+    if (existing) { await mtActivateTab(existing.id, true); return; }
     const r = await fetch('/api/multitab/tabs', {
       method:'POST',
       headers:{'Content-Type':'application/json'},

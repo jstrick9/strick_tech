@@ -180,6 +180,10 @@ _POLLUTABLE_TABLES = [
     'audit', 'audit_log_chain', 'audit_receipts', 'obs_traces', 'obs_spans',
     'e2e_traces', 'cost_ledger', 'cost_alerts', 'identity_audit',
     'health_snapshots',
+    # knowledge-graph content: sec_09 posts hostile-named entities; the test
+    # cleans up after itself, but the guard should not rely on that alone —
+    # a leaked entity renders permanently in the operator's KG pane.
+    'kg_entities', 'kg_relations', 'kg_facts',
 ]
 
 _REPO_ROOT = _pathlib.Path(__file__).resolve().parents[2]
@@ -357,6 +361,10 @@ def _guard_live_instance():
     _json_stores = [
         _REPO_ROOT / 'skills' / 'skills.json',
         _REPO_ROOT / 'docs' / 'module-risk.json',
+        # Multitab pane state: the sweep's tab-creation probes append to this
+        # file; the test now deletes its tabs via the API, but the file is
+        # rewritten wholesale on every touch, so restore byte-for-byte too.
+        _REPO_ROOT / 'workspaces' / '.multitab_state.json',
     ]
     _json_before = {}
     for jp in _json_stores:

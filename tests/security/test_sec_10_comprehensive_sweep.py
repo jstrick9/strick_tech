@@ -348,12 +348,25 @@ class TestSecAllRoutersNoServer500:
 
     # ── MULTITAB ─────────────────────────────────────────────────────────────
     async def test_multitab_create_injection(self, C):
-        for p in [SQLI, XSS, PATH]:
-            r = await POST(C, "/api/multitab/tabs", {
-                "title": p[:100], "url": p if p.startswith("http") else f"http://test/{p}",
-                "content": p
-            })
-            sec_ok(r, f"multitab create: {p[:20]}")
+        # Tabs persist server-side (workspaces/.multitab_state.json) — the
+        # assertions below used to leave every injected tab behind, run after
+        # run, until the multitab bar carried dozens of hostile-named
+        # duplicates a real user would see. Delete what we create.
+        created_ids = []
+        try:
+            for p in [SQLI, XSS, PATH]:
+                r = await POST(C, "/api/multitab/tabs", {
+                    "title": p[:100], "url": p if p.startswith("http") else f"http://test/{p}",
+                    "content": p
+                })
+                sec_ok(r, f"multitab create: {p[:20]}")
+                try:
+                    created_ids.append(r.json()["tab"]["id"])
+                except Exception:
+                    pass
+        finally:
+            for tid in created_ids:
+                await DELETE(C, f"/api/multitab/tabs/{tid}")
 
     # ── TEMPLATES ─────────────────────────────────────────────────────────────
     async def test_templates_scaffold_injection(self, C):
