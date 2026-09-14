@@ -493,6 +493,37 @@ async def add_case(suite_id: str, req: Request):
     return {'ok': True, 'case_id': case_id}
 
 
+@router.delete('/suites/{suite_id}')
+def delete_suite(suite_id: str):
+    """Delete a user-created suite and everything that references it.
+
+    Suites could be created from the pane but never removed — a mistyped or
+    experimental suite (and its cases, and its run results) accumulated
+    forever. Deleting cascades: cases and eval_results that reference the
+    suite would otherwise dangle in the review queue and stats.
+
+    The three built-in starter suites are refused: they are re-seeded by
+    _ensure_schema() on the next request, so deleting one would just make it
+    reappear — a button that silently undoes itself.
+    """
+    if suite_id in {s['suite_id'] for s in STARTER_SUITES}:
+        return JSONResponse(
+            {'ok': False, 'error': f"'{suite_id}' is a built-in starter suite and cannot be deleted"},
+            status_code=403,
+        )
+    con = _get_conn()
+    try:
+        if not con.execute('SELECT 1 FROM eval_suites WHERE suite_id=?', (suite_id,)).fetchone():
+            return JSONResponse({'ok': False, 'error': 'Suite not found'}, status_code=404)
+        con.execute('DELETE FROM eval_cases WHERE suite_id=?', (suite_id,))
+        con.execute('DELETE FROM eval_results WHERE suite_id=?', (suite_id,))
+        con.execute('DELETE FROM eval_suites WHERE suite_id=?', (suite_id,))
+        con.commit()
+    finally:
+        con.close()
+    return {'ok': True, 'deleted': suite_id}
+
+
 @router.post('/run')
 async def run_eval(req: Request):
     """Run an eval suite against an agent. Returns streaming SSE progress."""

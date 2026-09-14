@@ -529,6 +529,29 @@ def get_dataset(dataset_id: str):
     return d
 
 
+@router.delete('/datasets/{dataset_id}')
+def delete_dataset(dataset_id: str):
+    """Delete a dataset.
+
+    Datasets could be created from the Evals pane ("+ New Dataset") but never
+    removed — the list only grows. A dataset is a user-authored artifact, not
+    a log: an experimental one should be removable without it sitting in the
+    pane forever.
+    """
+    from ..services.memory_db import get_conn
+
+    con = get_conn()
+    try:
+        cur = con.execute('DELETE FROM eval_datasets WHERE id=?', (dataset_id,))
+        con.commit()
+        removed = cur.rowcount or 0
+    finally:
+        con.close()
+    if not removed:
+        return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
+    return {'ok': True, 'deleted': dataset_id}
+
+
 @router.post('/datasets/{dataset_id}/run')
 async def run_dataset(dataset_id: str, req: Request):
     """Run all test cases in a dataset against an agent."""

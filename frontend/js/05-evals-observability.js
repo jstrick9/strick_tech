@@ -106,6 +106,7 @@ async function renderEvals() {
               <div style="font-size:11px;color:var(--text-3)">${ds.case_count||0} test cases</div>
             </div>
             <button class="btn-sm" data-act-click="evalRunDataset(${jsArg(ds.id)})">▶ Run</button>
+            <button class="btn-sm" style="color:var(--red)" aria-label="Delete dataset" title="Delete dataset" data-act-click="evalDeleteDataset(${jsArg(ds.id)}, ${jsArg(ds.name||'')})">🗑</button>
           </div>`).join('') || '<div style="color:var(--text-3);padding:12px">No datasets yet</div>'}
       </div>
     </div>
@@ -266,8 +267,20 @@ async function evalCreateDataset() {
   if(d.ok) { showToast(`✅ Dataset created: ${name}`); renderEvals(); }
 }
 
-async function evalRunDataset(dsId) {
-  const el=document.getElementById('eval-datasets-list');
+async function evalDeleteDataset(dsId, name) {
+  // Datasets could be created from this pane ("+ New Dataset") but never
+  // removed — the list only grew. An experimental dataset should not sit in
+  // the pane forever.
+  const ok = await gmDanger('Delete dataset', `Delete dataset "${name}"? This cannot be undone.`);
+  if (!ok) return;
+  const r = await fetch(`/api/evals/datasets/${encodeURIComponent(dsId)}`, { method: 'DELETE' });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.ok) { showToast('⚠️ ' + (d.error || ('Delete failed: HTTP ' + r.status)), 'err'); return; }
+  showToast(`🗑️ Dataset "${name}" deleted`);
+  renderEvals();
+}
+
+async function evalRunDataset(dsId) {  const el=document.getElementById('eval-datasets-list');
   if(el) el.insertAdjacentHTML('beforeend','<div style="color:var(--text-2);font-size:12px;padding:8px">Running dataset...</div>');
   try {
     const resp=await fetch(`/api/evals/datasets/${encodeURIComponent(dsId)}/run`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{"agent_id":"builder"}'});

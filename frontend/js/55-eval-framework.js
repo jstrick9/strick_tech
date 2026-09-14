@@ -77,6 +77,7 @@ async function renderEvalFramework() {
             <button class="btn-sm" data-act-click="evalRunSpecific(${jsArg(s.suite_id)})">▶ Run</button>
             <button class="btn-sm" data-act-click="evalViewCases(${jsArg(s.suite_id)})">📋 Cases</button>
             <button class="btn-sm" data-act-click="evalAddCase(${jsArg(s.suite_id)})">+ Case</button>
+            <button class="btn-sm" style="color:var(--red)" aria-label="Delete suite" title="Delete suite" data-act-click="evalDeleteSuite(${jsArg(s.suite_id)}, ${jsArg(s.name||'')})">🗑</button>
           </div>
         </div>`).join('')}
     </div>
@@ -221,6 +222,21 @@ async function evalAddCase(suiteId) {
   if (d.ok) renderEvalFramework();
 }
 
+async function evalDeleteSuite(suiteId, name) {
+  // Suites could be created from this pane but never removed — an
+  // experimental suite (and its cases, and its run results) accumulated
+  // forever. Deleting cascades server-side; the three built-in starter
+  // suites are refused by the API (they re-seed, so deleting one would
+  // just make it reappear) and the refusal is surfaced as a toast.
+  const ok = await gmDanger('Delete suite', `Delete suite "${name}", its cases and its run results? This cannot be undone.`);
+  if (!ok) return;
+  const r = await fetch(`/api/eval-framework/suites/${encodeURIComponent(suiteId)}`, { method: 'DELETE' });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.ok) { showToast('⚠️ ' + (d.error || ('Delete failed: HTTP ' + r.status))); return; }
+  showToast(`🗑️ Suite "${name}" deleted`);
+  renderEvalFramework();
+}
+
 window.renderEvalFramework = renderEvalFramework;
 // ── Delegated-handler exports ─────────────────────────────────────────────
 // These are referenced by data-act-* attributes in this pane. The
@@ -229,6 +245,7 @@ window.renderEvalFramework = renderEvalFramework;
 // every one of them silently no-ops.
 window.evalAddCase = evalAddCase;
 window.evalCreateSuite = evalCreateSuite;
+window.evalDeleteSuite = evalDeleteSuite;
 window.evalHumanReview = evalHumanReview;
 window.evalRunSpecific = evalRunSpecific;
 window.evalRunSuite = evalRunSuite;

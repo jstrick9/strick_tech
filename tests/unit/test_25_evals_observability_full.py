@@ -11,6 +11,19 @@ class TestEvalsDatasets:
         d = r.json()
         assert "datasets" in d or isinstance(d, list)
 
+    def test_delete_dataset(self, client):
+        """A user-created dataset can be deleted; a miss is a clean 404."""
+        did = client.post("/api/evals/datasets", json={
+            "name": "Del Probe DS", "cases": [{"prompt": "p", "expected": "e"}]
+        }).json()["dataset_id"]
+
+        r = client.delete(f"/api/evals/datasets/{did}")
+        assert r.status_code == 200 and r.json()["ok"] is True
+
+        names = [d["name"] for d in client.get("/api/evals/datasets").json()["datasets"]]
+        assert "Del Probe DS" not in names, "deleted dataset still listed"
+        assert client.delete(f"/api/evals/datasets/{did}").status_code == 404
+
     def test_create_dataset(self, client):
         r = client.post("/api/evals/datasets", json={
             "name": "Unit Test Dataset",

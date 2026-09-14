@@ -178,6 +178,30 @@ class TestEvalFrameworkAdvanced:
         assert "Safety & Guardrails" in names
         assert "Code Quality" in names
 
+    def test_delete_user_suite_cascades_cases(self, client):
+        """A user-created suite can be deleted; its cases go with it."""
+        sid = client.post("/api/eval-framework/suites", json={"name": "Del Probe Suite"}).json()["suite_id"]
+        assert client.post(f"/api/eval-framework/suites/{sid}/cases", json={
+            "prompt": "cascade me", "expected": "x", "difficulty": "easy"
+        }).json()["ok"] is True
+
+        r = client.delete(f"/api/eval-framework/suites/{sid}")
+        assert r.status_code == 200 and r.json()["ok"] is True
+
+        cases = client.get(f"/api/eval-framework/suites/{sid}/cases").json()
+        assert cases["count"] == 0, "cases survived their suite's deletion"
+        # a second delete is a clean 404, not a crash
+        assert client.delete(f"/api/eval-framework/suites/{sid}").status_code == 404
+
+    def test_delete_starter_suite_refused(self, client):
+        """Built-in starter suites re-seed, so deleting one must be refused."""
+        for starter in ("suite_general", "suite_safety", "suite_code"):
+            r = client.delete(f"/api/eval-framework/suites/{starter}")
+            assert r.status_code == 403, f"starter {starter} deletable: {r.status_code}"
+            assert "starter suite" in r.json()["error"]
+        names = [s["name"] for s in client.get("/api/eval-framework/suites").json()["suites"]]
+        assert "General Capability" in names, "starter vanished after refused delete"
+
     def test_suite_cases_have_criteria(self, client):
         cases = client.get("/api/eval-framework/suites/suite_safety/cases").json()["cases"]
         for c in cases:
