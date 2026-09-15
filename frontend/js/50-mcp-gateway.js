@@ -123,12 +123,46 @@ async function renderMCPGateway() {
 
 
 // ── Load data ──────────────────────────────────────────────────────
+// Failure honesty: these fetches used to swallow outages as empty data
+// (`r.ok ? r.json() : {policies:[]}`), so a dead API rendered "0 Total /
+// No rules match" — indistinguishable from an account with no rules. The
+// user concludes their rules are gone. A failed load now sets
+// _prbLoadFailed and the list renders the standard error state instead
+// of the empty state (the failure-honesty audit caught this: "SILENT
+// mcp-gateway renders 346 chars, no failure shown" while every API 500'd).
+let _prbLoadFailed = false;
+
+function prbFetch(url, fallback) {
+  return fetch(url)
+    .then(r => { if (!r.ok) { _prbLoadFailed = true; return fallback; } return r.json(); })
+    .catch(() => { _prbLoadFailed = true; return fallback; });
+}
+
+function prbErrorState() {
+  if (typeof window !== 'undefined' && window.stateFeedback && window.stateFeedback.errorElement) {
+    return window.stateFeedback.errorElement({
+      title: "Couldn't load policy rules",
+      message: 'Your rules are safe — this is a connection problem, not lost configuration.',
+      retry: 'prbRefresh()',
+    });
+  }
+  return `<div class="data-state state-error" role="alert" aria-live="assertive">
+    <span class="data-state-icon" aria-hidden="true">⚠️</span>
+    <div class="data-state-copy">
+      <div class="data-state-title">Couldn't load policy rules</div>
+      <div class="data-state-msg">Your rules are safe — this is a connection problem, not lost configuration.</div>
+    </div>
+    <button type="button" class="btn btn-sm" data-act-click="prbRefresh()">↻ Try again</button>
+  </div>`;
+}
+
 async function prbRefresh() {
+  _prbLoadFailed = false;
   const [statsR, polR, srvR, tplR] = await Promise.all([
-    fetch('/api/mcp-gateway/stats').then(r=>r.ok?r.json():{}).catch(()=>({})),
-    fetch('/api/mcp-gateway/policies').then(r=>r.ok?r.json():{policies:[]}).catch(()=>({policies:[]})),
-    fetch('/api/mcp-gateway/servers').then(r=>r.ok?r.json():{servers:[]}).catch(()=>({servers:[]})),
-    fetch('/api/mcp-gateway/policies/templates').then(r=>r.ok?r.json():{templates:[]}).catch(()=>({templates:[]})),
+    prbFetch('/api/mcp-gateway/stats', {}),
+    prbFetch('/api/mcp-gateway/policies', {policies:[]}),
+    prbFetch('/api/mcp-gateway/servers', {servers:[]}),
+    prbFetch('/api/mcp-gateway/policies/templates', {templates:[]}),
   ]);
   _prbPolicies  = polR.policies  || [];
   _prbServers   = srvR.servers   || [];
@@ -191,6 +225,7 @@ function prbRenderList() {
   if (!list) return;
   const pols = prbGetFilteredPolicies();
   if (!pols.length) {
+    if (_prbLoadFailed) { list.innerHTML = prbErrorState(); return; }
     list.innerHTML = `<div style="color:var(--text-3);font-size:12px;padding:10px;line-height:1.6">No rules match.</div>`;
     return;
   }
@@ -237,6 +272,7 @@ function prbRenderTab() {
 function prbRenderRulesTab(container) {
   const pols = prbGetFilteredPolicies();
   if (!pols.length) {
+    if (_prbLoadFailed) { container.innerHTML = prbErrorState(); return; }
     container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-3)">
       <div style="font-size:36px;margin-bottom:12px">📋</div>
       <div style="font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:8px">No Rules Found</div>
