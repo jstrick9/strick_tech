@@ -89,10 +89,22 @@ def run() -> AuditResult:
                 # 24x24 checkboxes are a deliberate, documented compromise.
                 if item['type'] in ('checkbox', 'radio') and min(item['w'], item['h']) >= CRITICAL_PX:
                     continue
-                key = (item['tag'], item['type'], item['cls'], item['w'], item['h'])
+                # Key on the control TYPE (tag/type/class), not its exact
+                # pixel box. With the box in the key, any control whose width
+                # depends on its text — a session name, a date, a task id —
+                # measured 51x28 in one run and 52x28 in the next and spawned
+                # a "new" group each time, so the count wobbled ±6 around the
+                # baseline on identical code (observed 212→218 across three
+                # runs) and the ratchet failed on noise. The smallest observed
+                # box is kept on the entry so findings still report the worst
+                # case; only the GROUPING loses the pixel exactness.
+                key = (item['tag'], item['type'], item['cls'])
                 entry = seen.setdefault(key, {**item, 'n': 0, 'panes': set()})
                 entry['n'] += 1
                 entry['panes'].add(pane)
+                if item['w'] * item['h'] < entry['w'] * entry['h']:
+                    entry['w'], entry['h'] = item['w'], item['h']
+                    entry['txt'] = item['txt']
 
     findings = []
     for entry in sorted(seen.values(), key=lambda e: (e['w'] * e['h'], -e['n'])):
