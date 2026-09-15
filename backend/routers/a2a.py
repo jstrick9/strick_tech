@@ -1110,11 +1110,18 @@ def list_agents(trust_level: str = '', status: str = '', limit: int = 50, reques
     agents = []
     for r in rows:
         d = dict(r)
+        # Parenthesize the default — written as `d.get(f) or '{}' if ... else
+        # '[]'`, Python binds the conditional looser than `or`, so the list
+        # fields (skills, capabilities) ALWAYS decoded to a literal '[]' and
+        # whatever the verify flow had stored was silently discarded (agents
+        # showed no skills/capabilities in the list no matter what their card
+        # advertised). Same class as the r28 _load_task metadata fix.
         for f in ('agent_card', 'skills', 'capabilities', 'auth_config'):
+            default = '{}' if f in ('agent_card', 'auth_config') else '[]'
             try:
-                d[f] = json.loads(d.get(f) or '{}' if f in ('agent_card', 'auth_config') else '[]')
+                d[f] = json.loads(d.get(f) or default)
             except (json.JSONDecodeError, TypeError, ValueError):
-                d[f] = {} if f in ('agent_card', 'auth_config') else []
+                d[f] = json.loads(default)
         agents.append(d)
 
     # Merge local agents
@@ -1220,11 +1227,14 @@ def get_agent(agent_id: str):
         return JSONResponse({'ok': False, 'error': 'Agent not found'}, status_code=404)
 
     d = dict(row)
+    # Same precedence pitfall as the list loop: parenthesize the default or
+    # skills/capabilities always decode to a literal '[]'.
     for f in ('agent_card', 'skills', 'capabilities', 'auth_config'):
+        default = '{}' if f in ('agent_card', 'auth_config') else '[]'
         try:
-            d[f] = json.loads(d.get(f) or '{}' if f in ('agent_card', 'auth_config') else '[]')
+            d[f] = json.loads(d.get(f) or default)
         except (json.JSONDecodeError, TypeError, ValueError):
-            d[f] = {} if f in ('agent_card', 'auth_config') else []
+            d[f] = json.loads(default)
 
     return {'ok': True, 'agent': d, 'recent_tasks': [dict(t) for t in tasks]}
 

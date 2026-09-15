@@ -28,6 +28,7 @@ tests/security/test_sec_12_a2a_protocol_door.py against a live server.
 """
 from __future__ import annotations
 
+import json
 import uuid
 
 
@@ -98,7 +99,78 @@ class TestNonObjectJsonBodies:
         assert r.json().get('ok') is False
 
 
-# ── 2. Stored metadata / push_config must surface ────────────────────────────
+# ── 2. Stored skills / capabilities must surface (agent list + detail) ───────
+
+class TestAgentSkillsSurface:
+    """The same precedence bug as the task metadata one, in the agent list
+    and detail loops: `d.get(f) or '{}' if ... else '[]'` bound the
+    conditional looser than `or`, so the LIST fields (skills, capabilities)
+    ALWAYS decoded to a literal '[]' — the verify flow stored them, every
+    read discarded them, and registered agents showed no skills no matter
+    what their card advertised."""
+
+    @staticmethod
+    def _insert_agent(aid: str):
+        from backend.routers.a2a import _get_conn, _now
+        con = _get_conn()
+        try:
+            con.execute(
+                """INSERT INTO a2a_agents
+                   (agent_id,name,description,a2a_url,agent_card,status,auth_type,
+                    auth_config,skills,capabilities,trust_level,registered_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (aid, 'zz Skill Probe', '', 'http://127.0.0.1:9/a2a/zz', '{}', 'active',
+                 'none', '{}',
+                 json.dumps([{'id': 'web_research', 'name': 'Web Research'}]),
+                 json.dumps(['streaming', 'stateTransitionHistory']),
+                 'verified', _now()),
+            )
+            con.commit()
+        finally:
+            con.close()
+
+    @staticmethod
+    def _delete_agent(aid: str):
+        from backend.routers.a2a import _get_conn
+        con = _get_conn()
+        try:
+            con.execute('DELETE FROM a2a_agents WHERE agent_id=?', (aid,))
+            con.commit()
+        finally:
+            con.close()
+
+    def test_agent_list_surfaces_skills_and_capabilities(self, client):
+        aid = f'ext_zz{uuid.uuid4().hex[:8]}'
+        self._insert_agent(aid)
+        try:
+            r = client.get('/api/a2a/agents')
+            assert r.status_code == 200, r.text[:200]
+            mine = [a for a in r.json()['agents'] if a['agent_id'] == aid]
+            assert mine, 'inserted agent missing from list'
+            a = mine[0]
+            assert a['skills'] == [{'id': 'web_research', 'name': 'Web Research'}], (
+                f"stored skills discarded: {a['skills']!r}"
+            )
+            assert a['capabilities'] == ['streaming', 'stateTransitionHistory'], (
+                f"stored capabilities discarded: {a['capabilities']!r}"
+            )
+        finally:
+            self._delete_agent(aid)
+
+    def test_agent_detail_surfaces_skills_and_capabilities(self, client):
+        aid = f'ext_zz{uuid.uuid4().hex[:8]}'
+        self._insert_agent(aid)
+        try:
+            r = client.get(f'/api/a2a/agents/{aid}')
+            assert r.status_code == 200, r.text[:200]
+            a = r.json()['agent']
+            assert a['skills'] == [{'id': 'web_research', 'name': 'Web Research'}]
+            assert a['capabilities'] == ['streaming', 'stateTransitionHistory']
+        finally:
+            self._delete_agent(aid)
+
+
+
 
 class TestStoredMetadataSurfaces:
     """The `or '[]' if ... else '{}'` precedence bug always decoded
