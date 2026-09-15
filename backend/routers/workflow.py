@@ -486,6 +486,21 @@ async def run_workflow(wf_id: str, req: Request):
     from .replay import _finish_run as _replay_finish_run
     from .replay import _record_frame as _replay_record_frame
 
+    # Agent nodes pass only agent_id to llm.complete(), and resolve_model()
+    # maps ids through the STATIC OPENROUTER_MODELS table — whose keys are
+    # MODEL names ('gemini', 'claude'), not agent ids ('researcher',
+    # 'builder'). Every workflow agent node therefore ran on the DEFAULT
+    # model (claude-3.5-sonnet) no matter what model the agent was
+    # configured with: the user picks the free gemini for researcher, the
+    # run quietly spends sonnet. Pass each agent's own model through,
+    # exactly like chat.py does. Registry hiccups degrade to the old
+    # behaviour (empty model → default) rather than failing the run.
+    try:
+        from ..services.memory_db import agents_list as _agents_list
+        agent_models = {a.get('id'): (a.get('model') or '') for a in _agents_list()}
+    except Exception:
+        agent_models = {}
+
     def _safe_record(*args) -> None:
         try:
             _replay_record_frame(*args)
@@ -562,7 +577,9 @@ async def run_workflow(wf_id: str, req: Request):
                 try:
                     msgs = [{'role': 'user', 'content': prompt}]
                     result = await llm_svc.complete(
-                        msgs, agent_id=cfg.get('agent_id', 'builder'), max_tokens=1024, inject_steering=False
+                        msgs, agent_id=cfg.get('agent_id', 'builder'),
+                        model=agent_models.get(cfg.get('agent_id', 'builder'), ''),
+                        max_tokens=1024, inject_steering=False
                     )
                     context['prev_output'] = result.get('text', '')
                     yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": context["prev_output"][:300]})}\n\n'
@@ -623,7 +640,8 @@ async def run_workflow(wf_id: str, req: Request):
                     try:
                         result = await llm_svc.complete(
                             [{'role': 'user', 'content': loop_prompt}],
-                            agent_id=agent_id, max_tokens=1024, inject_steering=False,
+                            agent_id=agent_id, model=agent_models.get(agent_id, ''),
+                            max_tokens=1024, inject_steering=False,
                         )
                         last_output = result.get('text', '')
                     except Exception as ex:
@@ -963,6 +981,32 @@ async def validate_workflow(wf_id: str, req: Request):
     for nid, n in nodes.items():
         if nid not in connected and n.get('type') != 'trigger':
             warnings.append({'code': 'ORPHANED', 'msg': f"Node '{n.get('label', nid)}' is not connected to anything"})
+
+    # Agent node config: an unknown agent_id doesn't fail the run — the LLM
+    # layer silently falls back to the default model — so a typo or a since-
+    # deleted agent produces output from the WRONG model while looking fine.
+    # Surface it here, at the point where the user can still fix it.
+    try:
+        from ..services.memory_db import agents_list as _agents_list
+        known_agents = {a.get('id') for a in _agents_list()}
+    except Exception:
+        known_agents = None
+    if known_agents:
+        for nid, n in nodes.items():
+            if n.get('type') != 'agent':
+                continue
+            aid = (n.get('config') or {}).get('agent_id') or ''
+            label = n.get('label') or nid
+            if not aid:
+                warnings.append({
+                    'code': 'NO_AGENT',
+                    'msg': f"Agent node '{label}' has no agent selected — it runs as the default 'builder'",
+                })
+            elif aid not in known_agents:
+                warnings.append({
+                    'code': 'UNKNOWN_AGENT',
+                    'msg': f"Agent node '{label}' references unknown agent '{aid}' — it will run with the default model",
+                })
 
     # Cycle detection (DFS)
     adj: dict[str, list[str]] = {}

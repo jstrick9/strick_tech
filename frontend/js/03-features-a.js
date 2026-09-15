@@ -295,7 +295,11 @@ async function wfNewWorkflow() {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({name:name.trim(), nodes:[], edges:[]})
     });
-    const d = await r.json();
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.workflow) {
+      toast('⚠️ Create failed: ' + (d.error || ('HTTP ' + r.status)), 'err');
+      return;
+    }
     _wfData = d.workflow;
     _wfHistory = [JSON.stringify(_wfData)];
     _wfHistoryIdx = 0;
@@ -332,19 +336,30 @@ async function wfDuplicateWf(wfId) {
 async function wfDeleteWf(wfId, name) {
   const ok = await gmDanger('Delete Workflow', `Delete "${name}"? This cannot be undone.`);
   if (!ok) return;
-  await fetch(`/api/workflow/${encodeURIComponent(wfId)}`, {method:'DELETE'});
-  if (_wfData?.id === wfId) {
-    _wfData = null;
-    document.getElementById('wf-name-badge').textContent = 'Select a workflow';
-    document.getElementById('wf-empty-state').style.display = '';
-    const canvas = document.getElementById('wf-canvas');
-    const edgesG = document.getElementById('wf-edges-g');
-    if (canvas) canvas.innerHTML = '';
-    if (edgesG) edgesG.innerHTML = '';
-    wfCloseProps();
+  try {
+    const r = await fetch(`/api/workflow/${encodeURIComponent(wfId)}`, {method:'DELETE'});
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || d.ok === false) {
+      // 404 (already gone elsewhere) or 5xx — never claim success without the server confirming.
+      toast('⚠️ Delete failed: ' + (d.error || ('HTTP ' + r.status)), 'err');
+      await wfLoadWorkflows();
+      return;
+    }
+    if (_wfData?.id === wfId) {
+      _wfData = null;
+      document.getElementById('wf-name-badge').textContent = 'Select a workflow';
+      document.getElementById('wf-empty-state').style.display = '';
+      const canvas = document.getElementById('wf-canvas');
+      const edgesG = document.getElementById('wf-edges-g');
+      if (canvas) canvas.innerHTML = '';
+      if (edgesG) edgesG.innerHTML = '';
+      wfCloseProps();
+    }
+    toast('🗑 Workflow deleted');
+    wfLoadWorkflows();
+  } catch(e) {
+    toast('⚠️ Delete failed: ' + (e.message || 'network error'), 'err');
   }
-  toast('🗑 Workflow deleted');
-  wfLoadWorkflows();
 }
 
 async function wfSave() {
@@ -711,8 +726,16 @@ function wfAddNodeCenter(type) {
   const wrap = document.getElementById('wf-canvas-wrap');
   const rect = wrap?.getBoundingClientRect();
   if (!rect) return;
-  const x = Math.round((rect.width/2 - _wfPanX) / _wfScale - WF_NODE_W/2);
-  const y = Math.round((rect.height/2 - _wfPanY) / _wfScale - WF_NODE_H/2);
+  let x = Math.round((rect.width/2 - _wfPanX) / _wfScale - WF_NODE_W/2);
+  let y = Math.round((rect.height/2 - _wfPanY) / _wfScale - WF_NODE_H/2);
+  // Cascade: without this, every double-click add lands at the exact same
+  // center point, so the 2nd/3rd node buries the 1st perfectly under it —
+  // you add three chips and see one node. Step each new node diagonally
+  // (same +30 offset wfPasteNode uses), wrapping after 7 so a long build
+  // session stays near the viewport.
+  const step = 30, k = (_wfData.nodes || []).length;
+  x += (k % 7) * step;
+  y += (k % 7) * step;
   wfAddNode(type, x, y);
 }
 
@@ -1342,6 +1365,19 @@ async function wfRun() {
     const ok = await gmDanger('Validation Issues', 'Workflow has validation errors. Run anyway?');
     if (!ok) return;
   }
+
+  // The run endpoint executes the SAVED workflow (from disk), not this
+  // in-memory copy — and autosave is debounced 2s, so an edit made right
+  // before Run would silently execute the stale graph while the validation
+  // gate above checked the current one. Flush state to disk first so what
+  // runs is exactly what's on the canvas. If the save fails (e.g. the
+  // workflow was deleted elsewhere), don't fire a run of a stale graph.
+  try {
+    const sr = await fetch(`/api/workflow/${encodeURIComponent(_wfData.id)}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(_wfData)
+    });
+    if (!sr.ok) { toast('⚠️ Could not save before run — HTTP ' + sr.status, 'err'); return; }
+  } catch(e) { toast('⚠️ Could not save before run', 'err'); return; }
 
   _wfRunning = true;
   const runBtn = document.getElementById('wf-run-btn');

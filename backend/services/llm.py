@@ -1187,6 +1187,18 @@ _COST_PER_1K = {
     'openai/gpt-4o': {'in': 0.005, 'out': 0.015},
     'openai/gpt-4o-mini': {'in': 0.00015, 'out': 0.0006},
     'google/gemini-2.5-pro': {'in': 0.00125, 'out': 0.005},
+    # The remaining OPENROUTER_MODELS entries only became reachable from the
+    # workflow executor once agent nodes started passing the agent's own
+    # model through (before that every node ran claude-3.5-sonnet). ':free'
+    # OpenRouter tiers are $0 by definition — guessing the default
+    # $0.001/$0.003 per 1K for them over-reports free traffic infinitely.
+    # grok-3 / grok-3-mini: xAI's published $3/$15 and $0.30/$0.50 per 1M.
+    'x-ai/grok-3': {'in': 0.003, 'out': 0.015},
+    'x-ai/grok-3-mini': {'in': 0.0003, 'out': 0.0005},
+    'google/gemini-2.0-flash-exp:free': {'in': 0.0, 'out': 0.0},
+    'meta-llama/llama-3.3-70b-instruct:free': {'in': 0.0, 'out': 0.0},
+    'mistralai/mistral-small-3.2-24b-instruct:free': {'in': 0.0, 'out': 0.0},
+    'qwen/qwen3-235b-a22b:free': {'in': 0.0, 'out': 0.0},
 }
 
 
