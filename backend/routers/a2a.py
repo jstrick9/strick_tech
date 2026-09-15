@@ -365,11 +365,17 @@ def _load_task(task_id: str) ->dict | None:
     if not row:
         return None
     d = dict(row)
+    # NOTE: the fallback default must be parenthesized — written as
+    # `d.get(f) or '[]' if ... else '{}'`, Python binds the conditional
+    # looser than `or`, so metadata/push_config ALWAYS decoded to a literal
+    # '{}' and whatever was actually stored was silently discarded (every
+    # task detail/list response showed empty objects).
     for f in ('messages', 'artifacts', 'metadata', 'push_config'):
+        default = '[]' if f in ('messages', 'artifacts') else '{}'
         try:
-            d[f] = json.loads(d.get(f) or '[]' if f in ('messages', 'artifacts') else '{}')
+            d[f] = json.loads(d.get(f) or default)
         except (json.JSONDecodeError, TypeError, ValueError):
-            d[f] = [] if f in ('messages', 'artifacts') else {}
+            d[f] = json.loads(default)
     return d
 
 
@@ -749,11 +755,14 @@ def _handle_tasks_list(req_id, agent_id: str, params: dict) -> dict:
     tasks = []
     for r in rows:
         t = dict(r)
+        # Same precedence pitfall as _load_task: parenthesize the default or
+        # metadata/push_config always decode to a literal '{}'.
         for f in ('messages', 'artifacts', 'metadata', 'push_config'):
+            default = '[]' if f in ('messages', 'artifacts') else '{}'
             try:
-                t[f] = json.loads(t.get(f) or '[]' if f in ('messages', 'artifacts') else '{}')
+                t[f] = json.loads(t.get(f) or default)
             except (json.JSONDecodeError, TypeError, ValueError):
-                t[f] = [] if f in ('messages', 'artifacts') else {}
+                t[f] = json.loads(default)
         tasks.append(_task_to_a2a_response(t))
 
     return _jsonrpc_ok(req_id, {'tasks': tasks, 'total': total})
@@ -1016,6 +1025,16 @@ async def a2a_jsonrpc(agent_id: str, request: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse(_jsonrpc_error(None, ERR_PARSE, 'Invalid JSON'), status_code=400)
 
+    # request.json() happily returns a bare JSON string/number/list/bool/null;
+    # everything below assumes an object. A non-object body used to crash the
+    # handler with AttributeError ('str' has no .get) → HTTP 500 with a
+    # non-JSON-RPC body. Answer in-protocol instead: -32600 Invalid Request.
+    if not isinstance(body, dict):
+        return JSONResponse(
+            _jsonrpc_error(None, ERR_INVALID_REQUEST, 'Request body must be a JSON-RPC 2.0 object'),
+            status_code=400,
+        )
+
     # Handle streaming separately
     if body.get('method') == 'tasks/sendSubscribe':
         params = body.get('params') or {}
@@ -1129,6 +1148,10 @@ async def register_agent(request: Request):
         body = await request.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    if not isinstance(body, dict):
+        # Valid JSON but not an object (string/list/number) — .get/.items below
+        # would raise AttributeError → 500. Same convention as prompts/onboarding.
+        return JSONResponse({'ok': False, 'error': 'Request body must be a JSON object'}, status_code=400)
 
     agent_id = (body.get('agent_id') or f'ext_{uuid.uuid4().hex[:8]}').strip()
     name = as_text(body.get('name'))
@@ -1213,6 +1236,8 @@ async def update_agent(agent_id: str, request: Request):
         body = await request.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    if not isinstance(body, dict):
+        return JSONResponse({'ok': False, 'error': 'Request body must be a JSON object'}, status_code=400)
 
     allowed = {'name', 'description', 'a2a_url', 'auth_type', 'auth_config', 'trust_level', 'status'}
     updates = {}
@@ -1417,6 +1442,8 @@ async def delegate_task(request: Request):
         body = await request.json()
     except (json.JSONDecodeError, TypeError, ValueError):
         return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    if not isinstance(body, dict):
+        return JSONResponse({'ok': False, 'error': 'Request body must be a JSON object'}, status_code=400)
 
     remote_agent_id = as_text(body.get('agent_id'))
     message_text = as_text(body.get('message'))
@@ -1445,9 +1472,19 @@ async def delegate_task(request: Request):
     except (json.JSONDecodeError, TypeError, ValueError):
         auth_cfg = {}
 
+    # The local tracking record below gets its own id; the protocol task we
+    # send carries NO id on purpose. a2a_tasks.task_id is the PRIMARY KEY of
+    # this platform's database, and a registered remote can be co-hosted on
+    # that same database (registering one of our own /a2a/{agent} endpoints
+    # as a remote is a supported flow — it is also how a self-test of the
+    # delegate path works). Sending our tracking id as params.id made the
+    # receiver's duplicate-id guard reject our own outbound row ("Task id
+    # already exists") — a loopback delegation could never complete. With no
+    # id the remote assigns its own (our _handle_tasks_send generates one
+    # when absent), and the remote's id is linked back into the local
+    # record's metadata after the call.
     task_id = f'task_{uuid.uuid4().hex}'
     params = {
-        'id': task_id,
         'sessionId': session_id,
         'message': {
             'role': 'user',
@@ -1500,6 +1537,15 @@ async def delegate_task(request: Request):
     )
 
     # Update call log
+    # If the remote executed the task, its response carries the task id IT
+    # assigned (we sent none). Record it in the local tracking row's metadata
+    # so the two records can be tied together across platforms.
+    remote_task_id = ''
+    if result['ok']:
+        resp = result.get('response') or {}
+        inner = resp.get('result') if isinstance(resp, dict) else None
+        if isinstance(inner, dict):
+            remote_task_id = as_text(inner.get('id')) or ''
     con = _get_conn()
     try:
         status_code = 200 if result['ok'] else 500
@@ -1513,6 +1559,9 @@ async def delegate_task(request: Request):
         )
         new_state = 'completed' if result['ok'] else 'failed'
         con.execute('UPDATE a2a_tasks SET state=?, updated_at=? WHERE task_id=?', (new_state, _now(), task_id))
+        if remote_task_id and isinstance(metadata, dict):
+            metadata['remote_task_id'] = remote_task_id
+            con.execute('UPDATE a2a_tasks SET metadata=? WHERE task_id=?', (json.dumps(metadata), task_id))
         con.execute('UPDATE a2a_agents SET last_task_at=? WHERE agent_id=?', (_now(), remote_agent_id))
         con.commit()
     finally:
