@@ -129,11 +129,14 @@
   function filterTemplates(cat) {
     if (cat !== undefined) templateCategory = cat;
     document.querySelectorAll('#tmpl-cats .bp-btn').forEach(function(el) {
-      var label = el.textContent.trim();
-      if (cat === 'all') { el.classList.toggle('active', label.startsWith('All')); }
+      // Pills are rendered with data-act-click, not onclick — reading the
+      // wrong attribute meant no category pill ever showed its selected
+      // state after a click (the grid filtered correctly, but the bar
+      // looked like nothing was active).
+      var act = el.getAttribute('data-act-click') || '';
+      if (cat === 'all') { el.classList.toggle('active', act.includes("('all')")); }
       else if (cat !== undefined) {
-        var onclick = el.getAttribute('onclick') || '';
-        el.classList.toggle('active', onclick.includes("'" + cat + "'"));
+        el.classList.toggle('active', act.includes("'" + cat + "'"));
       }
     });
     var q = (document.getElementById('tmpl-search')?.value || '').toLowerCase().trim();
