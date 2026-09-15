@@ -1210,7 +1210,7 @@ def _register_pack_in_marketplace(pack: dict) -> None:
             con.execute(
                 """
                 UPDATE mkt_packs SET name=?,description=?,icon=?,tags=?,
-                  latest_ver=?,updated_at=CURRENT_TIMESTAMP
+                  latest_ver=?,skills_json=?,updated_at=CURRENT_TIMESTAMP
                 WHERE id=?
             """,
                 (
@@ -1219,14 +1219,22 @@ def _register_pack_in_marketplace(pack: dict) -> None:
                     pack.get('icon', '🔧'),
                     ','.join(pack.get('tags', [])),
                     pack.get('version', '1.0.0'),
+                    # skills_json must be written here too. The on-disk
+                    # manifest covers the listing while it exists, but a
+                    # fresh install / moved AGENTIC_OS_DATA_DIR has no
+                    # manifests, and _pack_row_to_dict then falls back to
+                    # this column — the exact "every pack shows ZERO
+                    # skills" defect the curated seeder's backfill fixed,
+                    # reintroduced through the SDK publish door.
+                    json.dumps(pack.get('skills', [])),
                     pack['id'],
                 ),
             )
         else:
             con.execute(
                 """
-                INSERT INTO mkt_packs(id,name,description,icon,author,category,tags,latest_ver)
-                VALUES (?,?,?,?,?,?,?,?)
+                INSERT INTO mkt_packs(id,name,description,icon,author,category,tags,latest_ver,skills_json)
+                VALUES (?,?,?,?,?,?,?,?,?)
             """,
                 (
                     pack['id'],
@@ -1237,6 +1245,7 @@ def _register_pack_in_marketplace(pack: dict) -> None:
                     'user',
                     ','.join(pack.get('tags', [])),
                     pack.get('version', '1.0.0'),
+                    json.dumps(pack.get('skills', [])),
                 ),
             )
 
