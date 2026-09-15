@@ -1724,7 +1724,19 @@ async function takeMemSnapshot() {
 async function resetProfilerStats() {
   const ok = await gmConfirm('Reset all profiler stats?');
   if (!ok) return;
-  await fetch('/api/profiler/stats/reset', {method:'DELETE'});
+  try {
+    const r = await fetch('/api/profiler/stats/reset', {method:'DELETE'});
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || d.ok === false) {
+      // Don't re-render on a refused reset — the pane would show the old
+      // numbers as though they had been cleared.
+      toast('⚠️ Reset failed: ' + (d.error || ('HTTP ' + r.status)), 'err');
+      return;
+    }
+  } catch(e) {
+    toast('⚠️ Reset failed: ' + (e.message || 'network error'), 'err');
+    return;
+  }
   renderProfiler();
 }
 
