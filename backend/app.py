@@ -965,14 +965,14 @@ async def _security_middleware(request: Request, call_next):
                 'AGENTIC_OS_ALLOWED_HOSTS.',
                 host_header, client_ip, request.method, path,
             )
-            # NOTE: aliased import — later branches of this function import
-            # JSONResponse locally (a leftover that shadows the module-level
-            # name for the whole function scope), so the bare name is NOT
-            # bound yet this early in the request path. Using the alias keeps
-            # this branch independent of that foot-gun.
-            from fastapi.responses import JSONResponse as _HostBlockedResponse
-
-            return _HostBlockedResponse(
+            # NOTE: do NOT add a function-local `from fastapi.responses
+            # import JSONResponse` anywhere in this middleware. Four such
+            # leftovers once made the name function-local for the whole
+            # scope, so the idempotency-conflict branch above — which runs
+            # before any of them executed — raised UnboundLocalError and
+            # turned a concurrent double-write into a 500 (verified live
+            # during a pane sweep). The module-level import binds everywhere.
+            return JSONResponse(
                 {
                     'ok': False,
                     'error': (
@@ -1029,8 +1029,6 @@ async def _security_middleware(request: Request, call_next):
         authorization = request.headers.get('Authorization', '')
         expected = f'Bearer {_AUTH_TOKEN}'
         if not hmac.compare_digest(authorization, expected):
-            from fastapi.responses import JSONResponse
-
             return JSONResponse(
                 {'ok': False, 'error': 'Authentication required'},
                 status_code=401,
@@ -1044,8 +1042,6 @@ async def _security_middleware(request: Request, call_next):
         _rate_limit_store[client_ip] = [t for t in _rate_limit_store[client_ip] if now - t < _RATE_LIMIT_WINDOW]
 
         if len(_rate_limit_store[client_ip]) >= _RATE_LIMIT_MAX:
-            from fastapi.responses import JSONResponse
-
             return JSONResponse(
                 {'ok': False, 'error': 'Rate limit exceeded. Try again later.'},
                 status_code=429,
@@ -1105,16 +1101,12 @@ async def _security_middleware(request: Request, call_next):
         if not csrf_exempt:
             if csrf_token:
                 if not csrf_token_is_valid(csrf_token):
-                    from fastapi.responses import JSONResponse
-
                     return JSONResponse(
                         {'ok': False, 'error': 'Invalid CSRF token provided.'},
                         status_code=403,
                         headers={'X-Request-ID': request_id},
                     )
             elif _CSRF_STRICT:
-                from fastapi.responses import JSONResponse
-
                 return JSONResponse(
                     {
                         'ok': False,
