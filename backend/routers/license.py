@@ -27,7 +27,7 @@ log = logging.getLogger('agentic.license')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 LICENSE_FILE = ROOT / '.agentic' / 'license.json'
@@ -355,13 +355,9 @@ def license_status():
 @router.post('/activate')
 async def activate_license(req: Request):
     """Activate a Pro or Enterprise license key."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return {'ok': False, 'error': 'Invalid JSON body'}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     key = as_text(body.get('license_key'))
     if not key:
@@ -398,13 +394,9 @@ async def activate_license(req: Request):
 @router.post('/set-user')
 async def set_user(req: Request):
     """Store user name, email, and org in the license file."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return {'ok': False, 'error': 'Invalid JSON body'}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     name = (body.get('name', '') or '')[:100].strip()
     email = (body.get('email', '') or '')[:200].strip()

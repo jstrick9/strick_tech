@@ -129,6 +129,10 @@ async def csp_report(request: Request) -> dict[str, Any]:
         body = await request.json()
     except Exception:
         return {'ok': True}
+    # request.json() accepts any JSON value; a non-object body would crash the
+    # .get below with a 500 — and this route's contract is "always 200".
+    if not isinstance(body, dict):
+        return {'ok': True}
 
     r = body.get('csp-report') or body.get('cspReport') or body
     if not isinstance(r, dict):

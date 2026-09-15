@@ -303,10 +303,9 @@ def reboot_engine():
 @router.post('/open-url')
 async def open_external_url(req: Request):
     """Safely open an external URL across host browser / native OS shell."""
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     url = as_text(body.get('url'))
     if not url.startswith(('http://', 'https://')):
         return {'ok': False, 'error': 'Invalid URL protocol'}

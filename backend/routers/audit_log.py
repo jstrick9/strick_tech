@@ -144,6 +144,7 @@ def _compute_entry_hash(
 
 
 import threading
+from ..services.request_body import json_body_or_error
 
 _append_lock = threading.Lock()
 
@@ -396,10 +397,9 @@ def verify_chain_integrity():
 @router.post('/append')
 async def append_log_entry(req: Request):
     """Manually append an audit entry (used by agents and internal services)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     agent_id = (body.get('agent_id') or 'system')[:64]
     agent_name = (body.get('agent_name') or agent_id)[:64]

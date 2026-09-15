@@ -19,7 +19,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ..services.memory_db import get_conn
-from ..services.request_body import as_text
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(tags=['tasks'])
 log = logging.getLogger('agentic.tasks')
@@ -116,10 +116,9 @@ def tasks_list(status: str = '', agent: str = '', limit: int = 200, q: str = '')
 @router.post('/api/tasks')
 async def tasks_create(req: Request):
     """Execute or process tasks create operation."""
-    try:
-        d = await req.json()
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON body'}, status_code=400)
+    d, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     title = (as_text(d.get('title')) or '')[:240]
     if not title:
         # Validation failures are 400, matching the rest of the task API.
@@ -157,10 +156,9 @@ async def tasks_create(req: Request):
 @router.post('/api/tasks/bulk_update')
 async def tasks_bulk_update(req: Request):
     """Execute or process tasks bulk update operation."""
-    try:
-        d = await req.json()
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON body'}, status_code=400)
+    d, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     updates = d.get('updates', [])
     if not isinstance(updates, list):
         return JSONResponse({'ok': False, 'error': 'updates[] required'}, status_code=400)
@@ -203,10 +201,9 @@ async def tasks_bulk_update(req: Request):
 @router.patch('/api/tasks/{task_id}')
 async def tasks_update(task_id: int, req: Request):
     """Execute or process tasks update operation."""
-    try:
-        d = await req.json()
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON body'}, status_code=400)
+    d, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     allowed = {'title', 'status', 'priority', 'agent', 'layer', 'description', 'sort_order'}
     sets, vals = [], []
     for k in allowed:
@@ -280,10 +277,9 @@ def tasks_delete(task_id: int):
 @router.post('/api/kanban/move')
 async def kanban_move(req: Request):
     """Execute or process kanban move operation."""
-    try:
-        d = await req.json()
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON body'}, status_code=400)
+    d, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     tid = d.get('id') or d.get('task_id')
     to = d.get('to_status') or d.get('status')
     if not tid or to not in ('todo', 'doing', 'blocked', 'done'):

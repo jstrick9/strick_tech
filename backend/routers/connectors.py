@@ -41,7 +41,7 @@ log = logging.getLogger('agentic.connectors')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -3973,10 +3973,9 @@ def list_connectors(category: str = '', status: str = ''):
 @router.post('')
 async def register_connector(req: Request):
     """Register a custom connector (Connector SDK)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = as_text(body.get('name'))
     if not name:
         return JSONResponse({'ok': False, 'error': 'name required'}, status_code=400)
@@ -4055,10 +4054,9 @@ def delete_connector(connector_id: str):
 @router.patch('/{connector_id}/configure')
 async def configure_connector(connector_id: str, req: Request):
     """Save credentials and configuration for a connector."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     creds = body.get('credentials') or {}
     config = body.get('config') or {}
     # Shape check. Before this, `credentials` could be ANY truthy value — a
@@ -4100,10 +4098,9 @@ async def run_connector(connector_id: str, req: Request):
     """Execute a connector action.
     Optional: pass 'credentials' in the body to use inline creds (multi-account support).
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     action = as_text(body.get('action'))
     payload = body.get('payload') or {}
     agent_id = (as_text(body.get('agent_id')) or 'user')

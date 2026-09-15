@@ -770,13 +770,9 @@ def _set_agent_status(agent_id: str, status: str):
 @router.post('/api/chat/clear')
 async def chat_clear(req: Request):
     """Clear chat history. POST body: {session_id?: str}"""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     session_id = as_text(body.get('session_id'))
     con = memory_db.get_conn()
     try:

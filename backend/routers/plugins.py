@@ -495,6 +495,7 @@ def _save_installed(data: dict) -> bool:
 # copy was local to a router and could not be reused. One implementation, one
 # place, with a repo-wide test that fails when a new outbound call skips it.
 from ..services.safe_fetch import url_is_safe as _shared_url_is_safe
+from ..services.request_body import json_body_or_error
 
 
 def _url_is_safe(url: str) -> tuple[bool, str]:
@@ -522,10 +523,9 @@ def list_installed():
 @router.post('/install/url')
 async def install_from_url(req: Request):
     """Install a plugin from a raw JSON URL (GitHub, etc.)."""
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     url = as_text(body.get('url'))
     if not url:
         return JSONResponse({'ok': False, 'error': 'url required'}, status_code=400)
@@ -572,10 +572,9 @@ async def install_from_url(req: Request):
 @router.post('/install/json')
 async def install_from_json(req: Request):
     """Install a plugin from pasted JSON."""
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     data = body.get('plugin_json') or body
     if isinstance(data, str):
         try:
@@ -913,10 +912,9 @@ async def import_workspace(req: Request):
     the most socially trusted one. It now runs the same review as the front
     door, and refuses on the same grounds.
     """
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     # `body.get` assumed an object. A bare JSON array or string body raised
     # AttributeError BEFORE the isinstance check below and still produced a 500
     # -- found by this module's own parametrised malformed-payload test after

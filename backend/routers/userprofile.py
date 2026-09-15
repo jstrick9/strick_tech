@@ -19,6 +19,7 @@ router = APIRouter(prefix='/api/profile', tags=['profile'])
 log = logging.getLogger('agentic.profile')
 
 from backend.config import get_data_dir
+from ..services.request_body import json_body_or_error
 
 ROOT = get_data_dir()
 PROFILE_FILE = ROOT / '.agentic' / 'profile.json'
@@ -150,13 +151,9 @@ def get_profile():
 @router.patch('')
 async def update_profile(req: Request):
     """Update existing profile record or state."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return JSONResponse(status_code=422, content={'ok': False, 'error': 'Invalid JSON body'})
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     profile = _load()
 
@@ -288,13 +285,9 @@ def pin_pane(pane_id: str):
 @router.post('/sidebar-order')
 async def set_sidebar_order(req: Request):
     """Execute or process set sidebar order operation."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return {'ok': False, 'error': 'Invalid JSON body'}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     order = body.get('order', [])
     if not isinstance(order, list):
         return {'ok': False, 'error': 'order must be a list'}
@@ -324,13 +317,9 @@ def list_roles():
 @router.post('/complete-onboarding')
 async def complete_onboarding(req: Request):
     """Execute or process complete onboarding operation."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     profile = _load()
     profile['onboarding_done'] = True
     profile['show_tour'] = bool(body.get('show_tour', False))

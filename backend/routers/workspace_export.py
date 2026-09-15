@@ -15,6 +15,7 @@ router = APIRouter(prefix='/api/workspace', tags=['workspace'])
 log = logging.getLogger('agentic.workspace')
 
 from ..services.memory_db import get_conn
+from ..services.request_body import json_body_or_error
 
 # BUG FIX: 3 of these 11 entries referenced table names that don't actually
 # exist in the schema — 'prompts' (the real table is 'prompt_library',
@@ -101,10 +102,9 @@ def export_workspace(
 @router.post('/import')
 async def import_workspace(req: Request):
     """Import a workspace archive. Merges data (upserts by primary key)."""
-    try:
-        body = await req.json()
-    except Exception:
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     if body.get('format') != 'agentic-os-workspace':
         return JSONResponse({'ok': False, 'error': 'Invalid archive format'}, status_code=400)

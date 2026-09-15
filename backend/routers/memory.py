@@ -22,7 +22,7 @@ from ..services.memory_db import (
     memory_search_fts,
     memory_stats,
 )
-from ..services.request_body import as_text
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(prefix='/api/memory', tags=['memory'])
 
@@ -141,13 +141,9 @@ async def hybrid_search_endpoint(q: str = '', limit: int = 20):
 @router.post('/add')
 async def add(req: Request):
     """Execute or process add operation."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     source = (as_text(body.get('source')) or 'user')[:64]
     content = as_text(body.get('content'))
     tags_raw = body.get('tags') or ''
@@ -165,13 +161,9 @@ async def add(req: Request):
 @router.post('/add-with-embedding')
 async def add_with_embedding(req: Request):
     """Add memory entry with automatic vector embedding."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     content = as_text(body.get('content'))
     if not content:
         return {'ok': False, 'error': 'content required'}
@@ -229,13 +221,9 @@ async def reindex():
 @router.post('/bulk-delete')
 async def bulk_delete(req: Request):
     """Delete multiple memory entries by ID list."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     ids = body.get('ids', [])
     if not ids or not isinstance(ids, list):
         return {'ok': False, 'error': 'ids list required'}
@@ -272,13 +260,9 @@ async def bulk_delete(req: Request):
 @router.post('/import')
 async def import_memories(req: Request):
     """Import memories from a JSON list."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     memories = body.get('memories', [])
     if not memories or not isinstance(memories, list):
         return {'ok': False, 'error': 'memories list required'}
@@ -347,13 +331,9 @@ def get_memory(memory_id: int):
 @router.put('/{memory_id}')
 async def update_memory(memory_id: int, req: Request):
     """Update a memory entry's content and/or tags."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     content = as_text(body.get('content'))
     tags = as_text(body.get('tags'))[:256]
     if not content:

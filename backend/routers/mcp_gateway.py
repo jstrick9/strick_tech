@@ -734,10 +734,9 @@ def list_servers(status: str = ''):
 @router.post('/servers')
 async def register_server(req: Request):
     """Register a new MCP tool server (custom/external)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     name = as_text(body.get('name'))
     if not name:
@@ -784,10 +783,9 @@ async def register_server(req: Request):
 @router.patch('/servers/{server_id}')
 async def update_server(server_id: str, req: Request):
     """Update existing server record or state."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     allowed = {'name', 'description', 'status', 'rate_limit_rpm', 'rate_limit_day', 'tags', 'auth_config'}
     updates = {k: v for k, v in body.items() if k in allowed}
     if not updates:
@@ -837,10 +835,9 @@ async def toggle_server(server_id: str, req: Request):
 @router.post('/call')
 async def gateway_call_endpoint(req: Request):
     """Gateway-enforced tool call — all policy, rate-limit, HITL checks applied."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     server_id = (as_text(body.get('server_id')) or 'srv_filesystem')
     tool_name = as_text(body.get('tool'))
     args = body.get('args') or {}
@@ -865,10 +862,9 @@ def list_policies():
 @router.post('/policies')
 async def create_policy(req: Request):
     """Create and initialize a new policy."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = as_text(body.get('name'))
     if not name:
         return JSONResponse({'ok': False, 'error': 'name required'}, status_code=400)
@@ -914,10 +910,9 @@ async def simulate_policy(req: Request):
     (every policy considered in priority order).
     Does NOT actually execute the tool call or create a gateway_call record.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     agent_id = as_text(body.get('agent_id'))
     server_id = as_text(body.get('server_id'))
@@ -1128,10 +1123,9 @@ async def bulk_policy_action(req: Request):
     Bulk enable/disable/delete a list of policy IDs.
     Body: {action: "enable"|"disable"|"delete", policy_ids: [...]}
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     action = as_text(body.get('action'))
     policy_ids = body.get('policy_ids') or []
@@ -1269,10 +1263,9 @@ def list_policy_templates():
 @router.post('/policies/from-template')
 async def create_policy_from_template(req: Request):
     """Create a new policy from a built-in template (POST with template_id)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     template_id = body.get('template_id', '').strip()
     templates_r = list_policy_templates()
@@ -1374,10 +1367,9 @@ def get_policy(policy_id: str):
 @router.patch('/policies/{policy_id}')
 async def update_policy(policy_id: str, req: Request):
     """Update a policy's fields (name, description, action, agent_id, server_id, tool_pattern, priority, conditions)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     allowed = {'name', 'description', 'action', 'agent_id', 'server_id', 'tool_pattern', 'priority', 'conditions'}
     updates = {}

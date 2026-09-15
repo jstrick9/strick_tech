@@ -40,7 +40,7 @@ log = logging.getLogger('agentic.eval_fw')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import as_text
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -404,10 +404,9 @@ def list_suites():
 @router.post('/suites')
 async def create_suite(req: Request):
     """Create and initialize a new suite."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = as_text(body.get('name'))
     if not name:
         return JSONResponse({'ok': False, 'error': 'name required'}, status_code=400)
@@ -454,10 +453,9 @@ def list_cases(suite_id: str):
 @router.post('/suites/{suite_id}/cases')
 async def add_case(suite_id: str, req: Request):
     """Create and initialize a new case."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = as_text(body.get('prompt'))
     if not prompt:
         return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
@@ -527,10 +525,9 @@ def delete_suite(suite_id: str):
 @router.post('/run')
 async def run_eval(req: Request):
     """Run an eval suite against an agent. Returns streaming SSE progress."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     agent_id = (as_text(body.get('agent_id')) or 'builder')
     suite_id = (as_text(body.get('suite_id')) or 'suite_general')
     run_id = f'erun_{uuid.uuid4().hex[:8]}'
@@ -762,10 +759,9 @@ def list_results(
 @router.post('/results/{result_id}/review')
 async def human_review(result_id: str, req: Request):
     """Submit human review score for a flagged eval result."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     human_score = float(body.get('score') or 0)
     notes = (body.get('notes') or '')[:500]
     reviewer = (body.get('reviewer') or 'user')[:50]

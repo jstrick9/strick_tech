@@ -603,10 +603,9 @@ async def revive_agent(agent_id: str):
 @router.post('/shadow')
 async def create_shadow_test(req: Request):
     """Launch a shadow-mode test for an agent version."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     agent_id = as_text(body.get('agent_id'))
     config = body.get('shadow_config') or {}
     if not agent_id:

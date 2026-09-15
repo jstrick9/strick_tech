@@ -38,7 +38,7 @@ log = logging.getLogger('agentic.compliance')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -1171,10 +1171,9 @@ async def generate_report(req: Request):
       }
     Returns the report file as a download.
     """
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     title = (as_text(body.get('title')) or 'Compliance Report')[:200]
     framework = (as_text(body.get('framework')) or 'General')

@@ -347,13 +347,9 @@ def list_steering():
 @router.post('')
 async def create_steering(req: Request):
     """Create and initialize a new steering."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     raw_name = body.get('filename') or f'custom_{int(time.time())}.md'
     filename = _safe_filename(raw_name)
     if filename is None:
@@ -436,13 +432,9 @@ def get_steering_file(file_id: str):
 @router.put('/{file_id}')
 async def update_steering(file_id: str, req: Request):
     """Update existing steering record or state."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     # FIX 4: use None default so we can tell if caller actually sent content
     # body.get("content","") always returns "" if key absent → silently wipes file on title-only updates
     content = body.get('content')  # None if not sent

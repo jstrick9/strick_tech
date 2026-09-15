@@ -882,10 +882,9 @@ async def duplicate_workflow(wf_id: str, req: Request):
 @router.post('/import')
 async def import_workflow(req: Request):
     """Import a workflow from JSON. Assigns a new ID if one already exists."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     wf_id = body.get('id', f'wf_{uuid.uuid4().hex[:8]}')
     # If ID already exists, assign a new one

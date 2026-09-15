@@ -243,13 +243,9 @@ def get_spec(spec_id: str):
 @router.patch('/{spec_id}')
 async def update_spec(spec_id: str, req: Request):
     """Update spec metadata (name, description, status)."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return {'ok': False, 'error': 'Invalid JSON body'}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     allowed = {'title', 'description', 'status', 'phase'}  # specs uses "title" not "name"
     sets, vals = [], []

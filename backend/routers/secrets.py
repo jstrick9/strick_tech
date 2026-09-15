@@ -393,10 +393,9 @@ async def set_secret(req: Request):
 @router.post('/test-connection')
 async def test_secret_connection(req: Request):
     """Verify live API connection for OpenRouter, Ollama, or custom provider keys."""
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     provider = body.get('provider') or 'openrouter'
     key = body.get('key') or os.environ.get('OPENROUTER_API_KEY') or ''
 

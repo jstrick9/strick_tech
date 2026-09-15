@@ -13,6 +13,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ..services import llm
+from ..services.request_body import json_body_or_error
 from ..services.agent_engine import (
     HarnessConfig,
     LoopConfig,
@@ -63,10 +64,9 @@ async def execute_with_retry(req: Request):
 
     Body: {prompt, agent_id, model, max_retries, temperature, max_tokens}
     """
-    try:
-        body = await req.json()
-    except Exception:
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     prompt = body.get('prompt', '')
     agent_id = body.get('agent_id', 'default')
@@ -127,10 +127,9 @@ async def fan_out(req: Request):
 
     Body: {prompt, agents: [{id, model, system_prompt}], judge: bool}
     """
-    try:
-        body = await req.json()
-    except Exception:
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     prompt = body.get('prompt', '')
     agents = body.get('agents', [])
@@ -161,10 +160,9 @@ async def map_reduce(req: Request):
 
     Body: {items: [...], map_prompt, reduce_prompt}
     """
-    try:
-        body = await req.json()
-    except Exception:
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     items = body.get('items', [])
     map_prompt = body.get('map_prompt', '')
@@ -203,10 +201,9 @@ async def create_engine_loop(req: Request):
 
     Body: {name, prompt, interval_s, adaptive, agent_id, backoff_on_error}
     """
-    try:
-        body = await req.json()
-    except Exception:
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     name = body.get('name', 'Untitled Loop')
     prompt = body.get('prompt', '')
@@ -261,10 +258,9 @@ async def run_test_harness(req: Request):
 
     Body: {harness_id, test_cases: [{id, input, expected, assertions}], pass_threshold}
     """
-    try:
-        body = await req.json()
-    except Exception:
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     harness_id = body.get('harness_id', f"test_{uuid.uuid4().hex[:6]}")
     test_cases = body.get('test_cases', [])
@@ -297,10 +293,9 @@ async def run_benchmark_harness(req: Request):
 
     Body: {harness_id, prompt, iterations, concurrency, agent_id, model}
     """
-    try:
-        body = await req.json()
-    except Exception:
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     harness_id = body.get('harness_id', f"bench_{uuid.uuid4().hex[:6]}")
     prompt = body.get('prompt', 'Hello')

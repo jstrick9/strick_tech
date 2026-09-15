@@ -13,7 +13,7 @@ import re
 
 from fastapi import APIRouter, HTTPException, Request
 
-from ..services.request_body import as_text
+from ..services.request_body import as_text, json_body_or_error
 
 router = APIRouter(prefix='/api/docs', tags=['docs'])
 
@@ -1192,13 +1192,9 @@ def contextual_help(pane_id: str):
 @router.post('/feedback')
 async def submit_feedback(req: Request):
     """Rate a doc as helpful or not helpful."""
-    try:
-        try:
-            body = await req.json()
-        except Exception:
-            body = {}
-    except Exception:
-        return {'ok': False, 'error': 'Invalid JSON body'}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     doc_id = as_text(body.get('doc_id'))[:100]
     doc_type = (as_text(body.get('doc_type')) or 'feature')[:20]

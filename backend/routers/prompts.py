@@ -660,13 +660,9 @@ def get_prompt(prompt_id: str):
 @router.post('')
 async def create_prompt(req: Request):
     """Create and initialize a new prompt."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     title = as_text(body.get('title'))[:120]
     content = as_text(body.get('content'))
     if not title or not content:
@@ -830,13 +826,9 @@ async def import_prompts(req: Request):
 @router.patch('/{prompt_id}')
 async def update_prompt(prompt_id: str, req: Request):
     """Update existing prompt record or state."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     allowed = {'title', 'content', 'category', 'tags', 'agent_id', 'is_favorite'}
     sets, vals = [], []
     for k in allowed:

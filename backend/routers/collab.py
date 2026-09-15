@@ -169,13 +169,9 @@ async def set_shared_state(session_id: str, req: Request):
     sess = _sessions.get(session_id)
     if not sess:
         return {'ok': False, 'error': 'Session not found'}
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return {'ok': False, 'error': 'Invalid JSON body'}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     key = str(body.get('key', ''))[:64]
     value = body.get('value')
     if not key:

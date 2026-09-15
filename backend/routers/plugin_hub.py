@@ -39,6 +39,7 @@ import logging
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+from ..services.request_body import json_body_or_error
 
 router = APIRouter(prefix='/api/hub', tags=['plugin-hub'])
 log = logging.getLogger('agentic.hub')
@@ -490,10 +491,9 @@ def provenance(pack_id: str):
 @router.post('/review')
 async def review_before_install(req: Request):
     """Static safety review of a pack WITHOUT installing it."""
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     pack = body.get('plugin_json') or body.get('pack') or body
     if not isinstance(pack, dict):
         return JSONResponse({'ok': False, 'error': 'Expected a plugin object'}, status_code=400)

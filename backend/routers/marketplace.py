@@ -755,13 +755,9 @@ async def install_pack(pack_id: str, req: Request):
     """Execute or process install pack operation."""
     if not _valid_pack_id(pack_id):
         return _invalid_pack_id_response(pack_id)
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     version = body.get('version', '') if isinstance(body, dict) else ''
 
     import time as _t
@@ -1089,10 +1085,9 @@ async def submit_review(pack_id: str, req: Request):
     """Execute or process submit review operation."""
     if not _valid_pack_id(pack_id):
         return _invalid_pack_id_response(pack_id)
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return {'ok': False, 'error': 'Invalid JSON'}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     try:
         rating = int(float(body.get('rating', 5) or 5))
     except (ValueError, TypeError):

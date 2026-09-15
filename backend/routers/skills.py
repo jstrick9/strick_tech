@@ -18,7 +18,7 @@ log = logging.getLogger('agentic.skills')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 SKILLS_FILE = ROOT / 'skills' / 'skills.json'
@@ -323,10 +323,9 @@ async def run_skill(req: Request):
     Body: {skill_id, inputs: {key: value, ...}}
     Returns: {ok, output, skill_id, agent, latency_ms, tokens}
     """
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     skill_id = body.get('skill_id', '')
     inputs = body.get('inputs', {})
 
@@ -392,10 +391,9 @@ async def run_skill(req: Request):
 @router.post('')
 async def create_skill(req: Request):
     """Create a custom skill."""
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = as_text(body.get('name'))
     if not name:
         return {'ok': False, 'error': 'name required'}

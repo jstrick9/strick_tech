@@ -20,7 +20,7 @@ router = APIRouter(prefix='/api/sessions', tags=['sessions'])
 log = logging.getLogger('agentic.sessions')
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -191,13 +191,9 @@ def get_session(session_id: str):
 @router.post('')
 async def create_session(req: Request):
     """Create a new named chat session."""
-    try:
-        try:
-            body = await req.json()
-        except Exception:
-            body = {}
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = (body.get('name') or f'Chat {time.strftime("%b %d %H:%M")}').strip()[:256]
     agent_id = (as_text(body.get('agent_id')) or 'brain')[:64]
     sid = (body.get('id') or str(uuid.uuid4())).strip()
@@ -229,10 +225,9 @@ async def create_session(req: Request):
 @router.post('/auto-title')
 async def auto_title_session(req: Request):
     """Use AI/smart heuristic to generate a concise 4-7 word title from the user's first prompt or chat history."""
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     prompt = as_text(body.get('prompt'))
     session_id = as_text(body.get('session_id'))
     if not prompt and session_id:
@@ -276,13 +271,9 @@ async def auto_title_session(req: Request):
 @router.patch('/{session_id}')
 async def update_session(session_id: str, req: Request):
     """Rename, pin/unpin, change agent, or update description."""
-    try:
-        try:
-            body = await req.json()
-        except Exception:
-            body = {}
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     fields: list = []
     vals: list = []
 
@@ -344,13 +335,9 @@ def delete_session(session_id: str):
 @router.delete('')
 async def bulk_delete_sessions(req: Request):
     """Delete multiple sessions at once."""
-    try:
-        try:
-            body = await req.json()
-        except Exception:
-            body = {}
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     ids = body.get('ids', [])
     if not isinstance(ids, list):
         return {'ok': False, 'error': 'ids list required'}
@@ -384,10 +371,9 @@ async def bulk_delete_sessions(req: Request):
 @router.post('/import-messages')
 async def import_session_messages(req: Request):
     """Bulk import cloned/forked messages into a session (`⎇ Fork`)."""
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     session_id = as_text(body.get('session_id'))
     messages = body.get('messages') or []
     if not session_id or not isinstance(messages, list):
@@ -539,10 +525,9 @@ def export_session(session_id: str, fmt: str = 'markdown'):
 @router.post('/{session_id}/branch')
 async def branch_session(session_id: str, req: Request):
     """Fork a session at a given message ID — create a new conversation branch."""
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     branch_from = body.get('from_message_id')  # inclusive cutoff
     new_name = (as_text(body.get('name')) or 'Branched conversation')[:120]
 

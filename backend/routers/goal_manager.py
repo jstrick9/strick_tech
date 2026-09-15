@@ -278,13 +278,9 @@ def _create_goal_record(
 @router.post('')
 async def create_goal(req: Request):
     """Create and initialize a new goal."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     title = as_text(body.get('title'))
     if not title:
@@ -362,13 +358,9 @@ def get_goal(goal_id: str):
 @router.patch('/{goal_id}')
 async def update_goal(goal_id: str, req: Request):
     """Update existing goal record or state."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     allowed = {
         'title',
@@ -522,13 +514,9 @@ async def launch_goal(goal_id: str, req: Request):
 @router.post('/{goal_id}/checkin')
 async def add_checkin(goal_id: str, req: Request):
     """Add a progress check-in note to a goal."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     note = as_text(body.get('note'))[:1000]
     progress = max(0, min(100, int(body.get('progress') or 0)))
@@ -566,13 +554,9 @@ async def add_checkin(goal_id: str, req: Request):
 @router.post('/{goal_id}/milestones')
 async def add_milestone(goal_id: str, req: Request):
     """Create and initialize a new milestone."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     title = as_text(body.get('title'))
     if not title:

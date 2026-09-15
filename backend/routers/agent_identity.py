@@ -35,7 +35,7 @@ log = logging.getLogger('agentic.identity')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -480,13 +480,9 @@ def list_identities():
 @router.post('/provision')
 async def provision_identity(req: Request):
     """Provision cryptographic identity for an agent."""
-    try:
-        try:
-            body = await req.json()
-        except Exception:
-            body = {}
-    except Exception:
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     agent_id = as_text(body.get('agent_id'))
     display_name = as_text(body.get('display_name'))
@@ -569,13 +565,9 @@ async def rotate_keys(agent_id: str, req: Request):
 @router.post('/{agent_id}/issue-token')
 async def issue_token(agent_id: str, req: Request):
     """Issue a JIT access token for an agent+task."""
-    try:
-        try:
-            body = await req.json()
-        except Exception:
-            body = {}
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     task_id = (body.get('task_id') or '')[:64]
     scope = body.get('scope') or []
@@ -615,13 +607,9 @@ async def issue_token(agent_id: str, req: Request):
 @router.post('/token/validate')
 async def validate_token(req: Request):
     """Validate a JIT token (zero-trust check)."""
-    try:
-        try:
-            body = await req.json()
-        except Exception:
-            body = {}
-    except Exception:
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     token_id = as_text(body.get('token_id'))
     agent_id = as_text(body.get('agent_id'))
@@ -636,14 +624,10 @@ async def validate_token(req: Request):
 @router.post('/token/{token_id}/revoke')
 async def revoke_token(token_id: str, req: Request):
     """Revoke a JIT token immediately."""
-    try:
-        try:
-            body = await req.json()
-        except Exception:
-            body = {}
-        reason = body.get('reason', '')
-    except Exception:
-        reason = ''
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
+    reason = body.get('reason', '')
     return revoke_jit_token(token_id, reason)
 
 
@@ -682,13 +666,9 @@ def list_permissions(agent_id: str):
 @router.post('/{agent_id}/permissions')
 async def grant_permission(agent_id: str, req: Request):
     """Grant a permission to an agent."""
-    try:
-        try:
-            body = await req.json()
-        except Exception:
-            body = {}
-    except Exception:
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     action = as_text(body.get('action'))
     resource = (as_text(body.get('resource')) or '*')

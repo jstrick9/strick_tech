@@ -35,7 +35,7 @@ log = logging.getLogger('agentic.finops')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -484,10 +484,9 @@ def _safe_int(val, default=0) -> int:
 @router.post('/ledger/record')
 async def record_cost_entry(req: Request):
     """Manually record a cost entry (used by agents and routers)."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     lid = record_cost(
         agent_id=(body.get('agent_id') or 'system')[:64],
         source_type=(body.get('source_type') or 'llm')[:32],
@@ -571,10 +570,9 @@ def list_caps():
 @router.post('/caps')
 async def create_cap(req: Request):
     """Create and initialize a new cap."""
-    try:
-        body = await req.json()
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     name = as_text(body.get('name'))
     if not name:
         return JSONResponse({'ok': False, 'error': 'name required'}, status_code=400)

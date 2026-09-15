@@ -43,7 +43,7 @@ log = logging.getLogger('agentic.supervisor')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import as_text
+from ..services.request_body import as_text, json_body_or_error
 
 ROOT = get_data_dir()
 
@@ -839,13 +839,9 @@ async def _run_supervisor(run_id: str, goal_id: str, goal_text: str):
 @router.post('/run')
 async def start_supervisor_run(req: Request):
     """Start a new supervisor run for a goal."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError):
-            body = {}
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError):
-        return JSONResponse({'ok': False, 'error': 'Invalid JSON'}, status_code=400)
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
 
     goal_text = (body.get('goal') or body.get('goal_text') or '').strip()
     goal_id = body.get('goal_id') or ''
@@ -925,14 +921,10 @@ def list_runs(limit: int = 20, status: str = ''):
 @router.post('/run/{run_id}/kill')
 async def kill_run(run_id: str, req: Request):
     """Emergency kill switch for a running supervisor."""
-    try:
-        try:
-            body = await req.json()
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError):
-            body = {}
-        reason = (body.get('reason') or 'User kill switch')[:200]
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError):
-        reason = 'User kill switch'
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
+    reason = (body.get('reason') or 'User kill switch')[:200]
 
     con = _get_conn()
     try:

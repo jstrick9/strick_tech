@@ -33,6 +33,7 @@ router = APIRouter(prefix='/api/e2e', tags=['e2e'])
 log = logging.getLogger('agentic.e2e')
 
 from backend.config import get_data_dir
+from ..services.request_body import json_body_or_error
 
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
@@ -47,10 +48,9 @@ async def e2e_run(req: Request):
     Returns full trace with screenshots if Playwright is installed,
     or a smart heuristic trace if not.
     """
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     target = body.get('target', 'web')
     url = body.get('url') or (
         f'http://localhost:{_get_port()}/preview/mobile/index.html'
@@ -93,10 +93,9 @@ async def e2e_autofix(req: Request):
     Run E2E, detect failures, use LLM to patch the file, re-run.
     Up to max_iters times until score >= 0.8.
     """
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     target = body.get('target', 'web')
     max_iters = min(int(body.get('max_iters', 3)), 5)
     iterations = []
@@ -550,10 +549,9 @@ async def install_playwright():
 @router.post('/accessibility')
 async def accessibility_audit(req: Request):
     """Run an accessibility audit on a URL using axe-core via Playwright."""
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     url = body.get('url', 'http://localhost:8787/preview/index.html')
 
     try:
@@ -609,10 +607,9 @@ async def accessibility_audit(req: Request):
 @router.post('/performance')
 async def performance_audit(req: Request):
     """Run a Lighthouse-style performance audit using Playwright."""
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     url = body.get('url', 'http://localhost:8787/preview/index.html')
 
     try:

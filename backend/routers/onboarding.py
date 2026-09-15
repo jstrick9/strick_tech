@@ -512,12 +512,9 @@ async def quick_setup(req: Request):
     Returns the configured model and connection status.
     """
     import os
-    body = {}
-    try:
-        body = await req.json()
-    except Exception:
-        pass
-
+    body, _body_err = await json_body_or_error(req)
+    if _body_err:
+        return _body_err
     api_key = body.get('api_key', '').strip()
 
     results = []
