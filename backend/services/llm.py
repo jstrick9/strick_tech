@@ -1313,3 +1313,26 @@ async def sse_guard(gen, *, event_type: str = 'error'):
             'done': True,
         }
         yield f'data: {json.dumps(payload)}\n\n'
+    except Exception as exc:
+        # The narrow tier above handles the expected failure; anything else
+        # (a provider returning a shape nobody parsed, a bug in a stream
+        # transformer) used to propagate out of this generator and truncate
+        # the HTTP response mid-chunk — the client got
+        # `RemoteProtocolError: peer closed connection without sending
+        # complete message body` instead of any reason at all. The status
+        # line was sent long ago, so the only honest option is the same one
+        # the expected tier uses: a final error event, then a clean close.
+        #
+        # str(exc) can carry internals (paths, URLs, upstream bodies), so the
+        # frame carries a stable, user-safe message; the real traceback goes
+        # to the server log. CancelledError/GeneratorExit are BaseException
+        # subclasses and deliberately pass through — a disconnecting client
+        # must not be "rescued".
+        log.exception('sse_guard: unexpected error inside SSE stream: %s', type(exc).__name__)
+        payload = {
+            'type': event_type,
+            'error': 'The response stream failed unexpectedly. Your data is safe — please try again.',
+            'code': 'stream_error',
+            'done': True,
+        }
+        yield f'data: {json.dumps(payload)}\n\n'
