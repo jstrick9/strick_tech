@@ -75,6 +75,10 @@
 
   window.loadPaneChunk = loadChunk;
   window.paneChunkLoaded = function (pane) { return !!loaded[pane]; };
+  // Shared failure affordance so other call sites that invoke pane renderers
+  // directly (06-sprint-features.js masterNav18) can show the same honest
+  // error box instead of leaving a blank pane after a renderer crash.
+  window.paneChunkError = function (pane, mode) { showError(pane, mode); };
 
   // ── Wrap the registry entries ────────────────────────────────────────
   //
@@ -91,7 +95,19 @@
       if (typeof original !== 'function') return;
 
       registry[pane] = function () {
-        if (loaded[pane] && !failed[pane]) return original.apply(this, arguments);
+        if (loaded[pane] && !failed[pane]) {
+          // Already loaded: re-navigation (including the Retry button in the
+          // error box, which calls nav(pane)). The same honesty rules apply
+          // as on first load — a renderer that is missing or throws must not
+          // leave a silently blank pane on THIS path either.
+          try {
+            var quick = original.apply(this, arguments);
+            return quick === false ? showError(pane, 'broken') : quick;
+          } catch (e) {
+            console.warn('[chunks] renderer error for ' + pane + ':', e);
+            return showError(pane, 'crashed');
+          }
+        }
 
         var self = this;
         var args = arguments;
@@ -101,9 +117,22 @@
           if (!ok) { showError(pane); return; }
           delete failed[pane];
           try {
-            return original.apply(self, args);
+            var out = original.apply(self, args);
+            // Registry entries follow the idiom
+            //   `typeof window.X === 'function' && window.X()`
+            // which evaluates to exactly `false` when the renderer symbol
+            // never appeared — the chunk fetched 200 but failed to parse,
+            // or the manifest points at a build that lacks it. Before this
+            // check such a pane rendered as an empty shell: no content, no
+            // error, no retry, just the nav chrome (verified live with a
+            // corrupted chunk served over the real route).
+            if (out === false) { showError(pane, 'broken'); return; }
           } catch (e) {
+            // The renderer itself crashed while drawing. A console.warn
+            // alone leaves a blank pane the user cannot distinguish from
+            // an empty feature.
             console.warn('[chunks] renderer error for ' + pane + ':', e);
+            showError(pane, 'crashed');
           }
         });
       };
@@ -142,13 +171,21 @@
     if (box) box.remove();
   }
 
-  function showError(pane) {
+  function showError(pane, mode) {
     var el = paneEl(pane);
     if (!el) return;
+    // Idempotent: the registry wrapper and a nav hook can both report the
+    // same crash — one box, not a stack of them.
+    if (el.querySelector('.chunk-error')) return;
     var box = document.createElement('div');
     box.className = 'chunk-error';
     box.setAttribute('role', 'alert');
-    box.textContent = 'Could not load this section. Check your connection, then try again.';
+    box.textContent =
+      mode === 'broken'
+        ? 'This section could not start — its code failed to load correctly. Your data is safe; this is a display problem. Try again, or reload the page.'
+        : mode === 'crashed'
+          ? 'This section went wrong while rendering. Your data is safe. Try again, or reload the page.'
+          : 'Could not load this section. Check your connection, then try again.';
     var retry = document.createElement('button');
     retry.className = 'btn btn-sm btn-primary';
     retry.textContent = 'Retry';

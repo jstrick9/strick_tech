@@ -59,21 +59,38 @@
     // (undeclared) identifier with `?.()` still throws a ReferenceError —
     // optional chaining only guards null/undefined, not "not defined".
     // Always go through `window.` + `typeof` checks.
-    if (pane==='fusion'         && typeof window.renderFusion === 'function')        window.renderFusion();
-    if (pane==='hitl'           && typeof window.renderHITL === 'function')          window.renderHITL();
-    if (pane==='browser'        && typeof window.renderBrowserAgent === 'function')  window.renderBrowserAgent();
-    if (pane==='websearch'      && typeof window.renderWebSearch === 'function')     window.renderWebSearch();
-    if (pane==='leaderboard'    && typeof window.renderLeaderboard === 'function')   window.renderLeaderboard();
-    if (pane==='audit-log'      && typeof window.renderAuditLog === 'function')      window.renderAuditLog();
-    if (pane==='agent-identity' && typeof window.renderAgentIdentity === 'function') window.renderAgentIdentity();
-    if (pane==='supervisor'     && typeof window.renderSupervisor === 'function')    window.renderSupervisor();
-    if (pane==='goals'          && typeof window.renderGoals === 'function')         window.renderGoals();
-    if (pane==='mcp-gateway'    && typeof window.renderMCPGateway === 'function')    window.renderMCPGateway();
-    if (pane==='connectors'     && typeof window.renderConnectors === 'function')    window.renderConnectors();
-    if (pane==='agent-monitor'  && typeof window.renderAgentMonitor === 'function')  window.renderAgentMonitor();
-    if (pane==='finops'         && typeof window.renderFinOps === 'function')        window.renderFinOps();
-    if (pane==='eval-framework' && typeof window.renderEvalFramework === 'function') window.renderEvalFramework();
-    if (pane==='a2a'            && typeof window.renderA2A === 'function')           window.renderA2A();
+    //
+    // These hooks duplicate MASTER_PANE_REGISTRY (every pane below is also a
+    // registry entry), but they run on every nav, so a renderer that throws
+    // here used to propagate straight out of nav() and leave a blank pane —
+    // the "second door" failure-honesty gap. Crash → the same error box the
+    // chunk loader shows, via window.paneChunkError.
+    const SPRINT_HOOKS = {
+      'fusion':         'renderFusion',
+      'hitl':           'renderHITL',
+      'browser':        'renderBrowserAgent',
+      'websearch':      'renderWebSearch',
+      'leaderboard':    'renderLeaderboard',
+      'audit-log':      'renderAuditLog',
+      'agent-identity': 'renderAgentIdentity',
+      'supervisor':     'renderSupervisor',
+      'goals':          'renderGoals',
+      'mcp-gateway':    'renderMCPGateway',
+      'connectors':     'renderConnectors',
+      'agent-monitor':  'renderAgentMonitor',
+      'finops':         'renderFinOps',
+      'eval-framework': 'renderEvalFramework',
+      'a2a':            'renderA2A',
+    };
+    const hook = SPRINT_HOOKS[pane];
+    if (hook && typeof window[hook] === 'function') {
+      try {
+        window[hook]();
+      } catch (e) {
+        console.warn('[nav-hook] renderer error for ' + pane + ':', e);
+        if (typeof window.paneChunkError === 'function') window.paneChunkError(pane, 'crashed');
+      }
+    }
   };
   console.debug('%c✅ Sprint A+B+C+D features loaded', 'color:#3dba7a');
 })();

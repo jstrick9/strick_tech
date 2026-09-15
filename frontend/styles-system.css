@@ -835,3 +835,34 @@
     transition: none;
   }
 }
+
+/* ── Lazy pane chunk states (00-chunk-loader.js) ───────────────────────
+   The chunk loader renders these while fetching a pane's code (loading)
+   and when that fetch or the renderer fails (error). They were previously
+   unstyled since inception: bare text and a bare button floating in the
+   pane, visually unlike every other state surface in the system. */
+.chunk-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 120px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.chunk-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 160px;
+  margin: var(--space-3);
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--text-1);
+  background: radial-gradient(circle at 50% 0%, rgba(242,101,101,0.08), transparent 70%);
+  border: 1px solid rgba(242,101,101,0.3);
+  border-radius: var(--radius);
+}
