@@ -24,16 +24,29 @@ class TestAuth:
         assert d.get('api_key', '').startswith('ak_')
 
     def test_register_second_user_becomes_user(self, client):
-        """Second registered user should get user role."""
-        # First user (admin) already registered in previous test
-        r = client.post('/api/auth/register', json={
-            'username': 'testuser2',
-            'password': 'testpass123',
+        """Second registered user should get user role.
+
+        pytest-randomly shuffles tests within a class, so "the first user
+        was registered in the previous test" was never guaranteed — when
+        this ran first, testuser2 was the FIRST user and correctly became
+        admin, failing the assertion on a correct implementation. Register
+        a unique first user here so this registration is deterministically
+        the second one, whatever the order.
+        """
+        import uuid
+
+        first = f'first_{uuid.uuid4().hex[:8]}'
+        second = f'second_{uuid.uuid4().hex[:8]}'
+        r1 = client.post('/api/auth/register', json={
+            'username': first, 'password': 'testpass123',
         })
-        d = r.json()
-        # May fail if first test didn't run — that's OK
-        if d.get('ok'):
-            assert d.get('role') == 'user'
+        r2 = client.post('/api/auth/register', json={
+            'username': second, 'password': 'testpass123',
+        })
+        assert r1.json().get('ok') is True
+        d = r2.json()
+        assert d.get('ok') is True, d
+        assert d.get('role') == 'user'
 
     def test_register_rejects_short_username(self, client):
         r = client.post('/api/auth/register', json={

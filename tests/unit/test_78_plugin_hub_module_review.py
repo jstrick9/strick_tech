@@ -192,12 +192,20 @@ def test_marketplace_packs_report_their_skills(client):
 def test_skills_json_column_is_populated(client):
     """The backfill must repair databases seeded before the fix, since the
     seeder skips rows that already exist."""
+    # Scope to CURATED packs: the backfill's contract. Asserting over every
+    # published row was over-broad — an SDK-published pack (or a community
+    # pack) that genuinely ships no skills legitimately has skills_json
+    # '[]', and one test's residue made this fail depending on file order.
+    from backend.routers.marketplace import CURATED_PACKS
     from backend.services.memory_db import get_conn
 
+    curated = [p['id'] for p in CURATED_PACKS if p.get('skills')]
     con = get_conn()
     try:
         rows = con.execute(
-            "SELECT id, skills_json FROM mkt_packs WHERE published=1"
+            'SELECT id, skills_json FROM mkt_packs WHERE published=1 AND id IN (%s)'
+            % ','.join('?' * len(curated)),
+            tuple(curated),
         ).fetchall()
     finally:
         con.close()
@@ -571,3 +579,46 @@ def test_sdk_publish_refuses_reserved_curated_ids(client):
         assert 'reserved' in r.json()['error']
     finally:
         client.delete('/api/pluginsdk/packs/agenticai-core')
+
+
+def test_sdk_registration_writes_skills_json(client):
+    """_register_pack_in_marketplace never wrote skills_json (INSERT or
+    UPDATE): the on-disk manifest covered the listing until a fresh install
+    or moved AGENTIC_OS_DATA_DIR lost the manifests, and _pack_row_to_dict
+    fell back to an empty column — every SDK pack showed ZERO skills. The
+    same defect class as the curated-seeder bug in this file's header (#3),
+    reintroduced through the SDK publish door.
+    """
+    from backend.routers.marketplace import _register_pack_in_marketplace
+    from backend.services.memory_db import get_conn
+
+    pack = {
+        'id': 'zz-reg-sj-probe', 'name': 'SJ Probe', 'version': '1.0.0',
+        'description': 'skills_json write probe',
+        'skills': [{'id': 's1', 'name': 'S1', 'prompt': 'do {{input}}'}],
+    }
+    _register_pack_in_marketplace(pack)
+    con = get_conn()
+    try:
+        row = con.execute(
+            "SELECT skills_json FROM mkt_packs WHERE id='zz-reg-sj-probe'"
+        ).fetchone()
+        assert row is not None, 'registration inserted no row'
+        ids = [s['id'] for s in json.loads(row['skills_json'] or '[]')]
+        assert ids == ['s1'], f'INSERT did not write skills_json: {row["skills_json"]!r}'
+
+        # UPDATE path must refresh it too (republishing with more skills)
+        pack['skills'] = [
+            {'id': 's1', 'name': 'S1', 'prompt': 'do {{input}}'},
+            {'id': 's2', 'name': 'S2', 'prompt': 'also {{input}}'},
+        ]
+        _register_pack_in_marketplace(pack)
+        row2 = con.execute(
+            "SELECT skills_json FROM mkt_packs WHERE id='zz-reg-sj-probe'"
+        ).fetchone()
+        ids2 = [s['id'] for s in json.loads(row2['skills_json'] or '[]')]
+        assert ids2 == ['s1', 's2'], f'UPDATE did not refresh skills_json: {row2["skills_json"]!r}'
+    finally:
+        con.execute("DELETE FROM mkt_packs WHERE id='zz-reg-sj-probe'")
+        con.commit()
+        con.close()

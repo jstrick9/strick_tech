@@ -148,11 +148,16 @@ class TestGoalManagerAdvanced:
             assert g["status"] == "active"
 
     def test_goals_summary_counts(self, client):
-        d = client.get("/api/goals/stats/summary").json()
-        assert "total" in d
-        assert d["total"] >= 1
-        assert "by_domain" in d
-        assert "avg_progress" in d
+        # pytest-randomly shuffles tests within this class, and other suites
+        # legitimately delete goals — don't depend on an earlier test in
+        # definition order having created one before this runs.
+        r = client.post('/api/goals', json={'title': 'summary count probe', 'domain': 'general'})
+        assert r.status_code == 200, r.text
+        d = client.get('/api/goals/stats/summary').json()
+        assert 'total' in d
+        assert d['total'] >= 1
+        assert 'by_domain' in d
+        assert 'avg_progress' in d
 
 
 class TestMCPGatewayAdvanced:

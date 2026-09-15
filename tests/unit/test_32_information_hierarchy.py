@@ -9,6 +9,28 @@ import pytest
 class TestInformationHierarchy:
     """Suite testing Tier 1 universal context files and Tier 2 IVREN project hierarchies."""
 
+    @pytest.fixture(autouse=True)
+    def _seed_newsletter_project(self, client):
+        """Create the newsletter project before whichever test runs first.
+
+        pytest-randomly shuffles tests WITHIN a class, so
+        test_create_project_hierarchy_ivren is not guaranteed to run before
+        the tests that use the project. That only worked by accident
+        because the project persists on disk between runs — until another
+        suite legitimately deletes hierarchy projects (test_34's import
+        restore, test_66's resets, test_148/test_164 workspaces), after
+        which get/save/append/compiled-context 404 depending on the seed.
+        Seed it here so every test in the class finds it, in any order.
+        """
+        client.delete('/api/hierarchy/projects/newsletter')
+        r = client.post('/api/hierarchy/projects/create', json={
+            'project_id': 'newsletter',
+            'name': 'Weekly AI Insights Newsletter',
+            'audience': 'Founders and tech enthusiasts',
+            'description': 'Weekly deep dives into multi-agent systems.',
+        })
+        assert r.status_code == 200, r.text
+
     def test_status_endpoint_initializes_tier1(self, client):
         r = client.get("/api/hierarchy/status")
         assert r.status_code == 200
