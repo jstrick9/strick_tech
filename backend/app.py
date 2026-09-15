@@ -1080,7 +1080,27 @@ async def _security_middleware(request: Request, call_next):
         from .routers.security import csrf_token_is_valid
 
         csrf_token = request.headers.get('X-CSRF-Token')
-        csrf_exempt = path in _CSRF_EXEMPT or path.startswith('/api/webhooks/')
+        # Machine-to-machine protocol doors. /api/webhooks/ is GitHub/Stripe/CI
+        # callers; /a2a/ is the agent-to-agent JSON-RPC surface — its callers
+        # are OTHER PLATFORMS' agents speaking the A2A protocol, which has no
+        # browser-session step and cannot fetch a CSRF token first. Without the
+        # exemption every inbound task submission died at this wall: verified
+        # live by registering this platform's own agent as a remote and
+        # delegating to it — the delegate's server-side POST to /a2a/{id} came
+        # back 403 "CSRF token required" (and an external agent has even less
+        # recourse than our own delegate path).
+        #
+        # Browser CSRF stays structurally blocked anyway: a cross-site fetch
+        # carrying Content-Type: application/json must pass a CORS preflight,
+        # and the allowlist above does not admit arbitrary origins; a plain
+        # HTML form POST cannot produce a JSON body (text/plain inserts '='
+        # between name and value, and the handler's request.json() rejects
+        # anything that is not valid JSON with a 400).
+        csrf_exempt = (
+            path in _CSRF_EXEMPT
+            or path.startswith('/api/webhooks/')
+            or path.startswith('/a2a/')
+        )
 
         if not csrf_exempt:
             if csrf_token:
