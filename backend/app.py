@@ -1600,29 +1600,6 @@ def service_worker():
     return FileResponse(FRONTEND_DIR / 'sw.js', media_type='application/javascript')
 
 
-@app.get('/api/goals')
-def goals():
-    """Execute or process goals operation."""
-    con = get_conn()
-    try:
-        rows = con.execute('SELECT * FROM goals ORDER BY id').fetchall()
-    finally:
-        con.close()
-    result = [dict(r) for r in rows]
-    if not result:
-        result = [
-            {'id': 1, 'title': 'Wire OpenRouter chat (streaming)', 'layer': 'Goals', 'progress': 100, 'status': 'done'},
-            {'id': 2, 'title': 'Multi-agent swarm + AI judge', 'layer': 'Execution', 'progress': 100, 'status': 'done'},
-            {'id': 3, 'title': 'Memory Galaxy 3D', 'layer': 'Memory', 'progress': 100, 'status': 'done'},
-            {'id': 4, 'title': 'MCP Tool Router', 'layer': 'Ship', 'progress': 100, 'status': 'done'},
-            {'id': 5, 'title': 'Autonomous scheduler loops', 'layer': 'Execution', 'progress': 100, 'status': 'done'},
-            {'id': 6, 'title': 'WebSocket real-time updates', 'layer': 'Goals', 'progress': 100, 'status': 'done'},
-            {'id': 7, 'title': 'Tauri desktop app', 'layer': 'Ship', 'progress': 65, 'status': 'active'},
-            {'id': 8, 'title': 'Voice agent (Whisper + TTS)', 'layer': 'Execution', 'progress': 20, 'status': 'active'},
-        ]
-    return result
-
-
 @app.get('/api/cost')
 def cost():
     """Execute or process cost operation."""
