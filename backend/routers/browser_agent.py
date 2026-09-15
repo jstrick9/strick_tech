@@ -28,7 +28,7 @@ log = logging.getLogger('agentic.browser')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 
 ROOT = get_data_dir()
 SCREENSHOTS = ROOT / 'preview' / 'browser_screenshots'
@@ -272,7 +272,7 @@ async def run_browser_task(req: Request):
     task = as_text(body.get('task'))[:8000]
     raw_url = str(body.get('start_url', 'https://duckduckgo.com') or 'https://duckduckgo.com')[:2000]
     try:
-        max_steps = max(1, min(int(body.get('max_steps', 15)), 30))
+        max_steps = max(1, min(safe_int(body.get('max_steps'), 15), 30))
     except (TypeError, ValueError):
         max_steps = 15
     headless = bool(body.get('headless', True))

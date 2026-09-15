@@ -32,7 +32,7 @@ log = logging.getLogger('agentic.marketplace')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_float
 
 ROOT = get_data_dir()
 MKT_DIR = ROOT / 'workspaces' / 'marketplace'
@@ -1089,7 +1089,7 @@ async def submit_review(pack_id: str, req: Request):
     if _body_err:
         return _body_err
     try:
-        rating = int(float(body.get('rating', 5) or 5))
+        rating = int(safe_float(body.get('rating', 5) or 5, 5))
     except (ValueError, TypeError):
         rating = 5
     text = (body.get('review', '') or '')[:2000]

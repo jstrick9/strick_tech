@@ -23,7 +23,7 @@ router = APIRouter(prefix='/api/db', tags=['database'])
 log = logging.getLogger('agentic.db')
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 
 ROOT = get_data_dir()
 DB = ROOT / 'memory' / 'agentic.db'
@@ -1112,7 +1112,7 @@ async def supabase_query(req: Request):
     table = body.get('table', '')
     select = body.get('select', '*')
     filters = body.get('filters', {})
-    limit = min(int(body.get('limit', 100)), 1000)
+    limit = min(safe_int(body.get('limit'), 100), 1000)
     order = body.get('order', '')
 
     url, key = _supabase_url(), _supabase_key()

@@ -11,7 +11,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ..services import scheduler as sched_svc
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 from ..services.scheduler import _BUILTIN_JOB_IDS
 
 router = APIRouter(prefix='/api/loops', tags=['loops'])
@@ -35,7 +35,7 @@ async def create_loop(req: Request):
         return _body_err
     prompt = as_text(body.get('prompt'))[:4000]
     try:
-        interval = int(body.get('interval_minutes', 15))
+        interval = safe_int(body.get('interval_minutes'), 15)
     except (TypeError, ValueError):
         interval = 15
     agent_id = str(body.get('agent_id', 'builder'))[:64]
@@ -49,6 +49,11 @@ async def create_loop(req: Request):
     # every N minutes forever. Verified live: POST with max_runs=1 returned ok
     # and the stored job had no bound. Silently discarding a safety limit while
     # reporting success is the worst possible handling of one.
+    # The rejection is deliberate: a garbage max_runs is answered with 400
+    # "max_runs must be a whole number", NOT silently defaulted to 0 — a
+    # wrong-typed safety limit must be refused, not turned into an unbounded
+    # loop (test_154 locks the 400 in). Raw int() inside the try/except on
+    # purpose; do not convert to safe_int.
     try:
         max_runs = int(body.get('max_runs', 0) or 0)
     except (TypeError, ValueError):

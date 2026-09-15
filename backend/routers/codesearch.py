@@ -27,7 +27,7 @@ log = logging.getLogger('agentic.project')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_float
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -274,7 +274,7 @@ async def set_project_memory(req: Request):
                ON CONFLICT(key) DO UPDATE SET value=excluded.value,
                category=excluded.category, confidence=excluded.confidence,
                updated_at=CURRENT_TIMESTAMP""",
-            (key, val, body.get('category', 'general')[:32], float(body.get('confidence', 1.0))),
+            (key, val, as_text(body.get('category', 'general'))[:32], safe_float(body.get('confidence'), 1.0)),
         )
         con.commit()
     finally:

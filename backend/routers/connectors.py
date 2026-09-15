@@ -41,7 +41,7 @@ log = logging.getLogger('agentic.connectors')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 
 ROOT = get_data_dir()
 
@@ -2873,7 +2873,7 @@ async def _exec_gdrive(action: str, payload: dict, creds: dict) -> dict:
             'id': d.get('id'),
             'name': d.get('name'),
             'type': d.get('mimeType', '').split('.')[-1],
-            'size': int(d.get('size', 0)) if d.get('size') else 0,
+            'size': safe_int(d.get('size'), 0),
             'created': (d.get('createdTime') or '')[:10],
             'modified': (d.get('modifiedTime') or '')[:10],
             'url': d.get('webViewLink', ''),

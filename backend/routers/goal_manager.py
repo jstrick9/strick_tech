@@ -25,7 +25,7 @@ log = logging.getLogger('agentic.goals')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 
 ROOT = get_data_dir()
 
@@ -519,7 +519,7 @@ async def add_checkin(goal_id: str, req: Request):
         return _body_err
 
     note = as_text(body.get('note'))[:1000]
-    progress = max(0, min(100, int(body.get('progress') or 0)))
+    progress = max(0, min(100, safe_int(body.get('progress') or 0, 0)))
     agent_id = (body.get('agent_id') or 'user')[:50]
 
     con = _get_conn()

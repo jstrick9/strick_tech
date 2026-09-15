@@ -18,7 +18,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import PlainTextResponse, RedirectResponse
 
 from ..services import capture_inbox as svc
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 
 router = APIRouter(prefix='/api/inbox', tags=['inbox'])
 
@@ -123,7 +123,7 @@ async def schedule_sweep(req: Request) -> dict[str, Any]:
     if err:
         return err
     try:
-        minutes = int(body.get('interval_minutes') or 30)
+        minutes = safe_int(body.get('interval_minutes') or 30, 30)
     except (TypeError, ValueError):
         minutes = 30
     return svc.register_sweep(max(1, min(minutes, 1440)))

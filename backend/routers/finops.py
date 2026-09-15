@@ -35,7 +35,7 @@ log = logging.getLogger('agentic.finops')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_float, safe_int
 
 ROOT = get_data_dir()
 
@@ -593,8 +593,8 @@ async def create_cap(req: Request):
                 (body.get('scope_type') or 'agent')[:20],
                 (body.get('scope_id') or '*')[:100],
                 (body.get('period') or 'day')[:20],
-                float(body.get('limit_usd') or 0),
-                int(body.get('limit_tokens') or 0),
+                safe_float(body.get('limit_usd') or 0, 0),
+                safe_int(body.get('limit_tokens') or 0, 0),
                 on_breach,
                 now,
                 now,

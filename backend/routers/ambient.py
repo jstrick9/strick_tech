@@ -27,7 +27,7 @@ from fastapi.responses import JSONResponse
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
@@ -100,7 +100,7 @@ async def ambient_scan(req: Request):
     if _body_err:
         return _body_err
     deep = body.get('deep', False)
-    max_files = min(int(body.get('max_files', 20)), 200)  # cap at 200 files
+    max_files = min(safe_int(body.get('max_files'), 20), 200)  # cap at 200 files
 
     suggestions: list[dict] = []
 

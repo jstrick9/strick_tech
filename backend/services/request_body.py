@@ -165,3 +165,35 @@ def text_field(body: dict[str, Any], key: str, *, default: str = '',
     """`as_text(body.get(key))` with a default for the missing/empty case."""
     out = as_text(body.get(key), limit=limit)
     return out if out else default
+
+
+# ── Numeric coercion ──────────────────────────────────────────────────────────
+# Same disease, different type: `int(body.get('latency_ms', 0))` with
+# {"latency_ms": "abc"} raised ValueError and took the endpoint out with a
+# 500 — and {"repo": 123} hit `body.get('repo', '').strip()` with an int
+# (the default only covers a MISSING key, not a wrong-typed one) for an
+# AttributeError. Round 30 probed the surface live: 12 endpoints answered
+# 500 to a single wrong-typed field (evals/run, agent-leaderboard/rate,
+# ambient/scan, bugbot feedback, crdt op, db/supabase/query, drift
+# fingerprint, e2e/autofix, eval-framework/suites, github/push, and the a2a
+# tasks/list JSON-RPC method).
+#
+# A numeric string is honoured ("120" -> 120): a client that quotes its
+# numbers means the number. Anything unconvertible falls back to the
+# caller's default — the same never-raises contract as as_text.
+
+
+def safe_int(value: Any, default: int = 0) -> int:
+    """Coerce a JSON field to an int. Never raises."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def safe_float(value: Any, default: float = 0.0) -> float:
+    """Coerce a JSON field to a float. Never raises."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default

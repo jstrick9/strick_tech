@@ -59,7 +59,7 @@ log = logging.getLogger('agentic.a2a')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text
+from ..services.request_body import as_text, safe_int
 
 ROOT = get_data_dir()
 
@@ -728,7 +728,7 @@ def _handle_tasks_cancel(req_id, params: dict) -> dict:
 
 def _handle_tasks_list(req_id, agent_id: str, params: dict) -> dict:
     """tasks/list — list tasks for this agent (extension method)."""
-    limit = min(int(params.get('limit', 50)), 200)
+    limit = min(safe_int(params.get('limit'), 50), 200)
     state = params.get('state', '')
     session_id = params.get('sessionId', '')
 

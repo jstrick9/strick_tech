@@ -23,7 +23,7 @@ import time
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_float, safe_int
 
 router = APIRouter(prefix='/api/fusion', tags=['fusion'])
 log = logging.getLogger('agentic.fusion')
@@ -290,7 +290,7 @@ async def fusion_run(req: Request):
     prompt = as_text(body.get('prompt'))
     preset = body.get('preset', 'budget')
     messages_in = body.get('messages') or None
-    max_tok = min(int(body.get('max_tokens', 1024)), 4096)
+    max_tok = min(safe_int(body.get('max_tokens'), 1024), 4096)
     system_prompt = as_text(body.get('system_prompt'))
 
     err = _validate_prompt_or_messages(prompt, messages_in)
@@ -349,7 +349,7 @@ async def fusion_simple(req: Request):
         return _body_err
     prompt = as_text(body.get('prompt'))
     preset = body.get('preset', 'budget')
-    max_tok = min(int(body.get('max_tokens', 512)), 4096)
+    max_tok = min(safe_int(body.get('max_tokens'), 512), 4096)
 
     if not prompt:
         return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
@@ -391,7 +391,7 @@ async def smart_route(req: Request):
     if _body_err:
         return _body_err
     prompt = as_text(body.get('prompt'))
-    max_tok = min(int(body.get('max_tokens', 1024)), 4096)
+    max_tok = min(safe_int(body.get('max_tokens'), 1024), 4096)
     if not prompt:
         return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)
 
@@ -546,7 +546,7 @@ async def subagent_delegate(req: Request):
     task = as_text(body.get('task'))
     orchestrator = body.get('orchestrator', 'anthropic/claude-3.5-sonnet')
     worker = body.get('worker', 'google/gemini-2.0-flash-exp:free')
-    max_subtasks = max(1, min(int(body.get('max_subtasks', 5)), 8))
+    max_subtasks = max(1, min(safe_int(body.get('max_subtasks'), 5), 8))
 
     if not task:
         return JSONResponse({'ok': False, 'error': 'task required'}, status_code=400)
@@ -630,8 +630,8 @@ async def cost_optimize(req: Request):
     if _body_err:
         return _body_err
     prompt = as_text(body.get('prompt'))
-    budget = float(body.get('budget_usd', 0.01))
-    max_tok = int(body.get('max_tokens', 1024))
+    budget = safe_float(body.get('budget_usd'), 0.01)
+    max_tok = safe_int(body.get('max_tokens'), 1024)
 
     if not prompt:
         return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)

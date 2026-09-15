@@ -33,7 +33,7 @@ log = logging.getLogger('agentic.crdt')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import json_body_or_error, safe_int
 
 ROOT = get_data_dir()
 DOCS_DIR = ROOT / 'workspaces' / 'collab_docs'
@@ -669,7 +669,7 @@ async def submit_op(doc_id: str, req: Request):
     if _body_err:
         return _body_err
     op = body.get('op', [])
-    client_rev = int(body.get('revision', 0))
+    client_rev = safe_int(body.get('revision'), 0)
     peer_id = body.get('peer_id', 'http')
     peer_name = body.get('peer_name', 'API')
 

@@ -40,7 +40,7 @@ log = logging.getLogger('agentic.eval_fw')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_float
 
 ROOT = get_data_dir()
 
@@ -422,7 +422,7 @@ async def create_suite(req: Request):
                 name[:100],
                 (body.get('description') or '')[:500],
                 (body.get('domain') or 'general')[:30],
-                float(body.get('pass_threshold') or 0.7),
+                safe_float(body.get('pass_threshold') or 0.7, 0.7),
                 now,
                 now,
             ),
@@ -762,7 +762,7 @@ async def human_review(result_id: str, req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    human_score = float(body.get('score') or 0)
+    human_score = safe_float(body.get('score') or 0, 0)
     notes = (body.get('notes') or '')[:500]
     reviewer = (body.get('reviewer') or 'user')[:50]
     con = _get_conn()

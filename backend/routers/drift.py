@@ -39,7 +39,7 @@ log = logging.getLogger('agentic.drift')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import json_body_or_error, safe_int
 
 ROOT = get_data_dir()
 
@@ -764,7 +764,7 @@ async def build_fingerprints(req: Request):
     if _body_err:
         return _body_err
     agent_ids = body.get('agent_ids') or []
-    window = int(body.get('window_hours', 168))
+    window = safe_int(body.get('window_hours'), 168)
 
     if not agent_ids:
         con = _get_conn()
@@ -793,7 +793,7 @@ async def build_fingerprint_single(agent_id: str, req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    window = int(body.get('window_hours', 168))
+    window = safe_int(body.get('window_hours'), 168)
     return compute_fingerprint(agent_id, window)
 
 

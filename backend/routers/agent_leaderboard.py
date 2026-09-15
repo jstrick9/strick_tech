@@ -17,7 +17,7 @@ import logging
 
 from fastapi import APIRouter, Request
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int, safe_float
 
 router = APIRouter(prefix='/api/agent-leaderboard', tags=['agent_leaderboard'])
 log = logging.getLogger('agentic.leaderboard')
@@ -227,9 +227,9 @@ async def record_event(req: Request):
             agent_id=agent_id,
             task_type=(as_text(body.get('task_type')) or 'general')[:64],
             success=bool(body.get('success', True)),
-            tokens=max(0, int(body.get('tokens', 0))),
-            cost_usd=max(0.0, float(body.get('cost_usd', 0))),
-            latency_ms=max(0, int(body.get('latency_ms', 0))),
+            tokens=max(0, safe_int(body.get('tokens'), 0)),
+            cost_usd=max(0.0, safe_float(body.get('cost_usd'), 0)),
+            latency_ms=max(0, safe_int(body.get('latency_ms'), 0)),
         )
         return {'ok': True}
     except Exception as ex:
@@ -310,7 +310,7 @@ async def rate_agent(req: Request):
     agent_id = as_text(body.get('agent_id'))
     if not agent_id:
         return {'ok': False, 'error': 'agent_id required'}
-    rating = min(5, max(1, int(body.get('rating', 3))))
+    rating = min(5, max(1, safe_int(body.get('rating'), 3)))
     from ..services.memory_db import get_conn
 
     con = get_conn()

@@ -29,7 +29,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.llm import sse_guard
-from ..services.request_body import json_body_or_error
+from ..services.request_body import json_body_or_error, safe_float
 
 router = APIRouter(prefix='/api/hitl', tags=['hitl'])
 log = logging.getLogger('agentic.hitl')
@@ -212,7 +212,7 @@ async def create_interrupt(req: Request):
         risk_level = 'high'
         risk_unrecognised = bool(raw_risk)
     try:
-        confidence = min(1.0, max(0.0, float(body.get('confidence', 0.5))))
+        confidence = min(1.0, max(0.0, safe_float(body.get('confidence'), 0.5)))
     except (TypeError, ValueError):
         confidence = 0.5
     agent_id = str(body.get('agent_id', ''))[:64]

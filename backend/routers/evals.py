@@ -32,7 +32,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.llm import sse_guard
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int, safe_float
 
 router = APIRouter(prefix='/api/evals', tags=['evals'])
 log = logging.getLogger('agentic.evals')
@@ -314,9 +314,9 @@ async def run_eval(req: Request):
     expected = body.get('expected', '')
     agent_id = body.get('agent_id', 'unknown')
     context = body.get('context', '')
-    latency = int(body.get('latency_ms', 0))
-    cost = float(body.get('cost_usd', 0))
-    tokens = int(body.get('tokens', 0))
+    latency = safe_int(body.get('latency_ms'), 0)
+    cost = safe_float(body.get('cost_usd'), 0)
+    tokens = safe_int(body.get('tokens'), 0)
     model = body.get('model', '')
 
     if not prompt or not response:

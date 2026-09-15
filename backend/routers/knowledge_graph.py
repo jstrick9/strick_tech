@@ -29,7 +29,7 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_float
 
 router = APIRouter(prefix='/api/knowledge-graph', tags=['knowledge_graph'])
 log = logging.getLogger('agentic.kg')
@@ -114,7 +114,7 @@ async def add_entity(req: Request):
                 (
                     body.get('description', ''),
                     json.dumps(body.get('properties', {})),
-                    float(body.get('confidence', 1.0)),
+                    safe_float(body.get('confidence'), 1.0),
                     eid,
                 ),
             )
@@ -129,7 +129,7 @@ async def add_entity(req: Request):
                     body.get('description', ''),
                     json.dumps(body.get('properties', {})),
                     body.get('source', ''),
-                    float(body.get('confidence', 1.0)),
+                    safe_float(body.get('confidence'), 1.0),
                 ),
             )
         with contextlib.suppress(Exception):
@@ -168,7 +168,7 @@ async def add_relation(req: Request):
                 to_id,
                 relation,
                 json.dumps(body.get('properties', {})),
-                float(body.get('confidence', 1.0)),
+                safe_float(body.get('confidence'), 1.0),
                 body.get('source', ''),
             ),
         )
@@ -196,7 +196,7 @@ async def add_fact(req: Request):
     try:
         con.execute(
             'INSERT INTO kg_facts(id,subject_id,predicate,object_text,confidence,source) VALUES (?,?,?,?,?,?)',
-            (fid, subject_id, predicate, object_text, float(body.get('confidence', 1.0)), body.get('source', '')),
+            (fid, subject_id, predicate, object_text, safe_float(body.get('confidence'), 1.0), body.get('source', '')),
         )
         con.commit()
     finally:

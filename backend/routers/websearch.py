@@ -30,7 +30,7 @@ log = logging.getLogger('agentic.websearch')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 
 ROOT = get_data_dir()
 DB = ROOT / 'memory' / 'agentic.db'
@@ -266,7 +266,7 @@ async def web_search(req: Request):
     if _body_err:
         return _body_err
     query = as_text(body.get('query'))
-    n = max(1, min(int(body.get('num_results', 5) or 5), 10))
+    n = max(1, min(safe_int(body.get('num_results', 5) or 5, 5), 10))
     fetch = bool(body.get('fetch_content', False))
 
     if not query:
@@ -315,7 +315,7 @@ async def fetch_content(req: Request):
     if _body_err:
         return _body_err
     url = as_text(body.get('url'))
-    max_chars = max(500, min(int(body.get('max_chars', 3000) or 3000), 10000))
+    max_chars = max(500, min(safe_int(body.get('max_chars', 3000) or 3000, 3000), 10000))
 
     if not url:
         return JSONResponse({'ok': False, 'error': 'url required'}, status_code=400)
@@ -345,7 +345,7 @@ async def grounded_completion(req: Request):
         return _body_err
     prompt = as_text(body.get('prompt'))
     agent_id = (as_text(body.get('agent_id')) or 'builder') or 'builder'
-    num_results = max(1, min(int(body.get('num_results', 5) or 5), 8))
+    num_results = max(1, min(safe_int(body.get('num_results', 5) or 5, 5), 8))
     fetch_full = bool(body.get('fetch_content', False))
 
     if not prompt:
@@ -411,7 +411,7 @@ async def grounded_stream(req: Request):
         return _body_err
     prompt = as_text(body.get('prompt'))
     agent_id = (as_text(body.get('agent_id')) or 'builder') or 'builder'
-    num_results = max(1, min(int(body.get('num_results', 4) or 4), 8))
+    num_results = max(1, min(safe_int(body.get('num_results', 4) or 4, 4), 8))
 
     if not prompt:
         return JSONResponse({'ok': False, 'error': 'prompt required'}, status_code=400)

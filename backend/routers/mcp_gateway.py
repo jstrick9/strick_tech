@@ -36,7 +36,7 @@ log = logging.getLogger('agentic.mcp_gateway')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 
 ROOT = get_data_dir()
 
@@ -745,11 +745,11 @@ async def register_server(req: Request):
     server_id = f'srv_{uuid.uuid4().hex[:8]}'
     now = _now()
     try:
-        rate_rpm = min(600, max(1, int(body.get('rate_limit_rpm') or 60)))
+        rate_rpm = min(600, max(1, safe_int(body.get('rate_limit_rpm') or 60, 60)))
     except (TypeError, ValueError):
         rate_rpm = 60
     try:
-        rate_day = min(100000, max(1, int(body.get('rate_limit_day') or 1000)))
+        rate_day = min(100000, max(1, safe_int(body.get('rate_limit_day') or 1000, 1000)))
     except (TypeError, ValueError):
         rate_day = 1000
     con = _get_conn()
@@ -890,7 +890,7 @@ async def create_policy(req: Request):
                 _normalise_id_list(body.get('server_id')),
                 (as_text(body.get('tool_pattern')) or '*').strip()[:100],
                 action,
-                int(body.get('priority') or 100),
+                safe_int(body.get('priority') or 100, 100),
                 conditions,
                 now,
                 now,
@@ -1280,7 +1280,7 @@ async def create_policy_from_template(req: Request):
     agent_id = body.get('agent_id', tpl['agent_id'])
     server_id = body.get('server_id', tpl['server_id'])
     tool_pattern = body.get('tool_pattern', tpl['tool_pattern'])
-    priority = int(body.get('priority', tpl['priority']))
+    priority = safe_int(body.get('priority'), tpl['priority'])
 
     # A caller may override the template's conditions; templates themselves may
     # carry one. Previously both were discarded.

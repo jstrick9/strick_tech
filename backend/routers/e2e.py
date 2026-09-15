@@ -33,7 +33,7 @@ router = APIRouter(prefix='/api/e2e', tags=['e2e'])
 log = logging.getLogger('agentic.e2e')
 
 from backend.config import get_data_dir
-from ..services.request_body import json_body_or_error
+from ..services.request_body import json_body_or_error, safe_int
 
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'
@@ -97,7 +97,7 @@ async def e2e_autofix(req: Request):
     if _body_err:
         return _body_err
     target = body.get('target', 'web')
-    max_iters = min(int(body.get('max_iters', 3)), 5)
+    max_iters = min(safe_int(body.get('max_iters'), 3), 5)
     iterations = []
 
     for i in range(1, max_iters + 1):

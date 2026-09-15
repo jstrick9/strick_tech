@@ -42,7 +42,7 @@ log = logging.getLogger('agentic.bugbot')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 
 ROOT = get_data_dir()
 
@@ -580,9 +580,9 @@ async def submit_feedback(review_id: str, req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    issue_idx = int(body.get('issue_index', 0))
+    issue_idx = safe_int(body.get('issue_index'), 0)
     feedback = body.get('feedback', 'correct')  # correct|wrong|helpful|not_helpful
-    note = (body.get('note', ''))[:500]
+    note = as_text(body.get('note'))[:500]
 
     from ..services.memory_db import get_conn
 

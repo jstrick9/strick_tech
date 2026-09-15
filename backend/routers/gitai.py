@@ -28,7 +28,7 @@ log = logging.getLogger('agentic.gitai')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 
 ROOT = get_data_dir()
 PREVIEW_DIR = ROOT / 'preview'  # FIX 2: define PREVIEW_DIR for security scanner
@@ -444,7 +444,7 @@ async def generate_changelog(req: Request):
         return _body_err
     since = body.get('since', '')  # tag or date: "v1.0.0" or "2025-01-01"
     version = body.get('version', '')  # new version to add
-    limit = min(int(body.get('limit', 50)), 200)
+    limit = min(safe_int(body.get('limit'), 50), 200)
 
     # Get recent commits
     args = ['log', '--pretty=format:%H|%ad|%an|%s', '--date=short']
@@ -782,7 +782,7 @@ async def security_scan(req: Request):
     if _body_err:
         return _body_err
     target = body.get('target', 'all')  # all|preview|backend
-    max_files = min(int(body.get('max_files', 100)), 200)
+    max_files = min(safe_int(body.get('max_files'), 100), 200)
 
     scan_dirs = []
     if target in ('all', 'backend'):

@@ -25,7 +25,7 @@ log = logging.getLogger('agentic.obsidian')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -189,7 +189,7 @@ async def index_vault(req: Request):
     if _body_err:
         return _body_err
     try:
-        max_notes = min(int(body.get('max_notes', 500)), 2000)
+        max_notes = min(safe_int(body.get('max_notes'), 500), 2000)
     except (TypeError, ValueError):
         max_notes = 500
     re_index = bool(body.get('re_index', False))
@@ -269,7 +269,7 @@ async def export_to_vault(req: Request):
         return _body_err
     source = as_text(body.get('source'))
     try:
-        limit = min(int(body.get('limit', 50)), 200)
+        limit = min(safe_int(body.get('limit'), 50), 200)
     except (TypeError, ValueError):
         limit = 50
     title = (as_text(body.get('title')) or f'Agentic OS Export {date.today()}')[:200]

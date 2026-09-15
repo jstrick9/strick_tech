@@ -22,7 +22,7 @@ from fastapi.responses import JSONResponse
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 from ..services.safe_paths import safe_path
 
 ROOT = get_data_dir()
@@ -409,7 +409,7 @@ async def stripe_wire(req: Request):
     price_id = as_text(body.get('price_id'))[:128]
     product_name = (as_text(body.get('product_name')) or 'Pro Plan')[:128]
     try:
-        amount_cents = max(0, int(body.get('amount_cents', 1999)))
+        amount_cents = max(0, safe_int(body.get('amount_cents'), 1999))
     except (TypeError, ValueError):
         amount_cents = 1999
     currency = re.sub(r'[^a-z]', '', (body.get('currency') or 'usd').lower())[:3]

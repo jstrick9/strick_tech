@@ -21,7 +21,7 @@ router = APIRouter(prefix='/api/mcp', tags=['mcp'])
 log = logging.getLogger('agentic.mcp')
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 from ..services.safe_paths import is_within
 
 ROOT = get_data_dir()
@@ -207,7 +207,7 @@ async def agent_with_tools(req: Request):
         return _body_err
     prompt = as_text(body.get('prompt'))
     agent_id = body.get('agent_id', 'builder')
-    max_steps = min(int(body.get('max_steps', 5)), 10)
+    max_steps = min(safe_int(body.get('max_steps'), 5), 10)
     allowed = set(body.get('tools') or list(TOOLS.keys()))
 
     if not prompt:
@@ -236,7 +236,7 @@ async def agent_with_tools(req: Request):
         selection_meta = {'exposed': len(selection), 'total_available': len(tool_catalog.index()),
                           'withheld_by_cap': 0, 'mode': 'explicit'}
     else:
-        picked = tool_catalog.select(prompt, limit=int(body.get('max_tools') or tool_catalog.MAX_EXPOSED))
+        picked = tool_catalog.select(prompt, limit=safe_int(body.get('max_tools') or tool_catalog.MAX_EXPOSED, tool_catalog.MAX_EXPOSED))
         selection = picked['tools']
         selection_meta = {k: picked[k] for k in
                           ('exposed', 'total_available', 'withheld_by_cap', 'not_relevant', 'tags')}

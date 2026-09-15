@@ -356,9 +356,9 @@ async def push_to_github(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    repo_name = body.get('repo', '').strip()  # e.g. "username/my-repo"
-    branch = body.get('branch', 'main').strip()
-    message = body.get('message', 'Agentic OS push').strip()
+    repo_name = as_text(body.get('repo'))  # e.g. "username/my-repo"
+    branch = as_text(body.get('branch', 'main'))
+    message = as_text(body.get('message', 'Agentic OS push'))
     directory = body.get('directory', 'preview')  # which local dir to push
     # Default FALSE: a push that silently became a no-op would be its own bug.
     # Callers opt in to the preview.

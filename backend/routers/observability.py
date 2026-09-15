@@ -28,7 +28,7 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from ..services.request_body import json_body_or_error
+from ..services.request_body import json_body_or_error, safe_float, safe_int
 
 router = APIRouter(prefix='/api/observability', tags=['observability'])
 log = logging.getLogger('agentic.obs')
@@ -184,10 +184,10 @@ async def create_span(req: Request):
                 json.dumps(body.get('input', {})),
                 json.dumps(body.get('output', {})),
                 body.get('model', ''),
-                int(body.get('tokens_in', 0)),
-                int(body.get('tokens_out', 0)),
-                float(body.get('cost_usd', 0)),
-                int(body.get('latency_ms', 0)),
+                safe_int(body.get('tokens_in'), 0),
+                safe_int(body.get('tokens_out'), 0),
+                safe_float(body.get('cost_usd'), 0),
+                safe_int(body.get('latency_ms'), 0),
                 body.get('status', 'ok'),
                 body.get('error', ''),
                 json.dumps(body.get('metadata', {})),
@@ -202,9 +202,9 @@ async def create_span(req: Request):
             span_count = span_count + 1
             WHERE id=?""",
             (
-                int(body.get('tokens_in', 0)) + int(body.get('tokens_out', 0)),
-                float(body.get('cost_usd', 0)),
-                int(body.get('latency_ms', 0)),
+                safe_int(body.get('tokens_in'), 0) + safe_int(body.get('tokens_out'), 0),
+                safe_float(body.get('cost_usd'), 0),
+                safe_int(body.get('latency_ms'), 0),
                 body.get('trace_id', ''),
             ),
         )

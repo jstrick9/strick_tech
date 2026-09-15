@@ -31,7 +31,7 @@ log = logging.getLogger('agentic.imagegen')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, safe_int
 from ..services.safe_paths import safe_path
 
 ROOT = get_data_dir()
@@ -936,6 +936,10 @@ async def generate_variations(req: Request):
     prompt = as_text(body.get('prompt'))
     # BUG FIX: int(body.get('count')) raised ValueError on any non-numeric
     # input, surfacing as a bare HTTP 500. Verified live with count="abc".
+    # The rejection itself is deliberate: a garbage count is answered with
+    # 400 "count must be an integer between 1 and 6", NOT silently defaulted
+    # (test_60 locks the 400 in) — so this stays a raw int() inside the
+    # try/except rather than safe_int.
     try:
         count = min(max(1, int(body.get('count', 4))), 6)
     except (TypeError, ValueError):
