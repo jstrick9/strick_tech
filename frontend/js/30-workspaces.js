@@ -153,7 +153,7 @@ async function activateWorkspace(wsId, name) {
   toast(`⚡ Switching to ${name}…`, 'ok', 2000);
   try {
     const r = await fetch(`/api/workspaces/${encodeURIComponent(wsId)}/activate`, {method:'POST'});
-    if (!r.ok) { toast('Switch failed: server error ' + r.status, 'err'); return; }
+    if (!r.ok) { let d=''; try { d=(await r.json()).error||''; } catch(e) {} toast('Switch failed: ' + (d || ('server error ' + r.status)), 'err'); return; }
     const j = await r.json();
     if (j.ok) { toast(`✅ Switched to ${name}`, 'ok', 2000); studioLoadFileTree?.(); studioReloadPreview?.(); renderWorkspaces(); }
     else toast('Switch failed: ' + (j.error||''), 'err');
@@ -169,7 +169,7 @@ async function createNewWorkspace() {
   try {
     const r = await fetch('/api/workspaces', {method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({name, emoji:'📁'})});
-    if (!r.ok) { toast('Create failed: server error ' + r.status, 'err'); return; }
+    if (!r.ok) { let d=''; try { d=(await r.json()).error||''; } catch(e) {} toast('Create failed: ' + (d || ('server error ' + r.status)), 'err'); return; }
     const j = await r.json();
     if (j.ok) { toast(`✅ "${name}" created`, 'ok'); renderWorkspaces(); }
     else toast('Create failed: ' + (j.error||''), 'err');
@@ -186,7 +186,7 @@ async function deleteWorkspace(wsId, name) {
   if (!(await gmDanger('Delete Project', `Delete "${name}"? This cannot be undone.`,'Delete'))) return;
   try {
     const r = await fetch(`/api/workspaces/${encodeURIComponent(wsId)}`, {method:'DELETE'});
-    if (!r.ok) { toast('Delete failed: server error ' + r.status, 'err'); return; }
+    if (!r.ok) { let d=''; try { d=(await r.json()).error||''; } catch(e) {} toast('Delete failed: ' + (d || ('server error ' + r.status)), 'err'); return; }
     const j = await r.json();
     if (j.ok) { toast('🗑 Deleted', 'ok'); renderWorkspaces(); }
     else toast('Delete failed: ' + (j.error||''), 'err');
@@ -200,7 +200,7 @@ async function importFromGitHub() {
   try {
     const r = await fetch('/api/workspaces/import/github', {method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({repo, name: repo.split('/')[1]||repo})});
-    if (!r.ok) { toast('Import failed: server error ' + r.status, 'err'); return; }
+    if (!r.ok) { let d=''; try { d=(await r.json()).error||''; } catch(e) {} toast('Import failed: ' + (d || ('server error ' + r.status)), 'err'); return; }
     const j = await r.json();
     if (j.ok) { toast(`✅ Imported ${j.files_imported} files from ${repo}`, 'ok', 4000); renderWorkspaces(); }
     else toast('Import failed: ' + (j.error||''), 'err');

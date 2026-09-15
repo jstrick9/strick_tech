@@ -660,6 +660,15 @@ async def import_from_github(req: Request):
         _make_internal_request({'repo': repo_name, 'branch': branch, 'target': str(ws_preview)})
     )
 
+    # pull_from_github doubles as a public route, and several of its refusals
+    # come back as JSONResponse with a real status code — 'GITHUB_TOKEN not
+    # set' (401, the DEFAULT install state) and invalid target (400). Those
+    # have no .get(), so the check below raised AttributeError, the request
+    # 500'd, and the just-created workspace row was never cleaned up: a
+    # permanent ghost card from one failed import (verified live).
+    if isinstance(result, JSONResponse):
+        result = json.loads(result.body)
+
     if result.get('ok'):
         return {'ok': True, 'workspace_id': ws_id, 'name': ws_name, 'files_imported': result.get('files_pulled', 0)}
     else:
