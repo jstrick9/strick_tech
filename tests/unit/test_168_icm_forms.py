@@ -25,12 +25,16 @@ from backend.services import icm_forms as forms
 
 
 @pytest.fixture()
-def icm(tmp_path, monkeypatch):
-    monkeypatch.setenv('AGENTIC_OS_DATA_DIR', str(tmp_path))
-    from backend.services import icm as mod
+def icm(tmp_path):
+    # icm_router is reloaded inside test_any_form_can_be_routed_to, so it is
+    # managed here too — otherwise it stays bound to this tmp dir after the
+    # test and every later router call reads the wrong workspaces root.
+    from tests.unit.conftest import isolated_icm_dir
 
-    importlib.reload(mod)
-    return mod
+    with isolated_icm_dir(
+        tmp_path, 'backend.services.icm', 'backend.services.icm_router',
+    ) as mods:
+        yield mods[0]
 
 
 def _build(icm, form, units, name='w'):

@@ -31,19 +31,18 @@ import pytest
 
 
 @pytest.fixture()
-def env(tmp_path, monkeypatch):
-    monkeypatch.setenv('AGENTIC_OS_DATA_DIR', str(tmp_path))
-    from backend.services import icm as icm_mod
+def env(tmp_path):
+    from tests.unit.conftest import isolated_icm_dir
 
-    importlib.reload(icm_mod)
-    from backend.services import icm_gate as gate_mod
-
-    importlib.reload(gate_mod)
-    from backend.services import icm_router as router_mod
-
-    importlib.reload(router_mod)
-    gate_mod.clear_cache()
-    return icm_mod, gate_mod, router_mod
+    with isolated_icm_dir(
+        tmp_path,
+        'backend.services.icm',
+        'backend.services.icm_gate',
+        'backend.services.icm_router',
+    ) as mods:
+        icm_mod, gate_mod, router_mod = mods
+        gate_mod.clear_cache()
+        yield icm_mod, gate_mod, router_mod
 
 
 @pytest.fixture()

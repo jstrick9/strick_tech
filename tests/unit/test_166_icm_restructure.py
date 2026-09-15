@@ -25,12 +25,11 @@ import pytest
 
 
 @pytest.fixture()
-def svc(tmp_path, monkeypatch):
-    monkeypatch.setenv('AGENTIC_OS_DATA_DIR', str(tmp_path / 'data'))
-    from backend.services import icm_restructure as mod
+def svc(tmp_path):
+    from tests.unit.conftest import isolated_icm_dir
 
-    importlib.reload(mod)
-    return mod
+    with isolated_icm_dir(tmp_path / 'data', 'backend.services.icm_restructure') as mods:
+        yield mods[0]
 
 
 @pytest.fixture()

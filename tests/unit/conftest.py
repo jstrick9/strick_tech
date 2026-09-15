@@ -274,3 +274,40 @@ def patch_json(client, path, body):
 
 def put_json(client, path, body):
     return client.put(path, json=body, headers={"Content-Type": "application/json"})
+
+
+# ── ICM module isolation ──────────────────────────────────────────────────────
+import contextlib
+import importlib as _importlib
+
+
+@contextlib.contextmanager
+def isolated_icm_dir(scratch, *module_names):
+    """Point the ICM service modules at a scratch data dir, reloading them,
+    and reload them BACK under the original data dir on exit.
+
+    importlib.reload() re-executes a module IN PLACE: the object in
+    sys.modules keeps whatever WORKSPACES_DIR the scratch env produced,
+    forever, unless something reloads it again under the original env.
+    Every ICM suite used setenv+reload with no restore, so whichever tmp
+    dir the LAST such test used is where every later ICM call in the
+    session looked. Reproduced: a template-deletion test's empty tmp dir
+    stayed mounted, and a client-based export of the seeded 'home-ops'
+    template 404'd (KeyError: 'ok') depending on pytest-randomly's seed.
+
+    Yields the list of reloaded modules, in the order given.
+    """
+    original = os.environ.get('AGENTIC_OS_DATA_DIR')
+    os.environ['AGENTIC_OS_DATA_DIR'] = str(scratch)
+    mods = [_importlib.import_module(n) for n in module_names]
+    for m in mods:
+        _importlib.reload(m)
+    try:
+        yield mods
+    finally:
+        if original is None:
+            os.environ.pop('AGENTIC_OS_DATA_DIR', None)
+        else:
+            os.environ['AGENTIC_OS_DATA_DIR'] = original
+        for m in mods:
+            _importlib.reload(m)

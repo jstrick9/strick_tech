@@ -35,18 +35,16 @@ import pytest
 
 
 @pytest.fixture()
-def env(tmp_path, monkeypatch):
-    monkeypatch.setenv('AGENTIC_OS_DATA_DIR', str(tmp_path))
-    from backend.services import icm as icm_mod
+def env(tmp_path):
+    from tests.unit.conftest import isolated_icm_dir
 
-    importlib.reload(icm_mod)
-    from backend.services import icm_forms as forms_mod
-
-    importlib.reload(forms_mod)
-    from backend.services import icm_frontmatter as fm_mod
-
-    importlib.reload(fm_mod)
-    return icm_mod, forms_mod, fm_mod
+    with isolated_icm_dir(
+        tmp_path,
+        'backend.services.icm',
+        'backend.services.icm_forms',
+        'backend.services.icm_frontmatter',
+    ) as mods:
+        yield mods
 
 
 @pytest.fixture()

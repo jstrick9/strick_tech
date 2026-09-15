@@ -25,15 +25,19 @@ import pytest
 
 
 @pytest.fixture()
-def tpl(tmp_path, monkeypatch):
-    monkeypatch.setenv('AGENTIC_OS_DATA_DIR', str(tmp_path))
-    from backend.services import icm as icm_mod
+def tpl(tmp_path):
+    # icm_router is reloaded inside test_starters_declare_routes, so it is
+    # managed here too — otherwise it stays bound to this tmp dir after the
+    # test and every later router call reads the wrong workspaces root.
+    from tests.unit.conftest import isolated_icm_dir
 
-    importlib.reload(icm_mod)
-    from backend.services import icm_templates as mod
-
-    importlib.reload(mod)
-    return mod
+    with isolated_icm_dir(
+        tmp_path,
+        'backend.services.icm',
+        'backend.services.icm_templates',
+        'backend.services.icm_router',
+    ) as mods:
+        yield mods[1]
 
 
 @pytest.fixture()
@@ -472,6 +476,15 @@ class TestTemplateEndpoints:
 
     def test_export_and_import_round_trip_over_http(self, client):
         import uuid
+
+        # Self-sufficient under any order. The sandbox starts with no
+        # templates: list_templates() seeds the starters lazily but export
+        # does not, so this test only passed when some earlier test had
+        # happened to list templates against the session sandbox — an
+        # ordering assumption pytest-randomly does not guarantee.
+        from backend.services import icm_templates as tsvc
+
+        tsvc.ensure_builtins()
 
         payload = client.get('/api/icm/templates/home-ops/export').json()
         assert payload['ok'] is True

@@ -274,22 +274,20 @@ def test_analysis_converts_to_scaffold_arguments():
     assert all(isinstance(s, str) and s for s in args['stages'])
 
 
-def test_scaffolding_the_extracted_stages_produces_a_valid_workspace(tmp_path, monkeypatch):
+def test_scaffolding_the_extracted_stages_produces_a_valid_workspace(tmp_path):
     """End to end: description in, walk-test-passing workspace out."""
-    monkeypatch.setenv('AGENTIC_OS_DATA_DIR', str(tmp_path))
-    import importlib
+    from tests.unit.conftest import isolated_icm_dir
 
-    from backend.services import icm as icm_mod
+    with isolated_icm_dir(tmp_path, 'backend.services.icm') as mods:
+        icm_mod = mods[0]
 
-    importlib.reload(icm_mod)
+        args = dlg.to_scaffold_args(dlg.analyse(NEWSLETTER), 'newsletter')
+        ws = icm_mod.WORKSPACES_DIR / 'newsletter'
+        icm_mod.scaffold(ws, args['name'], args['description'], args['stages'])
 
-    args = dlg.to_scaffold_args(dlg.analyse(NEWSLETTER), 'newsletter')
-    ws = icm_mod.WORKSPACES_DIR / 'newsletter'
-    icm_mod.scaffold(ws, args['name'], args['description'], args['stages'])
-
-    result = icm_mod.validate(ws)
-    assert not result['errors'], result
-    assert len(icm_mod.list_stages(ws)) == len(args['stages'])
+        result = icm_mod.validate(ws)
+        assert not result['errors'], result
+        assert len(icm_mod.list_stages(ws)) == len(args['stages'])
 
 
 # ── routes so the new workspace is reachable ──────────────────────────────────
@@ -334,29 +332,26 @@ def test_routes_block_is_empty_for_empty_input():
     assert dlg.routes_block('') == ''
 
 
-def test_a_scaffolded_workspace_with_routes_is_reachable_by_the_router(tmp_path, monkeypatch):
+def test_a_scaffolded_workspace_with_routes_is_reachable_by_the_router(tmp_path):
     """The real end-to-end property: describe it, then find it by asking."""
-    monkeypatch.setenv('AGENTIC_OS_DATA_DIR', str(tmp_path))
-    import importlib
+    from tests.unit.conftest import isolated_icm_dir
 
-    from backend.services import icm as icm_mod
+    with isolated_icm_dir(
+        tmp_path, 'backend.services.icm', 'backend.services.icm_router',
+    ) as mods:
+        icm_mod, router_mod = mods
 
-    importlib.reload(icm_mod)
-    from backend.services import icm_router as router_mod
+        a = dlg.analyse(NEWSLETTER)
+        args = dlg.to_scaffold_args(a, 'newsletter')
+        ws = icm_mod.WORKSPACES_DIR / 'newsletter'
+        icm_mod.scaffold(ws, args['name'], args['description'], args['stages'])
+        ctx = ws / 'CONTEXT.md'
+        ctx.write_text(ctx.read_text(encoding='utf-8') + dlg.routes_block(NEWSLETTER),
+                       encoding='utf-8')
 
-    importlib.reload(router_mod)
-
-    a = dlg.analyse(NEWSLETTER)
-    args = dlg.to_scaffold_args(a, 'newsletter')
-    ws = icm_mod.WORKSPACES_DIR / 'newsletter'
-    icm_mod.scaffold(ws, args['name'], args['description'], args['stages'])
-    ctx = ws / 'CONTEXT.md'
-    ctx.write_text(ctx.read_text(encoding='utf-8') + dlg.routes_block(NEWSLETTER),
-                   encoding='utf-8')
-
-    d = router_mod.resolve('time to put together this week\'s newsletter')
-    assert d['matched']
-    assert d['workspace_id'] == 'newsletter'
+        d = router_mod.resolve('time to put together this week\'s newsletter')
+        assert d['matched']
+        assert d['workspace_id'] == 'newsletter'
 
 
 # ── robustness ────────────────────────────────────────────────────────────────

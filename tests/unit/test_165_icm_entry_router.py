@@ -28,21 +28,20 @@ import pytest
 
 
 @pytest.fixture()
-def router(tmp_path, monkeypatch):
+def router(tmp_path):
     """A router bound to an empty workspace root of its own.
 
     The unit harness sandboxes the data dir, so these tests seed every
     workspace they rely on rather than trusting ambient dev data.
     """
-    monkeypatch.setenv('AGENTIC_OS_DATA_DIR', str(tmp_path))
-    from backend.services import icm as icm_mod
+    from tests.unit.conftest import isolated_icm_dir
 
-    importlib.reload(icm_mod)
-    from backend.services import icm_router as router_mod
-
-    importlib.reload(router_mod)
-    assert router_mod.icm.WORKSPACES_DIR.is_relative_to(tmp_path)
-    return router_mod
+    with isolated_icm_dir(
+        tmp_path, 'backend.services.icm', 'backend.services.icm_router',
+    ) as mods:
+        router_mod = mods[1]
+        assert router_mod.icm.WORKSPACES_DIR.is_relative_to(tmp_path)
+        yield router_mod
 
 
 def _make(router, ws_id, name, stages=('research',), routes=(), description=''):

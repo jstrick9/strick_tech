@@ -24,16 +24,25 @@ import pytest
 
 
 @pytest.fixture()
-def ci(tmp_path, monkeypatch):
-    monkeypatch.setenv('AGENTIC_OS_DATA_DIR', str(tmp_path))
-    from backend.services import capture_inbox as mod
+def ci(tmp_path):
+    # icm, icm_forms and icm_router are reloaded by the `routed` fixture and
+    # by two tests below — they are managed here so every one of them is
+    # reloaded back under the original data dir when the test ends, instead
+    # of leaving the session reading this tmp dir forever.
+    from tests.unit.conftest import isolated_icm_dir
 
-    importlib.reload(mod)
-    return mod
+    with isolated_icm_dir(
+        tmp_path,
+        'backend.services.capture_inbox',
+        'backend.services.icm',
+        'backend.services.icm_forms',
+        'backend.services.icm_router',
+    ) as mods:
+        yield mods[0]
 
 
 @pytest.fixture()
-def routed(ci, monkeypatch):
+def routed(ci):
     """A router with one real workspace declaring routes."""
     from backend.services import icm as icm_mod
 

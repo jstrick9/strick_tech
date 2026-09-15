@@ -279,7 +279,7 @@ def test_stage_names_are_slugged_safely(ws):
 
 
 # ── chat integration ──────────────────────────────────────────────────────────
-def test_chat_injects_icm_context_and_resolves_the_entry_stage(tmp_path, monkeypatch):
+def test_chat_injects_icm_context_and_resolves_the_entry_stage(tmp_path):
     """Chat must RESOLVE the stage, not assume one.
 
     UPDATED IN PLACE. This test used to grep chat.py's source for the literal
@@ -293,33 +293,30 @@ def test_chat_injects_icm_context_and_resolves_the_entry_stage(tmp_path, monkeyp
     behaviour. It is rewritten to assert the behaviour itself: routing a request
     yields a stage that was computed from workspace state, with a stated reason.
     """
-    monkeypatch.setenv('AGENTIC_OS_DATA_DIR', str(tmp_path))
-    import importlib
+    from tests.unit.conftest import isolated_icm_dir
 
-    from backend.services import icm as icm_mod
+    with isolated_icm_dir(
+        tmp_path, 'backend.services.icm', 'backend.services.icm_router',
+    ) as mods:
+        icm_mod, router_mod = mods
 
-    importlib.reload(icm_mod)
-    from backend.services import icm_router as router_mod
+        wsdir = icm_mod.WORKSPACES_DIR / 'reports'
+        icm_mod.scaffold(wsdir, 'reports', '', ['research', 'script'])
+        ctx = wsdir / 'CONTEXT.md'
+        ctx.write_text(ctx.read_text(encoding='utf-8') + '\n\n## Routes\n- quarterly summary\n',
+                       encoding='utf-8')
 
-    importlib.reload(router_mod)
+        d = router_mod.resolve_and_assemble('draft the quarterly summary')
+        assert d['matched']
+        assert d['workspace_id'] == 'reports'
+        # Resolved from state -- stage 01 has no output yet -- not assumed.
+        assert d['stage'] == '01-research'
+        assert d['stage_reason'] == 'first stage with no output'
+        assert d['compiled_context']
 
-    wsdir = icm_mod.WORKSPACES_DIR / 'reports'
-    icm_mod.scaffold(wsdir, 'reports', '', ['research', 'script'])
-    ctx = wsdir / 'CONTEXT.md'
-    ctx.write_text(ctx.read_text(encoding='utf-8') + '\n\n## Routes\n- quarterly summary\n',
-                   encoding='utf-8')
-
-    d = router_mod.resolve_and_assemble('draft the quarterly summary')
-    assert d['matched']
-    assert d['workspace_id'] == 'reports'
-    # Resolved from state -- stage 01 has no output yet -- not assumed.
-    assert d['stage'] == '01-research'
-    assert d['stage_reason'] == 'first stage with no output'
-    assert d['compiled_context']
-
-    # Once stage 01 has output, the resolved entry moves on by itself.
-    (wsdir / 'stages' / '01-research' / 'output' / 'notes.md').write_text('x', encoding='utf-8')
-    assert router_mod.resolve('draft the quarterly summary')['stage'] == '02-script'
+        # Once stage 01 has output, the resolved entry moves on by itself.
+        (wsdir / 'stages' / '01-research' / 'output' / 'notes.md').write_text('x', encoding='utf-8')
+        assert router_mod.resolve('draft the quarterly summary')['stage'] == '02-script'
 
     # And chat.py must actually go through that router.
     import inspect
