@@ -33,7 +33,7 @@ log = logging.getLogger('agentic.crdt')
 
 from backend.config import get_data_dir
 
-from ..services.request_body import json_body_or_error, safe_int
+from ..services.request_body import json_body_or_error, safe_int, loads_or
 
 ROOT = get_data_dir()
 DOCS_DIR = ROOT / 'workspaces' / 'collab_docs'
@@ -577,14 +577,17 @@ def _get_doc(doc_id: str) -> CRDTDoc:
     if row:
         doc = CRDTDoc(doc_id, row['title'] or '', row['content'] or '')
         doc.revision = row['revision'] or 0
+        # A corrupt op_json must not brick every load of the document:
+        # skip it rather than 500 all endpoints that touch this doc.
         doc.ops_log = [
             {
                 'revision': r['revision'],
                 'peer_id': r['peer_id'],
                 'peer_name': r['peer_name'],
-                'op': json.loads(r['op_json']),
+                'op': parsed,
             }
             for r in ops
+            if (parsed := loads_or(r['op_json'], None)) is not None
         ]
     else:
         doc = CRDTDoc(doc_id)
@@ -703,7 +706,8 @@ def get_history(doc_id: str, limit: int = 100):
     finally:
         con.close()
     return {
-        'history': [{**dict(r), 'op': json.loads(r['op_json'])} for r in rows],
+        # op=None on a rotten row; the raw value stays visible as op_json.
+        'history': [{**dict(r), 'op': loads_or(r['op_json'], None)} for r in rows],
         'count': len(rows),
     }
 
@@ -732,7 +736,9 @@ async def restore_revision(doc_id: str, revision: int):
 
     content = ''
     for row in ops:
-        op = json.loads(row['op_json'])
+        op = loads_or(row['op_json'], None)
+        if op is None:
+            continue
         content = _apply_op(content, op)
 
     doc = _get_doc(doc_id)

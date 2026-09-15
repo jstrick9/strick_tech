@@ -32,7 +32,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.llm import sse_guard
-from ..services.request_body import as_text, json_body_or_error, safe_int, safe_float
+from ..services.request_body import as_text, json_body_or_error, safe_int, safe_float, loads_or
 
 router = APIRouter(prefix='/api/evals', tags=['evals'])
 log = logging.getLogger('agentic.evals')
@@ -389,7 +389,8 @@ def list_eval_runs(agent_id: str = '', limit: int = 50, pass_fail: str = ''):
     runs = []
     for r in rows:
         d = dict(r)
-        d['issues'] = json.loads(d.get('issues', '[]') or '[]')
+        # One rotten row must not 500 the whole runs list.
+        d['issues'] = loads_or(d.get('issues'), [])
         runs.append(d)
     return {'runs': runs, 'count': len(runs)}
 
@@ -407,7 +408,7 @@ def get_eval_run(run_id: str):
     if not row:
         return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     d = dict(row)
-    d['issues'] = json.loads(d.get('issues', '[]') or '[]')
+    d['issues'] = loads_or(d.get('issues'), [])
     return d
 
 
@@ -525,7 +526,7 @@ def get_dataset(dataset_id: str):
     if not row:
         return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     d = dict(row)
-    d['cases'] = json.loads(d.get('cases_json', '[]') or '[]')
+    d['cases'] = loads_or(d.get('cases_json'), [])
     return d
 
 
@@ -569,7 +570,7 @@ async def run_dataset(dataset_id: str, req: Request):
         con.close()
     if not row:
         return {'ok': False, 'error': 'Dataset not found'}
-    cases = json.loads(row['cases_json'] or '[]')
+    cases = loads_or(row['cases_json'], [])
 
     async def _stream():
         from ..services import llm as llm_svc

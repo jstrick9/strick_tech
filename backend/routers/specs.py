@@ -40,7 +40,7 @@ def _parse_delta(chunk: str) -> str:
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import as_text, json_body_or_error
+from ..services.request_body import as_text, json_body_or_error, loads_or
 
 ROOT = get_data_dir()
 SPECS_DIR = ROOT / 'workspaces' / 'specs'
@@ -645,7 +645,7 @@ async def execute_spec(spec_id: str, req: Request):
 
                 # Build context from completed dependencies
                 dep_context = ''
-                deps = json.loads(task.get('depends_on', '[]') or '[]')
+                deps = loads_or(task.get('depends_on'), [])
                 for dep in deps:
                     if dep in completed:
                         dep_context += f'\n### Output from Task {dep}:\n{completed[dep][:500]}\n'

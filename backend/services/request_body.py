@@ -197,3 +197,24 @@ def safe_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def loads_or(raw: Any, default: Any) -> Any:
+    """Parse a JSON string from a stored column, a file, or a request field.
+
+    Never raises. The DB-value class of round 31: `json.loads(d.get('issues',
+    '[]') or '[]')` in a list loop meant ONE corrupt or legacy-shaped row 500'd
+    the entire endpoint — the eval runs list, the knowledge-graph entity list,
+    a whole CRDT document (a bad op_json bricked every load of that doc).
+    The caller's default says what a rotten value means for that surface:
+    [] / {} for display fields, None + skip for log entries that must not be
+    replayed as if they were valid.
+    """
+    if raw is None or raw == '':
+        return default
+    if isinstance(raw, (list, dict)):
+        return raw
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return default

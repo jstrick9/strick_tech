@@ -29,7 +29,7 @@ import uuid
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from ..services.request_body import as_text, json_body_or_error, safe_float
+from ..services.request_body import as_text, json_body_or_error, safe_float, loads_or
 
 router = APIRouter(prefix='/api/knowledge-graph', tags=['knowledge_graph'])
 log = logging.getLogger('agentic.kg')
@@ -231,7 +231,8 @@ def search_entities(q: str = '', type: str = '', limit: int = 30):
     entities = []
     for r in rows:
         d = dict(r)
-        d['properties'] = json.loads(d.get('properties', '{}') or '{}')
+        # One rotten row must not 500 the whole entity list.
+        d['properties'] = loads_or(d.get('properties'), {})
         entities.append(d)
     return {'entities': entities, 'count': len(entities)}
 
@@ -264,7 +265,7 @@ def get_entity(entity_id: str):
     if not ent:
         return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     d = dict(ent)
-    d['properties'] = json.loads(d.get('properties', '{}') or '{}')
+    d['properties'] = loads_or(d.get('properties'), {})
     d['outgoing_relations'] = [dict(r) for r in rels]
     d['incoming_relations'] = [dict(r) for r in irels]
     d['facts'] = [dict(f) for f in facts]

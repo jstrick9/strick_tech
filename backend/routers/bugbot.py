@@ -42,7 +42,7 @@ log = logging.getLogger('agentic.bugbot')
 from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
-from ..services.request_body import as_text, json_body_or_error, safe_int
+from ..services.request_body import as_text, json_body_or_error, safe_int, loads_or
 
 ROOT = get_data_dir()
 
@@ -568,8 +568,9 @@ def get_review(review_id: str):
     if not row:
         return JSONResponse({'ok': False, 'error': 'Not found'}, status_code=404)
     d = dict(row)
-    d['issues'] = json.loads(d.get('issues', '[]') or '[]')
-    d['fixes'] = json.loads(d.get('fixes', '[]') or '[]')
+    # A corrupt/legacy row must not 500 the review detail.
+    d['issues'] = loads_or(d.get('issues'), [])
+    d['fixes'] = loads_or(d.get('fixes'), [])
     d['feedback'] = [dict(f) for f in fb]
     return d
 
