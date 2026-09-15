@@ -29,6 +29,9 @@ import pytest
 
 @pytest.fixture()
 def sf(tmp_path, monkeypatch):
+    import os
+
+    _prev_env = os.environ.get('AGENTIC_OS_DATA_DIR')
     monkeypatch.setenv('AGENTIC_OS_DATA_DIR', str(tmp_path))
     from backend.services import skill_folders as mod
 
@@ -36,7 +39,20 @@ def sf(tmp_path, monkeypatch):
     mod.SKILLS_DIR.mkdir(parents=True, exist_ok=True)
     # Isolate from the real 83-entry registry unless a test opts in.
     monkeypatch.setattr(mod, '_registry_skills', lambda: [])
-    return mod
+    yield mod
+    # reload() above rebinds the module's env-derived globals (ROOT,
+    # SKILLS_DIR) against tmp_path — in place, because reload re-executes
+    # the body of the SAME module object. Without this teardown every later
+    # importer in the session (any lazy `from backend.services import
+    # skill_folders` inside a handler) silently kept the tmp SKILLS_DIR and
+    # read this test's residue instead of the real skills dir. Verified
+    # live: the binding survived the env restore until an explicit reload.
+    # Put the module back exactly as a fresh import would see it.
+    if _prev_env is None:
+        os.environ.pop('AGENTIC_OS_DATA_DIR', None)
+    else:
+        os.environ['AGENTIC_OS_DATA_DIR'] = _prev_env
+    importlib.reload(mod)
 
 
 def _make(sf, skill_id, *, name='Test Skill', desc='Does a thing',
