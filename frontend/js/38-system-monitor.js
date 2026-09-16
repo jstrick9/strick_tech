@@ -24,6 +24,13 @@ async function renderSystem() {
 }
 
 async function refreshSystem() {
+  // r47: self-clear when the pane is no longer active. The interval had no
+  // inactive guard, so once the System Monitor was opened it polled
+  // /api/system/{health,metrics,git} every 10s for the rest of the app
+  // session (verified live: still firing 25s after navigating away).
+  // Same convention as the control-tower and agent-monitor pollers.
+  const pane = document.getElementById('pane-system');
+  if (!pane || !pane.classList.contains('active')) { clearInterval(sysRefreshTimer); return; }
   try {
     const [hr, mr, gr] = await Promise.all([
       fetch('/api/system/health'), fetch('/api/system/metrics'), fetch('/api/system/git')

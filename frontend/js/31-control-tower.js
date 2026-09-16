@@ -2,6 +2,7 @@
 // Extracted from 01-app-core.js for modularity
 // ── Control Tower ──────────────────────────────────────────────────
 var controlRefreshTimer = null;
+var _controlRenderSeq = 0;
 async function renderControlTower() {
   const pane = document.getElementById('pane-control');
   // A renderer that assumes its pane exists takes the whole
@@ -12,7 +13,16 @@ async function renderControlTower() {
   if (!pane) return;
   pane.innerHTML = skeletonPage();
   clearInterval(controlRefreshTimer);
+  // r47: render-generation token. renderControlTower is async and re-runnable,
+  // and the interval handle used to be assigned AFTER `await refreshControlTower()`
+  // — two overlapping renders interleaved as clear/A, clear/B, set-t1, set-t2,
+  // leaking t1 forever (its own inactive-guard only ever clears the module
+  // variable, which by then held t2). Verified live: after navigating away,
+  // /api/control/stats kept firing every 5s. The token makes exactly one
+  // render — the newest — own the timer.
+  const seq = ++_controlRenderSeq;
   await refreshControlTower();
+  if (seq !== _controlRenderSeq) return; // a newer render owns the timer now
   controlRefreshTimer = setInterval(refreshControlTower, 5000);
 }
 window.renderControlTower = renderControlTower;
