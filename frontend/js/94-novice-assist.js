@@ -93,12 +93,6 @@
     writeState();
     applySimpleMode();
   };
-  window.aosSimpleMode = function () { return simpleOn(); };
-
-  window.aosShowSimpleFooter = function () {
-    // navigates to all-features view from the "…more" footer link
-    window.aosToggleSimpleMode();
-  };
 
   function mountSimpleMode() {
     const header = document.getElementById('sidebar-top-nav-header');

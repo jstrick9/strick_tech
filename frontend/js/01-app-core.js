@@ -621,18 +621,6 @@ document.addEventListener('click', e => {
 });
 
 // ── Chat ─────────────────────────────────────────────────────────
-// Start users with a useful outcome, then leave the prompt editable before send.
-window.startGuidedChat = function(prompt = '') {
-  const input = document.getElementById('chat-input');
-  if (!input) return;
-  input.value = prompt;
-  if (typeof autoResizeInput === 'function') autoResizeInput(input);
-  input.focus();
-  const launchpad = document.getElementById('mission-launchpad-deck');
-  if (launchpad) launchpad.style.display = 'none';
-  if (prompt) toast('Add a few details, then send when ready.', 'ok', 1800);
-};
-
 function insertCmd(cmd) {
   if (typeof nav === 'function') nav('chat');
   setTimeout(() => {
@@ -1351,55 +1339,6 @@ window.loadSettings = async function() {
   if (typeof updateSettingsModeButtons === 'function') updateSettingsModeButtons();
 };
 
-window.lpSaveVerifyKey = async function() {
-  const keyInp = document.getElementById('lp-api-key');
-  const statusEl = document.getElementById('lp-key-status');
-  if (!keyInp || !keyInp.value.trim()) {
-    if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger)">⚠️ Please paste your OpenRouter API key first.</span>';
-    return;
-  }
-  const key = keyInp.value.trim();
-  if (statusEl) statusEl.innerHTML = '<span style="color:var(--accent-text)">⏳ Saving & verifying live connection to OpenRouter...</span>';
-  try {
-    const r = await fetch('/api/secrets/set', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({key: 'OPENROUTER_API_KEY', value: key, scope: 'global'})
-    });
-    const j = await r.json();
-    if (j.ok) {
-      const tr = await fetch('/api/secrets/test-connection', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({provider: 'openrouter', key: key})
-      });
-      const tj = await tr.json();
-      if (tj.ok) {
-        // BUG FIX: this read `${tj.models_count || 180}+ models ready (Claude
-        // 3.5 Sonnet, GPT-4o, Llama 3.3)`. When the backend could not reach
-        // the catalogue it returns models_count: 0, and `0 || 180` is 180 —
-        // so the UI invented a model count nobody measured and then named
-        // three specific models it had not confirmed the key can reach. The
-        // backend goes to real trouble here (it verifies against
-        // /api/v1/auth/key precisely because the public /models endpoint
-        // returns 200 for any garbage), and the frontend was undoing that by
-        // making up the number when the measurement was unavailable.
-        if (statusEl) {
-          const n = Number(tj.models_count || 0);
-          statusEl.innerHTML = '<span style="color:var(--success)">✅ Key verified and active' +
-            (n > 0 ? ' — ' + n + ' models available' : '') + '.</span>';
-        }
-        if (typeof updateKeyStatus === 'function') updateKeyStatus(true);
-        keyInp.value = '';
-      } else {
-        if (statusEl) statusEl.innerHTML = `<span style="color:var(--warning)">🔑 Key saved, but verification reported: ${escHtml(tj.error || 'Check permissions')}</span>`;
-      }
-    } else {
-      if (statusEl) statusEl.innerHTML = `<span style="color:var(--danger)">❌ Failed to save key: ${escHtml(j.error || '')}</span>`;
-    }
-  } catch(e) {
-    if (statusEl) statusEl.innerHTML = `<span style="color:var(--danger)">❌ Network error: ${escHtml(e?.message || '')}</span>`;
-  }
-};
-
 window.openExternalLink = function(url) {
   if (!url) return;
   try {
@@ -2022,47 +1961,6 @@ window.pinChatSession = async function(e, sid, pinned) {
     toast('❌ Error pinning chat: ' + err.message, 'err', 2500);
   }
 };
-
-window.deleteChatSession = async function(e, sid) {
-  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-  const ok = await gmConfirm('Delete Chat Conversation?', 'Are you sure you want to permanently delete this chat session and all its messages?');
-  if (!ok) return;
-  toast('🗑 Deleting chat...', 'ok', 1000);
-  try {
-    const res = await fetch(`/api/sessions/${encodeURIComponent(sid)}`, { method: 'DELETE' });
-    const j = await res.json();
-    if (!j.ok) { toast('❌ Delete failed: ' + (j.error || 'Unknown'), 'err', 2500); return; }
-    if (S.sessionId === sid && typeof window.startNewChatSession === 'function') window.startNewChatSession();
-    else if (typeof window.loadChatSessions === 'function') await window.loadChatSessions();
-    toast('🗑 Chat deleted!', 'ok', 1500);
-  } catch (err) {
-    toast('❌ Error deleting chat: ' + err.message, 'err', 2500);
-  }
-};
-
-window.renameChatSessionModal = async function(e, sid, oldName, oldFolder) {
-  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-  const newName = await gmPrompt('Rename Chat Conversation', 'Enter a new title for this chat:', oldName || '');
-  if (newName === null || !newName.trim()) return;
-  const newFolder = await gmPrompt('Move to Folder / Category', 'Enter folder name:', oldFolder || 'General');
-  if (newFolder === null || !newFolder.trim()) return;
-  try {
-    toast('✏️ Updating chat...', 'ok', 1000);
-    const res = await fetch(`/api/sessions/${encodeURIComponent(sid)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newName.trim(), description: newFolder.trim() })
-    });
-    const j = await res.json();
-    if (!j.ok) { toast('❌ Update failed: ' + (j.error || 'Unknown'), 'err', 2500); return; }
-    if (S.sessionId === sid) { S.sessionName = newName.trim(); S.sessionFolder = newFolder.trim(); }
-    if (typeof window.loadChatSessions === 'function') await window.loadChatSessions();
-    toast('✏️ Chat renamed & moved to ' + newFolder.trim() + '!', 'ok', 1500);
-  } catch (err) {
-    toast('❌ Error updating chat: ' + err.message, 'err', 2500);
-  }
-};
-
 
 window.renderConnectionReadiness = function(readiness = {}) {
   const localModels = Number(readiness.localModels || 0);

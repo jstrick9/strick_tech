@@ -33,7 +33,6 @@
     if (toggle) toggle.classList.toggle('open', show);
   }
 
-  window.toggleAdvanced = function() { advancedOpen = !advancedOpen; showAdv(advancedOpen); };
   window.setMode = function(mode) {
     if (typeof window.switchUIMode === 'function') window.switchUIMode(mode);
     else applyMode(mode);

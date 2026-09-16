@@ -21,8 +21,10 @@ describe('no native confirm()/prompt()/alert() survives (gmDanger standard)', ()
       // Negative lookbehind keeps `gmPrompt(`/`gmAlert(` and shadowed local vars
       // (const prompt = ...) from counting; requiring immediate `(` (no `\s*`)
       // keeps prose like "prompt (use" inside a string literal from counting.
+      // (The old deferredPrompt.prompt() exemption went with the removed
+      // installPWA orphan — r46 dead-export sweep.)
       const nativeDialog = /(?<![A-Za-z$_])(?:window\.)?(?:confirm|prompt|alert)\(/;
-      if (nativeDialog.test(code) && !/deferredPrompt\s*\.\s*prompt\s*\(/.test(code)) {
+      if (nativeDialog.test(code)) {
         offenders.push(f);
       }
     }

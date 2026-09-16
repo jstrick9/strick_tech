@@ -25,27 +25,6 @@
         .catch(err => console.warn('SW registration failed:', err));
     });
   }
-
-  let deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    const btn = document.getElementById('pwa-install-btn');
-    if (btn) btn.style.display = 'flex';
-  });
-
-  window.installPWA = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const result = await deferredPrompt.userChoice;
-      if (result.outcome === 'accepted') {
-        showToast('✅ Agentic OS installed as desktop app!');
-      }
-      deferredPrompt = null;
-    } else {
-      gmAlert('To install: click Install Agentic OS or Add to Home Screen');
-    }
-  };
 })();
 
 // Nav patches for Sprint A-D features

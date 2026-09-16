@@ -16,9 +16,17 @@ def test_launchpad_offers_plain_language_outcomes():
 
 
 def test_launchpad_actions_leave_prompts_editable_and_focus_input():
-    assert 'window.startGuidedChat = function(prompt = \'\')' in CORE
-    assert 'input.focus();' in CORE
-    assert "launchpad.style.display = 'none'" in CORE
+    # The old mission-launchpad-deck and its startGuidedChat handler were
+    # removed (r46 dead-export sweep: the deck element existed nowhere).
+    # The launchpad's contract lives on in the chat empty state's
+    # quick-action cards: randomBuildPrompt/randomResearchPrompt/
+    # randomCodePrompt route through insertCmd, which fills the input,
+    # FOCUSES it and leaves the prompt editable before send.
+    assert 'window.randomBuildPrompt = function()' in CORE
+    assert 'window.randomResearchPrompt = function()' in CORE
+    assert 'window.randomCodePrompt = function()' in CORE
+    assert 'function insertCmd(cmd) {' in CORE
+    assert 'el.focus();' in CORE
 
 
 def test_launchpad_is_responsive_and_uses_design_tokens():
