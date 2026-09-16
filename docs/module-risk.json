@@ -1,9 +1,9 @@
 [
   {
     "pane": "docs",
-    "score": 35,
+    "score": 36,
     "file": "04-workflow-specs.js",
-    "lines": 1881,
+    "lines": 1908,
     "endpoints": 15,
     "markers": 1,
     "tested": true,

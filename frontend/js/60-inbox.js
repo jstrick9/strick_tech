@@ -59,7 +59,7 @@
         <div style="padding:18px 24px 14px;border-bottom:1px solid var(--border-0)">
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <div>
-              <div style="font-size:18px;font-weight:700">📥 Inbox</div>
+              <div class="ctx-help-anchor" style="font-size:18px;font-weight:700">📥 Inbox</div>
               <div style="font-size:12.5px;color:var(--text-2);margin-top:2px">
                 Capture anything from anywhere. The router files it into the right workspace.
               </div>

@@ -81,7 +81,7 @@ async function renderAuditLog() {
     <!-- Main -->
     <div class="crc-main">
       <div class="crc-header">
-        <span class="crc-header-title" id="crc-header-title">🔏 Compliance & Audit Center</span>
+        <span class="crc-header-title ctx-help-anchor" id="crc-header-title">🔏 Compliance & Audit Center</span>
         <button class="crc-action-btn" data-act-click="crcRefresh()" title="Refresh">↺ Refresh</button>
       </div>
       <div class="crc-content" id="crc-content">

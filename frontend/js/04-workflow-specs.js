@@ -1600,7 +1600,18 @@ window.startInteractiveVideoWalkthrough = function(vidId, title) {
 function addContextualHelp(paneId, container) {
   if (!container || container.querySelector('.ctx-help-btn')) return;
 
-  const header = container.querySelector('.section-head > div:first-child, .chat-header, h2, .page-header > div:first-child') || container.querySelector('.section-head, h2') || container;
+  // Place the button inside a real heading/header so it flows with the pane's
+  // own layout. The old chain ended with `|| container`, and for the 27 panes
+  // with no .section-head/.chat-header/h2 (kanban's title is an h1, galaxy's
+  // is a span, many JS panes render their header async) that appended an
+  // in-flow flex child directly to the pane root: a stray "?" row at the
+  // bottom-left of the pane, clipped off-pane (galaxy measured 8px of phantom
+  // scroll from it) and stealing layout space. If there is no header to host
+  // it, render nothing — _attachContextualHelpToPane retries once after the
+  // pane's async render, and help stays reachable via ⌘K / the docs pane.
+  const header = container.querySelector('.section-head > div:first-child, .chat-header, h1, h2, .page-header > div:first-child, .ctx-help-anchor')
+    || container.querySelector('.section-head, h1, h2, .ctx-help-anchor');
+  if (!header) return;
   const btn = document.createElement('button');
   btn.className = 'ctx-help-btn btn-3d';
   btn.style.cssText = 'position:relative;display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--bg-3);border:1px solid var(--border);align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:var(--text-3);transition:all .12s;z-index:10;margin-left:8px;vertical-align:middle;flex-shrink:0';
@@ -1710,6 +1721,22 @@ function _attachContextualHelpToPane(pane) {
     paneEl
   );
   addContextualHelp(pane, container);
+  // Many panes render their header asynchronously (fetch-then-render), so at
+  // nav() time there is nothing to host the button yet. addContextualHelp
+  // now refuses to inject a stray in-flow button into the pane root, so give
+  // the render a moment and retry once. The .ctx-help-btn guard inside
+  // addContextualHelp makes the retry a no-op if the button already landed.
+  if (!paneEl.querySelector('.ctx-help-btn')) {
+    setTimeout(() => {
+      const still = document.getElementById(`pane-${pane}`);
+      if (still) addContextualHelp(pane, (
+        still.querySelector('.section-head') ||
+        still.querySelector('.chat-header') ||
+        still.querySelector('.pane-header') ||
+        still
+      ));
+    }, 1200);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════
