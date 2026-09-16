@@ -157,7 +157,14 @@
     if (typeof msg !== 'string' || !msg) return msg;
     var s = msg.trim();
     // Already human: produced by humanError() or a thoughtful call site.
-    if (/^(Couldn.t|Something went wrong|That request|You need to|You do not)/i.test(s)) return msg;
+    // The "enhanced toast" wrapper prepends an icon ("❌ ", "⚠️ ") BEFORE
+    // this runs, which used to defeat the anchor and send thoughtful
+    // messages through the status rewriter — "❌ Couldn't save — server
+    // error 500. Your edit is still safe in the editor." became "❌ Couldn't
+    // save. The server ran into a problem." and the reassurance was dropped
+    // (verified live). Strip any leading symbol/icon run for the CHECK only.
+    var bare = s.replace(/^\s*[^\p{L}\p{N}]+/u, '');
+    if (/^(Couldn.t|Something went wrong|That request|You need to|You do not)/i.test(bare)) return msg;
     // Status-bearing raw messages: "X failed: server error 500",
     // "Load failed — HTTP 502", "Error: status 404".
     var m = s.match(/^(.*?)[\s:–—-]*(?:server error|http|status|error code)\s*[:#]?\s*(\d{3})\b/i);

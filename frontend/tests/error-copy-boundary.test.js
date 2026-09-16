@@ -38,6 +38,15 @@ describe('humanizeRawError at the toast boundary', () => {
     expect(window.humanizeRawError(custom)).toBe(custom);
   });
 
+  it('tolerates a leading icon prepended by the toast wrapper', () => {
+    // The "enhanced toast" layer prepends "\u274C " to err messages before
+    // the boundary humanizes them; the anchor must not be defeated by it.
+    const msg = "Couldn't save \u2014 server error 500. Your edit is still safe in the editor.";
+    const withIcon = '\u274C ' + msg;
+    expect(window.humanizeRawError(withIcon)).toBe(withIcon);
+    expect(window.humanizeRawError('\u26A0\uFE0F ' + msg)).toBe('\u26A0\uFE0F ' + msg);
+  });
+
   it('toast() routes err messages through the humanizer', () => {
     expect(TOAST_SRC).toMatch(/type === 'err' && typeof window\.humanizeRawError === 'function'/);
   });

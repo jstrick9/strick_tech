@@ -726,6 +726,7 @@
 }
 .autosave-dot.saving{background:var(--yellow);opacity:1}
 .autosave-dot.saved{background:var(--green);opacity:1}
+.autosave-dot.error{background:var(--danger);opacity:1}
 
 /* HMR live badge */
 .hmr-badge{

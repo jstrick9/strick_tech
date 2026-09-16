@@ -5032,7 +5032,11 @@ function studioMarkAutosave(state) {
   const dot = document.getElementById('autosave-dot');
   if (!dot) return;
   dot.className = 'autosave-dot ' + state;
-  if (state === 'saved') setTimeout(() => { dot.className = 'autosave-dot'; }, 2000);
+  // Only reset if still in the 'saved' state: a save that succeeds at t=0
+  // schedules this reset at t=2s, and an 'error' marked in between (a failed
+  // retry, a manual save against a down server) used to be silently wiped
+  // by the stale timer.
+  if (state === 'saved') setTimeout(() => { if (dot.className === 'autosave-dot saved') dot.className = 'autosave-dot'; }, 2000);
 }
 
 async function studioAutoSave() {
@@ -5061,17 +5065,36 @@ async function studioAutoSave() {
 async function studioSaveFile() {
   if (!Studio.editor) return;
   const content = Studio.editor.getValue();
-  const r = await fetch('/api/preview/save', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ path: Studio.currentFile, content, author: 'user', message: 'save' })
-  });
-  const j = await r.json();
-  if (j.ok) {
-    toast(`💾 Saved — ${j.versions} versions`, 'ok', 1500);
-    studioMarkAutosave('saved');
-    studioReloadPreview(); // explicit refresh on manual save
-  } else {
-    toast('Save failed', 'err');
+  try {
+    const r = await fetch('/api/preview/save', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ path: Studio.currentFile, content, author: 'user', message: 'save' })
+    });
+    // Read the body BEFORE branching on the status: refusals arrive as
+    // {'ok':false,'error':...} (restatused to 4xx by the ok:false
+    // middleware), and a non-JSON body (a crashed proxy, a dropped
+    // connection) must not turn into an unhandled rejection that never
+    // toasts — the user would believe an unsaved edit was saved.
+    let j = null;
+    try { j = await r.json(); } catch (e) { /* non-JSON body */ }
+    if (r.ok && j && j.ok) {
+      toast(`💾 Saved — ${j.versions} versions`, 'ok', 1500);
+      studioMarkAutosave('saved');
+      studioReloadPreview(); // explicit refresh on manual save
+    } else {
+      const reason = (j && j.error) || ('server error ' + r.status);
+      // Leads with "Couldn't" so the toast boundary's humanizeRawError()
+      // passes it through untouched — a "Save failed: server error 500"
+      // style lead is rewritten to "Save failed. The server ran into a
+      // problem." and everything after the status is dropped, which ate
+      // the reassurance (verified live).
+      toast(`Couldn't save — ${reason}. Your edit is still safe in the editor.`, 'err', 5000);
+      studioMarkAutosave('error');
+    }
+  } catch (e) {
+    // network-level failure (connection refused, offline)
+    toast(`Couldn't save — ${e.message}. Your edit is still safe in the editor.`, 'err', 5000);
+    studioMarkAutosave('error');
   }
 }
 
