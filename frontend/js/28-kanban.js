@@ -46,10 +46,10 @@ async function renderKanban() {
         </div>
         <div class="kanban-topbar-right">
           <div class="kanban-filter-group">
-            <button type="button" class="kanban-filter-btn ${!kanbanActiveFilter ? 'active' : ''}" data-act-click="kanbanSetFilter(null)">All</button>
-            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'high' ? 'active' : ''}" data-act-click="kanbanSetFilter('high')">🔴 High</button>
-            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'medium' ? 'active' : ''}" data-act-click="kanbanSetFilter('medium')">🟡 Medium</button>
-            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'low' ? 'active' : ''}" data-act-click="kanbanSetFilter('low')">🟢 Low</button>
+            <button type="button" class="kanban-filter-btn ${!kanbanActiveFilter ? 'active' : ''}" data-priority="all" data-act-click="kanbanSetFilter(null)">All</button>
+            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'high' ? 'active' : ''}" data-priority="high" data-act-click="kanbanSetFilter('high')">🔴 High</button>
+            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'medium' ? 'active' : ''}" data-priority="medium" data-act-click="kanbanSetFilter('medium')">🟡 Medium</button>
+            <button type="button" class="kanban-filter-btn ${kanbanActiveFilter === 'low' ? 'active' : ''}" data-priority="low" data-act-click="kanbanSetFilter('low')">🟢 Low</button>
           </div>
           <button type="button" class="kanban-add-btn" data-act-click="kanbanOpenCreateModal()">
             ＋ New Task
@@ -799,6 +799,14 @@ async function kanbanDeleteTask(taskId) {
 // ── Filter ────────────────────────────────────────────────────────
 function kanbanSetFilter(priority) {
   kanbanActiveFilter = priority;
+  // BUG FIX: the active pill was baked into renderKanban's template, and this
+  // function only re-rendered the board — so clicking a filter changed the
+  // cards but left "All" highlighted forever. The control must reflect the
+  // state it controls: toggle .active on the pills via their data-priority.
+  document.querySelectorAll('.kanban-filter-btn').forEach(btn => {
+    const p = btn.dataset.priority || 'all';
+    btn.classList.toggle('active', (p === 'all' ? null : p) === kanbanActiveFilter);
+  });
   kanbanRenderBoard();
 }
 
