@@ -187,7 +187,13 @@
   async function inboxCapture() {
     const el = document.getElementById('inbox-quick');
     const note = document.getElementById('inbox-note');
-    if (!el || !el.value.trim()) return;
+    if (!el || !el.value.trim()) {
+      // An empty Capture click used to do nothing while the note above still
+      // showed the previous capture's "✓ Captured." — silence next to a stale
+      // success reads as "it worked". Say what happened.
+      if (el && note) note.textContent = 'Nothing to capture yet — type a thought or paste a link first.';
+      return;
+    }
     const text = el.value.trim();
     try {
       // A bare URL is a link capture, which is what a phone share usually is.
@@ -211,7 +217,14 @@
     try {
       await api('/api/inbox/items/' + encodeURIComponent(id), {method: 'DELETE'});
       await loadInbox();
-    } catch (e) { /* the list reload will show the truth */ }
+    } catch (e) {
+      // "The list reload will show the truth" only says the item is STILL
+      // THERE — it never says WHY. A confirmed delete that fails silently
+      // (verified live: HTTP 500, item stays, no message anywhere) is the
+      // success-looking failure family. Say it.
+      if (window.showToast) window.showToast('Could not delete: ' + e.message, 'err');
+      await loadInbox();
+    }
   }
 
   async function inboxPreview() {

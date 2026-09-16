@@ -74,11 +74,17 @@ async def share_target(req: Request):
         title = text = url = ''
 
     if not (text.strip() or url.strip() or title.strip()):
-        return RedirectResponse('/?pane=inbox&captured=empty', status_code=303)
+        return RedirectResponse('/?captured=empty#/inbox', status_code=303)
 
     result = svc.capture(text=text or title, title=title, source='share', url=url)
     status = 'ok' if result.get('ok') else 'error'
-    return RedirectResponse(f'/?pane=inbox&captured={status}', status_code=303)
+    # The redirect must open the Inbox pane itself: the phone-side user is
+    # mid-share and the "✓ Captured from share." note only renders when the
+    # pane is open. This used to send ?pane=inbox, a query param nothing in
+    # the app reads — the deep-link router (initDeepLinkRouter) understands
+    # #/pane hashes, and the pane reads the captured flag from the query
+    # string, so the correct form is /?captured=ok#/inbox.
+    return RedirectResponse(f'/?captured={status}#/inbox', status_code=303)
 
 
 @router.get('/items/{item_id}')

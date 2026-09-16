@@ -382,7 +382,9 @@ class TestInboxEndpoints:
         """A phone browser handed JSON shows braces on a white screen."""
         r = client.post('/api/inbox/share', data={'text': 'x'}, follow_redirects=False)
         assert r.status_code == 303
-        assert 'pane=inbox' in r.headers['location']
+        # #/inbox, not ?pane=: the deep-link router reads hashes, nothing in
+        # the app reads a pane query param (r43).
+        assert r.headers['location'].endswith('#/inbox')
 
     def test_an_empty_share_still_redirects(self, client):
         """Even a malformed share must not error at the user."""
@@ -428,3 +430,35 @@ def test_the_share_target_action_is_a_real_route():
     action = json.loads(Path('frontend/manifest.json').read_text(
         encoding='utf-8'))['share_target']['action']
     assert action in {getattr(r, 'path', '') for r in app.routes}
+
+
+def test_the_share_redirect_opens_the_inbox_pane(client):
+    """The redirect after a phone share must land on a URL that opens the pane.
+
+    It used to send /?pane=inbox&captured=ok — a query param nothing in the
+    app reads. The deep-link router (initDeepLinkRouter) only understands
+    #/pane hashes, so the share landed on the default pane and the
+    "✓ Captured from share." note (rendered by the pane itself) never
+    appeared. Verified live before the fix: pane inactive, note absent.
+    """
+    r = client.post('/api/inbox/share',
+                    data={'title': 'zz share probe', 'text': 'hello from the train'},
+                    follow_redirects=False)
+    assert r.status_code == 303, r.status_code
+    loc = r.headers['location']
+    assert loc.endswith('#/inbox'), loc
+    assert 'captured=ok' in loc, loc
+    assert 'pane=' not in loc, 'nothing reads ?pane= — use the #/inbox hash'
+
+    empty = client.post('/api/inbox/share', data={'title': ''},
+                        follow_redirects=False)
+    assert empty.status_code == 303
+    eloc = empty.headers['location']
+    assert eloc.endswith('#/inbox') and 'captured=empty' in eloc, eloc
+
+    # The probe captured a real item (share captures always land somewhere a
+    # human can find them) — remove it again so the test leaves no residue.
+    from backend.services import capture_inbox as svc
+    for item in svc.list_items(limit=500):
+        if 'zz share probe' in (item.get('title') or ''):
+            svc.delete_item(item['id'])
