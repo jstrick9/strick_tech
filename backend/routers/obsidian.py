@@ -89,6 +89,12 @@ def validate_note_path(raw: object) -> tuple[str | None, str | None]:
     parts = [p for p in path.split('/') if p not in ('', '.')]
     if not parts:
         return None, 'path required'
+    # A path whose every character is the extension (".md") has no name —
+    # it writes a hidden junk file. saveQuickNote() slugifies titles down
+    # to \w characters, so an all-punctuation title ("!!!") used to POST
+    # exactly this and litter the vault with ".md" files.
+    if any(p == '.md' for p in parts):
+        return None, 'path must include a name before .md'
     safe = '/'.join(parts)
     if not safe.endswith('.md'):
         safe += '.md'
@@ -418,7 +424,13 @@ def list_notes(limit: int = 100, q: str = ''):
             # filename: the note list shows folders, and searching "Daily"
             # or "agentic-os" for the folder's notes returned nothing.
             rel = p.relative_to(vp).as_posix().lower()
-            if ql not in rel and ql not in p.stem.lower():
+            # Slug-normalise both sides: the pane saves titles with spaces
+            # slugified to underscores ("My Note" -> My_Note.md), so
+            # searching the title exactly as typed ("my note") used to
+            # return nothing for precisely the note just created.
+            norm = lambda s: re.sub(r'[-\s]+', '_', s)
+            nq, nrel, nstem = norm(ql), norm(rel), norm(p.stem.lower())
+            if nq not in nrel and nq not in nstem:
                 continue
         try:
             rel_path = p.relative_to(vp).as_posix()
@@ -520,6 +532,24 @@ async def write_note(req: Request):
         f.relative_to(note_dir.resolve())
     except ValueError:
         return JSONResponse({'ok': False, 'error': 'Path traversal denied'}, status_code=403)
+
+    # Data-loss guard (same convention as the preview scaffold): writing over
+    # an existing note must be an explicit choice. saveQuickNote() derives the
+    # filename from the title alone, so saving "Meeting" twice — or naming a
+    # quick note after an existing vault note — silently destroyed the earlier
+    # content with only a success toast. Refuse; the caller confirms in the UI
+    # and re-sends with overwrite: true.
+    if f.exists() and not bool(body.get('overwrite')):
+        vp = _vault_path()
+        rel = str(f.relative_to(vp)) if vp and is_within(f, vp) else str(f)
+        return JSONResponse(
+            {
+                'ok': False,
+                'exists': True,
+                'error': f'Note already exists: {rel}. Send overwrite: true to replace it.',
+            },
+            status_code=409,
+        )
 
     try:
         f.parent.mkdir(parents=True, exist_ok=True)

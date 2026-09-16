@@ -217,6 +217,83 @@ class TestObsidian:
             for n in by_name.get("notes", [])
         )
 
+    def test_obsidian_write_note_refuses_silent_overwrite(self, client):
+        """Writing over an existing note must be explicit (r42).
+
+        saveQuickNote() derives the filename from the title alone, so saving
+        the same title twice — or naming a quick note after an existing vault
+        note — used to silently destroy the earlier content with only a
+        success toast. Same convention as the preview scaffold: refuse, and
+        require overwrite: true.
+        """
+        r1 = client.post("/api/obsidian/note", json={
+            "path": "unit-test-overwrite-guard",
+            "content": "version A",
+        })
+        assert r1.status_code == 200 and r1.json()["ok"] is True
+
+        # Second write without the flag: 409, and the original is intact.
+        r2 = client.post("/api/obsidian/note", json={
+            "path": "unit-test-overwrite-guard",
+            "content": "version B",
+        })
+        assert r2.status_code == 409, "second write silently overwrote the note"
+        d2 = r2.json()
+        assert d2["ok"] is False and d2.get("exists") is True
+        assert "overwrite" in d2["error"]
+
+        kept = client.get("/api/obsidian/note", params={
+            "path": r1.json()["path"],
+        }).json()
+        assert "version A" in kept.get("content", "")
+
+        # Explicit opt-in replaces it.
+        r3 = client.post("/api/obsidian/note", json={
+            "path": "unit-test-overwrite-guard",
+            "content": "version B",
+            "overwrite": True,
+        })
+        assert r3.status_code == 200 and r3.json()["ok"] is True
+        replaced = client.get("/api/obsidian/note", params={
+            "path": r3.json()["path"],
+        }).json()
+        assert "version B" in replaced.get("content", "")
+
+    def test_obsidian_write_note_rejects_extension_only_path(self, client):
+        """A path with no name before .md writes a hidden junk file.
+
+        An all-punctuation quick-note title slugifies to an empty stem and
+        used to POST exactly ".md" — littering the vault with nameless
+        files the list then showed as ".md".
+        """
+        for junk in (".md", "folder/.md"):
+            r = client.post("/api/obsidian/note", json={
+                "path": junk,
+                "content": "no name",
+            })
+            assert r.status_code == 400, f"{junk!r} was accepted"
+            assert "name" in r.json()["error"]
+
+    def test_obsidian_search_finds_slugified_titles(self, client):
+        """Search must match the title as the user typed it (r42).
+
+        The pane slugifies note titles ("My Note" -> My_Note.md), so a
+        search for "my note" (spaces, exactly what the user just typed in
+        the title box) used to return nothing for precisely that note.
+        Hyphen/space/underscore must all find the slugified filename.
+        """
+        r = client.post("/api/obsidian/note", json={
+            "path": "unit_test_slug_search",
+            "content": "# slug search target",
+        })
+        assert r.status_code == 200 and r.json()["ok"] is True
+
+        for q in ("unit test slug search", "unit-test-slug-search", "unit_test_slug_search"):
+            hit = client.get("/api/obsidian/notes", params={"q": q}).json()
+            names = [n.get("name") for n in hit.get("notes", [])]
+            assert "unit_test_slug_search" in names, f"q={q!r} missed: {names}"
+
+
     def test_obsidian_index_skips_generated_exports(self, client):
         """Index must not re-ingest Agentic_OS_Export_*.md files.
 
@@ -297,9 +374,13 @@ class TestObsidian:
         assert vault_rel.startswith("agentic-os/")
 
         # Round-trip: write using exactly the path the API handed back.
+        # (overwrite: true because the guard added in r42 refuses to
+        # silently replace an existing note — this write IS the deliberate
+        # update the flag exists for.)
         r2 = client.post("/api/obsidian/note", json={
             "path": vault_rel,
             "content": "updated",
+            "overwrite": True,
         })
         assert r2.status_code == 200 and r2.json().get("ok") is True
         assert "agentic-os/agentic-os" not in r2.json().get("path", ""), (

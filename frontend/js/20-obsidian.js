@@ -272,18 +272,32 @@ async function saveQuickNote() {
   const title   = titleEl?.value?.trim();
   const body    = bodyEl?.value?.trim() || '';
   if (!title) { showToast('⚠️ Enter a note title', 'err'); return; }
+  // An all-punctuation title ("!!!") slugifies to an empty stem, which used
+  // to POST a junk hidden ".md" file into the vault (the backend rejects it
+  // too now — this guard keeps the error friendly and client-side).
+  const slug = title.replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'_');
+  if (!slug) { showToast('⚠️ Title needs at least one letter or number', 'err'); return; }
   // Store the note as-typed. This used to escHtml() the title AND body into
   // the markdown file, so a note containing "&", "<", quotes or an emoji
   // sequence was permanently mangled on disk ("Tom & Jerry" →
   // "Tom &amp; Jerry") — and kept re-escaping if re-saved. Escaping belongs
   // to the DISPLAY path (viewNote), which already escapes when rendering.
   const content  = `# ${title}\n\n${body}`;
-  const filename = title.replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'_') + '.md';
+  const filename = slug + '.md';
+  // overwrite:false first: the backend refuses to silently replace an
+  // existing note (data-loss guard); a 409 asks the user before re-sending.
+  const send = (overwrite) => fetch('/api/obsidian/note', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({path: filename, content, overwrite})
+  });
   try {
-    const r = await fetch('/api/obsidian/note', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({path: filename, content})
-    });
+    let r = await send(false);
+    if (r.status === 409) {
+      const replace = await gmDanger('Overwrite Note',
+        `A note named "${escHtml(title)}" already exists. Replace its content? This cannot be undone.`);
+      if (!replace) { showToast('Skipped — existing note kept'); return; }
+      r = await send(true);
+    }
     if (!r.ok) { showToast('Save failed: HTTP '+r.status, 'err'); return; }
     const j = await r.json();
     if (j.ok) {
