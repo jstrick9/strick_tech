@@ -38,3 +38,24 @@ describe('inboxDelete uses the gmDanger modal', () => {
     expect(src).not.toMatch(/window\.confirm\s*\(/);
   });
 });
+
+describe('hClearVoiceHistory confirms before wiping all voice history (r45)', () => {
+  // The r45 destructive-action audit found this was the only unconfirmed
+  // wipe in the app: the voice panel's "🗑 Clear History" deleted ALL voice
+  // history outright, while every sibling (websearch history, browser
+  // sessions, note deletes) asks via gmDanger first.
+  it('asks via gmDanger before the DELETE and bails when declined', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js', '00-handlers.js'), 'utf8');
+    const i = src.indexOf("on('hClearVoiceHistory'");
+    expect(i).toBeGreaterThan(0);
+    // slice to the end of the handler (the closing "});" of on(...))
+    const body = src.slice(i, src.indexOf('});', i));
+    const askIdx = body.indexOf('window.gmDanger(');
+    const delIdx = body.indexOf("fetch('/api/voice/history'");
+    expect(askIdx, 'gmDanger call missing').toBeGreaterThan(-1);
+    expect(delIdx, 'DELETE fetch missing').toBeGreaterThan(-1);
+    expect(askIdx, 'confirmation must precede the DELETE').toBeLessThan(delIdx);
+    // declining must return before the fetch fires
+    expect(body).toMatch(/if\s*\(!ok\)\s*return/);
+  });
+});

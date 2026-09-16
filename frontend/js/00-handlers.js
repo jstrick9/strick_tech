@@ -186,8 +186,16 @@
   // edit that shipped because a broken inline handler produces no build error
   // and no console output until the moment it is clicked. Restored to the
   // evident intent: delete, close the panel, confirm.
-  on('hClearVoiceHistory', function (el) {
+  //
+  // The "confirm" in that intent was missing (r45 confirmation sweep): this
+  // button wipes ALL voice history, and every sibling destructive action
+  // (websearch history, browser sessions, note deletes) asks via gmDanger.
+  on('hClearVoiceHistory', async function (el) {
     var panel = el.closest('[style*=fixed]');
+    var ok = false;
+    try { ok = await window.gmDanger('Clear Voice History', 'Delete your entire voice history? This cannot be undone.', 'Clear History'); }
+    catch (e) { ok = false; }
+    if (!ok) return;
     fetch('/api/voice/history', { method: 'DELETE' })
       .then(function () {
         if (panel) panel.remove();
