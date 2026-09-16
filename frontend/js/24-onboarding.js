@@ -190,6 +190,13 @@ function obBack() {
 window.showQuickSetup = async function() {
   const modal = document.createElement('div');
   modal.id = 'quick-setup-modal';
+  // -modal-overlay class + role=dialog join the master Escape handler's
+  // REMOVE branch (these modals close via data-close=remove) and the Tab
+  // focus-trap. Previously mouse-only dismissal — a keyboard trap by the
+  // app's own convention (test_97, escape-overlay-modals).
+  modal.className = 'qs-modal-overlay';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
   modal.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(8px)';
   modal.innerHTML = `
     <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:20px;padding:32px;max-width:480px;width:90%;box-shadow:0 24px 80px rgba(0,0,0,.5)">

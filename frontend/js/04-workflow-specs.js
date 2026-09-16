@@ -481,6 +481,13 @@ function showUpgradeModal(paneId, requiredTier='pro', currentTier='free') {
 
   const modal = document.createElement('div');
   modal.id = 'upgrade-modal';
+  // -modal-overlay class + role=dialog join the master Escape handler's
+  // REMOVE branch (these modals close via data-close=remove) and the Tab
+  // focus-trap. Previously mouse-only dismissal — a keyboard trap by the
+  // app's own convention (test_97, escape-overlay-modals).
+  modal.className = 'wf-modal-overlay';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
   modal.innerHTML = `
     <div style="background:var(--bg-2);border:2px solid ${reqColor}44;border-radius:20px;max-width:460px;width:100%;padding:28px;text-align:center">
@@ -542,6 +549,13 @@ async function showTierPlans() {
 
   const modal = document.createElement('div');
   modal.id = 'tier-plans-modal';
+  // -modal-overlay class + role=dialog join the master Escape handler's
+  // REMOVE branch (these modals close via data-close=remove) and the Tab
+  // focus-trap. Previously mouse-only dismissal — a keyboard trap by the
+  // app's own convention (test_97, escape-overlay-modals).
+  modal.className = 'wf-modal-overlay';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
   modal.innerHTML = `
   <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:20px;max-width:860px;width:100%;padding:28px">
@@ -590,6 +604,13 @@ function showLicenseActivation() {
   document.getElementById('license-activation-modal')?.remove(); // idempotency
   const modal = document.createElement('div');
   modal.id = 'license-activation-modal'; // FIX B: give modal a stable id
+  // -modal-overlay class + role=dialog join the master Escape handler's
+  // REMOVE branch (these modals close via data-close=remove) and the Tab
+  // focus-trap. Previously mouse-only dismissal — a keyboard trap by the
+  // app's own convention (test_97, escape-overlay-modals).
+  modal.className = 'wf-modal-overlay';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
   modal.innerHTML = `
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:420px;width:100%">
@@ -633,6 +654,13 @@ async function showSetUserModal() {
   } catch(e) {}
   const modal = document.createElement('div');
   modal.id = 'set-user-modal';
+  // -modal-overlay class + role=dialog join the master Escape handler's
+  // REMOVE branch (these modals close via data-close=remove) and the Tab
+  // focus-trap. Previously mouse-only dismissal — a keyboard trap by the
+  // app's own convention (test_97, escape-overlay-modals).
+  modal.className = 'wf-modal-overlay';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
   modal.innerHTML = `
     <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:400px;width:100%">
