@@ -32,3 +32,33 @@ describe('master Escape handler dismisses bespoke overlay-modals', () => {
     expect(branch).not.toMatch(/m\.style\.display/);
   });
 });
+
+describe('drawer detail scrims join the Escape nets by class (r41 sweep)', () => {
+  // The plugin-hub and connect-hub detail overlays render INSIDE
+  // #hub-drawer/#connect-drawer via innerHTML, so the body-level Escape net in
+  // 00-handlers.js (body > div:not([id])) can never see them — they are not
+  // body children and they carry ids. Their only route out is the master
+  // handler, whose collectOpenModals matches the /-modal-overlay/ class. Until
+  // this sweep they had id + inline styles only: a hard keyboard trap.
+  // (The five bespoke modals in 04-workflow-specs/24-onboarding are covered by
+  // escape-coverage-bespoke-modals.test.js.)
+  const j = (f) => fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8');
+
+  it('hub-overlay carries the marker class + dialog role inside the drawer markup', () => {
+    const src = j('34-plugin-hub.js');
+    const tag = src.match(/id="hub-overlay"[^>]*/);
+    expect(tag, 'hub-overlay div exists').toBeTruthy();
+    expect(tag[0]).toMatch(/class="hub-modal-overlay"/);
+    expect(tag[0]).toMatch(/role="dialog"/);
+    expect(tag[0]).toMatch(/aria-modal="true"/);
+  });
+
+  it('connect-overlay carries the marker class + dialog role inside the drawer markup', () => {
+    const src = j('35-connect-hub.js');
+    const tag = src.match(/id="connect-overlay"[^>]*/);
+    expect(tag, 'connect-overlay div exists').toBeTruthy();
+    expect(tag[0]).toMatch(/class="connect-modal-overlay"/);
+    expect(tag[0]).toMatch(/role="dialog"/);
+    expect(tag[0]).toMatch(/aria-modal="true"/);
+  });
+});

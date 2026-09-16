@@ -160,7 +160,7 @@ async function connectShowDetail(id) {
     const r = await fetch(`/api/connect/item/${encodeURIComponent(id)}`);
     if (!r.ok) { toast('Not found', 'err'); return; }
     const d = await r.json();
-    drawer.innerHTML = `<div id="connect-overlay" data-act-click="connectClose($event)"
+    drawer.innerHTML = `<div id="connect-overlay" class="connect-modal-overlay" role="dialog" aria-modal="true" data-act-click="connectClose($event)"
         style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;display:flex;justify-content:flex-end">
       <div data-stop="1" style="width:min(520px,100%);height:100%;overflow-y:auto;background:var(--bg-1);border-left:1px solid var(--border);padding:22px">
         <div style="display:flex;align-items:flex-start;gap:12px">

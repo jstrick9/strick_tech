@@ -201,7 +201,7 @@ async function hubShowDetail(packId) {
     const r = await fetch(`/api/hub/pack/${encodeURIComponent(packId)}`);
     if (!r.ok) { toast('Could not load that plugin', 'err'); drawer.innerHTML = ''; return; }
     const d = await r.json();
-    drawer.innerHTML = `<div data-act-click="hubCloseDetail($event)" id="hub-overlay"
+    drawer.innerHTML = `<div data-act-click="hubCloseDetail($event)" id="hub-overlay" class="hub-modal-overlay" role="dialog" aria-modal="true"
         style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;display:flex;justify-content:flex-end">
       <div data-stop="1" style="width:min(560px,100%);height:100%;overflow-y:auto;background:var(--bg-1);border-left:1px solid var(--border);padding:22px">
         <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:6px">
