@@ -171,7 +171,7 @@
     if (cnt) cnt.textContent = filtered.length + ' template' + (filtered.length !== 1 ? 's' : '');
 
     if (!filtered.length) {
-      grid.innerHTML = stateFeedback.emptyElement({ icon: '🔍', title: 'No templates found', message: 'No templates match \u201c" + escHtml(q) + "\u201d' });
+      grid.innerHTML = stateFeedback.emptyElement({ icon: '🔍', title: 'No templates found', message: 'No templates match \u201c' + escHtml(q) + '\u201d' });
       return;
     }
 
@@ -524,6 +524,15 @@
     if (existing) existing.remove();
     var overlay = document.createElement('div');
     overlay.id = 'tmpl-preview-modal';
+    // The -modal-overlay class joins the master Escape handler's REMOVAL
+    // branch (hide-only leaves a stale scrim) and the Tab focus-trap, which
+    // both discover bespoke dialogs by that class; role=dialog adds the
+    // semantics. Without them this modal could only be closed with the
+    // mouse (✕ button or backdrop click) — a keyboard trap by the app's own
+    // convention (test_97, escape-overlay-modals).
+    overlay.className = 'tmpl-modal-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
     overlay.innerHTML =
       '<div style="background:var(--bg-1);border:1px solid var(--border);border-radius:16px;width:100%;max-width:1000px;height:85vh;display:flex;flex-direction:column;overflow:hidden">' +

@@ -317,12 +317,17 @@ async function loadBranchPreviews() {
 async function createBranchPreview() {
   const name = await gmPrompt('Create Preview Snapshot', 'Name this snapshot (e.g. v1-homepage, client-review)', `snapshot-${Date.now()}`);
   if (!name) return;
+  // try/catch to match loadBranchPreviews(): a network-level failure here
+  // used to escape as an unhandled rejection — no toast, no status, the
+  // button just silently did nothing.
+  try {
   const r = await fetch('/api/composer/preview/branch', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({name, title: name})
   });
-  const j = await r.json();
-  if (j.ok) {
+  let j = null;
+  try { j = await r.json(); } catch (e) { /* non-JSON body */ }
+  if (j && j.ok) {
     toast(`📸 Snapshot created! ${j.files} files`, 'ok', 3000);
     loadBranchPreviews();
     // The share URL used to be hardcoded 'http://localhost:8787' — a dead
@@ -333,14 +338,21 @@ async function createBranchPreview() {
       `<div>Share this URL with clients for review:</div>
        <code style="display:block;background:var(--bg-0);padding:8px;border-radius:4px;margin:10px 0;font-size:12px;word-break:break-all">${escHtml(location.origin + j.url)}</code>
        <div style="font-size:12px;color:var(--text-2)">The snapshot is frozen — changes to your project won't affect it.</div>`);
-  } else toast('Snapshot failed: ' + (j.error||''), 'err');
+  } else toast("Couldn't create snapshot — " + ((j && j.error) || ('server error ' + r.status)), 'err');
+  } catch (e) {
+    toast("Couldn't create snapshot — " + e.message, 'err');
+  }
 }
 
 async function deleteBranchPreview(name) {
   if (!(await gmDanger('Delete Snapshot', `Delete snapshot "${name}"?`))) return;
+  try {
   const r = await fetch(`/api/composer/preview/branches/${encodeURIComponent(name)}`, {method:'DELETE'});
-  if (!r.ok) { toast('❌ Failed to delete snapshot: HTTP ' + r.status, 'err'); return; }
+  if (!r.ok) { let d=''; try { d=(await r.json()).error||''; } catch (e) {} toast("Couldn't delete snapshot — " + (d || ('server error ' + r.status)), 'err'); return; }
   toast('Snapshot deleted', 'ok', 1500);
   loadBranchPreviews();
+  } catch (e) {
+    toast("Couldn't delete snapshot — " + e.message, 'err');
+  }
 }
 
