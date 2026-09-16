@@ -46,9 +46,10 @@ describe('#076 knowledge-graph renderer does not deref a null response', () => {
 
   it('kgSearch does not reassign its const d (would itself throw)', () => {
     // The first fix attempt used `if(!d){d={};}` which is invalid on a const.
-    // The fetch must set its own default instead. Search for the entities?q
-    // fetch and require it to default the non-2xx path to {}.
-    const m = SRC.match(/entities\?q=\$\{[^}]+\}&limit=20`\)\.then\(r=>r\.ok\?r\.json\(\):([^)]+)\)/);
+    // The fetch must set its own default instead. kgSearch now builds the URL
+    // into a variable (r44 debounce/stale-guard rewrite) and single-fetches
+    // it; require the same {} default on the non-2xx path.
+    const m = SRC.match(/const d=await fetch\(url\)\.then\(r=>r\.ok\?r\.json\(\):([^)]+)\)/);
     expect(m).not.toBeNull();
     expect(m[1]).toBe('{}');
     // No invalid const reassignment anywhere.

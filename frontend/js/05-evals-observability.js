@@ -542,13 +542,19 @@ function obsTab(tab, el) {
   el?.classList.add('active');
 }
 
+let _obsTraceSeq=0;
 async function obsLoadTraces(q='') {
   const el=document.getElementById('obs-traces-list');
   if(!el) return;
+  // Stale-response guard: the input is debounced, but two queries typed
+  // >300ms apart can still have overlapping requests — a slow earlier
+  // response used to overwrite the newer render.
+  const seq=++_obsTraceSeq;
   try {
     const url=q?`/api/observability/traces?q=${encodeURIComponent(q)}&limit=30`:'/api/observability/traces?limit=30';
     const r=await fetch(url);
     const d=await r.json();
+    if(seq!==_obsTraceSeq) return; // superseded by a newer query
     el.innerHTML=`
       <div class="u-f132e9db">
         <div style="display:grid;grid-template-columns:1fr 80px 80px 70px 70px;padding:8px 14px;background:var(--bg-3);font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase">
@@ -675,12 +681,24 @@ async function renderKnowledgeGraph() {
   </div>`;
 }
 
-async function kgSearch(q) {
-  const el=document.getElementById('kg-entity-list');
-  if(!el) return;
-  if(!q) { const d=await fetch('/api/knowledge-graph/entities?limit=20').then(r=>r.ok?r.json().catch(()=>{}):{}).catch(()=>({entities:[]})); renderKGList(d.entities||[],el); return; }
-  const d=await fetch(`/api/knowledge-graph/entities?q=${encodeURIComponent(q)}&limit=20`).then(r=>r.ok?r.json():{}).catch(()=>({entities:[]}));
-  renderKGList(d.entities||[],el);
+let _kgSearchTimer=null;
+let _kgLoadSeq=0;
+function kgSearch(q) {
+  // Debounced + stale-guarded: data-act-input fires per keystroke, and this
+  // used to fetch immediately (4 requests for 4 chars) with no ordering
+  // guarantee — a slow response for an old query overwrote the newer
+  // render, leaving entities on screen that didn't match the search box
+  // (verified live).
+  clearTimeout(_kgSearchTimer);
+  _kgSearchTimer=setTimeout(async()=>{
+    const seq=++_kgLoadSeq;
+    const el=document.getElementById('kg-entity-list');
+    if(!el) return;
+    const url=!q?'/api/knowledge-graph/entities?limit=20':`/api/knowledge-graph/entities?q=${encodeURIComponent(q)}&limit=20`;
+    const d=await fetch(url).then(r=>r.ok?r.json():{}).catch(()=>({entities:[]}));
+    if(seq!==_kgLoadSeq) return; // superseded by a newer query
+    renderKGList(d.entities||[],el);
+  },250);
 }
 
 function renderKGList(entities, el) {

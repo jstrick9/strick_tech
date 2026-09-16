@@ -1855,9 +1855,15 @@ function mktCardHTML(p, featured=false) {
   `;
 }
 
+let _mktLoadSeq = 0;
 async function mktLoadPacks(q='', category='', sort='featured') {
   const grid = document.getElementById('mkt-grid');
   if (!grid) return;
+  // Stale-response guard: search, category and sort all funnel through here,
+  // and responses can arrive out of order — a slow response for an old query
+  // used to overwrite the render of a newer one (verified live: box "zzz",
+  // grid showing the old query's packs).
+  const seq = ++_mktLoadSeq;
   grid.innerHTML = stateFeedback.loadingElement('Loading…');
   try {
     const params = new URLSearchParams({q,sort,limit:'48'});
@@ -1866,22 +1872,29 @@ async function mktLoadPacks(q='', category='', sort='featured') {
     // mangled & into %26 and = into %3D, so the server received ONE giant 'q'
     // value and search/category/sort/limit were all silently ignored.
     const r = await fetch(`/api/marketplace?${params}`);
-    if (!r.ok) { grid.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t load this view', message: humanError(httpError(r), {action:'load this view', dataSafe:true}) }); return; }
+    if (!r.ok) { if (seq === _mktLoadSeq) grid.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t load this view', message: humanError(httpError(r), {action:'load this view', dataSafe:true}) }); return; }
     const d = await r.json();
+    if (seq !== _mktLoadSeq) return; // superseded by a newer search/filter/sort
     const cnt = document.getElementById('mkt-result-count');
     if (cnt) cnt.textContent = `${d.total||0} result${d.total!==1?'s':''}`;
     grid.innerHTML = (d.packs||[]).map((p) =>mktCardHTML(p)).join('') ||
       stateFeedback.emptyElement({ title: 'No packs found', message: 'No packs match your criteria.' });
   } catch(e) {
+    if (seq !== _mktLoadSeq) return; // a newer call already rendered
     grid.innerHTML = stateFeedback.errorElement({ title: 'Couldn’t load this view', message: humanError(e, {action:'load this view', dataSafe:true}) });
   }
 }
 
+let _mktSearchTimer = null;
 function mktSearch(q) {
   _mktQuery = q;
   const feat = document.getElementById('mkt-featured-section');
   if (feat) feat.style.display = q ? 'none' : '';
-  mktLoadPacks(q, _mktCategory, _mktSort);
+  // Debounced: data-act-input fires per keystroke, and this used to fetch
+  // immediately — "race" alone was 4 requests. Category/sort clicks still
+  // load immediately (single discrete actions, not a keystroke stream).
+  clearTimeout(_mktSearchTimer);
+  _mktSearchTimer = setTimeout(() => mktLoadPacks(_mktQuery, _mktCategory, _mktSort), 250);
 }
 
 function mktFilterCat(cat) {

@@ -1,6 +1,9 @@
 // Agentic OS — Obsidian Pane
 // Extracted from 01-app-core.js for modularity
 // ── Obsidian Pane ─────────────────────────────────────────────────
+let _notesSearchTimer = null;
+let _notesLoadSeq = 0;
+
 async function renderObsidian() {
   const pane = document.getElementById('pane-obsidian');
   if (!pane) return;
@@ -168,10 +171,17 @@ async function loadObsidianNotes(q='') {
   const el  = document.getElementById('obs-notes');
   const cnt = document.getElementById('obs-note-count');
   if (!el) return;
+  // Stale-response guard: searchNotes fires this per query (and refreshes
+  // fire it too), and responses can arrive out of order. Without the guard
+  // a slow response for an OLD query overwrote the render of a newer one —
+  // the list showed results that didn't match the search box (verified
+  // live: box "zzz", list = full note list).
+  const seq = ++_notesLoadSeq;
   try {
     const r = await fetch(`/api/obsidian/notes?limit=50${q ? '&q='+encodeURIComponent(q) : ''}`);
-    if (!r.ok) { el.innerHTML = `<div style="color:var(--danger);font-size:12px">Failed (HTTP ${r.status})</div>`; return; }
+    if (!r.ok) { if (seq === _notesLoadSeq) el.innerHTML = `<div style="color:var(--danger);font-size:12px">Failed (HTTP ${r.status})</div>`; return; }
     const j = await r.json();
+    if (seq !== _notesLoadSeq) return; // superseded by a newer query/refresh
     if (cnt) cnt.textContent = `(${j.count||0})`;
     if (!(j.notes||[]).length) {
       el.innerHTML = `<div style="color:var(--text-3);font-size:12px;padding:8px">No notes${q?' matching "'+escHtml(q)+'"':''}</div>`;
@@ -191,13 +201,18 @@ async function loadObsidianNotes(q='') {
                 style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;opacity:.55;padding:3px 4px;min-width:24px;min-height:24px;border-radius:5px" aria-label="Delete note" title="Delete">🗑</button>
       </div>`).join('');
   } catch(ex) {
+    if (seq !== _notesLoadSeq) return; // a newer call already rendered
     el.innerHTML = `<div style="color:var(--danger);font-size:12px">Error: ${escHtml(ex?.message||String(ex))}</div>`;
   }
 }
 
 function searchNotes() {
   const q = document.getElementById('obs-search')?.value?.trim() || '';
-  loadObsidianNotes(q);
+  // Debounced: data-act-input fires on EVERY keystroke, and this used to
+  // fetch immediately — "race" alone was 4 requests. 250ms matches
+  // specSearch; loadObsidianNotes carries the stale-response guard.
+  clearTimeout(_notesSearchTimer);
+  _notesSearchTimer = setTimeout(() => loadObsidianNotes(q), 250);
 }
 
 async function viewNote(path) {

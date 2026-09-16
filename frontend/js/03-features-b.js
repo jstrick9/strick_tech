@@ -69,14 +69,21 @@ let _specQuery = '';
 let _specTotal = 0;
 let _specSearchTimer = null;
 
+let _specListSeq = 0;
 async function specLoadList(opts) {
   const append = !!(opts && opts.append);
+  // Stale-response guard: the search input is debounced, but queries typed
+  // >250ms apart (or a search racing a load-more) can overlap in flight —
+  // a slow earlier response used to overwrite the newer list AND could
+  // concat its batch into state the user had already replaced.
+  const seq = ++_specListSeq;
   try {
     const offset = append ? _specList.length : 0;
     const params = new URLSearchParams({ limit: String(SPEC_PAGE_SIZE), offset: String(offset) });
     if (_specQuery) params.set('q', _specQuery);
     const r = await fetch('/api/specs?' + params.toString());
     if (!r.ok) {
+      if (seq !== _specListSeq) return; // superseded — don't flash a stale error
       const list0 = document.getElementById('spec-list');
       if (list0 && !append) {
         list0.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:8px">' +
@@ -85,6 +92,7 @@ async function specLoadList(opts) {
       return;
     }
     const d = await r.json();
+    if (seq !== _specListSeq) return; // superseded by a newer search/page
     const batch = d.specs || [];
     _specTotal = typeof d.total === 'number' ? d.total : batch.length;
     _specList = append ? _specList.concat(batch) : batch;
@@ -106,6 +114,7 @@ async function specLoadList(opts) {
     specRenderListFooter();
     specWireListEvents();
   } catch(e) {
+    if (seq !== _specListSeq) return; // a newer call already rendered
     const list = document.getElementById('spec-list');
     if (list && !append) {
       list.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:8px">' +
