@@ -1,40 +1,15 @@
-// Agentic OS — Enhanced Notification Center
-// Improved notifications with sample data and better UI
+// Agentic OS — Notification Center
+// r50: rewired from the demo-seeded /api/notifications/* store (fake
+// "welcome"/"tip" entries in an in-memory list) to the REAL notification
+// store: the control_tower notifications table, populated by run events
+// (complete / fail / kill / budget stop) and webhook completions, and the
+// same rows r49's toast handler announces live. Field shapes already
+// matched (body/read_at/created_at were handled); the actions below now
+// target the control endpoints.
 'use strict';
 
 let notifPanelOpen = false;
 let unreadCount = 0;
-
-// Sample notifications for demo
-const SAMPLE_NOTIFICATIONS = [
-  {
-    id: 'welcome',
-    type: 'system',
-    title: 'Welcome to Agentic OS',
-    message: 'Your AI operating system is ready. Start by connecting an AI provider in Settings.',
-    timestamp: Date.now() / 1000,
-    read: false,
-    link: 'settings'
-  },
-  {
-    id: 'setup-tip',
-    type: 'info',
-    title: 'Quick Setup Tip',
-    message: 'Press ⌘K to open the command palette and quickly navigate to any feature.',
-    timestamp: Date.now() / 1000 - 300,
-    read: false,
-    link: null
-  },
-  {
-    id: 'feature-highlight',
-    type: 'success',
-    title: 'New: Kanban Board',
-    message: 'Try the drag-and-drop task board to manage your projects. Navigate to Tasks in the sidebar.',
-    timestamp: Date.now() / 1000 - 600,
-    read: true,
-    link: 'kanban'
-  }
-];
 
 function toggleNotifPanel() {
   notifPanelOpen = !notifPanelOpen;
@@ -98,22 +73,20 @@ async function refreshNotifications() {
   let count = 0;
   let loadError = '';
 
-  // Try to fetch from API. The backend always returns ok:true with the real
-  // (possibly empty) notification list and seeds its own welcome/status
-  // notifications, so on success we trust the response EXACTLY — even when it
-  // is empty. The old code fell back to fabricated SAMPLE_NOTIFICATIONS whenever
-  // the list was empty, so a healthy but empty inbox displayed notifications
-  // that did not exist in the store, and they re-appeared on every poll. Samples
-  // are only shown on an actual fetch failure, as a clear error, never as real
-  // data.
+  // Fetch from the real store. The control API returns the true (possibly
+  // empty) list, so on success we trust the response EXACTLY — even when it
+  // is empty. The old code fabricated sample entries whenever the list was
+  // empty, so a healthy but empty inbox displayed notifications that did
+  // not exist; samples are long gone, and a fetch failure renders a clear
+  // error, never fake data.
   try {
-    const r = await fetch('/api/notifications/list?limit=30');
+    const r = await fetch('/api/control/notifications?limit=30');
     const d = await r.json();
-    if (d.ok) {
-      notifs = d.notifications || [];
+    if (r.ok && Array.isArray(d.notifications)) {
+      notifs = d.notifications;
       count = d.unread_count ?? notifs.filter(n => !n.read && !n.read_at).length;
     } else {
-      loadError = d.error || ('Server error ' + r.status);
+      loadError = (d && d.detail) || ('Server error ' + r.status);
     }
   } catch (err) {
     loadError = 'could not load notifications';
@@ -173,7 +146,7 @@ async function refreshNotifications() {
       : (n.created_at || '').slice(5, 16);
 
     return `
-      <div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" data-act-click="handleNotifClick(${jsArg(n.id)},${jsArg(n.link || '')})" 
+      <div role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1" data-act-click="handleNotifClick(${jsArg(n.id)},${jsArg(n.link || (n.run_id ? 'control' : ''))})" 
            style="padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;background:${unread ? 'rgba(99,102,241,0.06)' : 'transparent'};transition:background 0.15s"
            data-hover="bg:var(--bg-2)"
            data-hover-out="bg:${unread ? 'rgba(99,102,241,0.06)' : 'transparent'}">
@@ -207,7 +180,7 @@ function updateNotifBadge(count) {
 
 async function markNotifRead(id) {
   try {
-    const r = await fetch(`/api/notifications/mark-read/${encodeURIComponent(id)}`, { method: 'POST' });
+    const r = await fetch(`/api/control/notifications/${encodeURIComponent(id)}/read`, { method: 'PATCH' });
     // Marking read is a real state change: if it fails the badge count is
     // wrong and the notification comes back on the next poll, which reads as
     // the app losing track rather than as an error.
@@ -215,25 +188,18 @@ async function markNotifRead(id) {
   } catch (e) {
     toast('Could not mark that notification read: ' + (e && e.message ? e.message : 'network error'), 'err', 4000);
   }
-  
-  // Update local sample notifications
-  const notif = SAMPLE_NOTIFICATIONS.find(n => n.id === id);
-  if (notif) notif.read = true;
-  
+
   refreshNotifications();
 }
 
 async function markAllNotifRead() {
   try {
-    const r = await fetch('/api/notifications/mark-all-read', { method: 'POST' });
+    const r = await fetch('/api/control/notifications/read-all', { method: 'POST' });
     if (!r.ok) { toast(`Could not mark all read (HTTP ${r.status}).`, 'err', 4000); return; }
   } catch (e) {
     toast('Could not mark all read: ' + (e && e.message ? e.message : 'network error'), 'err', 4000);
     return;
   }
-
-  // Update local sample notifications
-  SAMPLE_NOTIFICATIONS.forEach(n => n.read = true);
 
   refreshNotifications();
   if (typeof toast === 'function') toast('All notifications marked as read', 'ok');
