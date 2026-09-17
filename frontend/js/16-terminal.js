@@ -82,6 +82,10 @@ async function renderTerminal() {
   document.getElementById('term-clear-btn')?.addEventListener('click', termClear);
   const input = document.getElementById('term-input');
   if (input) { input.focus(); input.addEventListener('keydown', termKeyDown); input.addEventListener('input', termShowSuggestions); }
+  // r48: terminal tabs and the ＋ new-session control are divs with click
+  // listeners — mouse-only. (Dynamic tabs created in termSwitchSession get
+  // kbActivate at their creation site.)
+  document.querySelectorAll('.terminal-tab').forEach(el => window.kbActivate && window.kbActivate(el, 'tab'));
   // Skip the history fetch when the env probe was refused: the auth gate in
   // terminal.py covers the WHOLE terminal router, so this request can only
   // 401 too — firing it just adds console noise and a pointless round trip.
@@ -191,6 +195,7 @@ async function termShowSuggestions() {
     // the input. Fixed via data-sugg-idx + a delegated listener on the
     // dropdown container looking up the real command from `top6`.
     dd.innerHTML=top6.map((s,idx)=>`<div data-sugg-idx="${idx}" style="padding:7px 12px;cursor:pointer;display:flex;gap:10px;border-bottom:1px solid var(--border)" data-hover="bg:var(--bg-3)" data-hover-out="bg:"><span style="color:var(--accent-text);flex:1">${escHtml(s.cmd)}</span><span style="color:var(--text-3)">${escHtml(s.desc)}</span></div>`).join('');
+    dd.querySelectorAll('[data-sugg-idx]').forEach(r => window.kbActivate && window.kbActivate(r));
     dd.addEventListener('click', (e) => {
       const row = e.target.closest('[data-sugg-idx]');
       if (!row) return;
@@ -206,7 +211,7 @@ function termNewSession(){const id='s'+Date.now().toString(36);
   // FIX H: init history + histIdx for new session
   if(!Terminal.history[id]) Terminal.history[id]=[];
   Terminal.histIdx[id]=0;
-  Terminal.active=id;const tabs=document.getElementById('term-tabs');if(tabs){const t=document.createElement('div');t.className='terminal-tab active';t.dataset.sess=id;t.textContent=id.slice(-4);t.onclick=()=>{Terminal.active=id;document.querySelectorAll('.terminal-tab').forEach(x=>x.classList.toggle('active',x.dataset.sess===id));termClear();};tabs.insertBefore(t,tabs.lastElementChild);}document.querySelectorAll('.terminal-tab').forEach(x=>x.classList.toggle('active',x.dataset.sess===id));termClear();}
+  Terminal.active=id;const tabs=document.getElementById('term-tabs');if(tabs){const t=document.createElement('div');t.className='terminal-tab active';t.dataset.sess=id;t.textContent=id.slice(-4);t.onclick=()=>{Terminal.active=id;document.querySelectorAll('.terminal-tab').forEach(x=>x.classList.toggle('active',x.dataset.sess===id));termClear();};if(window.kbActivate)window.kbActivate(t,'tab');tabs.insertBefore(t,tabs.lastElementChild);}document.querySelectorAll('.terminal-tab').forEach(x=>x.classList.toggle('active',x.dataset.sess===id));termClear();}
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  SECRETS VAULT — Encrypted key/value store with Fernet AES-256

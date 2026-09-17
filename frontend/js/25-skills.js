@@ -143,6 +143,8 @@ function renderSkillGrid() {
     const card = e.target.closest('[data-skill-idx]');
     if (card) openSkillModal(filtered[Number(card.dataset.skillIdx)]?.id);
   };
+  // r48: skill cards are divs served by the delegation above — mouse-only.
+  grid.querySelectorAll('[data-skill-idx]').forEach(el => window.kbActivate && window.kbActivate(el));
 }
 
 function openSkillModal(skillId) {

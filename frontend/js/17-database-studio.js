@@ -82,6 +82,9 @@ async function renderSQLiteTab(el) {
     const t = tables[+row.dataset.tableIdx];
     if (t) dbLoadTable(t.name);
   });
+  // r48: table rows are divs served by the delegation above — mouse-only.
+  // Enter/Space on a focused row clicks it, which the delegation resolves.
+  document.querySelectorAll('#db-table-list [data-table-idx]').forEach(el => window.kbActivate && window.kbActivate(el));
   if (dbActiveTable) dbLoadTable(dbActiveTable);
 }
 

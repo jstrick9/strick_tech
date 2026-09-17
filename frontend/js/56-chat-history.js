@@ -188,6 +188,9 @@
       header.addEventListener('mouseenter', function(){header.style.background='var(--bg-3)';});
       header.addEventListener('mouseleave', function(){header.style.background='';});
       header.addEventListener('click', function(){_expandedFolders[folder]=!_expandedFolders[folder];renderChatList();});
+      // r48: folder expand/collapse was mouse-only (its focusin handler below
+      // already revealed the hover actions for a focus that could not happen).
+      if (window.kbActivate) window.kbActivate(header);
 
       var arrow = document.createElement('span');
       arrow.style.cssText = 'font-size:9px;color:var(--text-3);width:12px;text-align:center;flex-shrink:0';
@@ -289,6 +292,11 @@
     div.addEventListener('mouseenter', function(){if(!isCurrent){div.style.background='var(--bg-3)';div.style.borderColor='var(--border)';}if(actionsDiv)actionsDiv.style.opacity='1';});
     div.addEventListener('mouseleave', function(){if(!isCurrent){div.style.background='transparent';div.style.borderColor='transparent';}if(actionsDiv)actionsDiv.style.opacity='0';});
     div.addEventListener('click', function(e){if(e.target.closest('.session-actions'))return;window.loadChatSession(s.id);});
+    // r48: the row was mouse-only. The focusin/focusout pair below already
+    // anticipated keyboard users (revealing the action buttons on focus) —
+    // but nothing could focus the row itself. Same contract as data-act-click
+    // rows: tab stop + role + Enter/Space -> click.
+    if (window.kbActivate) window.kbActivate(div);
     // Keyboard parity with the hover reveal: the action buttons are focusable
     // but opacity:0 until the row is hovered, so a keyboard user tabbing into
     // them landed on invisible buttons. focusin/focusout mirror the

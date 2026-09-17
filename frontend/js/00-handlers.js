@@ -352,3 +352,27 @@ window.skipTo = function (id) {
     el.scrollIntoView({ block: 'start', behavior: 'auto' });
   }
 };
+
+// ── r48: keyboard activation for programmatically-wired controls ──────────────
+// The delegated dispatcher auto-upgrades every [data-act-click] element
+// (tabindex + role + Enter/Space dispatch — see 00-delegate.js). But a control
+// whose click is attached with addEventListener, or inside a template row
+// served by a container-level delegation, is invisible to that upgrade:
+// mouse-only. The r48 sweep found seven such surfaces (chat drawer rows and
+// folder headers, dbstudio table rows, workflow list items, skill cards,
+// hierarchy project rows, terminal tabs and suggestions, swarm DAG nodes).
+// kbActivate() gives them the same contract the delegate gives
+// data-act-click elements: a tab stop, a role, and Enter/Space -> click.
+window.kbActivate = function (el, role) {
+  if (!el || !el.setAttribute) return el;
+  if (el.tagName === 'BUTTON' || el.tagName === 'A') return el; // native already
+  if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+  if (!el.getAttribute('role')) el.setAttribute('role', role || 'button');
+  el.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    if (e.target !== el) return; // a focused child handles its own keys
+    e.preventDefault();
+    el.click();
+  });
+  return el;
+};

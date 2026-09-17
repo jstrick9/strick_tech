@@ -235,6 +235,10 @@ async function wfLoadWorkflows() {
       </div>`).join('') :
       '<div style="color:var(--text-3);font-size:11px;padding:6px">No workflows yet. Create one above.</div>';
     wfWireListEvents();
+    // r48: workflow rows are divs served by the delegated #wf-list listener —
+    // mouse-only. (Their ⧉ ⬇ ✕ action buttons are native <button>s and were
+    // already fine.)
+    document.querySelectorAll('#wf-list .wf-list-item').forEach(el => window.kbActivate && window.kbActivate(el));
   } catch(e) {}
 }
 

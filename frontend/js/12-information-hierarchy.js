@@ -157,6 +157,9 @@
       </div>`;
     }).join('');
     wireProjectListEvents(listEl);
+    // r48: project rows are divs served by the delegated listener above —
+    // mouse-only.
+    listEl.querySelectorAll('[data-h-project]').forEach(el => window.kbActivate && window.kbActivate(el));
   }
 
   function wireProjectListEvents(listEl) {

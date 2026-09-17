@@ -116,6 +116,9 @@ window.renderSwarmDAG = function(runs = [], winner = '', isRunning = false, acti
       const doc = nodeInspectionData[nid];
       if (doc && typeof openInspectionDrawer === 'function') openInspectionDrawer(doc);
     });
+    // r48: DAG nodes are template divs with per-element click listeners —
+    // mouse-only.
+    if (window.kbActivate) window.kbActivate(el);
   });
 };
 
