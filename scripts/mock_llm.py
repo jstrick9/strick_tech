@@ -79,6 +79,28 @@ def make_handler(port_kind):
                 if "image" in mods or any(k in m.lower() for k in ("image", "flux", "dall", "stable")):
                     msg = {"role": "assistant", "content": "", "images": [
                         {"type": "image_url", "image_url": {"url": "data:image/png;base64," + TINY_PNG}}]}
+                if req.get("stream"):
+                    # r52: SSE like OpenRouter — delta chunks, a usage-bearing
+                    # final chunk, then [DONE]. Lets the app's streaming path
+                    # (llm._stream_impl) be exercised against this mock.
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream")
+                    self.send_header("Cache-Control", "no-cache")
+                    self.end_headers()
+
+                    def sse(obj):
+                        self.wfile.write(("data: " + json.dumps(obj) + "\n\n").encode())
+
+                    for piece in ("Mock ", "LLM ", "streamed ", "response."):
+                        sse({"id": "mock-chatcmpl-1", "object": "chat.completion.chunk",
+                             "model": req.get("model", "mock/mock-large"),
+                             "choices": [{"index": 0, "delta": {"content": piece}, "finish_reason": None}]})
+                    sse({"id": "mock-chatcmpl-1", "object": "chat.completion.chunk",
+                         "model": req.get("model", "mock/mock-large"),
+                         "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
+                         "usage": {"prompt_tokens": 12, "completion_tokens": 9, "total_tokens": 21}})
+                    self.wfile.write(b"data: [DONE]\n\n")
+                    return
                 self._send({
                     "id": "mock-chatcmpl-1", "object": "chat.completion",
                     "model": req.get("model", "mock/mock-large"),

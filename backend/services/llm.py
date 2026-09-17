@@ -166,6 +166,51 @@ def resolve_model(agent_id: str, custom_model: str = '') -> tuple[str, str]:
     return 'openrouter', model
 
 
+# ── Custom endpoints (custom_url:) ────────────────────────────────────────────
+# r52: resolve_model has parsed 'custom_url:<base>' model strings since v11.5.0,
+# but no code path ever handled the resulting provider — the base URL fell
+# through to the OpenRouter post as a model NAME (verified live: a custom
+# endpoint the Settings page had just verified as ONLINE answered with the
+# "No OPENROUTER_API_KEY set" help text). These helpers serve the branches that
+# finally implement it. A model string may pin the exact model:
+# 'custom_url:<base>|<model>'.
+
+_custom_models_cache: dict[str, tuple[float, list[str]]] = {}
+
+
+def _split_custom(model_str: str) -> tuple[str, str]:
+    """'<base>|<model>' -> (base, model); a bare base -> (base, '')."""
+    base, _, explicit = model_str.partition('|')
+    return base.strip().rstrip('/'), explicit.strip()
+
+
+async def _discover_custom_models(base: str) -> list[str]:
+    """Model ids advertised by a custom OpenAI-compatible endpoint (60s cache)."""
+    key = base.rstrip('/')
+    now = time.time()
+    hit = _custom_models_cache.get(key)
+    if hit and now - hit[0] < 60:
+        return hit[1]
+    ids: list[str] = []
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            r = await client.get(f'{key}/models')
+            if r.status_code == 200:
+                ids = [str(m.get('id')) for m in (r.json().get('data') or []) if m.get('id')][:100]
+    except Exception as e:
+        log.warning('Custom endpoint model discovery failed for %s: %s', key, e)
+    _custom_models_cache[key] = (now, ids)
+    return ids
+
+
+def _custom_headers(custom_api_key: str) -> dict[str, str]:
+    headers = {'Content-Type': 'application/json'}
+    key = (custom_api_key or '').strip()
+    if key:
+        headers['Authorization'] = f'Bearer {key}'
+    return headers
+
+
 # ── Non-streaming completion ────────────────────────────────────────────────────
 def _inject_steering(messages: list[dict]) -> list[dict]:
     """Prepend steering context to the system prompt if steering files are enabled."""
@@ -205,6 +250,7 @@ async def complete(
     timeout: float = 60.0,
     inject_steering: bool = True,
     allow_stub: bool = False,
+    custom_api_key: str = '',
 ) -> dict:
     """Single-shot completion that RECORDS ITS COST.
 
@@ -246,6 +292,7 @@ async def complete(
         timeout=timeout,
         inject_steering=inject_steering,
         allow_stub=allow_stub,
+        custom_api_key=custom_api_key,
     )
     _record_llm_cost(agent_id, result)
     _record_llm_trace(agent_id, messages, result)
@@ -350,6 +397,7 @@ async def _complete_impl(
     timeout: float = 60.0,
     inject_steering: bool = True,
     allow_stub: bool = False,
+    custom_api_key: str = '',
 ) -> dict:
     """Single-shot completion. Returns {text, tokens, cost, model, latency_ms}.
 
@@ -366,6 +414,37 @@ async def _complete_impl(
 
     if provider == 'ollama':
         return await _ollama_complete(messages, model_str, temperature, max_tokens, timeout)
+
+    if provider == 'custom_url':
+        base, explicit_model = _split_custom(model_str)
+        model_name = explicit_model or (await _discover_custom_models(base) or ['default'])[0]
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp = await client.post(
+                    f'{base}/chat/completions',
+                    headers=_custom_headers(custom_api_key),
+                    json={'model': model_name, 'messages': messages,
+                          'temperature': temperature, 'max_tokens': max_tokens},
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                text = data['choices'][0]['message']['content']
+                usage = data.get('usage') or {}
+                return {
+                    'text': text,
+                    'tokens': usage.get('total_tokens', 0),
+                    'prompt_tokens': usage.get('prompt_tokens', 0),
+                    'completion_tokens': usage.get('completion_tokens', 0),
+                    'cost': _estimate_cost(model_name, usage),
+                    'model': model_name,
+                    'provider': 'custom_url',
+                    'latency_ms': round((time.time() - t0) * 1000),
+                    'ok': True,
+                }
+        except Exception as e:
+            log.error('Custom endpoint complete error (%s): %s', base, e)
+            return {'text': f'[Custom endpoint error]: {e}', 'ok': False, 'error': str(e),
+                    'model': model_name, 'provider': 'custom_url'}
 
     key = _or_key()
     if not key:
@@ -482,6 +561,7 @@ async def stream(
     max_tokens: int = 4096,
     timeout: float = 120.0,
     inject_steering: bool = True,
+    custom_api_key: str = '',
 ) -> AsyncGenerator[str, None]:
     """Streaming completion that RECORDS ITS COST and honours budget caps.
 
@@ -519,6 +599,7 @@ async def stream(
         max_tokens=max_tokens,
         timeout=timeout,
         inject_steering=inject_steering,
+        custom_api_key=custom_api_key,
     ):
         # Capture the terminal frame's usage WITHOUT buffering: every chunk is
         # yielded straight through as it arrives, so streaming latency is
@@ -564,6 +645,7 @@ async def _stream_impl(
     max_tokens: int = 4096,
     timeout: float = 120.0,
     inject_steering: bool = True,
+    custom_api_key: str = '',
 ) -> AsyncGenerator[str, None]:
     """Yields SSE-formatted chunks: 'data: {json}\n\n'"""
     messages = _normalize_messages(messages)
@@ -575,6 +657,85 @@ async def _stream_impl(
         async for chunk in _ollama_stream(messages, model_str, temperature, max_tokens, timeout):
             yield chunk
         return
+
+    if provider == 'custom_url':
+        base, explicit_model = _split_custom(model_str)
+        model_name = explicit_model or (await _discover_custom_models(base) or ['default'])[0]
+        payload = {
+            'model': model_name,
+            'messages': messages,
+            'temperature': temperature,
+            'max_tokens': max_tokens,
+            'stream': True,
+            'stream_options': {'include_usage': True},
+        }
+        stream_usage: dict = {}
+        _final_sent = False
+        try:
+            async with (
+                httpx.AsyncClient(timeout=timeout) as client,
+                client.stream(
+                    'POST', f'{base}/chat/completions',
+                    headers=_custom_headers(custom_api_key), json=payload,
+                ) as resp,
+            ):
+                resp.raise_for_status()
+                _iter = resp.aiter_lines().__aiter__()
+                _first_token_seen = False
+                while True:
+                    try:
+                        if _first_token_seen:
+                            line = await _iter.__anext__()
+                        else:
+                            line = await asyncio.wait_for(_iter.__anext__(), FIRST_TOKEN_TIMEOUT)
+                    except StopAsyncIteration:
+                        break
+                    except (TimeoutError, asyncio.TimeoutError):
+                        yield 'data: ' + json.dumps({
+                            'delta': (f'The custom endpoint has not responded in '
+                                      f'{int(FIRST_TOKEN_TIMEOUT)} seconds. It may be '
+                                      'overloaded — try again, or pick a different model.'),
+                            'done': True, 'error': 'first_token_timeout', 'model': model_name,
+                        }) + '\n\n'
+                        return
+                    if not line or not line.startswith('data:'):
+                        continue
+                    _first_token_seen = True
+                    raw = line[5:].strip()
+                    if raw == '[DONE]':
+                        break
+                    try:
+                        chunk = json.loads(raw)
+                        if chunk.get('usage'):
+                            stream_usage = chunk['usage']
+                        choices = chunk.get('choices') or []
+                        if choices:
+                            delta = (choices[0].get('delta') or {}).get('content', '')
+                            if delta:
+                                yield f'data: {json.dumps({"delta": delta, "done": False})}\n\n'
+                    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+                        pass
+                # Some OpenAI-compatible servers close the stream without a
+                # [DONE] sentinel. Emit the final frame anyway so the chat
+                # renderer does not treat a completed reply as truncated.
+                final = {'delta': '', 'done': True, 'model': model_name, 'provider': 'custom_url'}
+                if stream_usage:
+                    final['prompt_tokens'] = int(stream_usage.get('prompt_tokens', 0) or 0)
+                    final['completion_tokens'] = int(stream_usage.get('completion_tokens', 0) or 0)
+                    final['tokens'] = int(stream_usage.get('total_tokens', 0) or 0) or (
+                        final['prompt_tokens'] + final['completion_tokens'])
+                    final['cost'] = _estimate_cost(model_name, stream_usage)
+                _final_sent = True
+                yield f'data: {json.dumps(final)}\n\n'
+            return
+        except Exception as e:
+            log.error('Custom endpoint stream error (%s): %s', base, e)
+            if not _final_sent:
+                yield 'data: ' + json.dumps({
+                    'delta': f'[Custom endpoint error]: {e}',
+                    'done': True, 'error': str(e), 'model': model_name,
+                }) + '\n\n'
+            return
 
     key = _or_key()
     if not key:

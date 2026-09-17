@@ -896,6 +896,13 @@ async function sendChat() {
         stream:     S.useStream !== false,
         session_id: S.sessionId,
         history:    S.chatHistory.slice(0, -1).slice(-20),
+        // r52: custom endpoints finally work server-side; the optional key
+        // saved by Settings → Custom Connection travels with the request
+        // when a custom endpoint is the selected model. (JSON.stringify
+        // drops the undefined case for every other model.)
+        custom_api_key: (selectedModel || '').startsWith('custom_url:')
+          ? (_safeLS.get('agentic_os_custom_api_key') || '')
+          : undefined,
       }),
     });
 
@@ -1602,19 +1609,25 @@ window.saveCustomConnection = async function() {
   try {
     try { _safeLS.set('agentic_os_custom_base_url', baseUrl); } catch {}
     if (apiKey) try { _safeLS.set('agentic_os_custom_api_key', apiKey); } catch {}
-    const r = await fetch(baseUrl + '/models', {
-      headers: apiKey ? {'Authorization': 'Bearer ' + apiKey} : {}
-    }).catch(() => null);
-    if (r && r.ok) {
-      const d = await r.json();
-      const count = d.data?.length || 1;
+    // r52: probe through the app's backend (/api/agents/models?base=...) —
+    // the page cannot fetch a cross-origin endpoint directly (CORS), which
+    // is why this test used to land on "SAVED / OFFLINE" even for endpoints
+    // the machine could reach just fine.
+    const r = await fetch('/api/agents/models?base=' + encodeURIComponent(baseUrl)).catch(() => null);
+    const d = (r && r.ok) ? await r.json().catch(() => null) : null;
+    const custom = d && d.custom;
+    if (custom && custom.running) {
+      const count = (custom.models || []).length || 1;
       if (statusEl) { statusEl.textContent = `ONLINE (${count} models)`; statusEl.style.color = 'var(--success)'; }
       if (msgEl) msgEl.innerHTML = `<span style="color:var(--success)">✅ Connected to ${escHtml(baseUrl)} — ${count} model(s) discovered!</span>`;
       toast(`✅ Custom connection verified! (${count} models)`, 'ok', 3000);
       if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
+    } else if (custom && custom.error) {
+      if (statusEl) { statusEl.textContent = 'INVALID URL'; statusEl.style.color = 'var(--danger)'; }
+      if (msgEl) msgEl.innerHTML = `<span style="color:var(--danger)">⚠️ ${escHtml(custom.error)}</span>`;
     } else {
       if (statusEl) { statusEl.textContent = 'SAVED / OFFLINE'; statusEl.style.color = 'var(--warning)'; }
-      if (msgEl) msgEl.innerHTML = `<span style="color:var(--warning)">🔗 Endpoint saved to local storage. (Could not fetch models directly: check server or CORS)</span>`;
+      if (msgEl) msgEl.innerHTML = `<span style="color:var(--warning)">🔗 Endpoint saved to local storage. (The server could not list its models — check that it is running and OpenAI-compatible.)</span>`;
       if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
     }
   } catch(e) {
@@ -1796,7 +1809,11 @@ window.selectChatModel = function(val) {
   try { try { _safeLS.set('agentic_os_chat_model', val); } catch {} } catch(e) {}
   const pill = document.getElementById('chat-model-select');
   if (pill && pill.value !== val) pill.value = val;
-  toast(`🤖 Active Chat Model: ${val.replace('ollama:', 'Local Ollama: ').replace('custom_url:', 'Custom: ')}`, 'ok', 1500);
+  // r52: a pinned custom model shows its model id, not the whole URL.
+  const _mLabel = val.startsWith('custom_url:')
+    ? 'Custom: ' + (val.includes('|') ? val.split('|').pop() : val.slice('custom_url:'.length))
+    : val.replace('ollama:', 'Local Ollama: ');
+  toast(`🤖 Active Chat Model: ${_mLabel}`, 'ok', 1500);
 };
 
 window.selectChatPersona = function(val) {
@@ -1986,7 +2003,20 @@ window.syncOpenWebUIConnections = async function() {
   let customUrl = null; try { customUrl = _safeLS.get('agentic_os_custom_base_url'); } catch {}
   const customGroup = document.getElementById('custom-model-optgroup');
   if (customGroup && customUrl) {
+    // r52: list the endpoint's own models, each pinning the exact model in
+    // the option value (`custom_url:<base>|<model>`) so the backend uses
+    // precisely what the user picked. Discovery goes through the app's own
+    // backend (/api/agents/models?base=...) — the page cannot fetch the
+    // endpoint directly (CORS). The generic single option remains as the
+    // fallback when discovery fails or the endpoint is offline.
     customGroup.innerHTML = `<option value="custom_url:${escHtml(customUrl)}">Custom Endpoint: ${escHtml(customUrl)}</option>`;
+    fetch('/api/agents/models?base=' + encodeURIComponent(customUrl)).then(r => r.ok ? r.json() : null).catch(() => null).then(d => {
+      const ids = ((d && d.custom && d.custom.models) || []).filter(Boolean).slice(0, 30);
+      if (ids.length) {
+        customGroup.innerHTML = ids.map(id =>
+          `<option value="custom_url:${escHtml(customUrl)}|${escHtml(id)}">Custom: ${escHtml(id)}</option>`).join('');
+      }
+    });
   }
 
   try {

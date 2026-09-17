@@ -136,6 +136,11 @@ async def chat_stream(req: Request):
     )
     agent_id = (body.get('agent_id') or 'default').lower()[:64]
     req_model = as_text(body.get('model'))[:200]
+    # r52: the optional key saved with a custom endpoint (Settings → Custom
+    # Connection) travels with the request; without it authenticated custom
+    # endpoints would 401 while local ones (LM Studio, llama.cpp, vLLM) work
+    # with no key at all.
+    req_custom_key = as_text(body.get('custom_api_key'))[:500]
     session_id = str(body.get('session_id') or str(uuid.uuid4()))[:128]
     history = body.get('history') or []  # [{role, content}, ...]
     temperature = _bounded_temperature(body.get('temperature', 0.7))
@@ -505,6 +510,7 @@ async def chat_stream(req: Request):
                     temperature=temperature,
                     max_tokens=max_tokens,
                     inject_steering=False,
+                    custom_api_key=req_custom_key,
                 ):
                     if want_stream:
                         yield chunk
@@ -656,7 +662,8 @@ async def chat_complete(req: Request):
     messages.append({'role': 'user', 'content': message})
 
     result = await llm.complete(
-        messages, agent_id=agent_id, model=model, temperature=temperature, max_tokens=max_tokens, inject_steering=False
+        messages, agent_id=agent_id, model=model, temperature=temperature, max_tokens=max_tokens,
+        inject_steering=False, custom_api_key=as_text(body.get('custom_api_key'))[:500],
     )
     return result
 

@@ -28,14 +28,32 @@ def list_agents():
 
 
 @router.get('/models')
-async def list_models():
-    """Return available models (OpenRouter registry + ollama if running)."""
+async def list_models(base: str = ''):
+    """Return available models (OpenRouter registry + ollama if running).
+
+    r52: with ?base=<url>, also probes a custom OpenAI-compatible endpoint
+    SERVER-side. The browser cannot probe it directly (CORS blocks a page on
+    :8787 from reading :1234), so both the Settings connection test and the
+    chat model picker's discovery go through here. allow_private=True is the
+    documented mode for user-chosen local AI servers (LM Studio, vLLM,
+    Ollama's /v1) — it is a server-side decision, not a client flag.
+    """
     or_models = list(llm.OPENROUTER_MODELS.items())
     ollama = await llm.ollama_health()
-    return {
+    out = {
         'openrouter': [{'id': k, 'model': v} for k, v in or_models],
         'ollama': {'running': ollama['running'], 'models': ollama.get('models', [])},
     }
+    if base:
+        from ..services.safe_fetch import url_is_safe
+
+        ok, reason = url_is_safe(base, allow_private=True)
+        if ok:
+            ids = await llm._discover_custom_models(base.strip().rstrip('/'))
+            out['custom'] = {'running': bool(ids), 'models': ids}
+        else:
+            out['custom'] = {'running': False, 'models': [], 'error': reason}
+    return out
 
 
 @router.post('')
