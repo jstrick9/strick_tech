@@ -48,25 +48,27 @@
   // ─────────────────────────────────────────────────────────────────────────
   //  1. SIMPLE MODE
   // ─────────────────────────────────────────────────────────────────────────
-  const ADVANCED_GROUP_IDS = ['build', 'ship', 'tools', 'enterprise'];
   // _st.simple may be a boolean or the persisted string '1'/'0'; normalize here.
-  function simpleOn() { return _st.simple === true || _st.simple === '1'; }
+  // r54: the canonical mode is the data-ui-mode attribute — one writer,
+  // switchUIMode() in 01-app-core.js. This module's own store used to be
+  // read here instead, so after a toggle through ANY other path (topbar,
+  // picker, settings) the 💡 icon and footer rendered the mode this module
+  // last knew, not the mode the app is in.
+  function simpleOn() {
+    const attr = document.documentElement.getAttribute('data-ui-mode');
+    if (attr === 'simple' || attr === 'power') return attr === 'simple';
+    return _st.simple === true || _st.simple === '1'; // pre-app-core fallback
+  }
 
+  // r54: this used to hide advanced nav items, group labels and group bodies
+  // with inline styles — ALL overridden by the CSS !important tier rules
+  // keyed on data-ui-mode, which this module never wrote. Net effect: the
+  // "Show all features" footer flipped its own label while the nav stayed
+  // hidden. Visibility is now CSS's job alone; this function only renders
+  // this module's own indicators from the mode, and the mode has exactly one
+  // writer: switchUIMode() in 01-app-core.js.
   function applySimpleMode() {
     const simple = simpleOn();
-    document.querySelectorAll('.nav-item[data-tier="advanced"]').forEach((el) => {
-      el.style.display = simple ? 'none' : '';
-    });
-    // Hide the four advanced group dividers AND their collapsed bodies.
-    document.querySelectorAll('.sidebar-group-label').forEach((lbl) => {
-      const act = lbl.getAttribute('data-act-click') || '';
-      const isCore = act.indexOf("'core'") !== -1;
-      lbl.style.display = (simple && !isCore) ? 'none' : '';
-    });
-    ADVANCED_GROUP_IDS.forEach((id) => {
-      const g = document.getElementById('group-' + id);
-      if (g) g.style.display = simple ? 'none' : '';
-    });
     const footer = document.getElementById('aos-show-all-features');
     if (footer) footer.style.display = simple ? '' : 'none';
     const header = document.getElementById('aos-simple-toggle');
@@ -78,17 +80,21 @@
       header.setAttribute('aria-label', simple
         ? 'Show all features' : 'Switch to simple view');
     }
-    // Make sure hidden advanced panes are not accidentally left "active".
-    if (simple) {
-      document.querySelectorAll('.nav-item[data-tier="advanced"]').forEach((el) => {
-        if (el.classList.contains('active')) {
-          try { window.nav && window.nav('chat'); } catch (e) {}
-        }
-      });
-    }
   }
+  // switchUIMode() calls this after changing the mode so the indicators
+  // never lag behind (this module loads after 01, so the first paint is
+  // handled by init() below).
+  window.aosSyncModeIndicator = function () { try { applySimpleMode(); } catch (e) {} };
 
   window.aosToggleSimpleMode = function () {
+    // r54: delegate. The old body flipped ONLY this module's store; the CSS
+    // attr (written by nothing on this path) kept the nav hidden, so the
+    // button was dead. switchUIMode applies the mode everywhere and mirrors
+    // it back into this store.
+    if (typeof window.switchUIMode === 'function') {
+      window.switchUIMode(simpleOn() ? 'power' : 'simple');
+      return;
+    }
     _st.simple = simpleOn() ? '0' : '1'; // store as string for clean round-trip
     writeState();
     applySimpleMode();
@@ -267,6 +273,17 @@
   //  INIT
   // ─────────────────────────────────────────────────────────────────────────
   function init() {
+    // r54: one source of truth. If the canonical mode store exists (it is
+    // written by 01-app-core long before this file loads), it wins over any
+    // stale value of this module's own store — including this module's old
+    // opposite default, which used to fight the rest of the app at boot.
+    try {
+      const canonical = localStorage.getItem('agentic_os_mode');
+      if (canonical === 'simple' || canonical === 'power') {
+        const next = canonical === 'simple' ? '1' : '0';
+        if (_st.simple !== next) { _st.simple = next; writeState(); }
+      }
+    } catch (e) {}
     try { mountSimpleMode(); } catch (e) { console.debug('a11y simple-mode init', e); }
     try { mountTerminology(); } catch (e) {}
     try { mountChecks(); } catch (e) {}

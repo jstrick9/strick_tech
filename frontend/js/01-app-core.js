@@ -5939,31 +5939,71 @@ if (window.matchMedia) {
 // Expose globally for settings panel
 window.applyTheme = applyTheme;
 
-window.switchUIMode = async function(mode) {
+// r54: THE mode writer. Simple/Power used to be implemented four times over —
+// 91-mode-switcher (topbar + first-run picker, default power),
+// 94-novice-assist (sidebar 💡 + "Show all features" footer, default simple),
+// this function, and 04-workflow-specs' applyUIMode (a THIRD pane list of six,
+// applied at load from the profile). Three state stores, two opposite
+// defaults, and meanwhile the CSS attr enforcement
+// ([data-ui-mode="simple"] .nav-item[data-tier="advanced"] { display:none
+// !important }) overrode every inline display attempt — live-verified: the
+// sidebar's "Show all features" button flipped its own label while the
+// advanced nav stayed hidden, because it never wrote the attr.
+//
+// The contract now: the data-ui-mode attribute is the single source of
+// truth, CSS is the single enforcement, and this is the attribute's single
+// writer. Every toggle (topbar, picker, sidebar footer, settings buttons,
+// the sidebar customizer) routes through here; the legacy modules only
+// render indicators and delegate.
+window.switchUIMode = async function(mode, opts) {
   if (mode !== 'simple' && mode !== 'power') return;
+  const patchProfile = !opts || opts.patch !== false;
   try { try { _safeLS.set('agentic_os_mode', mode); } catch {} } catch(e) {}
   if (typeof _UI !== 'undefined') _UI.uiMode = mode;
   if (window._UI) window._UI.uiMode = mode;
   document.documentElement.setAttribute('data-ui-mode', mode);
-  
-  if (typeof window.applyMode === 'function') window.applyMode(mode);
-  if (typeof window.applyUIMode === 'function') window.applyUIMode(mode);
-  if (typeof updateSettingsModeButtons === 'function') updateSettingsModeButtons();
-  
-  const advItems = document.querySelectorAll('.nav-item[data-tier="advanced"], .sidebar-group-label[data-tier="advanced"], [data-tier="advanced"]');
-  advItems.forEach(el => { el.style.display = mode === 'power' ? '' : 'none'; });
-  
-  const agentsSection = document.querySelectorAll('.sidebar-section, #agent-list, .sidebar-add-agent');
-  agentsSection.forEach(el => { el.style.display = mode === 'power' ? '' : 'none'; });
 
+  // Clear the inline tier styling the four old implementations left behind —
+  // a stale inline 'none' outlived every mode switch and fought the CSS.
+  // (CSS re-hides advanced tiers in simple mode, so this clear is safe
+  // there and restorative in power mode. .pane-hidden-by-user is the
+  // separate power-user customization and is deliberately untouched.)
+  document.querySelectorAll('[data-tier="advanced"], .sidebar-group-label, #group-build, #group-ship, #group-tools, #group-enterprise')
+    .forEach(el => { el.style.display = ''; });
+
+  // Indicators — every surface reflects the one mode.
+  const simBtn = document.getElementById('mode-simple-btn');
+  const pwrBtn = document.getElementById('mode-power-btn');
+  if (simBtn) simBtn.classList.toggle('active', mode === 'simple');
+  if (pwrBtn) pwrBtn.classList.toggle('active', mode === 'power');
+  if (typeof updateSettingsModeButtons === 'function') updateSettingsModeButtons();
+  // Mirror into the novice-assist store (its footer/icon read it) instead of
+  // letting the two stores diverge again — that divergence is how "Show all
+  // features" ended up dead.
+  try {
+    const st = JSON.parse(_safeLS.get('aos_novice_assist') || '{}') || {};
+    st.simple = mode === 'simple' ? '1' : '0';
+    _safeLS.set('aos_novice_assist', JSON.stringify(st));
+  } catch (e) { /* private mode */ }
+  if (typeof window.aosSyncModeIndicator === 'function') window.aosSyncModeIndicator();
+
+  // Sidebar group EXPANSION state (visibility is CSS's job now): core open
+  // in both modes; advanced groups collapsed by default in power.
+  if (typeof window.toggleSidebarGroup === 'function') {
+    window.toggleSidebarGroup('core', true);
+    if (mode === 'power') {
+      ['build', 'ship', 'tools', 'enterprise'].forEach(gid => {
+        window.toggleSidebarGroup(gid, false);
+      });
+    }
+  }
+
+  // Simplifying while an advanced pane is active would strand the user on a
+  // pane whose nav button just vanished (94 handled this on its own path
+  // only; the topbar path never did).
   if (mode === 'simple') {
-    if (typeof window.toggleSidebarGroup === 'function') window.toggleSidebarGroup('core', true);
-  } else {
-    // In power mode: keep ESSENTIALS expanded, collapse others
-    if (typeof window.toggleSidebarGroup === 'function') window.toggleSidebarGroup('core', true);
-    ['build', 'ship', 'tools', 'enterprise'].forEach(gid => {
-      if (typeof window.toggleSidebarGroup === 'function') window.toggleSidebarGroup(gid, false);
-    });
+    const stranded = document.querySelector('.nav-item[data-tier="advanced"].active');
+    if (stranded) { try { window.nav && window.nav('chat'); } catch (e) {} }
   }
 
   // DELIBERATELY SILENT. The mode has already been applied locally and
@@ -5971,12 +6011,16 @@ window.switchUIMode = async function(mode) {
   // follows the user to another device. A toast here would interrupt a
   // successful, visibly-completed action to report a background sync failure
   // the user can do nothing about, and the next mode change retries it anyway.
-  try {
-    fetch('/api/profile', {
-      method: 'PATCH', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ui_mode: mode})
-    }).catch(()=>{});
-  } catch(e) { /* see above: intentional */ }
+  // Load-time application (04-workflow-specs, from the profile itself) passes
+  // patch:false — the value came FROM the profile.
+  if (patchProfile) {
+    try {
+      fetch('/api/profile', {
+        method: 'PATCH', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ui_mode: mode})
+      }).catch(()=>{});
+    } catch(e) { /* see above: intentional */ }
+  }
 };
 
 // ── Settings Appearance helpers ────────────────────────────────────

@@ -359,7 +359,7 @@
           <button type="button" id="acct-mode-simple" style="padding:14px;border-radius:12px;border:2px solid ${currentMode === 'simple' ? 'var(--accent)' : 'var(--border)'};background:${currentMode === 'simple' ? 'rgba(91,138,248,.12)' : 'var(--bg-2)'};color:var(--text-0);cursor:pointer;text-align:left">
             <div class="u-4e4fe8b3">⚡</div>
             <div style="font-weight:800;font-size:13px;margin-bottom:2px">Simple</div>
-            <div style="font-size:11px;color:var(--text-2)">7 core features only</div>
+            <div style="font-size:11px;color:var(--text-2)">8 core features only</div>
           </button>
           <button type="button" id="acct-mode-power" style="padding:14px;border-radius:12px;border:2px solid ${currentMode === 'power' ? 'var(--accent)' : 'var(--border)'};background:${currentMode === 'power' ? 'rgba(91,138,248,.12)' : 'var(--bg-2)'};color:var(--text-0);cursor:pointer;text-align:left">
             <div class="u-4e4fe8b3">🌌</div>

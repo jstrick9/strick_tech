@@ -104,61 +104,24 @@ function renderTrialBanner(cfg) {
 // ══════════════════════════════════════════════════════════════════
 //  SIMPLE / POWER MODE
 // ══════════════════════════════════════════════════════════════════
-const SIMPLE_MODE_PANES = new Set([
-  'chat','kanban','templates','settings','docs','dashboard'
-]);
-
+// r54: this used to carry its OWN simple-mode implementation — a third pane
+// list (SIMPLE_MODE_PANES, six panes, none matching the sidebar's actual
+// data-tier="core" eight), its own inline display loop (overridden by the
+// CSS !important tier rules, so 'core' panes not in the list were saved by
+// CSS rather than by this code), and a fifth mode indicator
+// (#simple-mode-header, duplicating the CSS ::before "Simple Mode" badge).
+// All of it is deleted; the canonical writer is switchUIMode()
+// (01-app-core.js): one attr, one store, CSS enforcement. This load-time
+// call applies the profile's mode WITHOUT re-PATCHing it back (the value
+// came from the profile).
 function applyUIMode(mode) {
   _UI.uiMode = mode;
-  document.documentElement.setAttribute('data-ui-mode', mode);
-
-  const sidebar = document.getElementById('sidebar');
-  if (!sidebar) return;
-
-  if (mode === 'simple') {
-    // Hide all nav items except simple mode panes
-    sidebar.querySelectorAll('.nav-item[data-nav]').forEach(el => {
-      const pane = el.getAttribute('data-nav') || '';
-      el.style.display = SIMPLE_MODE_PANES.has(pane) ? '' : 'none';
-    });
-    // Hide section labels that have no visible items under them
-    sidebar.querySelectorAll('.sidebar-group-label,.sidebar-label').forEach(el => {
-      el.style.display = 'none';
-    });
-    // Add simple-mode header
-    ensureSimpleHeader();
-  } else {
-    // Power mode — show everything (except user-hidden panes)
-    sidebar.querySelectorAll('.nav-item[data-nav]').forEach(el => {
-      el.style.display = '';
-    });
-    sidebar.querySelectorAll('.sidebar-group-label,.sidebar-label').forEach(el => {
-      el.style.display = '';
-    });
-    document.getElementById('simple-mode-header')?.remove();
-    applyHiddenPanes(_UI.profile?.hidden_panes || []);
+  if (typeof window.switchUIMode === 'function') {
+    window.switchUIMode(mode, { patch: false });
+    return;
   }
-}
-
-function ensureSimpleHeader() {
-  if (document.getElementById('simple-mode-header')) return;
-  const sidebar = document.getElementById('sidebar');
-  if (!sidebar) return;
-
-  const hdr = document.createElement('div');
-  hdr.id = 'simple-mode-header';
-  hdr.style.cssText = `padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg-1)`;
-  hdr.innerHTML = `
-    <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">
-      Simple Mode
-    </div>
-    <div style="font-size:11px;color:var(--text-2);line-height:1.5;margin-bottom:8px">
-      Showing core features only.
-    </div>
-    <button data-act-click="switchUIMode('power')" style="width:100%;padding:5px;background:var(--accent);border:none;border-radius:6px;color:var(--on-accent);font-size:11px;font-weight:600;cursor:pointer">
-      ⚡ Switch to Power Mode
-    </button>`;
-  sidebar.insertBefore(hdr, sidebar.querySelector('.sidebar-section') || sidebar.firstChild);
+  // Pre-app-core fallback only: the attr alone drives the CSS enforcement.
+  document.documentElement.setAttribute('data-ui-mode', mode);
 }
 
 
@@ -168,7 +131,7 @@ function ensureSimpleHeader() {
 //  HIDDEN PANES & SIDEBAR CUSTOMIZATION
 // ══════════════════════════════════════════════════════════════════
 function applyHiddenPanes(hiddenPanes) {
-  if (_UI.uiMode === 'simple') return; // simple mode handles its own visibility (only 6 core panes ever show)
+  if (_UI.uiMode === 'simple') return; // simple mode owns visibility (the 8 core panes via CSS tier rules)
   document.querySelectorAll('.nav-item[data-nav]').forEach(el => {
     const pane = el.getAttribute('data-nav') || '';
     // NOTE: previously this set el.style.display = 'none' directly, but an

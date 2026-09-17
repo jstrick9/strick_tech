@@ -5,9 +5,20 @@
 'use strict';
 (function() {
   var STORAGE_KEY = 'agentic_os_mode';
-  var currentMode = localStorage.getItem(STORAGE_KEY) || 'power';
-  var advancedOpen = false;
+  // r54: a brand-new user starts in Simple (matches the backend profile
+  // default and 94's novice intent; three layers used to fight over this —
+  // two defaulting to power, one to simple — landing the app in a state no
+  // layer had chosen).
+  var currentMode = localStorage.getItem(STORAGE_KEY) || 'simple';
 
+  // r54: indicators only. The old body also flipped inline display on every
+  // [data-tier="advanced"] element via showAdv() — but #adv-arrow and
+  // #advanced-toggle do not exist in the markup (see
+  // removed-orphan-exports.test.js) and the CSS !important tier rules keyed
+  // on data-ui-mode override inline styles anyway, so the inline loop could
+  // only ever leave STALE 'none' values behind when the mode later changed
+  // through another path. switchUIMode() (01-app-core.js) is the single
+  // writer; this runs only as its pre-app-core fallback.
   function applyMode(mode) {
     currentMode = mode;
     localStorage.setItem(STORAGE_KEY, mode);
@@ -19,18 +30,6 @@
     var advItems = document.querySelectorAll('.nav-item[data-tier="advanced"]');
     var countEl = document.getElementById('advanced-count');
     if (countEl) countEl.textContent = advItems.length + ' features';
-    if (mode === 'power') { advancedOpen = true; showAdv(true); }
-    else { advancedOpen = false; showAdv(false); }
-  }
-
-  function showAdv(show) {
-    document.querySelectorAll('[data-tier="advanced"]').forEach(function(el) {
-      el.style.display = show ? '' : 'none';
-    });
-    var arrow = document.getElementById('adv-arrow');
-    var toggle = document.getElementById('advanced-toggle');
-    if (arrow) arrow.textContent = show ? '\u25BC' : '\u25B6';
-    if (toggle) toggle.classList.toggle('open', show);
   }
 
   window.setMode = function(mode) {
@@ -48,7 +47,7 @@
     var btn1 = document.createElement('button');
     btn1.id = 'mode-simple-btn';
     btn1.textContent = '\u2728 Simple';
-    btn1.title = 'Simple mode \u2014 7 core features';
+    btn1.title = 'Simple mode \u2014 8 core features';
     btn1.onclick = function() { setMode('simple'); };
     var btn2 = document.createElement('button');
     btn2.id = 'mode-power-btn';
@@ -113,10 +112,10 @@
           '<div>4. <strong>Try the Swarm</strong> \u2014 send one prompt to multiple AI models at once</div>' +
         '</div>' +
       '</div>' +
-      '<div style="font-size:12.5px;color:var(--text-2);margin-bottom:20px"><strong>Simple mode</strong> shows 7 core features. Switch to <strong>Power mode</strong> anytime for all 60+ features.</div>' +
+      '<div style="font-size:12.5px;color:var(--text-2);margin-bottom:20px"><strong>Simple mode</strong> shows the 8 core features. Switch to <strong>Power mode</strong> anytime for all 60+ features.</div>' +
       '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
         '<button class="btn btn-primary" id="ob-power-btn" style="padding:11px 26px;font-size:14px;font-weight:700;cursor:pointer;border-radius:10px;border:none;background:var(--accent);color:var(--on-accent)">Power Mode (All 60+ Features) →</button>' +
-        '<button class="btn btn-ghost" id="ob-simple-btn" style="padding:11px 22px;font-size:14px;cursor:pointer;border-radius:10px;border:1px solid var(--border);background:var(--bg-3);color:var(--text-1)">Simple Mode (7 Core)</button>' +
+        '<button class="btn btn-ghost" id="ob-simple-btn" style="padding:11px 22px;font-size:14px;cursor:pointer;border-radius:10px;border:1px solid var(--border);background:var(--bg-3);color:var(--text-1)">Simple Mode (8 Core)</button>' +
       '</div>';
     overlay.appendChild(card);
     document.body.appendChild(overlay);
