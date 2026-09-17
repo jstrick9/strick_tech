@@ -1463,10 +1463,16 @@ async function wfRun() {
             } else {
               wfLog(`📤 Output → ${data.target}: ${(data.result||'').slice(0,120)}`, 'output');
             }
+          } else if (data.type === 'killed') {
+            // r51: the Control Tower kill switch (or a per-run budget stop)
+            // ends the stream from the server side.
+            wfLog(data.reason === 'budget' ? '⚠️ Run stopped — budget limit hit' : '🛑 Run stopped from the Control Tower', 'error');
           } else if (data.type === 'done') {
             // The server reports status; this said "complete" for a run whose
             // every node had errored.
-            if (data.status === 'failed') {
+            if (data.status === 'killed') {
+              wfLog('🛑 Workflow stopped', 'error');
+            } else if (data.status === 'failed') {
               const n = (data.errors||[]).length;
               wfLog(`❌ Workflow failed — ${n} node${n===1?'':'s'} errored`, 'error');
             } else {

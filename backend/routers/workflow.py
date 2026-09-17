@@ -486,6 +486,19 @@ async def run_workflow(wf_id: str, req: Request):
     from .replay import _finish_run as _replay_finish_run
     from .replay import _record_frame as _replay_record_frame
 
+    # r51: also open a Control Tower trace (agent_traces) for this run. The
+    # tracing subsystem — run list, live steps, cost totals, kill switch,
+    # completion notifications — had NO production caller: every button in
+    # the Control Tower operated on a store that real work never wrote to
+    # (only tests did). Workflow runs are now that caller. Best-effort,
+    # exactly like the replay recording above: a tracing hiccup must never
+    # abort a live run.
+    from .control_tower import start_run as ct_start_run
+    from .control_tower import record_step as ct_record_step
+    from .control_tower import finish_run as ct_finish_run
+    from .control_tower import is_killed as ct_is_killed
+    from .control_tower import run_is_stopped as ct_run_is_stopped
+
     # Agent nodes pass only agent_id to llm.complete(), and resolve_model()
     # maps ids through the STATIC OPENROUTER_MODELS table — whose keys are
     # MODEL names ('gemini', 'claude'), not agent ids ('researcher',
@@ -535,12 +548,25 @@ async def run_workflow(wf_id: str, req: Request):
         except Exception as _e:
             log.warning('Failed to persist workflow run: %s', _e)
 
+        # r51: open the Control Tower trace for the same run. agent_id
+        # 'workflow' groups these in the run list; the run shows the
+        # workflow name, the triggering input as its prompt, and lights up
+        # the status-bar active-run indicator for as long as it streams.
+        ct_run_id = ''
+        try:
+            ct_run_id = ct_start_run('workflow', f'🔄 {wf.get("name", "workflow")}', user_input)
+        except Exception as _e:
+            log.warning('Failed to open control-tower trace: %s', _e)
+
         yield f'data: {json.dumps({"type": "start", "run_id": run_id, "workflow": wf["name"]})}\n\n'
 
         visited: set[str] = set()
         queue = [triggers[0]['id']]
         node_errors: list[dict] = []
         failed_nodes: set[str] = set()
+        # r51: set when the loop aborts because the Control Tower (kill
+        # switch) or the per-run budget stopped the trace mid-run.
+        stopped_reason = ''  # '', 'user', or 'budget'
 
         from ..services import llm as llm_svc
 
@@ -554,6 +580,17 @@ async def run_workflow(wf_id: str, req: Request):
             if not node:
                 continue
 
+            # r51: honor the Control Tower stop conditions at every node
+            # boundary. A budget stop sets the kill flag (run still active);
+            # kill_run() finishes the run and removes it from _active_runs
+            # immediately, discarding its own flag — so "no longer active"
+            # must also read as stopped, or the kill switch would report
+            # success while the workflow quietly ran to completion.
+            if ct_run_id and ct_run_is_stopped(ct_run_id):
+                stopped_reason = 'budget' if ct_is_killed(ct_run_id) else 'user'
+                yield f'data: {json.dumps({"type": "killed", "run_id": run_id, "reason": stopped_reason})}\n\n'
+                break
+
             yield f'data: {json.dumps({"type": "node_start", "node_id": nid, "node_type": node["type"], "label": node.get("label", "")})}\n\n'
             frame_no += 1
             _safe_record(
@@ -565,7 +602,17 @@ async def run_workflow(wf_id: str, req: Request):
 
             cfg = node.get('config', {})
 
+            # r51: per-node accumulators for the Control Tower trace. The
+            # LLM-carrying branches (agent, loop) fill in model usage; every
+            # branch's product lands in context['prev_output'] as usual.
+            step_in = ''
+            step_model = ''
+            step_tin = 0
+            step_tout = 0
+            step_cost = 0.0
+
             if node['type'] == 'trigger':
+                step_in = context['input'][:500]
                 context['prev_output'] = context['input']
 
             elif node['type'] == 'agent':
@@ -573,6 +620,7 @@ async def run_workflow(wf_id: str, req: Request):
                 prompt = prompt.replace('{{input}}', context['input']).replace(
                     '{{prev_output}}', context['prev_output']
                 )
+                step_in = prompt[:500]
 
                 try:
                     msgs = [{'role': 'user', 'content': prompt}]
@@ -582,6 +630,10 @@ async def run_workflow(wf_id: str, req: Request):
                         max_tokens=1024, inject_steering=False
                     )
                     context['prev_output'] = result.get('text', '')
+                    step_model = result.get('model', '')
+                    step_tin = result.get('prompt_tokens', 0)
+                    step_tout = result.get('completion_tokens', 0)
+                    step_cost = result.get('cost', 0.0)
                     yield f'data: {json.dumps({"type": "node_output", "node_id": nid, "output": context["prev_output"][:300]})}\n\n'
                 except Exception as ex:
                     node_errors.append({'node_id': nid, 'error': str(ex)})
@@ -637,6 +689,8 @@ async def run_workflow(wf_id: str, req: Request):
                     loop_prompt = loop_prompt_tpl.replace('{{input}}', context['input']).replace(
                         '{{prev_output}}', last_output
                     )
+                    if not step_in:
+                        step_in = loop_prompt[:500]
                     try:
                         result = await llm_svc.complete(
                             [{'role': 'user', 'content': loop_prompt}],
@@ -644,6 +698,12 @@ async def run_workflow(wf_id: str, req: Request):
                             max_tokens=1024, inject_steering=False,
                         )
                         last_output = result.get('text', '')
+                        # r51: the loop node makes several LLM calls; the
+                        # Control Tower step records the summed usage.
+                        step_model = result.get('model', '') or step_model
+                        step_tin += result.get('prompt_tokens', 0)
+                        step_tout += result.get('completion_tokens', 0)
+                        step_cost += result.get('cost', 0.0)
                     except Exception as ex:
                         node_errors.append({'node_id': nid, 'error': str(ex)})
                         failed_nodes.add(nid)
@@ -810,6 +870,28 @@ async def run_workflow(wf_id: str, req: Request):
                 int((time.perf_counter() - node_t0) * 1000),
             )
 
+            # r51: same node, same moment, into the Control Tower trace —
+            # with the model usage the replay frame doesn't carry. A failed
+            # node records its error as the step output and an error status.
+            if ct_run_id:
+                _node_err = str(next((e['error'] for e in reversed(node_errors) if e['node_id'] == nid), ''))
+                try:
+                    ct_record_step(
+                        ct_run_id,
+                        node['type'],
+                        node.get('label', node['type']),
+                        input_text=step_in,
+                        output_text=_node_err or context['prev_output'],
+                        model=step_model,
+                        tokens_in=step_tin,
+                        tokens_out=step_tout,
+                        cost=step_cost,
+                        duration_ms=int((time.perf_counter() - node_t0) * 1000),
+                        status='error' if _node_err else 'done',
+                    )
+                except Exception as _e:
+                    log.warning('Failed to record control-tower step: %s', _e)
+
             # FIX 11: Queue next nodes — filter by condition label for condition nodes
             for e in edges:
                 if e['from'] != nid:
@@ -844,12 +926,29 @@ async def run_workflow(wf_id: str, req: Request):
         except Exception as _e:
             log.warning('Failed to persist workflow run: %s', _e)
 
+        # r51: close the Control Tower trace. After a user kill the run was
+        # already finished by kill_run() and this is a documented no-op; on
+        # a budget stop the flag is set but the run is still active, so THIS
+        # call is what persists the final state and pushes the notification
+        # (r49 toast + r50 bell).
+        if ct_run_id:
+            try:
+                ct_finish_run(
+                    ct_run_id,
+                    'killed' if stopped_reason else ('error' if node_errors else 'done'),
+                    'Budget limit hit' if stopped_reason == 'budget' else (
+                        'Killed by user' if stopped_reason == 'user' else str(node_errors[0]['error'] if node_errors else '')
+                    ),
+                )
+            except Exception as _e:
+                log.warning('Failed to finish control-tower trace: %s', _e)
+
         yield (
             'data: '
             + json.dumps({
                 'type': 'done',
                 'run_id': run_id,
-                'status': 'failed' if node_errors else 'success',
+                'status': 'killed' if stopped_reason else ('failed' if node_errors else 'success'),
                 'errors': node_errors,
                 'nodes_run': len(visited),
             })

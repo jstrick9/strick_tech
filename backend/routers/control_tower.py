@@ -345,6 +345,19 @@ def is_killed(run_id: str) -> bool:
     return run_id in _kill_flags
 
 
+def run_is_stopped(run_id: str) -> bool:
+    """True when an executor should stop working on a run.
+
+    Two stop conditions, and they look different in state: a budget stop sets
+    the kill flag but leaves the run active (its own finish_run will land),
+    while kill_run() finishes the run and removes it from _active_runs
+    immediately — discarding its own flag in the same breath. A poller that
+    only checked is_killed() would sail straight past a user kill, because
+    by the time it polls, the flag is already gone. Stopped means either.
+    """
+    return run_id in _kill_flags or run_id not in _active_runs
+
+
 def _broadcast(run_id: str, event: dict):
     q = _run_queues.get(run_id)
     if q:
