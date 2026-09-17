@@ -32,14 +32,19 @@ async function refreshControlTower() {
   const pane = document.getElementById('pane-control');
   if (!pane || !pane.classList.contains('active')) { clearInterval(controlRefreshTimer); return; }
   try {
-    const [sr, rr, br, nr] = await Promise.all([
+    // r49: this poller used to also fetch /api/control/notifications every
+    // 5s and never render the payload (the destructured `nd` was unused —
+    // the pane has no notifications section). 12 wasted requests/min while
+    // the pane was open. Run events now reach the user through the
+    // type:'notification' WebSocket case in 01-app-core instead.
+    const [sr, rr, br] = await Promise.all([
       fetch('/api/control/stats'), fetch('/api/control/runs?limit=20'),
-      fetch('/api/control/budget-rules'), fetch('/api/control/notifications?limit=5'),
+      fetch('/api/control/budget-rules'),
     ]);
-    if (!sr.ok || !rr.ok || !br.ok || !nr.ok) {
+    if (!sr.ok || !rr.ok || !br.ok) {
       throw new Error('The server could not return Control Tower data.');
     }
-    const [stats, runs, rules, nd] = await Promise.all([sr.json(), rr.json(), br.json(), nr.json()]);
+    const [stats, runs, rules] = await Promise.all([sr.json(), rr.json(), br.json()]);
     // Coerce to arrays before using array methods. A failed request returns
     // an error OBJECT, and calling .filter() on it threw
     // "runs.filter is not a function" straight into the pane -- a raw

@@ -2639,6 +2639,18 @@ function handleWSMessage(msg) {
   if (msg.type === 'toast') {
     toast(msg.message, msg.kind || 'ok');
   }
+  // r49: run-lifecycle events (complete / fail / kill / budget stop) are
+  // broadcast here with type:'notification' — and nothing listened, so a
+  // finished or failed agent run was never announced anywhere: the bell
+  // (29-notifications) reads a separate demo list, and the Control Tower
+  // pane polled these only to discard them. This is the one surface every
+  // user sees regardless of active pane.
+  if (msg.type === 'notification') {
+    const kind = msg.notif_type === 'error' ? 'err'
+      : (msg.notif_type === 'budget_alert' || msg.notif_type === 'system') ? 'warn'
+      : 'ok';
+    toast(msg.title ? `${msg.title}${msg.body ? ' — ' + msg.body : ''}` : 'Notification', kind, 4000);
+  }
   if (msg.type === 'memory_added') {
     document.getElementById('sb-mem').textContent =
       `${(parseInt(document.getElementById('sb-mem').textContent)||0)+1} memories`;
