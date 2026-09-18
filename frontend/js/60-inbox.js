@@ -248,7 +248,7 @@
           <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-0);font-size:12.5px">
             <span style="min-width:70px;font-weight:700;color:var(--warning)">STAYS</span>
             <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.title)}</span>
-            <span style="color:var(--text-2)" title="${esc(l.reason)}">${esc(l.status)}</span>
+            <span style="color:var(--text-2)" title="${esc(l.reason)}">${esc(l.status)}${l.reason ? ' — ' + esc(l.reason) : ''}</span>
           </div>`).join('')}
         <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
           <button type="button" class="btn" data-act-click="inboxSweep()">
@@ -270,8 +270,24 @@
         body: JSON.stringify({}),
       });
       if (note) {
-        note.textContent = `Filed ${d.filed_count}. ${d.remaining} left in the inbox`
-          + (d.remaining ? ' — the router could not place them.' : '.');
+        // r55: "the router could not place them" hid the actual reason (it
+        // lives only in the preview rows' tooltip). Live case: a fresh user
+        // captures notes, sweeps, and reads a dead-end sentence — while the
+        // real reason, "no workspaces exist", names the fix. Surface the
+        // reason when the leftovers share one, and point at the Knowledge
+        // pane for the no-workspaces case (that is where workspaces are
+        // created; the router files into them).
+        let why = '';
+        if (d.remaining) {
+          const reasons = [...new Set((d.left_in_inbox || [])
+            .map((l) => (l.reason || '').trim()).filter(Boolean))];
+          why = ' — the router could not place them';
+          if (reasons.length === 1) why += ` (${reasons[0]})`;
+          why += reasons.includes('no workspaces exist')
+            ? '. Create a workspace in the Knowledge pane first, then sweep again.'
+            : '.';
+        }
+        note.textContent = `Filed ${d.filed_count}. ${d.remaining} left in the inbox` + why;
       }
       showFiled = false;
       await loadInbox();
