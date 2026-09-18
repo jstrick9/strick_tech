@@ -1496,6 +1496,23 @@
                 <h3 class="u-e0bd1cdc">🧭 AI Context &amp; Guidelines Isolation</h3>
                 <p style="font-size:13px;color:var(--text-2);line-height:1.6">When navigating away from the `2 Tier Hierarchy` panel (`#pane-hierarchy`), all split view panes and bottom sticky bars immediately vanish so your active studio or chat workspace gets 100% of the screen height.</p>
               </div>
+
+              <!-- r55: the pane customizer (showSidebarCustomizer, backed by
+                   profile hidden_panes/pinned_panes + applyHiddenPanes) had
+                   lost every surface entry — its old sidebar-bottom button was
+                   removed in the "reclaim bottom real-estate" pass, leaving the
+                   Account Settings → Preferences tab as the only way in. This
+                   is the tab users actually look for it in. Power-mode only:
+                   hidden_panes are enforced in power mode (applyHiddenPanes
+                   early-returns in simple), so a novice toggling pane
+                   visibility from Simple would see nothing change. -->
+              <div class="settings-card u-b15fc6ae" >
+                <h3 class="u-e0bd1cdc">🧩 Pane Visibility &amp; Favorites</h3>
+                <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px">Choose exactly which of the 60+ panes appear in your sidebar, and star the ones you use most. Hidden panes stay available via search (⌘K) and deep links. Applies to Power mode.</p>
+                <div style="display:flex;gap:12px">
+                  <button type="button" id="settings-customize-panes-btn" data-act-click="showSidebarCustomizer()" class="btn btn-primary btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);cursor:pointer">🧩 Customize Sidebar Panes</button>
+                </div>
+              </div>
             </div>
 
             <!-- TAB 4: AI Agents Swarm -->

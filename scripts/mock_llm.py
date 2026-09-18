@@ -58,6 +58,12 @@ def make_handler(port_kind):
             if port_kind == "openai":
                 if self.path.startswith("/v1/models"):
                     self._send({"data": [{"id": m} for m in MODELS]})
+                elif self.path.startswith("/v1/auth/key"):
+                    # r55: the backend's key-verification path (honouring
+                    # OPENROUTER_BASE_URL) calls this authenticated endpoint;
+                    # mirror OpenRouter's shape so save-and-verify works
+                    # against the mock.
+                    self._send({"data": {"label": "mock-key", "usage": 0, "limit": None}})
                 else:
                     self._send({"error": "not found"}, 404)
             else:

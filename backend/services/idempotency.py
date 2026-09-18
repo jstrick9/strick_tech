@@ -122,6 +122,17 @@ def normalise_key(raw: str | None, method: str, path: str) -> str | None:
     # cannot know about, so these routes opt out entirely.
     if path.startswith('/api/auth/'):
         return None
+    # Stateful TOGGLE routes opt out for the same reason auth does: a toggle
+    # means "flip whatever the current state is", so the byte-identical
+    # request a moment later means the OPPOSITE action. Live-reproduced with
+    # the pane customizer: hide a pane, un-hide it within the client's 10s
+    # key window, and the replay returned the first ('hidden') response —
+    # the un-hide was silently swallowed and the pane stayed stuck in the
+    # sidebar. Replaying a create is a no-op; replaying a toggle is a lie.
+    # Covers the '.../toggle' and '.../toggle-{thing}/{id}' shapes (profile
+    # toggle-pane, hooks, steering, mcp-gateway servers).
+    if any(seg == 'toggle' or seg.startswith('toggle-') for seg in path.split('/')):
+        return None
     return f'{method.upper()} {path} {raw}'
 
 

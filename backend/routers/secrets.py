@@ -403,6 +403,16 @@ async def test_secret_connection(req: Request):
     if provider == 'openrouter':
         if not key:
             return {'ok': False, 'error': 'No OpenRouter API key provided or found in vault.'}
+        # r55: resolve the base exactly like the LLM stack does
+        # (backend/services/llm.py: OPENROUTER_BASE_URL, e.g. an internal
+        # gateway or a test mock). This used to hardcode
+        # https://openrouter.ai/api/v1, so in any topology that overrides the
+        # base, verification rejected the very keys that topology accepts —
+        # live-reproduced: with OPENROUTER_BASE_URL pointed at the local mock,
+        # "Save, Test & Sync Models" returned INVALID KEY (the real
+        # openrouter.ai 401'd the mock's key) while chat completions through
+        # the same key worked fine. One config source, one truth.
+        _or_base = (os.environ.get('OPENROUTER_BASE_URL') or 'https://openrouter.ai/api/v1').rstrip('/')
         try:
             async with httpx.AsyncClient(timeout=6.0) as client:
                 # BUG FIX: this used to call GET /api/v1/models, which is a
@@ -419,7 +429,7 @@ async def test_secret_connection(req: Request):
                 # metadata (label, usage, limit) when the key is real.
                 # Verified against the live API: bad key -> 401, absent -> 401.
                 auth = await client.get(
-                    'https://openrouter.ai/api/v1/auth/key',
+                    f'{_or_base}/auth/key',
                     headers={'Authorization': f'Bearer {key}'},
                 )
                 if auth.status_code in (401, 403):
@@ -441,7 +451,7 @@ async def test_secret_connection(req: Request):
                 models_count = 0
                 try:
                     r = await client.get(
-                        'https://openrouter.ai/api/v1/models', headers={'Authorization': f'Bearer {key}'}
+                        f'{_or_base}/models', headers={'Authorization': f'Bearer {key}'}
                     )
                     if r.status_code == 200:
                         models_count = len((r.json() or {}).get('data', []) or [])

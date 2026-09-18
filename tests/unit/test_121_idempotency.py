@@ -101,6 +101,51 @@ def test_keys_are_scoped_to_method_and_path():
     assert len({a, b, c}) == 3
 
 
+def test_toggle_routes_opt_out_of_replay():
+    """r55: a toggle is "flip the current state", not "do the same thing".
+
+    The byte-identical request a moment later means the OPPOSITE action.
+    Live-reproduced with the pane customizer: hide a pane, un-hide it inside
+    the client's 10s key window, and the replay returned the first ('hidden')
+    response — the un-hide was silently swallowed and the pane stayed stuck.
+    Replaying a create is a no-op; replaying a toggle is a lie.
+    """
+    # .../toggle and .../toggle-{thing}/{id} shapes across the routers
+    for path in (
+        '/api/profile/toggle-pane/websearch',
+        '/api/hooks/hook_1/toggle',
+        '/api/steering/file_1/toggle',
+        '/api/mcp-gateway/servers/srv_1/toggle',
+    ):
+        assert idempotency.normalise_key('k', 'POST', path) is None, path
+    # a toggle-shaped word must not over-match real resources
+    assert idempotency.normalise_key('k', 'POST', '/api/toggles') is not None
+    assert idempotency.normalise_key('k', 'POST', '/api/specs') is not None
+    assert idempotency.normalise_key('k', 'POST', '/api/auth/login') is None, (
+        'the pre-existing session-lifecycle opt-out must stay'
+    )
+
+
+def test_a_repeated_toggle_actually_flips(client):
+    """Middleware-level contract: same key, same path, back-to-back — the
+    second toggle must EXECUTE, not replay the first response."""
+    import backend.services.idempotency as _idem
+    _idem._store.clear()
+    r1 = client.post('/api/profile/toggle-pane/websearch',
+                     headers={'Idempotency-Key': 'test-toggle-replay-1'})
+    r2 = client.post('/api/profile/toggle-pane/websearch',
+                     headers={'Idempotency-Key': 'test-toggle-replay-1'})
+    assert r1.status_code == 200 and r2.status_code == 200, (
+        r1.status_code, r2.status_code, r2.text[:200])
+    a1, a2 = r1.json().get('action'), r2.json().get('action')
+    assert {a1, a2} == {'hidden', 'shown'}, (
+        f'a replayed toggle would return the same action twice: {a1!r}, {a2!r}')
+    assert r2.headers.get('Idempotency-Replayed') != 'true'
+    # leave the profile as found
+    client.post('/api/profile/toggle-pane/websearch',
+                headers={'Idempotency-Key': 'test-toggle-replay-1'})
+
+
 def test_reads_and_missing_keys_are_ignored():
     """No key means no behaviour change; nothing is deduplicated implicitly.
 

@@ -899,6 +899,13 @@ textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.6}
   display: block;
 }
 /* Settings Appearance card — active mode button highlight */
+/* r55: the pane customizer entry (Settings → Navigation & Layout) manages
+   hidden_panes, which applyHiddenPanes enforces only in Power mode — so the
+   entry is Power-only too. A novice in Simple toggling pane visibility would
+   see nothing change. */
+[data-ui-mode="simple"] #settings-customize-panes-btn {
+  display: none !important;
+}
 
 /* ── Sidebar Tier System ────────────────────────────────────── */
 /* Core items: always visible */

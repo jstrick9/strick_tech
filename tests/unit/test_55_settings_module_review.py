@@ -38,7 +38,11 @@ class TestConnectionTestActuallyVerifies:
     """/models is public — it can never prove a key is valid."""
 
     def test_uses_the_authenticated_endpoint(self):
-        assert 'https://openrouter.ai/api/v1/auth/key' in SECRETS_PY
+        # r55: the base is resolved from OPENROUTER_BASE_URL (same source as
+        # the LLM stack) instead of hardcoded — the assertion follows the
+        # authenticated-endpoint contract, now on the resolved URL.
+        assert "f'{_or_base}/auth/key'" in SECRETS_PY
+        assert "os.environ.get('OPENROUTER_BASE_URL')" in SECRETS_PY
 
     def test_rejects_unauthorised_responses(self):
         assert 'auth.status_code in (401, 403)' in SECRETS_PY
@@ -49,8 +53,8 @@ class TestConnectionTestActuallyVerifies:
 
         Compares the real request URLs, not any mention in the fix comments.
         """
-        auth_at = SECRETS_PY.index("'https://openrouter.ai/api/v1/auth/key'")
-        models_at = SECRETS_PY.index("'https://openrouter.ai/api/v1/models'")
+        auth_at = SECRETS_PY.index("f'{_or_base}/auth/key'")
+        models_at = SECRETS_PY.index("f'{_or_base}/models'")
         assert auth_at < models_at, 'the key must be verified before the catalogue is fetched'
 
     def test_reports_key_metadata_when_valid(self):
