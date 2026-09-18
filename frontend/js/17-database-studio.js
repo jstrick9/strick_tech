@@ -293,7 +293,7 @@ async function dbDropTable(table) {
   // so there was no escape hatch short of deleting the DB file). The
   // dedicated DELETE endpoint refuses core/SQLite/FTS tables; everything
   // else is an informed, confirmed, audit-logged admin action.
-  if (!(await gmDanger('Drop table', `Drop table "${table}" and ALL its rows? This cannot be undone.`))) return;
+  if (!(await gmDanger('Drop table', `Drop table "${table}" and ALL its rows? This cannot be undone.`, 'Drop'))) return;
   try {
     const r = await fetch(`/api/db/sqlite/table/${encodeURIComponent(table)}`, { method: 'DELETE' });
     const j = await r.json().catch(() => ({}));
@@ -455,7 +455,8 @@ async function runSQL(opts) {
   if (!dryRun && allowWrite && dbSqlLooksDestructive(sql)) {
     const ok = await gmDanger(
       'Run destructive SQL?',
-      'This statement can drop a table or empty it entirely. It will be recorded in the immutable audit trail. Continue?'
+      'This statement can drop a table or empty it entirely. It will be recorded in the immutable audit trail. Continue?',
+      'Run Anyway'
     );
     if (!ok) return;
   }
@@ -591,7 +592,8 @@ async function runGeneratedSchema(sql, plan) {
       'Run AI-generated SQL against the live database?',
       'The server flagged this statement:<br><br>' +
       warns.map(w => '• ' + escHtml(w)).join('<br>') +
-      '<br><br>This runs against your real data and is recorded in the audit trail. Continue?'
+      '<br><br>This runs against your real data and is recorded in the audit trail. Continue?',
+      'Run Anyway'
     );
     if (!ok) return;
   }

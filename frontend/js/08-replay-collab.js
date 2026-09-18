@@ -1955,7 +1955,7 @@ async function mktDeletePack(packId, packName) {
 
 async function mktInstallOrUninstall(packId, packName, isInstalled) {
   if (isInstalled) {
-    const ok = await gmDanger(`Uninstall "${packName}"?`, `Remove this pack and all its skills from your workspace?`);
+    const ok = await gmDanger(`Uninstall "${packName}"?`, `Remove this pack and all its skills from your workspace?`, 'Uninstall');
     if (!ok) return;
     try {
       const r = await fetch(`/api/marketplace/${encodeURIComponent(packId)}/uninstall`,{method:'DELETE'});

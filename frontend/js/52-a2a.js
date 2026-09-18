@@ -533,7 +533,8 @@ ${t.error_message ? `Error: ${t.error_message}` : ''}`);
 }
 
 async function a2aCancelTask(taskId) {
-  const ok = await gmDanger('Cancel Task', `Cancel A2A task ${taskId.slice(0,20)}?`);
+  // r56: "Cancel Task" confirmed with a button that read "Delete".
+  const ok = await gmDanger('Cancel Task', `Cancel A2A task ${taskId.slice(0,20)}?`, 'Cancel');
   if (!ok) return;
   const r = await fetch(`/api/a2a/tasks/${encodeURIComponent(taskId)}/cancel`, {method:'POST'}).catch(()=>null);
   const d = r ? await r.json() : {};

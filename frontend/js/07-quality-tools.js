@@ -737,7 +737,8 @@ async function ambientDismiss(id, btn) {
 }
 
 async function ambientClearAll() {
-  const ok = await gmDanger('Clear all suggestions? This cannot be undone.');
+  // r56: the confirm button read "Delete" for a clear-all action.
+  const ok = await gmDanger('Clear All Suggestions', 'This cannot be undone.', 'Clear');
   if (!ok) return;
   await fetch('/api/ambient/suggestions/clear',{method:'DELETE'});
   renderAmbient();

@@ -973,8 +973,11 @@ function prbNewRule() {
 }
 
 async function prbToggleServer(serverId, disable) {
+  // r56: the confirm button read "Delete" for an enable/disable action —
+  // live-reproduced while toggling a gateway server in the deep-dive.
   const ok = await gmDanger(`${disable?'Disable':'Enable'} Server`,
-    `${disable?'Disable':'Enable'} server "${serverId}"? ${disable?'All tool calls to this server will be blocked.':''}`);
+    `${disable?'Disable':'Enable'} server "${serverId}"? ${disable?'All tool calls to this server will be blocked.':''}`,
+    disable ? 'Disable' : 'Enable');
   if (!ok) return;
   const r = await fetch(`/api/mcp-gateway/servers/${encodeURIComponent(serverId)}/toggle`, {
     method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({disable})

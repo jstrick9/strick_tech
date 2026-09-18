@@ -777,7 +777,7 @@ function wfDeleteEdge(edgeId) {
 async function wfClear() {
   if (!_wfData) return;
   const cnt = (_wfData.nodes||[]).length;
-  if (cnt > 0 && !(await gmDanger('Clear Canvas', `Remove all ${cnt} nodes and ${(_wfData.edges||[]).length} edges?`))) return;
+  if (cnt > 0 && !(await gmDanger('Clear Canvas', `Remove all ${cnt} nodes and ${(_wfData.edges||[]).length} edges?`, 'Clear'))) return;
   _wfData.nodes = []; _wfData.edges = [];
   wfRenderCanvas(); wfCloseProps();
   wfPushHistory(); wfAutoSaveDebounce();
@@ -2526,7 +2526,11 @@ window.installTauriPrerequisites = async function() {
 };
 
 async function tauriBuildStart() {
-  const ok = await gmDanger('Start Tauri Build — This will take 5-10 minutes on first build and requires Rust + Tauri CLI to be installed.');
+  // r56: this confirmed a BUILD with a button that read "Delete" (gmDanger's
+  // default label) — and crammed the whole explanation into the title.
+  const ok = await gmDanger('Start Tauri Build',
+    'This will take 5-10 minutes on first build and requires Rust + Tauri CLI to be installed.',
+    'Start Build');
   if (!ok) return;
   
   // Open a log window

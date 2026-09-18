@@ -309,7 +309,7 @@ async function saveQuickNote() {
     let r = await send(false);
     if (r.status === 409) {
       const replace = await gmDanger('Overwrite Note',
-        `A note named "${escHtml(title)}" already exists. Replace its content? This cannot be undone.`);
+        `A note named "${escHtml(title)}" already exists. Replace its content? This cannot be undone.`, 'Overwrite');
       if (!replace) { showToast('Skipped — existing note kept'); return; }
       r = await send(true);
     }
