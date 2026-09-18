@@ -2084,6 +2084,9 @@ const PALETTE_CMDS = [
   {icon:'/',  label:'/memory',        desc:'Search memory',       action:()=>{nav('chat');insertCmd('/memory ')}},
 ];
 
+let _paletteAsyncTimer = null;
+let _paletteQueryToken = 0;
+
 function openPalette() {
   const modal = document.getElementById('palette-modal');
   if (!modal) return;
@@ -2146,65 +2149,103 @@ async function filterPalette() {
     el.addEventListener('click', () => { items[i]?.action(); closePalette(); });
   });
 
-  if (q.length > 0) {
-    // Chat history search
-    if (q.length >= 2) {
-      try {
-        const chatRes = await fetch('/api/chat/search?q=' + encodeURIComponent(q) + '&limit=10');
-        const chatData = await chatRes.json();
-        if (chatData.ok && chatData.results && chatData.results.length > 0) {
-          let chatStartIdx = items.length;
-          html += `<div class="palette-section" style="margin-top:12px;border-top:1px solid var(--border);padding-top:8px">💬 Chat History (${chatData.count})</div>`;
-          html += chatData.results.map((item, idx) => `
-          <div class="palette-item" data-idx="${chatStartIdx+idx}" style="display:flex;align-items:center;gap:8px">
+  if (q.length === 0) return;
+
+  // r56: async sections (chat history, memory, global search) used to each
+  // do their own `results.innerHTML = html` as their fetch resolved, with a
+  // partial listener re-attach per section. Three live-reproduced failures:
+  //   1. the chat rebuild destroyed the quick-command rows' listeners and
+  //      only re-attached the chat rows' — quick commands were click-dead
+  //      (mouse AND Enter) until/unless the global fetch replaced the DOM
+  //      again, and permanently so when global had no results;
+  //   2. the global rebuild attached allActions = [items..., globalItems...]
+  //      while the DOM order was [items..., chatRows..., globalRows...] —
+  //      clicking a chat row fired the WRONG action (live: a chat-history
+  //      row navigated to Settings), and the global rows at the tail were
+  //      off by the chat-row count (dead clicks);
+  //   3. the memory-section enhancement (02-studio's filterPalette wrapper)
+  //      appended its rows, which the next innerHTML rebuild silently
+  //      clobbered — memory results flickered and vanished.
+  // One fetch pass, one write, one listener attach, index-aligned with the
+  // DOM — and a stale-token guard so a slow response from an earlier
+  // keystroke can never overwrite a newer render. Memory rows keep their
+  // delegated data-act-click handler (their allActions slot is null) so
+  // they are not double-wired.
+  clearTimeout(_paletteAsyncTimer);
+  const token = ++_paletteQueryToken;
+  _paletteAsyncTimer = setTimeout(async () => {
+    try {
+      const [chatData, memories, data] = await Promise.all([
+        (q.length >= 2)
+          ? fetch('/api/chat/search?q=' + encodeURIComponent(q) + '&limit=10').then(r => r.json()).catch(() => null)
+          : null,
+        (q.length >= 2)
+          ? fetch('/api/memory/search?q=' + encodeURIComponent(q) + '&limit=3').then(r => r.ok ? r.json() : null).catch(() => null)
+          : null,
+        fetch('/api/search/global?q=' + encodeURIComponent(q)).then(r => r.json()).catch(() => null),
+      ]);
+      if (token !== _paletteQueryToken) return; // superseded by a newer keystroke
+      const chatResults = (chatData && chatData.ok && chatData.results) || [];
+      const memResults = (Array.isArray(memories) && memories.length) ? memories : [];
+      const globalResults = (data && data.ok && data.results) || [];
+      if (!chatResults.length && !memResults.length && !globalResults.length) return;
+
+      const chatActions = chatResults.map(item => () => {
+        nav('chat');
+        if (typeof loadChatSession === 'function') loadChatSession(item.session_id);
+      });
+      const globalActions = globalResults.map(g => () => handleGlobalItemClick(g.action));
+
+      if (chatResults.length) {
+        html += `<div class="palette-section" style="margin-top:12px;border-top:1px solid var(--border);padding-top:8px">💬 Chat History (${chatData.count})</div>`;
+        html += chatResults.map((item) => `
+          <div class="palette-item" style="display:flex;align-items:center;gap:8px">
             <span class="p-icon">${item.role === 'user' ? '👤' : '🤖'}</span>
             <span class="p-label">${escHtml(item.session_name || item.session_id)}</span>
             <span class="p-desc" style="flex:1;overflow:hidden;text-overflow:ellipsis">${escHtml(item.snippet)}</span>
             <span class="badge" style="background:var(--bg-3);border:1px solid var(--border);color:var(--text-2);font-size:10px;padding:2px 6px">${escHtml(item.role)}</span>
           </div>`).join('');
-          const chatActions = chatData.results.map(item => () => {
-            nav('chat');
-            if (typeof loadChatSession === 'function') loadChatSession(item.session_id);
-          });
-          results.innerHTML = html;
-          const prevItems = results.querySelectorAll('.palette-item');
-          prevItems.forEach((el, i) => {
-            if (i >= chatStartIdx) {
-              el.addEventListener('click', () => { chatActions[i - chatStartIdx](); closePalette(); });
-            }
-          });
-        }
-      } catch(e) { console.warn('Chat search failed:', e); }
-    }
-
-    try {
-      const res = await fetch('/api/search/global?q=' + encodeURIComponent(q));
-      const data = await res.json();
-      if (data.ok && data.results && data.results.length > 0) {
-        let globalItems = data.results;
-        let startIdx = items.length;
+      }
+      if (memResults.length) {
+        html += `<div class="palette-section">🌌 Memory Results</div>`;
+        html += memResults.map(m => `
+          <div class="palette-item" data-act-click="hInsertAndClose(${jsArg((m.content||'').slice(0,50))})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
+            <span class="p-icon">💾</span>
+            <span class="p-label u-6cb285c6" >${escHtml((m.content||'').slice(0,60))}…</span>
+            <span class="p-desc">${escHtml(m.source||'')}</span>
+          </div>`).join('');
+      }
+      if (globalResults.length) {
         html += `<div class="palette-section" style="margin-top:12px;border-top:1px solid var(--border);padding-top:8px">Global Search Matches (${data.count})</div>`;
-        html += globalItems.map((item, idx) => {
+        html += globalResults.map((item) => {
           let pill = '';
           if (item.action?.startsWith('loop-run:')) pill = `<span class="badge" style="background:rgba(234,179,8,.2);color:#fbbf24;border:1px solid rgba(234,179,8,.4);padding:2px 7px;font-size:10px;font-weight:800;border-radius:6px;margin-left:auto;white-space:nowrap">⚡ Run Now</span>`;
           else if (item.action?.startsWith('memory-insert:')) pill = `<span class="badge" style="background:rgba(91,138,248,.2);color:#7aa4ff;border:1px solid rgba(91,138,248,.4);padding:2px 7px;font-size:10px;font-weight:800;border-radius:6px;margin-left:auto;white-space:nowrap">📋 Insert to Prompt</span>`;
           else if (item.action?.startsWith('mcp-tool:')) pill = `<span class="badge" style="background:rgba(168,85,247,.2);color:#c084fc;border:1px solid rgba(168,85,247,.4);padding:2px 7px;font-size:10px;font-weight:800;border-radius:6px;margin-left:auto;white-space:nowrap">🔧 Run Tool</span>`;
           return `
-          <div class="palette-item ${startIdx+idx===0?'focused':''}" data-idx="${startIdx+idx}" style="display:flex;align-items:center;gap:8px">
+          <div class="palette-item" style="display:flex;align-items:center;gap:8px">
             <span class="p-icon">${item.icon || '🔍'}</span>
             <span class="p-label">${escHtml(item.title)}</span>
             <span class="p-desc" style="flex:1;overflow:hidden;text-overflow:ellipsis">${escHtml(item.category + ' — ' + item.description)}</span>
             ${pill}
           </div>`;
         }).join('');
-        results.innerHTML = html;
-        const allActions = [...items.map(c => c.action), ...globalItems.map(g => () => handleGlobalItemClick(g.action))];
-        results.querySelectorAll('.palette-item').forEach((el, i) => {
-          el.addEventListener('click', () => { if (allActions[i]) allActions[i](); closePalette(); });
-        });
       }
-    } catch(e) { console.warn('Global search fetch failed:', e); }
-  }
+
+      // Index-aligned with the DOM: memory rows carry null (their delegated
+      // data-act-click already inserts + closes the palette).
+      const allActions = [
+        ...items.map(c => c.action),
+        ...chatActions,
+        ...memResults.map(() => null),
+        ...globalActions,
+      ];
+      results.innerHTML = html;
+      results.querySelectorAll('.palette-item').forEach((el, i) => {
+        if (allActions[i]) el.addEventListener('click', () => { allActions[i](); closePalette(); });
+      });
+    } catch (e) { console.warn('Palette search failed:', e); }
+  }, 120);
 }
 
 function handleGlobalItemClick(actionStr) {

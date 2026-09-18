@@ -12,39 +12,12 @@
 // ═══════════════════════════════════════════════════════════════
 
 // ── 1. Enhanced Global Search (⌘K already exists, enhance it) ────
-// Add file + memory search to the command palette
-async function enhanceCommandPalette() {
-  // Add memory search to palette items dynamically  
-  if (typeof PALETTE_CMDS === 'undefined') return;
-  
-  // Add smart search that queries memory and files
-  const originalFilterPalette = window.filterPalette;
-  window.filterPalette = async function() {
-    if (typeof originalFilterPalette === 'function') originalFilterPalette();
-    const q = document.getElementById('palette-input')?.value?.trim();
-    if (!q || q.length < 2) return;
-    
-    // Add memory results
-    try {
-      const r = await fetch(`/api/memory/search?q=${encodeURIComponent(q)}&limit=3`);
-      if (!r.ok) return;
-      const memories = await r.json();
-      if (Array.isArray(memories) && memories.length) {
-        const results = document.getElementById('palette-results');
-        if (!results) return;
-        const section = document.createElement('div');
-        section.innerHTML = `<div class="palette-section">🌌 Memory Results</div>` +
-          memories.map(m => `<div class="palette-item" data-act-click="hInsertAndClose(${jsArg((m.content||'').slice(0,50))})" role="button" tabindex="0" data-keys="Enter,Space" data-self-click="1">
-            <span class="p-icon">💾</span>
-            <span class="p-label u-6cb285c6" >${escHtml((m.content||'').slice(0,60))}…</span>
-            <span class="p-desc">${escHtml(m.source||'')}</span>
-          </div>`).join('');
-        results.appendChild(section);
-      }
-    } catch(e) {}
-  };
-}
-setTimeout(enhanceCommandPalette, 2000);
+// The command palette's memory section used to be bolted on here by wrapping
+// window.filterPalette and appending rows after the fact. r56 moved it into
+// filterPalette itself (01-app-core.js): the wrapper's appends were silently
+// clobbered by the palette's own async innerHTML rebuilds, so memory results
+// flickered and vanished. Nothing to enhance from the outside any more —
+// the markup (including the guarded u-6cb285c6 label class) moved verbatim.
 
 // ── 2. Feature Tour System ─────────────────────────────────────
 let tourStep = 0;
