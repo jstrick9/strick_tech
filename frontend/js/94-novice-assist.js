@@ -146,22 +146,61 @@
     renderGettingStarted();
   };
 
+  // r55: the checklist used to render ONLY inside #chat-empty, which
+  // hideChatEmpty() hides on the first send — so the "note" and "task"
+  // steps could never be SEEN completing: the card went invisible the
+  // moment the novice started chatting and only resurfaced on a fresh
+  // empty session. Placement now follows the user: centered in the empty
+  // state while that is visible, otherwise pinned above the message list
+  // — but only while steps remain. Once every step is done the pinned
+  // copy is removed; the 🎉 card renders on the empty-state landing
+  // surface only (celebration, not a permanent fixture over chats).
+  function gsEmptyVisible() {
+    const empty = document.getElementById('chat-empty');
+    return !!(empty && getComputedStyle(empty).display !== 'none');
+  }
+
+  function gsPinnedHost() {
+    const msgs = document.getElementById('chat-messages');
+    const container = msgs ? msgs.parentElement : null;
+    if (!container) return null;
+    let pinned = document.getElementById('aos-gs-pinned');
+    if (!pinned) {
+      pinned = document.createElement('div');
+      pinned.id = 'aos-gs-pinned';
+      pinned.style.cssText = 'flex-shrink:0;width:100%;max-width:584px;margin:8px auto 0;padding:0 12px';
+      container.insertBefore(pinned, msgs);
+    }
+    return pinned;
+  }
+
   function renderGettingStarted() {
     if (_st.gsDismissed) return;
-    const host = document.getElementById('chat-empty');
-    if (!host) return;
-    if (document.getElementById('aos-getting-started')) {
-      // just refresh states on an existing card
-    } else {
+    const doneCount = GS_STEPS.filter((s) => isDone(s.id)).length;
+    const allDone = doneCount === GS_STEPS.length;
+    let host = null;
+    if (gsEmptyVisible()) {
+      host = document.getElementById('chat-empty');
+    } else if (!allDone) {
+      host = gsPinnedHost();
+    }
+    const existing = document.getElementById('aos-getting-started');
+    if (!host) {
+      // No surface to render on (chat pane absent) or nothing left to
+      // follow the user with (all done): drop any pinned copy.
+      if (existing && existing.parentElement && existing.parentElement.id === 'aos-gs-pinned') existing.remove();
+      return;
+    }
+    if (!existing) {
       const card = document.createElement('div');
       card.id = 'aos-getting-started';
       card.style.cssText = 'max-width:560px;margin:0 auto 22px;text-align:left;background:var(--bg-2);border:1px solid var(--border);border-radius:16px;padding:16px 18px';
       host.appendChild(card);
+    } else if (existing.parentElement !== host) {
+      host.appendChild(existing); // re-parent: empty state <-> pinned strip
     }
     const card = document.getElementById('aos-getting-started');
     if (!card) return;
-    const doneCount = GS_STEPS.filter((s) => isDone(s.id)).length;
-    const allDone = doneCount === GS_STEPS.length;
 
     const row = (s) => {
       const done = isDone(s.id);
@@ -207,7 +246,39 @@
   function checkTaskCreated() {
     return document.querySelectorAll('#pane-kanban .kanban-card').length > 0;
   }
+  var _gsObsNode = null;
+  function bindGsPlacementObserver() {
+    // React instantly when the empty state shows/hides (send, clear, session
+    // load). ensureChatEmpty can REPLACE the #chat-empty node (clone path),
+    // so re-bind whenever the node changed; the sweep calls this too.
+    try {
+      const emptyEl = document.getElementById('chat-empty');
+      if (!emptyEl || emptyEl === _gsObsNode) return;
+      if (window.__gsPlacementObs) { try { window.__gsPlacementObs.disconnect(); } catch (e) {} }
+      _gsObsNode = emptyEl;
+      window.__gsPlacementObs = new MutationObserver(function () {
+        try { renderGettingStarted(); } catch (e) {}
+      });
+      window.__gsPlacementObs.observe(emptyEl, { attributes: true, attributeFilter: ['style', 'class'] });
+      // ensureChatEmpty can REPLACE the #chat-empty node wholesale (the
+      // clear/new-session path clones the template and re-appends it), which
+      // orphans the observer above. Watching the message list's direct
+      // children catches that replacement (and message add/remove — cheap),
+      // so placement recovers instantly instead of at the next 4s sweep.
+      if (!window.__gsListObs) {
+        window.__gsListObs = new MutationObserver(function () {
+          try { bindGsPlacementObserver(); } catch (e) {}
+          try { renderGettingStarted(); } catch (e) {}
+        });
+        const msgs = document.getElementById('chat-messages');
+        if (msgs) window.__gsListObs.observe(msgs, { childList: true });
+      }
+    } catch (e) {}
+  }
+
   function sweep() {
+    bindGsPlacementObserver();
+    renderGettingStarted(); // placement refresh (idempotent)
     if (checkConnectReady()) window.aosMarkStep('connect');
     if (checkMessageSent()) window.aosMarkStep('message');
     if (checkTaskCreated()) window.aosMarkStep('task');
@@ -288,10 +359,12 @@
     try { mountTerminology(); } catch (e) {}
     try { mountChecks(); } catch (e) {}
     try {
-      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => {
+      const firstRender = () => {
+        try { bindGsPlacementObserver(); } catch (e) {}
         try { renderGettingStarted(); } catch (e) {}
-      });
-      else setTimeout(() => { try { renderGettingStarted(); } catch (e) {} }, 300);
+      };
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', firstRender);
+      else setTimeout(firstRender, 300);
     } catch (e) {}
     console.debug('%c✅ Novice Assist loaded (Simple mode + Getting started + terminology)', 'color:#38bdf8;font-weight:bold');
   }

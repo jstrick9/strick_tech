@@ -799,8 +799,13 @@ async function sendChat() {
   window.renderChatAttachments();
   autoResizeInput(input);
 
-  // Getting Started checklist hook
-  if (window.markChecklistStep) markChecklistStep('first_chat');
+  // Getting Started checklist hook. r54: this used to call
+  // markChecklistStep('first_chat') — an API no module defines, with a step
+  // id no checklist uses (94's real API is aosMarkStep, ids
+  // connect/message/note/task). The checklist still auto-checked via its own
+  // send-button/Enter listeners; this direct call now makes the intent real
+  // and also covers programmatic send paths (voice, palette injections).
+  if (window.aosMarkStep) window.aosMarkStep('message');
 
   const selectedModel = S.currentModel || document.getElementById('chat-model-select')?.value || '';
   const personaSelect = document.getElementById('chat-persona-select');
@@ -1476,7 +1481,10 @@ async function saveApiKey() {
     updateKeyStatus(true);
     invalidateOpenRouterKeyStatus();
     document.getElementById('or-key-input').value = '';
-    if (window.markChecklistStep) markChecklistStep('api_key');
+    // r54: was markChecklistStep('api_key') — undefined API, wrong id. Mark
+    // 'connect' the moment the key is verified instead of waiting for the
+    // checklist's 4s connection-dot sweep.
+    if (window.aosMarkStep) window.aosMarkStep('connect');
     if (badge) { badge.textContent = count ? `ONLINE (${count} MODELS)` : 'ONLINE'; badge.style.color = 'var(--success)'; }
     if (resEl) resEl.innerHTML = `<span style="color:var(--success)">✅ Verified and saved to the encrypted vault${count ? ` — ${count} AI models available` : ''}.</span>`;
     if (typeof window.syncOpenWebUIConnections === 'function') window.syncOpenWebUIConnections();
