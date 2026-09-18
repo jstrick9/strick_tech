@@ -133,7 +133,14 @@ async function obNext(skip = false) {
     }
   }
   obStep++;
-  if (obStep >= obSteps.length || skip === true) {
+  // r54: "Skip" used to complete the ENTIRE wizard (`|| skip === true`),
+  // so a new user who wasn't ready to paste an API key at step 2 silently
+  // lost the remaining steps — the modal vanished, onboarding was marked
+  // complete, and those steps never returned. The button is rendered
+  // inside a single step and reads as "skip THIS step"; it now does exactly
+  // that. The wizard still always dismisses: the final step's
+  // "🚀 Start Building" reaches obStep >= length and completes.
+  if (obStep >= obSteps.length) {
     // Complete immediately so modal always dismisses
     closeOnboardingModal();
     try {

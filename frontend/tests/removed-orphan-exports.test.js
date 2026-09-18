@@ -60,8 +60,9 @@ describe('removed orphan exports stay removed (r46 sweep)', () => {
     // getElementById that never fires is not a revival):
     //   mission-launchpad-deck -> 01-app-core.js only (the shadowed
     //     showKeyboardShortcuts — documented override, left in place)
-    //   advanced-toggle / adv-arrow -> 91-mode-switcher.js only (showAdv
-    //     still guards them; applyMode drives it, not the removed toggle)
+    //   advanced-toggle / adv-arrow -> 91-mode-switcher.js only (r54 #190
+    //     removed the dead showAdv machinery entirely; the ids are now
+    //     absent everywhere — this map entry simply pins them to zero)
     //   pwa-install-btn, lp-api-key, lp-key-status -> nowhere at all.
     const ALLOWED = {
       'mission-launchpad-deck': ['01-app-core.js'],
