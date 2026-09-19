@@ -154,8 +154,12 @@ async function createLoop() {
 }
 
 async function pauseLoop(jobId) {
-  const loop = document.querySelector(`[data-loop-id="${jobId}"]`);
-  // Determine current state by checking list
+  // One button, two verbs: this re-fetches the loop's state and calls pause or
+  // resume accordingly, so the row's toggle stays correct even if the list
+  // re-rendered underneath it. (An older render carried a data-loop-id
+  // attribute on each row; nothing sets it any more, and a leftover
+  // querySelector('[data-loop-id=...]') here always returned null — dead code
+  // that implied a DOM contract the pane no longer has.)
   try {
     const r = await fetch('/api/loops');
     if (!r.ok) return;
