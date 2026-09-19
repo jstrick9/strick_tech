@@ -2144,20 +2144,12 @@ function mktUploadPack() {
   input.click();
 }
 
-// Simple toast helper (may already exist)
-function showToast(msg, dur=3000) {
-  let t = document.getElementById('_toast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id='_toast';
-    t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg-2);border:1px solid var(--border);color:var(--text-0);padding:10px 20px;border-radius:10px;font-size:13px;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:opacity .3s;pointer-events:none';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.style.opacity='1';
-  clearTimeout((t)._timer);
-  (t)._timer = setTimeout(()=>{ if (t) t.style.opacity='0'; }, dur);
-}
+// NOTE: showToast intentionally NOT redefined here. 01-app-core.js owns the
+// global alias (window.showToast = toast) used by 481+ call sites across 32+
+// files; a top-level `function showToast` in this file would clobber it and
+// swap every caller onto a different, unstacked toast implementation
+// (observed live: notes saved with no visible toast). All call sites in this
+// file use the shared container toast via the global alias.
 
 
 // ══════════════════════════════════════════════════════════════════

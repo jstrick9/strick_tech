@@ -27,12 +27,13 @@ describe('danger confirms name their action (r56)', () => {
     ['20-obsidian.js', /'Overwrite Note',[\s\S]{0,140}'Overwrite'\)/],
     ['50-mcp-gateway.js', /gmDanger\(`\$\{disable\?'Disable':'Enable'\} Server`,[\s\S]{0,240}disable \? 'Disable' : 'Enable'\)/],
     ['52-a2a.js', /'Cancel Task', `Cancel A2A task \$\{taskId\.slice\(0,20\)\}\?`, 'Cancel'\)/],
+    ['53-agent-monitor.js', /gmDanger\('Kill Agent',[\s\S]{0,240}'Kill'\)/],
   ])('%s carries an explicit confirm label', (file, re) => {
     expect(read(file).replace(/^\s*\/\/.*$/gm, '')).toMatch(re);
   });
 
   test('no gmDanger call left where the verb disagrees with a "Delete" button', () => {
-    const files = ['01-app-core.js','03-features-a.js','07-quality-tools.js','08-replay-collab.js','17-database-studio.js','20-obsidian.js','50-mcp-gateway.js','52-a2a.js'];
+    const files = ['01-app-core.js','03-features-a.js','07-quality-tools.js','08-replay-collab.js','17-database-studio.js','20-obsidian.js','50-mcp-gateway.js','52-a2a.js','53-agent-monitor.js'];
     const bad = [];
     for (const f of files) {
       const src = read(f).replace(/^\s*\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');

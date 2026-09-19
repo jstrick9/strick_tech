@@ -350,14 +350,22 @@ class TestInputSanitization:
         # Without content, should fail
         assert r.status_code in (200, 400, 422)
 
-    def test_websearch_num_results_negative(self, client):
+    def test_websearch_num_results_negative(self, client, monkeypatch):
         from tests.unit.conftest import post_json
         from unittest.mock import AsyncMock
         import sys
-        # Patch ddg for isolation
+        # Patch ddg for isolation — r57: the comment claimed a patch that was
+        # never applied, so this test made a REAL DuckDuckGo call and asserted
+        # on whichever way the upstream felt that minute (flaky by design; it
+        # broke when DDG started answering this network with HTTP 202
+        # bot-challenge pages). Mocked: -99 must clamp to 1, not crash.
+        async def _fake_ddg(query, num_results=5, status_out=None):
+            return [{"rank": 1, "title": "t", "url": "https://x.test", "snippet": "s"}]
+        monkeypatch.setattr("backend.routers.websearch._ddg_search", _fake_ddg)
         r = post_json(client, "/api/websearch/search",
                       {"query": "test", "num_results": -99})
         assert r.status_code == 200  # Should clamp, not crash
+        assert r.json()["ok"] is True
 
     def test_profile_name_unicode_ok(self, client):
         from tests.unit.conftest import patch_json

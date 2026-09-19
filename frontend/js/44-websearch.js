@@ -298,7 +298,14 @@ async function search() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({query: q, num_results: 8})
     });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    // r57: the backend reports blocked upstreams as ok:false with a human
+    // explanation (e.g. DuckDuckGo bot challenge). Throwing bare "HTTP 400"
+    // here hid that message and made it look like the query itself failed.
+    if (!resp.ok) {
+      let detail = `HTTP ${resp.status}`;
+      try { const d = await resp.json(); if (d && d.error) detail = d.error; } catch (_e) {}
+      throw new Error(detail);
+    }
     const d = await resp.json();
     if (!d.ok) throw new Error(d.error || 'Search failed');
     if (el) el.innerHTML = (d.results||[]).map((res, i) => `

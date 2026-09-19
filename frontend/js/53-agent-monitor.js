@@ -670,7 +670,7 @@ async function bddResolveAlert(alertId) {
 }
 
 async function bddKillAgent(agentId) {
-  const ok = await gmDanger('Kill Agent', `Immediately stop all tasks for agent "${agentId}"?\n\nThis is the recommended action for critical behavior drift.`);
+  const ok = await gmDanger('Kill Agent', `Immediately stop all tasks for agent "${agentId}"?\n\nThis is the recommended action for critical behavior drift.`, 'Kill');
   if (!ok) return;
   try {
     const r = await fetch(`/api/agent-monitor/kill/${encodeURIComponent(agentId)}`,

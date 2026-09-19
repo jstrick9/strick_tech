@@ -15,7 +15,7 @@ MOCK_RESULTS = [
 @pytest.fixture(autouse=True)
 def mock_ddg(monkeypatch):
     """Patch DuckDuckGo so no real HTTP calls are made."""
-    async def _fake_ddg(query, num_results=5):
+    async def _fake_ddg(query, num_results=5, status_out=None):
         if not query:
             return []
         return MOCK_RESULTS[:num_results]
@@ -232,3 +232,58 @@ class TestGroundedCompletion:
         post_json(client, "/api/websearch/grounded-completion",
                   {"prompt": "test inject_steering", "num_results": 1})
         assert called_with.get("inject_steering") is False
+
+
+class TestSearchUpstreamHonesty:
+    """r57: a blocked upstream must not report ok:true with zero results.
+
+    Found live: DuckDuckGo answered this sandbox's datacenter IP with HTTP
+    202 bot-challenge pages; _ddg_search's parser only ran on 200, so
+    /api/websearch/search answered {"ok": true, "results": []} and the UI
+    rendered "No results found" — indistinguishable from a genuine miss.
+    The endpoint now inspects the scrape status and returns ok:false with
+    a retryable error when (and only when) the upstream was blocked.
+    """
+
+    def test_blocked_upstream_returns_ok_false(self, client, monkeypatch):
+        async def _blocked_ddg(query, num_results=5, status_out=None):
+            if status_out is not None:
+                status_out['html_status'] = 202  # DDG bot challenge
+                status_out['blocked'] = True
+            return []
+        monkeypatch.setattr("backend.routers.websearch._ddg_search", _blocked_ddg)
+
+        r = post_json(client, "/api/websearch/search", {"query": "anything"})
+        d = r.json()
+        assert d["ok"] is False
+        assert "upstream" in d["error"].lower()
+        assert d["results"] == []
+        assert d["count"] == 0
+
+    def test_blocked_upstream_still_records_history(self, client, monkeypatch):
+        """Searches are recorded even when the upstream is down (r57 order:
+        record first, error second) — history keeps its audit trail."""
+        async def _blocked_ddg(query, num_results=5, status_out=None):
+            if status_out is not None:
+                status_out['html_error'] = 'connection reset'
+                status_out['blocked'] = True
+            return []
+        monkeypatch.setattr("backend.routers.websearch._ddg_search", _blocked_ddg)
+
+        q = "r57_blocked_history_probe"
+        post_json(client, "/api/websearch/search", {"query": q})
+        hist = client.get("/api/websearch/history").json()
+        assert any(item["query"] == q for item in hist["items"])
+
+    def test_genuine_zero_results_still_ok_true(self, client, monkeypatch):
+        """200-with-no-matches (or an empty fallback) is a real answer:
+        ok:true, empty results — NOT the blocked error."""
+        async def _empty_ddg(query, num_results=5, status_out=None):
+            return []  # no status keys -> not blocked
+        monkeypatch.setattr("backend.routers.websearch._ddg_search", _empty_ddg)
+
+        r = post_json(client, "/api/websearch/search", {"query": "zzz no match"})
+        d = r.json()
+        assert d["ok"] is True
+        assert d["results"] == []
+        assert d["count"] == 0

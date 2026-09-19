@@ -125,7 +125,7 @@ def _clean_html_text(fragment: str) -> str:
     return _html.unescape(re.sub(r'<[^>]+>', '', fragment or '')).strip()
 
 
-async def _ddg_search(query: str, num_results: int = 5) -> list[dict]:
+async def _ddg_search(query: str, num_results: int = 5, status_out: dict | None = None):
     """Search DuckDuckGo — free, no API key needed.
 
     BUG FIX: web search silently returned ZERO results for every query while
@@ -163,6 +163,11 @@ async def _ddg_search(query: str, num_results: int = 5) -> list[dict]:
             timeout=12, headers={'User-Agent': _SEARCH_UA}, follow_redirects=True
         ) as client:
             r = await client.get(url)
+            if status_out is not None and r.status_code != 200:
+                # r57: DuckDuckGo periodically answers datacenter IPs with
+                # HTTP 202 (bot challenge). Record it so /search can tell
+                # the difference between "no results" and "upstream refused".
+                status_out['html_status'] = r.status_code
             if r.status_code == 200:
                 text = r.text
                 links = re.findall(
@@ -197,6 +202,8 @@ async def _ddg_search(query: str, num_results: int = 5) -> list[dict]:
                 log.warning('DDG html search returned HTTP %s', r.status_code)
     except Exception as ex:
         log.warning('DDG search failed: %s', ex)
+        if status_out is not None:
+            status_out['html_error'] = str(ex)
 
     # Fallback: instant answers API (covers definitional queries only).
     if not results:
@@ -233,6 +240,16 @@ async def _ddg_search(query: str, num_results: int = 5) -> list[dict]:
                             )
         except Exception as ex:
             log.warning('DDG instant answers failed: %s', ex)
+
+    # r57: honest failure. If both upstream attempts came back empty AND the
+    # HTML scrape was blocked (non-200 or network error), that is an upstream
+    # availability problem, not "no results" — the caller deserves to know.
+    if (
+        not results
+        and status_out is not None
+        and ('html_status' in status_out or 'html_error' in status_out)
+    ):
+        status_out['blocked'] = True
 
     return results[:num_results]
 
@@ -272,7 +289,8 @@ async def web_search(req: Request):
     if not query:
         return JSONResponse({'ok': False, 'error': 'query required'}, status_code=400)
 
-    results = await _ddg_search(query, n)
+    st = {}
+    results = await _ddg_search(query, n, status_out=st)
 
     if fetch:
         tasks = [_fetch_page_text(res['url']) for res in results[:3]]
@@ -281,6 +299,26 @@ async def web_search(req: Request):
             res['content'] = content
 
     _record_search(query, 'search', len(results))
+
+    # r57: a blocked/unreachable upstream must not masquerade as a successful
+    # empty search (verified live: DDG served HTTP 202 bot-challenge pages and
+    # the endpoint answered ok:true with zero results). The frontend turns
+    # this into an explicit retryable error instead of "No results found".
+    if not results and st.get('blocked'):
+        why = st.get('html_status') or st.get('html_error', 'network error')
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': (
+                    f'Search upstream unavailable — DuckDuckGo responded with '
+                    f'{why} (bot challenge or outage). Nothing is wrong with '
+                    f'your query; please retry in a moment.'
+                ),
+                'query': query,
+                'results': [],
+                'count': 0,
+            }
+        )
 
     return {
         'ok': True,
