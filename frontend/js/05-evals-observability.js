@@ -291,7 +291,7 @@ async function evalRunDataset(dsId) {  const el=document.getElementById('eval-da
       const parts=buf.split('\n\n');buf=parts.pop()||'';
       for(const part of parts){if(!part.startsWith('data:'))continue;
         try{const d=JSON.parse(part.slice(5).trim());
-          if(d.type==='dataset_done'){avg=d.avg_score; showToast(`✅ Dataset done: avg ${d.avg_score}/100, ${d.pass_rate}% pass rate`);}
+          if(d.type==='dataset_done'){avg=d.avg_score; showToast(`✅ Dataset done: avg ${d.avg_score ?? '—'}/100, ${d.pass_rate}% pass rate`);}
         }catch(e){}
       }
     }
@@ -776,12 +776,19 @@ async function kgExtract() {
   const text=await gmPrompt('Paste text to extract entities and relationships from:','');
   if(!text) return;
   showToast('🧠 Extracting entities…');
-  const r=await fetch('/api/knowledge-graph/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,source:'user_input'})});
-  const d=await r.json();
-  if(d.ok) {
+  // r59: this handler used to toast "Extracting…" and then go silent on any
+  // failure — no status check, no ok:false branch, no catch. A backend error
+  // (or the LLM returning unusable output) left the user staring at a toast
+  // that promised work nothing ever reported. Same silent-failure class as
+  // the RAG pipeline delete fixed in r58.
+  try {
+    const r=await fetch('/api/knowledge-graph/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,source:'user_input'})});
+    if (!r.ok) { showToast('❌ Extract failed: HTTP ' + r.status, 'err'); return; }
+    const d=await r.json().catch(()=>null);
+    if (!d || d.ok !== true) { showToast('❌ ' + ((d && d.error) || 'Extraction failed'), 'err'); return; }
     showToast(`✅ Extracted ${d.entities_created} entities, ${d.relations_created} relations`);
     renderKnowledgeGraph();
-  }
+  } catch(ex) { showToast('⚠️ ' + ex.message, 'err'); }
 }
 
 async function kgAddEntity() {

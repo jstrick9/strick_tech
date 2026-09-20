@@ -616,13 +616,32 @@ async def run_dataset(dataset_id: str, req: Request):
                         json.dumps(scores['issues']),
                     ),
                 )
-                con.commit()
+                # r59: this block used to say con.commit()/con.close() — but
+                # the INSERT runs on con2. `con` here is the OUTER connection,
+                # already closed above after reading the dataset, so
+                # con.commit() raised ProgrammingError after the very first
+                # case. Worse: the finally then closed the already-closed
+                # outer `con` while con2 — holding an OPEN WRITE TRANSACTION
+                # from the INSERT — was leaked. The leaked transaction pinned
+                # SQLite's global write lock until GC (observed live: every
+                # write app-wide 500'd "database is locked" for minutes,
+                # including the scheduler's own jobs), and no dataset run ever
+                # reached case 2. Commit and close the connection that
+                # actually did the work.
+                con2.commit()
             finally:
-                con.close()
+                con2.close()
             yield f'data: {json.dumps({"type": "case_done", "index": i, "case_no": i + 1, "total": len(cases), "score": scores["overall_score"], "pass_fail": scores["pass_fail"]})}\n\n'
 
-        avg = round(sum(all_scores) / max(len(all_scores), 1), 1)
-        passes = sum(1 for s in all_scores if s >= 70)
+        # r59: overall_score is None when the judge returns unusable JSON —
+        # a normal, handled condition elsewhere in this file ("unmeasured",
+        # excluded rather than assumed). sum() over a None crashed the whole
+        # stream at the finish line (TypeError), so a dataset whose cases the
+        # judge couldn't score never produced dataset_done. Mirror the A/B
+        # guard below: aggregate the scored cases only.
+        scored = [s for s in all_scores if s is not None]
+        avg = round(sum(scored) / max(len(scored), 1), 1) if scored else None
+        passes = sum(1 for s in scored if s >= 70)
         yield f'data: {json.dumps({"type": "dataset_done", "avg_score": avg, "passes": passes, "total": len(cases), "pass_rate": round(passes / max(len(cases), 1) * 100, 1)})}\n\n'
 
     return StreamingResponse(sse_guard(_stream()), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}

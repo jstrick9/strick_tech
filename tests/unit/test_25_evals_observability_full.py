@@ -176,3 +176,64 @@ class TestObservabilityFull:
                 "total_tokens": 500
             })
             assert r.status_code in (200, 404)
+
+
+class TestDatasetRunStream:
+    """r59: dataset runs died on the first case and leaked the DB write lock.
+
+    run_dataset's save block opened con2, ran the INSERT on con2, then called
+    con.commit()/con.close() — the OUTER connection, already closed after
+    reading the dataset. con.commit() raised ProgrammingError on case 1, the
+    finally closed the wrong (already-closed) connection, and con2 was leaked
+    holding an OPEN WRITE TRANSACTION. Two consequences, both observed live:
+    no dataset run ever reached case 2 (sse_guard logged ProgrammingError,
+    the UI never saw dataset_done), and the leaked transaction pinned
+    SQLite's global write lock until GC — every write app-wide 500'd
+    "database is locked" for minutes, including scheduler jobs.
+    """
+
+    def test_dataset_run_completes_and_commits(self, client):
+        create = client.post("/api/evals/datasets", json={
+            "name": "r59 run-stream probe",
+            "cases": [
+                {"prompt": "What is 1+1?", "expected": "2"},
+                {"prompt": "Capital of France?", "expected": "Paris"},
+            ],
+        }).json()
+        ds_id = create.get("id") or create.get("dataset_id", "")
+        assert ds_id, f"dataset create failed: {create}"
+
+        r = client.post(f"/api/evals/datasets/{ds_id}/run", json={"agent_id": "builder"})
+        assert r.status_code == 200
+        body = r.text
+        # every case must stream its completion, and the run must finish
+        assert '"type": "case_done"' in body, f"stream died before a case finished: {body[:200]}"
+        assert '"type": "dataset_done"' in body, f"stream never completed: {body[:200]}"
+        assert '"case_no": 2' in body, "second case never ran"
+
+        # the per-case writes must actually be committed, not left in a
+        # leaked transaction
+        runs = client.get("/api/evals/runs").json()
+        run_list = runs.get("runs", runs if isinstance(runs, list) else [])
+        assert any(str(x.get("dataset_id", "")) == ds_id for x in run_list), \
+            "no committed eval_runs row for the dataset"
+
+        client.delete(f"/api/evals/datasets/{ds_id}")
+
+    def test_dataset_run_does_not_lock_the_database(self, client):
+        """A second writer must be able to commit while/after a run streams.
+        Pre-fix, the leaked con2 transaction made ANY concurrent write 500
+        with 'database is locked' (10s busy timeout)."""
+        create = client.post("/api/evals/datasets", json={
+            "name": "r59 lock probe", "cases": [{"prompt": "p", "expected": "e"}],
+        }).json()
+        ds_id = create.get("id") or create.get("dataset_id", "")
+        r = client.post(f"/api/evals/datasets/{ds_id}/run", json={"agent_id": "builder"})
+        assert '"type": "dataset_done"' in r.text
+        # immediately write elsewhere — must not raise/timeout
+        other = client.post("/api/evals/datasets", json={"name": "r59 lock probe 2", "cases": []})
+        assert other.status_code == 200
+        client.delete(f"/api/evals/datasets/{ds_id}")
+        d2 = other.json().get("id") or other.json().get("dataset_id", "")
+        if d2:
+            client.delete(f"/api/evals/datasets/{d2}")
