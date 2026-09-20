@@ -41,6 +41,138 @@ MODELS = [
 ]
 
 
+def _echo_schema_object(prompt_text):
+    """Build a valid JSON object echoing the top-level keys of the example
+    schema embedded in the prompt, with plausible values.
+
+    Routes like hitl.assess-confidence and knowledge-graph.extract show the
+    model an example object and demand ONLY valid JSON. A mock that answers
+    prose can never exercise their success paths — the routes honestly
+    refuse (by design). Echoing the advertised schema is the minimum a
+    model must do to be useful to them.
+    """
+    # The schema follows the phrase "Return JSON:" — start the search there.
+    # A prompt can legitimately contain EARLIER JSON (hitl embeds
+    # `Context: {"sensitivity": ...}` before the schema), and echoing that
+    # first block produces an object without the keys the route validates.
+    low = prompt_text.lower()
+    idx = low.rfind("return json")
+    start = prompt_text.find("{", idx if idx >= 0 else 0)
+    if start < 0:
+        return None
+    depth, end = 0, -1
+    for i in range(start, len(prompt_text)):
+        if prompt_text[i] == "{":
+            depth += 1
+        elif prompt_text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    if end < 0:
+        return None
+    body = prompt_text[start + 1:end]
+
+    # split the object body on top-level commas
+    parts, depth, buf, in_str = [], 0, [], False
+    for ch in body:
+        if ch == '"':
+            in_str = not in_str
+        if not in_str:
+            if ch in "{[":
+                depth += 1
+            elif ch in "}]":
+                depth -= 1
+            elif ch == "," and depth == 0:
+                parts.append("".join(buf))
+                buf = []
+                continue
+        buf.append(ch)
+    if buf:
+        parts.append("".join(buf))
+
+    import re as _re
+    out = {}
+    for part in parts:
+        m = _re.match(r'\s*"([\w-]+)"\s*:\s*(.*)', part, _re.DOTALL)
+        if not m:
+            continue
+        key, raw = m.group(1), m.group(2).strip()
+        if raw.startswith("["):
+            out[key] = []
+        elif raw.startswith("{"):
+            out[key] = {}
+        elif "|" in raw:
+            out[key] = raw.split("|")[0].strip().strip("\"' ")
+        elif "true" in raw.lower() or "false" in raw.lower():
+            out[key] = True
+        elif _re.search(r"\d", raw):
+            out[key] = 0.85
+        else:
+            out[key] = "mock"
+    return out or None
+
+
+def structured_answer(messages):
+    """Deterministic structured replies for prompts that demand them.
+
+    The app has a dozen routes that ask the model for SQL, code sections,
+    or JSON — and honestly refuse (502/422/503) when the reply does not
+    parse. A mock that always answers "Mock LLM response." can only ever
+    exercise the refusal branches. These marker-driven answers (same
+    philosophy as the image special-case below) let both branches be
+    covered: success shapes against this mock, refusals by the routes'
+    own tests.
+    """
+    if not isinstance(messages, list):
+        return None
+    text = " ".join(str(m.get("content", "")) for m in messages if isinstance(m, dict))
+    low = text.lower()
+
+    if "return only valid json" in low:
+        obj = _echo_schema_object(text)
+        if obj is not None:
+            import json as _json
+            return _json.dumps(obj)
+    if "return only sql" in low:
+        return (
+            "CREATE TABLE mock_items (\n"
+            "  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n"
+            "  name text NOT NULL,\n"
+            "  created_at timestamptz DEFAULT now()\n"
+            ");\n"
+            "CREATE INDEX mock_items_name_idx ON mock_items (name);\n"
+            "ALTER TABLE mock_items ENABLE ROW LEVEL SECURITY;\n"
+            "INSERT INTO mock_items (name) VALUES ('seed');"
+        )
+    if "### checkout_html" in low:
+        return (
+            "### CHECKOUT_HTML\n"
+            "<!doctype html><html><body><h1>Mock checkout</h1>\n"
+            "<script src=\"https://js.stripe.com/v3\"></script></body></html>\n"
+            "### WEBHOOK_PYTHON\n"
+            "from fastapi import APIRouter\n"
+            "router = APIRouter()\n"
+            "async def stripe_webhook(payload):\n"
+            "    return {'received': True}"
+        )
+    if '<file path=' in low:
+        return (
+            '<FILE path="mock_integration.js">\n'
+            "export function mockIntegration() { return true; }\n"
+            "</FILE>\n"
+            '<FILE path="README.md">\n'
+            "# Mock integration\n"
+            "</FILE>"
+        )
+    if "return html first" in low:
+        return (
+            "<!doctype html><html><body><h1>Mock login</h1></body></html>\n\n"
+            "# config.py\nMOCK_AUTH_PROVIDER = 'nextauth'"
+        )
+    return None
+
+
 def make_handler(port_kind):
     class H(BaseHTTPRequestHandler):
         def log_message(self, *a):
@@ -79,7 +211,8 @@ def make_handler(port_kind):
             except Exception:
                 req = {}
             if port_kind == "openai":
-                msg = {"role": "assistant", "content": "Mock LLM response."}
+                special = structured_answer(req.get("messages"))
+                msg = {"role": "assistant", "content": special or "Mock LLM response."}
                 mods = req.get("modalities") or []
                 m = str(req.get("model") or "")
                 if "image" in mods or any(k in m.lower() for k in ("image", "flux", "dall", "stable")):
@@ -115,12 +248,16 @@ def make_handler(port_kind):
                 })
             else:
                 if self.path.startswith("/api/chat"):
+                    special = structured_answer(req.get("messages"))
                     self._send({"model": req.get("model", "mockllama:8b"),
-                                "message": {"role": "assistant", "content": "Mock ollama chat response."},
+                                "message": {"role": "assistant", "content": special or "Mock ollama chat response."},
                                 "done": True})
                 else:
+                    # /api/generate carries a bare prompt, not messages
+                    special = structured_answer([{"role": "user", "content": req.get("prompt", "")}])
                     self._send({"model": req.get("model", "mockllama:8b"),
-                                "response": "Mock ollama generate response.", "done": True})
+                                "response": special or "Mock ollama generate response.",
+                                "done": True})
     return H
 
 
