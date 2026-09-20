@@ -283,7 +283,11 @@ class TestGapReplay:
 class TestGapSpecs:
     async def _create_spec(self, C):
         r = await POST(C, "/api/specs", {"name": uid("spec"), "description": "Gap test spec"})
-        return r.json().get("id")
+        # The route returns {'ok': True, 'spec': {'id': ...}} — the same
+        # shape the frontend reads (d.spec.id). Reading the top-level 'id'
+        # key returned None, so every test in this class silently ran
+        # against /api/specs/None/* instead of a real spec.
+        return (r.json().get("spec") or {}).get("id")
 
     async def test_spec_requirements(self, C):
         sid = await self._create_spec(C)

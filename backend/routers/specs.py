@@ -279,6 +279,15 @@ async def update_spec(spec_id: str, req: Request):
 @router.delete('/{spec_id}')
 def delete_spec(spec_id: str):
     """Delete or remove specified spec."""
+    # An invalid id is a client error, not a crash. _spec_dir refuses
+    # traversal-shaped ids by raising — correct as a write guard, but here
+    # that raise surfaced as a 500 AFTER the DB deletes had already run.
+    # Validate first: malformed id → 400, well-formed-but-unknown → the
+    # idempotent 200 below.
+    if not isinstance(spec_id, str) or not _SPEC_ID_RE.match(spec_id):
+        return JSONResponse(
+            {'ok': False, 'error': 'Invalid spec id', 'spec_id': spec_id},
+            status_code=400)
     from ..services.memory_db import get_conn
 
     con = get_conn()

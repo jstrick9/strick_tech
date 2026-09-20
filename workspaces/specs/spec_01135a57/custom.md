@@ -1,2 +1,0 @@
-# Custom artifact
-Test content
