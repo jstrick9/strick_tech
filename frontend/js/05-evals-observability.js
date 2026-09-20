@@ -1000,7 +1000,19 @@ async function ragQuery(pipelineId) {
 async function ragDeletePipeline(pipelineId) {
   const ok=await gmConfirm('Delete this pipeline and all its documents?');
   if(!ok) return;
-  await fetch(`/api/rag/pipelines/${encodeURIComponent(pipelineId)}`,{method:'DELETE'});
+  // r58: this fetch used to be fire-and-forget — no status check, no error
+  // path. A failed DELETE (network error, 4xx/5xx) re-rendered the list
+  // silently, leaving the user to discover the pipeline was still there.
+  // ragDeleteDoc below and hubUninstall both surface failures; this handler
+  // now does too, including the endpoint's `deleted:false` (nothing removed
+  // — stale list or typo'd id) so the outcome is never a silent no-op.
+  try {
+    const r = await fetch(`/api/rag/pipelines/${encodeURIComponent(pipelineId)}`,{method:'DELETE'});
+    if (!r.ok) { showToast('❌ Failed to delete pipeline: HTTP ' + r.status, 'err'); return; }
+    const j = await r.json().catch(()=>null);
+    if (!j || j.ok === false) { showToast('❌ ' + ((j && j.error) || 'Delete failed'), 'err'); return; }
+    showToast(j.deleted ? '🗑️ Pipeline deleted' : '⚠️ Pipeline was already gone — refreshed');
+  } catch(ex) { showToast('⚠️ ' + ex.message, 'err'); return; }
   renderRAG();
 }
 
