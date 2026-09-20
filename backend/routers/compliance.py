@@ -134,6 +134,15 @@ def _collect_report_data(date_from: str, date_to: str, scope: dict) -> dict:
             except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError):
                 pass
 
+        # agent_jit_tokens timestamps ISSUE events, so its column is
+        # issued_at, not created_at. The generic where_time above therefore
+        # broke the whole agent-identity section with "no such column:
+        # created_at" the moment a date range was supplied — every other
+        # table in this report (hitl_queue, hitl_audit,
+        # connector_executions, supervisor_runs, mcp_gateway_calls) uses
+        # created_at, and this was the one exception.
+        where_time_jit = where_time.replace('created_at', 'issued_at')
+
         data = {
             'generated_at': _now(),
             'date_from': date_from or 'all time',
@@ -244,7 +253,7 @@ def _collect_report_data(date_from: str, date_to: str, scope: dict) -> dict:
             ).fetchall()
             # JIT tokens issued in period
             try:
-                jit = con.execute(f'SELECT COUNT(*) FROM agent_jit_tokens {where_time}', params_time).fetchone()[0]
+                jit = con.execute(f'SELECT COUNT(*) FROM agent_jit_tokens {where_time_jit}', params_time).fetchone()[0]
             except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError):
                 jit = 0
             data['agent_identity'] = {
