@@ -946,7 +946,7 @@ async function docsTab(tab, el) {
     });
   }
   else if (tab === 'faq') {
-    const d = await fetch('/api/docs/faq').then(r=>r.ok?r.json():null).catch(()=>({faq:[]}));
+    const d = await fetch('/api/docs/faq').then(r=>r.ok?r.json():({faq:[]})).catch(()=>({faq:[]}));
     content.innerHTML = `
       <div style="font-size:13px;font-weight:700;color:var(--text-0);margin-bottom:12px">Frequently Asked Questions</div>
       <div id="docs-faq-list">
@@ -972,7 +972,7 @@ async function docsTab(tab, el) {
     });
   }
   else if (tab === 'shortcuts') {
-    const d = await fetch('/api/docs/shortcuts').then(r=>r.ok?r.json():null).catch(()=>({shortcuts:[]}));
+    const d = await fetch('/api/docs/shortcuts').then(r=>r.ok?r.json():({shortcuts:[]})).catch(()=>({shortcuts:[]}));
     content.innerHTML = `
       <div style="font-size:13px;font-weight:700;color:var(--text-0);margin-bottom:12px">Keyboard Shortcuts</div>
       <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:12px 16px">
@@ -1049,7 +1049,7 @@ async function docsSearch(q) {
     return;
   }
 
-  const d = await fetch(`/api/docs/search?q=${encodeURIComponent(q)}`).then(r=>r.ok?r.json():null).catch(()=>({results:[]}));
+  const d = await fetch(`/api/docs/search?q=${encodeURIComponent(q)}`).then(r=>r.ok?r.json():({results:[]})).catch(()=>({results:[]}));
   const results = d.results || [];
 
   // `count` is the TOTAL matched; `results.length` is what the server chose to

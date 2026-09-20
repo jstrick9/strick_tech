@@ -26,8 +26,8 @@ async function renderBugBot() {
   if (!pane) return;
 
   const [reviews, stats] = await Promise.all([
-    fetch('/api/bugbot/reviews?limit=10').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({reviews:[]})),
-    fetch('/api/bugbot/stats').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({})),
+    fetch('/api/bugbot/reviews?limit=10').then(r=>r.ok?r.json().catch(()=>{}):({reviews:[]})).catch(()=>({reviews:[]})),
+    fetch('/api/bugbot/stats').then(r=>r.ok?r.json().catch(()=>{}):({})).catch(()=>({})),
   ]);
 
   pane.innerHTML = `
@@ -399,7 +399,7 @@ async function renderGitAI() {
   if (!pane) return;
 
   let gitStatus = {};
-  try { gitStatus = await fetch('/api/gitai/status').then(r=>r.ok?r.json().catch(()=>{}):null); } catch(e) {}
+  try { gitStatus = await fetch('/api/gitai/status').then(r=>r.ok?r.json().catch(()=>{}):({})) || {}; } catch(e) { gitStatus = {}; }
 
   pane.innerHTML = `
   

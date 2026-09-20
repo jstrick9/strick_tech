@@ -932,7 +932,15 @@ async def _restatus_refused_write(response, request_id: str, allow_restatus: boo
 
 
 # Paths exempt from rate limiting (static files, health checks)
-_RATE_LIMIT_EXEMPT = {'/api/system/stats', '/api/system/health', '/manifest.json', '/sw.js'}
+_RATE_LIMIT_EXEMPT = {'/api/system/stats', '/api/system/health', '/api/health', '/manifest.json', '/sw.js',
+                     # The SPA shell. `/static/` and `/preview/` are already exempt
+                     # because they are static content; the root page is the same
+                     # class. Without this, a client that trips the limiter gets a
+                     # bare JSON 429 body INSTEAD OF THE APP on reload — the shell
+                     # is a file response, and the browser audits (and users)
+                     # see "pane not found" style breakage while their API calls
+                     # remain throttled either way.
+                     '/', '/index.html'}
 
 
 @app.middleware('http')

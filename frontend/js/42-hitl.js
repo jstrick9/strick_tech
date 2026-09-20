@@ -5,9 +5,9 @@ async function renderHITL() {
   if (!pane) return;
 
   const [queue, stats, audit] = await Promise.all([
-    fetch('/api/hitl/queue').then(r=>r.ok?r.json():null).catch(()=>({interrupts:[]})),
-    fetch('/api/hitl/stats').then(r=>r.ok?r.json():null).catch(()=>({})),
-    fetch('/api/hitl/audit?limit=10').then(r=>r.ok?r.json():null).catch(()=>({audit:[]})),
+    fetch('/api/hitl/queue').then(r=>r.ok?r.json():({interrupts:[]})).catch(()=>({interrupts:[]})),
+    fetch('/api/hitl/stats').then(r=>r.ok?r.json():({})).catch(()=>({})),
+    fetch('/api/hitl/audit?limit=10').then(r=>r.ok?r.json():({audit:[]})).catch(()=>({audit:[]})),
   ]);
 
   const riskColors = {low:'var(--success)',medium:'var(--warning)',high:'var(--danger)',critical:'#ff4444'};

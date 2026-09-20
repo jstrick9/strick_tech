@@ -993,7 +993,7 @@ function ciShowTab(tab, el) {
 }
 
 async function ciShowComplexity(el) {
-  const d = await fetch('/api/codeindex/complexity?min_complexity=3').then(r=>r.ok?r.json().catch(()=>{}):null);
+  const d = await fetch('/api/codeindex/complexity?min_complexity=3').then(r=>r.ok?r.json().catch(()=>{}):({hotspots:[]}));
   const max = Math.max(...(d.hotspots||[]).map((h) =>h.complexity), 10);
   el.innerHTML = `
     <div class="u-8eef54b3">🔥 High Complexity Functions (cyclomatic complexity ≥ 3)</div>
@@ -1034,7 +1034,7 @@ async function ciShowDeadCode(el) {
 }
 
 async function ciShowStats(el) {
-  const d = await fetch('/api/codeindex/stats').then(r=>r.ok?r.json().catch(()=>{}):null);
+  const d = await fetch('/api/codeindex/stats').then(r=>r.ok?r.json().catch(()=>{}):({}));
   el.innerHTML = `
     <div class="ci-stats-grid">
       ${[
@@ -1141,9 +1141,9 @@ async function renderArena() {
   if (_arenaBattleActive && pane.querySelector('#arena-go-btn')) return;
 
   const [models, lb, stats] = await Promise.all([
-    fetch('/api/arena/models').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({models:[]})),
-    fetch('/api/arena/leaderboard').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({leaderboard:[]})),
-    fetch('/api/arena/stats').then(r=>r.ok?r.json().catch(()=>{}):null).catch(()=>({})),
+    fetch('/api/arena/models').then(r=>r.ok?r.json().catch(()=>{}):({models:[]})).catch(()=>({models:[]})),
+    fetch('/api/arena/leaderboard').then(r=>r.ok?r.json().catch(()=>{}):({leaderboard:[]})).catch(()=>({leaderboard:[]})),
+    fetch('/api/arena/stats').then(r=>r.ok?r.json().catch(()=>{}):({})).catch(()=>({})),
   ]);
 
   _arenaModels = models.models || [];
@@ -1343,7 +1343,7 @@ async function arenaVote(winner) {
     setTimeout(async () => {
       const lb = await fetch('/api/arena/leaderboard').then(r=>r.ok?r.json().catch(()=>{}):null);
       const el = document.getElementById('arena-lb');
-      if (el && lb.leaderboard?.length) {
+      if (el && lb?.leaderboard?.length) {
         el.innerHTML = lb.leaderboard.map((m, i) => {
           const maxE = Math.max(...lb.leaderboard.map((x) =>x.elo));
           const pct  = Math.round(m.elo/maxE*100);
