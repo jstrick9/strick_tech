@@ -5,6 +5,17 @@ import time
 import urllib.request
 import os
 
+# r60: sandbox BEFORE anything imports the backend (and before the child
+# server below is forked — the child inherits this environment). Without it,
+# an auto-started perf server ran on the PRODUCTION data dir and every write
+# from these tests landed in the real repo (plugins/installed.json, packs,
+# workspaces/, memory/agentic.db). No-op when a conftest already activated
+# the sandbox this session. Note: when a server is ALREADY listening on 8787
+# these tests target that server as-is — start a sandboxed one yourself if
+# you care where its writes land.
+from tests._data_sandbox import activate as _activate_sandbox
+_activate_sandbox(prefix="agentic-perf")
+
 BASE = "http://127.0.0.1:8787"
 
 def _run_server():

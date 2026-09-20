@@ -15,95 +15,16 @@ sys.path.insert(0, str(ROOT))
 
 # ── Isolated temp DB so unit tests never touch production agentic.db ─────────
 # This MUST happen at import time, before any `backend.*` module is imported.
-# Roughly 40 routers call _ensure_schema() at module scope, so their tables are
-# created against whichever database is resolved during import. A fixture — even
-# a session-scoped autouse one — runs too late: the schema would already have
-# been built in production agentic.db and the sandbox would be missing ~40
-# tables, which surfaces as mass HTTP 500 "no such table" errors.
-#
-# The previous version of this file set AGENTIC_TEST_DB in a fixture, and
-# nothing in the backend read that variable at all. The docstring promised
-# "unit tests never touch production agentic.db" while every run wrote straight
-# into it — proven by watching prompt_library go from 503 to 511 rows during a
-# single test file. Residue from that has interfered with six module reviews.
-_TEST_DB_DIR = Path(tempfile.mkdtemp(prefix="agentic-unit-db-"))
-os.environ["AGENTIC_TEST_DB"] = str(_TEST_DB_DIR / "test.db")
-
-# ── Isolated data DIRECTORY so unit tests never write into the real repo ─────
-# AGENTIC_TEST_DB above sandboxes the DATABASE. It does nothing for the
-# FILESYSTEM: backend/config.py's get_data_dir() returns the repo root unless
-# AGENTIC_OS_DATA_DIR is set, and ~20 routers derive write paths from it
-# (ROOT/'preview', ROOT/'workspaces', ROOT/'brain', ...).
-#
-# The damage was measured, not assumed: 1158 directories under workspaces/ and
-# 3135 files COMMITTED TO GIT, with 25 workspaces named ActivateWS_*, SysWS_*
-# and "Regress WS Activate" appearing in the user's real workspace list. The
-# Module 18 review found the user's actual projects buried in test output.
-#
-# Redirecting ROOT wholesale would break the many legitimate READS of static
-# repo content (frontend/js/*.js, backend/, requirements.txt, templates/...),
-# which is presumably why this was never done. So the sandbox is a temp dir
-# that SYMLINKS the read-only repo paths and provides real, empty directories
-# for everything the app writes to. Reads still resolve to the real files;
-# writes land in the temp tree and are discarded.
-#
-# Set at import time for the same reason as the DB above: ~40 routers resolve
-# these paths at module scope, so a fixture runs far too late.
-_TEST_DATA_DIR = Path(tempfile.mkdtemp(prefix="agentic-unit-data-"))
-
-# Directories the application WRITES to — created empty in the sandbox.
-_WRITABLE_DIRS = (
-    "preview", "workspaces", "memory", "brain", "plugins", "skills",
-    ".agentic", "logs", "uploads", "exports",
-)
-# Repo content the application READS — symlinked back to the real thing so
-# reads see live files without the sandbox holding a stale copy.
-_READONLY_LINKS = (
-    "frontend", "backend", "scripts", "agents", "tools",
-    "contracts", "requirements.txt", "package.json", "config.yaml",
-    "VERSION", "README.md",
-)
-
-# Directories that must be REAL, not symlinks, because safe_path() resolves
-# symlinks before its containment check — correctly, since that is exactly how
-# a symlink is used to escape a sandbox. A symlinked templates/ therefore
-# resolves to the repo, fails `target.relative_to(root)`, and safe_path()
-# returns None: github.py's directory allowlist started rejecting "templates"
-# and "docs" as invalid. That was the SANDBOX being wrong, not the security
-# control. These are small (templates 205K, docs 332K) so they are copied.
-_READONLY_COPIES = ("templates", "docs")
-
-for _name in _WRITABLE_DIRS:
-    (_TEST_DATA_DIR / _name).mkdir(parents=True, exist_ok=True)
-
-for _name in _READONLY_LINKS:
-    _src = ROOT / _name
-    if _src.exists():
-        try:
-            (_TEST_DATA_DIR / _name).symlink_to(_src, target_is_directory=_src.is_dir())
-        except (OSError, NotImplementedError):
-            pass  # symlinks unavailable (e.g. Windows without privilege)
-
-import shutil as _shutil
-
-for _name in _READONLY_COPIES:
-    _src = ROOT / _name
-    if _src.is_dir():
-        _shutil.copytree(_src, _TEST_DATA_DIR / _name, dirs_exist_ok=True)
-    else:
-        (_TEST_DATA_DIR / _name).mkdir(parents=True, exist_ok=True)
-
-os.environ["AGENTIC_OS_DATA_DIR"] = str(_TEST_DATA_DIR)
-
-# ── Simulate a loopback-bound server for the unit suite ───────────────────────
-# The terminal's auth gate treats the server as requiring auth unless it is
-# bound to loopback. The unit suite exercises the terminal directly with an
-# in-process TestClient and no credentials, so it runs as bound to loopback
-# (the security-correct, default-loopback deployment). Without this, a default
-# AGENTIC_OS_HOST=0.0.0.0 (the real config default) makes every terminal
-# endpoint return 401 and the terminal tests fail. This mirrors how the suite
-# deliberately runs the DB in a temp sandbox.
-os.environ.setdefault("AGENTIC_OS_HOST", "127.0.0.1")
+# ── Sandbox: temp DB + temp data dir (shared) ─────────────────────────────────
+# r60: extracted verbatim to tests/_data_sandbox.py so the perf and benchmarks
+# suites get the same isolation this suite has had; the full rationale and
+# damage record (1158 stray workspaces/, 3135 files in git, prompt_library
+# growing during a single test file) live in that module's docstring.
+# Import-time activation is REQUIRED: ~40 routers bind the DB and data dir at
+# module scope, so a fixture — even a session-scoped autouse one — runs far
+# too late. Idempotent: a no-op if another suite's conftest already activated.
+from tests._data_sandbox import activate as _activate_sandbox
+_activate_sandbox(prefix="agentic-unit")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -131,15 +52,16 @@ def isolated_data_dir():
     from backend.config import get_data_dir
 
     resolved = get_data_dir()
-    assert resolved == _TEST_DATA_DIR, (
-        f"backend resolved data dir {resolved} but the sandbox is {_TEST_DATA_DIR} — "
+    sandbox = Path(os.environ["AGENTIC_OS_DATA_DIR"])
+    assert resolved == sandbox, (
+        f"backend resolved data dir {resolved} but the sandbox is {sandbox} — "
         "filesystem isolation is not in effect"
     )
     assert resolved != ROOT, "refusing to run tests that write into the repo"
 
     from backend.routers import workspaces as ws_mod
 
-    assert ws_mod.WS_DIR == _TEST_DATA_DIR / "workspaces", (
+    assert ws_mod.WS_DIR == sandbox / "workspaces", (
         f"workspaces router writes to {ws_mod.WS_DIR}, outside the sandbox"
     )
     yield resolved
