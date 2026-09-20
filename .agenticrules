@@ -1,0 +1,20 @@
+# .agenticrules — Project AI Rules
+# These rules guide every AI agent in this workspace.
+
+## Tech Stack
+- Framework: Web (HTML/CSS/JS)
+- Styling: Tailwind CSS via CDN
+- Theme: Dark mode (background: #07080f, text: #f4f6ff)
+
+## Code Style
+- Use modern ES6+ JavaScript
+- Prefer async/await over callbacks
+- Always add error handling
+- Use semantic HTML elements
+- Mobile-first responsive design
+
+## Agent Behavior
+- Keep responses concise and actionable
+- Generate complete, working code — no truncation
+- Always include comments for complex logic
+- Prefer composition over inheritance
