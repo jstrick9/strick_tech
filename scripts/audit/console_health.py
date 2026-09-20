@@ -126,6 +126,14 @@ def run() -> AuditResult:
         # the 404s: count-matched suppression, so a NON-terminal 401/403 still
         # surfaces.
         expected_auth = {'n': 0}
+        # The app's own rate limiter (backend/app.py: 300 req/min per client
+        # by default) can trip during this audit's own walk — 117 panes each
+        # fetching their APIs outruns a human-paced session, and a throttled
+        # fetch logs "Failed to load resource: ... 429" no matter how well
+        # the pane handles it. Same count-matched treatment: only as many
+        # 429 lines are suppressed as there were same-origin 429 responses,
+        # so a 429 from anywhere else still surfaces.
+        expected_429 = {'n': 0}
 
         def on_response(response):
             if response.status < 400:
@@ -134,6 +142,8 @@ def run() -> AuditResult:
                 expected_404['n'] += 1
             elif response.status in (401, 403) and '/api/terminal/' in response.url:
                 expected_auth['n'] += 1
+            elif response.status == 429 and response.url.startswith(BASE_URL):
+                expected_429['n'] += 1
 
         page.on('response', on_response)
         page.on('console', on_console)
@@ -165,6 +175,10 @@ def run() -> AuditResult:
     filtered = []
     for text in console_errors:
         if 'Failed to load resource' in text:
+            if 'status of 429' in text and expected_429['n']:
+                expected_429['n'] -= 1
+                noise += 1
+                continue
             if ('status of 401' in text or 'status of 403' in text) and remaining_auth:
                 remaining_auth -= 1
                 noise += 1

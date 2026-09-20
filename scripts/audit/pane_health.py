@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _harness import AuditResult, all_panes, browser_page, emit, pane_text, preflight, visit  # noqa: E402
+from _harness import AuditResult, BASE_URL, all_panes, browser_page, emit, pane_text, preflight, visit  # noqa: E402
 
 WORKSTATION_JS = """(host) => {
     const el = document.getElementById('pane-' + host);
@@ -75,10 +75,18 @@ def run() -> AuditResult:
     # probing an endpoint that unexpectedly started demanding auth — still
     # reports.
     auth_refusals: list[str] = []
+    # Same discipline for the app's own rate limiter: a 429 during this
+    # audit's 117-pane walk is the limiter doing its job under automated
+    # load, not a pane defect — Chromium logs the throttled fetch as a
+    # console error regardless of how the pane renders it. Count-matched
+    # against same-origin 429 responses only; anything else still reports.
+    rate_limited: list[str] = []
 
     def _on_response(r):
         if r.status in (401, 403):
             auth_refusals.append(r.url)
+        elif r.status == 429 and r.url.startswith(BASE_URL):
+            rate_limited.append(r.url)
 
     with browser_page('desktop') as (page, _ctx):
         page.on('pageerror', _on_pageerror)
@@ -136,18 +144,28 @@ def run() -> AuditResult:
 
     only_terminal_gate = bool(auth_refusals) and all(
         '/api/terminal/' in u for u in auth_refusals)
+    rate_limited_budget = len(rate_limited)
 
     for message in dict.fromkeys(errors):
         if (only_terminal_gate
                 and message.startswith('console: Failed to load resource')
                 and ('status of 401' in message or 'status of 403' in message)):
             continue  # the terminal's fail-closed auth gate, see above
+        if (rate_limited_budget
+                and message.startswith('console: Failed to load resource')
+                and 'status of 429' in message):
+            rate_limited_budget -= 1
+            continue  # the app's rate limiter, throttling the walk itself
         findings.append(f'ERROR  {message}')
 
     if only_terminal_gate:
         findings.append(
             f'--  terminal auth gate refused {len(auth_refusals)} request(s) '
             'on this topology (expected on a non-loopback bind; exempted)')
+    if rate_limited:
+        findings.append(
+            f'--  app rate limiter throttled {len(rate_limited)} request(s) '
+            'during the walk (expected under automated load; exempted)')
 
     return AuditResult(
         'pane-health',
