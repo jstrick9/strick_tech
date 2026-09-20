@@ -305,7 +305,10 @@ class TestSysGracefulDegradation:
         ]
         for url in nonexistent:
             r = await C.get(url)
-            check(f"{url} is 404 not 500", r.status_code in (200,404), r.status_code)
+            # 405 accepted: one of these paths is POST-only, and a clean
+            # "method not allowed" is exactly the no-crash behavior wanted —
+            # the point of this test is that nothing 500s.
+            check(f"{url} is 404 not 500", r.status_code in (200, 404, 405), r.status_code)
             if r.status_code == 200:
                 # Should indicate not found in body
                 d = r.json()

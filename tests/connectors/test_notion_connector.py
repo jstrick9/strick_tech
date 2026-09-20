@@ -11,6 +11,14 @@ import httpx
 import time
 
 BASE = "http://127.0.0.1:8787"
+# CSRF enforcement is ON by default and these scripted clients mutate state;
+# attach a token like every other network suite (tests/_csrf_client.py).
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import csrf_auth  # noqa: E402
+_AUTH = csrf_auth(BASE)
+
 CONNECTOR = "conn_notion"
 
 # Known IDs from the Notion workspace
@@ -22,11 +30,17 @@ _state: dict = {}
 
 
 def execute(action: str, payload: dict = None) -> dict:
-    """Helper: call the platform execute endpoint."""
+    """Helper: call the platform execute endpoint.
+
+    Skips (loudly) when the connector has no credentials configured — this
+    suite verifies a REAL Notion workspace and cannot run without one."""
     body = {"action": action, "payload": payload or {}, "agent_id": "test_agent"}
-    r = httpx.post(f"{BASE}/api/connectors/{CONNECTOR}/execute", json=body, timeout=30)
+    r = httpx.post(f"{BASE}/api/connectors/{CONNECTOR}/execute", json=body, timeout=30, auth=_AUTH)
     assert r.status_code == 200, f"HTTP {r.status_code}: {r.text[:300]}"
-    return r.json()
+    res = r.json()
+    if res.get("ok") is False and "not configured" in str(res.get("error", "")).lower():
+        pytest.skip(f"Notion connector not configured: {res.get('error')}")
+    return res
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -166,7 +180,9 @@ class TestDatabase:
     def test_12_update_database_row(self):
         """Update a row's Name property."""
         row_id = _state.get("row_page_id")
-        assert row_id, "row_page_id not set — test_08 must pass first"
+        if not row_id:
+
+            pytest.skip("prerequisite skipped: row_page_id not set — test_08 must pass first")
         res = execute("update_database_row", {
             "page_id": row_id,
             "properties": {
@@ -221,7 +237,9 @@ class TestPages:
     def test_15_get_page(self):
         """Retrieve the created page metadata."""
         page_id = _state.get("page_id")
-        assert page_id, "page_id not set — test_14 must pass first"
+        if not page_id:
+
+            pytest.skip("prerequisite skipped: page_id not set — test_14 must pass first")
         res = execute("get_page", {"page_id": page_id})
         assert res["ok"] is True, res
         assert res["id"] is not None
@@ -231,7 +249,9 @@ class TestPages:
     def test_16_get_page_content(self):
         """Retrieve the blocks/content of the created page."""
         page_id = _state.get("page_id")
-        assert page_id, "page_id not set — test_14 must pass first"
+        if not page_id:
+
+            pytest.skip("prerequisite skipped: page_id not set — test_14 must pass first")
         res = execute("get_page_content", {"page_id": page_id})
         assert res["ok"] is True, res
         assert isinstance(res["blocks"], list)
@@ -242,7 +262,9 @@ class TestPages:
     def test_17_append_page_content(self):
         """Append a paragraph block to the created page."""
         page_id = _state.get("page_id")
-        assert page_id, "page_id not set — test_14 must pass first"
+        if not page_id:
+
+            pytest.skip("prerequisite skipped: page_id not set — test_14 must pass first")
         res = execute("append_page_content", {
             "page_id": page_id,
             "text": "Appended by append_page_content action ✅ — 2026-07-14"
@@ -254,7 +276,9 @@ class TestPages:
     def test_18_get_page_content_after_append(self):
         """Verify appended content is visible."""
         page_id = _state.get("page_id")
-        assert page_id, "page_id not set — test_14 must pass first"
+        if not page_id:
+
+            pytest.skip("prerequisite skipped: page_id not set — test_14 must pass first")
         res = execute("get_page_content", {"page_id": page_id})
         assert res["ok"] is True, res
         assert res["block_count"] >= 2  # original + appended
@@ -264,7 +288,9 @@ class TestPages:
     def test_19_get_block(self):
         """Get a specific block from the page."""
         page_id = _state.get("page_id")
-        assert page_id, "page_id not set — test_14 must pass first"
+        if not page_id:
+
+            pytest.skip("prerequisite skipped: page_id not set — test_14 must pass first")
         # Get the blocks first
         content_res = execute("get_page_content", {"page_id": page_id})
         assert content_res["ok"] is True
@@ -281,7 +307,9 @@ class TestPages:
     def test_20_append_heading_and_bullets(self):
         """Append rich content: heading + bullet list."""
         page_id = _state.get("page_id")
-        assert page_id, "page_id not set — test_14 must pass first"
+        if not page_id:
+
+            pytest.skip("prerequisite skipped: page_id not set — test_14 must pass first")
         children = [
             {
                 "object": "block",
@@ -320,7 +348,9 @@ class TestPages:
     def test_21_update_page_icon(self):
         """Update the page icon (emoji)."""
         page_id = _state.get("page_id")
-        assert page_id, "page_id not set — test_14 must pass first"
+        if not page_id:
+
+            pytest.skip("prerequisite skipped: page_id not set — test_14 must pass first")
         res = execute("update_page", {
             "page_id": page_id,
             "icon": {"type": "emoji", "emoji": "🤖"}
@@ -331,7 +361,9 @@ class TestPages:
     def test_22_delete_block(self):
         """Delete a block from the page (soft-delete)."""
         block_id = _state.get("block_id")
-        assert block_id, "block_id not set — test_19 must pass first"
+        if not block_id:
+
+            pytest.skip("prerequisite skipped: block_id not set — test_19 must pass first")
         res = execute("delete_block", {"block_id": block_id})
         assert res["ok"] is True, res
         assert res["deleted_block_id"] == block_id
@@ -340,7 +372,9 @@ class TestPages:
     def test_23_archive_row_page(self):
         """Archive (soft-delete) the second test row page."""
         page_id = _state.get("row_page_id_2")
-        assert page_id, "row_page_id_2 not set — test_09 must pass first"
+        if not page_id:
+
+            pytest.skip("prerequisite skipped: row_page_id_2 not set — test_09 must pass first")
         res = execute("archive_page", {"page_id": page_id})
         assert res["ok"] is True, res
         assert res["archived"] is True
@@ -355,7 +389,9 @@ class TestComments:
     def test_24_create_comment(self):
         """Create a comment on the verification page."""
         page_id = _state.get("page_id")
-        assert page_id, "page_id not set — test_14 must pass first"
+        if not page_id:
+
+            pytest.skip("prerequisite skipped: page_id not set — test_14 must pass first")
         res = execute("create_comment", {
             "page_id": page_id,
             "text": "Automated comment from Agentic OS connector verification ✅"
@@ -371,7 +407,9 @@ class TestComments:
     def test_25_list_comments(self):
         """List comments on the verification page."""
         page_id = _state.get("page_id")
-        assert page_id, "page_id not set — test_14 must pass first"
+        if not page_id:
+
+            pytest.skip("prerequisite skipped: page_id not set — test_14 must pass first")
         res = execute("list_comments", {"page_id": page_id})
         if not res["ok"] and res.get("status_code") == 403:
             pytest.skip(f"Comments scope not enabled: {res['error']}")

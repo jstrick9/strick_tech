@@ -159,11 +159,12 @@ class TestUseErrorExperience:
 
     async def test_invalid_task_id_graceful(self, U):
         """Fetching or patching a non-existent task returns a clean error."""
-        # Tasks use PATCH for single-item access
-        import httpx
-        async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
-            r = await c.patch("/api/tasks/this_task_does_not_exist_99999",
-                              json={"title": "test"})
+        # Tasks use PATCH for single-item access. Go through the CSRF-aware
+        # U client: a bare httpx client gets 403'd by CSRF enforcement
+        # before the task lookup ever runs, which tested the gate, not the
+        # graceful-error path this test exists for.
+        r = await U.patch("/api/tasks/this_task_does_not_exist_99999",
+                          json={"title": "test"})
         uat("no server crash on bad task id", r.status_code < 500)
         # Must communicate failure gracefully — 200 with ok:false or 4xx
         uat("error communicated gracefully",

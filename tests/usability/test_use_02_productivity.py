@@ -112,7 +112,7 @@ class TestUsePromptLibrary:
         """User saves a prompt with title, category, content — all persist."""
         title = uid("MyPrompt")
         r = await POST(U, "/api/prompts", {
-            "title": title, "category": "writing",
+            "title": title, "category": "general",
             "content": "Write a compelling {{topic}} article in {{style}} style.",
             "tags": ["writing", "template"]
         })

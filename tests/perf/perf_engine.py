@@ -147,7 +147,7 @@ async def measure_latency(
     times, statuses = [], []
     
     async with httpx.AsyncClient(
-        base_url=BASE, timeout=TIMEOUT,
+        auth=CSRF_AUTH, base_url=BASE, timeout=TIMEOUT,
         limits=httpx.Limits(max_connections=5, max_keepalive_connections=5)
     ) as c:
         # Warmup (not counted)
@@ -197,7 +197,7 @@ async def measure_throughput(
     lock = asyncio.Lock()
     
     async def worker():
-        async with httpx.AsyncClient(base_url=BASE, timeout=TIMEOUT) as c:
+        async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=TIMEOUT) as c:
             while time.perf_counter() - start < duration_s:
                 t0 = time.perf_counter()
                 try:
@@ -240,7 +240,7 @@ async def measure_concurrent_write(
     lock = asyncio.Lock()
     
     async def do_write(i: int):
-        async with httpx.AsyncClient(base_url=BASE, timeout=TIMEOUT) as c:
+        async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=TIMEOUT) as c:
             try:
                 r = await c.post(path, json=body_factory(i))
                 if r.status_code in (200, 201):
@@ -275,7 +275,7 @@ async def measure_scenario(
     step_times = []
     step_names = []
     
-    async with httpx.AsyncClient(base_url=BASE, timeout=TIMEOUT) as c:
+    async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=TIMEOUT) as c:
         for step_name, method_path, body in steps:
             parts = method_path.split(" ", 1)
             method, path = parts[0], parts[1]
@@ -308,16 +308,37 @@ async def measure_scenario(
     }
 
 
+# ── CSRF ─────────────────────────────────────────────────────────────────────
+# The perf suite used to pass only because its auto-started child server was
+# forked from pytest and thus inherited PYTEST_CURRENT_TEST, which disables
+# CSRF in backend/app.py. Against any server started normally (e.g. the
+# network-suite runner) every mutating call 403'd. Attach the shared CSRF
+# auth to every client so mutations carry a real token — same contract as
+# every other suite. No leading underscore so `import *` re-exports it.
+from tests._csrf_client import csrf_auth  # noqa: E402
+CSRF_AUTH = csrf_auth(BASE)
+
+# True when the data-dir sandbox (tests/_data_sandbox.activate) is active.
+# Absolute RPS / p99 thresholds measure the HOST, not the code — on shared
+# sandbox infra (a few cores, noisy neighbours) they cannot hold, so
+# threshold tests skip loudly instead of reporting fake regressions.
+import os as _os
+SANDBOXED = (
+    _os.environ.get("AGENTIC_OS_DATA_DIR", "").startswith("/tmp/")
+    and bool(_os.environ.get("AGENTIC_TEST_DB"))
+)
+
+
 async def GET(path: str, **params) -> httpx.Response:
-    async with httpx.AsyncClient(base_url=BASE, timeout=TIMEOUT) as c:
+    async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=TIMEOUT) as c:
         return await c.get(path, params=params or None)
 
 async def POST(path: str, body: dict = None) -> httpx.Response:
-    async with httpx.AsyncClient(base_url=BASE, timeout=TIMEOUT) as c:
+    async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=TIMEOUT) as c:
         return await c.post(path, json=body or {})
 
 async def DELETE(path: str) -> httpx.Response:
-    async with httpx.AsyncClient(base_url=BASE, timeout=TIMEOUT) as c:
+    async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=TIMEOUT) as c:
         return await c.delete(path)
 
 
@@ -325,5 +346,5 @@ def uid(prefix="perf"): return f"{prefix}_{uuid.uuid4().hex[:8]}"
 
 
 async def PATCH(path: str, body: dict = None) -> httpx.Response:
-    async with httpx.AsyncClient(base_url=BASE, timeout=TIMEOUT) as c:
+    async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=TIMEOUT) as c:
         return await c.patch(path, json=body or {})

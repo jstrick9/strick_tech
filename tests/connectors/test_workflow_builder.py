@@ -25,6 +25,107 @@ Also verifies:
 import pytest, httpx, json, time
 
 BASE    = "http://127.0.0.1:8787"
+# CSRF enforcement is ON by default and these scripted clients mutate state;
+# attach a token like every other network suite (tests/_csrf_client.py).
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import csrf_auth  # noqa: E402
+_AUTH = csrf_auth(BASE)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _ensure_starter_workflows():
+    """Create the three starter workflows this suite documents.
+
+    The originals lived only in a long-lived server's data dir — no seeder
+    existed in the repo — so every "starter workflow" test failed on a
+    fresh deployment. Recreate them via the public API (idempotently),
+    with the shapes the tests pin: chat pipeline 4 nodes/3 edges and
+    runnable without an LLM, code review 7/7 with a labelled condition
+    branch, swarm consensus 6 nodes."""
+    STARTERS = {
+        "wf_chat_pipeline": {
+            "name": "Chat → Research → Summarize",
+            "description": "Starter workflow seeded by the workflow suite",
+            "nodes": [
+                {"id": "n1", "type": "trigger", "label": "Receive Chat", "x": 40, "y": 200,
+                 "config": {"event": "manual"}},
+                {"id": "n2", "type": "transform", "label": "Research Topic", "x": 280, "y": 200,
+                 "config": {"mode": "passthrough"}},
+                {"id": "n3", "type": "transform", "label": "Summarize", "x": 520, "y": 200,
+                 "config": {"mode": "passthrough"}},
+                {"id": "n4", "type": "output", "label": "Send Reply", "x": 760, "y": 200,
+                 "config": {"target": "chat"}},
+            ],
+            "edges": [
+                {"id": "e1", "from": "n1", "to": "n2"},
+                {"id": "e2", "from": "n2", "to": "n3"},
+                {"id": "e3", "from": "n3", "to": "n4"},
+            ],
+        },
+        "wf_code_review": {
+            "name": "Code Review Pipeline",
+            "description": "Starter workflow seeded by the workflow suite",
+            "nodes": [
+                {"id": "n1", "type": "trigger", "label": "PR Opened", "x": 40, "y": 200,
+                 "config": {"event": "manual"}},
+                {"id": "n2", "type": "transform", "label": "Get Diff", "x": 240, "y": 200,
+                 "config": {"mode": "passthrough"}},
+                {"id": "n3", "type": "condition", "label": "Has Changes?", "x": 440, "y": 200,
+                 "config": {}},
+                {"id": "n4", "type": "transform", "label": "Review Comments", "x": 640, "y": 100,
+                 "config": {"mode": "passthrough"}},
+                {"id": "n5", "type": "transform", "label": "Request Changes", "x": 640, "y": 300,
+                 "config": {"mode": "passthrough"}},
+                {"id": "n6", "type": "transform", "label": "Post Result", "x": 860, "y": 200,
+                 "config": {"mode": "passthrough"}},
+                {"id": "n7", "type": "output", "label": "Done", "x": 1060, "y": 200,
+                 "config": {"target": "chat"}},
+            ],
+            "edges": [
+                {"id": "e1", "from": "n1", "to": "n2"},
+                {"id": "e2", "from": "n2", "to": "n3"},
+                {"id": "e3", "from": "n3", "to": "n4", "label": "yes"},
+                {"id": "e4", "from": "n3", "to": "n5", "label": "no"},
+                {"id": "e5", "from": "n4", "to": "n6"},
+                {"id": "e6", "from": "n5", "to": "n6"},
+                {"id": "e7", "from": "n6", "to": "n7"},
+            ],
+        },
+        "wf_swarm_consensus": {
+            "name": "Swarm Consensus",
+            "description": "Starter workflow seeded by the workflow suite",
+            "nodes": [
+                {"id": "n1", "type": "trigger", "label": "Task Arrives", "x": 40, "y": 200,
+                 "config": {"event": "manual"}},
+                {"id": "n2", "type": "transform", "label": "Option A", "x": 260, "y": 100,
+                 "config": {"mode": "passthrough"}},
+                {"id": "n3", "type": "transform", "label": "Option B", "x": 260, "y": 300,
+                 "config": {"mode": "passthrough"}},
+                {"id": "n4", "type": "transform", "label": "Collect Votes", "x": 480, "y": 200,
+                 "config": {"mode": "passthrough"}},
+                {"id": "n5", "type": "transform", "label": "Pick Consensus", "x": 700, "y": 200,
+                 "config": {"mode": "passthrough"}},
+                {"id": "n6", "type": "output", "label": "Answer", "x": 920, "y": 200,
+                 "config": {"target": "chat"}},
+            ],
+            "edges": [
+                {"id": "e1", "from": "n1", "to": "n2"},
+                {"id": "e2", "from": "n1", "to": "n3"},
+                {"id": "e3", "from": "n2", "to": "n4"},
+                {"id": "e4", "from": "n3", "to": "n4"},
+                {"id": "e5", "from": "n4", "to": "n5"},
+                {"id": "e6", "from": "n5", "to": "n6"},
+            ],
+        },
+    }
+    for wf_id, body in STARTERS.items():
+        if httpx.get(f"{BASE}{WF_BASE}/{wf_id}", timeout=TIMEOUT).status_code != 200:
+            httpx.post(f"{BASE}{WF_BASE}", json={"id": wf_id, **body},
+                       timeout=TIMEOUT, auth=_AUTH)
+    yield
+
 WF_BASE = "/api/workflow"
 TIMEOUT = 60
 
@@ -34,17 +135,17 @@ def get(path):
     return r.json()
 
 def post(path, body=None):
-    r = httpx.post(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT)
+    r = httpx.post(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT, auth=_AUTH)
     assert r.status_code == 200, f"POST {path} → {r.status_code}: {r.text[:200]}"
     return r.json()
 
 def put(path, body=None):
-    r = httpx.put(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT)
+    r = httpx.put(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT, auth=_AUTH)
     assert r.status_code == 200, f"PUT {path} → {r.status_code}: {r.text[:200]}"
     return r.json()
 
 def delete(path):
-    r = httpx.delete(f"{BASE}{path}", timeout=TIMEOUT)
+    r = httpx.delete(f"{BASE}{path}", timeout=TIMEOUT, auth=_AUTH)
     assert r.status_code == 200, f"DELETE {path} → {r.status_code}: {r.text[:200]}"
     return r.json()
 
@@ -214,13 +315,18 @@ class TestValidation:
 
     def test_15_validate_missing_trigger_is_issue(self):
         """Workflow without trigger should have issues."""
-        d = post(f"{WF_BASE}/wf_chat_pipeline/validate", {
+        # The validate endpoint answers an INVALID workflow with 400 + the
+        # full issues payload (an earlier fix; the post() helper insists on
+        # 200) — call it directly and assert on the payload.
+        r = httpx.post(f"{BASE}{WF_BASE}/wf_chat_pipeline/validate", auth=_AUTH, json={
             "nodes": [
                 {"id":"n1","type":"agent","label":"Agent","x":0,"y":0,"config":{}},
                 {"id":"n2","type":"output","label":"Output","x":200,"y":0,"config":{}},
             ],
             "edges": [{"id":"e1","from":"n1","to":"n2"}]
-        })
+        }, timeout=TIMEOUT)
+        assert r.status_code in (200, 400)
+        d = r.json()
         assert d.get("valid") is False
         trigger_issue = any(i["code"] == "NO_TRIGGER" for i in d.get("issues",[]))
         assert trigger_issue, f"Expected NO_TRIGGER issue: {d['issues']}"
@@ -242,12 +348,15 @@ class TestValidation:
 
     def test_17_validate_invalid_edge_is_issue(self):
         """Edge referencing non-existent node should be an issue."""
-        d = post(f"{WF_BASE}/wf_chat_pipeline/validate", {
+        # 400 + payload for invalid workflows (see test_15).
+        r = httpx.post(f"{BASE}{WF_BASE}/wf_chat_pipeline/validate", auth=_AUTH, json={
             "nodes": [
                 {"id":"n1","type":"trigger","label":"Start","x":0,"y":0,"config":{}},
             ],
             "edges": [{"id":"e1","from":"n1","to":"n_MISSING"}]
-        })
+        }, timeout=TIMEOUT)
+        assert r.status_code in (200, 400)
+        d = r.json()
         invalid_issue = any(i["code"] == "INVALID_EDGE" for i in d.get("issues",[]))
         assert invalid_issue
         print(f"\n  ✅ Invalid edge detected")
@@ -364,8 +473,8 @@ class TestExportImport:
 
     def test_27_import_missing_nodes_fails_gracefully(self):
         """Import with invalid JSON should return ok:False."""
-        r = httpx.post(f"{BASE}{WF_BASE}/import",
-                       json={"name":"Bad import","no_nodes":True}, timeout=TIMEOUT)
+        r = httpx.post(f"{BASE}{WF_BASE}/import", 
+                       json={"name":"Bad import","no_nodes":True}, timeout=TIMEOUT, auth=_AUTH)
         d = r.json()
         # Should create with empty nodes (we accept partial data)
         assert "ok" in d
@@ -434,7 +543,7 @@ class TestWorkflowRun:
         })
 
         events = []
-        with httpx.stream('POST', f"{BASE}{WF_BASE}/{wf_id}/run",
+        with httpx.stream('POST', f"{BASE}{WF_BASE}/{wf_id}/run", auth=_AUTH,
                           json={"input":"Hello workflow test!"},
                           timeout=TIMEOUT) as r:
             assert r.status_code == 200
@@ -459,8 +568,8 @@ class TestWorkflowRun:
 
     def test_32_run_nonexistent_workflow(self):
         """Running a non-existent workflow returns error."""
-        r = httpx.post(f"{BASE}{WF_BASE}/nonexistent_wf_xyz/run",
-                       json={"input":"test"}, timeout=TIMEOUT)
+        r = httpx.post(f"{BASE}{WF_BASE}/nonexistent_wf_xyz/run", 
+                       json={"input":"test"}, timeout=TIMEOUT, auth=_AUTH)
         d = r.json()
         assert d.get("ok") is False or d.get("error")
         print(f"\n  ✅ Nonexistent workflow returns error")
@@ -469,7 +578,7 @@ class TestWorkflowRun:
         """Run emits node_start and node_output events."""
         wf_id = TestWorkflowCRUD._wf_id
         events = []
-        with httpx.stream('POST', f"{BASE}{WF_BASE}/{wf_id}/run",
+        with httpx.stream('POST', f"{BASE}{WF_BASE}/{wf_id}/run", auth=_AUTH,
                           json={"input":"node events test"},
                           timeout=30) as r:
             buf = ""
@@ -504,7 +613,7 @@ class TestWorkflowRun:
         wf_id = d["workflow"]["id"]
         try:
             events = []
-            with httpx.stream('POST', f"{BASE}{WF_BASE}/{wf_id}/run",
+            with httpx.stream('POST', f"{BASE}{WF_BASE}/{wf_id}/run", auth=_AUTH,
                               json={"input":"run test"}, timeout=60) as r:
                 buf=""
                 for chunk in r.iter_text():
@@ -559,7 +668,7 @@ class TestStarterWorkflows:
     def test_39_starter_workflow_can_run(self):
         """Chat pipeline should execute without errors (trigger+transforms only)."""
         events = []
-        with httpx.stream('POST', f"{BASE}{WF_BASE}/wf_chat_pipeline/run",
+        with httpx.stream('POST', f"{BASE}{WF_BASE}/wf_chat_pipeline/run", auth=_AUTH,
                           json={"input":"test input for starter"}, timeout=30) as r:
             buf = ""
             for chunk in r.iter_text():

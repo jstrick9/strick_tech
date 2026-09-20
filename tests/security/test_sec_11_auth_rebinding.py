@@ -92,14 +92,15 @@ class TestSecVaultStrictness:
         _decrypt() happily base64-decoded them into mojibake — which then went
         straight into os.environ as an API key.
         """
-        from backend.config import get_data_dir
-
         key = uid("SEC_TAMPER").upper()
         try:
             await POST(C, "/api/secrets/set", {"key": key, "value": "real-value-1"})
             # Tamper: write a plaintext blob into value_enc directly.
-            db = get_data_dir() / "memory" / "agentic.db"
-            con = sqlite3.connect(db, timeout=10)
+            # get_conn() resolves the DB the way the server does (honours
+            # AGENTIC_TEST_DB) — see the note in the finally block below.
+            from backend.services.memory_db import get_conn
+
+            con = get_conn()
             try:
                 con.execute(
                     "UPDATE secrets SET value_enc=? WHERE key=?",
@@ -163,10 +164,14 @@ class TestSecLiveAuthLifecycle:
         finally:
             # Remove the user so the live deployment returns to its prior
             # "auth not configured" state for other suites.
-            from backend.config import get_data_dir
+            # Resolve the DB the same way the SERVER does (memory_db honours
+            # AGENTIC_TEST_DB). Guessing get_data_dir()/memory/agentic.db
+            # opens the wrong file in a sandboxed topology: the server's
+            # tables live in AGENTIC_TEST_DB, and the guessed path is an
+            # empty DB — "no such table" — or worse, the real one.
+            from backend.services.memory_db import get_conn
 
-            db = get_data_dir() / "memory" / "agentic.db"
-            con = sqlite3.connect(db, timeout=10)
+            con = get_conn()
             try:
                 con.execute("DELETE FROM auth_sessions WHERE user_id IN (SELECT id FROM auth_users WHERE username=?)", (user,))
                 con.execute("DELETE FROM auth_users WHERE username=?", (user,))
@@ -199,10 +204,14 @@ class TestSecLiveAuthLifecycle:
             other = await POST(C, "/api/auth/login", {"username": _uniq("bystander"), "password": "nope"})
             assert other.status_code == 401, "bystander accounts must not be collaterally locked"
         finally:
-            from backend.config import get_data_dir
+            # Resolve the DB the same way the SERVER does (memory_db honours
+            # AGENTIC_TEST_DB). Guessing get_data_dir()/memory/agentic.db
+            # opens the wrong file in a sandboxed topology: the server's
+            # tables live in AGENTIC_TEST_DB, and the guessed path is an
+            # empty DB — "no such table" — or worse, the real one.
+            from backend.services.memory_db import get_conn
 
-            db = get_data_dir() / "memory" / "agentic.db"
-            con = sqlite3.connect(db, timeout=10)
+            con = get_conn()
             try:
                 con.execute("DELETE FROM auth_sessions WHERE user_id IN (SELECT id FROM auth_users WHERE username=?)", (user,))
                 con.execute("DELETE FROM auth_users WHERE username=?", (user,))

@@ -76,7 +76,10 @@ class TestHooksWebhooksEventSystem:
         """Create webhook → events list is accessible."""
         r = await POST(client, "/api/webhooks", {
             "name": uid("EventsWH"),
-            "secret": "s",
+            # ≥8 chars: the route enforces a minimum secret length (a
+            # one-char secret is trivially brute-forced). Omitting the
+            # field entirely would also work — one is generated.
+            "secret": "sandbox-test-secret",
             "agent_id": "builder",
             "prompt_template": "{{payload}}"
         })
@@ -114,7 +117,7 @@ class TestHooksWebhooksEventSystem:
     async def test_07_webhook_test_fires(self, client):
         """POST /api/webhooks/{id}/test fires a test event."""
         r = await POST(client, "/api/webhooks", {
-            "name": uid("TestWH"), "secret": "s"
+            "name": uid("TestWH"), "secret": "sandbox-test-secret"
         })
         d = ok(r)
         whid = d.get("id") or (d.get("webhook") or {}).get("id")

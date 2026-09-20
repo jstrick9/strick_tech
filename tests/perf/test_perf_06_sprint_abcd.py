@@ -10,6 +10,7 @@ SLA applied: realistic thresholds based on measured baselines
 """
 import pytest, asyncio, time, uuid
 from tests.perf.perf_engine import (
+    CSRF_AUTH,
     measure_latency, measure_throughput, GET, POST, DELETE, PATCH, BASE, uid,
     SLA, httpx, LatencyResult
 )
@@ -73,7 +74,7 @@ class TestSprintAAuditLog:
     async def test_audit_log_concurrent_reads_no_500(self):
         """50 concurrent reads on audit log — no server errors."""
         async def read():
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.get("/api/audit-log")
                 return r.status_code
         results = await asyncio.gather(*[read() for _ in range(50)])
@@ -158,7 +159,7 @@ class TestSprintBSupervisor:
     async def test_supervisor_10_concurrent_dispatches(self):
         """10 simultaneous supervisor dispatches — no collisions, no 500s."""
         async def dispatch(i):
-            async with httpx.AsyncClient(base_url=BASE, timeout=20) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=20) as c:
                 r = await c.post("/api/supervisor/run", json={
                     "task": f"Concurrent task {i}",
                     "strategy": "sequential",
@@ -332,7 +333,7 @@ class TestSprintDAgentMonitor:
     async def test_monitor_30_concurrent_dashboards(self):
         """30 simultaneous live dashboard polls — realistic multi-user scenario."""
         async def poll():
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.get("/api/agent-monitor/live")
                 return r.status_code
         results = await asyncio.gather(*[poll() for _ in range(30)])

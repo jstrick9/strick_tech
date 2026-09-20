@@ -79,6 +79,11 @@ def activate(prefix: str = "agentic-test") -> bool:
     _data_dir = Path(tempfile.mkdtemp(prefix=f"{prefix}-data-"))
     for _name in _WRITABLE_DIRS:
         (_data_dir / _name).mkdir(parents=True, exist_ok=True)
+    # A minimal project file in preview/ — routes like testgen read source
+    # files from the preview dir, and an empty one makes every such request
+    # honestly 404. This is the sandbox's stand-in for "the user's project".
+    (_data_dir / "preview" / "app.js").write_text(
+        "function greet(name) {\n  return 'Hello, ' + name + '!';\n}\n", encoding="utf-8")
     for _name in _READONLY_LINKS:
         _src = ROOT / _name
         if _src.exists():
@@ -93,6 +98,43 @@ def activate(prefix: str = "agentic-test") -> bool:
         else:
             (_data_dir / _name).mkdir(parents=True, exist_ok=True)
     os.environ["AGENTIC_OS_DATA_DIR"] = str(_data_dir)
+
+    # ── Scratch git working copy ────────────────────────────────────────────
+    # Several routes (gitai status/commit/changelog, supervisor code steps)
+    # run git against the DATA DIR. A sandbox without a .git makes them all
+    # honestly report "not a repository" — which is fine for those tests, but
+    # it means the gitai success paths can only ever be exercised against a
+    # server whose data dir IS a checkout (i.e. never in CI). A one-commit
+    # scratch repo with a dirty file gives them something real to read,
+    # fully isolated from the outer repository.
+    try:
+        import subprocess as _sp
+
+        def _git(*args: str) -> None:
+            _sp.run(
+                ["git", *args], cwd=str(_data_dir), check=True, timeout=15,
+                stdout=_sp.DEVNULL, stderr=_sp.DEVNULL,
+                env={**os.environ, "GIT_AUTHOR_NAME": "sandbox",
+                     "GIT_AUTHOR_EMAIL": "sandbox@test.local",
+                     "GIT_COMMITTER_NAME": "sandbox",
+                     "GIT_COMMITTER_EMAIL": "sandbox@test.local"},
+            )
+
+        _git("init", "-q")
+        # CAUTION: never use a name from _READONLY_LINKS (README.md is one!)
+        # — those are symlinks to the real repo, and writing through them
+        # mutates the outer repository. The scratch repo uses its own file.
+        (_data_dir / "sandbox_notes.md").write_text("sandbox working copy\n", encoding="utf-8")
+        _git("add", "sandbox_notes.md")
+        _git("commit", "-q", "-m", "sandbox init")
+        # Leave the working copy dirty via the TRACKED file: `git diff` (and
+        # `git diff --cached`'s unstaged fallback) only sees modifications,
+        # not untracked files — a brand-new file would leave the diff empty.
+        (_data_dir / "sandbox_notes.md").write_text(
+            "sandbox working copy\n\nuncommitted scratch change for gitai tests\n",
+            encoding="utf-8")
+    except Exception:
+        pass  # git unavailable — git-dependent tests degrade as before
 
     # ── Loopback host for the terminal auth gate ────────────────────────────
     os.environ.setdefault("AGENTIC_OS_HOST", "127.0.0.1")

@@ -156,6 +156,14 @@ class TestMCPGatewayPolicies:
 
     async def test_09_policy_toggle_changes_enforcement(self, client):
         """Toggling a policy off stops its enforcement."""
+        # Provision the agent: the zero-trust identity gate would deny its
+        # tool calls for being unknown, which would make the "allowed after
+        # toggle" check below fail for the wrong reason.
+        await POST(client, "/api/agent-identity/provision", {
+            "agent_id": "toggle_test_agent",
+            "display_name": "Toggle Test Agent",
+            "authority_level": "standard",
+        })
         # Create a deny policy
         pol = await POST(client, "/api/mcp-gateway/policies", {
             "name": "Toggle Test Policy",

@@ -29,8 +29,16 @@ TIMEOUT = 25
 # ── Per-test fresh async client ───────────────────────────────────────────────
 @pytest.fixture
 async def U():
-    """Fresh user-session client (simulates one browser tab)."""
-    async with httpx.AsyncClient(base_url=BASE, timeout=TIMEOUT) as c:
+    """Fresh user-session client (simulates one browser tab).
+
+    CSRF-aware: fetches a token and attaches it to mutating requests, the
+    same way the gap suite's clients do (tests/_csrf_client.py).
+    """
+    import pathlib as _pathlib
+    import sys as _sys
+    _sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+    from _csrf_client import async_client as _csrf_async_client
+    async with _csrf_async_client(BASE, timeout=TIMEOUT) as c:
         yield c
 
 
@@ -47,7 +55,9 @@ async def DELETE(u, path, j=None):
 def j(r) -> dict:
     """Parse JSON response — skip if event-stream."""
     ct = r.headers.get("content-type","")
-    if "event-stream" in ct or r.status_code != 200:
+    # 2xx, not == 200: creation endpoints answer 201 Created, and treating
+    # those as "no body" made every create assertion read an empty dict.
+    if "event-stream" in ct or not (200 <= r.status_code < 300):
         return {}
     try: return r.json()
     except: return {}

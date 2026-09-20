@@ -221,7 +221,7 @@ class TestParallelScenarioPerformance:
         """5 users boot the platform simultaneously — total < 2s."""
         async def user_boot(user_id):
             t0 = time.perf_counter()
-            async with httpx.AsyncClient(base_url=BASE, timeout=20) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=20) as c:
                 await c.get("/api/health")
                 await c.get("/api/profile/ui-config")
                 await c.get("/api/agents")
@@ -238,7 +238,7 @@ class TestParallelScenarioPerformance:
     async def test_10_users_reading_tasks(self):
         """10 simultaneous users reading their task list."""
         async def read_tasks():
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 t0 = time.perf_counter()
                 r = await c.get("/api/tasks")
                 return (time.perf_counter() - t0) * 1000, r.status_code

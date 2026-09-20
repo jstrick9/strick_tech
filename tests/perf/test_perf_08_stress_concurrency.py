@@ -5,6 +5,7 @@ Tests: High-load concurrency scenarios, race conditions, burst traffic,
 """
 import pytest, asyncio, time, uuid, statistics
 from tests.perf.perf_engine import (
+    CSRF_AUTH,
     measure_latency, measure_throughput, GET, POST, DELETE, PATCH, BASE, uid,
     SLA, httpx, LatencyResult
 )
@@ -17,7 +18,7 @@ class TestBurstTraffic:
     async def test_100_simultaneous_health_checks(self):
         """100 simultaneous health checks — the ultimate stress test."""
         async def check():
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 t0 = time.perf_counter()
                 r = await c.get("/api/health")
                 ms = (time.perf_counter() - t0) * 1000
@@ -37,7 +38,7 @@ class TestBurstTraffic:
     async def test_50_simultaneous_agent_list(self):
         """50 simultaneous agent list requests — UI refresh scenario."""
         async def fetch():
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.get("/api/agents")
                 return r.status_code
 
@@ -54,7 +55,7 @@ class TestBurstTraffic:
         created_ids = []
 
         async def create(title):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.post("/api/tasks", json={"title": title, "status": "todo"})
                 if r.status_code == 200:
                     return r.json().get("id")
@@ -76,7 +77,7 @@ class TestBurstTraffic:
     async def test_40_concurrent_db_writes_no_corruption(self):
         """40 concurrent SQLite writes — WAL mode handles concurrency."""
         async def write_memory(i):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.post("/api/memory/add", json={
                     "content": uid(f"stress_mem_{i}"),
                     "source": "stress-test",
@@ -105,7 +106,7 @@ class TestSustainedLoad:
         async def measure_window(duration_s):
             times = []
             deadline = time.perf_counter() + duration_s
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 while time.perf_counter() < deadline:
                     t0 = time.perf_counter()
                     r = await c.get(endpoint)
@@ -145,7 +146,7 @@ class TestSustainedLoad:
     async def test_100_sequential_db_queries_stable(self):
         """100 sequential DB queries — response time stays stable."""
         times = []
-        async with httpx.AsyncClient(base_url=BASE, timeout=30) as c:
+        async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=30) as c:
             for i in range(100):
                 t0 = time.perf_counter()
                 await c.post("/api/db/sqlite/query", json={"sql": "SELECT COUNT(*) FROM tasks"})
@@ -166,7 +167,7 @@ class TestSustainedLoad:
 
         async def write_entry():
             t0 = time.perf_counter()
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 await c.post("/api/audit-log/append", json={
                     "actor": "stress-test",
                     "action": "stress.write",
@@ -198,7 +199,7 @@ class TestRaceConditions:
         original_name = original.get("name", "User")
 
         async def patch(name):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.patch("/api/profile", json={"name": name})
                 return r.status_code
 
@@ -220,7 +221,7 @@ class TestRaceConditions:
     async def test_concurrent_create_delete_same_resource_no_500(self):
         """Create and delete the same-named agent concurrently."""
         async def create():
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.post("/api/tasks", json={"title": uid("race_task")})
                 if r.status_code == 200:
                     return r.json().get("id")
@@ -232,7 +233,7 @@ class TestRaceConditions:
 
         # Now delete them all simultaneously
         async def delete(tid):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.delete(f"/api/tasks/{tid}")
                 return r.status_code
 
@@ -245,7 +246,7 @@ class TestRaceConditions:
     async def test_20_concurrent_memory_searches_no_deadlock(self):
         """20 simultaneous memory searches — no SQLite deadlocks."""
         async def search(q):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.get(f"/api/memory/search?q={q}")
                 return r.status_code
 
@@ -263,7 +264,7 @@ class TestResiliency:
     async def test_empty_body_write_graceful_error(self):
         """Empty/malformed body never causes a 500 server error.
         The platform uses a uniform 200 + {ok:false} pattern for errors."""
-        async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+        async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=10) as c:
             r = await c.post("/api/tasks", content=b"")
             # Must NOT be a server error — graceful handling is 2xx OR 4xx
             assert r.status_code < 500, f"Empty body caused server error: {r.status_code}"
@@ -272,7 +273,7 @@ class TestResiliency:
     async def test_very_long_string_input_no_500(self):
         """Very long input strings don't crash the server."""
         long_title = "x" * 10000
-        async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+        async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
             r = await c.post("/api/tasks", json={"title": long_title})
             # Should accept or reject gracefully, never 500
             assert r.status_code in (200, 400, 413, 422), f"Long input got {r.status_code}"
@@ -280,7 +281,7 @@ class TestResiliency:
     async def test_invalid_agent_id_returns_404(self):
         """Requesting a non-existent agent never causes a 500 server error.
         The platform uses a uniform 200 + {ok:false} pattern for errors."""
-        async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+        async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=10) as c:
             r = await c.get("/api/agents/nonexistent_agent_xyz_999")
             # Must NOT be a server error — graceful handling is 2xx or 4xx
             assert r.status_code < 500, f"Bad agent ID caused server error: {r.status_code}"
@@ -291,7 +292,7 @@ class TestResiliency:
 
     async def test_sql_injection_attempt_rejected(self):
         """SQL injection in DB query endpoint is safely handled."""
-        async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+        async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=10) as c:
             r = await c.post("/api/db/sqlite/query", json={
                 "sql": "SELECT * FROM agents; DROP TABLE agents; --"
             })
@@ -320,7 +321,7 @@ class TestResiliency:
             "/api/agent-monitor/live", "/api/finops/ledger", "/api/eval-framework/suites"
         ]
         failures = []
-        async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+        async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
             for ep in endpoints:
                 r = await c.get(ep)
                 if r.status_code >= 500:
@@ -349,7 +350,7 @@ class TestCrossComponentConcurrency:
         ]
 
         async def fetch(ep):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 t0 = time.perf_counter()
                 r = await c.get(ep)
                 ms = (time.perf_counter() - t0) * 1000
@@ -396,7 +397,7 @@ class TestCrossComponentConcurrency:
         ]
 
         async def fetch(ep):
-            async with httpx.AsyncClient(base_url=BASE, timeout=20) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=20) as c:
                 try:
                     r = await c.get(ep)
                     return ep, r.status_code

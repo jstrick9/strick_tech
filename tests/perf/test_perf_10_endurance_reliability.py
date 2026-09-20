@@ -5,6 +5,7 @@ Tests: Long-running reliability, data volume scaling, memory leak detection,
 """
 import pytest, asyncio, time, statistics, gc
 from tests.perf.perf_engine import (
+    CSRF_AUTH,
     measure_latency, measure_throughput, GET, POST, DELETE, BASE, uid,
     SLA, httpx, LatencyResult
 )
@@ -249,7 +250,7 @@ class TestSoakSimulation:
         last_analytics = t0
 
         async def core_poll():
-            async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=10) as c:
                 endpoints = ["/api/agents", "/api/tasks", "/api/agent-monitor/live"]
                 for ep in endpoints:
                     r = await c.get(ep)
@@ -258,7 +259,7 @@ class TestSoakSimulation:
                     return len(endpoints)
 
         async def write_action():
-            async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=10) as c:
                 await c.post("/api/memory/add", json={
                     "content": uid("soak_memory"), "source": "soak-test"
                 })
@@ -269,7 +270,7 @@ class TestSoakSimulation:
                 })
 
         async def analytics_poll():
-            async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=10) as c:
                 for ep in ["/api/analytics/kpis", "/api/finops/dashboard",
                            "/api/eval-framework/stats/platform", "/api/goals/stats/summary"]:
                     r = await c.get(ep)
@@ -306,7 +307,7 @@ class TestSoakSimulation:
             errors = []
             t0 = time.perf_counter()
             while time.perf_counter() - t0 < duration:
-                async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+                async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=10) as c:
                     for ep in ["/api/agents", "/api/tasks", "/api/sessions"]:
                         try:
                             r = await c.get(ep)

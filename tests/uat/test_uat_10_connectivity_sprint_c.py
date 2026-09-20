@@ -56,6 +56,14 @@ class TestUATMCPGateway:
 
     async def test_tool_call_passes_through_gateway(self, U):
         """AC: Agent uses a tool → user sees it in the call log."""
+        # Provision first: the zero-trust agent-identity gate denies tool
+        # calls from unknown agents (by design), and this test is about the
+        # gateway's allow path, not the identity gate.
+        await POST(U, "/api/agent-identity/provision", {
+            "agent_id": "uat_test_agent",
+            "display_name": "UAT Test Agent",
+            "authority_level": "standard",
+        })
         r = await POST(U, "/api/mcp-gateway/call", {
             "server_id": "srv_filesystem",
             "tool": "fs.list",

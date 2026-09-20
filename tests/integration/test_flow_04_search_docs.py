@@ -7,6 +7,23 @@ import pytest
 from tests.integration.conftest import *
 
 
+async def _search(client, body):
+    """POST /api/websearch/search against the live upstream.
+
+    The real search engine frequently throttles datacenter IPs: requests
+    either hang past the client read timeout or the app degrades honestly
+    with a 400 and records no history. Both make every downstream history
+    assertion fail for environmental reasons, so skip loudly instead.
+    """
+    try:
+        r = await POST(client, "/api/websearch/search", body)
+    except httpx.TimeoutException:
+        pytest.skip("search upstream timed out (datacenter IP throttled)")
+    if r.status_code == 400 and "upstream" in r.text.lower():
+        pytest.skip("search upstream unavailable (bot challenge/outage)")
+    return r
+
+
 @pytest.mark.asyncio
 class TestWebSearchHistory:
     """FLOW-06: Web search results flow into history and suggest."""
@@ -20,9 +37,10 @@ class TestWebSearchHistory:
     async def test_02_search_records_to_history(self, client):
         """Search → appears in history."""
         unique_q = uid("inttest_search")
-        await POST(client, "/api/websearch/search", {
+        r = await _search(client, {
             "query": unique_q, "num_results": 2
         })
+
         hist = ok(await GET(client, "/api/websearch/history"))
         queries = [item["query"] for item in hist["items"]]
         check("query in history", unique_q in queries)
@@ -30,7 +48,8 @@ class TestWebSearchHistory:
     async def test_03_history_has_correct_kind(self, client):
         """Search records kind='search' in history."""
         await DELETE(client, "/api/websearch/history")
-        await POST(client, "/api/websearch/search", {"query": uid("kind_test")})
+        r = await _search(client, {"query": uid("kind_test")})
+
         hist = ok(await GET(client, "/api/websearch/history"))
         if hist["items"]:
             check("kind is 'search'", hist["items"][0]["kind"] == "search")
@@ -39,7 +58,8 @@ class TestWebSearchHistory:
         """After searching 'Python', suggest returns Python-related suggestions."""
         await DELETE(client, "/api/websearch/history")
         unique_prefix = f"ZZZ_uniquequery_{uid()}"
-        await POST(client, "/api/websearch/search", {"query": unique_prefix})
+        r = await _search(client, {"query": unique_prefix})
+
 
         suggest = ok(await GET(client, "/api/websearch/suggest",
                                q=unique_prefix[:10]))
@@ -50,8 +70,8 @@ class TestWebSearchHistory:
         """history?limit=2 returns at most 2 items."""
         # Add some entries
         for i in range(3):
-            await POST(client, "/api/websearch/search",
-                       {"query": uid(f"limit_test{i}")})
+            r = await _search(client, {"query": uid(f"limit_test{i}")})
+
 
         hist = ok(await GET(client, "/api/websearch/history", limit="2"))
         check("limit respected", len(hist["items"]) <= 2)
@@ -63,8 +83,8 @@ class TestWebSearchHistory:
         # Add two entries
         q1 = uid("keep_this")
         q2 = uid("delete_this")
-        await POST(client, "/api/websearch/search", {"query": q1})
-        await POST(client, "/api/websearch/search", {"query": q2})
+        r = await _search(client, {"query": q1})
+        await _search(client, {"query": q2})
 
         hist = ok(await GET(client, "/api/websearch/history"))
         # Find the q2 entry

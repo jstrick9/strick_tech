@@ -178,7 +178,11 @@ class TestAmbientIntelligence:
         scores = d["scores"]
         for dim in ("security", "complexity", "debt", "docs", "deps"):
             check(f"has {dim} score", dim in scores)
-            check(f"{dim} 0-100", 0 <= scores[dim] <= 100)
+            v = scores[dim]
+            # None means "not measured" — the endpoint deliberately returns
+            # None instead of inventing a score when e.g. the code index is
+            # empty. Only range-check dimensions that were actually measured.
+            check(f"{dim} valid", v is None or 0 <= v <= 100)
 
     async def test_04_health_history_grows(self, client):
         """Health history accumulates after scans."""

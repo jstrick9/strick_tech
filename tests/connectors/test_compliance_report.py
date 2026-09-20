@@ -23,6 +23,42 @@ Also verifies:
 import pytest, httpx, json, time
 
 BASE    = "http://127.0.0.1:8787"
+# CSRF enforcement is ON by default and these scripted clients mutate state;
+# attach a token like every other network suite (tests/_csrf_client.py).
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import csrf_auth  # noqa: E402
+_AUTH = csrf_auth(BASE)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _seed_report_activity():
+    """Generate the activity the report sections summarise.
+
+    The coverage tests (chain entries, HITL totals, supervisor and
+    agent-identity sections) read the AUDIT LOG and the tables behind it.
+    This suite historically ran against a long-lived server whose activity
+    log was full; on a fresh server every section reads zero and the tests
+    fail for want of data, not defects. Seeding one of each event makes the
+    suite self-contained."""
+    def _post(path, body):
+        try:
+            httpx.post(f"{BASE}{path}", json=body, timeout=TIMEOUT, auth=_AUTH)
+        except Exception:
+            pass
+
+    _post("/api/goals", {"title": "Compliance seed goal",
+                         "description": "Seeded by the compliance suite"})
+    _post("/api/hitl/interrupt", {"agent_id": "brain",
+                                  "reason": "Compliance seed interrupt",
+                                  "context": {"action": "seed"}})
+    _post("/api/supervisor/run", {"goal": "Compliance seed supervisor run"})
+    _post("/api/agent-identity/provision", {
+        "agent_id": "compliance_seed_agent", "display_name": "Compliance Seed",
+        "authority_level": "standard"})
+    yield
+
 TIMEOUT = 90
 
 def get(path):
@@ -31,12 +67,12 @@ def get(path):
     return r.json()
 
 def post(path, body=None):
-    r = httpx.post(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT)
+    r = httpx.post(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT, auth=_AUTH)
     assert r.status_code == 200, f"POST {path} → {r.status_code}: {r.text[:300]}"
     return r
 
 def delete(path):
-    r = httpx.delete(f"{BASE}{path}", timeout=TIMEOUT)
+    r = httpx.delete(f"{BASE}{path}", timeout=TIMEOUT, auth=_AUTH)
     assert r.status_code == 200, f"DELETE {path} → {r.status_code}"
     return r.json()
 
@@ -126,7 +162,7 @@ class TestPDFGeneration:
                 "agent_identity": True, "connectors": True, "cost": True, "supervisor": True,
             }
         }
-        r = httpx.post(f"{BASE}/api/compliance/generate", json=body, timeout=TIMEOUT)
+        r = httpx.post(f"{BASE}/api/compliance/generate", json=body, timeout=TIMEOUT, auth=_AUTH)
         assert r.status_code == 200, f"PDF gen failed for {fw}: HTTP {r.status_code}: {r.text[:200]}"
         return r
 
@@ -198,7 +234,7 @@ class TestPDFGeneration:
         from datetime import datetime, timedelta, timezone
         now   = datetime.now(timezone.utc)
         week_ago = (now - timedelta(days=7)).isoformat()
-        r = httpx.post(f"{BASE}/api/compliance/generate", json={
+        r = httpx.post(f"{BASE}/api/compliance/generate", auth=_AUTH, json={
             "title": "Filtered Report",
             "framework": "General",
             "format": "pdf",
@@ -390,18 +426,18 @@ class TestReportHistory:
 
 class TestValidation:
     def test_33_invalid_framework_rejected(self):
-        r = httpx.post(f"{BASE}/api/compliance/generate",
+        r = httpx.post(f"{BASE}/api/compliance/generate", 
                        json={"title":"Test","framework":"INVALID","format":"pdf"},
-                       timeout=TIMEOUT)
+                       timeout=TIMEOUT, auth=_AUTH)
         assert r.status_code in (200, 400)
         d = r.json()
         assert d.get("ok") is False
         print(f"\n  ✅ Invalid framework rejected: {d.get('error','')[:60]}")
 
     def test_34_invalid_format_rejected(self):
-        r = httpx.post(f"{BASE}/api/compliance/generate",
+        r = httpx.post(f"{BASE}/api/compliance/generate", 
                        json={"title":"Test","framework":"General","format":"xml"},
-                       timeout=TIMEOUT)
+                       timeout=TIMEOUT, auth=_AUTH)
         assert r.status_code in (200, 400)
         d = r.json()
         assert d.get("ok") is False
@@ -409,7 +445,7 @@ class TestValidation:
 
     def test_35_all_scope_false_still_generates(self):
         """Report with all sections disabled still generates (cover + certificate)."""
-        r = httpx.post(f"{BASE}/api/compliance/generate", json={
+        r = httpx.post(f"{BASE}/api/compliance/generate", auth=_AUTH, json={
             "title": "Empty scope test", "framework": "General", "format": "pdf",
             "scope": {k: False for k in ["audit_chain","hitl","policies","agent_identity","connectors","cost","supervisor"]}
         }, timeout=TIMEOUT)
@@ -419,7 +455,7 @@ class TestValidation:
 
     def test_36_empty_body_uses_defaults(self):
         """POST with no body still generates a General PDF with defaults."""
-        r = httpx.post(f"{BASE}/api/compliance/generate", json={}, timeout=TIMEOUT)
+        r = httpx.post(f"{BASE}/api/compliance/generate", auth=_AUTH, json={}, timeout=TIMEOUT)
         assert r.status_code == 200
         assert r.content[:4] == b'%PDF'
         print(f"\n  ✅ Empty body uses defaults: {len(r.content):,} bytes General PDF")
@@ -516,7 +552,7 @@ class TestAuditChain:
 class TestDataCoverage:
     @pytest.fixture(scope="class")
     def full_json_report(self):
-        r = httpx.post(f"{BASE}/api/compliance/generate", json={
+        r = httpx.post(f"{BASE}/api/compliance/generate", auth=_AUTH, json={
             "title": "Coverage Test", "framework": "General", "format": "json",
             "scope": {"audit_chain":True,"hitl":True,"policies":True,
                       "agent_identity":True,"connectors":True,"cost":True,"supervisor":True}
@@ -594,17 +630,17 @@ class TestDataCoverage:
 
 class TestFrontendContract:
     def test_55_report_id_starts_with_rpt(self):
-        r = httpx.post(f"{BASE}/api/compliance/generate",
+        r = httpx.post(f"{BASE}/api/compliance/generate", 
                        json={"title":"Contract Test","framework":"General","format":"pdf"},
-                       timeout=TIMEOUT)
+                       timeout=TIMEOUT, auth=_AUTH)
         rid = r.headers.get("X-Report-Id","")
         assert rid.startswith("rpt_"), f"Report ID doesn't start with rpt_: {rid}"
         print(f"\n  ✅ Report ID format: {rid}")
 
     def test_56_x_report_summary_header_present(self):
-        r = httpx.post(f"{BASE}/api/compliance/generate",
+        r = httpx.post(f"{BASE}/api/compliance/generate", 
                        json={"title":"Summary Header Test","framework":"General","format":"json"},
-                       timeout=TIMEOUT)
+                       timeout=TIMEOUT, auth=_AUTH)
         summary_hdr = r.headers.get("X-Report-Summary","")
         assert len(summary_hdr) > 0
         d = json.loads(summary_hdr)
@@ -618,9 +654,9 @@ class TestFrontendContract:
         print(f"\n  ✅ history count={hist['count']} matches reports array")
 
     def test_58_generated_report_has_file_size(self):
-        r = httpx.post(f"{BASE}/api/compliance/generate",
+        r = httpx.post(f"{BASE}/api/compliance/generate", 
                        json={"title":"Size Test","framework":"General","format":"pdf"},
-                       timeout=TIMEOUT)
+                       timeout=TIMEOUT, auth=_AUTH)
         rid = r.headers.get("X-Report-Id","")
         time.sleep(0.5)
         meta = get(f"/api/compliance/reports/{rid}")
@@ -631,9 +667,9 @@ class TestFrontendContract:
     def test_59_scope_persisted_in_report(self):
         scope = {"audit_chain":True,"hitl":False,"policies":True,"agent_identity":False,
                  "connectors":True,"cost":False,"supervisor":True}
-        r = httpx.post(f"{BASE}/api/compliance/generate",
+        r = httpx.post(f"{BASE}/api/compliance/generate", 
                        json={"title":"Scope Test","framework":"SOC2","format":"json","scope":scope},
-                       timeout=TIMEOUT)
+                       timeout=TIMEOUT, auth=_AUTH)
         rid = r.headers.get("X-Report-Id","")
         time.sleep(0.5)
         meta = get(f"/api/compliance/reports/{rid}")
@@ -645,9 +681,9 @@ class TestFrontendContract:
     def test_60_all_6_frameworks_generate_correctly(self):
         """End-to-end: all 6 frameworks generate valid PDFs and appear in history."""
         for fw in ["General","SOC2","GDPR","HIPAA","FINRA","ISO27001"]:
-            r = httpx.post(f"{BASE}/api/compliance/generate",
+            r = httpx.post(f"{BASE}/api/compliance/generate", 
                            json={"title":f"E2E {fw}","framework":fw,"format":"pdf"},
-                           timeout=TIMEOUT)
+                           timeout=TIMEOUT, auth=_AUTH)
             assert r.status_code == 200, f"{fw}: HTTP {r.status_code}"
             assert r.content[:4] == b'%PDF', f"{fw}: not a PDF"
             assert len(r.content) > 5000,    f"{fw}: PDF too small ({len(r.content)} bytes)"

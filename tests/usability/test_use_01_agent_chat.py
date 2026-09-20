@@ -252,7 +252,7 @@ class TestUseSwarmOrchestration:
     async def test_swarm_run_dispatches(self, U):
         """User clicks 'Run Swarm' — must accept task and return run info."""
         r = await POST(U, "/api/swarm/run", {
-            "task": "Summarise the benefits of async Python",
+            "prompt": "Summarise the benefits of async Python",
             "agents": ["brain", "researcher"],
             "strategy": "parallel"
         })

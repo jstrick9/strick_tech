@@ -152,9 +152,8 @@ class TestUseTestGenerator:
     async def test_generate_unit_tests(self, U):
         """User submits code — test generator produces test cases."""
         r = await POST(U, "/api/testgen/generate", {
-            "source_code": "def multiply(a: int, b: int) -> int:\n    return a * b",
-            "language": "python", "framework": "pytest",
-            "coverage_target": 90
+            "filepath": "app.js", "framework": "pytest",
+            "stream": False
         })
         no_error(r, "generate tests")
         d = j(r)
@@ -247,7 +246,7 @@ class TestUseGitAI:
     async def test_nl_git_command(self, U):
         """User types 'show me last 5 commits' in natural language."""
         r = await POST(U, "/api/gitai/nl-git", {
-            "command": "show me the last 5 commits with authors"
+            "query": "show me the last 5 commits with authors"
         })
         no_error(r, "nl-git command")
         d = j(r)

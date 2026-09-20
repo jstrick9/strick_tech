@@ -39,6 +39,55 @@ A2A spec compliance checks:
 import pytest, httpx, json, time
 
 BASE    = "http://127.0.0.1:8787"
+# CSRF enforcement is ON by default and these scripted clients mutate state;
+# attach a token like every other network suite (tests/_csrf_client.py).
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import csrf_auth  # noqa: E402
+_AUTH = csrf_auth(BASE)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _seed_registry():
+    """Register the platform's own agents.
+
+    The registry tests expect the "3 seeded demo agents" of the original
+    long-lived server — including a local_orchestrator row with
+    trust_level='local' and status='active'. A fresh deployment has an
+    empty a2a_agents table until the platform self-registers; do exactly
+    that, via the public API, so the suite is self-contained."""
+    def _post(path, body, method="post"):
+        try:
+            getattr(httpx, method)(f"{BASE}{path}", json=body, timeout=TIMEOUT, auth=_AUTH)
+        except Exception:
+            pass
+
+    _post("/api/a2a/agents", {"agent_id": "local_orchestrator",
+                              "name": "Local Orchestrator",
+                              "a2a_url": f"{BASE}/a2a/local_orchestrator",
+                              "trust_level": "local",
+                              "description": "Platform orchestrator"})
+    # register_agent stores status='unverified'; the registry tests expect
+    # the local orchestrator to be active.
+    _post("/api/a2a/agents/local_orchestrator", {"status": "active"}, method="patch")
+    _post("/api/a2a/agents", {"agent_id": "demo_researcher", "name": "Demo Researcher",
+                              "a2a_url": f"{BASE}/a2a/demo_researcher",
+                              "trust_level": "verified"})
+    _post("/api/a2a/agents", {"agent_id": "demo_builder", "name": "Demo Builder",
+                              "a2a_url": f"{BASE}/a2a/demo_builder",
+                              "trust_level": "verified"})
+    # The delegation tests address two named remote agents from the original
+    # long-lived server; ext_langchain_agent is deliberately unreachable
+    # (that is what test_46 exercises).
+    _post("/api/a2a/agents", {"agent_id": "ext_langchain_agent", "name": "LangChain Agent",
+                              "a2a_url": "https://unreachable.invalid/a2a",
+                              "trust_level": "unverified"})
+    _post("/api/a2a/agents", {"agent_id": "ext_crewai_writer", "name": "CrewAI Writer",
+                              "a2a_url": f"{BASE}/a2a/builder",
+                              "trust_level": "unverified"})
+    yield
+
 TIMEOUT = 60
 
 def get(path):
@@ -47,21 +96,21 @@ def get(path):
     return r
 
 def post(path, body=None):
-    r = httpx.post(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT)
+    r = httpx.post(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT, auth=_AUTH)
     return r
 
 def patch(path, body=None):
-    r = httpx.patch(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT)
+    r = httpx.patch(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT, auth=_AUTH)
     return r
 
 def delete(path):
-    r = httpx.delete(f"{BASE}{path}", timeout=TIMEOUT)
+    r = httpx.delete(f"{BASE}{path}", timeout=TIMEOUT, auth=_AUTH)
     return r
 
 def rpc(agent_id: str, method: str, params: dict = None, rpc_id: str = "t1"):
     """Send a JSON-RPC 2.0 request to a local A2A agent endpoint."""
     body = {"jsonrpc":"2.0","id":rpc_id,"method":method,"params":params or {}}
-    r = httpx.post(f"{BASE}/a2a/{agent_id}", json=body, timeout=TIMEOUT)
+    r = httpx.post(f"{BASE}/a2a/{agent_id}", json=body, timeout=TIMEOUT, auth=_AUTH)
     assert r.status_code in (200, 400, 404), f"RPC {method} → {r.status_code}: {r.text[:200]}"
     return r.json()
 
@@ -651,7 +700,7 @@ class TestSSEStream:
             }
         }
         events = []
-        with httpx.stream("POST", f"{BASE}/a2a/builder", json=body, timeout=30) as r:
+        with httpx.stream("POST", f"{BASE}/a2a/builder", auth=_AUTH, json=body, timeout=30) as r:
             assert r.status_code == 200
             assert "text/event-stream" in r.headers.get("content-type","")
             buf = ""

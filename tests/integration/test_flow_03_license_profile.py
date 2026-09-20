@@ -86,9 +86,13 @@ class TestLicenseTierGating:
         check("activation ok", d["ok"] is True)
         check("tier is pro", d["tier"] == "pro")
 
-        # Verify in status
+        # Verify in status. With license enforcement off (the default dev
+        # topology) /status reports the UNLOCK_ALL tier as `tier` — the
+        # persisted activation is in `stored_tier`, which is the
+        # topology-independent fact this test exists to pin.
         status = ok(await GET(client, "/api/license/status"))
-        check("status reflects pro", status["tier"] in ("pro", "trial"))
+        check("status reflects pro", status["stored_tier"] == "pro",
+              status.get("stored_tier"))
 
         # Reset for other tests
         await POST(client, "/api/license/reset-trial", {})

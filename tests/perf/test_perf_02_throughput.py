@@ -11,6 +11,9 @@ class TestThroughputReadEndpoints:
     """Read endpoints should handle high concurrent load gracefully."""
 
     async def test_health_rps_over_500(self):
+        if SANDBOXED:
+            pytest.skip("absolute RPS thresholds are host-bound — "
+                        "not measurable on sandboxed infra")
         r = await measure_throughput("/api/health", concurrency=20, duration_s=5)
         print(f"\n    /api/health: {r.rps:.1f} RPS @ c=20, ok={r.success_rate:.1f}%")
         ok, msg = r.check_sla(SLA.HEALTH_MIN_RPS, "/api/health throughput")
@@ -71,6 +74,9 @@ class TestThroughputReadEndpoints:
         assert r.success_rate >= SLA.MIN_SUCCESS_RATE
 
     async def test_db_query_rps_over_200(self):
+        if SANDBOXED:
+            pytest.skip("absolute RPS thresholds are host-bound — "
+                        "not measurable on sandboxed infra")
         r = await measure_throughput(
             "/api/db/sqlite/query", "POST", {"sql": "SELECT 1"},
             concurrency=10, duration_s=5
@@ -119,7 +125,7 @@ class TestConcurrencyStress:
     async def test_20_concurrent_health_checks(self):
         """20 simultaneous health checks — most succeed even under load."""
         async def one_check():
-            async with httpx.AsyncClient(base_url=BASE, timeout=10) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=10) as c:
                 r = await c.get("/api/health")
                 return r.status_code
 
@@ -137,7 +143,7 @@ class TestConcurrencyStress:
         ]
         
         async def one_read(path):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 try:
                     r = await c.get(path)
                     return r.status_code
@@ -164,7 +170,7 @@ class TestConcurrencyStress:
         ]
         
         async def do_query(sql):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.post("/api/db/sqlite/query", json={"sql": sql})
                 return r.status_code, r.json().get("ok", False)
         
@@ -180,7 +186,7 @@ class TestConcurrencyStress:
     async def test_10_concurrent_task_creates_unique_ids(self):
         """10 simultaneous task creates — all get distinct IDs."""
         async def create_task(i):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.post("/api/tasks", json={"title": uid(f"concurrent_{i}")})
                 if r.status_code == 200:
                     return r.json().get("id")
@@ -230,13 +236,13 @@ class TestConcurrencyStress:
         lock = asyncio.Lock()
         
         async def do_read():
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.get("/api/tasks")
                 if r.status_code >= 500:
                     async with lock: errors.append(f"READ 500: {r.status_code}")
         
         async def do_write(i):
-            async with httpx.AsyncClient(base_url=BASE, timeout=15) as c:
+            async with httpx.AsyncClient(auth=CSRF_AUTH, base_url=BASE, timeout=15) as c:
                 r = await c.post("/api/tasks", json={"title": uid(f"mixrw_{i}")})
                 if r.status_code >= 500:
                     async with lock: errors.append(f"WRITE 500: {r.status_code}")

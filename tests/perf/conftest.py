@@ -19,6 +19,15 @@ _activate_sandbox(prefix="agentic-perf")
 BASE = "http://127.0.0.1:8787"
 
 def _run_server():
+    # Pop PYTEST_CURRENT_TEST in the CHILD only (same fix as the e2e_browser
+    # conftest): inherited, it makes backend/app.py disable CSRF and rate
+    # limiting, so a standalone `pytest tests/perf` run would silently pass
+    # against a server with those controls switched off. The perf engine now
+    # sends real CSRF tokens, so the suite passes with them ON — keep it that
+    # way wherever it runs.
+    import os
+    os.environ.pop('PYTEST_CURRENT_TEST', None)
+    os.environ.setdefault('RATE_LIMIT_MAX', '1000000')
     import uvicorn
     from backend.app import app
     uvicorn.run(app, host="127.0.0.1", port=8787, log_level="error")

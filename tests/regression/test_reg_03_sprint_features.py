@@ -234,6 +234,15 @@ class TestRegressionSprintC_MCPGateway:
 
     def test_allowed_call_passes_through(self, client):
         """Regression: Allowed calls still execute."""
+        # The zero-trust agent-identity gate denies tool calls from agents
+        # that were never provisioned — correctly. Provision first, the way
+        # a real deployment would, so this test exercises the gateway's
+        # allow path rather than the identity gate's deny.
+        client.post("/api/agent-identity/provision", json={
+            "agent_id": "regress_agent",
+            "display_name": "Regress Agent",
+            "authority_level": "standard",
+        })
         r = client.post("/api/mcp-gateway/call", json={
             "server_id": "srv_filesystem",
             "tool": "fs.list",
@@ -247,6 +256,11 @@ class TestRegressionSprintC_MCPGateway:
 
     def test_destructive_action_triggers_hitl(self, client):
         """Regression: fs.delete still requires HITL."""
+        client.post("/api/agent-identity/provision", json={
+            "agent_id": "regress_agent",
+            "display_name": "Regress Agent",
+            "authority_level": "standard",
+        })
         r = client.post("/api/mcp-gateway/call", json={
             "server_id": "srv_filesystem",
             "tool": "fs.delete",

@@ -22,6 +22,14 @@ Endpoints under test:
 import pytest, httpx, json, time
 
 BASE    = "http://127.0.0.1:8787"
+# CSRF enforcement is ON by default and these scripted clients mutate state;
+# attach a token like every other network suite (tests/_csrf_client.py).
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1]))
+from _csrf_client import csrf_auth  # noqa: E402
+_AUTH = csrf_auth(BASE)
+
 TIMEOUT = 30
 MCP     = "/api/mcp-gateway"
 
@@ -31,17 +39,17 @@ def get(path):
     return r.json()
 
 def post(path, body=None):
-    r = httpx.post(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT)
+    r = httpx.post(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT, auth=_AUTH)
     assert r.status_code == 200, f"POST {path} → {r.status_code}: {r.text[:200]}"
     return r.json()
 
 def patch(path, body=None):
-    r = httpx.patch(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT)
+    r = httpx.patch(f"{BASE}{path}", json=body or {}, timeout=TIMEOUT, auth=_AUTH)
     assert r.status_code == 200, f"PATCH {path} → {r.status_code}: {r.text[:200]}"
     return r.json()
 
 def delete(path):
-    r = httpx.delete(f"{BASE}{path}", timeout=TIMEOUT)
+    r = httpx.delete(f"{BASE}{path}", timeout=TIMEOUT, auth=_AUTH)
     assert r.status_code == 200, f"DELETE {path} → {r.status_code}: {r.text[:200]}"
     return r.json()
 
@@ -211,8 +219,8 @@ class TestCRUD:
 
     def test_14_update_invalid_action_rejected(self):
         pol_id = TestCRUD._created_id
-        r = httpx.patch(f"{BASE}{MCP}/policies/{pol_id}",
-                        json={"action": "invalid_action"}, timeout=TIMEOUT)
+        r = httpx.patch(f"{BASE}{MCP}/policies/{pol_id}", 
+                        json={"action": "invalid_action"}, timeout=TIMEOUT, auth=_AUTH)
         # Backend returns 400 for invalid action — that's the correct behavior
         assert r.status_code in (200, 400), f"Unexpected status: {r.status_code}"
         d = r.json()
@@ -237,7 +245,7 @@ class TestCRUD:
         print(f"\n  ✅ GET nonexistent → 404/ok=False")
 
     def test_17_update_nonexistent_returns_404(self):
-        r = httpx.patch(f"{BASE}{MCP}/policies/nonexistent_xyz", json={"name":"test"}, timeout=TIMEOUT)
+        r = httpx.patch(f"{BASE}{MCP}/policies/nonexistent_xyz", json={"name":"test"}, timeout=TIMEOUT, auth=_AUTH)
         assert r.status_code == 404 or r.json().get("ok") is False
         print(f"\n  ✅ PATCH nonexistent → 404/ok=False")
 
@@ -306,8 +314,8 @@ class TestTemplates:
         print(f"\n  ✅ Template with overrides: name+priority respected")
 
     def test_23_invalid_template_returns_404(self):
-        r = httpx.post(f"{BASE}{MCP}/policies/from-template",
-                       json={"template_id": "nonexistent_tpl"}, timeout=TIMEOUT)
+        r = httpx.post(f"{BASE}{MCP}/policies/from-template", 
+                       json={"template_id": "nonexistent_tpl"}, timeout=TIMEOUT, auth=_AUTH)
         assert r.status_code == 404 or r.json().get("ok") is False
         print(f"\n  ✅ Invalid template → 404/ok=False")
 
@@ -405,7 +413,7 @@ class TestSimulator:
         print(f"\n  ✅ Exactly 1 winner in trace: {winners[0]['name']}")
 
     def test_30_simulate_missing_fields_returns_error(self):
-        r = httpx.post(f"{BASE}{MCP}/policies/simulate", json={"agent_id":"researcher"}, timeout=TIMEOUT)
+        r = httpx.post(f"{BASE}{MCP}/policies/simulate", json={"agent_id":"researcher"}, timeout=TIMEOUT, auth=_AUTH)
         # Backend returns 400 for missing required fields — correct behavior
         assert r.status_code in (200, 400), f"Unexpected status: {r.status_code}"
         d = r.json()
@@ -626,15 +634,15 @@ class TestBulkOperations:
         print(f"\n  ✅ pol_allow_builtin protected from bulk delete")
 
     def test_42_bulk_invalid_action_returns_error(self):
-        r = httpx.post(f"{BASE}{MCP}/policies/bulk",
-                       json={"action":"invalid","policy_ids":["pol_x"]}, timeout=TIMEOUT)
+        r = httpx.post(f"{BASE}{MCP}/policies/bulk", 
+                       json={"action":"invalid","policy_ids":["pol_x"]}, timeout=TIMEOUT, auth=_AUTH)
         d = r.json()
         assert d.get("ok") is False
         print(f"\n  ✅ Invalid bulk action rejected: {d['error'][:60]}")
 
     def test_43_bulk_empty_policy_ids_returns_error(self):
-        r = httpx.post(f"{BASE}{MCP}/policies/bulk",
-                       json={"action":"enable","policy_ids":[]}, timeout=TIMEOUT)
+        r = httpx.post(f"{BASE}{MCP}/policies/bulk", 
+                       json={"action":"enable","policy_ids":[]}, timeout=TIMEOUT, auth=_AUTH)
         d = r.json()
         assert d.get("ok") is False
         print(f"\n  ✅ Empty policy_ids rejected: {d['error'][:60]}")
@@ -647,6 +655,14 @@ class TestBulkOperations:
 class TestPolicyEnforcement:
     def test_44_gateway_call_respects_allow_policy(self):
         """A gateway call to an allowed server+tool should succeed (policy=allow)."""
+        # Provision first: the zero-trust identity gate denies tool calls
+        # from unprovisioned agents, and a dispatch denial is reported as
+        # policy_decision='deny' (correctly) — this test is about the
+        # gateway's ALLOW policy, not the identity gate.
+        post("/api/agent-identity/provision", {
+            "agent_id": "researcher", "display_name": "Researcher",
+            "authority_level": "standard",
+        })
         d = post(f"{MCP}/call", {
             "agent_id":  "researcher",
             "server_id": "srv_web_search",
