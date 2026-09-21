@@ -148,7 +148,7 @@ async def add_relation(req: Request):
         return _body_err
     from_id = body.get('from_id', '')
     to_id = body.get('to_id', '')
-    relation = (body.get('relation') or 'RELATES_TO').upper().replace(' ', '_')
+    relation = (as_text(body.get('relation')) or 'RELATES_TO').upper().replace(' ', '_')
     if not from_id or not to_id:
         return JSONResponse({'ok': False, 'error': 'from_id and to_id required'}, status_code=400)
     rid = f'rel_{uuid.uuid4().hex[:8]}'

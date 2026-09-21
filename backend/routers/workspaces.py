@@ -275,11 +275,11 @@ async def create_workspace(req: Request):
     if _body_err:
         return _body_err
     name = str(as_text(body.get('name')) or 'New Project')[:80]
-    description = str(body.get('description') or '')[:200]
-    color = str(body.get('color') or '#5b8af8')[:20]
-    emoji = str(body.get('emoji') or '📁')[:8]
-    framework = str(body.get('framework') or 'web')[:50]
-    github_repo = str(body.get('github_repo') or '')[:200]
+    description = str(as_text(body.get('description')) or '')[:200]
+    color = str(as_text(body.get('color')) or '#5b8af8')[:20]
+    emoji = str(as_text(body.get('emoji')) or '📁')[:8]
+    framework = str(as_text(body.get('framework')) or 'web')[:50]
+    github_repo = str(as_text(body.get('github_repo')) or '')[:200]
     wid = str(uuid.uuid4())[:8]
     con = get_conn()
     try:

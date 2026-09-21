@@ -134,14 +134,14 @@ async def chat_stream(req: Request):
         message_parts
         and any(isinstance(p, dict) and p.get('type') == 'image_url' for p in message_parts)
     )
-    agent_id = (body.get('agent_id') or 'default').lower()[:64]
+    agent_id = (as_text(body.get('agent_id')) or 'default').lower()[:64]
     req_model = as_text(body.get('model'))[:200]
     # r52: the optional key saved with a custom endpoint (Settings → Custom
     # Connection) travels with the request; without it authenticated custom
     # endpoints would 401 while local ones (LM Studio, llama.cpp, vLLM) work
     # with no key at all.
     req_custom_key = as_text(body.get('custom_api_key'))[:500]
-    session_id = str(body.get('session_id') or str(uuid.uuid4()))[:128]
+    session_id = str(as_text(body.get('session_id')) or str(uuid.uuid4()))[:128]
     history = body.get('history') or []  # [{role, content}, ...]
     temperature = _bounded_temperature(body.get('temperature', 0.7))
     max_tokens = _bounded_max_tokens(body.get('max_tokens', 2048))
@@ -646,9 +646,9 @@ async def chat_complete(req: Request):
     if _body_err:
         return _body_err
     message = as_text(body.get('message'))[:16000]
-    agent_id = str(body.get('agent_id') or 'default')[:64]
-    model = str(body.get('model') or '')[:200]
-    system = str(body.get('system') or '')[:16000]
+    agent_id = str(as_text(body.get('agent_id')) or 'default')[:64]
+    model = str(as_text(body.get('model')) or '')[:200]
+    system = str(as_text(body.get('system')) or '')[:16000]
     history = body.get('history') or []
     temperature = _bounded_temperature(body.get('temperature', 0.7))
     max_tokens = _bounded_max_tokens(body.get('max_tokens', 1024), default=1024)

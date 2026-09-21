@@ -32,6 +32,7 @@ log = logging.getLogger('agentic.steering')
 from backend.config import get_data_dir
 
 from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text
 
 ROOT = get_data_dir()
 STEERING_DIR = ROOT / '.agentic' / 'steering'
@@ -363,7 +364,7 @@ async def create_steering(req: Request):
             },
             status_code=400,
         )
-    title = (body.get('title') or filename.replace('.md', '').replace('-', ' ').title())[:120]
+    title = (as_text(body.get('title')) or filename.replace('.md', '').replace('-', ' ').title())[:120]
     content = body.get('content', '')
     if not isinstance(content, str):
         return JSONResponse({'ok': False, 'error': 'content must be a string'}, status_code=400)
@@ -438,7 +439,12 @@ async def update_steering(file_id: str, req: Request):
     # FIX 4: use None default so we can tell if caller actually sent content
     # body.get("content","") always returns "" if key absent → silently wipes file on title-only updates
     content = body.get('content')  # None if not sent
-    title = body.get('title', '')
+    title = as_text(body.get('title'))
+    # Content is written verbatim to the file: a JSON object/array here would
+    # crash the sqlite bind (ProgrammingError) — reject instead of coercing,
+    # because a repr of a dict silently saved as file content is worse.
+    if content is not None and not isinstance(content, str):
+        return JSONResponse({'ok': False, 'error': 'content must be a string'}, status_code=400)
     enabled = body.get('enabled')
 
     from ..services.memory_db import get_conn

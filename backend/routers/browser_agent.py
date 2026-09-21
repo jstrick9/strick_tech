@@ -270,7 +270,7 @@ async def run_browser_task(req: Request):
     if _body_err:
         return _body_err
     task = as_text(body.get('task'))[:8000]
-    raw_url = str(body.get('start_url', 'https://duckduckgo.com') or 'https://duckduckgo.com')[:2000]
+    raw_url = str(as_text(body.get('start_url', 'https://duckduckgo.com')) or 'https://duckduckgo.com')[:2000]
     try:
         max_steps = max(1, min(safe_int(body.get('max_steps'), 15), 30))
     except (TypeError, ValueError):

@@ -520,7 +520,7 @@ async def add_checkin(goal_id: str, req: Request):
 
     note = as_text(body.get('note'))[:1000]
     progress = max(0, min(100, safe_int(body.get('progress') or 0, 0)))
-    agent_id = (body.get('agent_id') or 'user')[:50]
+    agent_id = (as_text(body.get('agent_id')) or 'user')[:50]
 
     con = _get_conn()
     try:
@@ -583,8 +583,8 @@ async def add_milestone(goal_id: str, req: Request):
                 ms_id,
                 goal_id,
                 title[:200],
-                (body.get('description') or '')[:500],
-                (body.get('due_date') or '')[:30],
+                (as_text(body.get('description')) or '')[:500],
+                (as_text(body.get('due_date')) or '')[:30],
                 _now(),
             ),
         )

@@ -488,18 +488,18 @@ async def record_cost_entry(req: Request):
     if _body_err:
         return _body_err
     lid = record_cost(
-        agent_id=(body.get('agent_id') or 'system')[:64],
-        source_type=(body.get('source_type') or 'llm')[:32],
+        agent_id=(as_text(body.get('agent_id')) or 'system')[:64],
+        source_type=(as_text(body.get('source_type')) or 'llm')[:32],
         cost_usd=_safe_float(body.get('cost_usd')),
         tokens=_safe_int(body.get('tokens')),
         tokens_in=_safe_int(body.get('tokens_in')),
         tokens_out=_safe_int(body.get('tokens_out')),
-        source_id=(body.get('source_id') or '')[:64],
-        goal_id=(body.get('goal_id') or '')[:64],
-        run_id=(body.get('run_id') or '')[:64],
-        task_id=(body.get('task_id') or '')[:64],
-        model=(body.get('model') or '')[:100],
-        description=(body.get('description') or '')[:300],
+        source_id=(as_text(body.get('source_id')) or '')[:64],
+        goal_id=(as_text(body.get('goal_id')) or '')[:64],
+        run_id=(as_text(body.get('run_id')) or '')[:64],
+        task_id=(as_text(body.get('task_id')) or '')[:64],
+        model=(as_text(body.get('model')) or '')[:100],
+        description=(as_text(body.get('description')) or '')[:300],
         latency_ms=_safe_int(body.get('latency_ms')),
     )
     return {'ok': True, 'ledger_id': lid}
@@ -590,9 +590,9 @@ async def create_cap(req: Request):
             (
                 cap_id,
                 name[:100],
-                (body.get('scope_type') or 'agent')[:20],
-                (body.get('scope_id') or '*')[:100],
-                (body.get('period') or 'day')[:20],
+                (as_text(body.get('scope_type')) or 'agent')[:20],
+                (as_text(body.get('scope_id')) or '*')[:100],
+                (as_text(body.get('period')) or 'day')[:20],
                 safe_float(body.get('limit_usd') or 0, 0),
                 safe_int(body.get('limit_tokens') or 0, 0),
                 on_breach,

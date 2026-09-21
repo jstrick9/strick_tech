@@ -213,8 +213,8 @@ async def create_spec(req: Request):
     if _body_err:
         return _body_err
     spec_id = f'spec_{uuid.uuid4().hex[:8]}'
-    title = (body.get('title') or 'Untitled Feature')[:200]
-    desc = (body.get('description') or '')[:2000]
+    title = (as_text(body.get('title')) or 'Untitled Feature')[:200]
+    desc = (as_text(body.get('description')) or '')[:2000]
     ws = body.get('workspace_id', 'default')
 
     from ..services.memory_db import get_conn
@@ -326,7 +326,7 @@ async def generate_requirements(spec_id: str, req: Request):
     if not spec:
         return JSONResponse({'ok': False, 'error': 'Spec not found'}, status_code=404)
 
-    desc = (body.get('description') or body.get('prompt') or '').strip()
+    desc = (as_text(body.get('description')) or as_text(body.get('prompt')) or '').strip()
     if not desc:
         desc = spec.get('description', '')
     if not desc:
@@ -1009,6 +1009,8 @@ async def save_artifact(spec_id: str, filename: str, req: Request):
     if _body_err:
         return _body_err
     content = body.get('content', '')
+    if not isinstance(content, str):
+        return JSONResponse({'ok': False, 'error': 'content must be a string'}, status_code=400)
     try:
         _save_artifact(str(spec_id), str(filename), content)
     except ValueError as exc:

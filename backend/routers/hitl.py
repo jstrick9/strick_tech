@@ -30,6 +30,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..services.llm import sse_guard
 from ..services.request_body import json_body_or_error, safe_float
+from ..services.request_body import as_text
 
 router = APIRouter(prefix='/api/hitl', tags=['hitl'])
 log = logging.getLogger('agentic.hitl')
@@ -198,7 +199,7 @@ async def create_interrupt(req: Request):
     if _body_err:
         return _body_err
     action_type = str(body.get('action_type', 'unknown'))[:100]
-    action_summary = str(body.get('action_summary') or '')[:500]
+    action_summary = str(as_text(body.get('action_summary')) or '')[:500]
     action_data = body.get('action_data', {}) if isinstance(body.get('action_data', {}), dict) else {}
     raw_risk = str(body.get('risk_level', 'medium')).lower().strip()
     risk_level = raw_risk
@@ -634,7 +635,7 @@ async def assess_confidence(req: Request):
     if _body_err:
         return _body_err
     # Accept both 'action' and 'task' as the action descriptor
-    action = (body.get('action') or body.get('task') or '').strip()
+    action = (as_text(body.get('action')) or as_text(body.get('task')) or '').strip()
     ctx_raw = body.get('context', '')
     # context may be a dict or a string — normalise to string
     import json as _json

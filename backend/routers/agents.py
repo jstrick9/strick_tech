@@ -118,12 +118,12 @@ async def create_agent(req: Request):
     data = {
         'id': agent_id,
         'name': name[:80],
-        'role': (body.get('role') or 'AI assistant')[:200],
-        'model': (body.get('model') or 'default')[:100],
-        'provider': (body.get('provider') or 'openrouter')[:32],
-        'color': (body.get('color') or _random_color())[:16],
-        'avatar': (body.get('avatar') or '🤖')[:8],
-        'system_prompt': (body.get('system_prompt') or '')[:4000],
+        'role': (as_text(body.get('role')) or 'AI assistant')[:200],
+        'model': (as_text(body.get('model')) or 'default')[:100],
+        'provider': (as_text(body.get('provider')) or 'openrouter')[:32],
+        'color': (as_text(body.get('color')) or _random_color())[:16],
+        'avatar': (as_text(body.get('avatar')) or '🤖')[:8],
+        'system_prompt': (as_text(body.get('system_prompt')) or '')[:4000],
         'status': 'idle',
         'enabled': 1,
     }

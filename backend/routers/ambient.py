@@ -699,7 +699,7 @@ async def create_background_task(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    name = (body.get('name') or 'Background Task')[:200]
+    name = (as_text(body.get('name')) or 'Background Task')[:200]
     prompt = as_text(body.get('prompt'))
     agent_id = body.get('agent_id', 'builder')
     trigger = body.get('trigger_src', 'api')

@@ -768,7 +768,7 @@ async def style_transfer(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    source_prompt = (body.get('source_prompt') or body.get('prompt') or '').strip()
+    source_prompt = (as_text(body.get('source_prompt')) or as_text(body.get('prompt')) or '').strip()
     style_id = (as_text(body.get('style')) or 'cinematic')
     custom_style = as_text(body.get('custom_style'))
     size = body.get('size', '1024x1024')

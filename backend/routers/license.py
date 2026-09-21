@@ -398,9 +398,9 @@ async def set_user(req: Request):
     if _body_err:
         return _body_err
 
-    name = (body.get('name', '') or '')[:100].strip()
-    email = (body.get('email', '') or '')[:200].strip()
-    org = (body.get('org', '') or '')[:100].strip()
+    name = (as_text(body.get('name', '')) or '')[:100].strip()
+    email = (as_text(body.get('email', '')) or '')[:200].strip()
+    org = (as_text(body.get('org', '')) or '')[:100].strip()
 
     # Basic email format check if provided
     if email and not ('@' in email and '.' in email.split('@')[-1]):

@@ -490,7 +490,7 @@ async def create_dataset(req: Request):
     try:
         con.execute(
             'INSERT INTO eval_datasets(id,name,description,cases_json) VALUES (?,?,?,?)',
-            (did, body.get('name', 'Untitled'), body.get('description', ''), json.dumps(body.get('cases', []))),
+            (did, as_text(body.get('name')) or 'Untitled', as_text(body.get('description')), json.dumps(body.get('cases', []) if isinstance(body.get('cases', []), (list, dict)) else [])),
         )
         con.commit()
     finally:
@@ -655,7 +655,7 @@ async def create_ab_test(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    name = (body.get('name') or 'A/B Test')[:200]
+    name = (as_text(body.get('name')) or 'A/B Test')[:200]
     prompt_a = as_text(body.get('prompt_a'))
     prompt_b = as_text(body.get('prompt_b'))
     inputs = body.get('inputs', [])  # list of test inputs to run both prompts on

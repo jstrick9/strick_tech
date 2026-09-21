@@ -569,7 +569,7 @@ async def issue_token(agent_id: str, req: Request):
     if _body_err:
         return _body_err
 
-    task_id = (body.get('task_id') or '')[:64]
+    task_id = (as_text(body.get('task_id')) or '')[:64]
     scope = body.get('scope') or []
     if not isinstance(scope, list):
         return JSONResponse({'ok': False, 'error': 'scope must be a list of action names'}, status_code=400)

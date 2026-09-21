@@ -742,8 +742,8 @@ async def create_table(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    sql = body.get('sql', '')
-    name = body.get('name', '')
+    sql = as_text(body.get('sql'))
+    name = as_text(body.get('name'))
     cols = body.get('columns', [])  # [{name, type, pk, nullable}]
 
     # A table name containing '/' is unaddressable forever after: every

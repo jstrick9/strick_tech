@@ -145,6 +145,7 @@ def _compute_entry_hash(
 
 import threading
 from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text
 
 _append_lock = threading.Lock()
 
@@ -401,14 +402,14 @@ async def append_log_entry(req: Request):
     if _body_err:
         return _body_err
 
-    agent_id = (body.get('agent_id') or 'system')[:64]
-    agent_name = (body.get('agent_name') or agent_id)[:64]
-    action_type = (body.get('action_type') or 'unknown')[:64]
-    action_detail = (body.get('action_detail') or '')[:2000]
-    reasoning = (body.get('reasoning') or '')[:1000]
-    authority = (body.get('authority') or 'user')[:64]
-    risk_level = (body.get('risk_level') or 'low')[:16]
-    outcome = (body.get('outcome') or 'success')[:32]
+    agent_id = (as_text(body.get('agent_id')) or 'system')[:64]
+    agent_name = (as_text(body.get('agent_name')) or agent_id)[:64]
+    action_type = (as_text(body.get('action_type')) or 'unknown')[:64]
+    action_detail = (as_text(body.get('action_detail')) or '')[:2000]
+    reasoning = (as_text(body.get('reasoning')) or '')[:1000]
+    authority = (as_text(body.get('authority')) or 'user')[:64]
+    risk_level = (as_text(body.get('risk_level')) or 'low')[:16]
+    outcome = (as_text(body.get('outcome')) or 'success')[:32]
     metadata = body.get('metadata') or {}
 
     result = append_entry(

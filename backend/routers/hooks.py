@@ -551,7 +551,7 @@ async def create_hook(req: Request):
         return {'ok': False, 'error': 'prompt is required'}
     if not event:
         return {'ok': False, 'error': 'event is required'}
-    condition = (body.get('condition') or '')[:400]
+    condition = (as_text(body.get('condition')) or '')[:400]
     try:
         _validate_condition_ast(condition)
     except (ValueError, SyntaxError) as exc:
@@ -565,8 +565,8 @@ async def create_hook(req: Request):
                        VALUES (?,?,?,?,?,?,?,?)""",
             (
                 hook_id,
-                (body.get('name') or 'Unnamed Hook')[:100],
-                (body.get('description') or '')[:400],
+                (as_text(body.get('name')) or 'Unnamed Hook')[:100],
+                (as_text(body.get('description')) or '')[:400],
                 event,
                 condition,
                 prompt[:4000],
@@ -612,7 +612,7 @@ async def update_hook(hook_id: str, req: Request):
     # must not land in the DB even if the eval-time guard were bypassed.
     if 'condition' in body:
         try:
-            _validate_condition_ast((body.get('condition') or '')[:400])
+            _validate_condition_ast((as_text(body.get('condition')) or '')[:400])
         except (ValueError, SyntaxError) as exc:
             return {'ok': False, 'error': f'unsupported condition: {exc}'}
     con = get_conn()

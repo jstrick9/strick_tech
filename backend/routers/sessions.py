@@ -194,9 +194,9 @@ async def create_session(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    name = (body.get('name') or f'Chat {time.strftime("%b %d %H:%M")}').strip()[:256]
+    name = (as_text(body.get('name')) or f'Chat {time.strftime("%b %d %H:%M")}').strip()[:256]
     agent_id = (as_text(body.get('agent_id')) or 'brain')[:64]
-    sid = (body.get('id') or str(uuid.uuid4())).strip()
+    sid = (as_text(body.get('id')) or str(uuid.uuid4())).strip()
     description = as_text(body.get('description'))[:500]
 
     if not name:

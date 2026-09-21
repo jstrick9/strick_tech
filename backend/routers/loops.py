@@ -40,7 +40,7 @@ async def create_loop(req: Request):
         interval = 15
     agent_id = str(body.get('agent_id', 'builder'))[:64]
     target = str(body.get('target', 'web'))[:64]
-    job_id = str(body.get('job_id') or f'loop_{uuid.uuid4().hex[:8]}')[:128]
+    job_id = str(as_text(body.get('job_id')) or f'loop_{uuid.uuid4().hex[:8]}')[:128]
 
     # BUG FIX: add_loop() has supported max_runs and kill_after_success -- the
     # two kill switches for an autonomous agent -- since Sprint B, and this

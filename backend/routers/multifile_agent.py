@@ -399,7 +399,7 @@ async def create_branch_preview(req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    branch_name = normalize_branch(body.get('name') or f'preview-{int(time.time())}')
+    branch_name = normalize_branch(as_text(body.get('name')) or f'preview-{int(time.time())}')
     if not branch_name:
         return JSONResponse(
             {

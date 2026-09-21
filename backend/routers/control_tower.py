@@ -703,7 +703,7 @@ async def create_budget_rule(req: Request):
     if _body_err:
         return _body_err
     name = (as_text(body.get('name')) or 'Budget limit')[:80]
-    agent_id = str(body.get('agent_id') or '*')[:64]
+    agent_id = str(as_text(body.get('agent_id')) or '*')[:64]
 
     max_cost = _coerce_limit(body.get('max_cost'), 1.0, float)
     if max_cost is None:

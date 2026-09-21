@@ -1042,7 +1042,7 @@ async def render_saved_prompt(prompt_id: str, req: Request):
             log_use(
                 con,
                 prompt_id,
-                surface=str(body.get('surface') or 'render')[:32],
+                surface=str(as_text(body.get('surface')) or 'render')[:32],
                 rendered_chars=len(rendered),
                 variables_filled=len(values),
                 missing=len(missing),

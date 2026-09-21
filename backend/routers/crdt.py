@@ -34,6 +34,7 @@ log = logging.getLogger('agentic.crdt')
 from backend.config import get_data_dir
 
 from ..services.request_body import json_body_or_error, safe_int, loads_or
+from ..services.request_body import as_text
 
 ROOT = get_data_dir()
 DOCS_DIR = ROOT / 'workspaces' / 'collab_docs'
@@ -622,7 +623,7 @@ async def create_doc(req: Request):
     import re as _re
     doc_id = _re.sub(r'[^a-z0-9_-]', '-', str(body.get('id') or '').lower()).strip('-') \
         or f'doc_{uuid.uuid4().hex[:8]}'
-    title = (body.get('title') or 'Untitled Document')[:120]
+    title = (as_text(body.get('title')) or 'Untitled Document')[:120]
     content = body.get('content') or ''
     doc = CRDTDoc(doc_id, title, content)
     _docs[doc_id] = doc

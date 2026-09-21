@@ -111,7 +111,7 @@ async def create_pack(req: Request):
     name = as_text(body.get('name'))
     if not name:
         return {'ok': False, 'error': 'name is required'}
-    pack_id = (body.get('id') or f'pack_{uuid.uuid4().hex[:6]}').lower().replace(' ', '-')
+    pack_id = (as_text(body.get('id')) or f'pack_{uuid.uuid4().hex[:6]}').lower().replace(' ', '-')
     # Sanitize pack_id — only alphanumeric + hyphens + underscores
     import re as _re
 
@@ -231,8 +231,9 @@ def _validate_manifest(body: dict) -> dict:
             errors.append(f'Missing required field: {field}')
 
     # ID format
-    if body.get('id'):
-        if not body['id'].replace('-', '').replace('_', '').isalnum():
+    sid = as_text(body.get('id'))
+    if sid:
+        if not sid.replace('-', '').replace('_', '').isalnum():
             errors.append('id must be alphanumeric with hyphens/underscores only')
 
     # Version format
@@ -247,6 +248,9 @@ def _validate_manifest(body: dict) -> dict:
         errors.append('skills must be a list')
     else:
         for i, skill in enumerate(skills):
+            if not isinstance(skill, dict):
+                errors.append(f'skills[{i}] must be an object')
+                continue
             if not skill.get('id'):
                 errors.append(f'skills[{i}]: missing id')
             if not skill.get('name'):

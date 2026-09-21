@@ -843,7 +843,7 @@ async def start_supervisor_run(req: Request):
     if _body_err:
         return _body_err
 
-    goal_text = (body.get('goal') or body.get('goal_text') or '').strip()
+    goal_text = (as_text(body.get('goal')) or as_text(body.get('goal_text')) or '').strip()
     goal_id = body.get('goal_id') or ''
     goal_title = (as_text(body.get('goal_title')) or goal_text[:80])
     strategy = (as_text(body.get('strategy')) or 'hierarchical')
@@ -924,7 +924,7 @@ async def kill_run(run_id: str, req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    reason = (body.get('reason') or 'User kill switch')[:200]
+    reason = (as_text(body.get('reason')) or 'User kill switch')[:200]
 
     con = _get_conn()
     try:

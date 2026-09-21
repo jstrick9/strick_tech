@@ -24,6 +24,7 @@ from backend.config import get_data_dir
 
 from ..services.llm import sse_guard
 from ..services.request_body import json_body_or_error
+from ..services.request_body import as_text
 
 ROOT = get_data_dir()
 WF_DIR = ROOT / 'workspaces' / 'workflows'
@@ -218,9 +219,9 @@ async def create_workflow(req: Request):
     if _body_err:
         return _body_err
     wf = {
-        'id': body.get('id') or f'wf_{uuid.uuid4().hex[:8]}',
-        'name': (body.get('name') or 'Untitled Workflow')[:120],
-        'description': (body.get('description') or '')[:400],
+        'id': as_text(body.get('id')) or f'wf_{uuid.uuid4().hex[:8]}',
+        'name': (as_text(body.get('name')) or 'Untitled Workflow')[:120],
+        'description': (as_text(body.get('description')) or '')[:400],
         'nodes': body.get('nodes', []),
         'edges': body.get('edges', []),
         'created_at': body.get('created_at', time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())),
@@ -255,8 +256,8 @@ async def update_workflow(wf_id: str, req: Request):
     existing.update(
         {
             'id': wf_id,
-            'name': (body.get('name') or existing.get('name', 'Workflow'))[:120],
-            'description': (body.get('description') or existing.get('description', ''))[:400],
+            'name': (as_text(body.get('name')) or existing.get('name', 'Workflow'))[:120],
+            'description': (as_text(body.get('description')) or existing.get('description', ''))[:400],
             'nodes': body.get('nodes', existing.get('nodes', [])),
             'edges': body.get('edges', existing.get('edges', [])),
             'updated_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
@@ -971,7 +972,7 @@ async def duplicate_workflow(wf_id: str, req: Request):
         return _body_err
     new_wf = dict(wf)
     new_wf['id'] = body.get('id') or f'wf_{uuid.uuid4().hex[:8]}'
-    new_wf['name'] = (body.get('name') or f'{wf["name"]} (copy)')[:120]
+    new_wf['name'] = (as_text(body.get('name')) or f'{wf["name"]} (copy)')[:120]
     new_wf['created_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     new_wf['updated_at'] = new_wf['created_at']
     _wf_path(new_wf['id']).write_text(json.dumps(new_wf, indent=2))
@@ -992,8 +993,8 @@ async def import_workflow(req: Request):
 
     wf = {
         'id': wf_id,
-        'name': (body.get('name') or 'Imported Workflow')[:120],
-        'description': (body.get('description') or '')[:400],
+        'name': (as_text(body.get('name')) or 'Imported Workflow')[:120],
+        'description': (as_text(body.get('description')) or '')[:400],
         'nodes': body.get('nodes', []),
         'edges': body.get('edges', []),
         'created_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),

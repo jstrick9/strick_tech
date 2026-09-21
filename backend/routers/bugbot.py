@@ -169,7 +169,7 @@ async def review_diff(req: Request):
         return _body_err
     diff = as_text(body.get('diff'))
     context = body.get('context') or ''
-    title = (body.get('title') or 'Manual Review')[:200]
+    title = (as_text(body.get('title')) or 'Manual Review')[:200]
 
     if not diff:
         return {'ok': False, 'error': 'diff required'}
@@ -221,7 +221,7 @@ async def review_diff_stream(req: Request):
         return _body_err
     diff = as_text(body.get('diff'))
     context = body.get('context') or ''
-    title = (body.get('title') or 'Streaming Review')[:200]
+    title = (as_text(body.get('title')) or 'Streaming Review')[:200]
 
     if not diff:
         return {'ok': False, 'error': 'diff required'}

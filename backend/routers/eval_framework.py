@@ -420,8 +420,8 @@ async def create_suite(req: Request):
             (
                 sid,
                 name[:100],
-                (body.get('description') or '')[:500],
-                (body.get('domain') or 'general')[:30],
+                (as_text(body.get('description')) or '')[:500],
+                (as_text(body.get('domain')) or 'general')[:30],
                 safe_float(body.get('pass_threshold') or 0.7, 0.7),
                 now,
                 now,
@@ -478,9 +478,9 @@ async def add_case(suite_id: str, req: Request):
                 case_id,
                 suite_id,
                 prompt[:2000],
-                (body.get('expected') or '')[:1000],
+                (as_text(body.get('expected')) or '')[:1000],
                 json.dumps(body.get('criteria') or []),
-                (body.get('difficulty') or 'medium')[:20],
+                (as_text(body.get('difficulty')) or 'medium')[:20],
                 _now(),
             ),
         )
@@ -763,8 +763,8 @@ async def human_review(result_id: str, req: Request):
     if _body_err:
         return _body_err
     human_score = safe_float(body.get('score') or 0, 0)
-    notes = (body.get('notes') or '')[:500]
-    reviewer = (body.get('reviewer') or 'user')[:50]
+    notes = (as_text(body.get('notes')) or '')[:500]
+    reviewer = (as_text(body.get('reviewer')) or 'user')[:50]
     con = _get_conn()
     try:
         con.execute(

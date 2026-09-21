@@ -1092,8 +1092,8 @@ async def submit_review(pack_id: str, req: Request):
         rating = int(safe_float(body.get('rating', 5) or 5, 5))
     except (ValueError, TypeError):
         rating = 5
-    text = (body.get('review', '') or '')[:2000]
-    name = (body.get('reviewer', 'Anonymous') or 'Anonymous')[:64]
+    text = (as_text(body.get('review', '')) or '')[:2000]
+    name = (as_text(body.get('reviewer', 'Anonymous')) or 'Anonymous')[:64]
 
     if not 1 <= rating <= 5:
         return {'ok': False, 'error': 'Rating must be 1-5'}

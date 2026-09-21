@@ -208,7 +208,8 @@ async def agent_with_tools(req: Request):
     prompt = as_text(body.get('prompt'))
     agent_id = body.get('agent_id', 'builder')
     max_steps = min(safe_int(body.get('max_steps'), 5), 10)
-    allowed = set(body.get('tools') or list(TOOLS.keys()))
+    _tools = body.get('tools')
+    allowed = set(t for t in _tools if isinstance(t, str)) if isinstance(_tools, list) else set(TOOLS.keys())
 
     if not prompt:
         return {'ok': False, 'error': 'prompt required'}

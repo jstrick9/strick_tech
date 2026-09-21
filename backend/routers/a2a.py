@@ -1160,9 +1160,9 @@ async def register_agent(request: Request):
         # would raise AttributeError → 500. Same convention as prompts/onboarding.
         return JSONResponse({'ok': False, 'error': 'Request body must be a JSON object'}, status_code=400)
 
-    agent_id = (body.get('agent_id') or f'ext_{uuid.uuid4().hex[:8]}').strip()
+    agent_id = (as_text(body.get('agent_id')) or f'ext_{uuid.uuid4().hex[:8]}').strip()
     name = as_text(body.get('name'))
-    a2a_url = (body.get('a2a_url') or body.get('url', '')).strip()
+    a2a_url = (as_text(body.get('a2a_url')) or as_text(body.get('url'))).strip()
     description = (body.get('description', '')).strip()
     auth_type = (body.get('auth_type', 'none')).strip()
     auth_config = body.get('auth_config') or {}

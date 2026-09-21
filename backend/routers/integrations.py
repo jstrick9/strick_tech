@@ -412,7 +412,7 @@ async def stripe_wire(req: Request):
         amount_cents = max(0, safe_int(body.get('amount_cents'), 1999))
     except (TypeError, ValueError):
         amount_cents = 1999
-    currency = re.sub(r'[^a-z]', '', (body.get('currency') or 'usd').lower())[:3]
+    currency = re.sub(r'[^a-z]', '', (as_text(body.get('currency')) or 'usd').lower())[:3]
     target_file = (as_text(body.get('target_file')) or 'checkout.html')
     include_webhook = bool(body.get('include_webhook', True))
 

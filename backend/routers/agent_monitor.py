@@ -547,8 +547,8 @@ async def kill_agent(agent_id: str, req: Request):
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
-    reason = (body.get('reason') or 'User kill switch')[:200]
-    killed_by = (body.get('killed_by') or 'user')[:50]
+    reason = (as_text(body.get('reason')) or 'User kill switch')[:200]
+    killed_by = (as_text(body.get('killed_by')) or 'user')[:50]
 
     con = _get_conn()
     try:
