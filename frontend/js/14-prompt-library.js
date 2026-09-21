@@ -657,7 +657,7 @@ async function runCodeSearch(){
   try {
     const r=await fetch(`/api/project/search?q=${encodeURIComponent(q)}&limit=30&context_lines=2`);
     const j=await r.json();const results=j.results||[];
-    if(!results.length){res.innerHTML = stateFeedback.emptyElement({ icon: '🔍', title: 'No results found', message: 'No results for " + escHtml(q) + \".' });return;}
+    if(!results.length){res.innerHTML = stateFeedback.emptyElement({ icon: '🔍', title: 'No results found', message: 'No results for "' + escHtml(q) + '".' });return;}
     // Group by SCOPE + file. Hits can come from the active workspace or the
     // global preview scaffold, and both can contain `index.html` -- grouping
     // on the relative path alone merged two different files into one heading.

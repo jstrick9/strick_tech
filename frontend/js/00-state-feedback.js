@@ -154,5 +154,12 @@
       errorHtml(opts) + '</div>';
   }
 
+  // jsArg is the app-wide convention for escaping a JS expression embedded
+  // in a data-act-click attribute value (see header). sidebar-enhancements.js
+  // builds such attributes for the favourites rows and calls it from its own
+  // file scope — without this export every favourite row threw
+  // ReferenceError: jsArg is not defined and the whole favourites section
+  // silently never rendered.
+  window.jsArg = jsArg;
   window.stateFeedback = { setLoading: setLoading, setEmpty: setEmpty, setError: setError, clearState: clearState, loadingElement: loadingElement, errorElement: errorElement, emptyElement: emptyElement };
 })();

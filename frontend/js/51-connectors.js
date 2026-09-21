@@ -89,7 +89,7 @@ function renderConnectorCard(c, statusColor) {
 
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       ${c.status==='unconfigured'?`<button class="btn u-97445a8d" data-connector-id="${escHtml(c.connector_id)}" data-connector-name="${escHtml(c.name)}" data-connector-auth="${escHtml(c.auth_type)}" data-act-click="connectorConfigure($data.connectorId,$data.connectorName,$data.connectorAuth)" >⚙️ Configure</button>`:
-        `<button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-connector-caps='${JSON.stringify(caps).replace(/\'/g, "&#39;")}' data-act-click="connectorExecute($data.connectorId,$data.connectorName,$json.connectorCaps)">▶ Execute</button>
+        `<button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-connector-caps='${JSON.stringify(caps).replace(/'/g, "&#39;")}' data-act-click="connectorExecute($data.connectorId,$data.connectorName,$json.connectorCaps)">▶ Execute</button>
          <button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-act-click="connectorHistory($data.connectorId)">📋 History</button>
          <button class="btn-sm" data-connector-id="${escHtml(c.connector_id)}" data-act-click="connectorTest($data.connectorId)">🧪 Test</button>`}
       ${c.custom?`<button class="btn-sm" title="Remove custom connector" aria-label="Remove custom connector" style="color:var(--danger)" data-connector-id="${escHtml(c.connector_id)}" data-connector-name="${escHtml(c.name)}" data-act-click="connectorDelete($data.connectorId,$data.connectorName)">🗑</button>`:''}

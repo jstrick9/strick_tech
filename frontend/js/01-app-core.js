@@ -2592,6 +2592,9 @@ function safeUrl(url) {
   if (!raw) return '#';
   // Strip control characters that smuggle a scheme past a naive prefix check
   // (e.g. "java\tscript:" — the tab is ignored by the URL parser).
+  // The control chars are the point: they smuggle schemes past prefix
+  // checks and MUST be stripped, not matched.
+  // eslint-disable-next-line no-control-regex
   const normalised = raw.replace(/[\u0000-\u001F\u007F]/g, '').toLowerCase();
   if (normalised.startsWith('http://') || normalised.startsWith('https://')) return raw;
   if (normalised.startsWith('/') && !normalised.startsWith('//')) return raw; // same-origin relative
@@ -2867,19 +2870,10 @@ function toggleVoiceMode() {
   showToast(voiceModeOn ? '🔊 Voice mode ON — agents will speak' : '🔇 Voice mode OFF');
 }
 
-// Patch updateMessageBubble to auto-TTS when voice mode on
-const _origUpdateBubble = typeof updateMessageBubble !== 'undefined' ? updateMessageBubble : function(){};
-updateMessageBubble = function(el, text) {
-  _origUpdateBubble(el, text);
-  if (voiceModeOn && text && text.length > 20) {
-    // Debounce: only speak when streaming appears complete
-    clearTimeout(window._ttsDebounce);
-    window._ttsDebounce = setTimeout(() => {
-      const agent = S?.currentAgent;
-      speakText(text.slice(0, 700), agent?.id || 'default');
-    }, 900);
-  }
-};
+// NOTE: updateMessageBubble used to be monkey-patched here to add auto-TTS
+// in voice mode, but a later re-patch below (line ~4263) replaced the
+// function without calling through — silently killing voice mode. The TTS
+// hook now lives in that final implementation directly.
 
 // Expose TTS status check
 async function checkTTSStatus() {
@@ -3508,7 +3502,7 @@ window.initDeepLinkRouter = function() {
     const parts = hash.slice(2).split('/');
     const pane = parts[0];
     const subTab = parts[1];
-    if (pane && window.MASTER_PANE_REGISTRY && window.MASTER_PANE_REGISTRY.hasOwnProperty(pane)) {
+    if (pane && window.MASTER_PANE_REGISTRY && Object.prototype.hasOwnProperty.call(window.MASTER_PANE_REGISTRY, pane)) {
       setTimeout(() => {
         window.nav(pane);
         if (pane === 'settings' && subTab && typeof window.switchSettingsTab === 'function') {
@@ -3525,7 +3519,7 @@ window.initDeepLinkRouter = function() {
       const parts = h.slice(2).split('/');
       const p = parts[0];
       const sub = parts[1];
-      if (p && window.MASTER_PANE_REGISTRY && window.MASTER_PANE_REGISTRY.hasOwnProperty(p)) {
+      if (p && window.MASTER_PANE_REGISTRY && Object.prototype.hasOwnProperty.call(window.MASTER_PANE_REGISTRY, p)) {
         // Mark this navigation as coming FROM history.
         //
         // Without the flag, pressing Back triggers hashchange -> nav() ->
@@ -3781,7 +3775,9 @@ nav = function(pane) {
 })();
 
 // ── Enhanced toast with icons ──────────────────────────────────────
+// Enhanced toast with icons — deliberate monkey-patch of the base toast.
 const _origToast = toast;
+// eslint-disable-next-line no-func-assign
 toast = function(msg, type = 'ok', duration = 3000) {
   const icons = { ok: '✅', err: '❌', warn: '⚠️' };
   const icon  = icons[type] || '';
@@ -4249,7 +4245,9 @@ window.branchFromMsg = async function(btn, msgId) {
 };
 
 // Patch addMessage to include actions when explicitly invoked after response finishes
+// addMessage with actions — deliberate monkey-patch of the base function.
 const _origAddMessage = addMessage;
+// eslint-disable-next-line no-func-assign
 addMessage = function(content, role, avatar, name, modelUsed = '') {
   const bubbleEl = _origAddMessage(content, role, avatar, name, modelUsed);
   const msgDiv = bubbleEl?.closest('.msg');
@@ -4259,8 +4257,11 @@ addMessage = function(content, role, avatar, name, modelUsed = '') {
   return bubbleEl;
 };
 
-// Patch updateMessageBubble to add actions when done streaming
-const _origUpdateBubble2 = window.updateMessageBubble || updateMessageBubble;
+// Patch updateMessageBubble to add actions when done streaming.
+// This is the FINAL implementation: it re-renders with the enhanced
+// markdown renderer, stores the text for copy/speak, highlights code, and
+// carries the voice-mode auto-TTS hook (debounced until streaming settles).
+// eslint-disable-next-line no-func-assign
 updateMessageBubble = function(el, text) {
   if (!el) return;
   el.innerHTML = renderMarkdownEnhanced(text);
@@ -4275,6 +4276,14 @@ updateMessageBubble = function(el, text) {
     el.querySelectorAll('code[class*="hljs"]').forEach(block => {
       if (!block.dataset.highlighted) window.hljs.highlightElement(block);
     });
+  }
+  if (voiceModeOn && text && text.length > 20) {
+    // Debounce: only speak when streaming appears complete
+    clearTimeout(window._ttsDebounce);
+    window._ttsDebounce = setTimeout(() => {
+      const agent = S?.currentAgent;
+      speakText(text.slice(0, 700), agent?.id || 'default');
+    }, 900);
   }
 };
 window.updateMessageBubble = updateMessageBubble;

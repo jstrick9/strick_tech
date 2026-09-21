@@ -2313,6 +2313,9 @@ function mtNavigate(url) {
 
 async function mtRefreshActive() {
   const frame = document.getElementById('mt-frame');
+  // Self-assignment is the standard cross-origin-safe iframe force-reload
+  // idiom (contentWindow.location.reload() throws cross-origin).
+  // eslint-disable-next-line no-self-assign
   if (frame) frame.src = frame.src;
   if (_mtActiveTab) await fetch(`/api/multitab/tabs/${encodeURIComponent(_mtActiveTab)}/refresh`, {method:'POST'}).catch(()=>{});
 }
