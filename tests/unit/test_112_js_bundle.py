@@ -85,13 +85,34 @@ needs_acorn = pytest.mark.skipif(
 # ──────────────────────────────────────────────────────────────────────
 #  The bundle exists, is current, and covers every module
 # ──────────────────────────────────────────────────────────────────────
-def test_bundle_artifacts_are_committed():
-    """A fresh clone must get the fast path without running a build step."""
+@pytest.fixture(scope='module', autouse=True)
+def _ensure_local_bundle():
+    """Build the bundle on demand.
+
+    frontend/dist is deliberately NOT committed (see .gitignore: the server
+    falls back to unbundled dev mode on a fresh clone, and committed bundles
+    were bloating git history). These tests validate bundle CONTENT, so they
+    need a bundle to exist — this builds one locally, exactly like the
+    documented workflow (`python3 scripts/build_bundle.py`) does. On a
+    machine that already built it, this is a no-op.
+    """
+    if not (DIST / 'manifest.json').is_file():
+        proc = subprocess.run(
+            [sys.executable, str(BUILD)], cwd=REPO,
+            capture_output=True, text=True, timeout=600)
+        assert proc.returncode == 0, (
+            f'build_bundle failed:\n{proc.stdout}\n{proc.stderr}')
+
+
+def test_bundle_artifacts_are_valid():
+    """The locally built bundle is complete: manifest + both bundles on disk.
+
+    The bundle is regenerable and not committed (see .gitignore); a fresh
+    clone serves the unbundled dev mode until `scripts/build_bundle.py` runs.
+    What must NOT happen is a half-built or corrupt dist/ silently shipping.
+    """
     manifest_path = DIST / 'manifest.json'
-    assert manifest_path.is_file(), (
-        'frontend/dist/manifest.json is missing. The bundle is committed so '
-        'that `python run.py` on a fresh clone serves the fast frontend. '
-        'Run: python3 scripts/build_bundle.py')
+    assert manifest_path.is_file(), 'manifest missing right after build'
     manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
     for key in ('head', 'body'):
         assert (DIST / manifest[key]).is_file(), f'missing bundle {manifest[key]}'
