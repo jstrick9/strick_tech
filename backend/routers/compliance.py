@@ -1354,7 +1354,13 @@ def compliance_summary():
     finally:
         con.close()
 
-    chain = verify_chain()
+    # Suffix verification: this is the dashboard headline, refreshed often,
+    # and the chain only grows (one entry per audited action). A full walk
+    # here meant every refresh re-hashed the entire history — O(chain) CPU
+    # and (pre-streaming) a fetchall of every row. The suffix anchors at the
+    # last checkpoint verified from genesis; the compliance report's export
+    # and /api/audit-log/verify still do full walks as the trust anchor.
+    chain = verify_chain(since_checkpoint=True)
 
     return {
         'chain_integrity': chain.get('ok', True),

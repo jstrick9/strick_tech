@@ -71,6 +71,13 @@ CREATE TABLE IF NOT EXISTS audit_receipts (
     FOREIGN KEY (entry_id) REFERENCES audit_log_chain(entry_id)
 );
 CREATE INDEX IF NOT EXISTS idx_ar_agent ON audit_receipts(agent_id);
+
+CREATE TABLE IF NOT EXISTS audit_chain_checkpoint (
+    id          INTEGER PRIMARY KEY CHECK (id = 1),
+    seq         INTEGER NOT NULL,
+    tip_hash    TEXT    NOT NULL,
+    verified_at TEXT    NOT NULL
+);
 """
 
 
@@ -264,61 +271,145 @@ def _issue_receipt(con, entry_id: str, agent_id: str, entry_hash: str) -> str:
 
 
 # ── Verification ───────────────────────────────────────────────────────────────
-def verify_chain() -> dict:
-    """Walk the entire chain and verify every hash link."""
+def verify_chain(since_checkpoint: bool = False) -> dict:
+    """Walk the chain and verify every hash link.
+
+    Full mode (default) anchors at the genesis hash and re-hashes every
+    entry: O(chain) CPU but O(1) memory — rows are streamed from the
+    cursor, never fetchall'd (the fetchall variant peaked at 138MB RSS on
+    a 75k-entry chain; one is appended per audited action, so the chain
+    only grows). On success the checkpoint is advanced, enabling the
+    cheaper mode below.
+
+    Suffix mode (since_checkpoint=True) anchors at the persisted
+    checkpoint — the (seq, tip_hash) of the last entry verified,
+    transitively from genesis — and verifies only what was appended
+    since. Steady-state cost is bounded by traffic since the last verify
+    instead of total history, which is what a dashboard headline needs.
+    The deliberate trade: a partial edit of an entry OLDER than the
+    checkpoint is not re-hashed until the next full walk. Full walks
+    still happen on every /verify default call and in the compliance
+    report's export, so the anchor of trust is refreshed routinely.
+
+    `verified` counts links actually checked, not rows present (a chain
+    that broke at seq 2 of 3 reports verified: 1) — the number a reader
+    takes as the trust signal must claim no more coverage than the walk.
+    """
     con = _get_conn()
     try:
-        rows = con.execute('SELECT * FROM audit_log_chain ORDER BY seq ASC').fetchall()
+        total_entries = con.execute('SELECT COUNT(*) FROM audit_log_chain').fetchone()[0]
+        if not total_entries:
+            return {
+                'ok': True,
+                'verified': 0,
+                'total_checked': 0,
+                'broken_at': None,
+                'chain_tip': _sha256('AGENTIC_OS_AUDIT_CHAIN_GENESIS_v1'),
+                'total_entries': 0,
+                'mode': 'full',
+                'anchored_seq': 0,
+                'message': 'Chain is empty',
+            }
+
+        tip = con.execute(
+            'SELECT seq, entry_hash FROM audit_log_chain ORDER BY seq DESC LIMIT 1'
+        ).fetchone()
+
+        anchor_seq, anchor_hash = 0, _sha256('AGENTIC_OS_AUDIT_CHAIN_GENESIS_v1')
+        mode = 'full'
+        if since_checkpoint:
+            cp = con.execute(
+                'SELECT seq, tip_hash FROM audit_chain_checkpoint WHERE id=1'
+            ).fetchone()
+            if cp and cp['seq'] > 0:
+                anchor_seq, anchor_hash = cp['seq'], cp['tip_hash']
+                mode = 'suffix'
+
+        expected_prev = anchor_hash
+        broken_at = None
+        verified_count = 0
+        last_seq = anchor_seq
+        # Stream the walk: the cursor yields one row at a time so memory
+        # stays flat no matter how long the chain has grown.
+        cur = con.execute(
+            """
+            SELECT seq, entry_id, agent_id, action_type, action_detail, reasoning,
+                   authority, risk_level, outcome, prev_hash, entry_hash, epoch_ms
+            FROM audit_log_chain WHERE seq > ? ORDER BY seq ASC
+            """,
+            (anchor_seq,),
+        )
+        for row in cur:
+            r = dict(row)
+            # Check prev_hash linkage
+            if r['prev_hash'] != expected_prev:
+                broken_at = r['seq']
+                break
+
+            # Recompute entry_hash
+            recomputed = _compute_entry_hash(
+                r['entry_id'],
+                r['agent_id'],
+                r['action_type'],
+                r['action_detail'][:500],
+                r['reasoning'][:500],
+                r['authority'],
+                r['risk_level'],
+                r['outcome'],
+                r['prev_hash'],
+                r['epoch_ms'],
+            )
+            if recomputed != r['entry_hash']:
+                broken_at = r['seq']
+                break
+
+            expected_prev = r['entry_hash']
+            verified_count += 1
+            last_seq = r['seq']
+
+        # In full mode keep the historical meaning of total_checked (all
+        # rows in the chain); in suffix mode it is the window examined.
+        if mode == 'suffix':
+            total_checked = con.execute(
+                'SELECT COUNT(*) FROM audit_log_chain WHERE seq > ?', (anchor_seq,)
+            ).fetchone()[0]
+        else:
+            total_checked = total_entries
     finally:
         con.close()
 
-    if not rows:
-        return {'ok': True, 'verified': 0, 'broken_at': None, 'message': 'Chain is empty'}
-
-    genesis_hash = _sha256('AGENTIC_OS_AUDIT_CHAIN_GENESIS_v1')
-    expected_prev = genesis_hash
-    broken_at = None
-    # Count links actually CHECKED, not rows present. `verified` used to be
-    # len(rows), so a chain that broke at seq 2 of 3 still reported
-    # "verified: 3" -- the number a reader takes as the trust signal claimed
-    # more coverage than the walk achieved, in the one component whose entire
-    # job is being trustworthy about tampering.
-    verified_count = 0
-
-    for row in rows:
-        r = dict(row)
-        # Check prev_hash linkage
-        if r['prev_hash'] != expected_prev:
-            broken_at = r['seq']
-            break
-
-        # Recompute entry_hash
-        recomputed = _compute_entry_hash(
-            r['entry_id'],
-            r['agent_id'],
-            r['action_type'],
-            r['action_detail'][:500],
-            r['reasoning'][:500],
-            r['authority'],
-            r['risk_level'],
-            r['outcome'],
-            r['prev_hash'],
-            r['epoch_ms'],
-        )
-        if recomputed != r['entry_hash']:
-            broken_at = r['seq']
-            break
-
-        expected_prev = r['entry_hash']
-        verified_count += 1
+    # A walk that reached the tip intact lets the checkpoint advance —
+    # suffix verification composes with it transitively (checkpoint was
+    # verified from genesis; this call verified from the checkpoint).
+    if broken_at is None and verified_count and last_seq == tip['seq']:
+        try:
+            c2 = _get_conn()
+            try:
+                c2.execute(
+                    """
+                    INSERT INTO audit_chain_checkpoint (id, seq, tip_hash, verified_at)
+                    VALUES (1, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                      seq=excluded.seq, tip_hash=excluded.tip_hash,
+                      verified_at=excluded.verified_at
+                    """,
+                    (last_seq, expected_prev, datetime.now(timezone.utc).isoformat()),
+                )
+                c2.commit()
+            finally:
+                c2.close()
+        except Exception:
+            pass  # advisory only; a locked DB just means the next verify re-walks
 
     return {
         'ok': broken_at is None,
         'verified': verified_count,
-        'total_checked': len(rows),
+        'total_checked': total_checked,
         'broken_at': broken_at,
-        'chain_tip': rows[-1]['entry_hash'] if rows else genesis_hash,
-        'total_entries': len(rows),
+        'chain_tip': tip['entry_hash'],
+        'total_entries': total_entries,
+        'mode': mode,
+        'anchored_seq': anchor_seq,
         'message': 'Chain integrity verified ✅' if broken_at is None else f'⚠️ Chain broken at seq={broken_at}',
     }
 
@@ -390,9 +481,16 @@ def get_entry(entry_id: str):
 
 
 @router.get('/verify')
-def verify_chain_integrity():
-    """Verify the full hash chain integrity."""
-    return verify_chain()
+def verify_chain_integrity(since_checkpoint: bool = False):
+    """Verify the hash chain integrity.
+
+    Default: full walk from genesis (re-hashes every entry — the trust
+    anchor for tamper detection anywhere in the history). Pass
+    ?since_checkpoint=true to verify only what was appended since the last
+    successful verification: bounded cost for dashboards, at the documented
+    trade that entries older than the checkpoint are not re-hashed.
+    """
+    return verify_chain(since_checkpoint=since_checkpoint)
 
 
 @router.post('/append')
