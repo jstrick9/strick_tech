@@ -119,3 +119,49 @@ class TestGapClassSweepSmoke:
     async def test_no_5xx(self, C, path, body):
         r = await POST(C, path, body)
         assert r.status_code < 500, (path, r.status_code, r.text[:200])
+
+
+@pytest.mark.asyncio
+class TestGapGetHardening:
+    """GET-side edge cases found by the query-param probe (r64)."""
+
+    async def test_preview_read_nul_path(self, C):
+        """NUL byte in a path crashed pathlib.resolve() -> 500."""
+        r = await C.get("/api/preview/read", params={"path": "\x00evil"})
+        assert r.status_code < 500, r.text
+        assert r.status_code in (200, 404)
+
+    async def test_preview_read_empty_path(self, C):
+        """?path= (explicitly empty) resolved to PREVIEW_DIR itself and
+        read_text() raised IsADirectoryError -> 500. Now falls back to the
+        documented default."""
+        r = await C.get("/api/preview/read", params={"path": ""})
+        assert r.status_code == 200, r.text
+
+    async def test_preview_read_directory_path(self, C):
+        """A directory path must 404, not crash on read_text."""
+        r = await C.get("/api/preview/read", params={"path": "."})
+        assert r.status_code == 404, r.text
+
+    async def test_preview_read_traversal_still_403(self, C):
+        r = await C.get("/api/preview/read", params={"path": "../../etc/passwd"})
+        assert r.status_code == 403, r.text
+
+    async def test_profiler_concurrent_reads(self, C):
+        """The latency middleware mutates the stats dict on every request;
+        reading it while it grew raised 'dictionary changed size during
+        iteration' -> 500 under concurrent load. Snapshot iteration fixed."""
+        import asyncio
+
+        async def poll():
+            r1 = await GET(C, "/api/profiler/endpoints", sort_by="avg_ms", limit=-1)
+            r2 = await GET(C, "/api/profiler/summary")
+            return r1.status_code < 500 and r2.status_code < 500
+
+        async def traffic(i):
+            return (await GET(C, f"/api/engine/loops/{i}")).status_code < 500
+
+        results = await asyncio.gather(
+            *[poll() for _ in range(10)], *[traffic(i) for i in range(20)]
+        )
+        assert all(results), "5xx under concurrent profiler reads"

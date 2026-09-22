@@ -239,10 +239,16 @@ def preview_files():
 @router.get('/api/preview/read')
 def preview_read(path: str = 'index.html'):
     """Execute or process preview read operation."""
+    # Raw query params bypass as_text()'s control-char scrub. Two live 500s
+    # (probed): a NUL byte in the path raised ValueError inside pathlib's
+    # resolve(), and an explicitly empty path resolved to PREVIEW_DIR itself,
+    # whose read_text() raised IsADirectoryError. Scrub, fall back to the
+    # documented default, and require a regular file.
+    path = as_text(path) or 'index.html'
     f = (PREVIEW_DIR / path).resolve()
     if not _is_within(f, PREVIEW_DIR):
         return PlainTextResponse('forbidden', 403)
-    if not f.exists():
+    if not f.is_file():
         return PlainTextResponse('', 404)
     return PlainTextResponse(f.read_text(encoding='utf-8', errors='ignore'))
 

@@ -54,7 +54,10 @@ def profiler_summary():
     cpu = proc.cpu_percent(interval=0.1)
 
     endpoint_summary = []
-    for path, latencies in _endpoint_stats.items():
+    # Snapshot: the latency middleware mutates this dict on every request
+    # (from any thread); iterating it live raised "dictionary changed size
+    # during iteration" under concurrent load.
+    for path, latencies in list(_endpoint_stats.items()):
         if not latencies:
             continue
         endpoint_summary.append(
@@ -81,7 +84,7 @@ def profiler_summary():
         },
         'endpoints': endpoint_summary[:20],
         'total_endpoints': len(_endpoint_stats),
-        'total_calls': sum(len(v) for v in _endpoint_stats.values()),
+        'total_calls': sum(len(v) for v in list(_endpoint_stats.values())),
         'memory_snapshots': len(_memory_snapshots),
     }
 
@@ -90,7 +93,8 @@ def profiler_summary():
 def endpoint_stats(sort_by: str = 'avg_ms', limit: int = 50):
     """Per-endpoint latency stats."""
     result = []
-    for path, latencies in _endpoint_stats.items():
+    # Snapshot — see /summary: mutated by the middleware from any thread.
+    for path, latencies in list(_endpoint_stats.items()):
         if not latencies:
             continue
         sorted_l = sorted(latencies)
