@@ -223,6 +223,22 @@ def ensure_schema():
             CREATE INDEX IF NOT EXISTS idx_e2e_status_run ON e2e_traces(status, run_id);
             CREATE INDEX IF NOT EXISTS idx_tasks_status_updated ON tasks(status, updated_at);
         """)
+        # e2e_traces is blob-heavy (screenshots + DOM snapshots per step), so a
+        # table scan touches many pages per row. Every e2e-pane open ran three
+        # such scans: /trace/{run} (WHERE run_id=? — Migration 5's index leads
+        # with status, so it could not serve a bare run_id lookup), /history
+        # (GROUP BY run_id,target — needs status+created_at from every row),
+        # and /status (ORDER BY created_at DESC LIMIT 1). Measured at 50k
+        # rows: 36ms / 104ms / 76ms. With these two indexes: 0.2ms / 12ms /
+        # 0.1ms (the /status MAX() is satisfied by SQLite's min/max
+        # optimization — no query rewrite required, verified identical
+        # output). idx_e2e_run is deliberately COVERING for the history
+        # aggregate (run_id, target, status, created_at) so the pane never
+        # reads blob pages for a summary list.
+        _run_migration(con, 6, 'e2e_pane_indexes', """
+            CREATE INDEX IF NOT EXISTS idx_e2e_run ON e2e_traces(run_id, target, status, created_at);
+            CREATE INDEX IF NOT EXISTS idx_e2e_created ON e2e_traces(created_at);
+        """)
 
         con.commit()
     finally:
