@@ -112,6 +112,17 @@ def _ensure_traces_table():
                 created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        # The notifications inbox runs two unread queries on every fetch
+        # (the UI polls it): the unread list and the unread COUNT — both
+        # filtered on read_at IS NULL, which no ordinary index serves well,
+        # and both full-scanned a table that grows with every run (measured
+        # 16.9ms p50 at 100k rows). A PARTIAL index holds only the unread
+        # rows, already in id-DESC order: the list walks it directly and the
+        # count is a covering index count. Rows leave the index the moment
+        # they are marked read, so it stays small however big the table gets.
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ntf_unread ON notifications(id DESC) WHERE read_at IS NULL"
+        )
         con.commit()
     finally:
         con.close()
