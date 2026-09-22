@@ -366,32 +366,51 @@ def _check_budget_caps(agent_id: str, cost: float, tokens: int, goal_id: str):
             # Alert thresholds
             if cap['limit_usd'] > 0:
                 pct = cur_cost / cap['limit_usd']
-                if pct >= 1.0 and not cap['breached']:
-                    con.execute('UPDATE budget_caps SET breached=1, breached_at=? WHERE cap_id=?', (now, cap['cap_id']))
-                    con.execute(
-                        """INSERT INTO cost_alerts
-                        (cap_id,agent_id,alert_type,pct_used,cost_at_alert,limit_usd,created_at)
-                        VALUES (?,?,'breach',?,?,?,?)""",
-                        (cap['cap_id'], agent_id, pct, cur_cost, cap['limit_usd'], now),
-                    )
-                    log.warning(
-                        'Budget BREACH: %s %.0f%% ($%.4f/$%.4f)', cap['name'], pct * 100, cur_cost, cap['limit_usd']
-                    )
-                elif pct >= 0.8 and pct < 1.0:
-                    # 80% warning — avoid duplicate alerts
-                    recent = con.execute(
-                        """
-                        SELECT id FROM cost_alerts WHERE cap_id=? AND alert_type='warning'
-                        AND created_at > datetime('now','-1 hour')""",
-                        (cap['cap_id'],),
-                    ).fetchone()
-                    if not recent:
+                if pct >= 1.0:
+                    if not cap['breached']:
+                        con.execute('UPDATE budget_caps SET breached=1, breached_at=? WHERE cap_id=?', (now, cap['cap_id']))
                         con.execute(
                             """INSERT INTO cost_alerts
                             (cap_id,agent_id,alert_type,pct_used,cost_at_alert,limit_usd,created_at)
-                            VALUES (?,?,'warning',?,?,?,?)""",
+                            VALUES (?,?,'breach',?,?,?,?)""",
                             (cap['cap_id'], agent_id, pct, cur_cost, cap['limit_usd'], now),
                         )
+                        log.warning(
+                            'Budget BREACH: %s %.0f%% ($%.4f/$%.4f)', cap['name'], pct * 100, cur_cost, cap['limit_usd']
+                        )
+                else:
+                    if cap['breached']:
+                        # The period window rolled over (or spend otherwise
+                        # fell back under the limit): re-arm the cap so a
+                        # LATER breach can raise an alert again. Before this
+                        # the flag was set once and never cleared, so the
+                        # second hour/day that crossed the limit stayed
+                        # silent forever and the dashboard showed a cap as
+                        # breached even with $0 spend in the current window.
+                        # reset_at finally records when the re-arm happened.
+                        con.execute(
+                            'UPDATE budget_caps SET breached=0, reset_at=? WHERE cap_id=?',
+                            (now, cap['cap_id']),
+                        )
+                        log.info(
+                            'Budget cap re-armed: %s at %.0f%% ($%.4f/$%.4f)',
+                            cap['name'], pct * 100, cur_cost, cap['limit_usd'],
+                        )
+                    if pct >= 0.8:
+                        # 80% warning — avoid duplicate alerts
+                        recent = con.execute(
+                            """
+                            SELECT id FROM cost_alerts WHERE cap_id=? AND alert_type='warning'
+                            AND created_at > datetime('now','-1 hour')""",
+                            (cap['cap_id'],),
+                        ).fetchone()
+                        if not recent:
+                            con.execute(
+                                """INSERT INTO cost_alerts
+                                (cap_id,agent_id,alert_type,pct_used,cost_at_alert,limit_usd,created_at)
+                                VALUES (?,?,'warning',?,?,?,?)""",
+                                (cap['cap_id'], agent_id, pct, cur_cost, cap['limit_usd'], now),
+                            )
 
         con.commit()
     except Exception as e:
