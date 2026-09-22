@@ -14,6 +14,17 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/cluster", tags=["cluster"])
 
+# Stale-node hygiene, mirroring the collab/crdt registry evictions (#217,
+# #227): workers heartbeat every <=120s (dispatch already treats >120s as
+# dead), but a node that joined once stayed in _CLUSTER_NODES FOREVER —
+# node_count in /status counted total-ever-joined, and /nodes listed dead
+# workers with live-looking status indicators indefinitely. Worker nodes
+# whose heartbeat is stale past the TTL (5x the liveness window) are
+# dropped; the local master never heartbeats (it IS this process) and is
+# never evicted. A join flood beyond the cap evicts the oldest workers.
+_NODE_STALE_SECONDS = 600
+_MAX_CLUSTER_NODES = 500
+
 _CLUSTER_NODES: dict[str, dict[str, Any]] = {
     "node_master_local": {
         "node_id": "node_master_local",
@@ -27,6 +38,26 @@ _CLUSTER_NODES: dict[str, dict[str, Any]] = {
         "tasks_completed": 0,
     }
 }
+
+
+def _evict_stale_nodes(now: float | None = None) -> None:
+    """Drop worker nodes that stopped heartbeating. Never touches the master."""
+    now = time.time() if now is None else now
+    for nid in [
+        nid for nid, n in list(_CLUSTER_NODES.items())
+        if n.get("role") != "master"
+        and now - n.get("last_heartbeat", 0) > _NODE_STALE_SECONDS
+    ]:
+        _CLUSTER_NODES.pop(nid, None)
+    if len(_CLUSTER_NODES) > _MAX_CLUSTER_NODES:
+        excess = len(_CLUSTER_NODES) - _MAX_CLUSTER_NODES
+        evictable = sorted(
+            (n.get("registered_at", 0), nid)
+            for nid, n in list(_CLUSTER_NODES.items())
+            if n.get("role") != "master"
+        )
+        for _, nid in evictable[:excess]:
+            _CLUSTER_NODES.pop(nid, None)
 
 
 class NodeJoinRequest(BaseModel):
@@ -57,6 +88,7 @@ class ClusterDispatchRequest(BaseModel):
 @router.get("/status")
 def get_cluster_status() -> dict[str, Any]:
     """Retrieve overall cluster health, compute node count, and aggregate VRAM/capabilities."""
+    _evict_stale_nodes()
     now = time.time()
     active_nodes = [n for n in _CLUSTER_NODES.values() if (now - n.get("last_heartbeat", 0)) < 120]
     total_vram = sum(n.get("capabilities", {}).get("vram_gb", 0) for n in active_nodes)
@@ -76,6 +108,7 @@ def get_cluster_status() -> dict[str, Any]:
 @router.post("/nodes/join")
 def join_cluster(payload: NodeJoinRequest) -> dict[str, Any]:
     """Register and join a new edge compute node to the distributed swarm grid."""
+    _evict_stale_nodes()
     nid = (payload.node_id or f"node_{uuid.uuid4().hex[:8]}").strip().lower()
     _CLUSTER_NODES[nid] = {
         "node_id": nid,
@@ -100,6 +133,7 @@ def join_cluster(payload: NodeJoinRequest) -> dict[str, Any]:
 @router.get("/nodes")
 def list_cluster_nodes() -> dict[str, Any]:
     """Retrieve all registered compute nodes and live status indicators."""
+    _evict_stale_nodes()
     return {"ok": True, "count": len(_CLUSTER_NODES), "nodes": list(_CLUSTER_NODES.values())}
 
 
