@@ -52,7 +52,7 @@ def _save_loops() -> None:
         LOOPS_PATH.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             jid: {k: v for k, v in meta.items() if k in _PERSIST_FIELDS}
-            for jid, meta in _jobs.items()
+            for jid, meta in list(_jobs.items())
             if jid not in _BUILTIN_JOB_IDS
         }
         tmp = LOOPS_PATH.with_suffix('.json.tmp')

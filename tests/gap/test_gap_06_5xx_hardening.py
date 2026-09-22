@@ -165,3 +165,36 @@ class TestGapGetHardening:
             *[poll() for _ in range(10)], *[traffic(i) for i in range(20)]
         )
         assert all(results), "5xx under concurrent profiler reads"
+
+
+@pytest.mark.asyncio
+class TestGapSharedStateRaces:
+    """Sync (threadpool) handlers lazily iterating module-level dicts that
+    other threads mutate — reproduced live as a 500 (see r65): seeded 5k
+    collab sessions, interleaved create+list; unfixed code 500'd within
+    three rounds, fixed code clean across eight."""
+
+    async def test_collab_sessions_race(self, C):
+        import asyncio
+
+        async def create(i):
+            return (await POST(C, "/api/collab/sessions")).status_code
+
+        async def listing(i):
+            return (await GET(C, "/api/collab/sessions")).status_code
+
+        # Seed enough entries that list iteration takes real time.
+        for _ in range(4):
+            await asyncio.gather(*[create(i) for i in range(250)])
+        for round_ in range(3):
+            codes = await asyncio.gather(
+                *[listing(i) for i in range(30)], *[create(i) for i in range(30)]
+            )
+            assert all(c < 500 for c in codes), f"race 5xx in round {round_}"
+
+    async def test_control_tower_active_race(self, C):
+        """GET /active and /stats iterate the shared runs dict; must snapshot."""
+        for _ in range(3):
+            r1 = await GET(C, "/api/control-tower/active")
+            r2 = await GET(C, "/api/control-tower/stats")
+            assert r1.status_code < 500 and r2.status_code < 500

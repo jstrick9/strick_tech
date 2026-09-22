@@ -540,7 +540,8 @@ async def kill_all_runs():
 @router.get('/active')
 def active_runs():
     """Execute or process active runs operation."""
-    return [run for run in _active_runs.values() if run.get('status') == 'running']
+    # Snapshot — sync handler; runs are added from other threads.
+    return [run for run in list(_active_runs.values()) if run.get('status') == 'running']
 
 
 @router.get('/stats')
@@ -549,7 +550,7 @@ def control_stats():
     con = get_conn()
     try:
         total = con.execute('SELECT COUNT(*) FROM agent_traces').fetchone()[0]
-        running = len([r for r in _active_runs.values() if r.get('status') == 'running'])
+        running = len([r for r in list(_active_runs.values()) if r.get('status') == 'running'])
         cost_row = con.execute('SELECT SUM(total_cost) as c, SUM(total_tokens) as t FROM agent_traces').fetchone()
         errors = con.execute("SELECT COUNT(*) FROM agent_traces WHERE status='error'").fetchone()[0]
         killed = con.execute("SELECT COUNT(*) FROM agent_traces WHERE status='killed'").fetchone()[0]

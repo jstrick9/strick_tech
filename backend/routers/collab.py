@@ -94,7 +94,10 @@ def _get_or_create(session_id: str) -> CollabSession:
 @router.get('/sessions')
 def list_sessions():
     """Retrieve and return list sessions."""
-    return [s.snapshot() for s in _sessions.values()]
+    # Snapshot: this is a sync handler (threadpool) and POST /sessions
+    # creates entries from other threads — lazy iteration over the live dict
+    # raised "dictionary changed size during iteration" under load.
+    return [s.snapshot() for s in list(_sessions.values())]
 
 
 @router.post('/sessions')
