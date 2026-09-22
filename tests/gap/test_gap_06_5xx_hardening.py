@@ -288,7 +288,17 @@ class TestGapWebsocketHardening:
 
         import httpx
 
-        url = f"ws://127.0.0.1:8787/api/crdt/docs/gap_wedge_{uuid.uuid4().hex[:6]}/ws"
+        # r70: unknown doc ids are rejected at the handshake (1008) instead
+        # of fabricating a phantom doc, so the canary must churn a REAL
+        # document or every connection dies at connect and it stops testing
+        # anything. Create it through the same door the UI uses.
+        wedge_id = f"gap_wedge_{uuid.uuid4().hex[:6]}"
+        async with httpx.AsyncClient(timeout=10) as hc:
+            await hc.post(
+                "http://127.0.0.1:8787/api/crdt/docs",
+                json={"id": wedge_id, "title": "wedge canary", "content": "x"},
+            )
+        url = f"ws://127.0.0.1:8787/api/crdt/docs/{wedge_id}/ws"
 
         async def churner(i):
             for _ in range(6):

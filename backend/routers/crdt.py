@@ -598,6 +598,38 @@ def _get_doc(doc_id: str) -> CRDTDoc:
     return doc
 
 
+def _doc_exists(doc_id: str) -> bool:
+    """True only if the doc was created via POST /docs or already in the DB.
+
+    _get_doc() lazily fabricates an in-memory doc for ANY id (necessary to
+    load real docs into the cache), but as an entry-point behaviour that
+    fabrication is catastrophic: a typo'd id got a phantom document that
+    acknowledged every op, then silently failed to persist the lot —
+    crdt_ops.doc_id carries a FOREIGN KEY into crdt_docs, so every INSERT
+    died (live-verified: 'crdt op persist failed: FOREIGN KEY constraint
+    failed' in the log while the client collected acks). Content half-
+    survived via the disconnect upsert; the op log was lost for good.
+    Every /docs/{doc_id}/... entry point must prove the doc is real
+    BEFORE _get_doc() fabricates one.
+    """
+    if doc_id in _docs:
+        return True
+    from ..services.memory_db import get_conn
+
+    con = get_conn()
+    try:
+        return con.execute('SELECT 1 FROM crdt_docs WHERE id=?', (doc_id,)).fetchone() is not None
+    finally:
+        con.close()
+
+
+def _unknown_doc(doc_id: str) -> JSONResponse:
+    return JSONResponse(
+        {'ok': False, 'error': 'Document not found', 'doc_id': doc_id},
+        status_code=404,
+    )
+
+
 # ── REST endpoints ─────────────────────────────────────────────────────────────
 @router.get('/docs')
 def list_docs():
@@ -636,6 +668,8 @@ async def create_doc(req: Request):
 @router.get('/docs/{doc_id}')
 def get_doc(doc_id: str):
     """Retrieve and return get doc."""
+    if not _doc_exists(doc_id):
+        return _unknown_doc(doc_id)
     doc = _get_doc(doc_id)
     return doc.snapshot()
 
@@ -664,6 +698,8 @@ def delete_doc(doc_id: str):
 @router.get('/docs/{doc_id}/ops')
 def get_ops(doc_id: str, since: int = 0):
     """Retrieve and return get ops."""
+    if not _doc_exists(doc_id):
+        return _unknown_doc(doc_id)
     doc = _get_doc(doc_id)
     return {'ops': doc.get_ops_since(since), 'revision': doc.revision}
 
@@ -682,6 +718,8 @@ async def submit_op(doc_id: str, req: Request):
     if not op:
         return JSONResponse({'ok': False, 'error': 'op required'}, status_code=400)
 
+    if not _doc_exists(doc_id):
+        return _unknown_doc(doc_id)
     doc = _get_doc(doc_id)
     try:
         op = _validate_op(op, len(doc.content))
@@ -698,6 +736,8 @@ async def submit_op(doc_id: str, req: Request):
 @router.get('/docs/{doc_id}/history')
 def get_history(doc_id: str, limit: int = 100):
     """Retrieve and return get history."""
+    if not _doc_exists(doc_id):
+        return _unknown_doc(doc_id)
     from ..services.memory_db import get_conn
 
     con = get_conn()
@@ -718,6 +758,8 @@ def get_history(doc_id: str, limit: int = 100):
 @router.post('/docs/{doc_id}/snapshot')
 async def create_snapshot(doc_id: str):
     """Save current doc content as a file version snapshot."""
+    if not _doc_exists(doc_id):
+        return _unknown_doc(doc_id)
     doc = _get_doc(doc_id)
     snap_path = DOCS_DIR / f'{doc_id}_rev{doc.revision}.txt'
     snap_path.write_text(doc.content, encoding='utf-8')
@@ -727,6 +769,8 @@ async def create_snapshot(doc_id: str):
 @router.post('/docs/{doc_id}/restore/{revision}')
 async def restore_revision(doc_id: str, revision: int):
     """Restore document content to a specific revision by replaying ops."""
+    if not _doc_exists(doc_id):
+        return _unknown_doc(doc_id)
     from ..services.memory_db import get_conn
 
     con = get_conn()
@@ -796,6 +840,14 @@ async def collab_ws(ws: WebSocket, doc_id: str):
       {type:"ping"}
     """
     if not await require_websocket_auth(ws):
+        return
+    if not _doc_exists(doc_id):
+        # Same close code the auth gate uses. Accepting here would fabricate
+        # a phantom document for a typo'd id: every op would be acked and
+        # then silently fail to persist (crdt_ops.doc_id → FOREIGN KEY into
+        # crdt_docs), losing the whole op log while the session looked
+        # healthy. Verified live before this guard existed.
+        await ws.close(code=1008, reason='Unknown document')
         return
     await ws.accept()
 
