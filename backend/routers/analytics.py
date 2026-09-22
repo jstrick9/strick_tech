@@ -109,7 +109,7 @@ def dashboard(days: int = 30):
 
         # ── Audit ──────────────────────────────────────────────────────
         audit_today = con.execute(
-            "SELECT action, COUNT(*) as count FROM audit WHERE date(created_at)=date('now') GROUP BY action ORDER BY count DESC LIMIT 10"
+            "SELECT action, COUNT(*) as count FROM audit WHERE created_at >= date('now') GROUP BY action ORDER BY count DESC LIMIT 10"
         ).fetchall()
         recent_actions = con.execute(
             "SELECT action, detail, datetime(created_at,'localtime') as ts FROM audit ORDER BY id DESC LIMIT 20"
@@ -285,7 +285,7 @@ def get_activity(limit: int = 50):
             (limit,),
         ).fetchall()
         today = con.execute(
-            "SELECT action, COUNT(*) as count FROM audit WHERE date(created_at)=date('now') GROUP BY action ORDER BY count DESC LIMIT 20"
+            "SELECT action, COUNT(*) as count FROM audit WHERE created_at >= date('now') GROUP BY action ORDER BY count DESC LIMIT 20"
         ).fetchall()
     finally:
         con.close()
