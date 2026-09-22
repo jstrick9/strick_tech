@@ -24,6 +24,7 @@ import time
 import uuid
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocketState
 from fastapi.responses import JSONResponse
 
 from ..security_auth import require_websocket_auth
@@ -520,7 +521,8 @@ class CRDTDoc:
     async def broadcast(self, event: dict, exclude: str = ''):
         """Execute or process broadcast operation."""
         dead = []
-        for pid, ws in self.connections.items():
+        # Snapshot: peers pop from this dict at every await point below.
+        for pid, ws in list(self.connections.items()):
             if pid == exclude:
                 continue
             try:
@@ -934,6 +936,20 @@ async def collab_ws(ws: WebSocket, doc_id: str):
                 break
             except Exception as ex:
                 log.warning('crdt ws error: %s', ex)
+                # Once a send to this socket has failed, starlette marks the
+                # websocket DISCONNECTED and every later receive_text()
+                # raises RuntimeError('WebSocket is not connected…')
+                # INSTANTLY — no await, no WebSocketDisconnect. Continuing
+                # here spun that handler forever at 100% CPU with zero
+                # yields, starving the whole event loop: 15 churning clients
+                # wedged the server so hard that new handshakes timed out and
+                # even health checks hung (verified live). If our own socket
+                # is dead there is nothing left to do — exit the loop.
+                if (
+                    ws.application_state != WebSocketState.CONNECTED
+                    or ws.client_state == WebSocketState.DISCONNECTED
+                ):
+                    break
 
     except (WebSocketDisconnect, asyncio.TimeoutError):
         pass

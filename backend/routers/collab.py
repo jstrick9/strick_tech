@@ -50,12 +50,26 @@ class CollabSession:
     async def broadcast(self, event: dict, exclude: str = ''):
         """Execute or process broadcast operation."""
         dead = []
-        for pid, ws in self.connections.items():
+        # Snapshot: peers disconnect (popping from this dict) at every await
+        # point below — live iteration raised "dictionary changed size during
+        # iteration" under churn.
+        for pid, ws in list(self.connections.items()):
             if pid == exclude:
                 continue
             try:
                 await ws.send_text(json.dumps(event, default=str))
-            except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+            except Exception:
+                # A peer that cannot be written to is gone — in practice that
+                # is starlette's WebSocketDisconnect, which is NOT a subclass
+                # of the (KeyError, TypeError, ValueError, ...) tuple this
+                # used to catch. The disconnect escaped the loop, propagated
+                # into the SENDING peer's handler and tore down their socket
+                # too (verified live: 20 collab clients chattering while 15
+                # churned connect/disconnect killed half the chatters, code
+                # 1006, with ASGI tracebacks). crdt.py's broadcast was fixed
+                # for this first; collab was the missed twin. Any send
+                # failure means the peer is dead; drop them and keep
+                # broadcasting to everyone else.
                 dead.append(pid)
         for pid in dead:
             self.remove_peer(pid)

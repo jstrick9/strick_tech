@@ -36,17 +36,26 @@ class ConnectionManager:
 
     def disconnect(self, ws: WebSocket):
         """Execute or process disconnect operation."""
-        self.connections.remove(ws)
+        try:
+            self.connections.remove(ws)
+        except ValueError:
+            # broadcast()'s dead-peer cleanup already removed it.
+            pass
         log.info('WS disconnected — total: %d', len(self.connections))
 
     async def broadcast(self, event: dict):
         """Send event to all connected clients."""
         msg = json.dumps(event, default=str)
         dead = []
-        for ws in self.connections:
+        # Snapshot + broad except: starlette's WebSocketDisconnect is not a
+        # subclass of the old narrow tuple, so one dead client escaped this
+        # loop and tore down whichever handler was broadcasting; the peer was
+        # also never removed, so every later broadcast hit the same zombie
+        # and cascaded. See collab.py's broadcast for the live repro.
+        for ws in list(self.connections):
             try:
                 await ws.send_text(msg)
-            except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+            except Exception:
                 dead.append(ws)
         for ws in dead:
             try:

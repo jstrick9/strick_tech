@@ -198,3 +198,123 @@ class TestGapSharedStateRaces:
             r1 = await GET(C, "/api/control-tower/active")
             r2 = await GET(C, "/api/control-tower/stats")
             assert r1.status_code < 500 and r2.status_code < 500
+
+
+@pytest.mark.asyncio
+class TestGapWebsocketHardening:
+    """WS fixes (r66). Two bugs found by live churn (20 chatters + 15
+    connect/disconnect churners):
+
+    1. collab's broadcast caught only (KeyError, TypeError, …) — but a send
+       to an already-dead peer raises starlette's WebSocketDisconnect, which
+       is none of those. It escaped the loop and tore down the SENDING
+       peer's connection (10 of 20 chatters killed, code 1006).
+    2. Once any send fails, starlette marks the socket DISCONNECTED and
+       every later receive_text() raises RuntimeError instantly (no await,
+       never a WebSocketDisconnect). crdt's message loop caught it with
+       `except Exception: log; continue` — a zero-yield spin at 100% CPU
+       that starved the whole event loop: handshakes timed out, health
+       checks hung, `ps` would not run. The server stayed wedged for
+       minutes after every client was gone.
+    """
+
+    async def test_collab_broadcast_survives_dead_peer(self):
+        """A dead peer in the session must not kill the broadcasting peer."""
+        import json as _json
+
+        from starlette.websockets import WebSocketDisconnect
+
+        from backend.routers.collab import CollabSession
+
+        class DeadWS:
+            async def send_text(self, data):
+                raise WebSocketDisconnect(code=1006)
+
+        class AliveWS:
+            def __init__(self):
+                self.sent = []
+
+            async def send_text(self, data):
+                self.sent.append(data)
+
+        sess = CollabSession("gap_dead_peer")
+        dead, alive = DeadWS(), AliveWS()
+        sess.connections = {"d": dead, "a": alive}
+        sess.peers = {"d": {"id": "d"}, "a": {"id": "a"}}
+
+        await sess.broadcast({"type": "chat"})  # pre-fix: raised out of broadcast
+
+        assert alive.sent, "alive peer did not receive the broadcast"
+        assert "d" not in sess.connections, "dead peer not removed"
+
+    async def test_collab_churn_keeps_chatters_alive(self):
+        """Live churn: chattering clients must survive peers dying around
+        them (pre-fix: the server killed half of them within 18s)."""
+        import websockets
+
+        url = f"ws://127.0.0.1:8787/api/collab/sessions/gap_churn_{uuid.uuid4().hex[:6]}/ws"
+        dropped = {}
+
+        async def chatter(i):
+            try:
+                async with websockets.connect(url, open_timeout=10) as ws:
+                    await ws.send(json.dumps({"name": f"chatter_{i}"}))
+                    for _ in range(60):
+                        await ws.send(
+                            json.dumps({"type": "chat", "payload": {"message": "x" * 100}})
+                        )
+                        await asyncio.sleep(0.05)
+            except Exception as exc:
+                dropped[i] = repr(exc)
+
+        async def churner(i):
+            for _ in range(8):
+                try:
+                    async with websockets.connect(url, open_timeout=10) as ws:
+                        await ws.send(json.dumps({"name": f"churn_{i}"}))
+                        await ws.recv()
+                except Exception:
+                    await asyncio.sleep(0.01)
+
+        await asyncio.gather(
+            *[chatter(i) for i in range(4)], *[churner(i) for i in range(4)]
+        )
+        assert not dropped, f"chatters killed by server: {dropped}"
+
+    async def test_crdt_churn_does_not_wedge_server(self):
+        """Live wedge canary: churn on a crdt doc must leave the event loop
+        responsive — pre-fix, health checks hung forever afterwards."""
+        import websockets
+
+        import httpx
+
+        url = f"ws://127.0.0.1:8787/api/crdt/docs/gap_wedge_{uuid.uuid4().hex[:6]}/ws"
+
+        async def churner(i):
+            for _ in range(6):
+                try:
+                    async with websockets.connect(url, open_timeout=10) as ws:
+                        await ws.send(json.dumps({"name": f"c{i}"}))
+                        await ws.recv()
+                except Exception:
+                    await asyncio.sleep(0.01)
+
+        async def cursorer(i):
+            try:
+                async with websockets.connect(url, open_timeout=10) as ws:
+                    await ws.send(json.dumps({"name": f"s{i}"}))
+                    await ws.recv()
+                    for _ in range(40):
+                        await ws.send(
+                            json.dumps({"type": "cursor", "position": 3, "selection": None})
+                        )
+                        await asyncio.sleep(0.05)
+            except Exception:
+                pass
+
+        await asyncio.gather(
+            *[churner(i) for i in range(8)], *[cursorer(i) for i in range(3)]
+        )
+        async with httpx.AsyncClient(timeout=10) as hc:
+            r = await hc.get("http://127.0.0.1:8787/api/system/health")
+            assert r.status_code == 200, "server wedged after crdt churn"
