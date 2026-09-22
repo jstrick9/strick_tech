@@ -10,6 +10,7 @@ import csv
 import datetime
 import io
 import json
+import time
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
@@ -42,6 +43,19 @@ def _clamp_days(days: int, min_days: int = 1, max_days: int = 365) -> int:
 
 # ── Dashboard (full snapshot) ──────────────────────────────────────────────────
 
+# The dashboard battery aggregates whole history (GROUP BY agent over every
+# chat_log row, per-day cost buckets, COUNT(DISTINCT) over e2e_traces) — O(n)
+# by nature: no index makes "sum everything" cheap. Measured at 100k
+# chat_log rows: 127ms per call, and the frontend polls every 30s, so the
+# aggregates ran 2,880 times a day for a pane nobody was watching change.
+# A short TTL cache answers repeats from memory: with a 30s poll and a 10s
+# TTL, two of every three refreshes are served without touching the DB, and
+# the data is at most 10s stale on a view that refreshes every 30s anyway.
+# Keyed by the clamped days parameter (bounded: 1..365) and hard-capped.
+_DASHBOARD_CACHE: dict[int, tuple[float, dict]] = {}
+_DASHBOARD_CACHE_TTL = 10.0
+_DASHBOARD_CACHE_MAX = 64
+
 
 @router.get('/dashboard')
 def dashboard(days: int = 30):
@@ -50,6 +64,10 @@ def dashboard(days: int = 30):
     Frontend polls this every 30s.
     """
     days = _clamp_days(days)
+    now = time.time()
+    hit = _DASHBOARD_CACHE.get(days)
+    if hit is not None and now - hit[0] < _DASHBOARD_CACHE_TTL:
+        return hit[1]
     con = get_conn()
     try:
         # ── Cost & tokens ──────────────────────────────────────────────
@@ -175,7 +193,7 @@ def dashboard(days: int = 30):
         else None
     )
 
-    return {
+    body = {
         'generated_at': datetime.datetime.now().isoformat(),
         'period_days': days,
         'kpis': {
@@ -231,6 +249,10 @@ def dashboard(days: int = 30):
             'recent': [dict(r) for r in recent_actions],
         },
     }
+    if len(_DASHBOARD_CACHE) >= _DASHBOARD_CACHE_MAX:
+        _DASHBOARD_CACHE.clear()
+    _DASHBOARD_CACHE[days] = (now, body)
+    return body
 
 
 # ── KPIs only (fast polling) ───────────────────────────────────────────────────
