@@ -37,4 +37,3 @@ def chk(label, cond, got=None):
     if got is not None: msg += f"\n  got={got!r}"
     assert cond, msg
 
-pytest_plugins = ('pytest_asyncio',)

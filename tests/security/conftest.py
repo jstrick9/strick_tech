@@ -130,7 +130,6 @@ def no_path_escape(r, label, dangerous=None):
         assert d not in text, \
             f"SEC PATH: {label} — Found '{d}' in response (path traversal?): {r.text[:200]}"
 
-pytest_plugins = ('pytest_asyncio',)
 
 
 # ── Live-instance pollution guard ─────────────────────────────────────────────

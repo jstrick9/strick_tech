@@ -108,7 +108,6 @@ def no_server_error(r, label=""):
         f"[{label}] SERVER ERROR {r.status_code}: {r.text[:400]}"
 
 # ── pytest-asyncio config ─────────────────────────────────────────────────────
-pytest_plugins = ('pytest_asyncio',)
 
 
 import pytest as _pytest, httpx as _httpx

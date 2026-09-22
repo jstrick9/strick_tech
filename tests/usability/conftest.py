@@ -89,7 +89,6 @@ def no_error(r, label=""):
         f"UAT: User action '{label}' caused server error {r.status_code}:\n{r.text[:400]}"
 
 # ── pytest-asyncio ────────────────────────────────────────────────────────────
-pytest_plugins = ('pytest_asyncio',)
 
 
 # ── Frontend (FE) fixture ──────────────────────────────────────────────────────
