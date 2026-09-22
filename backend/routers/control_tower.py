@@ -58,6 +58,16 @@ def _ensure_traces_table():
                 updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        # agent_traces is append-only and grows with every run (the 22-minute
+        # r69 soak alone added ~10k rows). Before these indexes every query
+        # below was a full-table scan or a full sort: GET /runs sorted the
+        # WHOLE table to return 50 rows, GET /runs/{id} scanned for run_id,
+        # and GET /stats — which the frontend polls every 5s — ran five
+        # scans per call. Measured on 100k rows: /runs 20.8ms, /runs/{id}
+        # 12.3ms, /stats 52.0ms, all linear in table size.
+        con.execute("CREATE INDEX IF NOT EXISTS idx_at_created ON agent_traces(created_at DESC)")
+        con.execute("CREATE INDEX IF NOT EXISTS idx_at_run ON agent_traces(run_id)")
+        con.execute("CREATE INDEX IF NOT EXISTS idx_at_status ON agent_traces(status)")
         con.execute("""
             CREATE TABLE IF NOT EXISTS agent_trace_steps (
                 id          INTEGER PRIMARY KEY,
@@ -69,13 +79,16 @@ def _ensure_traces_table():
                 output_text TEXT,
                 model       TEXT,
                 tokens_in   INTEGER DEFAULT 0,
-                tokens_out  INTEGER DEFAULT 0,
+                tokens_out   INTEGER DEFAULT 0,
                 cost        REAL DEFAULT 0,
                 duration_ms INTEGER DEFAULT 0,
                 status      TEXT DEFAULT 'done',
                 created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        # Several rows per run: GET /runs/{id} fetches all steps for a run —
+        # an unindexed run_id lookup scanned the whole steps table.
+        con.execute("CREATE INDEX IF NOT EXISTS idx_ats_run ON agent_trace_steps(run_id, step_no)")
         con.execute("""
             CREATE TABLE IF NOT EXISTS budget_rules (
                 id          INTEGER PRIMARY KEY,
@@ -554,8 +567,11 @@ def control_stats():
         cost_row = con.execute('SELECT SUM(total_cost) as c, SUM(total_tokens) as t FROM agent_traces').fetchone()
         errors = con.execute("SELECT COUNT(*) FROM agent_traces WHERE status='error'").fetchone()[0]
         killed = con.execute("SELECT COUNT(*) FROM agent_traces WHERE status='killed'").fetchone()[0]
+        # Range scan, not date(created_at)=date('now'): the function-on-column
+        # form can never use idx_at_created. created_at is 'YYYY-MM-DD HH:MM:SS'
+        # UTC, so a >= midnight string range is exactly today's rows.
         today = con.execute(
-            "SELECT COUNT(*),SUM(total_cost) FROM agent_traces WHERE date(created_at)=date('now')"
+            "SELECT COUNT(*),SUM(total_cost) FROM agent_traces WHERE created_at >= date('now')"
         ).fetchone()
     finally:
         con.close()
