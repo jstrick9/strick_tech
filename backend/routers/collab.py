@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import time
 import uuid
 
@@ -18,6 +19,7 @@ from ..security_auth import require_websocket_auth
 from ..services.request_body import json_body_or_error
 
 router = APIRouter(prefix='/api/collab', tags=['collab'])
+log = logging.getLogger('agentic.collab')
 
 
 # ── In-memory session state ────────────────────────────────────────────────────
@@ -289,13 +291,38 @@ async def collab_ws(ws: WebSocket, session_id: str):
         while True:
             try:
                 raw = await asyncio.wait_for(ws.receive_text(), timeout=30.0)
-                msg = json.loads(raw)
-                await _handle_collab_msg(sess, peer_id, msg)
             except asyncio.TimeoutError:
                 # Send ping
                 await ws.send_text(json.dumps({'type': 'ping'}))
+                continue
             except WebSocketDisconnect:
                 break
+
+            # Malformed input must be answered, never allowed to unwind the
+            # handler. Before this, one bad frame escaped to the function-
+            # level except and the peer's socket lived on with no handler
+            # behind it — no pings, no broadcasts, nothing (verified live:
+            # invalid JSON produced 0 frames and the connection stayed open).
+            try:
+                msg = json.loads(raw)
+                if not isinstance(msg, dict):
+                    raise ValueError('message must be a JSON object')
+            except (json.JSONDecodeError, ValueError) as exc:
+                await ws.send_text(json.dumps({'type': 'error', 'error': f'malformed message: {exc}'}))
+                continue
+
+            try:
+                await _handle_collab_msg(sess, peer_id, msg)
+            except WebSocketDisconnect:
+                break
+            except Exception as exc:
+                # A well-shaped-but-wrong payload (or a handler bug) must
+                # not kill the connection either; tell the sender and go on.
+                log.warning('collab ws message failed: %s', exc)
+                try:
+                    await ws.send_text(json.dumps({'type': 'error', 'error': f'could not process message: {exc}'}))
+                except Exception:
+                    break  # our own socket is dead — nothing left to do
 
     except WebSocketDisconnect:
         pass
@@ -359,3 +386,16 @@ async def _handle_collab_msg(sess: CollabSession, peer_id: str, msg: dict):
     elif mtype == 'file_edit':
         # Broadcast Monaco edit operations
         await sess.broadcast({'type': 'file_edit', 'peer_id': peer_id, 'payload': payload}, exclude=peer_id)
+
+    else:
+        # Unknown types were dropped on the floor. A client cannot tell a
+        # typo'd message from a delivered one; answer the sender directly
+        # (this is not broadcast — nobody else sent it).
+        peer_ws = sess.connections.get(peer_id)
+        if peer_ws is not None:
+            try:
+                await peer_ws.send_text(
+                    json.dumps({'type': 'error', 'error': f'unknown message type {mtype!r}'})
+                )
+            except Exception:
+                pass  # a dead socket unwinds in the caller's loop

@@ -900,13 +900,41 @@ async def collab_ws(ws: WebSocket, doc_id: str):
         while True:
             try:
                 raw = await asyncio.wait_for(ws.receive_text(), timeout=30.0)
+            except asyncio.TimeoutError:
+                await ws.send_text(json.dumps({'type': 'ping'}))
+                continue
+            except WebSocketDisconnect:
+                break
+
+            # Malformed input must be ANSWERED, not swallowed. The client
+            # protocol is ack-or-error for every op it sends, and silence
+            # leaves an editor stuck on "syncing" while the server log is
+            # the only witness (verified live: invalid JSON, empty ops and
+            # non-numeric revisions all produced 0 frames before this).
+            try:
                 msg = json.loads(raw)
+                if not isinstance(msg, dict):
+                    raise ValueError('message must be a JSON object')
+            except (json.JSONDecodeError, ValueError) as exc:
+                await ws.send_text(json.dumps({
+                    'type': 'error',
+                    'error': f'malformed message: {exc}',
+                    'revision': doc.revision,
+                }))
+                continue
+
+            try:
                 mtype = msg.get('type', '')
 
                 if mtype == 'op':
                     op = msg.get('op', [])
-                    rev = int(msg.get('revision', doc.revision))
                     if not op:
+                        await ws.send_text(json.dumps({'type': 'error', 'error': 'op required', 'revision': doc.revision}))
+                        continue
+                    try:
+                        rev = int(msg.get('revision', doc.revision))
+                    except (TypeError, ValueError):
+                        await ws.send_text(json.dumps({'type': 'error', 'error': 'revision must be a whole number', 'revision': doc.revision}))
                         continue
                     # Validate on THIS door too. The HTTP route and this
                     # socket are two entrances to the same document, and a
@@ -982,8 +1010,16 @@ async def collab_ws(ws: WebSocket, doc_id: str):
                         exclude=peer_id,
                     )
 
-            except asyncio.TimeoutError:
-                await ws.send_text(json.dumps({'type': 'ping'}))
+                else:
+                    # An unmatched type was silently dropped on the floor
+                    # before this; a client with a typo could not tell a
+                    # delivered message from a discarded one.
+                    await ws.send_text(json.dumps({
+                        'type': 'error',
+                        'error': f'unknown message type {mtype!r}',
+                        'revision': doc.revision,
+                    }))
+
             except WebSocketDisconnect:
                 break
             except Exception as ex:
