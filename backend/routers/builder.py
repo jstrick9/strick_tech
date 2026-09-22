@@ -1004,8 +1004,11 @@ def health(debug: str = ''):
         from backend.services.memory_db import db_path, get_conn
 
         con = get_conn()
-        con.execute('SELECT 1')
-        con.close()
+        try:
+            con.execute('SELECT 1')
+        finally:
+            # a failing SELECT 1 used to leak the handle until GC
+            con.close()
         db_ok = True
         path = str(db_path())
     except Exception:

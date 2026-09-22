@@ -54,9 +54,16 @@ def _connect() -> sqlite3.Connection:
     from ..services.memory_db import db_path
 
     con = sqlite3.connect(db_path(), check_same_thread=False, timeout=10)
-    con.execute('PRAGMA busy_timeout=10000')
-    con.execute('PRAGMA journal_mode=WAL')
-    con.execute('PRAGMA synchronous=NORMAL')
+    try:
+        con.execute('PRAGMA busy_timeout=10000')
+        con.execute('PRAGMA journal_mode=WAL')
+        con.execute('PRAGMA synchronous=NORMAL')
+    except Exception:
+        # A PRAGMA can fail (e.g. 'database is locked' on the WAL switch)
+        # AFTER the connection was created; without this the handle leaked
+        # inside this frame until GC.
+        con.close()
+        raise
     return con
 
 

@@ -76,7 +76,10 @@ def kanban():
             'SELECT id,title,status,priority,agent,created_at FROM tasks '
             'ORDER BY COALESCE(sort_order, id) ASC, id ASC'
         ).fetchall()
-    con.close()
+    finally:
+        # The close used to sit after the except, so any exception NOT in the
+        # tuple above (sqlite3.OperationalError, for one) leaked the handle.
+        con.close()
     cols = {'todo': [], 'doing': [], 'blocked': [], 'done': []}
     for r in rows:
         t = _task_dict(r)
@@ -133,14 +136,22 @@ async def tasks_create(req: Request):
     if priority not in ('high', 'medium', 'low'):
         priority = 'medium'
     con = get_conn()
-    cur = con.execute(
-        'INSERT INTO tasks(title,status,priority,agent,layer,description,sort_order,updated_at) VALUES (?,?,?,?,?,?,?,CURRENT_TIMESTAMP)',
-        (title, status, priority, agent, layer, desc, d.get('sort_order', 0)),
-    )
-    tid = cur.lastrowid
-    con.execute("INSERT INTO audit(action,detail) VALUES ('task_create',?)", (f'{tid}:{title[:80]}',))
-    con.commit()
-    con.close()
+    try:
+        cur = con.execute(
+            'INSERT INTO tasks(title,status,priority,agent,layer,description,sort_order,updated_at) VALUES (?,?,?,?,?,?,?,CURRENT_TIMESTAMP)',
+            (title, status, priority, agent, layer, desc, d.get('sort_order', 0)),
+        )
+        tid = cur.lastrowid
+        con.execute("INSERT INTO audit(action,detail) VALUES ('task_create',?)", (f'{tid}:{title[:80]}',))
+        con.commit()
+    finally:
+        # close() also rolls back an uncommitted transaction — without this,
+        # an exception between the INSERTs and commit stranded a connection
+        # holding the WAL WRITE LOCK, and every other writer in the app ate
+        # the full 10s busy_timeout until the traceback was discarded
+        # (verified: second writer gets 'database is locked' after 1s with a
+        # stranded uncommitted INSERT). Same fix as the other task mutators.
+        con.close()
     # broadcast via WS
     try:
         import asyncio

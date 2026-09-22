@@ -200,9 +200,13 @@ def global_search(q: str = Query('', description='Query string to search across 
                     'action': f'agent:{row["id"]}',
                 }
             )
-        con.close()
     except Exception as exc:
         log.warning('Global search agent source unavailable: %s', exc)
+    finally:
+        # close() on the success path only leaked the handle whenever the
+        # source query raised (caught above, search continues) — finally
+        # closes it on every path.
+        con.close()
 
     # 3. Search Prompts from database if available
     try:
@@ -225,9 +229,10 @@ def global_search(q: str = Query('', description='Query string to search across 
                     'action': f'prompt:{row["id"]}',
                 }
             )
-        con.close()
     except Exception as exc:
         log.warning('Global search prompt source unavailable: %s', exc)
+    finally:
+        con.close()
 
     # 4. Search Marketplace Skills from built-in registry
     try:
