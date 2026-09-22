@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import threading
 import time
 import uuid
 
@@ -397,6 +398,10 @@ class CRDTDoc:
         self.connections: dict[str, WebSocket] = {}
         self.undo_stacks: dict[str, list] = {}  # peer_id → [op, ...]
         self.redo_stacks: dict[str, list] = {}
+        # Last time this doc was loaded or edited. Drives _evict_idle_docs:
+        # a doc nobody is connected to and nobody has touched for a TTL is
+        # dropped from the cache (everything is already durable per-op).
+        self.last_active = time.time()
 
     async def apply_and_broadcast(self, peer_id: str, peer_name: str, client_rev: int, op: list) -> dict:
         """
@@ -414,6 +419,7 @@ class CRDTDoc:
         old_content = self.content
         self.content = _apply_op(self.content, transformed_op)
         self.revision += 1
+        self.last_active = time.time()
 
         # Store
         entry = {
@@ -559,43 +565,92 @@ class CRDTDoc:
 
 
 _docs: dict[str, CRDTDoc] = {}
+# Cold loads happen from sync handlers in the threadpool AND the event loop;
+# two concurrent misses for the same id would build two CRDTDoc objects and
+# fork the document (one wins _docs, the other keeps applying with its own
+# revision counter). The lock only serialises the miss path; hits stay lock-free.
+_docs_lock = threading.Lock()
+
+# Idle-cache hygiene, mirroring collab's abandoned-session eviction (#217):
+# _docs held EVERY doc ever touched forever — nothing removed an entry except
+# an explicit DELETE. Measured live: 100 connectionless 1MB docs retained
+# +97MB RSS permanently. Docs with no connections and no activity for the TTL
+# are persisted (belt-and-braces; ops and content are already written per
+# apply) and dropped; if a flood outpaces the TTL, the oldest connectionless
+# ones go once the cap is hit. Connected docs are never evicted — they
+# self-clean on disconnect — and every _get_doc/apply refreshes last_active,
+# so a handshake in flight can never race the sweep.
+_DOC_IDLE_TTL_SECONDS = 15 * 60
+_MAX_CACHED_DOCS = 2000
+
+
+def _evict_idle_docs(now: float | None = None) -> None:
+    """Drop connectionless, idle docs from the cache. Never touches live ones."""
+    now = now if now is not None else time.time()
+    # Snapshot first: this runs in sync handlers (threadpool) while the event
+    # loop and other threads touch _docs — live iteration is the r65 race class.
+    items = list(_docs.items())
+    for doc_id, doc in items:
+        if not doc.connections and now - doc.last_active > _DOC_IDLE_TTL_SECONDS:
+            try:
+                doc._persist_doc()
+            except Exception as ex:
+                log.warning('crdt evict persist failed for %s: %s', doc_id, ex)
+            _docs.pop(doc_id, None)
+    if len(_docs) > _MAX_CACHED_DOCS:
+        excess = len(_docs) - _MAX_CACHED_DOCS
+        connectionless = sorted(
+            (d.last_active, doc_id)
+            for doc_id, d in list(_docs.items())
+            if not d.connections
+        )
+        for _, doc_id in connectionless[:excess]:
+            _docs.pop(doc_id, None)
 
 PEER_COLORS = ['#5b8af8', '#9d74f5', '#4cc98a', '#f0c060', '#f06080', '#38c5d8', '#f08850', '#c084fc']
 
 
 def _get_doc(doc_id: str) -> CRDTDoc:
-    if doc_id in _docs:
-        return _docs[doc_id]
+    doc = _docs.get(doc_id)
+    if doc is not None:
+        doc.last_active = time.time()  # a doc in use must not be swept
+        return doc
     # Load from DB
     from ..services.memory_db import get_conn
 
-    con = get_conn()
-    try:
-        row = con.execute('SELECT * FROM crdt_docs WHERE id=?', (doc_id,)).fetchone()
-        ops = con.execute(
-            'SELECT revision,peer_id,peer_name,op_json FROM crdt_ops WHERE doc_id=? ORDER BY revision', (doc_id,)
-        ).fetchall()
-    finally:
-        con.close()
-    if row:
-        doc = CRDTDoc(doc_id, row['title'] or '', row['content'] or '')
-        doc.revision = row['revision'] or 0
-        # A corrupt op_json must not brick every load of the document:
-        # skip it rather than 500 all endpoints that touch this doc.
-        doc.ops_log = [
-            {
-                'revision': r['revision'],
-                'peer_id': r['peer_id'],
-                'peer_name': r['peer_name'],
-                'op': parsed,
-            }
-            for r in ops
-            if (parsed := loads_or(r['op_json'], None)) is not None
-        ]
-    else:
-        doc = CRDTDoc(doc_id)
-    _docs[doc_id] = doc
-    return doc
+    with _docs_lock:
+        doc = _docs.get(doc_id)  # double-check: another thread may have loaded it
+        if doc is not None:
+            doc.last_active = time.time()
+            return doc
+        con = get_conn()
+        try:
+            row = con.execute('SELECT * FROM crdt_docs WHERE id=?', (doc_id,)).fetchone()
+            ops = con.execute(
+                'SELECT revision,peer_id,peer_name,op_json FROM crdt_ops WHERE doc_id=? ORDER BY revision', (doc_id,)
+            ).fetchall()
+        finally:
+            con.close()
+        if row:
+            doc = CRDTDoc(doc_id, row['title'] or '', row['content'] or '')
+            doc.revision = row['revision'] or 0
+            # A corrupt op_json must not brick every load of the document:
+            # skip it rather than 500 all endpoints that touch this doc.
+            doc.ops_log = [
+                {
+                    'revision': r['revision'],
+                    'peer_id': r['peer_id'],
+                    'peer_name': r['peer_name'],
+                    'op': parsed,
+                }
+                for r in ops
+                if (parsed := loads_or(r['op_json'], None)) is not None
+            ]
+        else:
+            doc = CRDTDoc(doc_id)
+        doc.last_active = time.time()
+        _docs[doc_id] = doc
+        return doc
 
 
 def _doc_exists(doc_id: str) -> bool:
@@ -634,6 +689,7 @@ def _unknown_doc(doc_id: str) -> JSONResponse:
 @router.get('/docs')
 def list_docs():
     """Retrieve and return list docs."""
+    _evict_idle_docs()
     from ..services.memory_db import get_conn
 
     con = get_conn()
@@ -649,6 +705,7 @@ def list_docs():
 @router.post('/docs')
 async def create_doc(req: Request):
     """Create and initialize a new doc."""
+    _evict_idle_docs()
     body, _body_err = await json_body_or_error(req)
     if _body_err:
         return _body_err
