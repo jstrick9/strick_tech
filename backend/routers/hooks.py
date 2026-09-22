@@ -226,8 +226,10 @@ def _ensure_schema():
 _ensure_schema()
 
 
-# ── In-memory event queue ─────────────────────────────────────────────────────
-_pending_events: list[dict] = []
+# ── In-memory hook execution state ────────────────────────────────────────────
+# (_pending_events sat here unused since the original upload — an event queue
+# that was never wired to anything. Removed rather than left to imply that
+# hook events are buffered somewhere.)
 _running_hooks: set[str] = set()
 
 
