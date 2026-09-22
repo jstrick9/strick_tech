@@ -210,6 +210,60 @@ def record_cost(
     return ledger_id
 
 
+# Retrospective + pre-flight cap aggregation cache. The cap SUM walks every
+# cost_ledger row inside the cap's period window, and it runs after EVERY LLM
+# call (3 seeded caps → 3 SUMs per call) and before every chat send. Under
+# sustained traffic the window holds the whole day's spend, so per-call cost
+# grew linearly with history: a 22-minute soak (10.9k LLM ops) drifted
+# tasks/send p50 129ms → 323ms, and py-spy put 54% of on-CPU request time in
+# this aggregation. The SUM is now recomputed at most once per TTL per filter
+# key; between recomputes the caller's own just-recorded spend is added on
+# top, so a single large spend still trips its cap immediately. Ledger rows
+# are never cached — only the guardrail evaluation is, lagging OTHER
+# concurrent spend by at most one TTL (30s), which is alerting-grade.
+_BUDGET_CAP_CACHE: dict[tuple, tuple[float, float, int]] = {}
+_BUDGET_CAP_CACHE_TTL = 30.0  # seconds
+_BUDGET_CAP_CACHE_MAX = 4096  # supervisor runs mint unique goal ids; bound it
+
+
+def _period_spend(con, period_sql: str, stype: str, sid: str,
+                  agent_id: str, goal_id: str,
+                  pending_delta: tuple[float, int] = (0.0, 0)) -> tuple[float, int]:
+    """(cost_usd, tokens) spent inside the cap window, TTL-cached.
+
+    `pending_delta` is spend already committed to cost_ledger by THIS call:
+    a cached value predates it and must add it; a fresh SUM already includes
+    it and must not. When a delta is folded into a cached value the sum is
+    written back to the cache: the next pre-flight (which passes no delta)
+    must see this call's spend, or a cap tripped by call N would let call
+    N+1 through. record_cost() is the only cost_ledger writer, so cached
+    values stay exact for app-driven spend; direct ledger edits stay
+    invisible for at most one TTL window.
+    """
+    key = (period_sql, sid, agent_id or '', goal_id or '', stype)
+    now_epoch = time.time()
+    cached = _BUDGET_CAP_CACHE.get(key)
+    if cached is not None and (now_epoch - cached[0]) < _BUDGET_CAP_CACHE_TTL:
+        out = (cached[1] + pending_delta[0], cached[2] + pending_delta[1])
+        if pending_delta[0] or pending_delta[1]:
+            _BUDGET_CAP_CACHE[key] = (now_epoch, out[0], out[1])
+        return out
+    agg = con.execute(
+        """
+        SELECT SUM(cost_usd) AS c, SUM(total_tokens) AS t FROM cost_ledger
+        WHERE created_at > datetime('now', ?)
+          AND (? = '*' OR agent_id = ?)
+          AND (? = '*' OR goal_id = ?)
+    """,
+        (period_sql, sid, agent_id, sid if stype == 'goal' else '*', goal_id or '*'),
+    ).fetchone()
+    out = (agg['c'] or 0.0, agg['t'] or 0)
+    _BUDGET_CAP_CACHE[key] = (now_epoch, out[0], out[1])
+    if len(_BUDGET_CAP_CACHE) > _BUDGET_CAP_CACHE_MAX:
+        _BUDGET_CAP_CACHE.clear()
+    return out
+
+
 def check_budget_before_spend(agent_id: str = '', goal_id: str = '') -> dict:
     """Pre-flight budget guardrail. Returns {'allowed': bool, 'reason': str, ...}.
 
@@ -246,17 +300,7 @@ def check_budget_before_spend(agent_id: str = '', goal_id: str = '') -> dict:
             period_sql = {'hour': '-1 hour', 'day': '-1 day', 'week': '-7 days', 'month': '-30 days'}.get(
                 cap['period'], '-1 day'
             )
-            agg = con.execute(
-                """
-                SELECT SUM(cost_usd) AS c, SUM(total_tokens) AS t FROM cost_ledger
-                WHERE created_at > datetime('now', ?)
-                  AND (? = '*' OR agent_id = ?)
-                  AND (? = '*' OR goal_id = ?)
-            """,
-                (period_sql, sid, agent_id, sid if stype == 'goal' else '*', goal_id or '*'),
-            ).fetchone()
-            spent = agg['c'] or 0.0
-            used_tok = agg['t'] or 0
+            spent, used_tok = _period_spend(con, period_sql, stype, sid, agent_id, goal_id)
 
             # A limit of 0 means "no limit set for this dimension" everywhere
             # else in this module, and a negative limit is nonsensical. Neither
@@ -309,18 +353,10 @@ def _check_budget_caps(agent_id: str, cost: float, tokens: int, goal_id: str):
                 cap['period'], '-1 day'
             )
 
-            agg = con.execute(
-                """
-                SELECT SUM(cost_usd) as c, SUM(total_tokens) as t FROM cost_ledger
-                WHERE created_at > datetime('now', ?)
-                  AND (? = '*' OR agent_id = ?)
-                  AND (? = '*' OR goal_id = ?)
-            """,
-                (period_sql, sid, agent_id, sid if stype == 'goal' else '*', goal_id or '*'),
-            ).fetchone()
-
-            cur_cost = agg['c'] or 0
-            cur_tok = agg['t'] or 0
+            cur_cost, cur_tok = _period_spend(
+                con, period_sql, stype, sid, agent_id, goal_id,
+                pending_delta=(cost, tokens),
+            )
 
             # Update cap counters
             con.execute(
