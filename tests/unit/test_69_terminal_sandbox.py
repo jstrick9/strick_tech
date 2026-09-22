@@ -28,6 +28,7 @@ reporting, cleanup) are asserted unconditionally.
 """
 from __future__ import annotations
 
+import pathlib
 import subprocess
 import sys
 from pathlib import Path
@@ -131,6 +132,11 @@ class TestTerminalIntegration:
 
 # ── Contracts requiring real namespaces ────────────────────────────────────────
 
+# Derived, not hardcoded: /home/user/repo/... paths are a no-op in any other
+# checkout (fresh clone) — the command fails because the path does not exist,
+# not because the sandbox blocked it.
+_ROOT = pathlib.Path(__file__).resolve().parents[2]
+
 
 @needs_ns
 class TestFilesystemIsolation:
@@ -140,11 +146,11 @@ class TestFilesystemIsolation:
         Unsandboxed, a terminal command can read secrets.py, the vault loader,
         and every credential the platform holds.
         """
-        out = run_sandboxed('cat /home/user/repo/backend/routers/secrets.py')
+        out = run_sandboxed(f'cat {_ROOT}/backend/routers/secrets.py')
         assert 'No such file' in out or 'cannot open' in out
 
     def test_the_database_is_unreachable(self):
-        out = run_sandboxed('ls -la /home/user/repo/memory/agentic.db')
+        out = run_sandboxed(f'ls -la {_ROOT}/memory/agentic.db')
         assert 'No such file' in out or 'cannot access' in out
 
     def test_the_home_directory_is_unreachable(self):

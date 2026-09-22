@@ -331,8 +331,15 @@ def test_an_undo_with_no_recorded_path_is_not_a_success(client):
 
 
 def test_an_undo_to_a_missing_directory_is_not_a_success(client):
+    # Derive the root the same way the undo route's guard does — a hardcoded
+    # /home/user/repo/... path sat OUTSIDE the root in any other checkout
+    # (e.g. a fresh clone), so the guard answered 403 before the undo logic
+    # could answer the 422 this test exists to pin.
+    from pathlib import Path
+
+    bogus = Path(hitl.__file__).resolve().parents[2] / 't157_no_such_dir' / 'f.txt'
     sid = _snapshot(
-        client, type='file', action_id='/home/user/repo/t157_no_such_dir/f.txt', state_data='x'
+        client, type='file', action_id=str(bogus), state_data='x'
     )
     r = client.post(f'/api/hitl/undo/{sid}')
     assert r.status_code == 422
