@@ -17,17 +17,17 @@ Supported methods (JSON-RPC 2.0):
   tasks/cancel           — cancel a running task
   tasks/list             — list tasks for this agent
 
-Registry endpoints:
-  GET  /a2a/agents               — list registered remote agents
-  POST /a2a/agents               — register a remote agent
-  GET  /a2a/agents/{id}          — get agent detail
-  PATCH /a2a/agents/{id}         — update agent config
-  DELETE /a2a/agents/{id}        — remove agent
-  POST /a2a/agents/{id}/verify   — fetch+verify remote agent card
-  POST /a2a/delegate             — delegate a task to a remote A2A agent
-  GET  /a2a/tasks                — list all A2A tasks (any direction)
-  GET  /a2a/tasks/{task_id}      — get specific task
-  GET  /a2a/stats                — platform A2A usage stats
+Registry endpoints (under /api/, bearer-gated in secure mode):
+  GET  /api/a2a/agents               — list registered remote agents
+  POST /api/a2a/agents               — register a remote agent
+  GET  /api/a2a/agents/{id}          — get agent detail
+  PATCH /api/a2a/agents/{id}         — update agent config
+  DELETE /api/a2a/agents/{id}        — remove agent
+  POST /api/a2a/agents/{id}/verify   — fetch+verify remote agent card
+  POST /api/a2a/delegate             — delegate a task to a remote A2A agent
+  GET  /api/a2a/tasks                — list all A2A tasks (any direction)
+  GET  /api/a2a/tasks/{task_id}      — get specific task
+  GET  /api/a2a/stats                — platform A2A usage stats
 
 Well-known:
   GET  /.well-known/agent.json                — platform-level agent card
@@ -53,6 +53,8 @@ from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+
+from ..security_auth import secure_mode_enabled
 
 router = APIRouter(tags=['a2a'])
 log = logging.getLogger('agentic.a2a')
@@ -199,9 +201,14 @@ def _build_agent_card(agent_id: str, base_url: str = 'http://localhost:8787') ->
         'defaultOutputModes': ['text/plain', 'application/json', 'text/markdown'],
         # Capabilities
         'capabilities': capabilities,
-        # Authentication (this platform requires no auth for local agents)
+        # Authentication. In secure-deployment mode every route on this
+        # server — including this JSON-RPC surface — requires the bearer
+        # token, and the card must say so: a remote agent reads `schemes`
+        # to decide how to authenticate. Advertising 'none' there while the
+        # middleware 401s the request is a lie that breaks interop.
         'authentication': {
-            'schemes': ['none', 'bearer'],
+            'schemes': (['bearer'] if secure_mode_enabled()
+                        else ['none', 'bearer']),
         },
         # Provider / identity
         'provider': {
@@ -980,7 +987,10 @@ def platform_agent_card(request: Request):
             'pushNotifications': False,
             'stateTransitionHistory': True,
         },
-        'authentication': {'schemes': ['none', 'bearer']},
+        # Must match the middleware: secure mode 401s every route without
+        # the bearer token, including this JSON-RPC surface.
+        'authentication': {'schemes': (['bearer'] if secure_mode_enabled()
+                                       else ['none', 'bearer'])},
         'provider': {
             'organization': 'Agentic OS',
             'url': base,

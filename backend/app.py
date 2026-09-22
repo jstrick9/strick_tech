@@ -149,7 +149,7 @@ from .routers.websocket import router as ws_router
 from .routers.workflow import router as workflow_router
 from .routers.workspace_export import router as workspace_export_router
 from .routers.workspaces import router as workspaces_router
-from .security_auth import require_websocket_auth
+from .security_auth import require_websocket_auth, secure_path_is_public
 from .services import runtime_topology
 from .services import scheduler as sched_svc
 from .services.memory_db import (
@@ -1033,7 +1033,17 @@ async def _security_middleware(request: Request, call_next):
     # Secure deployment mode: keep health probes public, require a bearer
     # token for every other API route. Static frontend delivery remains public
     # so the application shell can load and then authenticate its API calls.
-    if _SECURE_MODE and path.startswith('/api/') and path not in _PUBLIC_SECURE_PATHS:
+    if _SECURE_MODE and not secure_path_is_public(path, _PUBLIC_SECURE_PATHS):
+        # Was `path.startswith('/api/')` — but the A2A protocol router mounts
+        # at the ROOT (POST /a2a/{agent_id}, SSE /a2a/{id}/stream/{task},
+        # cards at /.well-known/agent.json), so in secure mode an
+        # unauthenticated caller could submit tasks/send and have any local
+        # agent EXECUTED on their prompt — verified live against a secure-mode
+        # server: 200, task created, agent ran, artifacts returned, no token
+        # anywhere. /docs and /redoc also sat outside the old prefix check.
+        # The decision now lives in security_auth.secure_path_is_public as an
+        # explicit allowlist (shell, static, preview, health probes) so every
+        # other path — including routers added later — is locked by default.
         authorization = request.headers.get('Authorization', '')
         expected = f'Bearer {_AUTH_TOKEN}'
         if not hmac.compare_digest(authorization, expected):

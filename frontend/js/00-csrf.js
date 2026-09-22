@@ -111,7 +111,10 @@
       if (token) {
         try {
           const u = new URL(typeof input === 'string' ? input : (input && input.url) || '', window.location.origin);
-          if (u.pathname.indexOf('/api/') === 0) {
+          // /a2a/ and the well-known agent card are same-origin API
+          // surfaces that live outside the /api/ prefix; in secure-mode
+          // deployments they require the same bearer token.
+          if (u.pathname.indexOf('/api/') === 0 || u.pathname.indexOf('/a2a/') === 0 || u.pathname === '/.well-known/agent.json') {
             const headers = new Headers(init.headers || (typeof input === 'object' ? input.headers : undefined) || {});
             if (!headers.has('Authorization')) headers.set('Authorization', 'Bearer ' + token);
             init = Object.assign({}, init, { headers, credentials: init.credentials || 'same-origin' });
