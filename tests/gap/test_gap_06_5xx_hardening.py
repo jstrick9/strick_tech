@@ -318,3 +318,29 @@ class TestGapWebsocketHardening:
         async with httpx.AsyncClient(timeout=10) as hc:
             r = await hc.get("http://127.0.0.1:8787/api/system/health")
             assert r.status_code == 200, "server wedged after crdt churn"
+
+
+@pytest.mark.asyncio
+class TestGapPpdHardening:
+    """PUT/PATCH/DELETE edge-body sweep (r67, 910 requests over 103 routes).
+    One real 500: DELETE /api/pluginsdk/packs/{bad-id} — the teardown called
+    .get('deleted') on the marketplace's JSONResponse (it answers 400 for
+    ids failing _PACK_ID_RE) → AttributeError. Now gated by the same
+    _valid_pack_id the marketplace door uses."""
+
+    async def test_pluginsdk_delete_invalid_id_400(self, C):
+        for bad in ["{pack_id}", "%00", "a b", "x" * 129]:
+            r = await DELETE(C, f"/api/pluginsdk/packs/{bad}")
+            assert r.status_code == 400, f"id {bad!r}: {r.status_code}"
+
+    async def test_pluginsdk_delete_unknown_id_idempotent_200(self, C):
+        r = await DELETE(C, "/api/pluginsdk/packs/gap_unknown_pack_xyz")
+        assert r.status_code == 200
+        assert r.json().get("deleted") is False
+
+    async def test_pluginsdk_get_put_invalid_ids_degrade(self, C):
+        for bad in ["%00", "{nope}"]:
+            g = await GET(C, f"/api/pluginsdk/packs/{bad}")
+            assert g.status_code == 404, f"GET {bad!r}: {g.status_code}"
+            p = await PUT(C, f"/api/pluginsdk/packs/{bad}", {"name": "x"})
+            assert p.status_code == 404, f"PUT {bad!r}: {p.status_code}"

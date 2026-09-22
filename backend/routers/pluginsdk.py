@@ -171,6 +171,22 @@ def delete_pack(pack_id: str):
     and "installed" plugins that no longer existed. Teardown now mirrors
     the publish path.
     """
+    # Same gate as the marketplace door. Without it, an id that fails the
+    # marketplace's _valid_pack_id made mkt_delete answer a JSONResponse
+    # (400) instead of a dict, and the summary line below called .get() on
+    # it — AttributeError, HTTP 500, on every DELETE with a malformed id
+    # (probe-verified: '{pack_id}', NUL, %00 …). GET/PUT degrade to 404 via
+    # exists(); DELETE is the only one that touched the marketplace result.
+    from .marketplace import (
+        CURATED_PACKS,
+        _invalid_pack_id_response,
+        _valid_pack_id,
+        delete_pack as mkt_delete,
+    )
+
+    if not _valid_pack_id(pack_id):
+        return _invalid_pack_id_response(pack_id)
+
     p = PACKS_DIR / f'{pack_id}.json'
     existed = p.exists()
 
@@ -182,8 +198,6 @@ def delete_pack(pack_id: str):
     # SDK door.
     mkt_result = None
     try:
-        from .marketplace import CURATED_PACKS, delete_pack as mkt_delete
-
         if not any(c.get('id') == pack_id for c in CURATED_PACKS):
             mkt_result = mkt_delete(pack_id)
     except Exception as ex:
