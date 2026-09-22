@@ -86,6 +86,39 @@ class CollabSession:
 
 _sessions: dict[str, CollabSession] = {}
 
+# Abandoned-session hygiene. POST /api/collab/sessions creates a session
+# object, but only a websocket disconnect ever removed one — and only for
+# sessions that HAD a peer. A session created over HTTP and never joined
+# lived forever: an 8-minute soak (5 workers creating sessions at ~8/s)
+# grew the registry to 3,651 entries while every GET /api/collab/sessions
+# serialized all of them (p50 7ms -> 18ms, p95 216ms -> 260ms, RSS +6MB).
+# Peerless sessions older than the TTL are evicted opportunistically; if a
+# flood outpaces the TTL, the oldest peerless ones go once the cap is hit.
+# Sessions with connected peers are never evicted — they self-clean on
+# disconnect.
+_SESSION_TTL_SECONDS = 15 * 60
+_MAX_SESSIONS = 2000
+
+
+def _evict_abandoned_sessions(now: float | None = None) -> None:
+    """Drop abandoned (peerless) sessions. Never touches live ones."""
+    now = now if now is not None else time.time()
+    # Snapshot first: this runs in the sync (threadpool) list handler while
+    # the event loop creates sessions — live iteration is the r65 race class.
+    items = list(_sessions.items())
+    for sid in [
+        sid for sid, s in items
+        if not s.peers and now - s.created > _SESSION_TTL_SECONDS
+    ]:
+        _sessions.pop(sid, None)
+    if len(_sessions) > _MAX_SESSIONS:
+        excess = len(_sessions) - _MAX_SESSIONS
+        peerless = sorted(
+            (s.created, sid) for sid, s in list(_sessions.items()) if not s.peers
+        )
+        for _, sid in peerless[:excess]:
+            _sessions.pop(sid, None)
+
 PEER_COLORS = [
     '#5b8af8',
     '#9d74f5',
@@ -108,6 +141,7 @@ def _get_or_create(session_id: str) -> CollabSession:
 @router.get('/sessions')
 def list_sessions():
     """Retrieve and return list sessions."""
+    _evict_abandoned_sessions()
     # Snapshot: this is a sync handler (threadpool) and POST /sessions
     # creates entries from other threads — lazy iteration over the live dict
     # raised "dictionary changed size during iteration" under load.
@@ -118,6 +152,7 @@ def list_sessions():
 async def create_session():
     # FIX 1: removed broken 'req: dict = None' parameter — session creation needs no body
     """Create and initialize a new session."""
+    _evict_abandoned_sessions()
     sid = str(uuid.uuid4())[:8]
     _sessions[sid] = CollabSession(sid)
     return {'ok': True, 'session_id': sid, 'invite_url': f'/?collab={sid}'}

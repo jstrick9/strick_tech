@@ -344,3 +344,64 @@ class TestGapPpdHardening:
             assert g.status_code == 404, f"GET {bad!r}: {g.status_code}"
             p = await PUT(C, f"/api/pluginsdk/packs/{bad}", {"name": "x"})
             assert p.status_code == 404, f"PUT {bad!r}: {p.status_code}"
+
+
+class TestGapCollabSessionHygiene:
+    """Abandoned collab sessions grew without bound (r68 soak: 3,651 entries
+    in 8 minutes, RSS +6MB, list p50 7ms -> 18ms). Peerless sessions now TTL
+    out after 15 minutes, a flood cap of 2000 drops the oldest peerless ones
+    first, and live sessions (peers connected) are never evicted."""
+
+    def _seed(self):
+        from backend.routers.collab import CollabSession, _sessions
+
+        _sessions.clear()
+        now = time.time()
+        for i in range(5):
+            s = CollabSession(f"gap_stale_{i}")
+            s.created = now - 99999
+            _sessions[s.id] = s
+        for i in range(3):
+            _sessions[f"gap_fresh_{i}"] = CollabSession(f"gap_fresh_{i}")
+        for i in range(2):
+            s = CollabSession(f"gap_live_{i}")
+            s.created = now - 99999
+            s.peers["p"] = {"id": "p"}
+            _sessions[s.id] = s
+        return now
+
+    def test_ttl_evicts_only_stale_peerless(self):
+        from backend.routers.collab import _evict_abandoned_sessions, _sessions
+
+        now = self._seed()
+        _evict_abandoned_sessions(now)
+        assert sorted(_sessions) == [
+            "gap_fresh_0", "gap_fresh_1", "gap_fresh_2", "gap_live_0", "gap_live_1",
+        ]
+
+    def test_flood_cap_drops_oldest_peerless_keeps_live(self):
+        from backend.routers.collab import (
+            CollabSession,
+            _MAX_SESSIONS,
+            _evict_abandoned_sessions,
+            _sessions,
+        )
+
+        self._seed()
+        now = time.time()
+        for i in range(_MAX_SESSIONS + 100):
+            _sessions[f"gap_flood_{i}"] = CollabSession(f"gap_flood_{i}")
+        _evict_abandoned_sessions(now)
+        assert len(_sessions) == _MAX_SESSIONS
+        assert "gap_live_0" in _sessions and "gap_live_1" in _sessions
+
+    async def test_live_cap_via_http(self, C):
+        """The HTTP door enforces the cap too: 2200 creates plateau at 2000."""
+        from backend.routers.collab import _MAX_SESSIONS
+
+        for _ in range(10):
+            await asyncio.gather(
+                *[POST(C, "/api/collab/sessions") for _ in range(250)]
+            )
+        r = await GET(C, "/api/collab/sessions")
+        assert len(r.json()) <= _MAX_SESSIONS
