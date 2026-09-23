@@ -10,6 +10,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import threading
 import time
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
@@ -104,11 +105,10 @@ async def websocket_endpoint(ws: WebSocket):
         async def status_updates():
             """Execute or process status updates operation."""
             while True:
-                await asyncio.sleep(8)
+                await asyncio.sleep(_WS_TICK_SECONDS)
                 try:
-                    agents = await _get_agent_statuses()
+                    agents, stats = await _status_snapshot()
                     await manager.send_to(ws, {'type': 'agent_status', 'agents': agents})
-                    stats = await _get_memory_stats()
                     await manager.send_to(ws, {'type': 'memory_stats', **stats})
                 except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                     break
@@ -256,6 +256,45 @@ async def _get_memory_stats() -> dict:
         }
     except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
         return {}
+
+
+# Per-client status cadence. Every connected client's tick task used to run
+# the SAME agents_list() + memory_stats() work — N clients meant N x the
+# identical per-tick queries (memory_stats alone runs four aggregations over
+# the memory table, COUNT(DISTINCT source) being the worst) while every
+# client received the same numbers. The snapshot is computed once per TTL
+# window and shared by all subscribers; each client still receives its own
+# message.
+#
+# Single-flight across the tick herd: client tick tasks can live on different
+# event loops (one per TestClient request in tests; one shared loop in
+# production), so an asyncio.Lock would be loop-bound and unsafe. A plain
+# threading mutex works everywhere — and since the compute body runs
+# synchronously (no internal awaits), the lock is never held across a yield.
+# Losers of the race block for the compute duration (~ms) and then serve the
+# winner's snapshot. Data each client sees is at most ~2 ticks old instead of
+# 1; status counters, not a ledger.
+_WS_TICK_SECONDS = 8.0
+_WS_SNAPSHOT_TTL = _WS_TICK_SECONDS
+_ws_snapshot_cache: tuple[float, list, dict] | None = None
+_ws_snapshot_mutex = threading.Lock()
+
+
+async def _status_snapshot() -> tuple[list[dict], dict]:
+    """(agents, memory_stats) shared across all WS tick tasks, TTL-cached."""
+    global _ws_snapshot_cache
+    cached = _ws_snapshot_cache
+    if cached is not None and (time.monotonic() - cached[0]) < _WS_SNAPSHOT_TTL:
+        return cached[1], cached[2]
+    with _ws_snapshot_mutex:
+        # re-check inside the mutex: the race winner may have just refreshed it
+        cached = _ws_snapshot_cache
+        if cached is not None and (time.monotonic() - cached[0]) < _WS_SNAPSHOT_TTL:
+            return cached[1], cached[2]
+        agents = await _get_agent_statuses()
+        stats = await _get_memory_stats()
+        _ws_snapshot_cache = (time.monotonic(), agents, stats)
+        return agents, stats
 
 
 # ── REST endpoint to broadcast from external callers ─────────────────────────
