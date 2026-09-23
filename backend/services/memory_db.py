@@ -265,6 +265,38 @@ def ensure_schema():
         _run_migration(con, 8, 'audit_action_index', """
             CREATE INDEX IF NOT EXISTS idx_audit_action ON audit(action, id);
         """)
+        # Migration 9: real FTS over chat_log.message. Migration 4's comment
+        # says "Add FTS index on chat_log for search" but it created a plain
+        # B-tree (idx_chat_log_message), which cannot serve the infix
+        # LIKE '%q%' that /api/chat/search runs — every search full-scans
+        # the message text of the entire history (measured 50-100ms at 200k
+        # messages, growing linearly forever). This adds what the comment
+        # promised: an external-content FTS5 table kept in sync by INSERT /
+        # UPDATE / DELETE triggers (session delete + clear-history +
+        # retention all DELETE FROM chat_log), seeded from existing rows via
+        # the one-time 'rebuild'. chat_search MATCHes against it and falls
+        # back to the old LIKE scan on any FTS error, so a failed migration
+        # degrades to today's behavior rather than breaking search.
+        _run_migration(con, 9, 'chat_log_fts', """
+            CREATE VIRTUAL TABLE IF NOT EXISTS chat_log_fts
+                USING fts5(message, content='chat_log', content_rowid='id');
+            CREATE TRIGGER IF NOT EXISTS chat_log_fts_ins
+                AFTER INSERT ON chat_log BEGIN
+                INSERT INTO chat_log_fts(rowid, message) VALUES (new.id, new.message);
+            END;
+            CREATE TRIGGER IF NOT EXISTS chat_log_fts_del
+                AFTER DELETE ON chat_log BEGIN
+                INSERT INTO chat_log_fts(chat_log_fts, rowid, message)
+                    VALUES ('delete', old.id, old.message);
+            END;
+            CREATE TRIGGER IF NOT EXISTS chat_log_fts_upd
+                AFTER UPDATE OF message ON chat_log BEGIN
+                INSERT INTO chat_log_fts(chat_log_fts, rowid, message)
+                    VALUES ('delete', old.id, old.message);
+                INSERT INTO chat_log_fts(rowid, message) VALUES (new.id, new.message);
+            END;
+            INSERT INTO chat_log_fts(chat_log_fts) VALUES ('rebuild');
+        """)
 
         con.commit()
     finally:
