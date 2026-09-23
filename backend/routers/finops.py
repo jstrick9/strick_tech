@@ -248,14 +248,32 @@ def _period_spend(con, period_sql: str, stype: str, sid: str,
         if pending_delta[0] or pending_delta[1]:
             _BUDGET_CAP_CACHE[key] = (now_epoch, out[0], out[1])
         return out
+    # Sargable re-aggregation (r83): the previous form used the
+    # (? = '*' OR agent_id = ?) / (? = '*' OR goal_id = ?) guard idiom, which
+    # the planner cannot bind to a column index — every evaluation fell back
+    # to idx_cl_time and walked EVERY row in the cap's period window (a
+    # 30-day cap at 100k ledger rows measured 80ms per cold recompute). The
+    # WHERE is now assembled per scope so the agent filter is a plain
+    # `agent_id = ?` and the planner can seek idx_cl_agent(agent_id,
+    # created_at DESC) directly. Filter semantics are preserved exactly,
+    # including the quirk that a goal-scoped cap also filters by the CALLING
+    # agent's id and that an empty call goal_id compares as '*': for a
+    # scoped cap the scope pre-match in both callers guarantees the agent
+    # filter holds, so the visible behaviour is unchanged.
+    where = "created_at > datetime('now', ?)"
+    params: list = [period_sql]
+    if sid != '*':
+        where += " AND agent_id = ?"
+        params.append(agent_id)
+        if stype == 'goal':
+            where += " AND goal_id = ?"
+            params.append(goal_id or '*')
     agg = con.execute(
-        """
+        f"""
         SELECT SUM(cost_usd) AS c, SUM(total_tokens) AS t FROM cost_ledger
-        WHERE created_at > datetime('now', ?)
-          AND (? = '*' OR agent_id = ?)
-          AND (? = '*' OR goal_id = ?)
+        WHERE {where}
     """,
-        (period_sql, sid, agent_id, sid if stype == 'goal' else '*', goal_id or '*'),
+        tuple(params),
     ).fetchone()
     out = (agg['c'] or 0.0, agg['t'] or 0)
     _BUDGET_CAP_CACHE[key] = (now_epoch, out[0], out[1])
