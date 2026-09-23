@@ -6,6 +6,7 @@ Sessions survive page reloads, can be renamed, pinned, searched, and exported.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import re
 import time
@@ -63,6 +64,82 @@ _ensure_sessions_table()
 # ── List ───────────────────────────────────────────────────────────────────────
 
 
+def _unclaimed_session_ids(con) -> list[str]:
+    """chat_log session ids that no chat_sessions row claims.
+
+    Walks DISTINCT session_ids (covering index order) with a PK probe per
+    distinct session — O(sessions), not O(messages).
+    """
+    return [
+        r[0]
+        for r in con.execute(
+            "SELECT DISTINCT session_id FROM chat_log c "
+            "WHERE NOT EXISTS (SELECT 1 FROM chat_sessions s WHERE s.id = c.session_id)"
+        )
+    ]
+
+
+def _probe_by_name(con, clean_name: str, unclaimed: list[str]):
+    """Unclaimed session whose message starts with (or contains) the title."""
+    if not unclaimed or len(clean_name) < 4 or clean_name.startswith('Chat '):
+        return None
+    ph = ','.join('?' * len(unclaimed))
+    prefix = clean_name[:14].strip()
+    row = con.execute(
+        f"SELECT DISTINCT session_id FROM chat_log WHERE session_id IN ({ph}) "
+        "AND (LOWER(message) LIKE LOWER(?) || '%' OR LOWER(message) LIKE '%' || LOWER(?) || '%') LIMIT 1",
+        (*unclaimed, prefix, prefix),
+    ).fetchone()
+    return row[0] if row else None
+
+
+def _probe_by_time(con, created_at, unclaimed: list[str]):
+    """Unclaimed session whose messages land within an hour of the orphan's
+    creation (or on the same day)."""
+    if not unclaimed or not created_at:
+        return None
+    ph = ','.join('?' * len(unclaimed))
+    day_str = str(created_at)[:10]
+    row = con.execute(
+        f"SELECT DISTINCT session_id FROM chat_log WHERE session_id IN ({ph}) "
+        "AND (abs(unixepoch(created_at) - unixepoch(?)) <= 3600 OR SUBSTR(created_at, 1, 10) = ?) LIMIT 1",
+        (*unclaimed, created_at, day_str),
+    ).fetchone()
+    return row[0] if row else None
+
+
+def _probe_any(con, unclaimed: list[str]):
+    """Any unclaimed session — the one owning the LOWEST chat_log id,
+    matching the original rowid scan order of the unbounded probe."""
+    if not unclaimed:
+        return None
+    ph = ','.join('?' * len(unclaimed))
+    row = con.execute(
+        f"SELECT session_id FROM chat_log WHERE session_id IN ({ph}) ORDER BY id LIMIT 1",
+        tuple(unclaimed),
+    ).fetchone()
+    return row[0] if row else None
+
+
+def _find_orphan_match(con, clean_name: str, created_at, unclaimed: list[str]):
+    """Find the unclaimed chat_log session an orphaned session should adopt:
+    by title prefix, then creation timestamp, then any unclaimed session.
+
+    r85: every probe is bounded to the UNCLAIMED sessions' rows (index seeks
+    via idx_chat_log_session) instead of scanning the whole chat_log. This is
+    also a correctness fix: the old name probe had no unclaimed filter, so a
+    session whose message merely CONTAINED the orphan's title prefix could be
+    'adopted' — its messages re-linked into the orphan, leaving the victim
+    empty and itself becoming a new orphan on the next pass (adoption theft).
+    Adoption candidates are now exactly the sessions nobody owns.
+    """
+    return (
+        _probe_by_name(con, clean_name, unclaimed)
+        or _probe_by_time(con, created_at, unclaimed)
+        or _probe_any(con, unclaimed)
+    )
+
+
 def _reconcile_orphan_sessions(con):
     """Universally reconcile any 0-message chat_sessions row with chat_log entries by exact ID, title match, or creation timestamp."""
     try:
@@ -96,7 +173,7 @@ def _reconcile_orphan_sessions(con):
         ).fetchone():
             return
         if not con.execute(
-            "SELECT 1 FROM chat_log c "
+            "SELECT 1 FROM (SELECT DISTINCT session_id FROM chat_log) c "
             "WHERE NOT EXISTS (SELECT 1 FROM chat_sessions s WHERE s.id = c.session_id) LIMIT 1"
         ).fetchone():
             return
@@ -113,42 +190,59 @@ def _reconcile_orphan_sessions(con):
             con.commit()
 
         zero_sessions = con.execute("SELECT id, name, created_at FROM chat_sessions WHERE message_count = 0").fetchall()
+        # The adoption candidates, computed once: without this the three
+        # probes below each scanned the WHOLE chat_log per orphan session —
+        # and an unadoptable orphan re-scanned on every list call forever.
+        unclaimed = _unclaimed_session_ids(con)
+        if not unclaimed:
+            return
+
+        orphans = []
         for sid, name, created_at in zero_sessions:
             clean_name = (name or '').replace('📌', '').strip()
             while clean_name.endswith('.'):
                 clean_name = clean_name[:-1].strip()
+            orphans.append((sid, clean_name, created_at, name or ''))
 
-            matched_sid = None
-            if len(clean_name) >= 4 and not clean_name.startswith('Chat '):
-                prefix = clean_name[:14].strip()
-                row = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE LOWER(message) LIKE LOWER(?) || '%' OR LOWER(message) LIKE '%' || LOWER(?) || '%' LIMIT 1", (prefix, prefix)).fetchone()
-                if row and row[0]:
-                    matched_sid = row[0]
+        # Most-specific-first matching: ALL name probes run before ANY
+        # timestamp probe, and timestamp probes before the any-fallback.
+        # The old per-orphan sequence let a generic timestamp/any match
+        # claim an unclaimed session before a LATER orphan whose name
+        # specifically matched it — and only the old unfiltered name probe
+        # stealing the row back made that look right (leaving the first
+        # taker with a stale count and no messages).
+        matches: dict[str, str] = {}
+        for sid, clean_name, _, _ in orphans:
+            m = _probe_by_name(con, clean_name, unclaimed)
+            if m and m not in matches.values():
+                matches[sid] = m
+        for sid, clean_name, created_at, _ in orphans:
+            if sid in matches:
+                continue
+            m = _probe_by_time(con, created_at, unclaimed)
+            if m and m not in matches.values():
+                matches[sid] = m
+        for sid, clean_name, created_at, _ in orphans:
+            if sid in matches:
+                continue
+            m = _probe_any(con, unclaimed)
+            if m and m not in matches.values():
+                matches[sid] = m
 
-            if not matched_sid and created_at:
-                day_str = str(created_at)[:10]
-                row_ts = con.execute("""
-                    SELECT DISTINCT session_id FROM chat_log
-                    WHERE (abs(unixepoch(created_at) - unixepoch(?)) <= 3600 OR SUBSTR(created_at, 1, 10) = ?)
-                    AND session_id NOT IN (SELECT id FROM chat_sessions WHERE message_count > 0)
-                    LIMIT 1
-                """, (created_at, day_str)).fetchone()
-                if row_ts and row_ts[0]:
-                    matched_sid = row_ts[0]
-
-            if not matched_sid:
-                row_any = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE session_id NOT IN (SELECT id FROM chat_sessions) LIMIT 1").fetchone()
-                if row_any and row_any[0]:
-                    matched_sid = row_any[0]
-
-            if matched_sid and matched_sid != sid:
-                con.execute("UPDATE chat_log SET session_id = ? WHERE session_id = ?", (sid, matched_sid))
-                con.execute("UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_log c WHERE c.session_id = ?), updated_at = CURRENT_TIMESTAMP WHERE id = ?", (sid, sid))
-                first_txt = con.execute("SELECT message FROM chat_log WHERE session_id = ? ORDER BY id ASC LIMIT 1", (sid,)).fetchone()
-                if first_txt and first_txt[0] and name.startswith('Chat '):
-                    new_title = (first_txt[0].strip()[:256])
-                    con.execute("UPDATE chat_sessions SET name = ? WHERE id = ?", (new_title, sid))
-                con.commit()
+        for sid, matched_sid in matches.items():
+            if matched_sid == sid:
+                continue
+            con.execute("UPDATE chat_log SET session_id = ? WHERE session_id = ?", (sid, matched_sid))
+            con.execute("UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_log c WHERE c.session_id = ?), updated_at = CURRENT_TIMESTAMP WHERE id = ?", (sid, sid))
+            first_txt = con.execute("SELECT message FROM chat_log WHERE session_id = ? ORDER BY id ASC LIMIT 1", (sid,)).fetchone()
+            if first_txt and first_txt[0]:
+                # retitle sessions still carrying a 'Chat …' default name
+                row_name = con.execute("SELECT name FROM chat_sessions WHERE id = ?", (sid,)).fetchone()
+                if row_name and (row_name[0] or '').startswith('Chat '):
+                    con.execute("UPDATE chat_sessions SET name = ? WHERE id = ?", (first_txt[0].strip()[:256], sid))
+            con.commit()
+            with contextlib.suppress(ValueError):
+                unclaimed.remove(matched_sid)  # adopted; not a candidate for the next orphan
     except Exception as e:
         log.warning("Reconciliation error: %s", e)
 
@@ -471,17 +565,8 @@ def session_messages(session_id: str, limit: int = 200, offset: int = 0):
                 cname = (sinfo_row[0] or '').replace('📌', '').strip()
                 while cname.endswith('.'): cname = cname[:-1].strip()
                 orphan_sid = None
-                if len(cname) >= 4 and not cname.startswith('Chat '):
-                    prefix = cname[:14].strip()
-                    o_row = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE LOWER(message) LIKE LOWER(?) || '%' OR LOWER(message) LIKE '%' || LOWER(?) || '%' LIMIT 1", (prefix, prefix)).fetchone()
-                    if o_row and o_row[0]: orphan_sid = o_row[0]
-                if not orphan_sid and sinfo_row[1]:
-                    day_str = str(sinfo_row[1])[:10]
-                    o_row_ts = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE (abs(unixepoch(created_at) - unixepoch(?)) <= 3600 OR SUBSTR(created_at, 1, 10) = ?) AND session_id NOT IN (SELECT id FROM chat_sessions WHERE message_count > 0) LIMIT 1", (sinfo_row[1], day_str)).fetchone()
-                    if o_row_ts and o_row_ts[0]: orphan_sid = o_row_ts[0]
-                if not orphan_sid:
-                    o_any = con.execute("SELECT DISTINCT session_id FROM chat_log WHERE session_id NOT IN (SELECT id FROM chat_sessions) LIMIT 1").fetchone()
-                    if o_any and o_any[0]: orphan_sid = o_any[0]
+                unclaimed = _unclaimed_session_ids(con)
+                orphan_sid = _find_orphan_match(con, cname, sinfo_row[1], unclaimed)
                 if orphan_sid and orphan_sid != session_id:
                     con.execute("UPDATE chat_log SET session_id=? WHERE session_id=?", (session_id, orphan_sid))
                     con.execute("UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_log WHERE session_id=?) WHERE id=?", (session_id, session_id))
