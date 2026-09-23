@@ -59,8 +59,20 @@ from ..services.request_body import as_text, json_body_or_error
 ROOT = get_data_dir()
 KEY_PATH = ROOT / 'memory' / '.vault_key'
 
+# Cached vault cipher (r86). _get_fernet used to run the full sequence —
+# mkdir, exists, permission tightening, read_bytes, Fernet() — on EVERY call,
+# and _decrypt calls it per ROW: listing a vault of N secrets did N key-file
+# reads and N cipher constructions, and _inject_to_env (which runs at import
+# time, before the app serves anything) repeated it for every global secret
+# on every process boot. The constructed Fernet is immutable, so it is cached
+# keyed on (path, mtime_ns, size): a rewritten or rotated key file — or a
+# test pointing KEY_PATH elsewhere — changes the stat tuple and forces a
+# fresh read. The permission-tightening stat check still runs per call.
+_FERNET_CACHE: tuple[tuple, object] | None = None
+
 
 def _get_fernet():
+    global _FERNET_CACHE
     try:
         from cryptography.fernet import Fernet
 
@@ -88,8 +100,14 @@ def _get_fernet():
                     )
             except OSError as e:  # pragma: no cover - non-POSIX or permission denied
                 log.error('Could not secure vault key permissions: %s', e)
+        st = KEY_PATH.stat()
+        cache_key = (str(KEY_PATH), st.st_mtime_ns, st.st_size)
+        if _FERNET_CACHE is not None and _FERNET_CACHE[0] == cache_key:
+            return _FERNET_CACHE[1]
         key = KEY_PATH.read_bytes()
-        return Fernet(key)
+        cipher = Fernet(key)
+        _FERNET_CACHE = (cache_key, cipher)
+        return cipher
     except ImportError:
         return None
 
