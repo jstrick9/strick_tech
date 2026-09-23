@@ -385,6 +385,25 @@ class ExecutionEngine:
         self.active_traces: dict[str, ExecutionTrace] = {}
         self.resource_usage: dict[str, dict] = {}
 
+    # Unbounded-registry fix (r82): every execution path stored its completed
+    # trace in self.active_traces and NOTHING ever removed one. The registry
+    # lives in the process-wide singleton, so it grew by one entry per
+    # execution for the lifetime of the process — a workflow-heavy deployment
+    # accumulates hundreds of thousands of traces (each holding its step
+    # list) while the only consumers are list_traces(limit=50) and an
+    # by-id drill-down used right after a run. The cap keeps 5x the default
+    # listing depth of recent history; eviction is by started_at so "oldest"
+    # is semantic, not insertion order (fan-out/map-reduce complete out of
+    # order).
+    MAX_TRACES = 256
+
+    def record_trace(self, trace: ExecutionTrace) -> None:
+        """Store a completed trace, evicting the oldest when the cap is hit."""
+        self.active_traces[trace.trace_id] = trace
+        if len(self.active_traces) > self.MAX_TRACES:
+            oldest = min(self.active_traces.values(), key=lambda t: t.started_at)
+            self.active_traces.pop(oldest.trace_id, None)
+
     def get_circuit_breaker(self, provider: str) -> CircuitBreaker:
         if provider not in self.circuit_breakers:
             self.circuit_breakers[provider] = CircuitBreaker()
@@ -540,7 +559,7 @@ class ExecutionEngine:
 
         trace.completed_at = time.time()
         trace.status = "completed"
-        self.active_traces[trace.trace_id] = trace
+        self.record_trace(trace)
 
         return {
             "ok": True,
@@ -598,7 +617,7 @@ class ExecutionEngine:
 
         trace.completed_at = time.time()
         trace.status = "completed"
-        self.active_traces[trace.trace_id] = trace
+        self.record_trace(trace)
 
         return {
             "ok": True,
@@ -657,7 +676,7 @@ class ExecutionEngine:
 
         trace.completed_at = time.time()
         trace.status = "completed"
-        self.active_traces[trace.trace_id] = trace
+        self.record_trace(trace)
 
         return {
             "ok": True,
@@ -904,6 +923,16 @@ class HarnessEngine:
         self.engine = execution_engine or ExecutionEngine()
         self.results: dict[str, list] = {}
 
+    # Unbounded-registry fix (r82): run_test_harness appends to
+    # self.results[harness_id] and the router DEFAULTS harness_id to a fresh
+    # uuid per run — one new dict key per run, forever, in the process-wide
+    # engine. The only consumer, get_regression_report, reads history[-1]
+    # and history[-2]. History keeps 50 runs per harness (25x the reader's
+    # needs) and the registry keeps the 100 most recently run harness ids;
+    # uuid-defaulted runs evict oldest-first by their last run timestamp.
+    MAX_HARNESS_HISTORY = 50
+    MAX_HARNESSES = 100
+
     async def run_test_harness(
         self,
         harness_id: str,
@@ -1009,20 +1038,30 @@ class HarnessEngine:
 
         trace.completed_at = time.time()
         trace.status = "completed"
-        self.engine.active_traces[trace.trace_id] = trace
+        self.engine.record_trace(trace)
 
         total = passed + failed
         pass_rate = (passed / total * 100) if total else 0
 
         # Store results for regression comparison
-        self.results[harness_id] = self.results.get(harness_id, [])
-        self.results[harness_id].append({
+        history = self.results.get(harness_id, [])
+        history.append({
             "timestamp": time.time(),
             "pass_rate": pass_rate,
             "passed": passed,
             "failed": failed,
             "total": total,
         })
+        if len(history) > self.MAX_HARNESS_HISTORY:
+            del history[: len(history) - self.MAX_HARNESS_HISTORY]
+        self.results[harness_id] = history
+        if len(self.results) > self.MAX_HARNESSES:
+            stale = sorted(
+                self.results.items(),
+                key=lambda kv: kv[1][-1]["timestamp"] if kv[1] else 0,
+            )
+            for hid, _ in stale[: len(self.results) - self.MAX_HARNESSES]:
+                del self.results[hid]
 
         return {
             "ok": True,
@@ -1255,7 +1294,7 @@ class ChainEngine:
 
         trace.completed_at = time.time()
         trace.status = "completed"
-        get_engine().active_traces[trace.trace_id] = trace
+        get_engine().record_trace(trace)
 
         return {
             "ok": True,
@@ -1363,7 +1402,7 @@ class ReflectionEngine:
 
         trace.completed_at = time.time()
         trace.status = "completed"
-        get_engine().active_traces[trace.trace_id] = trace
+        get_engine().record_trace(trace)
 
         return {
             "ok": True,

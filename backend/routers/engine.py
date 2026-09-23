@@ -109,7 +109,7 @@ async def execute_with_retry(req: Request):
 
     trace.completed_at = __import__('time').time()
     trace.status = 'completed' if result.get('ok') else 'failed'
-    engine.active_traces[trace.trace_id] = trace
+    engine.record_trace(trace)
 
     return {
         'ok': result.get('ok', False),
