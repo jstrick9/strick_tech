@@ -319,8 +319,13 @@ def _parse_file(filepath: str, content: str) -> dict:
 
 
 # ── Indexing ──────────────────────────────────────────────────────────────────
-def _index_file(filepath: str, content: str):
-    """Parse a file and store its symbols/imports in SQLite."""
+def _index_file(filepath: str, content: str, *, rebuild_fts: bool = True):
+    """Parse a file and store its symbols/imports in SQLite.
+
+    rebuild_fts=False skips the code_symbols_fts REBUILD — for callers that
+    index many files in one run (index_directory) and rebuild once at the
+    end instead of once per file.
+    """
     rel_path = filepath
     parsed = _parse_file(rel_path, content)
 
@@ -360,8 +365,9 @@ def _index_file(filepath: str, content: str):
                 (rel_path, call['from_symbol'], call['to_symbol'], call.get('line', 0)),
             )
         # Rebuild FTS5 content table
-        with contextlib.suppress(Exception):
-            con.execute("INSERT INTO code_symbols_fts(code_symbols_fts) VALUES ('rebuild')")
+        if rebuild_fts:
+            with contextlib.suppress(Exception):
+                con.execute("INSERT INTO code_symbols_fts(code_symbols_fts) VALUES ('rebuild')")
         con.commit()
     finally:
         con.close()
@@ -403,7 +409,7 @@ async def index_directory(req: Request):
         try:
             content = f.read_text(encoding='utf-8', errors='ignore')
             rel = str(f.relative_to(ROOT))
-            sym_cnt = _index_file(rel, content)
+            sym_cnt = _index_file(rel, content, rebuild_fts=False)
             symbols += sym_cnt
             indexed += 1
         except Exception as ex:
@@ -418,10 +424,26 @@ async def index_directory(req: Request):
             try:
                 content = f.read_text(encoding='utf-8', errors='ignore')
                 rel = str(f.relative_to(ROOT))
-                symbols += _index_file(rel, content)
+                symbols += _index_file(rel, content, rebuild_fts=False)
                 indexed += 1
             except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                 errors += 1
+
+    # ONE rebuild for the whole run. _index_file used to rebuild the FULL
+    # code_symbols_fts index after every file — F files meant F rebuilds of
+    # an index holding S symbols each, so re-indexing a project cost O(F*S)
+    # growing quadratically as the index grew. The per-file commit stays:
+    # a file is the durability unit (a bad file rolls back only itself).
+    if indexed:
+        from ..services.memory_db import get_conn
+
+        con = get_conn()
+        try:
+            with contextlib.suppress(Exception):
+                con.execute("INSERT INTO code_symbols_fts(code_symbols_fts) VALUES ('rebuild')")
+            con.commit()
+        finally:
+            con.close()
 
     return {'ok': True, 'indexed_files': indexed, 'symbols_found': symbols, 'errors': errors}
 
