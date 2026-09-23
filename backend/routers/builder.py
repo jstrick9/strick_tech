@@ -282,34 +282,41 @@ async def preview_save(req: Request):
     old = f.read_text(encoding='utf-8', errors='ignore') if f.exists() else ''
     f.write_text(content, encoding='utf-8')
     con = DB()
-    workspace_id = _current_workspace_id()
-    if old != content:
-        # BUG FIX: this used to store `old` (the pre-save content) as the
-        # version-history snapshot instead of `content` (what was actually
-        # just saved). Every other version-consuming code path -- the version
-        # scrubber/history popover, /api/preview/restore,
-        # /api/preview/commit (which correctly stores the CURRENT content)
-        # -- treats a file_versions row as "the file as of this save", so
-        # storing the old content made every "vN" label off-by-one: clicking
-        # Restore on the version created by a given save actually restored
-        # whatever the file looked like *before* that save, silently
-        # reverting the user's most recent edit instead of the one they
-        # picked. Store `content` (post-save state) to match commit()'s
-        # semantics and to make Restore behave as labeled.
-        con.execute(
-            'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
-            (
-                path,
-                content,
-                d.get('author') or 'builder',
-                (d.get('message') or 'save')[:240],
-                workspace_id,
-            ),
-        )
-        con.execute("INSERT INTO audit(action,detail) VALUES ('preview_save',?)", (path,))
-        con.commit()
-    v = con.execute("SELECT COUNT(*) FROM file_versions WHERE path=? AND (workspace_id=? OR workspace_id='')", (path, workspace_id)).fetchone()[0]
-    con.close()
+    try:
+        workspace_id = _current_workspace_id()
+        if old != content:
+            # BUG FIX: this used to store `old` (the pre-save content) as the
+            # version-history snapshot instead of `content` (what was actually
+            # just saved). Every other version-consuming code path -- the version
+            # scrubber/history popover, /api/preview/restore,
+            # /api/preview/commit (which correctly stores the CURRENT content)
+            # -- treats a file_versions row as "the file as of this save", so
+            # storing the old content made every "vN" label off-by-one: clicking
+            # Restore on the version created by a given save actually restored
+            # whatever the file looked like *before* that save, silently
+            # reverting the user's most recent edit instead of the one they
+            # picked. Store `content` (post-save state) to match commit()'s
+            # semantics and to make Restore behave as labeled.
+            con.execute(
+                'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
+                (
+                    path,
+                    content,
+                    d.get('author') or 'builder',
+                    (d.get('message') or 'save')[:240],
+                    workspace_id,
+                ),
+            )
+            con.execute("INSERT INTO audit(action,detail) VALUES ('preview_save',?)", (path,))
+            con.commit()
+        v = con.execute("SELECT COUNT(*) FROM file_versions WHERE path=? AND (workspace_id=? OR workspace_id='')", (path, workspace_id)).fetchone()[0]
+    finally:
+        # DB() is an alias of memory_db.get_conn() — these call sites were
+        # invisible to the #233 close-in-finally sweep, which matched the
+        # get_conn name. An exception between the version INSERT and commit
+        # stranded an uncommitted write transaction holding the WAL write
+        # lock (see #233's mechanism proof).
+        con.close()
     # Trigger HMR broadcast
     try:
         import asyncio
@@ -374,12 +381,14 @@ async def preview_delete(req: Request):
 def preview_history(path: str = 'index.html'):
     """Execute or process preview history operation."""
     con = DB()
-    rows = con.execute(
-        """SELECT id, author, message, datetime(created_at,'localtime') as ts, length(content) as bytes
-           FROM file_versions WHERE path=? AND (workspace_id=? OR workspace_id='') ORDER BY id DESC LIMIT 150""",
-        (path, _current_workspace_id()),
-    ).fetchall()
-    con.close()
+    try:
+        rows = con.execute(
+            """SELECT id, author, message, datetime(created_at,'localtime') as ts, length(content) as bytes
+               FROM file_versions WHERE path=? AND (workspace_id=? OR workspace_id='') ORDER BY id DESC LIMIT 150""",
+            (path, _current_workspace_id()),
+        ).fetchall()
+    finally:
+        con.close()  # DB() alias — see preview_save note re: the #233 sweep
     return [dict(r) for r in rows]
 
 
@@ -387,8 +396,10 @@ def preview_history(path: str = 'index.html'):
 def preview_version(id: int):
     """Execute or process preview version operation."""
     con = DB()
-    r = con.execute("SELECT * FROM file_versions WHERE id=? AND (workspace_id=? OR workspace_id='')", (id, _current_workspace_id())).fetchone()
-    con.close()
+    try:
+        r = con.execute("SELECT * FROM file_versions WHERE id=? AND (workspace_id=? OR workspace_id='')", (id, _current_workspace_id())).fetchone()
+    finally:
+        con.close()  # DB() alias — see preview_save note re: the #233 sweep
     return dict(r) if r else {'ok': False}
 
 
@@ -397,8 +408,10 @@ async def preview_restore(req: Request):
     """Execute or process preview restore operation."""
     d = await _request_json(req)
     con = DB()
-    row = con.execute("SELECT path,content FROM file_versions WHERE id=? AND (workspace_id=? OR workspace_id='')", (d.get('version_id'), _current_workspace_id())).fetchone()
-    con.close()
+    try:
+        row = con.execute("SELECT path,content FROM file_versions WHERE id=? AND (workspace_id=? OR workspace_id='')", (d.get('version_id'), _current_workspace_id())).fetchone()
+    finally:
+        con.close()  # DB() alias — see preview_save note re: the #233 sweep
     if not row:
         return {'ok': False}
     # FIX 3: re-validate path from DB to prevent traversal (defence in depth)
@@ -408,12 +421,15 @@ async def preview_restore(req: Request):
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(row['content'], encoding='utf-8')
     con = DB()
-    con.execute(
-        'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
-        (row['path'], row['content'], 'builder', f'restore v{d.get("version_id")}', _current_workspace_id()),
-    )
-    con.commit()
-    con.close()
+    try:
+        con.execute(
+            'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
+            (row['path'], row['content'], 'builder', f'restore v{d.get("version_id")}', _current_workspace_id()),
+        )
+        con.commit()
+    finally:
+        # DB() alias — see preview_save note re: the #233 sweep
+        con.close()
     return {'ok': True}
 
 
@@ -435,13 +451,16 @@ async def preview_commit(req: Request):
         return {'ok': False}
     content = f.read_text(encoding='utf-8', errors='ignore')
     con = DB()
-    con.execute(
-        'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
-        (path, content, d.get('author', 'builder'), d.get('message', 'checkpoint'), _current_workspace_id()),
-    )
-    vid = con.execute('SELECT last_insert_rowid()').fetchone()[0]
-    con.commit()
-    con.close()
+    try:
+        con.execute(
+            'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
+            (path, content, d.get('author', 'builder'), d.get('message', 'checkpoint'), _current_workspace_id()),
+        )
+        vid = con.execute('SELECT last_insert_rowid()').fetchone()[0]
+        con.commit()
+    finally:
+        # DB() alias — see preview_save note re: the #233 sweep
+        con.close()
     return {'ok': True, 'version_id': vid}
 
 
@@ -560,27 +579,28 @@ async def preview_scaffold(req: Request):
 
     created_files = []
     con = DB()
+    try:
 
-    def write_rel(rel_path: str, content: str):
-        """Execute or process write rel operation."""
-        f = PREVIEW_DIR / rel_path
-        f.parent.mkdir(parents=True, exist_ok=True)
-        f.write_text(content, encoding='utf-8')
-        created_files.append(rel_path)
-        try:
-            con.execute(
-                'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
-                (rel_path, content, 'scaffolder', f'{framework} scaffold: {prompt_raw[:80]}', _current_workspace_id()),
-            )
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-            pass
+        def write_rel(rel_path: str, content: str):
+            """Execute or process write rel operation."""
+            f = PREVIEW_DIR / rel_path
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(content, encoding='utf-8')
+            created_files.append(rel_path)
+            try:
+                con.execute(
+                    'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
+                    (rel_path, content, 'scaffolder', f'{framework} scaffold: {prompt_raw[:80]}', _current_workspace_id()),
+                )
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
+                pass
 
-    title = prompt_raw.title() or 'My App'
+        title = prompt_raw.title() or 'My App'
 
-    if framework == 'web':
-        write_rel(
-            'index.html',
-            f"""<!DOCTYPE html>
+        if framework == 'web':
+            write_rel(
+                'index.html',
+                f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -619,67 +639,67 @@ async def preview_scaffold(req: Request):
   </div>
   <div class="grid grid-cols-3 gap-4" id="features">
     {
-                ''.join(
-                    f'<div class="bg-gray-900 border border-gray-800 rounded-xl p-5"><div class="text-2xl mb-2">{e}</div><div class="font-semibold mb-1">{t}</div><div class="text-gray-400 text-sm">{d}</div></div>'
-                    for e, t, d in [
-                        ('🚀', 'Live Builder', 'Monaco · Git · Diff · HMR'),
-                        ('📱', 'Expo Go', 'React Native mobile live'),
-                        ('🧪', 'Playwright E2E', 'Auto-fix loop · Trace Viewer'),
-                        ('🌌', 'Memory Galaxy', 'Qdrant 384d · <40ms RAG'),
-                        ('🌀', 'Swarm', '4-6 agents fan-out · judge · merge'),
-                        ('⚡', 'Deploy', 'Vercel 1-click · 18s'),
-                    ]
-                )
-            }
+                    ''.join(
+                        f'<div class="bg-gray-900 border border-gray-800 rounded-xl p-5"><div class="text-2xl mb-2">{e}</div><div class="font-semibold mb-1">{t}</div><div class="text-gray-400 text-sm">{d}</div></div>'
+                        for e, t, d in [
+                            ('🚀', 'Live Builder', 'Monaco · Git · Diff · HMR'),
+                            ('📱', 'Expo Go', 'React Native mobile live'),
+                            ('🧪', 'Playwright E2E', 'Auto-fix loop · Trace Viewer'),
+                            ('🌌', 'Memory Galaxy', 'Qdrant 384d · <40ms RAG'),
+                            ('🌀', 'Swarm', '4-6 agents fan-out · judge · merge'),
+                            ('⚡', 'Deploy', 'Vercel 1-click · 18s'),
+                        ]
+                    )
+                }
   </div>
 </main>
 <script src="app.js" type="module"></script>
 </body>
 </html>""",
-        )
-        write_rel('styles.css', 'body{font-family:Inter,system-ui,sans-serif}\n')
-        write_rel(
-            'app.js',
-            f"""// {title} — Agentic OS
+            )
+            write_rel('styles.css', 'body{font-family:Inter,system-ui,sans-serif}\n')
+            write_rel(
+                'app.js',
+                f"""// {title} — Agentic OS
 document.getElementById('cta-primary')?.addEventListener('click', () => {{
   alert('🚀 {title} — built with Agentic OS!');
 }});
 console.log('[Agentic OS] {title} loaded');
 """,
-        )
-        preview_url = '/preview/index.html'
+            )
+            preview_url = '/preview/index.html'
 
-    elif framework == 'nextjs':
-        write_rel(
-            'package.json',
-            json.dumps(
-                {
-                    'name': 'agentic-next-app',
-                    'version': '0.1.0',
-                    'private': True,
-                    'scripts': {'dev': 'next dev', 'build': 'next build', 'start': 'next start'},
-                    'dependencies': {
-                        'next': '15.0.0',
-                        'react': '^18',
-                        'react-dom': '^18',
-                        'tailwindcss': '^3.4.1',
-                        'clsx': '^2.1.0',
-                        'lucide-react': '^0.400.0',
+        elif framework == 'nextjs':
+            write_rel(
+                'package.json',
+                json.dumps(
+                    {
+                        'name': 'agentic-next-app',
+                        'version': '0.1.0',
+                        'private': True,
+                        'scripts': {'dev': 'next dev', 'build': 'next build', 'start': 'next start'},
+                        'dependencies': {
+                            'next': '15.0.0',
+                            'react': '^18',
+                            'react-dom': '^18',
+                            'tailwindcss': '^3.4.1',
+                            'clsx': '^2.1.0',
+                            'lucide-react': '^0.400.0',
+                        },
+                        'devDependencies': {
+                            'typescript': '^5',
+                            '@types/react': '^18',
+                            '@types/node': '^20',
+                            'postcss': '^8',
+                            'autoprefixer': '^10',
+                        },
                     },
-                    'devDependencies': {
-                        'typescript': '^5',
-                        '@types/react': '^18',
-                        '@types/node': '^20',
-                        'postcss': '^8',
-                        'autoprefixer': '^10',
-                    },
-                },
-                indent=2,
-            ),
-        )
-        write_rel(
-            'app/page.tsx',
-            f"""export default function Home() {{
+                    indent=2,
+                ),
+            )
+            write_rel(
+                'app/page.tsx',
+                f"""export default function Home() {{
   return (
     <main className="min-h-screen bg-gray-950 text-gray-100 p-8">
       <h1 className="text-4xl font-black mb-4">{title}</h1>
@@ -688,29 +708,29 @@ console.log('[Agentic OS] {title} loaded');
   )
 }}
 """,
-        )
-        write_rel(
-            'app/layout.tsx',
-            """import type { Metadata } from 'next'
+            )
+            write_rel(
+                'app/layout.tsx',
+                """import type { Metadata } from 'next'
 export const metadata: Metadata = { title: 'Agentic OS App' }
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return <html lang="en"><body>{children}</body></html>
 }
 """,
-        )
-        write_rel(
-            'tailwind.config.ts',
-            """import type { Config } from 'tailwindcss'
+            )
+            write_rel(
+                'tailwind.config.ts',
+                """import type { Config } from 'tailwindcss'
 const config: Config = { content: ['./app/**/*.{ts,tsx}'], theme: { extend: {} }, plugins: [] }
 export default config
 """,
-        )
-        preview_url = '/preview/index.html'
+            )
+            preview_url = '/preview/index.html'
 
-    elif framework == 'expo':
-        write_rel(
-            'mobile/App.jsx',
-            f"""import React, {{ useState }} from 'react';
+        elif framework == 'expo':
+            write_rel(
+                'mobile/App.jsx',
+                f"""import React, {{ useState }} from 'react';
 import {{ View, Text, Pressable, StyleSheet, ScrollView }} from 'react-native';
 
 export default function App() {{
@@ -729,49 +749,49 @@ export default function App() {{
   );
 }}
 """,
-        )
-        write_rel(
-            'mobile/package.json',
-            json.dumps(
-                {
-                    'name': 'agentic-expo-app',
-                    'version': '1.0.0',
-                    'main': 'expo-router/entry',
-                    'dependencies': {
-                        'expo': '~52.0.0',
-                        'expo-router': '^4.0.0',
-                        'react': '18.3.1',
-                        'react-native': '0.76.5',
+            )
+            write_rel(
+                'mobile/package.json',
+                json.dumps(
+                    {
+                        'name': 'agentic-expo-app',
+                        'version': '1.0.0',
+                        'main': 'expo-router/entry',
+                        'dependencies': {
+                            'expo': '~52.0.0',
+                            'expo-router': '^4.0.0',
+                            'react': '18.3.1',
+                            'react-native': '0.76.5',
+                        },
                     },
-                },
-                indent=2,
-            ),
-        )
-        preview_url = '/preview/mobile/index.html'
+                    indent=2,
+                ),
+            )
+            preview_url = '/preview/mobile/index.html'
 
-    else:  # sveltekit
-        write_rel(
-            'package.json',
-            json.dumps(
-                {
-                    'name': 'agentic-sveltekit',
-                    'version': '0.0.1',
-                    'type': 'module',
-                    'scripts': {'dev': 'vite dev', 'build': 'vite build', 'preview': 'vite preview'},
-                    'devDependencies': {
-                        '@sveltejs/adapter-auto': '^3.0.0',
-                        '@sveltejs/kit': '^2.0.0',
-                        'svelte': '^4.2.7',
-                        'vite': '^5.0.3',
-                        'tailwindcss': '^3.4.1',
+        else:  # sveltekit
+            write_rel(
+                'package.json',
+                json.dumps(
+                    {
+                        'name': 'agentic-sveltekit',
+                        'version': '0.0.1',
+                        'type': 'module',
+                        'scripts': {'dev': 'vite dev', 'build': 'vite build', 'preview': 'vite preview'},
+                        'devDependencies': {
+                            '@sveltejs/adapter-auto': '^3.0.0',
+                            '@sveltejs/kit': '^2.0.0',
+                            'svelte': '^4.2.7',
+                            'vite': '^5.0.3',
+                            'tailwindcss': '^3.4.1',
+                        },
                     },
-                },
-                indent=2,
-            ),
-        )
-        write_rel(
-            'src/routes/+page.svelte',
-            f"""<script lang="ts">
+                    indent=2,
+                ),
+            )
+            write_rel(
+                'src/routes/+page.svelte',
+                f"""<script lang="ts">
   let count = 0;
 </script>
 <main class="min-h-screen bg-gray-950 text-gray-100 p-8">
@@ -782,11 +802,13 @@ export default function App() {{
   </button>
 </main>
 """,
-        )
-        preview_url = '/preview/index.html'
+            )
+            preview_url = '/preview/index.html'
 
-    con.commit()
-    con.close()
+        con.commit()
+    finally:
+        # DB() alias — see preview_save note re: the #233 sweep
+        con.close()
     return {
         'ok': True,
         'framework': framework,
