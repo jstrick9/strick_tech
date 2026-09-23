@@ -66,7 +66,52 @@ _ensure_sessions_table()
 def _reconcile_orphan_sessions(con):
     """Universally reconcile any 0-message chat_sessions row with chat_log entries by exact ID, title match, or creation timestamp."""
     try:
-        con.execute("UPDATE chat_sessions SET message_count = (SELECT COUNT(*) FROM chat_log c WHERE TRIM(c.session_id) = TRIM(chat_sessions.id))")
+        # ── Fast count repair (every call) ────────────────────────────────
+        # Sargable equality against the covering index (Migration 5's
+        # idx_chat_log_session), writing only rows whose count is actually
+        # wrong — and COMMITTED when it writes. The original form ran a
+        # TRIM-correlated UPDATE over every session on every list call:
+        # TRIM() defeats index seeking, so each session paid a full walk of
+        # the chat_log session index (200 sessions x 78k entries ≈ 2.3s for
+        # GET /api/sessions), and because its only commit() lived inside the
+        # adoption branch below, the repair was silently ROLLED BACK on
+        # con.close() whenever no orphan matched — verified live: a session
+        # with a stale count still had it after the call.
+        cur = con.execute(
+            "UPDATE chat_sessions "
+            "SET message_count = (SELECT COUNT(*) FROM chat_log c WHERE c.session_id = chat_sessions.id) "
+            "WHERE message_count <> (SELECT COUNT(*) FROM chat_log c WHERE c.session_id = chat_sessions.id)"
+        )
+        if cur.rowcount:
+            con.commit()
+
+        # ── Orphan adoption (rare, gated) ─────────────────────────────────
+        # Adoption needs both sides: a 0-message session to adopt into AND
+        # chat_log rows no session claims. Without the second gate a
+        # brand-new empty session ran the whole machinery — TRIM scan,
+        # prefix LIKE, timestamp anti-join — on every list call until its
+        # first message. Both probes are cheap and stop at the first hit.
+        if not con.execute(
+            "SELECT 1 FROM chat_sessions WHERE message_count = 0 LIMIT 1"
+        ).fetchone():
+            return
+        if not con.execute(
+            "SELECT 1 FROM chat_log c "
+            "WHERE NOT EXISTS (SELECT 1 FROM chat_sessions s WHERE s.id = c.session_id) LIMIT 1"
+        ).fetchone():
+            return
+
+        # TRIM-tolerant count repair, restricted to the anomaly rows (the
+        # 0-count sessions) instead of every session: repairs counts when
+        # chat_log.session_id carries stray whitespace.
+        cur = con.execute(
+            "UPDATE chat_sessions "
+            "SET message_count = (SELECT COUNT(*) FROM chat_log c WHERE TRIM(c.session_id) = TRIM(chat_sessions.id)) "
+            "WHERE message_count = 0"
+        )
+        if cur.rowcount:
+            con.commit()
+
         zero_sessions = con.execute("SELECT id, name, created_at FROM chat_sessions WHERE message_count = 0").fetchall()
         for sid, name, created_at in zero_sessions:
             clean_name = (name or '').replace('📌', '').strip()
