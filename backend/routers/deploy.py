@@ -302,8 +302,19 @@ def deploy_history(limit: int = 20):
                 # `localtime` produced a local wall-clock value that the
                 # response layer then stamped with a Z, publishing local time
                 # labelled UTC. (Same defect as modules 17 and 18.)
+                #
+                # GLOB, not LIKE: the app only ever writes lowercase deploy
+                # actions (deploy:vercel / deploy:netlify / deploy:tunnel),
+                # so a case-SENSITIVE prefix match returns the same rows —
+                # and unlike LIKE, GLOB 'deploy*' range-scans the
+                # idx_audit_action index. LIKE could not (case-insensitive
+                # LIKE cannot use a BINARY-collated index), so this query
+                # walked the audit table backwards on every history open:
+                # harmless while deploys are frequent, a full-table walk
+                # (19.8ms at 200k rows, growing forever — audit is never
+                # deleted) on a deployment that has never deployed.
                 'SELECT action, detail, created_at '
-                "FROM audit WHERE action LIKE 'deploy%' ORDER BY id DESC LIMIT ?",
+                "FROM audit WHERE action GLOB 'deploy*' ORDER BY id DESC LIMIT ?",
                 (max(1, min(limit, 100)),),
             ).fetchall()
             for row in audit_rows:

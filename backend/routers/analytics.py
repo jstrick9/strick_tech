@@ -127,7 +127,14 @@ def dashboard(days: int = 30):
 
         # ── Audit ──────────────────────────────────────────────────────
         audit_today = con.execute(
-            "SELECT action, COUNT(*) as count FROM audit WHERE created_at >= date('now') GROUP BY action ORDER BY count DESC LIMIT 10"
+            # INDEXED BY, not planner's choice: since Migration 8 added
+            # idx_audit_action, the planner prefers a full (action)-ordered
+            # index scan to avoid the GROUP BY temp b-tree — 84ms vs 2.6ms
+            # at 200k rows, because it must check created_at per row. The
+            # today-window is a range over created_at; this pin is the
+            # plan #197 already treats as contract.
+            "SELECT action, COUNT(*) as count FROM audit INDEXED BY idx_audit_created "
+            "WHERE created_at >= date('now') GROUP BY action ORDER BY count DESC LIMIT 10"
         ).fetchall()
         recent_actions = con.execute(
             "SELECT action, detail, datetime(created_at,'localtime') as ts FROM audit ORDER BY id DESC LIMIT 20"
@@ -307,7 +314,9 @@ def get_activity(limit: int = 50):
             (limit,),
         ).fetchall()
         today = con.execute(
-            "SELECT action, COUNT(*) as count FROM audit WHERE created_at >= date('now') GROUP BY action ORDER BY count DESC LIMIT 20"
+            # Same pin as the dashboard's audit_today — see the comment there.
+            "SELECT action, COUNT(*) as count FROM audit INDEXED BY idx_audit_created "
+            "WHERE created_at >= date('now') GROUP BY action ORDER BY count DESC LIMIT 20"
         ).fetchall()
     finally:
         con.close()

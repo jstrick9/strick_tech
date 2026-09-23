@@ -94,7 +94,12 @@ class TestQueryPlans:
         try:
             plan = _plan(
                 con,
-                "SELECT action, COUNT(*) FROM audit WHERE created_at >= date('now') GROUP BY action",
+                # Mirrors the production query exactly (analytics.py): since
+                # Migration 8 added idx_audit_action, the unpinned form lets
+                # the planner pick an (action)-ordered full scan (84ms vs
+                # 2.6ms at 200k rows), so the query carries INDEXED BY.
+                "SELECT action, COUNT(*) FROM audit INDEXED BY idx_audit_created "
+                "WHERE created_at >= date('now') GROUP BY action",
             )
         finally:
             con.close()

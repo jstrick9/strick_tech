@@ -252,6 +252,19 @@ def ensure_schema():
         _run_migration(con, 7, 'retention_window_indexes', """
             CREATE INDEX IF NOT EXISTS idx_file_versions_path ON file_versions(path, id);
         """)
+        # Five /history panes filter audit by action (code_review, deploy%,
+        # composer_run, pipeline_run, testgen) and read newest-first. The
+        # backward rowid walk those queries use stops at the LIMIT, so it is
+        # fast while the action is DENSE — but an action that never occurs
+        # (fresh feature, discontinued use) walks the whole table on every
+        # pane open, and audit is never deleted, so that cost grows forever.
+        # Measured at 200k rows: absent action 19.8ms (ORDER BY id) and
+        # 267.7ms (testgen's ORDER BY created_at — the planner satisfies the
+        # order from idx_audit_created and does a table lookup per entry).
+        # With this index both become a bounded seek regardless of density.
+        _run_migration(con, 8, 'audit_action_index', """
+            CREATE INDEX IF NOT EXISTS idx_audit_action ON audit(action, id);
+        """)
 
         con.commit()
     finally:
