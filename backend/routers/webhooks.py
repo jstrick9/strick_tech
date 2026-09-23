@@ -58,6 +58,16 @@ def _ensure_table():
                 created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        # Window index for the events read + the retention prune (both are
+        # WHERE webhook_id=? ORDER BY id DESC LIMIT n). Lives HERE, not in
+        # memory_db's migrations: this router creates the table, and
+        # _run_migration runs at get_conn() bootstrap — BEFORE this module's
+        # _ensure_schema — so a migration-time CREATE INDEX on webhook_events
+        # fails (table missing) and is recorded as applied anyway.
+        con.execute(
+            'CREATE INDEX IF NOT EXISTS idx_webhook_events_hook '
+            'ON webhook_events(webhook_id, id)'
+        )
         con.commit()
     finally:
         con.close()
@@ -234,6 +244,22 @@ def webhook_events(webhook_id: str, limit: int = 20):
 
 
 # ── Trigger endpoint (receives external events) ───────────────────────────────
+# The events pane reads at most 100 rows per webhook (webhook_events's
+# LIMIT), so older events are permanently unreadable in the UI while
+# their payload copies (≤5KB each) accumulate forever — webhook_events
+# had no deletes at all. Prune to the read window on every insert, the
+# same pattern terminal_history uses (500-per-session cap).
+_WEBHOOK_EVENT_WINDOW = 100
+
+
+def _prune_webhook_events(con, webhook_id: str) -> None:
+    con.execute(
+        'DELETE FROM webhook_events WHERE webhook_id=? AND id NOT IN '
+        '(SELECT id FROM webhook_events WHERE webhook_id=? ORDER BY id DESC LIMIT ?)',
+        (webhook_id, webhook_id, _WEBHOOK_EVENT_WINDOW),
+    )
+
+
 def _filter_mismatch(filters: dict, source: str, payload: dict) -> str:
     """Return a reason string when the event does NOT match, else ''.
 
@@ -372,6 +398,7 @@ async def trigger_webhook(
                     'INSERT INTO webhook_events(webhook_id,source,payload,run_id,status) VALUES(?,?,?,?,?)',
                     (webhook_id, source, json.dumps(payload)[:5000], '', 'filtered'),
                 )
+                _prune_webhook_events(con, webhook_id)
                 con.commit()
             finally:
                 con.close()
@@ -406,6 +433,7 @@ async def trigger_webhook(
             'UPDATE webhooks SET trigger_count=trigger_count+1, last_triggered=CURRENT_TIMESTAMP WHERE id=?',
             (webhook_id,),
         )
+        _prune_webhook_events(con, webhook_id)
         con.commit()
     finally:
         con.close()

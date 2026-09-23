@@ -38,6 +38,25 @@ MOBILE_DIR.mkdir(exist_ok=True)
 
 DB = memory_db.get_conn
 
+# The version popover reads at most 150 rows per file (preview_history's
+# LIMIT), so older versions are permanently unreadable in the UI while
+# their full file-content copies accumulate forever — file_versions had
+# no deletes at all. Prune to the read window on every version write,
+# the same pattern terminal_history uses (500-per-session cap). The
+# (workspace_id=? OR workspace_id='') predicate mirrors the READ's
+# visibility exactly, so nothing the pane can show is ever pruned and
+# other workspaces' versions are never touched by this workspace's save.
+_VERSION_WINDOW = 150
+
+
+def _prune_file_versions(con, path: str, workspace_id: str) -> None:
+    con.execute(
+        "DELETE FROM file_versions WHERE path=? AND (workspace_id=? OR workspace_id='') "
+        "AND id NOT IN (SELECT id FROM file_versions WHERE path=? AND (workspace_id=? OR workspace_id='') "
+        "ORDER BY id DESC LIMIT ?)",
+        (path, workspace_id, path, workspace_id, _VERSION_WINDOW),
+    )
+
 
 def _is_within(path: Path, root: Path) -> bool:
     """Return true only when path is root itself or a descendant of root."""
@@ -308,6 +327,7 @@ async def preview_save(req: Request):
                 ),
             )
             con.execute("INSERT INTO audit(action,detail) VALUES ('preview_save',?)", (path,))
+            _prune_file_versions(con, path, workspace_id)
             con.commit()
         v = con.execute("SELECT COUNT(*) FROM file_versions WHERE path=? AND (workspace_id=? OR workspace_id='')", (path, workspace_id)).fetchone()[0]
     finally:
@@ -426,6 +446,7 @@ async def preview_restore(req: Request):
             'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
             (row['path'], row['content'], 'builder', f'restore v{d.get("version_id")}', _current_workspace_id()),
         )
+        _prune_file_versions(con, row['path'], _current_workspace_id())
         con.commit()
     finally:
         # DB() alias — see preview_save note re: the #233 sweep
@@ -457,6 +478,7 @@ async def preview_commit(req: Request):
             (path, content, d.get('author', 'builder'), d.get('message', 'checkpoint'), _current_workspace_id()),
         )
         vid = con.execute('SELECT last_insert_rowid()').fetchone()[0]
+        _prune_file_versions(con, path, _current_workspace_id())
         con.commit()
     finally:
         # DB() alias — see preview_save note re: the #233 sweep
@@ -592,6 +614,7 @@ async def preview_scaffold(req: Request):
                     'INSERT INTO file_versions(path,content,author,message,workspace_id) VALUES (?,?,?,?,?)',
                     (rel_path, content, 'scaffolder', f'{framework} scaffold: {prompt_raw[:80]}', _current_workspace_id()),
                 )
+                _prune_file_versions(con, rel_path, _current_workspace_id())
             except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
                 pass
 

@@ -239,6 +239,19 @@ def ensure_schema():
             CREATE INDEX IF NOT EXISTS idx_e2e_run ON e2e_traces(run_id, target, status, created_at);
             CREATE INDEX IF NOT EXISTS idx_e2e_created ON e2e_traces(created_at);
         """)
+        # Retention windows: file_versions and webhook_events had NO deletes
+        # at all — every versioned save stored a full file-content copy and
+        # every webhook event a payload (≤5KB), forever, while their read
+        # paths only ever show the newest 150 per file / 100 per webhook
+        # (preview_history and webhook_events LIMITs). The routers now prune
+        # to those windows on every insert; this index makes the versioned
+        # reads and the prune subquery (ORDER BY id DESC LIMIT n per path)
+        # index-served instead of a table scan. webhook_events' window index
+        # lives in webhooks._ensure_schema next to its CREATE TABLE — that
+        # table does not exist at migration time (see the note there).
+        _run_migration(con, 7, 'retention_window_indexes', """
+            CREATE INDEX IF NOT EXISTS idx_file_versions_path ON file_versions(path, id);
+        """)
 
         con.commit()
     finally:
