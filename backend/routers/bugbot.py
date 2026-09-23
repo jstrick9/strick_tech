@@ -338,19 +338,27 @@ async def review_git_diff(req: Request):
         return {'ok': False, 'error': f'Invalid git branch/ref: {branch[:80]}'}
 
     try:
-        cmd = ['git', 'diff']
-        if staged:
-            cmd.append('--cached')
-        if branch:
-            cmd.append(branch)
+        def _git_diff_text() -> str:
+            cmd = ['git', 'diff']
+            if staged:
+                cmd.append('--cached')
+            if branch:
+                cmd.append(branch)
+            text = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT), timeout=10).stdout.strip()
+            if not text:
+                text = subprocess.run(
+                    ['git', 'diff', 'HEAD~1', 'HEAD'], capture_output=True, text=True, cwd=str(ROOT), timeout=10
+                ).stdout.strip()
+            return text
 
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT), timeout=10)
-        diff = result.stdout.strip()
+        # Two git subprocesses with 10s timeouts EACH. This used to run
+        # inline in the async handler, so a slow git (cold page cache, a big
+        # working tree) stalled the event loop — and with it every concurrent
+        # request in the app — for up to 20 seconds. git diff output is not
+        # awaited by anything else here; the executor loses nothing.
+        import asyncio
 
-        if not diff:
-            diff = subprocess.run(
-                ['git', 'diff', 'HEAD~1', 'HEAD'], capture_output=True, text=True, cwd=str(ROOT), timeout=10
-            ).stdout.strip()
+        diff = await asyncio.get_event_loop().run_in_executor(None, _git_diff_text)
 
         if not diff:
             return {'ok': False, 'error': 'No changes to review (no diff found)'}

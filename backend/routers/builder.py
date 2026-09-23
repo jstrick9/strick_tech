@@ -199,29 +199,40 @@ async def studio_lint(req: Request):
         }
 
     # scope == 'platform' — self-check of the running installation.
-    errors: list[str] = []
-    checked = 0
-    python_root = ROOT / 'backend'
-    for source in python_root.rglob('*.py'):
-        checked += 1
-        try:
-            ast.parse(source.read_text(encoding='utf-8'), filename=str(source))
-        except (OSError, SyntaxError) as exc:
-            errors.append(f'{source.relative_to(ROOT)}: {exc}')
+    # All of it — 136+ ast.parse calls and one `node --check` subprocess per
+    # frontend JS file (89 at last count) — is synchronous CPU/subprocess
+    # work. It used to run inline in the event loop, freezing every
+    # concurrent request for the full multi-second scan; now it runs in the
+    # executor (house pattern, connectors.py/multifile_agent.py).
+    import asyncio
 
-    node = shutil.which('node')
-    if node:
-        for source in (ROOT / 'frontend' / 'js').glob('*.js'):
+    def _platform_self_check() -> tuple[list[str], int]:
+        errors: list[str] = []
+        checked = 0
+        python_root = ROOT / 'backend'
+        for source in python_root.rglob('*.py'):
             checked += 1
-            result = subprocess.run(
-                [node, '--check', str(source)],
-                capture_output=True,
-                text=True,
-                timeout=10,
-                check=False,
-            )
-            if result.returncode:
-                errors.append(f'{source.relative_to(ROOT)}: {result.stderr.strip()[:500]}')
+            try:
+                ast.parse(source.read_text(encoding='utf-8'), filename=str(source))
+            except (OSError, SyntaxError) as exc:
+                errors.append(f'{source.relative_to(ROOT)}: {exc}')
+
+        node = shutil.which('node')
+        if node:
+            for source in (ROOT / 'frontend' / 'js').glob('*.js'):
+                checked += 1
+                result = subprocess.run(
+                    [node, '--check', str(source)],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    check=False,
+                )
+                if result.returncode:
+                    errors.append(f'{source.relative_to(ROOT)}: {result.stderr.strip()[:500]}')
+        return errors, checked
+
+    errors, checked = await asyncio.get_event_loop().run_in_executor(None, _platform_self_check)
 
     return {
         'ok': not errors,
