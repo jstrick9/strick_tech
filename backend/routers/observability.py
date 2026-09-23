@@ -73,6 +73,20 @@ CREATE TABLE IF NOT EXISTS obs_spans (
 CREATE INDEX IF NOT EXISTS idx_obs_traces_agent ON obs_traces(agent_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_obs_spans_trace ON obs_spans(trace_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_obs_session ON obs_traces(session_id);
+-- Time-window indexes. The trace emitter runs in the LLM layer, so obs_traces
+-- grows by one row per LLM call in the whole app, yet every time-based read
+-- was a table scan: the traces pane's default listing (ORDER BY created_at
+-- DESC LIMIT), the analytics summary (created_at >= days), the span
+-- aggregates by_model/by_type (started_at >= days), and three windowed
+-- counts/averages in /dora. Measured at 50k traces / 100k spans: 60ms list,
+-- ~100ms analytics/dora. The agent/session indexes above only served the
+-- filtered listings. Indexes live HERE next to the CREATE TABLEs, not in
+-- memory_db's migrations: _run_migration runs at get_conn() bootstrap before
+-- this module's _ensure_schema, and would record the migration as applied
+-- even though the CREATE INDEX failed on the missing table (the Migration 7
+-- trap, documented in webhooks.py).
+CREATE INDEX IF NOT EXISTS idx_obs_traces_created ON obs_traces(created_at);
+CREATE INDEX IF NOT EXISTS idx_obs_spans_started ON obs_spans(started_at);
 """
 
 
