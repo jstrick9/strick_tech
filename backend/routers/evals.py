@@ -673,20 +673,30 @@ async def create_ab_test(req: Request):
 
         results_a, results_b = [], []
         for inp in inputs[:20]:  # cap at 20
-            # Run prompt A
-            full_a = prompt_a.replace('{{input}}', inp)
-            res_a = await llm_svc.complete(
-                [{'role': 'user', 'content': full_a}], agent_id=agent_id, max_tokens=800, inject_steering=False
-            )
-            score_a = await _eval_response(full_a, res_a.get('text', ''), context=inp)
-            results_a.append({'input': inp, 'response': res_a.get('text', '')[:500], 'score': score_a['overall_score']})
+            # The two arms are INDEPENDENT prompts over the same input, but
+            # ran strictly A-then-B: every case cost arm_A + arm_B of wall
+            # time instead of max(arm_A, arm_B) — double the duration of
+            # every A/B run. Each arm is now gathered with its sibling (the
+            # two judge calls likewise). llm.complete returns error dicts
+            # rather than raising, so failure semantics are unchanged; the
+            # per-case yield below keeps the streaming progress cadence.
+            import asyncio
 
-            # Run prompt B
+            full_a = prompt_a.replace('{{input}}', inp)
             full_b = prompt_b.replace('{{input}}', inp)
-            res_b = await llm_svc.complete(
-                [{'role': 'user', 'content': full_b}], agent_id=agent_id, max_tokens=800, inject_steering=False
+            res_a, res_b = await asyncio.gather(
+                llm_svc.complete(
+                    [{'role': 'user', 'content': full_a}], agent_id=agent_id, max_tokens=800, inject_steering=False
+                ),
+                llm_svc.complete(
+                    [{'role': 'user', 'content': full_b}], agent_id=agent_id, max_tokens=800, inject_steering=False
+                ),
             )
-            score_b = await _eval_response(full_b, res_b.get('text', ''), context=inp)
+            score_a, score_b = await asyncio.gather(
+                _eval_response(full_a, res_a.get('text', ''), context=inp),
+                _eval_response(full_b, res_b.get('text', ''), context=inp),
+            )
+            results_a.append({'input': inp, 'response': res_a.get('text', '')[:500], 'score': score_a['overall_score']})
             results_b.append({'input': inp, 'response': res_b.get('text', '')[:500], 'score': score_b['overall_score']})
 
             yield f'data: {json.dumps({"type": "ab_case", "input": inp[:50], "score_a": score_a["overall_score"], "score_b": score_b["overall_score"]})}\n\n'
