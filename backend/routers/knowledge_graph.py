@@ -73,6 +73,10 @@ CREATE INDEX IF NOT EXISTS idx_kg_rel_from ON kg_relations(from_id);
 CREATE INDEX IF NOT EXISTS idx_kg_rel_to   ON kg_relations(to_id);
 CREATE INDEX IF NOT EXISTS idx_kg_rel_type ON kg_relations(relation);
 CREATE INDEX IF NOT EXISTS idx_kg_ent_type ON kg_entities(type);
+-- Upsert lookups (name=? AND type=?) in add_entity() and extract_from_text()
+-- had no index: the PK is the synthetic id, so every upsert scanned the
+-- table. extract runs one lookup per extracted entity.
+CREATE INDEX IF NOT EXISTS idx_kg_ent_name ON kg_entities(name, type);
 """
 
 
@@ -366,78 +370,74 @@ Only extract clear, factual information. Return ONLY valid JSON."""
     # Persist extracted entities — call DB logic directly, no fake Request
     from ..services.memory_db import get_conn as _get_conn
 
+    # ONE connection, ONE transaction, ONE FTS rebuild. The original form
+    # pasted add_entity()'s single-entity pattern into a loop: a fresh
+    # connection, a commit, and a FULL kg_entities_fts index rebuild after
+    # EVERY entity — N entities meant N connections, N commits, and N
+    # rebuilds of an index that already had M rows. The all-or-nothing
+    # transaction is also the safer crash semantics here: relations and
+    # facts reference the entity ids created in the first loop, so a
+    # half-committed extraction could strand rows that reference nothing.
     created_entities = {}
-    for ent in extracted.get('entities', []):
-        ent_name = ent.get('name', '')
-        if not ent_name:
-            continue
-        etype = ent.get('type', 'concept')
-        edesc = ent.get('description', '')
-        _con = _get_conn()
-        try:
-            existing = _con.execute('SELECT id FROM kg_entities WHERE name=? AND type=?', (ent_name, etype)).fetchone()
+    con = _get_conn()
+    try:
+        for ent in extracted.get('entities', []):
+            ent_name = ent.get('name', '')
+            if not ent_name:
+                continue
+            etype = ent.get('type', 'concept')
+            edesc = ent.get('description', '')
+            existing = con.execute('SELECT id FROM kg_entities WHERE name=? AND type=?', (ent_name, etype)).fetchone()
             if existing:
                 eid2 = existing['id']
-                _con.execute(
+                con.execute(
                     'UPDATE kg_entities SET description=?,updated_at=CURRENT_TIMESTAMP WHERE id=?', (edesc, eid2)
                 )
             else:
                 eid2 = f'ent_{uuid.uuid4().hex[:8]}'
-                _con.execute(
+                con.execute(
                     'INSERT INTO kg_entities(id,name,type,description,source,confidence) VALUES (?,?,?,?,?,?)',
                     (eid2, ent_name, etype, edesc, source, 1.0),
                 )
-            try:
-                _con.execute("INSERT INTO kg_entities_fts(kg_entities_fts) VALUES ('rebuild')")
-            except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError, AttributeError, RuntimeError):
-                pass
-            _con.commit()
-        finally:
-            _con.close()
-        created_entities[ent_name.lower()] = eid2
+            created_entities[ent_name.lower()] = eid2
 
-    # Persist relations
-    created_rels = 0
-    for rel in extracted.get('relations', []):
-        from_name = rel.get('from', '').lower()
-        to_name = rel.get('to', '').lower()
-        relation = rel.get('relation', 'RELATES_TO')
-        from_id = created_entities.get(from_name)
-        to_id = created_entities.get(to_name)
-        if from_id and to_id:
-            from ..services.memory_db import get_conn
-
-            con = get_conn()
-            try:
+        # Persist relations
+        created_rels = 0
+        for rel in extracted.get('relations', []):
+            from_name = rel.get('from', '').lower()
+            to_name = rel.get('to', '').lower()
+            relation = rel.get('relation', 'RELATES_TO')
+            from_id = created_entities.get(from_name)
+            to_id = created_entities.get(to_name)
+            if from_id and to_id:
                 rid = f'rel_{uuid.uuid4().hex[:6]}'
                 con.execute(
                     'INSERT OR IGNORE INTO kg_relations(id,from_id,to_id,relation,source) VALUES (?,?,?,?,?)',
                     (rid, from_id, to_id, relation.upper(), source),
                 )
-                con.commit()
-            finally:
-                con.close()
-            created_rels += 1
+                created_rels += 1
 
-    # Persist facts
-    created_facts = 0
-    for fact in extracted.get('facts', []):
-        subj_name = fact.get('subject', '').lower()
-        subj_id = created_entities.get(subj_name)
-        if subj_id:
-            from ..services.memory_db import get_conn
-
-            con = get_conn()
-            try:
+        # Persist facts
+        created_facts = 0
+        for fact in extracted.get('facts', []):
+            subj_name = fact.get('subject', '').lower()
+            subj_id = created_entities.get(subj_name)
+            if subj_id:
                 fid = f'fct_{uuid.uuid4().hex[:6]}'
                 con.execute(
                     'INSERT INTO kg_facts(id,subject_id,predicate,object_text,source) VALUES (?,?,?,?,?)',
                     (fid, subj_id, fact.get('predicate', ''), fact.get('object', ''), source),
                 )
-                con.commit()
-            finally:
-                con.close()
-            created_facts += 1
+                created_facts += 1
+
+        # One rebuild for the whole batch, inside the same transaction —
+        # the same suppress-and-continue as add_entity(), hoisted out of
+        # what used to be the per-entity loop.
+        with contextlib.suppress(Exception):
+            con.execute("INSERT INTO kg_entities_fts(kg_entities_fts) VALUES ('rebuild')")
+        con.commit()
+    finally:
+        con.close()
 
     return {
         'ok': True,
