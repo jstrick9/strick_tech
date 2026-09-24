@@ -31,7 +31,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response
 
 router = APIRouter(prefix='/api/compliance', tags=['compliance'])
 log = logging.getLogger('agentic.compliance')
@@ -1301,8 +1301,8 @@ async def generate_report(req: Request):
 
         log.info('Compliance report generated: %s (%s, %d bytes)', report_id, framework, file_size)
 
-        return StreamingResponse(
-            io.BytesIO(content),
+        return Response(
+            content=content,
             media_type=mime,
             headers={
                 'Content-Disposition': f'attachment; filename="{filename}"',
