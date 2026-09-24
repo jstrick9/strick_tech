@@ -90,11 +90,20 @@ def _ensure_schema():
 _ensure_schema()
 
 
-def _update_elo(winner: str, loser: str, k: float = 32.0):
-    """Update ELO ratings after a battle."""
+def _update_elo(winner: str, loser: str, k: float = 32.0, con=None):
+    """Update ELO ratings after a battle.
+
+    `con`: an open connection whose transaction the caller owns. When given,
+    the rating writes join the CALLER's transaction (no commit, no close) —
+    a battle's winner and its ELO change must commit or roll back TOGETHER,
+    because the "Already voted" guard makes a half-applied vote permanent.
+    When omitted, the update runs as its own transaction (legacy callers).
+    """
     from ..services.memory_db import get_conn
 
-    con = get_conn()
+    own = con is None
+    if own:
+        con = get_conn()
     try:
         # A battle can use a model that is not in the seeded AVAILABLE_MODELS
         # (e.g. a custom/unlisted model name). Previously the row was only ever
@@ -122,9 +131,11 @@ def _update_elo(winner: str, loser: str, k: float = 32.0):
             'UPDATE arena_leaderboard SET elo=?,losses=losses+1,battles=battles+1,updated_at=CURRENT_TIMESTAMP WHERE model=?',
             (new_elo_l, loser),
         )
-        con.commit()
+        if own:
+            con.commit()
     finally:
-        con.close()
+        if own:
+            con.close()
 
 
 # ── REST endpoints ─────────────────────────────────────────────────────────────
@@ -332,24 +343,22 @@ async def vote(battle_id: str, req: Request):
             }
 
         con.execute('UPDATE arena_battles SET winner=?,vote_reason=? WHERE id=?', (winner, reason, battle_id))
+        # The ELO change joins the SAME transaction as the winner mark. The
+        # old code committed the winner first and updated ELO on a second
+        # connection afterwards: a crash in between permanently lost the
+        # rating change, because this "Already voted" guard above makes a
+        # half-applied vote impossible to retry.
+        if winner == 'a':
+            _update_elo(b['model_a'], b['model_b'], con=con)
+        elif winner == 'b':
+            _update_elo(b['model_b'], b['model_a'], con=con)
+        else:
+            # Tie: both get 0.5
+            con.execute('UPDATE arena_leaderboard SET ties=ties+1,battles=battles+1 WHERE model=?', (b['model_a'],))
+            con.execute('UPDATE arena_leaderboard SET ties=ties+1,battles=battles+1 WHERE model=?', (b['model_b'],))
         con.commit()
     finally:
         con.close()
-
-    # Update ELO
-    if winner == 'a':
-        _update_elo(b['model_a'], b['model_b'])
-    elif winner == 'b':
-        _update_elo(b['model_b'], b['model_a'])
-    else:
-        # Tie: both get 0.5
-        from ..services.memory_db import get_conn as _gc
-
-        c2 = _gc()
-        c2.execute('UPDATE arena_leaderboard SET ties=ties+1,battles=battles+1 WHERE model=?', (b['model_a'],))
-        c2.execute('UPDATE arena_leaderboard SET ties=ties+1,battles=battles+1 WHERE model=?', (b['model_b'],))
-        c2.commit()
-        c2.close()
 
     return {'ok': True, 'winner': winner, 'battle_id': battle_id}
 
@@ -485,17 +494,18 @@ Return JSON: {{"winner": "a"|"b"|"tie", "reason": "brief explanation", "scores":
             j = json.loads(m.group(0))
             winner = j.get('winner', 'tie')
             reason = j.get('reason', 'Auto-judged')
-            # Apply vote
+            # Apply vote — winner mark and ELO in ONE transaction (same
+            # crash-window reasoning as vote()).
             from ..services.memory_db import get_conn as _gc
 
             c2 = _gc()
             c2.execute(
                 'UPDATE arena_battles SET winner=?,vote_reason=? WHERE id=?', (winner, f'[AUTO] {reason}', battle_id)
             )
+            if winner in ('a', 'b'):
+                _update_elo(b[f'model_{winner}'], b['model_a' if winner == 'b' else 'model_b'], con=c2)
             c2.commit()
             c2.close()
-            if winner in ('a', 'b'):
-                _update_elo(b[f'model_{winner}'], b['model_a' if winner == 'b' else 'model_b'])
             return {'ok': True, 'winner': winner, 'reason': reason, 'scores': j.get('scores', {})}
         except Exception as ex:
             return {'ok': False, 'error': f'Parse error: {ex}'}
