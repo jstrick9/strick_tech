@@ -74,6 +74,24 @@ async def create_loop(req: Request):
         # middleware does not cover this path.
         return {'ok': False, 'error': 'prompt required'}
 
+    # BUG FIX: DELETE /{job_id} guards the built-in job ids with a 403, but
+    # this create path never did — so POST {"job_id": "standup"} (or
+    # memory_index / cost_digest / status_cleanup) silently REPLACED the
+    # built-in job via add_loop's replace_existing=True: memory re-indexing,
+    # standups, cost digests or stuck-agent cleanup simply stopped happening.
+    # The impostor was then invisible (list_loops filters built-in ids) and
+    # unpersisted (_save_loops filters them too), so a restart brought the
+    # built-in back and deleted the "loop" the user thought they had. Same
+    # protection, same 403, at the door where it can do damage.
+    if job_id in _BUILTIN_JOB_IDS:
+        return JSONResponse(
+            {
+                'ok': False,
+                'error': f"'{job_id}' is a protected system job id and cannot be used for a loop",
+            },
+            status_code=403,
+        )
+
     # The interval is clamped rather than rejected, but say so -- a user who
     # asked for "every 0 minutes" and silently got 1 has been misled about how
     # much their agent will spend.

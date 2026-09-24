@@ -81,8 +81,32 @@ def restore_loops() -> int:
     because the process bounced would be worse than leaving it stopped.
     """
     restored = 0
+    skipped_dead = 0
     for job_id, meta in _load_persisted_loops().items():
         try:
+            # Do not resurrect dead loops. The scheduled path retires a loop
+            # the moment its budget is spent or its kill_after_success fires,
+            # but that retirement is a second _save_loops() AFTER the run's
+            # own save — a crash in between persists a loop whose life already
+            # ended. Restoring it meant a spent loop sat listed as 'running'
+            # until its next wake (up to a week at interval=10080), and a
+            # kill_after_success loop whose success had been persisted ran one
+            # more REAL paid LLM iteration before removing itself. Same
+            # stopping conditions as add_loop's _loop closure, applied at the
+            # restore door.
+            max_runs = int(meta.get('max_runs', 0) or 0)
+            run_count = int(meta.get('run_count', 0) or 0)
+            kill_after_success = bool(meta.get('kill_after_success', False))
+            if (max_runs > 0 and run_count >= max_runs) or (
+                kill_after_success and run_count > 0 and not meta.get('last_error')
+            ):
+                skipped_dead += 1
+                log.info(
+                    'Loop %s persisted in a finished state (max_runs=%d, run_count=%d, '
+                    'kill_after_success=%s) — not restoring',
+                    job_id, max_runs, run_count, kill_after_success,
+                )
+                continue
             result = add_loop(
                 job_id,
                 meta.get('prompt', ''),
@@ -113,6 +137,10 @@ def restore_loops() -> int:
             restored += 1
         except Exception as e:
             log.error('Could not restore loop %s: %s', job_id, e)
+    if skipped_dead:
+        # Prune the finished loops from the persisted file so every future
+        # boot does not re-evaluate (and re-log) them.
+        _save_loops()
     if restored:
         log.info('Restored %d autonomous loop(s) from %s', restored, LOOPS_PATH)
     return restored
@@ -498,7 +526,22 @@ async def run_loop_now(job_id: str) -> dict:
         job_info.get('agent_id', 'builder'),
         job_info.get('target', 'web'),
     )
-    return {'ok': True, 'message': f"Loop '{job_id}' triggered immediately", 'job': _jobs.get(job_id)}
+    # Apply the same retirement the scheduled wake-up applies. A manual run
+    # counts toward run_count, so a manual run that spends the max_runs budget
+    # — or satisfies kill_after_success — must retire the loop NOW, not leave
+    # it listed as running until the next scheduled wake (possibly a week out)
+    # does the same check.
+    meta = _jobs.get(job_id, {})
+    retired = False
+    max_r = int(meta.get('max_runs', 0) or 0)
+    if (max_r > 0 and meta.get('run_count', 0) >= max_r) or (
+        meta.get('kill_after_success') and not meta.get('last_error')
+    ):
+        snapshot = dict(meta)
+        remove_loop(job_id)
+        retired = True
+        meta = snapshot
+    return {'ok': True, 'message': f"Loop '{job_id}' triggered immediately", 'job': meta, 'retired': retired}
 
 
 def set_loop_status(job_id: str, status: str) -> None:
