@@ -626,17 +626,17 @@ DEFAULT_AGENTS = [
         'status': 'active',
         'system_prompt': "You are Memory — a knowledge retrieval specialist. You search the vector database for relevant context, synthesize stored knowledge, and answer questions grounded in the user's own data. Always cite which memories informed your response.",
     },
-    {
-        'id': 'orchestrator',
-        'name': 'Swarm Orchestrator',
-        'role': 'State Machine • DAG Pipeline Driver',
-        'model': 'claude-opus',
-        'provider': 'openrouter',
-        'color': '#a855f7',
-        'avatar': '✨',
-        'status': 'idle',
-        'system_prompt': 'You are Swarm Orchestrator — the state machine and DAG pipeline driver for Strick Tech Agentic OS. You decompose complex engineering tasks into modular sub-agent assignments, track execution state, verify behavioral rules (.agenticrules), and enforce zero-defect quality standards before shipping.',
-    },
+    # r88 note: a second 'orchestrator' entry ("Swarm Orchestrator", the
+    # state-machine/DAG driver) used to live here, duplicating the classic
+    # Orchestrator's id. INSERT OR IGNORE always kept the FIRST entry, so the
+    # Swarm Orchestrator never materialized in any database (verified against
+    # the live DB) — but its presence made len(DEFAULT_AGENTS) = 13 while at
+    # most 12 distinct default rows can exist, so agents_list()'s
+    # `len(agents) < len(DEFAULT_AGENTS)` completeness check could never
+    # converge: EVERY GET /api/agents on a fresh install re-ran the seed —
+    # a no-op INSERT OR IGNORE x 13 plus COMMIT, i.e. a write transaction
+    # with write locks on a hot read endpoint — and burned three connections
+    # instead of one, forever. Removed; any DB is byte-identical either way.
     {
         'id': 'visual_tester',
         'name': 'Visual UI Tester',
@@ -705,11 +705,13 @@ def agents_list() -> list[dict]:
         con.close()
     if not agents or len(agents) < len(DEFAULT_AGENTS):
         agents_seed_defaults()
-        if not agents:
-            return agents_list()
+        # Bounded single retry (r88): this used to recurse unconditionally —
+        # if the seed cannot write (read-only volume, locked DB), the empty
+        # result recursed forever until RecursionError.
         con2 = get_conn()
         try:
-            return [dict(r) for r in con2.execute('SELECT * FROM agents ORDER BY created_at').fetchall()]
+            rows2 = con2.execute('SELECT * FROM agents ORDER BY created_at').fetchall()
+            agents = [dict(r) for r in rows2]
         finally:
             con2.close()
     return agents
