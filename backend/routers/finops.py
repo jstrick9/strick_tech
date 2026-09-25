@@ -151,7 +151,7 @@ _ensure_schema()
 # ── Core ledger write ──────────────────────────────────────────────────────────
 def record_cost(
     agent_id: str,
-    source_type: str,  # llm | mcp | connector | supervisor | loop
+    source_type: str,  # llm | mcp | connector | supervisor | loop | jev
     cost_usd: float,
     tokens: int = 0,
     tokens_in: int = 0,

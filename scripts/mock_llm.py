@@ -4,13 +4,16 @@
       python3 scripts/mock_llm.py
 
   8790 — OpenAI/OpenRouter-compatible: GET /v1/models, POST /v1/chat/completions
+         Jev (TypeSafe System One):    POST /v1/systemone
   8791 — Ollama-compatible:            GET /api/tags, POST /api/chat, POST /api/generate
 
 Point a server at them with:
 
       OPENROUTER_BASE_URL=http://127.0.0.1:8790/v1 \
+      JEV_BASE_URL=http://127.0.0.1:8790 \
       OLLAMA_BASE_URL=http://127.0.0.1:8791 \
       OPENROUTER_API_KEY=mock-key \
+      TYPESAFE_API_KEY=mock-key \
       python3 -m uvicorn backend.app:app --host 0.0.0.0 --port 8787
 
 Contracts worth knowing:
@@ -173,6 +176,66 @@ def structured_answer(messages):
     return None
 
 
+def jev_systemone_answer(req):
+    """Deterministic mock for POST /v1/systemone (Jev / TypeSafe System One).
+
+    Answers are derived from sha1(state + question key) so they are STABLE:
+    the same request always gets the same answer, and tests can assert exact
+    probabilities without a live key. Shape mirrors the documented API:
+
+        {"model": ..., "answers": {key: {"type", ...fields, "confidence",
+         "probabilities"}}, "usage": {"input_tokens", "output_tokens"}}
+
+      - noul   -> noul in 0.05 steps (hash-derived)
+      - choice -> probabilities split by per-option hash weights; the argmax
+                  is the choice; confidence = its probability
+      - score  -> same weighting over the ordered levels; score = argmax index
+    """
+    import hashlib
+
+    def h(salt: str, key: str, state: str) -> int:
+        return int.from_bytes(hashlib.sha1(f"{salt}|{state}|{key}".encode()).digest()[:4], "big")
+
+    state = str(req.get("state") or "")
+    answers = {}
+    for key, q in (req.get("questions") or {}).items():
+        qtype = str((q or {}).get("type") or "")
+        if qtype == "noul":
+            answers[key] = {"type": "noul", "noul": round((h("noul", key, state) % 21) / 20.0, 2)}
+        elif qtype == "choice":
+            crit = (q or {}).get("criteria") or {}
+            weights = {str(opt): (h("c", str(opt), state) % 1000) + 1 for opt in crit}
+            total = sum(weights.values())
+            probs = {opt: round(w / total, 4) for opt, w in weights.items()}
+            top = max(probs, key=probs.get)
+            answers[key] = {
+                "type": "choice", "choice": top,
+                "confidence": round(probs[top], 2), "probabilities": probs,
+            }
+        elif qtype == "score":
+            crit = (q or {}).get("criteria") or []
+            weights = [(h("s", f"{key}#{i}", state) % 1000) + 1 for i in range(len(crit))]
+            total = sum(weights)
+            probs = {str(i): round(w / total, 4) for i, w in enumerate(weights)}
+            top = max(probs, key=probs.get)
+            answers[key] = {
+                "type": "score", "score": float(top),
+                "confidence": round(probs[top], 2),
+                "legend": {str(i): str(c) for i, c in enumerate(crit)},
+                "probabilities": probs,
+            }
+        else:
+            answers[key] = {"type": qtype, "error": "unknown question type"}
+    return {
+        "model": "jev-mock-1.0",
+        "answers": answers,
+        "usage": {
+            "input_tokens": max(1, len(state) // 4),
+            "output_tokens": max(1, 8 * len(answers)),
+        },
+    }
+
+
 def make_handler(port_kind):
     class H(BaseHTTPRequestHandler):
         def log_message(self, *a):
@@ -211,6 +274,12 @@ def make_handler(port_kind):
             except Exception:
                 req = {}
             if port_kind == "openai":
+                if self.path.startswith("/v1/systemone"):
+                    # Jev (TypeSafe System One) mock — see
+                    # jev_systemone_answer() below and services/jev.py.
+                    # Reachable with JEV_BASE_URL=http://127.0.0.1:8790
+                    self._send(jev_systemone_answer(req))
+                    return
                 special = structured_answer(req.get("messages"))
                 msg = {"role": "assistant", "content": special or "Mock LLM response."}
                 mods = req.get("modalities") or []

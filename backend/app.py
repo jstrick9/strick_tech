@@ -116,6 +116,7 @@ from .routers.observability import router as observability_router
 from .routers.obsidian import router as obsidian_router
 from .routers.onboarding import router as onboarding_router
 from .routers.pipeline import router as pipeline_router
+from .routers.jev import router as jev_router
 from .routers.plugin_hub import router as plugin_hub_router
 from .routers.plugins import router as plugins_router
 from .routers.pluginsdk import router as pluginsdk_router
@@ -1344,6 +1345,7 @@ app.include_router(prompts_router)
 app.include_router(codesearch_router)
 app.include_router(workflow_router)
 app.include_router(profiler_router)
+app.include_router(jev_router)
 
 # ── No-AI-provider handling ───────────────────────────────────────────────────
 # llm.complete() raises LLMUnavailableError rather than returning placeholder help
@@ -1365,6 +1367,30 @@ async def _llm_unavailable_handler(request: Request, exc: _LLMUnavailableError):
             'code': 'llm_unavailable',
             'model': exc.model,
             'setup_url': 'https://openrouter.ai/keys',
+        },
+        status_code=503,
+    )
+
+
+# ── Jev (TypeSafe System One) unavailability ──────────────────────────────────
+# Same contract as the LLM handler above: /api/jev/ask raises when Jev cannot
+# answer, and the refusal must render as an honest, actionable 503 — never as a
+# fabricated empty answer. Feature integrations do NOT hit this path; they use
+# jev.ask_or_none() and degrade to their pre-existing behaviour.
+from .services.jev import JevUnavailableError as _JevUnavailableError
+
+
+@app.exception_handler(_JevUnavailableError)
+async def _jev_unavailable_handler(request: Request, exc: _JevUnavailableError):
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(
+        {
+            'ok': False,
+            'error': exc.message,
+            'code': 'jev_unavailable',
+            'detail': exc.detail,
+            'setup_url': 'https://console.typesafe.ai/keys',
         },
         status_code=503,
     )

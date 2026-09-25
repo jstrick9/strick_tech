@@ -85,6 +85,9 @@ NO_UI_BY_DESIGN: dict[str, str] = {
         "reports whether Playwright is installed; used by the test suite",
     "/api/engine/status":
         "agent-engine introspection; covered by tests/unit/test_64",
+    "/api/jev/status":
+        "Jev (TypeSafe System One) configuration probe — management/debug API; "
+        "covered by tests/unit/test_241",
     "/api/sync/status":
         "replication internals; covered by tests/unit/test_34",
     "/api/ws/status":
