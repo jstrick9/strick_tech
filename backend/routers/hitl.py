@@ -189,6 +189,52 @@ def _record_auto_approval(
 
 
 # ── Core interrupt API ─────────────────────────────────────────────────────────
+def enqueue_review(
+    action_type: str,
+    action_summary: str,
+    action_data: dict,
+    *,
+    agent_id: str = '',
+    risk_level: str = 'medium',
+    confidence: float = 0.5,
+    requester: str = 'agent',
+    undo_state: str = '',
+) -> str:
+    """Insert one pending human-review row and return its id.
+
+    The queue-write half of create_interrupt(), extracted so PROGRAMMATIC
+    callers can defer a decision to a human without speaking HTTP. The first
+    such caller is the Jev confidence gate in the arena auto-judge: when the
+    decision model is not confident enough to act, the proposed action lands
+    here with everything a reviewer needs, and nothing is applied until a
+    human decides via the normal /interrupt/{id}/decide flow.
+    """
+    interrupt_id = f'hitl_{uuid.uuid4().hex[:8]}'
+    from ..services.memory_db import get_conn
+
+    con = get_conn()
+    try:
+        con.execute(
+            """INSERT INTO hitl_queue(id,agent_id,action_type,action_summary,action_data,risk_level,confidence,requester,undo_state)
+        VALUES (?,?,?,?,?,?,?,?,?)""",
+            (
+                interrupt_id,
+                agent_id,
+                action_type[:100],
+                action_summary[:500],
+                json.dumps(action_data, default=str)[:4000],
+                risk_level,
+                confidence,
+                requester,
+                undo_state[:4000],
+            ),
+        )
+        con.commit()
+    finally:
+        con.close()
+    return interrupt_id
+
+
 @router.post('/interrupt')
 async def create_interrupt(req: Request):
     """
@@ -252,27 +298,16 @@ async def create_interrupt(req: Request):
         }
 
     # Queue for human review
-    from ..services.memory_db import get_conn
-
-    con = get_conn()
-    try:
-        con.execute(
-            """INSERT INTO hitl_queue(id,agent_id,action_type,action_summary,action_data,risk_level,confidence,undo_state)
-        VALUES (?,?,?,?,?,?,?,?)""",
-            (
-                interrupt_id,
-                agent_id,
-                action_type,
-                action_summary,
-                json.dumps(action_data, default=str)[:4000],
-                risk_level,
-                confidence,
-                undo_state[:4000],
-            ),
-        )
-        con.commit()
-    finally:
-        con.close()
+    interrupt_id = enqueue_review(
+        action_type,
+        action_summary,
+        action_data,
+        agent_id=agent_id,
+        risk_level=risk_level,
+        confidence=confidence,
+        requester='agent',
+        undo_state=undo_state,
+    )
 
     # Create waiter
     event = asyncio.Event()

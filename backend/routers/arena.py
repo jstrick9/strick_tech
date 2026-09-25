@@ -444,6 +444,113 @@ def arena_stats():
     }
 
 
+async def _jev_judge(b: dict) -> dict | None:
+    """Judge a battle with Jev (TypeSafe System One). None = not applicable.
+
+    None (fall through to the LLM judge) whenever Jev is unconfigured,
+    unreachable, or returns something unusable. When it answers:
+
+      * confidence >= JEV_JUDGE_MIN_CONFIDENCE (default 0.6): the winner mark,
+        tie tallies and ELO updates commit in ONE transaction — the same
+        crash-window reasoning as vote() (#254).
+      * confidence below the gate: NOTHING is applied. The proposed winner is
+        queued for human review (hitl_queue via enqueue_review) with the
+        battle id, the model's answer and its confidence; a human decides
+        through the normal HITL flow and applies the vote in the Arena pane.
+        A decision model that is not confident must not move a leaderboard.
+    """
+    import os as _os
+
+    from ..services import jev
+
+    if not jev.is_configured():
+        return None
+    state = (
+        f"PROMPT:\n{b.get('prompt', '')[:800]}\n\n"
+        f"RESPONSE A ({b.get('model_a', 'model-a')}):\n{(b.get('response_a') or '')[:1500]}\n\n"
+        f"RESPONSE B ({b.get('model_b', 'model-b')}):\n{(b.get('response_b') or '')[:1500]}"
+    )
+    questions = {
+        'winner': jev.choice(
+            'Which response better answers the prompt (accuracy, completeness, clarity, helpfulness)',
+            {
+                'a': f"The response from {b.get('model_a', 'model-a')} is better",
+                'b': f"The response from {b.get('model_b', 'model-b')} is better",
+                'tie': 'Neither response is clearly better than the other',
+            },
+        ),
+    }
+    res = await jev.ask_or_none(state, questions, agent_id='arena_judge')
+    if not res:
+        return None
+    answer = (res.get('answers') or {}).get('winner') or {}
+    winner = answer.get('choice')
+    if winner not in ('a', 'b', 'tie'):
+        return None
+    try:
+        confidence = float(answer.get('confidence') or 0.0)
+    except (TypeError, ValueError):
+        return None
+
+    min_conf = float(_os.environ.get('JEV_JUDGE_MIN_CONFIDENCE', '0.6') or 0.6)
+    if confidence < min_conf:
+        from .hitl import enqueue_review
+
+        interrupt_id = enqueue_review(
+            'arena.auto_judge',
+            f"Jev proposes winner '{winner}' for battle {b.get('id')} at {confidence:.0%} confidence "
+            f"(below the {min_conf:.0%} gate) — review and vote in the Arena pane",
+            {
+                'battle_id': b.get('id'),
+                'proposed_winner': winner,
+                'confidence': confidence,
+                'judge': 'jev',
+                'model': res.get('model'),
+                'probabilities': answer.get('probabilities') or {},
+            },
+            agent_id='arena_judge',
+            risk_level='medium',
+            confidence=confidence,
+            requester='jev',
+        )
+        return {
+            'ok': True,
+            'winner': None,
+            'judge': 'jev',
+            'confidence': confidence,
+            'probabilities': answer.get('probabilities') or {},
+            'queued_for_review': True,
+            'interrupt_id': interrupt_id,
+        }
+
+    from ..services.memory_db import get_conn as _gc
+
+    con = _gc()
+    try:
+        con.execute(
+            'UPDATE arena_battles SET winner=?,vote_reason=? WHERE id=?',
+            (winner, f"[JEV] {res.get('model')} chose {winner} at {confidence:.0%} confidence", b.get('id')),
+        )
+        if winner == 'a':
+            _update_elo(b['model_a'], b['model_b'], con=con)
+        elif winner == 'b':
+            _update_elo(b['model_b'], b['model_a'], con=con)
+        else:
+            con.execute('UPDATE arena_leaderboard SET ties=ties+1,battles=battles+1 WHERE model=?', (b['model_a'],))
+            con.execute('UPDATE arena_leaderboard SET ties=ties+1,battles=battles+1 WHERE model=?', (b['model_b'],))
+        con.commit()
+    finally:
+        con.close()
+    return {
+        'ok': True,
+        'winner': winner,
+        'judge': 'jev',
+        'model': res.get('model'),
+        'confidence': confidence,
+        'probabilities': answer.get('probabilities') or {},
+    }
+
+
 @router.post('/auto-judge')
 async def auto_judge_battle(req: Request):
     """Use a third model to auto-judge a battle (for automated leaderboard building)."""
@@ -461,6 +568,16 @@ async def auto_judge_battle(req: Request):
     if not battle:
         return {'ok': False, 'error': 'Battle not found'}
     b = dict(battle)
+
+    # JEV JUDGE (TypeSafe System One). When the decision model is configured,
+    # prefer it over the LLM+JSON-parse path below: a typed Choice question
+    # returns the winner WITH a confidence, there is nothing to parse, and —
+    # the part the LLM path cannot do at all — low confidence DEFERS TO A
+    # HUMAN instead of guessing. Fail-open by contract: unconfigured or
+    # failing falls through to the LLM judge unchanged.
+    jev_result = await _jev_judge(b)
+    if jev_result is not None:
+        return jev_result
 
     from ..services import llm as llm_svc
 

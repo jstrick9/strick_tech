@@ -105,6 +105,70 @@ def _system_prompt_for_agent(agent: dict) -> str:
     )
 
 
+async def _jev_rerank_memories(message: str, rows: list[dict]) -> list[dict]:
+    """Re-rank retrieval candidates with ONE batched Jev call. Fail-open.
+
+    The heuristic guards upstream remove junk; what survives is still in FTS
+    order, which is lexical similarity, not usefulness to the answer. When
+    the Jev decision model (TypeSafe System One) is configured, every
+    candidate is scored in a single request — one Score question per passage,
+    evaluated in parallel and isolation — and the passages Jev endorses come
+    back best-first. Everything else (no key, unreachable, slow, malformed
+    response, or nothing endorsed) returns the input order unchanged: the
+    exact pre-Jev behaviour. Jev is an upgrade, never a dependency.
+    """
+    from ..services import jev
+
+    if not rows or not jev.is_configured():
+        return rows
+    try:
+        state = (
+            f'User message:\n{message[:1500]}\n\n'
+            'Candidate context passages:\n'
+            + '\n'.join(
+                f'[{i}] ({as_text(r.get("source")) or "unknown"}) {(as_text(r.get("content")) or "")[:300]}'
+                for i, r in enumerate(rows)
+            )
+        )
+        questions = {
+            f'p{i}': jev.score(
+                f'Passage [{i}] is useful context for answering the user message',
+                ['Not relevant', 'Somewhat relevant', 'Directly relevant'],
+            )
+            for i in range(len(rows))
+        }
+        res = await jev.ask_or_none(state, questions, agent_id='chat_rerank')
+        if not res:
+            return rows
+
+        def _relevance(i: int) -> float:
+            probs = ((res.get('answers') or {}).get(f'p{i}') or {}).get('probabilities') or {}
+            # Expected relevance level under the answer's own distribution —
+            # uses the whole distribution rather than the argmax, so a passage
+            # that is 60% "directly relevant" / 40% "not relevant" ranks below
+            # a steady "somewhat relevant" one.
+            try:
+                return sum(int(lvl) * float(p) for lvl, p in probs.items())
+            except (TypeError, ValueError):
+                return -1.0
+
+        endorsed = [
+            (i, r) for i, r in enumerate(rows)
+            if _relevance(i) >= 1.0  # at least "somewhat relevant" in expectation
+        ]
+        if not endorsed:
+            # Jev endorses nothing. Either every hit really is junk (possible)
+            # or the call is systematically miscalibrated for this state (also
+            # possible) — we cannot tell from here, and the conservative move
+            # is the pre-Jev behaviour.
+            return rows
+        return [r for _, r in sorted(endorsed, key=lambda pair: _relevance(pair[0]), reverse=True)]
+    except Exception:
+        # Belt and braces: ask_or_none already swallows its own failure modes;
+        # a bug in OUR ranking code must not break chat either.
+        return rows
+
+
 # ── Chat endpoint (streaming) ─────────────────────────────────────────────────
 @router.post('/api/chat')
 async def chat_stream(req: Request):
@@ -348,7 +412,7 @@ async def chat_stream(req: Request):
         mem_results = memory_db.memory_search_fts(message[:200], limit=12)
         if mem_results:
             is_generic_agent = agent_id in ('default', 'direct ai chat', '')
-            filtered = []
+            eligible = []
             for r in mem_results:
                 content = (as_text(r.get('content')) or '')
                 if not content:
@@ -365,9 +429,15 @@ async def chat_stream(req: Request):
                 # assistant conversations, where it derails unrelated answers.
                 if is_generic_agent and 'agentic os' in content.lower():
                     continue
-                filtered.append(r)
-                if len(filtered) >= 4:
-                    break
+                eligible.append(r)
+            # Trim to the budget. FTS order ranks by LEXICAL match; when the
+            # Jev decision model is configured, one batched call re-ranks the
+            # candidates by usefulness to the answer (all questions evaluated
+            # in parallel and isolation — no context rot). Fail-open by
+            # contract: unconfigured/unreachable/erroring returns the input
+            # order, i.e. the exact pre-Jev behaviour.
+            filtered = await _jev_rerank_memories(message, eligible)
+            filtered = filtered[:4]
             if filtered:
                 ctx = '\n'.join(f'- [{r["source"]}] {r["content"][:200]}' for r in filtered)
                 system_prompt += f'\n\n**Relevant memories:**\n{ctx}'
