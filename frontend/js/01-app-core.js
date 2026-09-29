@@ -710,6 +710,59 @@ function hideChatEmpty() {
   if (e) e.style.display = 'none';
 }
 
+// ── In-chat Connect card (r93, #257) ──────────────────────────────────────────
+// Shown by sendChat when no AI connection is configured. A SYSTEM card, not
+// an assistant bubble: no avatar implying someone answered, no model badge
+// naming a model that was never called, nothing pushed into chatHistory.
+// The user's draft stays in the input — the promise on the card is literal.
+window.showConnectCard = function() {
+  const msgs = document.getElementById('chat-messages');
+  if (!msgs) return;
+  hideChatEmpty();
+  // One card at a time; repeated sends just re-focus the existing one.
+  const existing = document.getElementById('connect-ai-card');
+  if (existing) {
+    existing.replaceWith(_buildConnectCard());
+  } else {
+    msgs.appendChild(_buildConnectCard());
+  }
+  const card = document.getElementById('connect-ai-card');
+  if (card) card.querySelector('button')?.focus({ preventScroll: true });
+  msgs.scrollTop = msgs.scrollHeight;
+  const inp = document.getElementById('chat-input');
+  if (inp) { inp.focus(); }
+};
+function _buildConnectCard() {
+  const div = document.createElement('div');
+  div.id = 'connect-ai-card';
+  div.className = 'msg system-connect-card';
+  div.innerHTML = `
+    <div class="msg-avatar">🔌</div>
+    <div class="msg-body">
+      <div class="msg-meta">Agentic OS</div>
+      <div class="msg-bubble connect-card-bubble">
+        <div class="connect-card-title">Connect your AI to start chatting</div>
+        <div class="connect-card-sub">Your message is saved in the box below — pick a connection and it's ready to send.</div>
+        <div class="connect-card-actions">
+          <button type="button" class="btn" data-act-click="connectCardGo()">&#9729;&#65039; Connect cloud AI<span class="connect-card-hint">Add an API key · 140+ models</span></button>
+          <button type="button" class="btn" data-act-click="connectCardGo()">&#128421;&#65039; Use AI on this computer<span class="connect-card-hint">Local &amp; private · via Ollama</span></button>
+        </div>
+        <button type="button" class="connect-card-dismiss" data-act-click="connectCardDismiss()" aria-label="Dismiss">Not now</button>
+      </div>
+    </div>`;
+  return div;
+}
+window.connectCardGo = function() {
+  document.getElementById('connect-ai-card')?.remove();
+  nav('settings');
+  if (typeof window.switchSettingsTab === 'function') window.switchSettingsTab('api');
+};
+window.connectCardDismiss = function() {
+  document.getElementById('connect-ai-card')?.remove();
+  const inp = document.getElementById('chat-input');
+  if (inp) inp.focus();
+};
+
 function toggleRag() {
   S.useRag = !S.useRag;
   document.getElementById('rag-btn').classList.toggle('active', S.useRag);
@@ -763,6 +816,22 @@ async function sendChat() {
   const typedMessage = input.value.trim();
   const attachments = [...(window._chatAttachments || [])];
   if (!typedMessage && !attachments.length) return;
+
+  // ── FIRST-RUN HONESTY (r93, #257) ────────────────────────────────────────
+  // With no AI connection configured, the backend streams its configuration
+  // help back over the chat SSE channel. Before this gate, that text was
+  // rendered as an ASSISTANT reply — complete with a model badge naming a
+  // model that was never called — and then pushed into chatHistory as a real
+  // assistant turn. A brand-new user's very first message therefore got a
+  // fake AI answer that was actually setup instructions. Sending with no
+  // connection now routes to an in-chat Connect card instead: the draft is
+  // kept (nothing the user typed is lost), nothing is sent, and nothing is
+  // recorded as a conversation turn.
+  if (typeof window.chatConnectionReady !== 'function' || !(await window.ensureConnectionKnown()) || !window.chatConnectionReady()) {
+    window.showConnectCard();
+    return;
+  }
+
   // BUG FIX: attached images were flattened into the prompt as
   // "[image data: <first 80 chars>...]" — i.e. nothing but the truncated
   // data-URL header ("data:image/png;base64,iVBORw0KGgo…"). The actual image
@@ -876,6 +945,14 @@ async function sendChat() {
   // — the model received a phantom prior turn reading "✅ Cleared 2
   // messages from this conversation."
   let clearHistorySeen = false;
+  // Stub guard (r93, #257): the backend flags its no-provider help text with
+  // stub:true on the stream. Chat previously ignored the flag entirely —
+  // studio had the guard, chat did not — so the help text rendered as a real
+  // assistant reply, was attributed to a model, and was pushed into
+  // chatHistory. If a stub ever reaches this loop (a programmatic send path,
+  // a race between connecting and the first send), it must land as a system
+  // notice, not a conversation turn.
+  let sawStub = false;
   // A stream can complete without error and without a single content delta
   // (content-filtered or empty completion, or a 200 body that is not SSE at
   // all). That used to render a blank agent bubble AND push an empty
@@ -933,6 +1010,7 @@ async function sendChat() {
         if (!line.startsWith('data:')) continue;
         try {
           const data = JSON.parse(line.slice(5).trim());
+          if (data.stub) sawStub = true;
           if (data.delta) {
             fullText += data.delta;
             updateMessageBubble(bubbleEl, fullText);
@@ -984,12 +1062,28 @@ async function sendChat() {
       }
     }
 
-    const emptyReply = !(fullText || '').trim() && !sawActionFrame && !clearHistorySeen && !aborted;
+    const emptyReply = !(fullText || '').trim() && !sawActionFrame && !clearHistorySeen && !aborted && !sawStub;
+    if (sawStub) {
+      // No model was called: strip the badge that names one, and render the
+      // stub as a system notice with a way out, instead of an assistant turn.
+      const msgEl = bubbleEl?.closest('.msg');
+      msgEl?.querySelector('.model-used-tag')?.remove();
+      const metaEl = msgEl?.querySelector('.msg-meta');
+      if (metaEl) metaEl.innerHTML = 'Agentic OS';
+      if (msgEl) msgEl.classList.add('system-connect-card');
+      if (bubbleEl) {
+        bubbleEl.classList.add('connect-card-bubble');
+        bubbleEl.innerHTML =
+          '<div class="connect-card-title">No AI connection is configured</div>' +
+          '<div class="connect-card-sub">Connect a model to get real answers.</div>' +
+          '<div class="connect-card-actions"><button type="button" class="btn" data-act-click="connectCardGo()">Connect your AI</button></div>';
+      }
+    }
     if (emptyReply) {
       fullText = '(no response — the model returned no content. Try again, or pick a different model in Settings.)';
       if (bubbleEl) updateMessageBubble(bubbleEl, fullText);
     }
-    if (!clearHistorySeen && !emptyReply) S.chatHistory.push({ role: 'assistant', content: fullText });
+    if (!clearHistorySeen && !emptyReply && !sawStub) S.chatHistory.push({ role: 'assistant', content: fullText });
     if (bubbleEl && (fullText || '').trim().length > 0) {
       const finalId = bubbleEl.closest('.msg')?.id;
       if (finalId) {
@@ -1990,6 +2084,13 @@ window.pinChatSession = async function(e, sid, pinned) {
 window.renderConnectionReadiness = function(readiness = {}) {
   const localModels = Number(readiness.localModels || 0);
   const cloudReady = Boolean(readiness.cloudReady);
+  // Store, don't just paint (see the connection-state block below).
+  window._chatConnection = {
+    checked: Boolean(readiness.checked),
+    cloudReady,
+    localModels,
+    at: Date.now(),
+  };
   let state = 'attention';
   let text = 'Connect AI to begin';
   if (localModels > 0) { state = 'ready'; text = `Local AI ready · ${localModels} model${localModels === 1 ? '' : 's'}`; }
@@ -2002,6 +2103,36 @@ window.renderConnectionReadiness = function(readiness = {}) {
     el.classList.remove('checking', 'ready', 'attention', 'error');
     el.classList.add(state);
   });
+};
+
+// ── Connection state, kept where sendChat can see it (r93, #257) ─────────────
+// renderConnectionReadiness() paints a label but never stored the state, so
+// sendChat had no way to know a connection was missing — which is how the
+// fake first reply survived for so long. One source of truth, updated by
+// every readiness pass.
+window._chatConnection = { checked: false, cloudReady: false, localModels: 0, at: 0 };
+window.chatConnectionReady = function() {
+  // A custom endpoint is a valid connection even with no cloud key and no
+  // local Ollama — it carries its own base URL (and optional key).
+  let customUrl = null; try { customUrl = _safeLS.get('agentic_os_custom_base_url'); } catch {}
+  const c = window._chatConnection || {};
+  return Boolean(customUrl) || Boolean(c.cloudReady) || Number(c.localModels) > 0;
+};
+window.ensureConnectionKnown = async function() {
+  // True when the readiness state has been computed at least once. If the
+  // send arrives before the first poll, run one refresh and give it a couple
+  // of seconds rather than deciding on stale unknowns.
+  const c = window._chatConnection || {};
+  if (c.checked && Date.now() - (c.at || 0) < 30000) return true;
+  try {
+    if (typeof window.syncOpenWebUIConnections === 'function') {
+      await Promise.race([
+        window.syncOpenWebUIConnections(),
+        new Promise(res => setTimeout(res, 2500)),
+      ]);
+    }
+  } catch {}
+  return Boolean((window._chatConnection || {}).checked);
 };
 
 window.syncOpenWebUIConnections = async function() {

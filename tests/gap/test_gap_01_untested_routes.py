@@ -736,24 +736,35 @@ class TestGapAgentMonitor:
 
 # ── Multitab Refresh (3 routes) ───────────────────────────────────────────────
 class TestGapMultitab:
+    # r93, #257: tabs were created with url "/chat", which is not a file the
+    # preview server serves. A tab persisted with that URL 404s when the
+    # multitab pane loads it, and the console-health audit catches the 404 as
+    # a real console error — twenty such tabs had accumulated in the preview
+    # server's state before anyone noticed. The route coverage is identical
+    # with a URL that actually resolves; cleanup also moved to finally so a
+    # failed assertion can no longer leak a tab.
     async def _create_tab(self, C):
-        r = await POST(C, "/api/multitab/tabs", {"title": uid("tab"), "url": "/chat"})
+        r = await POST(C, "/api/multitab/tabs", {"title": uid("tab"), "url": "/preview/index.html"})
         d = r.json()
         return d.get("id") or d.get("tab_id")
 
     async def test_tab_activate(self, C):
         tid = await self._create_tab(C)
         if not tid: pytest.skip("No tab")
-        r = await POST(C, f"/api/multitab/tabs/{tid}/activate", {})
-        ok(r, "tab activate")
-        await DELETE(C, f"/api/multitab/tabs/{tid}")
+        try:
+            r = await POST(C, f"/api/multitab/tabs/{tid}/activate", {})
+            ok(r, "tab activate")
+        finally:
+            await DELETE(C, f"/api/multitab/tabs/{tid}")
 
     async def test_tab_refresh(self, C):
         tid = await self._create_tab(C)
         if not tid: pytest.skip("No tab")
-        r = await POST(C, f"/api/multitab/tabs/{tid}/refresh", {})
-        ok(r, "tab refresh")
-        await DELETE(C, f"/api/multitab/tabs/{tid}")
+        try:
+            r = await POST(C, f"/api/multitab/tabs/{tid}/refresh", {})
+            ok(r, "tab refresh")
+        finally:
+            await DELETE(C, f"/api/multitab/tabs/{tid}")
 
     async def test_tabs_refresh_all(self, C):
         r = await POST(C, "/api/multitab/tabs/refresh-all", {})

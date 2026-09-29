@@ -156,6 +156,18 @@ async function obNext(skip = false) {
       }).catch(()=>{});
     } catch(ex) {}
     showToast('🚀 Welcome to Agentic OS!');
+    // FIRST-RUN HONESTY (r93, #257): completing the wizard without an AI
+    // connection used to celebrate and drop the user into a chat whose very
+    // first message could only fail. Same moment, honest ending: the welcome
+    // toast says what's still missing, and the chat shows the Connect card
+    // so the next action is one click away.
+    try {
+      const ready = (typeof window.chatConnectionReady === 'function') && window.chatConnectionReady();
+      if (!ready) {
+        showToast('🔌 One more thing — connect an AI to start chatting');
+        if (typeof window.showConnectCard === 'function') setTimeout(window.showConnectCard, 600);
+      }
+    } catch (e) { /* never block completion */ }
   } else {
     showOnboarding();
   }

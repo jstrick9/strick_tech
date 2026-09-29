@@ -98,21 +98,36 @@ def run() -> AuditResult:
 
         for pane in all_panes(page):
             visit(page, pane, settle=500)
-            text = pane_text(page, pane)
             # "Blank" means nothing rendered, not "less text than average".
             # A character threshold flagged `multitab` -- a browser-tab UI
             # whose entire legitimate render is 39 characters of chrome.
             # Interactive content present means the pane rendered.
-            controls = page.evaluate(f"""(() => {{
-                const el = document.getElementById('pane-' + {pane!r});
-                if (!el) return 0;
-                return el.querySelectorAll(
-                    'button, a[href], input, select, textarea, [data-act-click]').length;
-            }})()""")
-            if len(text) < 15 and controls == 0:
-                findings.append(f'BLANK  {pane}  ({len(text)} chars, no controls)')
+            def _measured(pane=pane):
+                text = pane_text(page, pane)
+                controls = page.evaluate(f"""(() => {{
+                    const el = document.getElementById('pane-' + {pane!r});
+                    if (!el) return 0;
+                    return el.querySelectorAll(
+                        'button, a[href], input, select, textarea, [data-act-click]').length;
+                }})()""")
+                return len(text), controls
 
-        # Reload before the workstation checks.
+            chars, controls = _measured()
+            if chars < 15 and controls == 0:
+                # r93, #257: several panes render from an async fetch, and on
+                # a server that has just absorbed a full audit pass their
+                # first paint can miss the 500ms settle window -- the walk
+                # then reports a healthy pane as BLANK. Give the async render
+                # one real second and re-measure before believing it. A pane
+                # that is genuinely broken stays blank on the retry; a loaded
+                # one does not. (Seen live: `browser` flapped BLANK only when
+                # pane_health ran as the 12th audit in one ratchet pass.)
+                page.wait_for_timeout(1000)
+                chars, controls = _measured()
+            if chars < 15 and controls == 0:
+                findings.append(f'BLANK  {pane}  ({chars} chars, no controls)')
+
+        # Fresh page before the workstation checks.
         #
         # The pane walk above visits all 68 panes, which builds every
         # workstation as a side effect. Re-navigating to an already-built host
@@ -120,8 +135,33 @@ def run() -> AuditResult:
         # build-then-wipe sequence -- so the check passed even with the host
         # watcher removed. A fresh page reproduces what a real user does:
         # arrive at a workstation for the first time.
-        page.reload(wait_until='domcontentloaded')
+        #
+        # r93, #257: this used to be `page.reload()`. After the full walk the
+        # page has emitted ~22k console events (CSP style-src refusals, one
+        # per inline style attribute — see console_health's NOISE budget),
+        # and tearing that page down mid-flood stopped fitting inside
+        # reload's own 30s timeout: the audit crashed on Page.reload Timeout
+        # instead of reporting anything. A NEW page in the same context gives
+        # the workstation checks exactly what the reload was for — every host
+        # arriving UNBUILT — without the teardown. The walked page is parked
+        # on about:blank first so its ~70 panes' timers stop firing while the
+        # checks run. Same context, so cookies and localStorage carry over.
+        try:
+            page.evaluate('window.location.href = "about:blank"')
+        except Exception:
+            pass
+        page = _ctx.new_page()
+        page.on('pageerror', _on_pageerror)
+        page.on('response', _on_response)
+        page.on('console', lambda m: errors.append(f'console: {m.text[:120]}')
+                if m.type == 'error'
+                and 'Content Security Policy' not in m.text
+                and 'status of 404' not in m.text else None)
+        page.goto(BASE_URL, wait_until='domcontentloaded', timeout=60000)
         page.wait_for_timeout(3000)
+        for element_id in ('onboarding-overlay', 'onboarding-modal', 'welcome-banner'):
+            page.evaluate(
+                f"const e=document.getElementById({element_id!r}); if(e) e.remove();")
 
         for host in page.evaluate("Object.keys(window.WORKSTATIONS || {})"):
             # Wait past the host's LATER renders, not just its first.

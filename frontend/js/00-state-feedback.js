@@ -13,7 +13,9 @@
  *
  * `action` / `retry` are JS expression strings invoked through the app's
  * delegated `data-act-click` handler (matching the existing pane convention),
- * so they are escaped as attribute values via jsArg.
+ * so they are escaped as attribute values via escAttrExpr — NOT jsArg: jsArg
+ * (01-app-core.js) emits a complete quoted JS *literal*, which is wrong for
+ * a whole expression like `prbRefresh()` and right for an argument value.
  */
 (function () {
   'use strict';
@@ -24,7 +26,20 @@
     });
   }
 
-  function jsArg(s) {
+  // r93, #257: this was `function jsArg`, and its `window.jsArg` export below
+  // shadowed the REAL app-wide jsArg (01-app-core.js: JSON.stringify + HTML
+  // escape — a complete quoted literal). Two same-named helpers with
+  // incompatible contracts fought for one global name, and this esc-only
+  // version won: every `data-act-click="f(${jsArg(strArg)})"` in the app
+  // rendered its string argument UNQUOTED, the delegation shim's literal
+  // parser refused it ("arguments are not literals"), and the button
+  // silently did nothing. Numeric ids kept working (JSON.parse('123') is
+  // fine), which is why this survived since #210 — it surfaced only when the
+  // task-completion audit drove a kanban delete and the gmDanger confirm
+  // button did nothing. This helper escapes a whole JS EXPRESSION for an
+  // attribute value; it never quotes. Renamed so the two contracts can no
+  // longer collide.
+  function escAttrExpr(s) {
     return esc(s).replace(/"/g, '&quot;');
   }
 
@@ -104,7 +119,7 @@
     var icon = opts.icon ? '<span class="data-state-icon" aria-hidden="true">' + esc(opts.icon) + '</span>' : '';
     var action = '';
     if (opts.action) {
-      action = '<button type="button" class="btn btn-sm" data-act-click="' + jsArg(opts.action) +
+      action = '<button type="button" class="btn btn-sm" data-act-click="' + escAttrExpr(opts.action) +
         '">' + esc(opts.actionLabel || opts.action || 'Do it') + '</button>';
     }
     return icon + '<div class="data-state-copy">' +
@@ -139,7 +154,7 @@
     opts = opts || {};
     var title = esc(opts.title || 'Couldn\u2019t load');
     var retry = opts.retry
-      ? '<button type="button" class="btn btn-sm" data-act-click="' + jsArg(opts.retry) + '">\u21bb Retry</button>'
+      ? '<button type="button" class="btn btn-sm" data-act-click="' + escAttrExpr(opts.retry) + '">\u21bb Retry</button>'
       : '';
     return '<span class="data-state-icon" aria-hidden="true">\u26a0\ufe0f</span>' +
       '<div class="data-state-copy">' +
@@ -154,12 +169,14 @@
       errorHtml(opts) + '</div>';
   }
 
-  // jsArg is the app-wide convention for escaping a JS expression embedded
-  // in a data-act-click attribute value (see header). sidebar-enhancements.js
-  // builds such attributes for the favourites rows and calls it from its own
-  // file scope — without this export every favourite row threw
-  // ReferenceError: jsArg is not defined and the whole favourites section
-  // silently never rendered.
-  window.jsArg = jsArg;
+  // NOTE (r93, #257): this module used to export `window.jsArg` = the
+  // esc-only helper above, for sidebar-enhancements.js's favourites rows.
+  // That export is what shadowed app-core's quoting jsArg (see the comment
+  // on escAttrExpr) — and it broke the favourites rows it existed to fix:
+  // they pass STRING pane ids (`nav(${jsArg(navId)})`), which need a quoted
+  // literal, not an escaped expression. The global `jsArg` that
+  // sidebar-enhancements.js (and 40+ other files) resolve from their own
+  // scopes is 01-app-core.js's top-level `function jsArg` declaration — no
+  // export needed, and with the shadow gone it is the one that answers.
   window.stateFeedback = { setLoading: setLoading, setEmpty: setEmpty, setError: setError, clearState: clearState, loadingElement: loadingElement, errorElement: errorElement, emptyElement: emptyElement };
 })();

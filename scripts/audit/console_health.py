@@ -81,11 +81,26 @@ EXPECTED = (
 # Scaled per pane, not fixed: the volume is dominated by CSP style-src
 # refusals (one per inline style attribute), so it grows every time a pane
 # is added. At the fixed 12,000 the audit fired on organic growth alone —
-# first measurement 10,998 across ~48 panes (229/pane), latest 15,554
+# first measurement 10,998 across ~48 panes (229/pane), later 15,554
 # across 64 (243/pane). Per-pane with headroom keeps the guard's actual
 # meaning — "no pane got dramatically chattier" — without a manual budget
 # raise in every pane-adding change.
-NOISE_BUDGET_PER_PANE = 300
+#
+# r93, #257: re-scaled 300 → 350 after the measured per-pane average
+# crossed the old budget organically (305/pane across 70 panes, 21,370 on a
+# clean tree — no single change to blame; same growth pattern the comment
+# above already documents twice). Verified NOT a regression from the
+# first-run-honesty work by running this audit on the stashed clean tree:
+# both trees fail the old budget, both pass the new one. 350 keeps ~15%
+# headroom over today's average, the same margin the 300 value carried
+# when it was chosen at 243/pane.
+#
+# The structural fix is the Phase-2 design-system conversion (measured for
+# the record: 4,165 literal style=" emitters across 30+ frontend files,
+# 823 refusals on first load alone — pane-chat 175, pane-settings 170,
+# app shell 130, pane-studio 63, pane-hierarchy 57). Until then this
+# budget tracks reality instead of pretending it away.
+NOISE_BUDGET_PER_PANE = 350
 NOISE_BUDGET_FLOOR = 12000
 
 
