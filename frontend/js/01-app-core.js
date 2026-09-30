@@ -6051,12 +6051,41 @@ function applyPreferences(prefs) {
 }
 
 const THEME_VARS = {
-light: { bg0:'#f8fafc', bg1:'#ffffff', bg2:'#f1f5f9', bg3:'#e2e8f0', bg4:'#cbd5e1', bg5:'#94a3b8', text0:'#0f172a', text1:'#334155', text2:'#59687c', text3:'#566881', border:'rgba(15,23,42,0.12)', borderHi:'rgba(15,23,42,0.22)', accent:'#0284c7', accentHi:'#0369a1' , accentText:'#02699f', onAccent:'#0b1020' },
-  dark: { bg0:'#060814', bg1:'#0b0f22', bg2:'#111633', bg3:'#171d42', bg4:'#1f2654', bg5:'#28316b', text0:'#f8fafc', text1:'#cbd5e1', text2:'#8292b4', text3:'#7a8ab2', border:'rgba(56,189,248,.14)', borderHi:'rgba(56,189,248,.28)', accent:'#38bdf8', accentHi:'#7dd3fc' , accentText:'#38bdf8', onAccent:'#0b1020' },
+  // r94, #258: the dark and light entries are the values the app ACTUALLY
+  // RENDERED, not the values this table used to carry. History: applyTheme
+  // wrote the old entries inline on <html>, but applyTheme also sets
+  // data-theme on <body>, and the stylesheets' `:root, [data-theme="dark"]`
+  // rules therefore redefined every token ON THE BODY — a scope between the
+  // inline writes and the visible app. The old dark/light entries were inert
+  // below body: the visible app rendered the stylesheets' static palette
+  // (neutral greys + indigo accent), while these navy/cyan values only ever
+  // resolved on the <html> element itself. The obsidian/jet/midnight/forest
+  // palettes had no body-scoped block, so THEY rendered from this table via
+  // inheritance — which is why the four of them always worked. Measured with
+  // getComputedStyle(document.body) per theme and frozen verbatim below; the
+  // generated CSS blocks (scripts/gen_theme_css.py) now carry exactly these
+  // values, one source of truth. The old navy/cyan dark palette is preserved
+  // as the THEME_VARS values the exotic themes were built alongside — it is
+  // not lost, it was never visible.
+  //
+  // The `glow` field is the exact --accent-glow the app rendered per theme
+  // (for dark/light it came from the sheets, not the accent+'22' derivation).
+light: { bg0:'#ffffff', bg1:'#f9fafb', bg2:'#f3f4f6', bg3:'#e5e7eb', bg4:'#d1d5db', bg5:'#9ca3af', text0:'#111827', text1:'#374151', text2:'#5f6672', text3:'#5d6573', border:'rgba(0,0,0,0.08)', borderHi:'rgba(0,0,0,0.15)', accent:'#6a6df2', accentHi:'#4f46e5' , accentText:'#02699f', onAccent:'#ffffff', glow:'rgba(99,102,241,0.1)' },
+  dark: { bg0:'#0f0f0f', bg1:'#171717', bg2:'#1e1e1e', bg3:'#2a2a2a', bg4:'#363636', bg5:'#444444', text0:'#f5f5f5', text1:'#d4d4d4', text2:'#a0a0a0', text3:'#949494', border:'rgba(255,255,255,0.08)', borderHi:'rgba(255,255,255,0.15)', accent:'#6a6df2', accentHi:'#818cf8' , accentText:'#818cf8', onAccent:'#0b1020', glow:'rgba(99,102,241,0.15)' },
   obsidian: { bg0:'#040408', bg1:'#06060d', bg2:'#0d0d18', bg3:'#16162a', bg4:'#22223c', bg5:'#2e2e52', text0:'#ffffff', text1:'#cbd5e1', text2:'#7a8aaa', text3:'#7384ae', border:'rgba(255,255,255,.1)', borderHi:'rgba(255,255,255,.2)', accent:'#38bdf8', accentHi:'#7dd3fc' , accentText:'#38bdf8', onAccent:'#0b1020' },
   jet: { bg0:'#000000', bg1:'#0a0a0a', bg2:'#121216', bg3:'#1a1a20', bg4:'#24242e', bg5:'#30303e', text0:'#ffffff', text1:'#e2e8f0', text2:'#94a3b8', text3:'#76869d', border:'rgba(255,255,255,.15)', borderHi:'rgba(255,255,255,.3)', accent:'#e11d48', accentHi:'#fb7185' , accentText:'#e8496c', onAccent:'#ffffff' },
   midnight: { bg0:'#050810', bg1:'#080b14', bg2:'#0f1220', bg3:'#161b30', bg4:'#202848', bg5:'#2d3764', text0:'#f8fafc', text1:'#c2ceec', text2:'#7a8aaa', text3:'#7885b4', border:'rgba(168,85,247,.16)', borderHi:'rgba(168,85,247,.3)', accent:'#a855f7', accentHi:'#c084fc' , accentText:'#ad5ff7', onAccent:'#0b1020' },
   forest: { bg0:'#06100a', bg1:'#09160e', bg2:'#0e2216', bg3:'#14301f', bg4:'#1d452d', bg5:'#275e3d', text0:'#ecfdf5', text1:'#a7f3d0', text2:'#6ee7b7', text3:'#34d399', border:'rgba(16,185,129,.16)', borderHi:'rgba(16,185,129,.3)', accent:'#10b981', accentHi:'#34d399' , accentText:'#10b981', onAccent:'#0b1020' },
+  // r94, #258: onboarding has offered Ember and Ocean swatches since the
+  // wizard was written, but they were never added here — applyTheme's
+  // `THEME_VARS[tid] || THEME_VARS.light` silently applied the LIGHT palette
+  // with an ember/orange accent. Picking "Ember" repainted the whole app
+  // light-mode. Both palettes are AA-verified (see scripts/gen_theme_css.py,
+  // which also renders them into styles-tokens.css so CSS and JS cannot
+  // drift — verified per-pair with the WCAG relative-luminance formula:
+  // weakest pairing is text-3 on bg-2 at 4.82:1).
+  ember:  { bg0:'#100a08', bg1:'#170f0b', bg2:'#1f1410', bg3:'#2a1a14', bg4:'#38221a', bg5:'#482e22', text0:'#fef3ec', text1:'#e8cfc0', text2:'#b39b8a', text3:'#96806f', border:'rgba(240,136,80,.16)', borderHi:'rgba(240,136,80,.3)', accent:'#f08850', accentHi:'#f8a878' , accentText:'#f49e6e', onAccent:'#1a0e06' },
+  ocean:  { bg0:'#080d10', bg1:'#0c1418', bg2:'#111c22', bg3:'#16262e', bg4:'#1d3340', bg5:'#264553', text0:'#effafc', text1:'#c2dbe2', text2:'#8fb0ba', text3:'#7a9aa6', border:'rgba(56,197,216,.16)', borderHi:'rgba(56,197,216,.3)', accent:'#38c5d8', accentHi:'#6fdbe8' , accentText:'#4fd0e0', onAccent:'#06181c' },
 };
 
 function applyTheme(themeId, accentOverride, options = {}) {
@@ -6066,31 +6095,33 @@ function applyTheme(themeId, accentOverride, options = {}) {
   const followsSystem = preference === 'auto';
   const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const tid = followsSystem ? (systemPrefersDark ? 'dark' : 'light') : preference;
-  const t = THEME_VARS[tid] || THEME_VARS.light;
-  const accent = accentOverride || t.accent || '#0284c7';
   const root = document.documentElement;
-  root.style.setProperty('--bg-0', t.bg0);
-  root.style.setProperty('--bg-1', t.bg1);
-  root.style.setProperty('--bg-2', t.bg2);
-  if (t.bg3) root.style.setProperty('--bg-3', t.bg3);
-  if (t.bg4) root.style.setProperty('--bg-4', t.bg4);
-  if (t.bg5) root.style.setProperty('--bg-5', t.bg5);
-  if (t.text0) root.style.setProperty('--text-0', t.text0);
-  if (t.text1) root.style.setProperty('--text-1', t.text1);
-  if (t.text2) root.style.setProperty('--text-2', t.text2);
-  if (t.text3) root.style.setProperty('--text-3', t.text3);
-  if (t.border) root.style.setProperty('--border', t.border);
-  if (t.borderHi) root.style.setProperty('--border-hi', t.borderHi);
-  root.style.setProperty('--accent', accent);
-  root.style.setProperty('--accent-hi', t.accentHi || accent);
-  // Accessible accent for TEXT/icons. The fill itself cannot be brightened:
-  // 46 controls put a foreground ON it, and lightening the fill makes that
-  // pairing worse, not better. So text gets its own token.
-  root.style.setProperty('--accent-text', t.accentText || accent);
-  // Foreground for primary buttons. White failed on 5 of 6 themes (2.14:1 on
-  // dark and obsidian) -- the most important control had the worst contrast.
-  root.style.setProperty('--on-accent', t.onAccent || '#ffffff');
-  root.style.setProperty('--accent-glow', accent + '22');
+  // r94, #258: the palettes now live in CSS. styles-tokens.css carries one
+  // [data-theme="<tid>"] block per palette, GENERATED from THEME_VARS by
+  // scripts/gen_theme_css.py, so switching themes is an attribute change and
+  // the browser resolves every token — including the first paint, which used
+  // to show a generic-dark app until this function ran and wrote sixteen
+  // tokens inline. THEME_VARS stays the single source; the generated blocks
+  // are its rendered artifact and cannot drift (test_244 regenerates and
+  // compares).
+  if (!THEME_VARS[tid]) {
+    // An unknown id no longer silently falls back to the light palette (the
+    // r93 phantom-theme bug: onboarding offered "Ember"/"Ocean" swatches that
+    // did not exist here, and picking either repainted the app light-mode).
+    // It now resolves to the :root dark base and says so.
+    console.warn('[Theme] unknown palette "' + tid + '" — using the default');
+  }
+  // A CUSTOM accent still has to win over the palette's own, and only an
+  // inline write beats a selector. Everything else (--accent-hi/-text,
+  // --on-accent, the surfaces, text ramp and borders) comes from the
+  // palette block with exactly the values this function used to write.
+  if (accentOverride) {
+    root.style.setProperty('--accent', accentOverride);
+    root.style.setProperty('--accent-glow', accentOverride + '22');
+  } else {
+    root.style.removeProperty('--accent');
+    root.style.removeProperty('--accent-glow');
+  }
   root.setAttribute('data-theme', tid);
   root.setAttribute('data-theme-preference', preference);
   root.style.colorScheme = tid === 'light' ? 'light' : 'dark';

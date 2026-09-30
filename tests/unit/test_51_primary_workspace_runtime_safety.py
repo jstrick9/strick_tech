@@ -101,9 +101,19 @@ def test_product_smoke_covers_chat_connection_recovery_destination():
 
 
 def test_settings_content_column_cannot_collapse_and_overlap_connection_choices():
-    css = (ROOT / 'frontend' / 'styles.css').read_text(encoding='utf-8')
-    assert '.settings-content-area { flex:1 1 auto !important; min-width:0;' in css
-    assert '.settings-tab-pane { width:100%; }' in css
+    # r94, #258: this used to read frontend/styles.css — the pre-redesign
+    # monolith index.html stopped loading on 2026-07-25, so the assertion
+    # checked a rule the browser never applied. The live mechanism (same
+    # intent, different spelling) is flex:1 + min-width:0 on the content
+    # column in styles-unified.css, which is what actually prevents the
+    # collapse-and-overlap this test was written for.
+    css = '\n'.join(
+        (ROOT / 'frontend' / s).read_text(encoding='utf-8')
+        for s in ('styles-tokens.css', 'styles-unified.css',
+                  'styles-extracted.css', 'styles-redesign.css',
+                  'styles-system.css'))
+    assert '.settings-content-area {' in css
+    assert 'flex: 1' in css and 'min-width: 0' in css
 
 
 def test_product_smoke_clicks_local_connection_path_and_observes_status():

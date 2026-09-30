@@ -16,59 +16,6 @@
    ═══════════════════════════════════════════════════════════ */
 
 /* ── Design Tokens (from unified.css, extended) ──────────── */
-:root, [data-theme="dark"] {
-  --bg-base: #0a0a0a;
-  --bg-0: #0f0f0f;
-  --bg-1: #171717;
-  --bg-2: #1e1e1e;
-  --bg-3: #2a2a2a;
-  --bg-4: #363636;
-  --bg-5: #444444;
-  --border: rgba(255,255,255,0.1);
-  --border-hi: rgba(255,255,255,0.2);
-  --text-0: #ffffff;
-  --text-1: #e0e0e0;
-  --text-2: #b0b0b0;
-  /* WCAG AA. Was #808080, which measured 3.06:1 on --bg-4 and 3.63:1 on
-     --bg-3 -- below the 4.5:1 body-text minimum on every surface except
-     --bg-0/1. This token carries hints, timestamps and metadata across 655
-     call sites, i.e. exactly the secondary text that is hardest to read and
-     easiest to dismiss as "muted by design". #a0a0a0 clears 4.5:1 through
-     --bg-4 while staying visibly de-emphasised against --text-2. */
-  --text-3: #a0a0a0;
-  /* Brand fill. NOT safe as a text colour: 4.01:1 on --bg-1. It cannot simply
-     be brightened because 46 controls put white text ON it -- #fff on #6366f1
-     is already only 4.47:1, and lightening the fill drops that to 2.98:1. So
-     the fill keeps its value and text gets its own token below. */
-  --accent: #6a6df2;
-  --accent-hi: #818cf8;
-  /* Accessible accent for TEXT and icons on dark surfaces: 6.01:1 on --bg-1,
-     4.81:1 on --bg-3. Use var(--accent-text) for coloured text/links and
-     var(--accent) for fills. */
-  --accent-text: #818cf8;
-  --accent-glow: rgba(106,109,242,0.15);
-  --success: #22c55e;
-  --warning: #eab308;
-  --danger: #f26565;
-  --info: #3b82f6;
-  --green: var(--success);
-  --red: var(--danger);
-  --yellow: var(--warning);
-  --orange: #f97316;
-  --teal: #14b8a6;
-  --purple: #a855f7;
-  --sidebar-w: 260px;
-  --topbar-h: 52px;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-  --shadow: 0 4px 12px rgba(0,0,0,0.4);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 16px;
-  --radius-full: 9999px;
-  --transition: 0.15s ease;
-}
-
 /* ── Scrollbar ───────────────────────────────────────────── */
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}

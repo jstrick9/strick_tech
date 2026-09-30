@@ -28,6 +28,13 @@
      local-first. With this the app makes NO external requests at all. -->
 <link href="/static/vendor/fonts/inter.css" rel="stylesheet">
 
+<!-- Design tokens — the single source of truth for every custom property.
+     Loaded FIRST so the token base is established before any component sheet.
+     Palette blocks in this file are generated from THEME_VARS by
+     scripts/gen_theme_css.py. No other stylesheet may define a token
+     (tests/unit/test_244 enforces it). r94, #258. -->
+<link rel="stylesheet" href="/static/styles-tokens.css">
+
 <!-- Unified Design System -->
 <link rel="stylesheet" href="/static/styles-unified.css">
 
@@ -107,7 +114,7 @@
       <!-- Navigation -->
       <div class="sidebar-scroll">
                 <!-- ═══ CORE MODULES: daily drivers ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#a5b4fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('core')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-core" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▼</span> CORE MODULES  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">8</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#a5b4fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('core')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-core" class="sb-chevron">▼</span> CORE MODULES  <span class="group-count sb-count">8</span></div>
         <div class="sidebar-group-content" id="group-core">
           <div class="nav-item active" data-nav="chat" data-tier="core" data-act-click="nav('chat')" data-tooltip="Chat with AI — start here" role="button" aria-label="Chat" tabindex="0" data-keys="Enter" data-self-click="1">
             <span class="icon">💬</span><span class="label">Chat</span>
@@ -137,7 +144,7 @@
         </div>
 
         <!-- ═══ AI TOOLS: agent capabilities ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('build')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-build" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> AI TOOLS  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">8</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#7dd3fc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('build')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-build" class="sb-chevron">▶</span> AI TOOLS  <span class="group-count sb-count">8</span></div>
         <div class="sidebar-group-content" id="group-build" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="supervisor" data-tier="advanced" data-act-click="nav('supervisor')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🎯</span><span class="label">Supervisor</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="websearch" data-tier="advanced" data-act-click="nav('websearch')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🔍</span><span class="label">Web Search</span></div>
@@ -150,7 +157,7 @@
         </div>
 
         <!-- ═══ BUILD & SHIP: create and deliver ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#86efac;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('ship')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-ship" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> BUILD & SHIP  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">6</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#86efac;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('ship')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-ship" class="sb-chevron">▶</span> BUILD & SHIP  <span class="group-count sb-count">6</span></div>
         <div class="sidebar-group-content" id="group-ship" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="composer" data-tier="advanced" data-act-click="nav('composer')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">✍</span><span class="label">Composer</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="workflow" data-tier="advanced" data-act-click="nav('workflow')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">⎈</span><span class="label">Workflows</span></div>
@@ -161,13 +168,13 @@
         </div>
 
         <!-- ═══ CONNECT: outbound connections ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#fcd34d;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('tools')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-tools" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> CONNECT  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">1</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#fcd34d;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('tools')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-tools" class="sb-chevron">▶</span> CONNECT  <span class="group-count sb-count">1</span></div>
         <div class="sidebar-group-content" id="group-tools" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="mcp" data-tier="advanced" data-act-click="nav('mcp')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🔧</span><span class="label">Tool Connections</span></div>
         </div>
 
         <!-- ═══ OPERATE: run and verify ═══ -->
-        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#f0abfc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('enterprise')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-enterprise" style="display:inline-block;transition:transform 0.15s;margin-right:6px">▶</span> OPERATE  <span class="group-count" style="float:right;font-size:10px;opacity:0.7">3</span></div>
+        <div role="button" tabindex="0" class="sidebar-group-label" style="cursor:pointer;user-select:none;color:#f0abfc;font-weight:800;font-size:10.5px;letter-spacing:0.8px;padding:12px 14px 6px" data-act-click="toggleSidebarGroup('enterprise')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span id="arrow-enterprise" class="sb-chevron">▶</span> OPERATE  <span class="group-count sb-count">3</span></div>
         <div class="sidebar-group-content" id="group-enterprise" style="display:none">
           <div role="button" tabindex="0" class="nav-item" data-nav="observability" data-tier="advanced" data-act-click="nav('observability')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🔭</span><span class="label">Observability</span></div>
           <div role="button" tabindex="0" class="nav-item" data-nav="evals" data-tier="advanced" data-act-click="nav('evals')" data-keys="Enter,Space" data-prevent="1" data-self-click="1"><span class="icon">🧪</span><span class="label">Evals</span></div>
@@ -239,7 +246,7 @@
               <button type="button" class="btn-3d btn-primary btn-sm" data-act-click="startNewChatSession()" style="padding:6px 10px;display:flex;align-items:center;gap:6px;font-weight:700">＋ New</button>
 
               <div id="chat-model-control" style="display:flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:4px 10px">
-                <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Model</span>
+                <span class="chat-eyebrow">Model</span>
                 <select id="chat-model-select" data-act-change="selectChatModel($value)" style="background:transparent;border:none;color:var(--text-0);font-size:13px;font-weight:700;outline:none;cursor:pointer;padding:4px 6px" aria-label="Model">
                   <optgroup label="Cloud AI">
                     <option value="claude">Claude 3.5 Sonnet</option>
@@ -262,7 +269,7 @@
 
               <details id="chat-persona-details" class="u-d461c96d">
                 <summary style="display:flex;align-items:center;gap:4px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--text-2);list-style:none;font-weight:600" title="Choose who replies: a general assistant or a specialist voice">
-                  <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Assistant</span>
+                  <span class="chat-eyebrow">Assistant</span>
                   <span id="active-persona-icon">💬</span> <span id="active-persona-label">Direct Chat</span> <span style="font-size:10px;opacity:0.5">▾</span>
                 </summary>
                 <div style="position:absolute;top:100%;left:0;margin-top:4px;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:10px;padding:6px;min-width:220px;z-index:100;box-shadow:var(--shadow-lg)">
@@ -527,128 +534,128 @@
       </div>
 
       <!-- KANBAN PANE -->
-      <div class="pane" id="pane-kanban" style="overflow-y:auto;background:var(--bg-0)"><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane" id="pane-kanban" style="overflow-y:auto;background:var(--bg-0)"><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">📋</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- SWARM PANE -->
-      <div class="pane" id="pane-swarm"><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane" id="pane-swarm"><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">🌀</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- DASHBOARD PANE -->
-      <div class="pane u-2b1d86c3" id="pane-dashboard" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-2b1d86c3" id="pane-dashboard" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">📊</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- SKILLS PANE -->
-      <div class="pane u-2b1d86c3" id="pane-skills" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-2b1d86c3" id="pane-skills" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">⚡</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- DEPLOY PANE -->
-      <div class="pane u-2b1d86c3" id="pane-deploy" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-2b1d86c3" id="pane-deploy" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">🚀</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- TEMPLATES PANE -->
-      <div class="pane u-49faf7ff" id="pane-templates" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-49faf7ff" id="pane-templates" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div class="skeleton" style="height:22px;width:220px;border-radius:6px"></div>
+      <div class="skeleton skel-title-wide"></div>
     </div>
     <div class="u-ce4ff4ed">
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
-        <div class="skeleton" style="height:160px;border-radius:14px"></div><div class="skeleton" style="height:160px;border-radius:14px"></div><div class="skeleton" style="height:160px;border-radius:14px"></div><div class="skeleton" style="height:160px;border-radius:14px"></div><div class="skeleton" style="height:160px;border-radius:14px"></div><div class="skeleton" style="height:160px;border-radius:14px"></div><div class="skeleton" style="height:160px;border-radius:14px"></div><div class="skeleton" style="height:160px;border-radius:14px"></div>
+        <div class="skeleton skel-panel"></div><div class="skeleton skel-panel"></div><div class="skeleton skel-panel"></div><div class="skeleton skel-panel"></div><div class="skeleton skel-panel"></div><div class="skeleton skel-panel"></div><div class="skeleton skel-panel"></div><div class="skeleton skel-panel"></div>
       </div>
     </div>
   </div></div>
@@ -656,209 +663,209 @@
       <!-- SESSIONS PANE (inside chat, rendered by JS) -->
 
       <!-- GITHUB PANE -->
-      <div class="pane u-2b1d86c3" id="pane-github" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-2b1d86c3" id="pane-github" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">🐙</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- DATABASE STUDIO PANE -->
-      <div class="pane u-2b1d86c3" id="pane-dbstudio" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-2b1d86c3" id="pane-dbstudio" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">🗄️</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- COMPOSER PANE -->
-      <div class="pane u-2b1d86c3" id="pane-composer" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-2b1d86c3" id="pane-composer" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">🪄</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- PLUGINS PANE -->
-      <div class="pane u-2b1d86c3" id="pane-plugins" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-2b1d86c3" id="pane-plugins" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">🧩</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- PIPELINE PANE -->
-      <div class="pane u-2b1d86c3" id="pane-pipeline" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-2b1d86c3" id="pane-pipeline" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">🏛️</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- OBSIDIAN PANE -->
-      <div class="pane u-2b1d86c3" id="pane-obsidian" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-2b1d86c3" id="pane-obsidian" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">🧿</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- SYSTEM PANE -->
-      <div class="pane u-2b1d86c3" id="pane-system" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-2b1d86c3" id="pane-system" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">💻</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- MCP PANE -->
-      <div class="pane u-2b1d86c3" id="pane-mcp" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-2b1d86c3" id="pane-mcp" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">🔧</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
       <!-- LOOPS PANE -->
-      <div class="pane u-2b1d86c3" id="pane-loops" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-2b1d86c3" id="pane-loops" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">♾️</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
 
@@ -911,10 +918,10 @@
 
       <!-- INFORMATION HIERARCHY PANE -->
       <div class="pane u-49faf7ff" id="pane-hierarchy" >
-        <div style="flex:1;display:flex;flex-direction:column">
+        <div class="pane-skeleton">
         <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);background:var(--bg-1);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
           <div>
-            <div style="display:flex;align-items:center;gap:8px">
+            <div class="set-row">
               <span class="u-b9199e22">🧭</span>
               <span style="font-size:18px;font-weight:800;color:var(--text-0)">2-Tier Information Hierarchy</span>
               <span class="badge" style="background:rgba(139,92,246,.15);color:#a78bfa;border:1px solid rgba(139,92,246,.3);padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">Strick Tech Architecture</span>
@@ -923,7 +930,7 @@
               Build your AI operating manual once. Your universal context and project-specific instructions automatically apply to every conversation.
             </div>
           </div>
-          <div class="hier-header-actions" style="display:flex;align-items:center;gap:8px">
+          <div class="hier-header-actions set-row">
             <button type="button" data-act-click="openHierarchyInterview()" class="btn btn-primary btn-sm" style="display:flex;align-items:center;gap:6px">
               <span>🤖</span> AI Interview Me
             </button>
@@ -1062,91 +1069,91 @@
       </div>
 
       <!-- CONTROL TOWER PANE -->
-      <div class="pane u-49faf7ff" id="pane-control" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-49faf7ff" id="pane-control" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">🎛️</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
       <!-- WORKSPACES PANE -->
-      <div class="pane u-49faf7ff" id="pane-workspaces" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-49faf7ff" id="pane-workspaces" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">📁</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
       <!-- WEBHOOKS PANE -->
-      <div class="pane u-49faf7ff" id="pane-webhooks" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-49faf7ff" id="pane-webhooks" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">🌐</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
       <!-- TEST GEN PANE -->
-      <div class="pane u-49faf7ff" id="pane-testgen" ><div style="flex:1;display:flex;flex-direction:column">
+      <div class="pane u-49faf7ff" id="pane-testgen" ><div class="pane-skeleton">
     <div class="u-a5031edb">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="pane-skeleton-head">
         <span class="u-881f70f9">🧪</span>
         <div>
-          <div class="skeleton" style="height:22px;width:200px;margin-bottom:6px;border-radius:6px"></div>
-          <div class="skeleton" style="height:14px;width:300px;border-radius:4px"></div>
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-sub"></div>
         </div>
       </div>
     </div>
     <div class="u-ce4ff4ed">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
-        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
       </div>
-      <div class="skeleton" style="height:200px;border-radius:12px;margin-bottom:12px"></div>
-      <div class="skeleton" style="height:120px;border-radius:12px"></div>
+      <div class="skeleton skel-block"></div>
+      <div class="skeleton skel-block-sm"></div>
     </div>
   </div></div>
       <!-- TERMINAL PANE -->
@@ -1234,30 +1241,30 @@
       <!-- SETTINGS PANE -->
       <!-- DEDICATED 2-COLUMN SETTINGS WORKSTATION -->
       <div class="pane" id="pane-settings" style="overflow:hidden;background:var(--bg-0)">
-        <div class="settings-workstation" style="display:flex;height:100%;width:100%;overflow:hidden">
+        <div class="settings-workstation">
           <!-- Left Settings Sidebar -->
-          <div class="settings-sidebar" style="width:260px;background:var(--bg-1);border-right:1px solid var(--border);padding:24px 14px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;overflow-y:auto">
+          <div class="settings-sidebar">
             <div style="font-size:11px;font-weight:800;color:var(--accent-text);text-transform:uppercase;letter-spacing:1px;padding:0 12px 10px">SETTINGS WORKSTATION</div>
             
-            <button type="button" id="settings-nav-api" data-act-click="switchSettingsTab('api')" class="settings-nav-item active" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+            <button type="button" id="settings-nav-api" data-act-click="switchSettingsTab('api')" class="settings-nav-item active">
               <span class="u-1444c6ea">🔑</span> <span class="u-97445a8d">Connect AI & Privacy</span>
             </button>
-            <button type="button" id="settings-nav-appearance" data-act-click="switchSettingsTab('appearance')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+            <button type="button" id="settings-nav-appearance" data-act-click="switchSettingsTab('appearance')" class="settings-nav-item">
               <span class="u-1444c6ea">🎨</span> <span class="u-97445a8d">Theme & Aesthetics</span>
             </button>
-            <button type="button" id="settings-nav-layout" data-act-click="switchSettingsTab('layout')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+            <button type="button" id="settings-nav-layout" data-act-click="switchSettingsTab('layout')" class="settings-nav-item">
               <span class="u-1444c6ea">🧭</span> <span class="u-97445a8d">Navigation & Layout</span>
             </button>
-            <button type="button" id="settings-nav-agents" data-act-click="switchSettingsTab('agents')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+            <button type="button" id="settings-nav-agents" data-act-click="switchSettingsTab('agents')" class="settings-nav-item">
               <span class="u-1444c6ea">🛡</span> <span class="u-97445a8d">AI Agents Swarm</span>
             </button>
-            <button type="button" id="settings-nav-ollama" data-act-click="switchSettingsTab('ollama')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+            <button type="button" id="settings-nav-ollama" data-act-click="switchSettingsTab('ollama')" class="settings-nav-item">
               <span class="u-1444c6ea">⚡</span> <span class="u-97445a8d">Local Ollama Server</span>
             </button>
-            <button type="button" id="settings-nav-system" data-act-click="switchSettingsTab('system')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+            <button type="button" id="settings-nav-system" data-act-click="switchSettingsTab('system')" class="settings-nav-item">
               <span class="u-1444c6ea">💾</span> <span class="u-97445a8d">Storage & DB Backup</span>
             </button>
-<button type="button" id="settings-nav-security" data-act-click="switchSettingsTab('security')" class="settings-nav-item" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:transparent;color:var(--text-1);font-weight:600;font-size:13px;border:none;cursor:pointer;text-align:left;transition:var(--transition)">
+<button type="button" id="settings-nav-security" data-act-click="switchSettingsTab('security')" class="settings-nav-item">
               <span class="u-1444c6ea">💾</span> <span class="u-97445a8d">Security</span>
             </button>
           </div>
@@ -1269,7 +1276,7 @@
             <div id="settings-tab-api" class="settings-tab-pane active">
               <div class="section-head u-8677744d" >
                 <h2 class="u-89c33dcc">🔑 Connect AI</h2>
-                <p style="color:var(--text-2);font-size:13.5px">Choose the simplest way to power Chat. Your available models appear automatically when a connection is ready.</p>
+                <p class="set-hint">Choose the simplest way to power Chat. Your available models appear automatically when a connection is ready.</p>
               </div>
 
               <section class="connection-quickstart" aria-label="Choose how to connect AI">
@@ -1283,18 +1290,18 @@
 
               <!-- CARD 1: Cloud connection -->
               <div id="connection-cloud-card" class="settings-card card-elevated surface-z3 u-551ca63a" >
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-                  <div style="display:flex;align-items:center;gap:8px">
+                <div class="set-head-row">
+                  <div class="set-row">
                     <span class="u-b9199e22">🌐</span>
-                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">1. Cloud AI connection</label>
+                    <label class="set-card-title">1. Cloud AI connection</label>
                   </div>
-                  <div style="display:flex;align-items:center;gap:8px">
-                    <span id="or-key-status-badge" class="tech-badge" style="color:var(--text-2);border-color:var(--border)">NOT CONFIGURED</span>
+                  <div class="set-row">
+                    <span id="or-key-status-badge" class="tech-badge set-opt-muted">NOT CONFIGURED</span>
                     <button data-act-click="hNoviceApiGuide()" type="button" class="btn-3d btn-ghost btn-sm" style="font-size:11px;color:var(--accent-text);font-weight:800">🌟 Help getting a key</button>
                   </div>
                 </div>
                 <p style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Add an API key to access 140+ AI models. Your key is stored securely on your device and models appear in Chat automatically.</p>
-                <div class="key-input-row" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+                <div class="key-input-row set-chip-row">
                   <div style="position:relative;flex:1;min-width:240px;display:flex">
                     <input id="or-key-input" type="password" class="key-input" placeholder="Paste sk-or-v1-… key here" required autocomplete="off" style="width:100%;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 40px 11px 14px;color:var(--text-0);font-size:13px;font-family:monospace;outline:none" aria-label="OpenRouter API key">
                     <button data-act-click="toggleKeyVisibility('or-key-input')" type="button" title="Show/Hide Key" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px">👁️</button>
@@ -1307,17 +1314,17 @@
 
               <!-- CARD 2: Local Ollama Endpoint & Model Manager -->
               <div id="connection-local-card" class="settings-card card-elevated surface-z3 u-551ca63a" >
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-                  <div style="display:flex;align-items:center;gap:8px">
+                <div class="set-head-row">
+                  <div class="set-row">
                     <span class="u-b9199e22">🖥️</span>
-                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">2. Local AI on this Mac</label>
+                    <label class="set-card-title">2. Local AI on this Mac</label>
                   </div>
-                  <span id="settings-api-ollama-status" class="tech-badge" style="color:var(--text-2);border-color:var(--border)">Checking...</span>
+                  <span id="settings-api-ollama-status" class="tech-badge set-opt-muted">Checking...</span>
                 </div>
-                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Use models that run on your Mac. Your conversations stay on this device. Check once and your available models will appear in Chat.</p>
-                <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+                <p class="set-lede">Use models that run on your Mac. Your conversations stay on this device. Check once and your available models will appear in Chat.</p>
+                <div class="set-chip-row">
                   <input id="settings-api-ollama-url" autocomplete="url" type="text" value="http://localhost:11434" style="flex:1;min-width:240px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="Ollama server URL">
-                  <button type="button" data-act-click="testOllamaConnection()" class="btn-ghost btn-3d" style="padding:11px 22px;border-radius:10px">⚡ Check & Auto-Discover Models</button>
+                  <button type="button" data-act-click="testOllamaConnection()" class="btn-ghost btn-3d set-pill-btn">⚡ Check & Auto-Discover Models</button>
                   <button type="button" data-act-click="hotReloadBackendEngine()" class="btn-primary btn-3d" style="padding:11px 18px;border-radius:10px;background:#0c855d;border:none;color:#fff" title="Reload internal Python AI services in RAM to ensure exact endpoint sync">⚡ Reload Engine & Sync</button>
                   <button type="button" data-act-click="hardRebootBackendEngine()" class="btn-ghost btn-3d" style="padding:11px 16px;border-radius:10px;color:var(--warning);border-color:var(--warning)" title="Perform clean application engine restart">🛑 Hard Restart Engine</button>
                 </div>
@@ -1345,14 +1352,14 @@
 
               <!-- CARD 3: Custom connection -->
               <div id="connection-custom-card" class="settings-card card-elevated surface-z3 u-551ca63a" >
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-                  <div style="display:flex;align-items:center;gap:8px">
+                <div class="set-head-row">
+                  <div class="set-row">
                     <span class="u-b9199e22">🔌</span>
-                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">3. Another AI connection</label>
+                    <label class="set-card-title">3. Another AI connection</label>
                   </div>
                   <span id="settings-api-custom-status" class="tech-badge" style="color:var(--accent-text);border-color:var(--accent-text)">LM Studio · Jan · Any Endpoint</span>
                 </div>
-                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">Connect a compatible local or hosted AI server you already use. Available models will appear in Chat automatically after a successful connection.</p>
+                <p class="set-lede">Connect a compatible local or hosted AI server you already use. Available models will appear in Chat automatically after a successful connection.</p>
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
                   <button type="button" data-act-click="hSetCustomBaseUrl('http://localhost:1234/v1')" class="btn-3d btn-ghost btn-sm u-11a50812" >⚡ Preset: LM Studio (:1234/v1)</button>
                   <button type="button" data-act-click="hSetCustomBaseUrl('http://localhost:1337/v1')" class="btn-3d btn-ghost btn-sm u-11a50812" >⚡ Preset: Jan (:1337/v1)</button>
@@ -1362,21 +1369,21 @@
                 <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
                   <input id="custom-api-base-url" autocomplete="url" type="text" placeholder="http://localhost:1234/v1" style="flex:2;min-width:220px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="API base URL">
                   <input id="custom-api-key" autocomplete="off" type="password" placeholder="API Key (if required by endpoint)" style="flex:1;min-width:160px;background:var(--bg-0);border:1px solid var(--border-hi);border-radius:10px;padding:11px 14px;color:var(--text-0);font-size:13px;font-family:monospace" aria-label="API key">
-                  <button type="button" data-act-click="saveCustomConnection()" class="btn-primary btn-3d" style="padding:11px 22px;border-radius:10px">🔗 Connect & Sync</button>
+                  <button type="button" data-act-click="saveCustomConnection()" class="btn-primary btn-3d set-pill-btn">🔗 Connect & Sync</button>
                 </div>
                 <div id="custom-api-status-msg" style="font-size:12.5px;color:var(--text-2);padding:10px;background:var(--bg-2);border-radius:8px;border:1px solid var(--border);display:none"></div>
               </div>
 
               <!-- CARD 4: Enterprise Cryptographic Secret Vault & Local Storage Audit -->
               <div class="settings-card card-elevated surface-z3" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;box-shadow:var(--shadow)">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-                  <div style="display:flex;align-items:center;gap:8px">
+                <div class="set-head-row">
+                  <div class="set-row">
                     <span class="u-b9199e22">🔐</span>
-                    <label style="font-size:14px;font-weight:900;color:var(--text-0)">4. Enterprise Cryptographic Secret Vault & Storage Audit</label>
+                    <label class="set-card-title">4. Enterprise Cryptographic Secret Vault & Storage Audit</label>
                   </div>
                   <span class="badge badge-success">LOCAL ENCRYPTED STORAGE</span>
                 </div>
-                <p style="font-size:12.5px;color:var(--text-2);margin-bottom:16px;line-height:1.6">All API keys, tokens, and custom headers are encrypted using local AES-256-GCM cryptography tied to your hardware master key (<code style="color:var(--accent-text);font-family:monospace">~/.vault_key</code> & <code style="color:var(--accent-text);font-family:monospace">~/Library/Application Support/com.stricktech.agenticos/secrets/vault.json</code>). No credentials ever leave your machine or transmit to third-party telemetry servers.</p>
+                <p class="set-lede">All API keys, tokens, and custom headers are encrypted using local AES-256-GCM cryptography tied to your hardware master key (<code class="set-code">~/.vault_key</code> & <code class="set-code">~/Library/Application Support/com.stricktech.agenticos/secrets/vault.json</code>). No credentials ever leave your machine or transmit to third-party telemetry servers.</p>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
                   <button type="button" data-act-click="checkVaultIntegrity()" class="btn-3d btn-primary btn-sm u-f18464ff" >🔍 Run Cryptographic Vault Audit</button>
                   <button type="button" data-act-click="exportEncryptedVaultBackup()" class="btn-3d btn-ghost btn-sm u-f18464ff" >📥 Backup Encrypted Secrets (.json)</button>
@@ -1404,12 +1411,12 @@
               <div id="settings-tab-theme"></div>
               <div class="section-head u-8677744d" >
                 <h2 class="u-89c33dcc">🎨 Theme & Visual Aesthetics</h2>
-                <p style="color:var(--text-2);font-size:13.5px">Customize your visual interface palette, 2D/3D depth, and Workstation Complexity.</p>
+                <p class="set-hint">Customize your visual interface palette, 2D/3D depth, and Workstation Complexity.</p>
               </div>
 
               <!-- 6 Themes Selector -->
               <div class="settings-card u-b15fc6ae" >
-                <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:14px">Appearance Mode & Visual Palette</label>
+                <label class="set-section-label">Appearance Mode & Visual Palette</label>
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
                   <button type="button" data-act-click="applyTheme('light');toast('✨ Ultra-Techy Light Theme applied')" class="card-3d-tilt btn-3d" style="padding:16px;border-radius:14px;border:2px solid #e2e8f0;background:#ffffff;color:#0f172a;font-weight:800;font-size:13px;cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.05)">
                     <div class="u-52493b96">☀️</div>
@@ -1444,17 +1451,17 @@
 
               <!-- Workstation Mode Switcher -->
               <div class="settings-card u-b15fc6ae" >
-                <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:14px">Workstation Operating Mode</label>
+                <label class="set-section-label">Workstation Operating Mode</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-                  <button type="button" id="settings-simple-btn" data-act-click="switchUIMode('simple');updateSettingsModeButtons();toast('✨ Core Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
-                    <div style="font-size:22px;margin-bottom:6px">⚡</div>
+                  <button type="button" id="settings-simple-btn" data-act-click="switchUIMode('simple');updateSettingsModeButtons();toast('✨ Core Workstation active')" class="card-3d-tilt set-tile-btn">
+                    <div class="set-icon-lg">⚡</div>
                     <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:var(--accent-text)">Core Workstation</div>
-                    <div style="font-size:12px;color:var(--text-2);line-height:1.4">Streamlined focused view. Essential Chat, Multi-Agent Swarm, Code Studio, and AI Context &amp; Guidelines.</div>
+                    <div class="set-note">Streamlined focused view. Essential Chat, Multi-Agent Swarm, Code Studio, and AI Context &amp; Guidelines.</div>
                   </button>
-                  <button type="button" id="settings-power-btn" data-act-click="switchUIMode('power');updateSettingsModeButtons();toast('🌌 Power Workstation active')" class="card-3d-tilt" style="padding:18px;border-radius:14px;border:2px solid var(--border);background:var(--bg-2);color:var(--text-0);cursor:pointer;text-align:left">
-                    <div style="font-size:22px;margin-bottom:6px">🌌</div>
+                  <button type="button" id="settings-power-btn" data-act-click="switchUIMode('power');updateSettingsModeButtons();toast('🌌 Power Workstation active')" class="card-3d-tilt set-tile-btn">
+                    <div class="set-icon-lg">🌌</div>
                     <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:#d8b4fe">Power Workstation</div>
-                    <div style="font-size:12px;color:var(--text-2);line-height:1.4">All 65+ features active across categorized groups. Full monitoring, bug detection, evaluations, and encryption.</div>
+                    <div class="set-note">All 65+ features active across categorized groups. Full monitoring, bug detection, evaluations, and encryption.</div>
                   </button>
                 </div>
               </div>
@@ -1462,15 +1469,15 @@
               <!-- Typography & High Contrast -->
               <div class="settings-card" style="background:var(--bg-1);border:1px solid var(--border-hi);border-radius:18px;padding:26px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
                 <div>
-                  <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:8px">Typography Scale</label>
+                  <label class="set-section-label-sm">Typography Scale</label>
                   <div style="display:flex;gap:8px">
-                    <button type="button" data-act-click="saveFontSize('sm');toast('Typography set to Small')" class="btn-sm" id="fs-sm" style="padding:7px 16px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer;font-weight:600">Small</button>
-                    <button type="button" data-act-click="saveFontSize('base');toast('Typography set to Medium')" class="btn-sm" id="fs-base" style="padding:7px 16px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer;font-weight:600">Medium</button>
-                    <button type="button" data-act-click="saveFontSize('lg');toast('Typography set to Large')" class="btn-sm" id="fs-lg" style="padding:7px 16px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border);color:var(--text-0);cursor:pointer;font-weight:600">Large</button>
+                    <button type="button" data-act-click="saveFontSize('sm');toast('Typography set to Small')" class="btn-sm set-ghost-btn" id="fs-sm">Small</button>
+                    <button type="button" data-act-click="saveFontSize('base');toast('Typography set to Medium')" class="btn-sm set-ghost-btn" id="fs-base">Medium</button>
+                    <button type="button" data-act-click="saveFontSize('lg');toast('Typography set to Large')" class="btn-sm set-ghost-btn" id="fs-lg">Large</button>
                   </div>
                 </div>
                 <div>
-                  <label style="font-size:12px;font-weight:800;color:var(--text-1);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:8px">High Contrast (WCAG AAA)</label>
+                  <label class="set-section-label-sm">High Contrast (WCAG AAA)</label>
                   <button type="button" data-act-click="toggleHighContrastTheme()" id="high-contrast-toggle-btn" class="btn-sm" style="padding:8px 18px;border-radius:8px;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);font-weight:700;cursor:pointer">Toggle High Contrast</button>
                 </div>
               </div>
@@ -1480,14 +1487,14 @@
             <div id="settings-tab-layout" class="settings-tab-pane">
               <div class="section-head u-8677744d" >
                 <h2 class="u-89c33dcc">🧭 Navigation & Layout Architecture</h2>
-                <p style="color:var(--text-2);font-size:13.5px">Fine-tune your resizable navigation sidebar and responsive topbar layout behaviors.</p>
+                <p class="set-hint">Fine-tune your resizable navigation sidebar and responsive topbar layout behaviors.</p>
               </div>
 
               <div class="settings-card u-b15fc6ae" >
                 <h3 class="u-e0bd1cdc">↔️ Resizable Navigation Sidebar</h3>
-                <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px">You can drag the divider handle (`#sidebar-resizer`) directly between the sidebar and workspace to expand or shrink the navigation pane dynamically between 56px (icon mode) and 600px (deep folder hierarchy mode). Your exact width is automatically saved to local storage.</p>
-                <div style="display:flex;gap:12px">
-                  <button type="button" data-act-click="toggleSidebar();toast('Sidebar toggled')" class="btn btn-primary btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);cursor:pointer">Toggle Collapsed Mode (56px)</button>
+                <p class="set-lede-13">You can drag the divider handle (`#sidebar-resizer`) directly between the sidebar and workspace to expand or shrink the navigation pane dynamically between 56px (icon mode) and 600px (deep folder hierarchy mode). Your exact width is automatically saved to local storage.</p>
+                <div class="set-gap-12">
+                  <button type="button" data-act-click="toggleSidebar();toast('Sidebar toggled')" class="btn btn-primary btn-sm set-solid-btn">Toggle Collapsed Mode (56px)</button>
                   <button type="button" data-act-click="hExpandSidebar()" class="btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer">Reset Default Width (260px)</button>
                 </div>
               </div>
@@ -1508,9 +1515,9 @@
                    visibility from Simple would see nothing change. -->
               <div class="settings-card u-b15fc6ae" >
                 <h3 class="u-e0bd1cdc">🧩 Pane Visibility &amp; Favorites</h3>
-                <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px">Choose exactly which of the 60+ panes appear in your sidebar, and star the ones you use most. Hidden panes stay available via search (⌘K) and deep links. Applies to Power mode.</p>
-                <div style="display:flex;gap:12px">
-                  <button type="button" id="settings-customize-panes-btn" data-act-click="showSidebarCustomizer()" class="btn btn-primary btn-sm" style="padding:10px 20px;border-radius:8px;font-weight:700;background:var(--bg-3);border:1px solid var(--border-hi);color:var(--text-0);cursor:pointer">🧩 Customize Sidebar Panes</button>
+                <p class="set-lede-13">Choose exactly which of the 60+ panes appear in your sidebar, and star the ones you use most. Hidden panes stay available via search (⌘K) and deep links. Applies to Power mode.</p>
+                <div class="set-gap-12">
+                  <button type="button" id="settings-customize-panes-btn" data-act-click="showSidebarCustomizer()" class="btn btn-primary btn-sm set-solid-btn">🧩 Customize Sidebar Panes</button>
                 </div>
               </div>
             </div>
@@ -1520,7 +1527,7 @@
               <div class="section-head" style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between">
                 <div>
                   <h2 class="u-89c33dcc">🛡 AI Specialist Agents Swarm</h2>
-                  <p style="color:var(--text-2);font-size:13.5px">Configure autonomous specialist agent personas, system prompts, and model routing.</p>
+                  <p class="set-hint">Configure autonomous specialist agent personas, system prompts, and model routing.</p>
                 </div>
                 <button type="button" data-act-click="openAgentModal()" class="btn btn-primary" style="padding:10px 22px;border-radius:10px;font-weight:700;background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;box-shadow:0 0 16px rgba(56,189,248,0.3)">＋ Create Specialist Agent</button>
               </div>
@@ -1534,7 +1541,7 @@
             <div id="settings-tab-ollama" class="settings-tab-pane">
               <div class="section-head u-8677744d" >
                 <h2 class="u-89c33dcc">⚡ Local LLM Server (Ollama Hub)</h2>
-                <p style="color:var(--text-2);font-size:13.5px">Run open-source neural models 100% offline, zero-latency, and privately on your Apple Silicon or Intel CPU.</p>
+                <p class="set-hint">Run open-source neural models 100% offline, zero-latency, and privately on your Apple Silicon or Intel CPU.</p>
               </div>
 
               <div class="settings-card u-b15fc6ae" >
@@ -1552,31 +1559,31 @@
               <!-- One-click model auto-detect/puller -->
               <div class="settings-card u-3e024d13" >
                 <h3 class="u-e0bd1cdc">📥 One-Click Local Model Auto-Puller</h3>
-                <p style="font-size:13px;color:var(--text-2);margin-bottom:16px">Click any model below to trigger an automatic local download into your Ollama engine directly from Agentic OS.</p>
+                <p class="set-lede-13-sm">Click any model below to trigger an automatic local download into your Ollama engine directly from Agentic OS.</p>
                 
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
-                  <div style="padding:16px;border-radius:12px;border:1px solid var(--border);background:var(--bg-2);display:flex;flex-direction:column;justify-content:space-between">
+                  <div class="set-card">
                     <div>
-                      <div style="font-weight:800;font-size:14px;color:var(--text-0);margin-bottom:4px">Llama 3.1 8B</div>
-                      <div style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">Meta's premier instruction-tuned model. Exceptional reasoning & coding on Apple Silicon (`~4.7 GB`).</div>
+                      <div class="set-label">Llama 3.1 8B</div>
+                      <div class="set-sub">Meta's premier instruction-tuned model. Exceptional reasoning & coding on Apple Silicon (`~4.7 GB`).</div>
                     </div>
-                    <button type="button" data-act-click="pullOllamaModel('llama3.1:8b')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent-text);font-weight:700;cursor:pointer">⚡ Pull llama3.1:8b</button>
+                    <button type="button" data-act-click="pullOllamaModel('llama3.1:8b')" class="btn-sm set-code-btn">⚡ Pull llama3.1:8b</button>
                   </div>
                   
-                  <div style="padding:16px;border-radius:12px;border:1px solid var(--border);background:var(--bg-2);display:flex;flex-direction:column;justify-content:space-between">
+                  <div class="set-card">
                     <div>
-                      <div style="font-weight:800;font-size:14px;color:var(--text-0);margin-bottom:4px">Mistral 7B</div>
-                      <div style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">High-speed European foundation model with top-tier efficiency and low memory footprint (`~4.1 GB`).</div>
+                      <div class="set-label">Mistral 7B</div>
+                      <div class="set-sub">High-speed European foundation model with top-tier efficiency and low memory footprint (`~4.1 GB`).</div>
                     </div>
-                    <button type="button" data-act-click="pullOllamaModel('mistral')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent-text);font-weight:700;cursor:pointer">⚡ Pull mistral</button>
+                    <button type="button" data-act-click="pullOllamaModel('mistral')" class="btn-sm set-code-btn">⚡ Pull mistral</button>
                   </div>
 
-                  <div style="padding:16px;border-radius:12px;border:1px solid var(--border);background:var(--bg-2);display:flex;flex-direction:column;justify-content:space-between">
+                  <div class="set-card">
                     <div>
-                      <div style="font-weight:800;font-size:14px;color:var(--text-0);margin-bottom:4px">Qwen 2.5 7B</div>
-                      <div style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">Alibaba's cutting-edge multilingual & math specialist model (`~4.5 GB`).</div>
+                      <div class="set-label">Qwen 2.5 7B</div>
+                      <div class="set-sub">Alibaba's cutting-edge multilingual & math specialist model (`~4.5 GB`).</div>
                     </div>
-                    <button type="button" data-act-click="pullOllamaModel('qwen2.5:7b')" class="btn-sm" style="width:100%;padding:8px;background:var(--bg-3);border:1px solid var(--border-hi);border-radius:8px;color:var(--accent-text);font-weight:700;cursor:pointer">⚡ Pull qwen2.5:7b</button>
+                    <button type="button" data-act-click="pullOllamaModel('qwen2.5:7b')" class="btn-sm set-code-btn">⚡ Pull qwen2.5:7b</button>
                   </div>
                 </div>
               </div>
@@ -1587,15 +1594,15 @@
               <!-- Access & Sign-in (authentication) -->
               <div class="section-head u-8677744d" >
                 <h2 class="u-89c33dcc">🔑 Access &amp; Sign-in</h2>
-                <p style="color:var(--text-2);font-size:13.5px">Authentication is optional while the app runs on your machine. Create an account to enable personal sessions — the first account becomes the administrator, and authenticated surfaces (like the Terminal, when the server is not bound to loopback) then require signing in.</p>
+                <p class="set-hint">Authentication is optional while the app runs on your machine. Create an account to enable personal sessions — the first account becomes the administrator, and authenticated surfaces (like the Terminal, when the server is not bound to loopback) then require signing in.</p>
               </div>
               <div class="settings-card u-3e024d13" >
-                <div id="auth-access-body" style="font-size:13px;color:var(--text-2)">Open this tab to load access settings.</div>
+                <div id="auth-access-body" class="set-hint-13">Open this tab to load access settings.</div>
               </div>
 
               <div class="section-head u-8677744d" >
                 <h2 class="u-89c33dcc">🛡️ Content Security Policy</h2>
-                <p style="color:var(--text-2);font-size:13.5px">The enforced policy blocks inline scripts outright. A second, stricter policy runs in report-only mode so the next tightening can be measured before it is applied — nothing below is currently being blocked.</p>
+                <p class="set-hint">The enforced policy blocks inline scripts outright. A second, stricter policy runs in report-only mode so the next tightening can be measured before it is applied — nothing below is currently being blocked.</p>
               </div>
               <div class="settings-card u-3e024d13" >
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
@@ -1603,23 +1610,23 @@
                   <button type="button" class="btn btn-ghost btn-sm" data-act-click="renderCspMonitor()">↺ Refresh</button>
                   <button type="button" class="btn btn-ghost btn-sm" data-act-click="clearCspReports()">Clear</button>
                 </div>
-                <div id="csp-monitor-body" style="font-size:13px;color:var(--text-2)">Open this tab to load reports.</div>
+                <div id="csp-monitor-body" class="set-hint-13">Open this tab to load reports.</div>
               </div>
             </div>
 
             <div id="settings-tab-system" class="settings-tab-pane">
               <div class="section-head u-8677744d" >
                 <h2 class="u-89c33dcc">💾 System Storage & Database Backup</h2>
-                <p style="color:var(--text-2);font-size:13.5px">All your projects, chats, and vector memory live in a single compounding SQLite file on your disk.</p>
+                <p class="set-hint">All your projects, chats, and vector memory live in a single compounding SQLite file on your disk.</p>
               </div>
 
               <div class="settings-card u-3e024d13" >
                 <h3 class="u-e0bd1cdc">🗄️ agentic.db WAL Storage Snapshot</h3>
-                <p style="font-size:13px;color:var(--text-2);margin-bottom:16px">Your SQLite database uses high-concurrency Write-Ahead Logging (WAL) and Full-Text Search 5 (FTS5).</p>
+                <p class="set-lede-13-sm">Your SQLite database uses high-concurrency Write-Ahead Logging (WAL) and Full-Text Search 5 (FTS5).</p>
                 
                 <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;font-size:12.5px;color:var(--text-1)">
-                  <div class="u-4e420aff"><strong>Database Path:</strong> <code style="font-family:monospace;color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/memory/agentic.db</code></div>
-                  <div><strong>Encrypted Vault Key Path:</strong> <code style="font-family:monospace;color:var(--accent-text)">~/Library/Application Support/com.stricktech.agenticos/.vault_key</code></div>
+                  <div class="u-4e420aff"><strong>Database Path:</strong> <code class="set-code">~/Library/Application Support/com.stricktech.agenticos/memory/agentic.db</code></div>
+                  <div><strong>Encrypted Vault Key Path:</strong> <code class="set-code">~/Library/Application Support/com.stricktech.agenticos/.vault_key</code></div>
                   <div id="system-info" style="margin-top:8px;color:var(--text-2);font-weight:600"></div>
                 </div>
                 
@@ -1630,8 +1637,8 @@
           </div><!-- /settings-content-area -->
         </div><!-- /settings-workstation -->
       </div><!-- /pane-settings -->
-      <div class="pane u-2b1d86c3" id="pane-pqc" ><div style="flex:1;display:flex;flex-direction:column"></div></div>
-      <div class="pane u-2b1d86c3" id="pane-finetune" ><div style="flex:1;display:flex;flex-direction:column"></div></div>
+      <div class="pane u-2b1d86c3" id="pane-pqc" ><div class="pane-skeleton"></div></div>
+      <div class="pane u-2b1d86c3" id="pane-finetune" ><div class="pane-skeleton"></div></div>
 
     </div><!-- /content -->
 
@@ -1641,7 +1648,7 @@
     <!-- Secondary Split Workstation Slot -->
     <div id="content-right" style="display:none;flex:1;overflow:hidden;flex-direction:column;min-width:280px;height:100% !important;background:var(--bg-0);border-left:1px solid var(--border)">
       <div class="split-header" style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--bg-1);border-bottom:1px solid var(--border);flex-shrink:0">
-        <div style="display:flex;align-items:center;gap:8px">
+        <div class="set-row">
           <span class="u-433de30b">🗂️</span>
           <span style="font-size:12.5px;font-weight:800;color:var(--text-0)">Secondary Workstation Slot</span>
           <select id="split-pane-select" data-act-change="renderSplitPane($value)" style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:6px;padding:4px 8px;color:var(--text-0);font-size:12px;font-weight:700;outline:none;cursor:pointer" aria-label="Pane to show alongside">

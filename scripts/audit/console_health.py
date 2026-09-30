@@ -95,11 +95,14 @@ EXPECTED = (
 # headroom over today's average, the same margin the 300 value carried
 # when it was chosen at 243/pane.
 #
-# The structural fix is the Phase-2 design-system conversion (measured for
-# the record: 4,165 literal style=" emitters across 30+ frontend files,
-# 823 refusals on first load alone — pane-chat 175, pane-settings 170,
-# app shell 130, pane-studio 63, pane-hierarchy 57). Until then this
-# budget tracks reality instead of pretending it away.
+# The Phase-2 design-system conversion (#258) took the FIRST-LOAD refusals
+# from 823 to 519 (skeletons + settings/chat/shell templates became classes;
+# pinned in tests/e2e_browser/test_e2e_browser_11_design_system.py) but the
+# WALK total is dominated by pane-render templates in 30+ module files
+# (browser 1521, goals 1330, mcp-gateway 1284 on one pass), which remain
+# unconverted by design — a class per single-use value changes nothing (see
+# docs/module-reviews/35). ~303/pane measured after #258; the 350 budget
+# keeps the same ~15% headroom over reality it always carried.
 NOISE_BUDGET_PER_PANE = 350
 NOISE_BUDGET_FLOOR = 12000
 

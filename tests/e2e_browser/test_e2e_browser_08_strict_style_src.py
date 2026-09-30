@@ -121,7 +121,13 @@ def test_the_extracted_stylesheets_are_served_and_parsed(app):
 def test_inline_style_attributes_are_rehydrated(app):
     """The attribute is blocked but readable, so it is re-applied via the CSSOM."""
     count = app.evaluate('() => window.__styleHydration.count()')
-    assert count > 500, f'only {count} style attributes were hydrated; expected hundreds'
+    # r94, #258: the floor tracks the inline-style census, which the
+    # design-system conversion keeps lowering (823 first-load refusals at
+    # r93 -> 519 after skeletons/settings/chat/shell became classes; the
+    # hydrator's count moves with it). 478 measured post-#258; the floor
+    # keeps proving the hydrator operates at scale while allowing the
+    # census to keep falling.
+    assert count > 400, f'only {count} style attributes were hydrated; expected hundreds'
 
     unapplied = app.evaluate("""() => [...document.querySelectorAll('[style]')]
         .filter(e => e.style.length === 0 && (e.getAttribute('style') || '').trim())

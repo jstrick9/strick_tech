@@ -234,8 +234,10 @@ class TestNavigationAndSettingsIntegrity:
             "nav(pane) must automatically uncollapse the parent group folder when navigating"
         )
 
-        styles_css = (FRONTEND_DIR / "styles.css").read_text(encoding="utf-8")
-        assert "body.theme-high-contrast {" in styles_css, "High-contrast WCAG AAA theme rule must exist in styles.css"
+        # r94, #258: styles.css was the pre-redesign monolith index.html
+        # stopped loading on 2026-07-25 — the rule lives in the live sheet.
+        styles_css = (FRONTEND_DIR / "styles-unified.css").read_text(encoding="utf-8")
+        assert "body.theme-high-contrast {" in styles_css, "High-contrast WCAG AAA theme rule must exist in styles-unified.css"
         ui_ergonomics_js = (JS_DIR / "13-ui-ergonomics.js").read_text(encoding="utf-8")
         assert "window.toggleHighContrastTheme = function()" in ui_ergonomics_js, "toggleHighContrastTheme must be globally assigned"
 
