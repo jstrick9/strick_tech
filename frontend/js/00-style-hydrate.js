@@ -152,7 +152,7 @@
     //
     // Refusing the combination outright was too blunt. Measured against the
     // real app it rejected exactly 3 elements, and all 3 were legitimate
-    // application modals (#gmodal, #shortcuts-modal) -- full-viewport overlays
+    // application modals (#gmodal and overlays like it) -- full-viewport overlays
     // that are SUPPOSED to sit above everything, and which are inert until
     // opened because they also carry display:none.
     //

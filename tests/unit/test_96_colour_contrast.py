@@ -135,29 +135,45 @@ def test_borders_remain_distinguishable(theme):
 # ══ The tokens must actually reach the DOM ════════════════════════════════════
 def test_new_tokens_are_applied_by_applytheme():
     """Computing a value that never reaches CSS would be worse than not
-    computing it — the audit would pass while the UI stayed broken."""
+    computing it — the audit would pass while the UI stayed broken.
+
+    UPDATED r95 (#259): #258 moved token application out of JS entirely —
+    applyTheme no longer writes tokens with setProperty; it switches the
+    data-theme attribute on <html> AND <body> and the generated palette
+    blocks in styles-tokens.css resolve every token (including --accent-text
+    and --on-accent) per theme. This test silently broke at #258 and was
+    found on the clean #258 tree during #259; it now pins the mechanism that
+    actually exists."""
     src = CORE.read_text(encoding='utf-8')
-    assert "setProperty('--accent-text'" in src
-    assert "setProperty('--on-accent'" in src
+    assert "root.setAttribute('data-theme', tid)" in src, (
+        'applyTheme must switch the palette via the data-theme attribute'
+    )
+    assert "document.body.setAttribute('data-theme', tid)" in src, (
+        'the body pin is load-bearing (see gen_theme_css.build_block): dropping '
+        'it would make a saved custom accent visible app-wide in dark/light'
+    )
+    tokens_css = (ROOT / 'frontend' / 'styles-tokens.css').read_text(encoding='utf-8')
+    for token in ('--accent-text', '--on-accent'):
+        assert f'{token}:' in tokens_css, (
+            f'{token} must be declared per palette in styles-tokens.css'
+        )
 
 
 def test_default_stylesheet_declares_the_tokens():
     """applyTheme runs after first paint; the :root fallback covers the gap.
 
     UPDATED: the :root block used to live in an inline <style> in index.html.
-    `style-src 'self'` drops an inline <style> element whole, so the three
-    blocks (57 KB) were extracted to styles-extracted.css. The tokens are
-    unchanged; only the file holding them moved. Reading BOTH keeps this test
-    correct wherever they end up next.
+    `style-src 'self'` drops an inline <style> element whole, so the blocks
+    were extracted to a stylesheet; since #258 that stylesheet is
+    styles-tokens.css — the single token definer, loaded first.
     """
-    html = INDEX.read_text(encoding='utf-8')
-    for extra in ('styles-extracted.css', 'styles-unified.css', 'styles-redesign.css'):
-        path = ROOT / 'frontend' / extra
-        if path.exists():
-            html += path.read_text(encoding='utf-8')
-    assert '--accent-text:' in html
-    assert re.search(r'--text-3:\s*#a0a0a0', html), (
-        'the :root fallback for --text-3 was not raised to the accessible value'
+    tokens_css = (ROOT / 'frontend' / 'styles-tokens.css').read_text(encoding='utf-8')
+    assert '--accent-text:' in tokens_css
+    # #258 froze :root to the MEASURED visible dark palette: text-3 is
+    # #949494 (the old sheets' #a0a0a0 raise is history; the full AA matrix
+    # in this file is the guard that matters now — dark passes it).
+    assert re.search(r'--text-3:\s*#949494', tokens_css), (
+        'the :root --text-3 value must match the measured dark palette'
     )
 
 

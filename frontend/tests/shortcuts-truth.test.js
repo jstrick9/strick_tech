@@ -47,7 +47,34 @@ describe('keyboard shortcut truthfulness', () => {
   });
 
   it('the header ⌨️ button and the palette command open the unified overlay', () => {
+    // r95, #259: the showShortcuts() fallback is deleted along with the old
+    // #shortcuts-modal; 93-shortcuts-overlay.js owns the only implementation.
     const collab = read('js/32-collaboration.js');
-    expect(collab).toMatch(/window\.showKeyboardShortcuts\s*\|\|\s*showShortcuts/);
+    expect(collab).toMatch(/window\.showKeyboardShortcuts\(\)/);
+    expect(collab).not.toMatch(/showShortcuts\s*\(/);
+  });
+
+  it('r95: the overlay renders from classes, not per-open inline styles', () => {
+    // The enforced `style-src 'self'` refuses parser-level style attributes;
+    // the old overlay emitted ~25 per open (hydrator-rescued at a cost).
+    expect(OVERLAY).toMatch(/className = 'kbs-overlay'/);
+    expect(OVERLAY).not.toMatch(/style="/);
+    expect(OVERLAY).not.toMatch(/style\.cssText/);
+  });
+
+  it('r95: the fictional shortcuts stay gone', () => {
+    // F7/F8 ("Next/Previous diff") were never bound anywhere; Ctrl+Shift+M
+    // was removed as a duplicate of Ctrl+Shift+V long before r95.
+    expect(OVERLAY).not.toMatch(/'F7'/);
+    expect(OVERLAY).not.toMatch(/'F8'/);
+    expect(OVERLAY).not.toMatch(/Ctrl', 'Shift', 'M'/);
+  });
+
+  it('r95: the old #shortcuts-modal and its feeder are deleted', () => {
+    const html = read('../index.html');
+    const core = read('js/01-app-core.js');
+    expect(html).not.toMatch(/shortcuts-modal/);
+    expect(core).not.toMatch(/function showShortcuts/);
+    expect(core).not.toMatch(/shortcuts-modal/);
   });
 });

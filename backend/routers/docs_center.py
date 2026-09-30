@@ -9,7 +9,9 @@ Supports: full-text search, contextual help (docs for current pane), categories,
 
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 
@@ -943,25 +945,60 @@ FAQ = [
     },
 ]
 
+# r95, #259: the verified shortcut list. This is a FLATTENED MIRROR of the
+# help overlay's data (frontend/js/93-shortcuts-overlay.js) — the single
+# hand-curated source. tests/unit/test_245_help_and_palettes.py parses the
+# overlay and fails if this list diverges in either direction, so the
+# docs pane can never again document a different app than the one running.
+# The list it replaced claimed, among other things, that ⌘/ opened the
+# documentation center (it focuses the chat input) and ⌘⇧P opened the
+# Profiler (double-bound; it lands on Profiler only after a wasted Studio
+# navigation — see docs/module-reviews/92 for the live conflicts).
 KEYBOARD_SHORTCUTS = [
-    {'key': '⌘K', 'desc': 'Open command palette / global search'},
-    {'key': '⌘P', 'desc': 'Code search'},
-    {'key': '⌘L', 'desc': 'Prompt library'},
-    {'key': '⌘U', 'desc': 'Share / invite to collaboration'},
+    {'key': '⌘K', 'desc': 'Open command palette'},
+    {'key': '⌘P', 'desc': 'Open command palette'},
     {'key': '⌘\\', 'desc': 'Toggle sidebar'},
+    {'key': '⌘B', 'desc': 'Toggle sidebar'},
     {'key': '⌘,', 'desc': 'Open settings'},
-    {'key': '⌘/', 'desc': 'Open documentation center'},
-    {'key': '⌘⇧W', 'desc': 'Open Workflow Builder'},
-    {'key': '⌘⇧P', 'desc': 'Open Profiler'},
+    {'key': '⌘/', 'desc': 'Focus chat input'},
+    {'key': 'Esc', 'desc': 'Close modals / palette'},
+    {'key': '?', 'desc': 'Show this help'},
+    {'key': '⌘1–6', 'desc': 'Chat · Studio · Templates · Kanban · Swarm · Deploy'},
+    {'key': 'Alt+1–7', 'desc': 'Chat · Studio · Templates · Swarm · Galaxy · Kanban · Settings'},
+    {'key': '⌘⇧A', 'desc': 'Open Arena'},
     {'key': '⌘⇧B', 'desc': 'Open BugBot'},
-    {'key': '⌘⇧E', 'desc': 'Open Evals'},
+    {'key': '⌘⇧E', 'desc': 'Open Health'},
     {'key': '⌘⇧F', 'desc': 'Open Model Fusion'},
+    {'key': '⌘⇧G', 'desc': 'Open Code Index'},
+    {'key': '⌘⇧H', 'desc': 'Open Hooks'},
+    {'key': '⌘⇧I', 'desc': 'Open user profile'},
+    {'key': '⌘⇧K', 'desc': 'Open Knowledge Graph'},
+    {'key': '⌘⇧L', 'desc': 'Open Leaderboard'},
     {'key': '⌘⇧M', 'desc': 'Open Marketplace'},
+    {'key': '⌘⇧N', 'desc': 'Open AI Guidelines'},
+    {'key': '⌘⇧O', 'desc': 'Open Observability'},
+    {'key': '⌘⇧P', 'desc': 'Open Profiler'},
     {'key': '⌘⇧R', 'desc': 'Open Replay'},
-    {'key': 'Ctrl+Shift+V', 'desc': 'Toggle Voice Coding'},
-    {'key': '⌘T', 'desc': 'New tab (Multi-tab preview)'},
-    {'key': '⌘W', 'desc': 'Close current tab'},
-    {'key': '⌘⇧I', 'desc': 'Open user profile panel'},
+    {'key': '⌘⇧S', 'desc': 'Open Spec Builder'},
+    {'key': '⌘⇧W', 'desc': 'Open Workflow'},
+    {'key': '⌘⇧X', 'desc': 'Open Web Search'},
+    {'key': 'Enter', 'desc': 'Send message'},
+    {'key': 'Shift+Enter', 'desc': 'New line in message'},
+    {'key': '/', 'desc': 'Start slash command'},
+    {'key': 'Alt+Shift+F', 'desc': 'Format current file'},
+    {'key': '⌘R', 'desc': 'Review current file'},
+    {'key': '⌘U', 'desc': 'Share project'},
+    {'key': '⌘Z', 'desc': 'Undo (editor)'},
+    {'key': '⌘⇧Z', 'desc': 'Redo (editor)'},
+    {'key': 'Tab', 'desc': 'Accept autocomplete (editor)'},
+    {'key': '⌘S', 'desc': 'Save workflow'},
+    {'key': '⌘C', 'desc': 'Copy node'},
+    {'key': '⌘V', 'desc': 'Paste node'},
+    {'key': '⌘D', 'desc': 'Duplicate node'},
+    {'key': 'Delete', 'desc': 'Delete node'},
+    {'key': '⌘T', 'desc': 'New tab'},
+    {'key': '⌘W', 'desc': 'Close tab'},
+    {'key': 'Ctrl+Shift+V', 'desc': 'Toggle voice coding'},
 ]
 
 
@@ -1032,6 +1069,31 @@ def get_faq(q: str = ''):
 def get_shortcuts():
     """Retrieve and return get shortcuts."""
     return {'shortcuts': KEYBOARD_SHORTCUTS, 'count': len(KEYBOARD_SHORTCUTS)}
+
+
+# r95, #259: the palette reference for the Documentation Center's Themes
+# tab. frontend/palettes.json is GENERATED from THEME_VARS by
+# scripts/gen_theme_css.py (with docs/palettes.md and the styles-tokens.css
+# palette blocks); reading the artifact keeps this endpoint on the single
+# source without the backend parsing JavaScript. Read per request: the file
+# is ~3KB and docs traffic is low, so a cache would only hide edits.
+_PALETTES_JSON = Path(__file__).resolve().parents[2] / 'frontend' / 'palettes.json'
+
+
+@router.get('/palettes')
+def get_palettes():
+    """The design-system palettes: tokens, swatch values, WCAG contrast."""
+    try:
+        data = json.loads(_PALETTES_JSON.read_text(encoding='utf-8'))
+    except (OSError, ValueError) as exc:
+        # The file is a committed artifact — missing or corrupt means the
+        # generation step was skipped, which --check (test_245) treats as
+        # drift. Surface it rather than serving a stub.
+        raise HTTPException(
+            status_code=500,
+            detail=f'palettes artifact unreadable: {exc}. '
+                   'Run: python3 scripts/gen_theme_css.py') from exc
+    return {'palettes': data.get('palettes', []), 'count': len(data.get('palettes', []))}
 
 
 # Words too common to carry meaning in a help query. Dropped so

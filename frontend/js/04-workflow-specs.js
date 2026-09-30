@@ -871,6 +871,7 @@ async function renderDocs() {
         <button type="button" class="docs-tab" data-tab="features" data-act-click="docsTab('features',$this)">📘 Features</button>
         <button type="button" class="docs-tab" data-tab="faq" data-act-click="docsTab('faq',$this)">❓ FAQ</button>
         <button type="button" class="docs-tab" data-tab="shortcuts" data-act-click="docsTab('shortcuts',$this)">⌨️ Shortcuts</button>
+        <button type="button" class="docs-tab" data-tab="themes" data-act-click="docsTab('themes',$this)">🎨 Themes</button>
         <button type="button" class="docs-tab" data-tab="videos" data-act-click="docsTab('videos',$this)">🎥 Videos</button>
       </div>
     </div>
@@ -884,6 +885,16 @@ async function renderDocs() {
   if (!window._docsPreventAutoTab) {
     docsTab('quickstarts', pane.querySelector('.docs-tab.active'));
   }
+}
+
+// r95, #259: apply a palette from the docs Themes tab. applyTheme does the
+// real work (palette switch, persistence, settings-tile sync); this wraps it
+// with the tab-local feedback + re-render so the "Current" chip moves.
+async function docsApplyTheme(id, name) {
+  applyTheme(id);
+  toast(`🎨 ${name} palette applied`);
+  const active = document.querySelector('#pane-docs .docs-tab.active');
+  if (active) docsTab('themes', active);
 }
 
 async function docsTab(tab, el) {
@@ -982,6 +993,35 @@ async function docsTab(tab, el) {
             <span style="color:var(--text-1)">${escHtml(s.desc||'')}</span>
           </div>`).join('')}
       </div>`;
+  }
+  else if (tab === 'themes') {
+    // r95, #259: the palette reference — the same generated data the
+    // settings picker faces and docs/palettes.md come from
+    // (frontend/palettes.json ← THEME_VARS, rendered by
+    // scripts/gen_theme_css.py). One source, three artifacts, no drift.
+    const d = await fetch('/api/docs/palettes').then(r=>r.ok?r.json():({palettes:[]})).catch(()=>({palettes:[]}));
+    const current = document.documentElement.getAttribute('data-theme-preference') || 'light';
+    content.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:var(--text-0);margin-bottom:12px">Theme Palettes</div>
+      <div class="pal-grid">
+        ${(d.palettes||[]).map((p) =>`
+          <div class="pal-card${p.id===current?' current':''}">
+            <div><span class="pal-name">${escHtml(p.name)}</span><span class="pal-mode">${escHtml(p.mode)}</span>${p.id===current?'<span class="pal-current-chip">Current</span>':''}</div>
+            <div class="pal-desc">${escHtml(p.description)}</div>
+            <div class="pal-swatches">
+              ${['bg-0','bg-2','bg-4','text-0','accent'].map(t => `<div class="pal-swatch" data-swatch="${escHtml((p.tokens||{})[t]||'')}" title="${t}: ${escHtml((p.tokens||{})[t]||'')}"></div>`).join('')}
+            </div>
+            <div class="pal-contrast">Weakest pair: ${escHtml(p.weakest_pair)} at <b>${escHtml(String(p.weakest_ratio))}:1</b></div>
+            <button type="button" class="pal-apply" data-act-click="docsApplyTheme('${escHtml(p.id)}','${escHtml(p.name)}')">Apply ${escHtml(p.name)}</button>
+          </div>`).join('')}
+      </div>`;
+    // CSP-clean colour pass: a style ATTRIBUTE would be parser-refused
+    // under the enforced `style-src 'self'`; el.style writes (CSSOM) are
+    // exempt. Zero console refusals this way.
+    content.querySelectorAll('[data-swatch]').forEach(el => {
+      const v = el.getAttribute('data-swatch');
+      if (v) el.style.background = v;
+    });
   }
   else if (tab === 'videos') {
     const videos = [

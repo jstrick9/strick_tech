@@ -1,89 +1,138 @@
-// Keyboard shortcuts help overlay.
-// Extracted from index.html so that script-src can drop
-// 'unsafe-inline'. Execution order is unchanged: this file is loaded
-// with defer, after every other deferred script.
+// Keyboard shortcuts help overlay — the single source of truth for what
+// the keys ACTUALLY do (r95, #259).
+//
+// Two things this file is now responsible for, both pinned by tests:
+//
+//  1. HONESTY. Every entry below was verified against a real binding in
+//     the source (and the ⌘⇧ pane jumps are live-pressed in
+//     tests/e2e_browser/test_e2e_browser_12_design_system_p3.py). Three
+//     entries the old list carried were fiction and are gone: F7/F8
+//     "Next/Previous diff" (never bound anywhere) and Ctrl+Shift+M
+//     "Toggle voice mode" (removed as a duplicate of Ctrl+Shift+V long
+//     ago). The old list also missed ⌘1–6, ⌘P, Alt+1–7, Alt+Shift+F,
+//     ⌘R and ⌘U — all real, all bound.
+//
+//     Two keys are documented by their FINAL effect because two handlers
+//     fire on each press (registration order decides the landing pane):
+//     ⌘⇧E navigates to Evals then Health (lands Health), ⌘⇧P to Studio
+//     then Profiler (lands Profiler), and ⌘P opens the palette and also
+//     navigates to Code Search behind it. Those double-binds are live
+//     conflicts recorded in docs/module-reviews/92 — fixing them changes
+//     behaviour and is deliberately not smuggled into the help rewrite.
+//
+//  2. ONE LIST. The backend mirrors (docs_center.KEYBOARD_SHORTCUTS and
+//     onboarding's /api/onboarding/shortcuts) must flatten to exactly
+//     this list — tests/unit/test_245_help_and_palettes.py parses this
+//     file and fails on any divergence.
+//
+// Rendering is class-based (.kbs-* in styles-tokens.css). The old version
+// built ~25 inline style attributes per open, which the enforced
+// `style-src 'self'` policy refused on every single open (the hydrator
+// re-applied them, at the cost of a refusal burst each time).
+//
+// Execution order is unchanged: this file is loaded with defer, after
+// every other deferred script, and its window.showKeyboardShortcuts
+// assignment therefore wins.
 (function() {
   var shortcuts = [
     {group: 'Navigation', items: [
       {keys: ['⌘', 'K'], desc: 'Open command palette'},
+      {keys: ['⌘', 'P'], desc: 'Open command palette'},
       {keys: ['⌘', '\\'], desc: 'Toggle sidebar'},
+      {keys: ['⌘', 'B'], desc: 'Toggle sidebar'},
       {keys: ['⌘', ','], desc: 'Open settings'},
-      {keys: ['Esc'], desc: 'Close modals / palette'},
       {keys: ['⌘', '/'], desc: 'Focus chat input'},
+      {keys: ['Esc'], desc: 'Close modals / palette'},
+      {keys: ['?'], desc: 'Show this help'},
+    ]},
+    {group: 'Quick nav', items: [
+      {keys: ['⌘', '1–6'], desc: 'Chat · Studio · Templates · Kanban · Swarm · Deploy'},
+      {keys: ['Alt', '1–7'], desc: 'Chat · Studio · Templates · Swarm · Galaxy · Kanban · Settings'},
+    ]},
+    {group: 'Jump to pane (⌘⇧ + letter)', items: [
+      {keys: ['⌘', '⇧', 'A'], desc: 'Open Arena'},
+      {keys: ['⌘', '⇧', 'B'], desc: 'Open BugBot'},
+      {keys: ['⌘', '⇧', 'E'], desc: 'Open Health'},
+      {keys: ['⌘', '⇧', 'F'], desc: 'Open Model Fusion'},
+      {keys: ['⌘', '⇧', 'G'], desc: 'Open Code Index'},
+      {keys: ['⌘', '⇧', 'H'], desc: 'Open Hooks'},
+      {keys: ['⌘', '⇧', 'I'], desc: 'Open user profile'},
+      {keys: ['⌘', '⇧', 'K'], desc: 'Open Knowledge Graph'},
+      {keys: ['⌘', '⇧', 'L'], desc: 'Open Leaderboard'},
+      {keys: ['⌘', '⇧', 'M'], desc: 'Open Marketplace'},
+      {keys: ['⌘', '⇧', 'N'], desc: 'Open AI Guidelines'},
+      {keys: ['⌘', '⇧', 'O'], desc: 'Open Observability'},
+      {keys: ['⌘', '⇧', 'P'], desc: 'Open Profiler'},
+      {keys: ['⌘', '⇧', 'R'], desc: 'Open Replay'},
+      {keys: ['⌘', '⇧', 'S'], desc: 'Open Spec Builder'},
+      {keys: ['⌘', '⇧', 'W'], desc: 'Open Workflow'},
+      {keys: ['⌘', '⇧', 'X'], desc: 'Open Web Search'},
     ]},
     {group: 'Chat', items: [
       {keys: ['Enter'], desc: 'Send message'},
       {keys: ['Shift', 'Enter'], desc: 'New line in message'},
       {keys: ['/'], desc: 'Start slash command'},
     ]},
-    {group: 'Quick Nav', items: [
-      {keys: ['⌘', '⇧', 'B'], desc: 'Open BugBot'},
-      {keys: ['⌘', '⇧', 'N'], desc: 'Open Steering'},
-      {keys: ['⌘', '⇧', 'E'], desc: 'Open Health'},
-      {keys: ['⌘', '⇧', 'M'], desc: 'Open Marketplace'},
-      {keys: ['⌘', '⇧', 'R'], desc: 'Open Replay'},
-      {keys: ['⌘', '⇧', 'A'], desc: 'Open Arena'},
-      {keys: ['⌘', '⇧', 'S'], desc: 'Open Spec Builder'},
-      {keys: ['⌘', '⇧', 'H'], desc: 'Open Hooks'},
-      {keys: ['⌘', '⇧', 'G'], desc: 'Open Code Index'},
+    {group: 'Studio & files', items: [
+      {keys: ['Alt', 'Shift', 'F'], desc: 'Format current file'},
+      {keys: ['⌘', 'R'], desc: 'Review current file'},
+      {keys: ['⌘', 'U'], desc: 'Share project'},
+      {keys: ['⌘', 'Z'], desc: 'Undo (editor)'},
+      {keys: ['⌘', '⇧', 'Z'], desc: 'Redo (editor)'},
+      {keys: ['Tab'], desc: 'Accept autocomplete (editor)'},
     ]},
-    {group: 'Editor', items: [
-      {keys: ['⌘', 'S'], desc: 'Save file in editor'},
-      {keys: ['⌘', 'Z'], desc: 'Undo in editor'},
-      {keys: ['⌘', '⇧', 'Z'], desc: 'Redo in editor'},
-      {keys: ['F7'], desc: 'Next diff'},
-      {keys: ['F8'], desc: 'Previous diff'},
-      {keys: ['Tab'], desc: 'Accept autocomplete'},
+    {group: 'Workflow pane', items: [
+      {keys: ['⌘', 'S'], desc: 'Save workflow'},
+      {keys: ['⌘', 'C'], desc: 'Copy node'},
+      {keys: ['⌘', 'V'], desc: 'Paste node'},
+      {keys: ['⌘', 'D'], desc: 'Duplicate node'},
+      {keys: ['Delete'], desc: 'Delete node'},
+    ]},
+    {group: 'Multitab pane', items: [
+      {keys: ['⌘', 'T'], desc: 'New tab'},
+      {keys: ['⌘', 'W'], desc: 'Close tab'},
     ]},
     {group: 'Voice', items: [
-      {keys: ['Ctrl', '⇧', 'V'], desc: 'Toggle voice coding'},
-      {keys: ['Ctrl', '⇧', 'M'], desc: 'Toggle voice mode (TTS)'},
-    ]},
-    {group: 'General', items: [
-      {keys: ['?'], desc: 'Show this help'},
+      {keys: ['Ctrl', 'Shift', 'V'], desc: 'Toggle voice coding'},
     ]},
   ];
 
-  // 01-app-core.js:5440 also defines showKeyboardShortcuts (the older
-  // #shortcuts-modal). This grouped overlay has won since it was written: it
-  // lived inline in index.html, and inline scripts run after the non-deferred
-  // core file. Extracting it to a deferred file keeps the same winner, so
-  // behaviour is unchanged -- the clash merely became VISIBLE to
-  // lint_globals.py, which scans .js and could not see an inline block.
-  // intentional-override: richer grouped overlay supersedes the core modal
+  // r95, #259: the older #shortcuts-modal + showShortcuts() pair in
+  // 01-app-core.js is DELETED — this is the only help overlay now, and the
+  // header ⌨️ button / palette entry call it directly (32-collaboration.js).
   window.showKeyboardShortcuts = function() {
     var existing = document.getElementById('kb-shortcuts-overlay');
     if (existing) { existing.remove(); return; }
-    
+
     var overlay = document.createElement('div');
     overlay.id = 'kb-shortcuts-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(4,6,14,.85);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)';
-    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
-    
-    var html = '<div style="background:var(--bg-2);border:1px solid var(--border-hi);border-radius:16px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto;padding:28px;box-shadow:0 32px 80px rgba(0,0,0,.7)">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">';
-    html += '<h2 style="margin:0;font-size:18px;font-weight:800">⌨️ Keyboard Shortcuts</h2>';
-    html += '<button type="button" data-close="id:kb-shortcuts-overlay" aria-label="Close shortcuts" title="Close shortcuts" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px">✕</button>';
+    overlay.className = 'kbs-overlay';
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+
+    var html = '<div class="kbs-card">';
+    html += '<div class="kbs-head">';
+    html += '<h2 class="kbs-title">⌨️ Keyboard Shortcuts</h2>';
+    html += '<button type="button" data-close="id:kb-shortcuts-overlay" aria-label="Close shortcuts" title="Close shortcuts" class="kbs-close">✕</button>';
     html += '</div>';
-    
+
     shortcuts.forEach(function(group) {
-      html += '<div class="u-87c136df">';
-      html += '<div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">' + group.group + '</div>';
+      html += '<div>';
+      html += '<div class="kbs-group-label">' + group.group + '</div>';
       group.items.forEach(function(item) {
-        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0">';
-        html += '<span style="font-size:13px;color:var(--text-1)">' + item.desc + '</span>';
-        html += '<div style="display:flex;gap:4px">';
+        html += '<div class="kbs-row">';
+        html += '<span class="kbs-desc">' + item.desc + '</span>';
+        html += '<div class="kbs-keys">';
         item.keys.forEach(function(key) {
-          html += '<kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;color:var(--text-2);font-family:inherit;min-width:20px;text-align:center">' + key + '</kbd>';
+          html += '<kbd class="kbs-kbd">' + key + '</kbd>';
         });
         html += '</div></div>';
       });
       html += '</div>';
     });
-    
-    html += '<div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text-3)">Press <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px">?</kbd> or <kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px">Esc</kbd> to close</div>';
+
+    html += '<div class="kbs-foot">Press <kbd class="kbs-kbd kbs-kbd-sm">?</kbd> or <kbd class="kbs-kbd kbs-kbd-sm">Esc</kbd> to close</div>';
     html += '</div>';
-    
+
     overlay.innerHTML = html;
     document.body.appendChild(overlay);
   };

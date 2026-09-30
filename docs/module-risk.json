@@ -1,10 +1,10 @@
 [
   {
     "pane": "docs",
-    "score": 28,
+    "score": 30,
     "file": "04-workflow-specs.js",
-    "lines": 1589,
-    "endpoints": 11,
+    "lines": 1629,
+    "endpoints": 12,
     "markers": 1,
     "tested": true,
     "tabs": 0,

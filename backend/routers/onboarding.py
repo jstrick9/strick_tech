@@ -250,25 +250,13 @@ THEMES = [
     {'id': 'ocean', 'name': 'Ocean', 'bg': '#080d10', 'accent': '#38c5d8', 'preview': 'Cool blue dark'},
 ]
 
-KEYBOARD_SHORTCUTS = [
-    {'keys': ['⌘', 'K'], 'label': 'Command Palette'},
-    {'keys': ['Enter'], 'label': 'Send chat message'},
-    {'keys': ['Shift', 'Enter'], 'label': 'New line in chat'},
-    {'keys': ['⌘', 'S'], 'label': 'Save file in editor'},
-    {'keys': ['⌘', 'Z'], 'label': 'Undo in editor'},
-    {'keys': ['⌘', 'Shift', 'Z'], 'label': 'Redo in editor'},
-    {'keys': ['F7'], 'label': 'Next diff'},
-    {'keys': ['F8'], 'label': 'Previous diff'},
-    {'keys': ['Esc'], 'label': 'Close modal / palette'},
-    {'keys': ['Tab'], 'label': 'Accept autocomplete'},
-    {'keys': ['⌘', 'Shift', 'A'], 'label': 'Open Arena'},
-    {'keys': ['⌘', 'Shift', 'S'], 'label': 'Open Spec Builder'},
-    {'keys': ['⌘', 'Shift', 'H'], 'label': 'Open Hooks'},
-    {'keys': ['⌘', 'Shift', 'G'], 'label': 'Open Code Index'},
-    {'keys': ['⌘', '/'], 'label': 'Focus chat input'},
-    {'keys': ['Ctrl', 'Shift', 'V'], 'label': 'Toggle voice coding'},
-    {'keys': ['Ctrl', 'Shift', 'M'], 'label': 'Toggle voice mode (TTS)'},
-]
+# r95, #259: the fourth and last duplicate shortcut list is gone. This
+# endpoint used to serve its own hand-maintained copy — the one that fed
+# the deleted #shortcuts-modal, complete with the fictional F7/F8/Ctrl+
+# Shift+M entries. The verified list lives in one place (the help
+# overlay); docs_center mirrors it and pins the mirror with a test.
+from .docs_center import KEYBOARD_SHORTCUTS  # noqa: E402  (single source)
+KEYBOARD_SHORTCUTS = [dict(e) for e in KEYBOARD_SHORTCUTS]
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────

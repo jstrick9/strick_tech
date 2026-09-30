@@ -291,7 +291,24 @@ window.nav = function(pane) {
     el.className = 'pane';
     el.id = 'pane-' + pane;
     el.style.cssText = 'overflow:auto;padding:20px;background:var(--bg-0);flex:1';
-    el.innerHTML = `<div style="flex:1;display:flex;flex-direction:column"><div style="padding:24px;color:var(--text-2)">⚡ Initializing ${escHtml(pane)} component...</div></div>`;
+    // r95, #259: the fallback for panes with no static markup (unknown ids,
+    // stale deep links) used to render an ad-hoc "⚡ Initializing…" string
+    // that matched no design system. It now shows the same skeleton the 22
+    // static panes ship, so an unrendered pane looks like loading — which
+    // is what it is — instead of like an error state. Class-based, so the
+    // CSP `style-src 'self'` policy parses it clean.
+    el.innerHTML = `<div class="pane-skeleton" role="status" aria-label="Loading ${escHtml(pane)}…">
+      <div class="pane-skeleton-head">
+        <div class="skeleton skel-title"></div>
+        <div class="skeleton skel-sub"></div>
+      </div>
+      <div class="pane-skeleton-grid">
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+        <div class="skeleton skel-card"></div>
+      </div>
+    </div>`;
     const content = document.getElementById('content');
     if (content) content.appendChild(el);
   }
@@ -2434,7 +2451,6 @@ function collectOpenModals() {
     document.getElementById('profile-panel'),
     document.getElementById('sidebar-customizer'),
     document.getElementById('account-settings-modal'),
-    document.getElementById('shortcuts-modal'),
     document.getElementById('ctx-help-overlay'),
     // Bespoke overlay-modals created ad hoc with a `className='…-modal-overlay'`
     // scrim. These were mouse-only: Escape left them open (a WCAG 2.1.2
@@ -6003,9 +6019,6 @@ if (typeof PALETTE_CMDS !== 'undefined') {
   );
 }
 
-// Add Studio shortcut to shortcuts list
-// (will appear when fetched from /api/onboarding/shortcuts next call)
-
 // ── Cost tracking polling ─────────────────────────────────────────
 setInterval(updateCostBar, 30000);
 
@@ -6051,6 +6064,15 @@ function applyPreferences(prefs) {
 }
 
 const THEME_VARS = {
+  // r95, #259: two AA fixes #258 missed. (1) light.onAccent was frozen at
+  // #ffffff, which is 4.13:1 on the measured accent #6a6df2 — white labels
+  // on primary buttons have been sub-AA in light mode since long before the
+  // freeze; it is now #0b1020 (4.58:1), the same onAccent five other
+  // palettes already use. (2) ember.text3 was verified on bg-2 only and
+  // measured 4.47:1 on bg-3; it is now #9d8879 (4.96:1 on bg-3). Both are
+  // pinned by tests/unit/test_96_colour_contrast.py, which #258 silently
+  // broke — its four failures were found on the clean #258 tree in #259.
+  //
   // r94, #258: the dark and light entries are the values the app ACTUALLY
   // RENDERED, not the values this table used to carry. History: applyTheme
   // wrote the old entries inline on <html>, but applyTheme also sets
@@ -6070,7 +6092,7 @@ const THEME_VARS = {
   //
   // The `glow` field is the exact --accent-glow the app rendered per theme
   // (for dark/light it came from the sheets, not the accent+'22' derivation).
-light: { bg0:'#ffffff', bg1:'#f9fafb', bg2:'#f3f4f6', bg3:'#e5e7eb', bg4:'#d1d5db', bg5:'#9ca3af', text0:'#111827', text1:'#374151', text2:'#5f6672', text3:'#5d6573', border:'rgba(0,0,0,0.08)', borderHi:'rgba(0,0,0,0.15)', accent:'#6a6df2', accentHi:'#4f46e5' , accentText:'#02699f', onAccent:'#ffffff', glow:'rgba(99,102,241,0.1)' },
+light: { bg0:'#ffffff', bg1:'#f9fafb', bg2:'#f3f4f6', bg3:'#e5e7eb', bg4:'#d1d5db', bg5:'#9ca3af', text0:'#111827', text1:'#374151', text2:'#5f6672', text3:'#5d6573', border:'rgba(0,0,0,0.08)', borderHi:'rgba(0,0,0,0.15)', accent:'#6a6df2', accentHi:'#4f46e5' , accentText:'#02699f', onAccent:'#0b1020', glow:'rgba(99,102,241,0.1)' },
   dark: { bg0:'#0f0f0f', bg1:'#171717', bg2:'#1e1e1e', bg3:'#2a2a2a', bg4:'#363636', bg5:'#444444', text0:'#f5f5f5', text1:'#d4d4d4', text2:'#a0a0a0', text3:'#949494', border:'rgba(255,255,255,0.08)', borderHi:'rgba(255,255,255,0.15)', accent:'#6a6df2', accentHi:'#818cf8' , accentText:'#818cf8', onAccent:'#0b1020', glow:'rgba(99,102,241,0.15)' },
   obsidian: { bg0:'#040408', bg1:'#06060d', bg2:'#0d0d18', bg3:'#16162a', bg4:'#22223c', bg5:'#2e2e52', text0:'#ffffff', text1:'#cbd5e1', text2:'#7a8aaa', text3:'#7384ae', border:'rgba(255,255,255,.1)', borderHi:'rgba(255,255,255,.2)', accent:'#38bdf8', accentHi:'#7dd3fc' , accentText:'#38bdf8', onAccent:'#0b1020' },
   jet: { bg0:'#000000', bg1:'#0a0a0a', bg2:'#121216', bg3:'#1a1a20', bg4:'#24242e', bg5:'#30303e', text0:'#ffffff', text1:'#e2e8f0', text2:'#94a3b8', text3:'#76869d', border:'rgba(255,255,255,.15)', borderHi:'rgba(255,255,255,.3)', accent:'#e11d48', accentHi:'#fb7185' , accentText:'#e8496c', onAccent:'#ffffff' },
@@ -6084,7 +6106,7 @@ light: { bg0:'#ffffff', bg1:'#f9fafb', bg2:'#f3f4f6', bg3:'#e5e7eb', bg4:'#d1d5d
   // which also renders them into styles-tokens.css so CSS and JS cannot
   // drift — verified per-pair with the WCAG relative-luminance formula:
   // weakest pairing is text-3 on bg-2 at 4.82:1).
-  ember:  { bg0:'#100a08', bg1:'#170f0b', bg2:'#1f1410', bg3:'#2a1a14', bg4:'#38221a', bg5:'#482e22', text0:'#fef3ec', text1:'#e8cfc0', text2:'#b39b8a', text3:'#96806f', border:'rgba(240,136,80,.16)', borderHi:'rgba(240,136,80,.3)', accent:'#f08850', accentHi:'#f8a878' , accentText:'#f49e6e', onAccent:'#1a0e06' },
+  ember:  { bg0:'#100a08', bg1:'#170f0b', bg2:'#1f1410', bg3:'#2a1a14', bg4:'#38221a', bg5:'#482e22', text0:'#fef3ec', text1:'#e8cfc0', text2:'#b39b8a', text3:'#9d8879', border:'rgba(240,136,80,.16)', borderHi:'rgba(240,136,80,.3)', accent:'#f08850', accentHi:'#f8a878' , accentText:'#f49e6e', onAccent:'#1a0e06' },
   ocean:  { bg0:'#080d10', bg1:'#0c1418', bg2:'#111c22', bg3:'#16262e', bg4:'#1d3340', bg5:'#264553', text0:'#effafc', text1:'#c2dbe2', text2:'#8fb0ba', text3:'#7a9aa6', border:'rgba(56,197,216,.16)', borderHi:'rgba(56,197,216,.3)', accent:'#38c5d8', accentHi:'#6fdbe8' , accentText:'#4fd0e0', onAccent:'#06181c' },
 };
 
@@ -6129,14 +6151,33 @@ function applyTheme(themeId, accentOverride, options = {}) {
     document.body.setAttribute('data-theme', tid);
     document.body.setAttribute('data-theme-preference', preference);
   }
+  // r95, #259: the settings picker used to give no indication of which
+  // palette was active — nine identical-looking tiles, no current state.
+  // Mark the tile that matches the saved PREFERENCE (auto included); the
+  // tile grid only exists when the settings pane markup is in the DOM, so
+  // this is a no-op everywhere else.
+  document.querySelectorAll('.theme-tile[data-theme-id]').forEach(tile => {
+    const isCurrent = tile.dataset.themeId === preference;
+    tile.classList.toggle('active', isCurrent);
+    tile.setAttribute('aria-pressed', isCurrent ? 'true' : 'false');
+  });
   const themeMeta = document.querySelector('meta[name="theme-color"]');
   if (themeMeta) themeMeta.content = tid === 'light' ? '#f8fafc' : '#060814';
 
   if (options.persist === false) return;
   try { try { _safeLS.set('agentic_os_theme', preference); } catch {} } catch(e) {}
+  // r95, #259: regression fix for #258 — the applyTheme rewrite dropped the
+  // `accent` local this body still referenced, so EVERY persist-path call
+  // threw a ReferenceError after the attribute writes: the theme applied and
+  // localStorage saved (which is why it survived unnoticed), but the
+  // preference PATCH never fired and anything chained after the call in a
+  // data-act-click expression (the picker tile's toast, the docs tab's
+  // re-render) never ran. Same semantics as before the rewrite: the custom
+  // override, else the palette's own accent.
+  const persistAccent = accentOverride || (THEME_VARS[tid] || THEME_VARS.dark).accent;
   fetch('/api/onboarding/preferences', {
     method: 'PATCH', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({theme: preference, accent_color: accent})
+    body: JSON.stringify({theme: preference, accent_color: persistAccent})
   }).then(r => {
     if (!r.ok) console.warn('[Theme] Persist failed: HTTP ' + r.status);
   }).catch(ex => console.warn('[Theme] Persist error:', ex?.message));
@@ -6288,38 +6329,6 @@ window.saveFontSize = async function(size) {
       body: JSON.stringify({font_size: size})
     }).catch(()=>{});
   } catch(e) {}
-};
-
-// ── Keyboard Shortcuts Overlay ─────────────────────────────────────
-async function showShortcuts() {
-  const list = document.getElementById('shortcuts-list');
-  if (list && !list.children.length) {
-    try {
-      const r = await fetch('/api/onboarding/shortcuts');
-      if (!r.ok) { list.innerHTML = stateFeedback.errorElement({ title: 'Couldn\u2019t load shortcuts', message: 'Failed to load shortcuts' }); }
-      else {
-        const shortcutsRaw = await r.json();
-        const shortcuts = Array.isArray(shortcutsRaw) ? shortcutsRaw : (shortcutsRaw?.shortcuts || []);
-        list.innerHTML = shortcuts.map(s =>
-          `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:13px;color:var(--text-1)">${escHtml(s.label)}</span>
-            <div style="display:flex;gap:4px">
-              ${s.keys.map(k => `<kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-size:12px;font-family:monospace">${escHtml(k)}</kbd>`).join('')}
-            </div>
-          </div>`
-        ).join('');
-      }
-    } catch(ex) {
-      if (list) list.innerHTML = stateFeedback.errorElement({ title: 'Error', message: ex?.message||String(ex) });
-    }
-  }
-  document.getElementById('shortcuts-modal').style.display = 'flex';
-}
-window.showShortcuts = showShortcuts;
-window.showKeyboardShortcuts = function() {
-  const lp = document.getElementById('mission-launchpad-deck');
-  if (lp) lp.style.display = 'block';
-  showShortcuts();
 };
 
 // Add shortcuts button to topbar (done at end of init)

@@ -230,6 +230,75 @@
 .sb-chevron.sb-chevron           { display: inline-block; transition: transform 0.15s; margin-right: 6px; }
 .sb-count.sb-count               { float: right; font-size: 10px; opacity: 0.7; }
 
+/* ── Skeleton loading UX (r95, #259) ──────────────────────────────────────
+   The 153 skeleton bars shimmered in lockstep: every bar's 1.5s animation
+   started at the same t=0, so panes pulsed as one flat sheet. Negative
+   animation-delay phase-shifts each bar into the middle of its cycle, so
+   the wave travels down the card grid instead. Negative (not positive)
+   delays matter here: a positive delay leaves the bar at its un-animated
+   start position for the first delay window; a negative one is mid-shimmer
+   from the first frame.
+   The global prefers-reduced-motion kill-switch (styles-extracted.css)
+   already collapses every animation to one 0.01ms iteration — that covers
+   these delays too, so no extra reduced-motion rule is needed. */
+.pane-skeleton-head .skeleton:nth-child(2)  { animation-delay: -0.25s; }
+.pane-skeleton-grid .skeleton:nth-child(2)  { animation-delay: -0.20s; }
+.pane-skeleton-grid .skeleton:nth-child(3)  { animation-delay: -0.40s; }
+.pane-skeleton-grid .skeleton:nth-child(4)  { animation-delay: -0.60s; }
+.pane-skeleton-grid .skeleton:nth-child(5)  { animation-delay: -0.80s; }
+.pane-skeleton-grid .skeleton:nth-child(6)  { animation-delay: -1.00s; }
+
+/* ── Help overlay, ? key (r95, #259) ─────────────────────────────────────
+   Same rendered values the overlay used to build per-open via innerHTML
+   style attributes — which the enforced `style-src 'self'` refused on
+   every open (rescued, at a cost, by the style-hydrate observer). Classes
+   parse clean: zero refusals, no hydrator round-trip. */
+.kbs-overlay          { position: fixed; inset: 0; background: rgba(4,6,14,.85); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+.kbs-card             { background: var(--bg-2); border: 1px solid var(--border-hi); border-radius: 16px; max-width: 640px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 28px; box-shadow: 0 32px 80px rgba(0,0,0,.7); }
+.kbs-head             { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.kbs-title            { margin: 0; font-size: 18px; font-weight: 800; }
+.kbs-close            { background: none; border: none; color: var(--text-3); cursor: pointer; font-size: 20px; }
+.kbs-group-label      { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+.kbs-row              { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+.kbs-desc             { font-size: 13px; color: var(--text-1); }
+.kbs-keys             { display: flex; gap: 4px; }
+.kbs-kbd              { background: var(--bg-3); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; color: var(--text-2); font-family: inherit; min-width: 20px; text-align: center; }
+.kbs-kbd-sm           { padding: 1px 5px; font-size: 10px; }
+.kbs-foot             { text-align: center; margin-top: 16px; font-size: 11px; color: var(--text-3); }
+
+/* ── Settings theme picker tiles (r95, #259) ─────────────────────────────
+   The base carries layout; the per-palette FACES are generated from
+   THEME_VARS into the generated region below (a swatch must preview the
+   real palette). The base selector is doubled (0-2-0) because the buttons
+   also carry .btn-3d, which sets padding/border in styles-redesign.css
+   and styles-system.css — at 0-1-0 the later sheets would win. */
+.theme-tile.theme-tile     { padding: 16px; border-radius: 14px; border: 2px solid var(--border); font-weight: 800; font-size: 13px; cursor: pointer; text-align: center; }
+.theme-tile--auto.theme-tile--auto { background: linear-gradient(135deg,#ffffff 0%,#ffffff 48%,#0f0f0f 52%,#0f0f0f 100%); color: #111827; border-color: #9ca3af; }
+/* The three tiles that carried an elevation shadow before the class
+   conversion, with their exact rendered values (the other six had none). */
+.theme-tile--light.theme-tile--light { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.theme-tile--dark.theme-tile--dark   { box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.theme-tile--auto.theme-tile--auto   { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+.theme-tile.theme-tile.active { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── Documentation Center: Themes tab (r95, #259) ────────────────────────
+   Renders frontend/palettes.json (generated from THEME_VARS). Swatch
+   colours are data values, so they arrive as data-swatch attributes and
+   are applied through the CSSOM (el.style.background) by the renderer —
+   the CSP-clean path for dynamic values; style ATTRIBUTES would be
+   parser-refused under `style-src 'self'`. */
+.pal-grid         { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.pal-card         { background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.pal-card.current { border-color: var(--accent); }
+.pal-name         { font-size: 15px; font-weight: 800; color: var(--text-0); }
+.pal-mode         { font-size: 11px; color: var(--text-3); margin-left: 8px; }
+.pal-desc         { font-size: 12px; color: var(--text-2); line-height: 1.5; margin: 6px 0 10px; }
+.pal-swatches     { display: flex; gap: 6px; margin-bottom: 10px; }
+.pal-swatch       { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-hi); }
+.pal-contrast     { font-size: 11px; color: var(--text-2); margin-bottom: 12px; }
+.pal-apply        { padding: 7px 16px; border-radius: 8px; background: var(--bg-3); border: 1px solid var(--border-hi); color: var(--accent-text); font-weight: 700; font-size: 12px; cursor: pointer; }
+.pal-current-chip { display: inline-block; font-size: 10px; font-weight: 700; color: var(--accent-text); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
+
 /* ==== BEGIN generated theme palettes (scripts/gen_theme_css.py) ==== */
 [data-theme="light"] {
   --bg-0: #ffffff;
@@ -247,7 +316,7 @@
   --accent: #6a6df2;
   --accent-hi: #4f46e5;
   --accent-text: #02699f;
-  --on-accent: #ffffff;
+  --on-accent: #0b1020;
   --accent-glow: rgba(99,102,241,0.1);
   --bg-base: #f9fafb;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
@@ -362,7 +431,7 @@ html[data-theme="ember"] {
   --text-0: #fef3ec;
   --text-1: #e8cfc0;
   --text-2: #b39b8a;
-  --text-3: #96806f;
+  --text-3: #9d8879;
   --border: rgba(240,136,80,.16);
   --border-hi: rgba(240,136,80,.3);
   --accent: #f08850;
@@ -391,4 +460,18 @@ html[data-theme="ocean"] {
   --on-accent: #06181c;
   --accent-glow: #38c5d822;
 }
+
+/* Theme picker tile faces — GENERATED from THEME_VARS. A swatch must
+   preview the real palette; hand-typed approximations drift (the old
+   "Dark Cyber" tile was navy #0f172a while dark is #0f0f0f). Selectors
+   are doubled: .btn-3d (styles-system.css, loaded last) also sets
+   background/color/border-color and would win at equal specificity. */
+.theme-tile--light.theme-tile--light { background: #ffffff; color: #111827; border-color: #d1d5db; }
+.theme-tile--dark.theme-tile--dark { background: #0f0f0f; color: #f5f5f5; border-color: #363636; }
+.theme-tile--obsidian.theme-tile--obsidian { background: #040408; color: #ffffff; border-color: #22223c; }
+.theme-tile--jet.theme-tile--jet { background: #000000; color: #ffffff; border-color: #24242e; }
+.theme-tile--midnight.theme-tile--midnight { background: #050810; color: #f8fafc; border-color: #202848; }
+.theme-tile--forest.theme-tile--forest { background: #06100a; color: #ecfdf5; border-color: #1d452d; }
+.theme-tile--ember.theme-tile--ember { background: #100a08; color: #fef3ec; border-color: #38221a; }
+.theme-tile--ocean.theme-tile--ocean { background: #080d10; color: #effafc; border-color: #1d3340; }
 /* ==== END generated theme palettes ==== */
