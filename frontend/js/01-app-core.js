@@ -5997,22 +5997,20 @@ async function studioSyncAfterScaffold(result) {
   studioLoadFileTree();
 }
 
-// ── Keyboard shortcut: ⌘⇧P → open Studio ─────────────────────────
-// MODULE MERGE: ⌘⇧E used to open the standalone Code Editor (Builder)
-// pane. That pane is retired and folded into Studio, so the shortcut is
-// removed rather than left as a confusing second binding for the exact
-// same destination as ⌘⇧P.
-document.addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'P') {
-    e.preventDefault();
-    nav('studio');
-  }
-});
+// ── Keyboard shortcut: ⌘⇧P → Profiler (r96, #260) ────────────────
+// DELETED: this listener used to nav('studio') first, then 03-features-a's
+// later-registered ⌘⇧P → nav('profiler') covered it — Studio painted once
+// underneath on every press. The help overlay documents ⌘⇧P as Profiler
+// (the effect users always got), so the losing binding is deleted rather
+// than left to double-fire. Same precedent as the MODULE MERGE note that
+// used to sit here: the retired Builder pane's ⌘⇧E was removed as "a
+// confusing second binding for the exact same destination". Studio is one
+// palette entry away.
 
 // Add Studio to palette
 if (typeof PALETTE_CMDS !== 'undefined') {
   PALETTE_CMDS.unshift(
-    {icon:'🎬', label:'Open Studio',       desc:'Chat + Editor + Live Preview (⌘⇧P)', action:()=>nav('studio')},
+    {icon:'🎬', label:'Open Studio',       desc:'Chat + Editor + Live Preview', action:()=>nav('studio')},
     {icon:'🖥️', label:'Preview: Desktop', desc:'Full desktop device', action:()=>{nav('studio');setTimeout(()=>studioSetDevice('desktop'),300)}},
     {icon:'📱', label:'Preview: Phone',   desc:'iPhone 15 Pro frame', action:()=>{nav('studio');setTimeout(()=>studioSetDevice('mobile'),300)}},
     {icon:'📋', label:'Preview: Tablet',  desc:'iPad breakpoint',     action:()=>{nav('studio');setTimeout(()=>studioSetDevice('tablet'),300)}},

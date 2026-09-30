@@ -130,7 +130,9 @@ def test_overlay_is_class_based_not_inline_styled():
     the old overlay emitted ~25 per open and relied on the hydrator to rescue
     them. Classes parse clean."""
     src = OVERLAY_JS.read_text(encoding='utf-8')
-    assert "className = 'kbs-overlay'" in src
+    # r96, #260: kbd-modal-overlay joins the platform modal contract
+    # (masterEscapeHandler teardown + Tab focus trap; see test_246).
+    assert "className = 'kbs-overlay kbd-modal-overlay'" in src
     assert 'style="' not in src
     assert 'style.cssText' not in src
     assert '.kbs-card' in TOKENS_CSS.read_text(encoding='utf-8')

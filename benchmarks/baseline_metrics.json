@@ -1,13 +1,13 @@
 {
-  "timestamp": 1784309638.025706,
-  "python_version": "3.13.13 (main, Apr  8 2026, 17:46:54) [GCC 14.2.0]",
+  "timestamp": 1790807478.0078,
+  "python_version": "3.13.14 (main, Jul 14 2026, 04:45:36) [GCC 14.2.0]",
   "avg_latency_ms": {
-    "/api/system/health": 213.96,
-    "/api/agents": 8.23,
-    "/api/tasks": 10.26,
-    "/api/prompts": 6.63,
-    "/api/search/global?q=agent": 10.45,
-    "/api/notifications/list": 3.81
+    "/api/system/health": 214.6,
+    "/api/agents": 4.39,
+    "/api/tasks": 3.96,
+    "/api/prompts": 5.9,
+    "/api/search/global?q=agent": 11.05,
+    "/api/notifications/list": 2.56
   },
-  "overall_avg_ms": 42.22
+  "overall_avg_ms": 40.41
 }

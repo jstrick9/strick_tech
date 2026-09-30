@@ -57,7 +57,10 @@ describe('keyboard shortcut truthfulness', () => {
   it('r95: the overlay renders from classes, not per-open inline styles', () => {
     // The enforced `style-src 'self'` refuses parser-level style attributes;
     // the old overlay emitted ~25 per open (hydrator-rescued at a cost).
-    expect(OVERLAY).toMatch(/className = 'kbs-overlay'/);
+    // r96, #260: the overlay also joins the platform modal contract —
+    // kbd-modal-overlay enrolls it in masterEscapeHandler's teardown and
+    // the Tab focus trap (isTrapRoot in 01-app-core.js).
+    expect(OVERLAY).toMatch(/className = 'kbs-overlay kbd-modal-overlay'/);
     expect(OVERLAY).not.toMatch(/style="/);
     expect(OVERLAY).not.toMatch(/style\.cssText/);
   });
@@ -70,8 +73,29 @@ describe('keyboard shortcut truthfulness', () => {
     expect(OVERLAY).not.toMatch(/Ctrl', 'Shift', 'M'/);
   });
 
+  it('r96: one key, one action — the resolved double-binds stay resolved', () => {
+    const core = read('js/01-app-core.js');
+    const evals = read('js/05-evals-observability.js');
+    const prompt = read('js/14-prompt-library.js');
+    // ⌘⇧E is Health's key alone (07-quality-tools); the evals first-fire is gone
+    expect(evals).not.toMatch(/e\.key==='E'/);
+    // ⌘⇧P is Profiler's key alone (03-features-a); app-core's studio nav is gone
+    expect(core).not.toMatch(/e\.shiftKey && e\.key === 'P'/);
+    // ⌘P is the palette's key alone (app-core); the code-search nav is gone
+    expect(prompt).not.toMatch(/e\.key==='p'/);
+    // ⌘\ is the sidebar toggle's key alone: 90-sidebar-shortcut.js is
+    // deleted outright and the split-workspace keydown binding is gone.
+    expect(fs.existsSync(path.join(__dirname, '..', 'js', '90-sidebar-shortcut.js'))).toBe(false);
+    expect(prompt).not.toContain('e.preventDefault();toggleSplitWorkspace();');
+    // ⌘R really reviews: the old guard asked for 'r' WITH shift (never
+    // matches — shift makes it 'R'); dead code the overlay documented.
+    expect(prompt).toMatch(/e\.key==='r'&&!e\.shiftKey/);
+  });
+
   it('r95: the old #shortcuts-modal and its feeder are deleted', () => {
-    const html = read('../index.html');
+    // (r96: this used to read '../index.html', which resolves OUTSIDE
+    // frontend/ — an ENOENT that failed the test before it asserted anything.)
+    const html = read('index.html');
     const core = read('js/01-app-core.js');
     expect(html).not.toMatch(/shortcuts-modal/);
     expect(core).not.toMatch(/function showShortcuts/);

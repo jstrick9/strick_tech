@@ -135,7 +135,6 @@ def test_the_extracted_boot_scripts_are_present():
     that index.html actually references."""
     for name in (
         '00-theme-boot.js',
-        '90-sidebar-shortcut.js',
         '91-mode-switcher.js',
         '92-pane-error-boundary.js',
         '93-shortcuts-overlay.js',

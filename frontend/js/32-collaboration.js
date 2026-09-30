@@ -103,7 +103,7 @@ nav = function(pane) {
   if (document.getElementById('shortcuts-btn')) return;
 
   // Shortcuts button — opens the SAME overlay the ? key opens. It previously
-  // called showShortcuts() (the older #shortcuts-modal fed from
+  // called the old showShortcuts helper (the #shortcuts-modal fed from
   // /api/onboarding/shortcuts), so the ⌨️ button and the ? key showed two
   // DIFFERENT shortcut lists with different content — a consistency bug that
   // also meant the "(planned)" lies lived in one and not the other. One help

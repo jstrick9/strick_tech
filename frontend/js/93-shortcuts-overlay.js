@@ -12,13 +12,18 @@
 //     ago). The old list also missed ⌘1–6, ⌘P, Alt+1–7, Alt+Shift+F,
 //     ⌘R and ⌘U — all real, all bound.
 //
-//     Two keys are documented by their FINAL effect because two handlers
-//     fire on each press (registration order decides the landing pane):
-//     ⌘⇧E navigates to Evals then Health (lands Health), ⌘⇧P to Studio
-//     then Profiler (lands Profiler), and ⌘P opens the palette and also
-//     navigates to Code Search behind it. Those double-binds are live
-//     conflicts recorded in docs/module-reviews/92 — fixing them changes
-//     behaviour and is deliberately not smuggled into the help rewrite.
+//     r96, #260 — one key, one action. The double-binds #259 documented
+//     by their final effect are resolved by deleting the LOSING handler,
+//     so every landing pane is unchanged but nothing paints underneath:
+//     ⌘⇧E opens Health directly (the dead evals nav in 05-evals is gone),
+//     ⌘⇧P opens Profiler directly (app-core's studio nav is gone), ⌘P
+//     opens only the palette (the code-search nav in 14-prompt-library is
+//     gone), and ⌘\ only toggles the sidebar (90-sidebar-shortcut.js is
+//     deleted outright, and 14's split-workspace keydown binding with it —
+//     split workspace keeps its buttons and its palette entry). ⌘R now
+//     really is "Review current file": its guard used to ask for a
+//     lowercase 'r' WITH shift held, which never matches — dead code the
+//     overlay documented anyway. See docs/module-reviews/93.
 //
 //  2. ONE LIST. The backend mirrors (docs_center.KEYBOARD_SHORTCUTS and
 //     onboarding's /api/onboarding/shortcuts) must flatten to exactly
@@ -106,7 +111,13 @@
 
     var overlay = document.createElement('div');
     overlay.id = 'kb-shortcuts-overlay';
-    overlay.className = 'kbs-overlay';
+    // r96, #260: joins the platform modal contract. The `-modal-overlay`
+    // class enrolls this element in collectOpenModals()'s ad-hoc discovery,
+    // masterEscapeHandler's teardown (remove + focus restore + toast) and
+    // isTrapRoot — so Tab is focus-trapped inside the dialog (WCAG 2.4.3)
+    // instead of escaping to the page behind it, and Esc teardown is owned
+    // by the same handler every other modal in the app answers to.
+    overlay.className = 'kbs-overlay kbd-modal-overlay';
     overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
 
     var html = '<div class="kbs-card">';
@@ -146,7 +157,13 @@
         window.showKeyboardShortcuts();
       }
     }
-    // Esc to close
+    // Esc to close — belt-and-braces. masterEscapeHandler (01-app-core,
+    // registered before this file loads) owns the teardown via the
+    // kbd-modal-overlay contract: it removes the element, restores focus
+    // and toasts. This branch can only matter when the master did not
+    // handle the key (e.g. the inspection drawer consumed it first); the
+    // double-run is benign — by registration order the element is already
+    // gone when this lookup runs.
     if (e.key === 'Escape') {
       var overlay = document.getElementById('kb-shortcuts-overlay');
       if (overlay) overlay.remove();

@@ -26,8 +26,8 @@ WHAT THIS FILE PINS
 2. The ? overlay: opens/closes, class-based, ZERO CSP refusals per open,
    contains the previously-missing real shortcuts and none of the fiction.
 3. The ⌘⇧ pane jumps actually land on the panes the help documents —
-   including the two double-bound keys, pinned by their final landing pane
-   (E → Health, P → Profiler; see docs/module-reviews/92).
+   every key single-bound since r96/#260 deleted the losing handlers
+   (E → Health, P → Profiler; see docs/module-reviews/93).
 4. The settings picker: nine tiles, honest faces, ember applies, the
    current tile is marked.
 5. The docs Themes tab renders the generated palette reference and can
@@ -219,11 +219,12 @@ def test_header_button_and_old_modal(shared_page):
 
 # ── 3. The ⌘⇧ pane jumps land where the help says ────────────────────────────
 
-# Verified against the actual document-level keydown handlers. Two keys have
-# two handlers each (registration order decides the landing pane) and are
-# pinned by their FINAL effect — the honest thing to document. Note the
-# workstation consolidation: an absorbed pane opens its HOST workstation with
-# the absorbed pane's tab selected, so the assertion checks both.
+# Verified against the actual document-level keydown handlers — live-pressed.
+# Since r96/#260 every key is single-bound (the losing handlers of the #259
+# double-binds were deleted), so each press lands directly on the documented
+# pane with nothing painted underneath. Note the workstation consolidation:
+# an absorbed pane opens its HOST workstation with the absorbed pane's tab
+# selected, so the assertion checks both.
 PANE_JUMPS = {
     'A': 'arena',    'B': 'bugbot',  'E': 'health',  'F': 'fusion',
     'G': 'codeindex','H': 'hooks',   'K': 'knowledge-graph', 'L': 'leaderboard',
@@ -262,6 +263,7 @@ def test_pane_jump_shortcuts_land_where_documented(shared_page):
 def test_cmd_p_opens_the_palette(shared_page):
     page = shared_page
     page.evaluate("() => { document.activeElement && document.activeElement.blur(); }")
+    before = page.evaluate("() => (document.querySelector('.pane.active') || {}).id")
     page.keyboard.press('Control+p')
     page.wait_for_timeout(400)
     state = page.evaluate("""() => ({
@@ -271,13 +273,13 @@ def test_cmd_p_opens_the_palette(shared_page):
     page.keyboard.press('Escape')
     page.wait_for_timeout(150)
     assert state['paletteOpen'], '⌘P must open the command palette'
-    # The honest footnote: ⌘P is double-bound — the palette opens AND the
-    # legacy code-search navigation fires behind it (code search is a tab of
-    # the Studio workstation). Pinned as-is; fixing it changes behaviour and
-    # is deliberately not smuggled into #259.
-    assert state['activePane'] == 'pane-studio', (
-        f"⌘P's legacy second binding (Code Search inside Studio) did not fire — if this "
-        'was fixed, update the help overlay and this pin together'
+    # r96, #260: ⌘P is single-bound — the palette opens and NOTHING navigates
+    # behind it. The legacy code-search nav (14-prompt-library) that fired
+    # underneath every press is deleted; the active pane must be exactly
+    # where it was before the keypress.
+    assert state['activePane'] == before, (
+        f'⌘P must only open the palette: the active pane moved {before!r} → '
+        f'{state["activePane"]!r} — a second ⌘P binding is back'
     )
 
 

@@ -1058,7 +1058,11 @@ async function ragDeleteDoc(pipelineId, docId) {
 // Keyboard shortcuts Sprint 19
 document.addEventListener('keydown',(e) =>{
   if(!e.metaKey&&!e.ctrlKey||!e.shiftKey) return;
-  if(e.key==='E'){ e.preventDefault(); nav('evals'); }
+  // r96, #260: ⌘⇧E used to nav('evals') here AND nav('health') in
+  // 07-quality-tools.js, which loads later — Health always won and Evals
+  // painted once underneath, immediately covered. The dead first fire is
+  // deleted; the help overlay documents ⌘⇧E as Health, which is what it
+  // now does directly. Evals stays reachable via the palette and sidebar.
   if(e.key==='O'){ e.preventDefault(); nav('observability'); }
   if(e.key==='K'){ e.preventDefault(); nav('knowledge-graph'); }
 });

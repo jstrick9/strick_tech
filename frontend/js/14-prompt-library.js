@@ -778,7 +778,7 @@ function toggleReviewOverlay(){
 
 (function addReviewBtn(){
   const t=document.querySelector('.studio-toolbar');if(!t||document.getElementById('review-btn')){setTimeout(addReviewBtn,900);return;}
-  const b=document.createElement('button');b.id='review-btn';b.className='btn btn-ghost btn-sm';b.title='AI code review (⌘⇧R)';b.textContent='🔍 Review';b.onclick=reviewCurrentFile;t.appendChild(b);
+  const b=document.createElement('button');b.id='review-btn';b.className='btn btn-ghost btn-sm';b.title='AI code review (⌘R)';b.textContent='🔍 Review';b.onclick=reviewCurrentFile;t.appendChild(b);
 })();
 
 // ══════════════════════════════════════════════════════
@@ -1072,10 +1072,20 @@ if (typeof _origStudioSaveFile === 'function') {
 //  UX POLISH — Keyboard shortcuts + improvements
 // ══════════════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
-  if((e.metaKey||e.ctrlKey)&&e.key==='p'&&!e.shiftKey){e.preventDefault();nav('codesearch');setTimeout(()=>document.getElementById('cs-input')?.focus(),200);}
-  if((e.metaKey||e.ctrlKey)&&e.key==='r'&&e.shiftKey){e.preventDefault();reviewCurrentFile();}
+  // r96, #260 — one key, one action (the help overlay is the contract):
+  // ⌘P is the PALETTE's key (01-app-core opens it); the code-search nav
+  // that fired underneath every press is deleted. Code Search is a Studio
+  // workstation tab and a palette entry.
+  // ⌘\ is the SIDEBAR toggle's key (01-app-core); the split-workspace
+  // binding here was a third simultaneous handler on the same keypress —
+  // deleted. Split workspace keeps its buttons and its palette entry.
+  // ⌘R: the old guard asked for e.key==='r' WITH e.shiftKey — with shift
+  // held, e.key is 'R', so the condition never matched: ⌘R fell through
+  // to the browser reload while the overlay documented "Review current
+  // file". The guard now matches the documented key; the preventDefault
+  // is the documented, deliberate browser-key steal (as with ⌘U).
+  if((e.metaKey||e.ctrlKey)&&e.key==='r'&&!e.shiftKey){e.preventDefault();reviewCurrentFile();}
   if((e.metaKey||e.ctrlKey)&&e.key==='u'){e.preventDefault();shareProject();}
-  if((e.metaKey||e.ctrlKey)&&e.key==='\\'){e.preventDefault();toggleSplitWorkspace();}
 });
 
 // Auto-focus chat on startup.
@@ -1111,8 +1121,8 @@ if(typeof PALETTE_CMDS!=='undefined'){
     {icon:'💬',label:'Prompt Library',desc:'Save & reuse AI prompts (⌘L)',action:()=>nav('prompts')},
     {icon:'🔍',label:'Search Code',desc:'Find anything in project (⌘P)',action:()=>nav('codesearch')},
     {icon:'🌐',label:'Share App',desc:'Get public URL (⌘U)',action:()=>shareProject()},
-    {icon:'🔍',label:'Review Code',desc:'AI code review (⌘⇧R)',action:()=>reviewCurrentFile()},
-    {icon:'🗂️',label:'Split Workspace',desc:'Dual-pane docking view (⌘\\)',action:()=>toggleSplitWorkspace()},
+    {icon:'🔍',label:'Review Code',desc:'AI code review (⌘R)',action:()=>reviewCurrentFile()},
+    {icon:'🗂️',label:'Split Workspace',desc:'Dual-pane docking view',action:()=>toggleSplitWorkspace()},
     {icon:'🖥️',label:'Studio Console',desc:'Run linter and check HMR events',action:()=>{nav('studio');runStudioConsoleLint();}},
   );
 }
